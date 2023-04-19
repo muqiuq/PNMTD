@@ -15,7 +15,7 @@ namespace PNMTD.Controllers
         }
 
         [HttpGet("event/{sensorId}/{code}/{message?}", Name = "Submit Event")]
-        public IResult GetEvent(string sensorId, int code, string? message)
+        public string GetEvent(string sensorId, int code, string? message)
         {
             var sensor = db.Sensors.First(s => s.Id == Guid.Parse(sensorId));
 
@@ -30,7 +30,7 @@ namespace PNMTD.Controllers
 
             db.SaveChanges();
 
-            return Results.Ok(eventEntity.Id);
+            return eventEntity.Id.ToString();
         }
 
     }
