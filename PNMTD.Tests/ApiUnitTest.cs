@@ -46,6 +46,8 @@ namespace PNMTD.Tests
 
             Assert.IsNotNull(eventT);
             Assert.AreEqual(numberOfEventsBefore + 1, _factory.DbTestHelper.DbContext.Events.Count());
+            Assert.AreEqual(testMessage, eventT.Message);
+            Assert.AreEqual(200, eventT.Code);
         }
 
         [ClassCleanup]
