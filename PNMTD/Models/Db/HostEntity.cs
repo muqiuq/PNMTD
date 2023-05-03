@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PNMTD.Models.Db
@@ -6,6 +7,7 @@ namespace PNMTD.Models.Db
     [Table("hosts")]
     public class HostEntity
     {
+        [Key]
         public Guid Id { get; set; }
 
         public string Name { get; set; }
@@ -18,8 +20,9 @@ namespace PNMTD.Models.Db
 
         public bool Enabled { get; set; }
 
-        public List<SensorEntity> Sensors { get; } = new();
+        public virtual List<SensorEntity> Sensors { get; set; } = new List<SensorEntity>();
 
+        public virtual List<NotificationEntity> SubscribedByNotification { get; set; } = new List<NotificationEntity>();
     }
 }
 

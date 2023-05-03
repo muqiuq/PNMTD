@@ -30,6 +30,7 @@ namespace PNMTD.Tests
             var content = await resp_hosts.Content.ReadAsStringAsync();
             var hosts = JsonConvert.DeserializeObject<List<HostStatePoco>>(content);
             Assert.AreEqual(DbTestHelper.NUMBER_OF_HOST_ENTITIES, hosts.Count);
+            Assert.IsTrue(hosts.First().Sensors != null && hosts.First().Sensors.Count > 0);
             Assert.IsTrue(_factory.DbTestHelper.HostEntities.Any(h => h.Id == hosts.First().Id));
         }
 

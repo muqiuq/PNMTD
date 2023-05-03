@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PNMTD.Models.Db
@@ -8,9 +9,10 @@ namespace PNMTD.Models.Db
     {
         public const int END_OF_SUCCESS_CODES = 500;
 
+        [Key]
         public Guid Id { get; set; }
 
-        public SensorEntity Sensor { get; set; }
+        public virtual SensorEntity Sensor { get; set; }
 
         public DateTime Created { get; set; }
 
@@ -23,6 +25,8 @@ namespace PNMTD.Models.Db
         }
 
         public int Code { get; set; }
+
+        public virtual List<NotificationEntity> SubscribedByNotification { get; set; } = new List<NotificationEntity>();
 
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using PNMTD.Models.Db;
 
 namespace PNMTD.Data
@@ -15,6 +16,8 @@ namespace PNMTD.Data
 
         public DbSet<EventEntity> Events { get; set; }
 
+        public DbSet<NotificationEntity> Notifications { get; set; }
+
         public string DbPath { get; }
 
         public PnmtdDbContext(bool inMemory = false)
@@ -28,7 +31,8 @@ namespace PNMTD.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {
-            if(inMemory)
+            options.UseLazyLoadingProxies();
+            if (inMemory)
             {
                 options.UseSqlite("DataSource=myshareddb;mode=memory;cache=shared");
             }

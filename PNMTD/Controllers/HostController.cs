@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using PNMTD.Data;
 using PNMTD.Models.Poco;
+using System.Diagnostics;
 
 namespace PNMTD.Controllers
 {
@@ -27,19 +29,31 @@ namespace PNMTD.Controllers
 
             foreach (var host in hosts)
             {
-                var newestEvents = db.Events.Where(e => host.Sensors.Contains(e.Sensor))
-                .GroupBy(e => e.Sensor)
-                .Select(g => new { Sensor = g.Key, Event = g.OrderByDescending(e => e.Created).First() })
-                .ToList()
-                .Select(g => new LastSensorStatePoco()
-                {
-                    Id = g.Sensor.Id,
-                    IsSuccess = g.Event.IsSuccess,
-                    LastCode = g.Event.Code,
-                    LastMessage = g.Event.Message,
-                    Name = g.Sensor.Name
-                })
-                .ToList();
+                var newestEvents = host.Sensors
+                                .GroupJoin(
+                                    db.Events, sensor => sensor, e => e.Sensor,
+                                    (sensor, events) => new { Sensor = sensor, Events = events }
+                                )
+                                .SelectMany(
+                                    se => se.Events.DefaultIfEmpty(),
+                                    (se, e) => new { Sensor = se.Sensor, Event = e }
+                                )
+                                .GroupBy(se => se.Sensor)
+                                .Select(g => new
+                                {
+                                    Sensor = g.Key,
+                                    Event = g.OrderByDescending(se => se.Event?.Created).FirstOrDefault()
+                                })
+                                .ToList()
+                                .Select(g => new LastSensorStatePoco()
+                                {
+                                    Id = g.Sensor.Id,
+                                    IsSuccess = g.Event?.Event?.IsSuccess ?? true,
+                                    LastCode = g.Event?.Event?.Code ?? -1,
+                                    LastMessage = g.Event?.Event?.Message,
+                                    Name = g.Sensor.Name
+                                })
+                                .ToList();
 
                 var hostState = new HostStatePoco()
                 {
