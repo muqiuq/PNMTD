@@ -7,6 +7,12 @@
 
 	<PropertyGroup Condition=" '$(RunConfiguration)' == 'https' " />
 	<PropertyGroup Condition=" '$(RunConfiguration)' == 'http' " />
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	  <NoWarn>1701;1702;CS8618;CS8604;CS8602;CS8600</NoWarn>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	  <NoWarn>1701;1702;CS8618;CS8604;CS8602;CS8600</NoWarn>
+	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.5" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="7.0.5" />
