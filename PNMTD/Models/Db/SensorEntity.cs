@@ -19,6 +19,10 @@ namespace PNMTD.Models.Db
         public DateTime Created { get; set; }
 
         public bool Enabled { get; set; }
+
+        public int Interval { get; set; }
+
+        public int GracePeriod { get; set; }
     }
 }
 

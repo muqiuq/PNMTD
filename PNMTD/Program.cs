@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PNMTD.Data;
 using PNMTD.Models.Db;
 using PNMTD.Models.Poco;
+using PNMTD.Tests;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -15,19 +17,31 @@ public partial class Program
     {
         var db = new PnmtdDbContext();
 
-        db.Database.EnsureCreated();
+        var databaseAlreadyExists = !db.Database.EnsureCreated();
 
-        var app = RunApi(args, db, out var appTask);
+        db.Database.Migrate();
+
+        if(!databaseAlreadyExists && Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+        {
+            Debug.WriteLine("Popuplating DB with test data");
+            DbTestHelper.Populate(db);
+        }
+
+        db.Dispose();
+
+
+
+        var app = RunApi(args, out var appTask);
         appTask.Wait();
     }
 
-    public static WebApplication RunApi(string[] args, PnmtdDbContext db, out Task appTask, bool test = false)
+    public static WebApplication RunApi(string[] args, out Task appTask, bool test = false)
     {
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
         builder.Services.AddAuthorization();
-        builder.Services.AddSingleton<PnmtdDbContext>(db);
+        builder.Services.AddDbContext<PnmtdDbContext>(ServiceLifetime.Scoped);
         builder.Services.AddControllers();
 
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -47,6 +61,8 @@ public partial class Program
         {
             app.UseSwagger();
             app.UseSwaggerUI();
+
+
         }
 
         app.UseHttpsRedirection();
