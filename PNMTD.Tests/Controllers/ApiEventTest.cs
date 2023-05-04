@@ -1,37 +1,25 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Newtonsoft.Json;
-using NuGet.Frameworks;
+﻿using Newtonsoft.Json;
 using PNMTD.Models.Poco;
 using PNMTD.Models.Responses;
-using System.Buffers.Text;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace PNMTD.Tests
+namespace PNMTD.Tests.Controllers
 {
     [TestClass]
-    public class ApiUnitTest
+    internal class ApiEventTest
     {
         private HttpClient _client;
 
         public static readonly CustomWebApplicationFactory<Program> _factory = new CustomWebApplicationFactory<Program>();
 
         [TestInitialize]
-        public void Init() { 
-            _client = _factory.CreateClient();
-        }
-
-
-        [TestMethod]
-        public async Task Api_GetHosts()
+        public void Init()
         {
-            var resp_hosts = await _client.GetAsync("/hosts");
-            Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
-            var content = await resp_hosts.Content.ReadAsStringAsync();
-            var hosts = JsonConvert.DeserializeObject<List<HostStatePoco>>(content);
-            Assert.AreEqual(DbTestHelper.NUMBER_OF_HOST_ENTITIES, hosts.Count);
-            Assert.IsTrue(hosts.First().Sensors != null && hosts.First().Sensors.Count > 0);
-            Assert.IsTrue(_factory.DbTestHelper.HostEntities.Any(h => h.Id == hosts.First().Id));
+            _client = _factory.CreateClient();
         }
 
         [TestMethod]
@@ -85,7 +73,7 @@ namespace PNMTD.Tests
             var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Count();
             var hostEntity = _factory.DbTestHelper.HostEntities[0];
             var randomGuid = Guid.NewGuid();
-            while(_factory.DbTestHelper.SensorEntities.Any(i => i.Id == randomGuid))
+            while (_factory.DbTestHelper.SensorEntities.Any(i => i.Id == randomGuid))
             {
                 randomGuid = Guid.NewGuid();
             }
@@ -106,7 +94,7 @@ namespace PNMTD.Tests
             GlobalConfiguration.MAXIMUM_NUM_OF_EVENTS_PER_SENSOR = 10;
             var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Where(i => i.Sensor == sensorEntity).Count();
 
-            for(int a = 0; a < (GlobalConfiguration.MAXIMUM_NUM_OF_EVENTS_PER_SENSOR + 5); a++)
+            for (int a = 0; a < GlobalConfiguration.MAXIMUM_NUM_OF_EVENTS_PER_SENSOR + 5; a++)
             {
                 await createRandomEventForSensorId(sensorEntity.Id);
             }
@@ -124,8 +112,10 @@ namespace PNMTD.Tests
         }
 
         [ClassCleanup]
-        public static void Cleanup() {
+        public static void Cleanup()
+        {
             _factory.Dispose();
         }
+
     }
 }

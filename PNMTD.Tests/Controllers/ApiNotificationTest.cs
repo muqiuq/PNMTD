@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
 using PNMTD.Data;
 using PNMTD.Models.Poco;
 using PNMTD.Models.Poco.Extensions;
@@ -9,7 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PNMTD.Tests
+namespace PNMTD.Tests.Controllers
 {
     [TestClass]
     public class ApiNotificationTest
@@ -18,11 +19,13 @@ namespace PNMTD.Tests
 
         public static readonly CustomWebApplicationFactory<Program> _factory = new CustomWebApplicationFactory<Program>();
 
-        public static PnmtdDbContext Db { get
+        public static PnmtdDbContext Db
+        {
+            get
             {
                 return _factory.DbTestHelper.DbContext;
-            } 
-        } 
+            }
+        }
 
         [TestInitialize]
         public void Init()
@@ -43,7 +46,7 @@ namespace PNMTD.Tests
                 SubscribedSensors = new List<Guid>() { }
             };
 
-            
+
             var resp_hosts = await _client.PostAsync("/notifications", TestHelper.SerializeToHttpContent(notificationPoco));
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var rawContent = await resp_hosts.Content.ReadAsStringAsync();
@@ -66,7 +69,7 @@ namespace PNMTD.Tests
             var notifictions = JsonConvert.DeserializeObject<List<NotificationPoco>>(content);
 
             Assert.AreEqual(num_of_notification, notifictions.Count);
-            Assert.IsTrue(num_of_notification > 0);
+            Assert.IsTrue(num_of_notification >= DbTestHelper.NUMBER_OF_NOTIFICATIONS);
         }
 
         [TestMethod]
@@ -81,7 +84,7 @@ namespace PNMTD.Tests
             notification.Recipient = notification.Recipient + "2";
             notification.Enabled = !notification.Enabled;
             var resp_hosts = await _client.PutAsync("/notifications", TestHelper.SerializeToHttpContent(notification));
-            
+
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var content = await resp_hosts.Content.ReadAsStringAsync();
             var defaultResponse = JsonConvert.DeserializeObject<DefaultResponse>(content);
@@ -91,7 +94,7 @@ namespace PNMTD.Tests
             Assert.IsTrue(defaultResponse.Success);
             Assert.AreEqual(num_of_notification, Db.Notifications.Count());
             Assert.AreEqual(!originalEnabled, notificationFromDb.Enabled);
-            Assert.AreEqual(originalRecipient + "2" , notificationFromDb.Recipient);
+            Assert.AreEqual(originalRecipient + "2", notificationFromDb.Recipient);
         }
 
         [TestMethod]
