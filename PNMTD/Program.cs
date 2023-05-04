@@ -22,7 +22,7 @@ public partial class Program
 
         db.Database.Migrate();
 
-        if(!databaseAlreadyExists && Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+        if(!databaseAlreadyExists && Global.IsDevelopment)
         {
             Debug.WriteLine("Popuplating DB with test data");
             DbTestHelper.Populate(db);

@@ -1,10 +1,14 @@
-﻿namespace PNMTD.Notifications
+﻿using System.Diagnostics;
+
+namespace PNMTD.Notifications
 {
     public class NotificationService
     {
 
         public static void SendNotification(string recipient, string subject, string messageContent)
         {
+            
+
             var type = typeof(INotificationProvider);
 
             var types = AppDomain.CurrentDomain.GetAssemblies()
@@ -19,7 +23,14 @@
 
                 if(notificationProvider.IsMatch(recipient))
                 {
-                    notificationProvider.SendNotification(recipient, subject, messageContent);
+                    if (Global.IsDevelopment)
+                    {
+                        Debug.WriteLine($"Sending notification ({notificationProvider.GetType().Name}) to {recipient} subject '{subject}' content '{messageContent}' ");
+                    }
+                    else
+                    {
+                        notificationProvider.SendNotification(recipient, subject, messageContent);
+                    }
                 }
             }
         }

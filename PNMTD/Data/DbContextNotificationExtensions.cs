@@ -24,6 +24,29 @@ namespace PNMTD.Data
             return notificationEntity;
         }
 
+        public static IList<NotificationRuleEventEntity> CreateNotificationRuleEventEntitiesOfPendingNotifications(this PnmtdDbContext db
+            , params PendingNotification[] pendingNotifications)
+        {
+            var notificationRuleEventEntities = new List<NotificationRuleEventEntity>();
+
+            foreach(PendingNotification pendingNotification in pendingNotifications)
+            {
+                db.Attach(pendingNotification.EventEntity);
+                db.Attach(pendingNotification.NotitificationRule);
+                var notificationRuleEvent = db.NotificationRuleEvents.Add(new NotificationRuleEventEntity()
+                {
+                    Created = DateTime.UtcNow,
+                    Id = Guid.NewGuid(),
+                    Event = pendingNotification.EventEntity,
+                    NotificationRule = pendingNotification.NotitificationRule
+                });
+
+                notificationRuleEventEntities.Add(notificationRuleEvent.Entity);
+            }
+
+            return notificationRuleEventEntities;
+        }
+
         public static IList<PendingNotification> GetAllPendingNotifications(this PnmtdDbContext db)
         {
             var eventIdsWithNotifications = db.NotificationRuleEvents
