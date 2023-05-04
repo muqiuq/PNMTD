@@ -15,6 +15,7 @@ namespace PNMTD.Notifications
         public void SendNotification(string recipient, string subject, string messageContent)
         {
             SmtpClient client = new SmtpClient(GlobalConfiguration.SMTP_HOST);
+            client.Credentials = new System.Net.NetworkCredential(GlobalConfiguration.SMTP_USERNAME, GlobalConfiguration.SMTP_PASSWORD);
 
             MailAddress from = new MailAddress(GlobalConfiguration.SMTP_SENDER);
             MailAddress to = new MailAddress(recipient);
