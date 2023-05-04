@@ -24,6 +24,8 @@ namespace PNMTD.Models.Db
         public int Interval { get; set; }
 
         public int GracePeriod { get; set; }
+
+        public virtual List<NotificationRuleSensorEntity> SubscribedByNotifications { get; set; } = new List<NotificationRuleSensorEntity>();
     }
 }
 

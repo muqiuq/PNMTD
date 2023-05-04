@@ -26,7 +26,7 @@ namespace PNMTD.Models.Db
 
         public int Code { get; set; }
 
-        public virtual List<NotificationEntity> SubscribedByNotification { get; set; } = new List<NotificationEntity>();
+        public virtual List<NotificationRuleEventEntity> NotificationRuleEvents { get; set; } = new List<NotificationRuleEventEntity>();
 
     }
 }

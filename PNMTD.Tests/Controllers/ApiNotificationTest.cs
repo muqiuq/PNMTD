@@ -34,36 +34,36 @@ namespace PNMTD.Tests.Controllers
         }
 
         [TestMethod]
-        public async Task T01_AddNewNotifications()
+        public async Task T01_AddNewNotificationRule()
         {
-            var num_of_notification = Db.Notifications.Count();
+            var num_of_notification = Db.NotificationRules.Count();
             var host = Db.Hosts.First();
             var notificationPoco = new NotificationPoco()
             {
                 Enabled = true,
                 Recipient = "test@test.com",
-                SubscribedHosts = new List<Guid>() { host.Id },
-                SubscribedSensors = new List<Guid>() { }
+                SubscribedSensors = new List<Guid>() { host.Sensors.First().Id }
             };
 
 
-            var resp_hosts = await _client.PostAsync("/notifications", TestHelper.SerializeToHttpContent(notificationPoco));
+            var resp_hosts = await _client.PostAsync("/notificationrule", TestHelper.SerializeToHttpContent(notificationPoco));
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var rawContent = await resp_hosts.Content.ReadAsStringAsync();
             var parsedResponse = JsonConvert.DeserializeObject<DefaultResponse>(rawContent);
 
-            var notifications = Db.Notifications.Where(n => n.Id == Guid.Parse((string)parsedResponse.Data)).ToList();
+            var notifications = Db.NotificationRules.Where(n => n.Id == Guid.Parse((string)parsedResponse.Data)).ToList();
 
             Assert.IsTrue(notifications.Count() == 1);
+            Assert.AreEqual(1, notifications.First().SubscribedSensors.Count());
             Assert.AreEqual(DbTestHelper.NUMBER_OF_HOST_ENTITIES, Db.Hosts.Count());
-            Assert.AreEqual(num_of_notification + 1, Db.Notifications.Count());
+            Assert.AreEqual(num_of_notification + 1, Db.NotificationRules.Count());
         }
 
         [TestMethod]
-        public async Task T02_GetNotifications()
+        public async Task T02_GetNotificationRules()
         {
-            var resp_hosts = await _client.GetAsync("/notifications");
-            var num_of_notification = Db.Notifications.Count();
+            var resp_hosts = await _client.GetAsync("/notificationrule");
+            var num_of_notification = Db.NotificationRules.Count();
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var content = await resp_hosts.Content.ReadAsStringAsync();
             var notifictions = JsonConvert.DeserializeObject<List<NotificationPoco>>(content);
@@ -73,48 +73,48 @@ namespace PNMTD.Tests.Controllers
         }
 
         [TestMethod]
-        public async Task T03_UpdateNotifications()
+        public async Task T03_UpdateNotificationRule()
         {
-            var notificationFromDB = Db.Notifications.First();
+            var notificationFromDB = Db.NotificationRules.First();
             var notification = notificationFromDB.ToPoco();
             Db.ChangeTracker.Clear();
-            var num_of_notification = Db.Notifications.Count();
+            var num_of_notification = Db.NotificationRules.Count();
             var originalEnabled = notification.Enabled;
             var originalRecipient = notification.Recipient;
             notification.Recipient = notification.Recipient + "2";
             notification.Enabled = !notification.Enabled;
-            var resp_hosts = await _client.PutAsync("/notifications", TestHelper.SerializeToHttpContent(notification));
+            var resp_hosts = await _client.PutAsync("/notificationrule", TestHelper.SerializeToHttpContent(notification));
 
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var content = await resp_hosts.Content.ReadAsStringAsync();
             var defaultResponse = JsonConvert.DeserializeObject<DefaultResponse>(content);
 
-            var notificationFromDb = Db.Notifications.Where(n => n.Id == notification.Id).Single();
+            var notificationFromDb = Db.NotificationRules.Where(n => n.Id == notification.Id).Single();
 
             Assert.IsTrue(defaultResponse.Success);
-            Assert.AreEqual(num_of_notification, Db.Notifications.Count());
+            Assert.AreEqual(num_of_notification, Db.NotificationRules.Count());
             Assert.AreEqual(!originalEnabled, notificationFromDb.Enabled);
             Assert.AreEqual(originalRecipient + "2", notificationFromDb.Recipient);
         }
 
         [TestMethod]
-        public async Task T04_DeleteNotifications()
+        public async Task T04_DeleteNotificationRule()
         {
-            var notificationFromDbBefore = Db.Notifications.First();
+            var notificationFromDbBefore = Db.NotificationRules.First();
             var notification = notificationFromDbBefore.ToPoco();
             Db.ChangeTracker.Clear();
-            var num_of_notification = Db.Notifications.Count();
+            var num_of_notification = Db.NotificationRules.Count();
 
-            var resp_hosts = await _client.DeleteAsync($"/notifications/{notification.Id}");
+            var resp_hosts = await _client.DeleteAsync($"/notificationrule/{notification.Id}");
 
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var content = await resp_hosts.Content.ReadAsStringAsync();
             var defaultResponse = JsonConvert.DeserializeObject<DefaultResponse>(content);
 
-            var notificationFromDb = Db.Notifications.Where(n => n.Id == notification.Id).SingleOrDefault();
+            var notificationFromDb = Db.NotificationRules.Where(n => n.Id == notification.Id).SingleOrDefault();
 
             Assert.IsTrue(defaultResponse.Success);
-            Assert.AreEqual(num_of_notification - 1, Db.Notifications.Count());
+            Assert.AreEqual(num_of_notification - 1, Db.NotificationRules.Count());
             Assert.IsNull(notificationFromDb);
         }
 

@@ -29,31 +29,7 @@ namespace PNMTD.Controllers
 
             foreach (var host in hosts)
             {
-                var newestEvents = host.Sensors
-                                .GroupJoin(
-                                    db.Events, sensor => sensor, e => e.Sensor,
-                                    (sensor, events) => new { Sensor = sensor, Events = events }
-                                )
-                                .SelectMany(
-                                    se => se.Events.DefaultIfEmpty(),
-                                    (se, e) => new { Sensor = se.Sensor, Event = e }
-                                )
-                                .GroupBy(se => se.Sensor)
-                                .Select(g => new
-                                {
-                                    Sensor = g.Key,
-                                    Event = g.OrderByDescending(se => se.Event?.Created).FirstOrDefault()
-                                })
-                                .ToList()
-                                .Select(g => new LastSensorStatePoco()
-                                {
-                                    Id = g.Sensor.Id,
-                                    IsSuccess = g.Event?.Event?.IsSuccess ?? true,
-                                    LastCode = g.Event?.Event?.Code ?? -1,
-                                    LastMessage = g.Event?.Event?.Message,
-                                    Name = g.Sensor.Name
-                                })
-                                .ToList();
+                var sensorsWithLastState = db.GetLastSensorStatesForHosts(host);
 
                 var hostState = new HostStatePoco()
                 {
@@ -63,8 +39,8 @@ namespace PNMTD.Controllers
                     Location = host.Location,
                     Name = host.Name,
                     Notes = host.Notes,
-                    State = newestEvents.All(nw => nw.IsSuccess) ? HostState.Ok : HostState.Error,
-                    Sensors = newestEvents
+                    State = sensorsWithLastState.All(nw => nw.IsSuccess) ? HostState.Ok : HostState.Error,
+                    Sensors = sensorsWithLastState
                 };
 
                 hostStates.Add(hostState);

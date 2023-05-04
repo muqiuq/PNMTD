@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PNMTD.Data;
 using PNMTD.Models.Db;
 using PNMTD.Models.Poco;
+using PNMTD.Services;
 using PNMTD.Tests;
 using System.Diagnostics;
 using System.Text.Json;
@@ -48,6 +49,8 @@ public partial class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
+        builder.Services.AddHostedService<NotificiationService>();
+
         builder.Services.ConfigureHttpJsonOptions((j) =>
         {
             j.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
@@ -64,6 +67,8 @@ public partial class Program
 
 
         }
+
+        
 
         app.UseHttpsRedirection();
 

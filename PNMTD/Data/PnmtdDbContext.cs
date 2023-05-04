@@ -16,7 +16,13 @@ namespace PNMTD.Data
 
         public DbSet<EventEntity> Events { get; set; }
 
-        public DbSet<NotificationEntity> Notifications { get; set; }
+        public DbSet<NotificationRuleEntity> NotificationRules { get; set; }
+
+        public DbSet<NotificationRuleEventEntity> NotificationRuleEvents { get; set; }
+
+        public DbSet<NotificationRuleSensorEntity> NotificationRuleSensor { get; set; }
+
+
 
         public string DbPath { get; }
 

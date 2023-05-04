@@ -21,8 +21,6 @@ namespace PNMTD.Models.Db
         public bool Enabled { get; set; }
 
         public virtual List<SensorEntity> Sensors { get; set; } = new List<SensorEntity>();
-
-        public virtual List<NotificationEntity> SubscribedByNotification { get; set; } = new List<NotificationEntity>();
     }
 }
 

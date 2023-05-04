@@ -12,8 +12,6 @@ namespace PNMTD.Models.Poco
 
         public bool Enabled { get; set; }
 
-        public List<Guid> SubscribedHosts { get; set; }
-
         public List<Guid> SubscribedSensors { get; set; }
 
 

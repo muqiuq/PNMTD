@@ -9,13 +9,13 @@ using PNMTD.Models.Responses;
 
 namespace PNMTD.Controllers
 {
-    [Route("notifications")]
+    [Route("notificationrule")]
     [ApiController]
-    public class NotificationController : ControllerBase
+    public class NotificationRuleController : ControllerBase
     {
         private PnmtdDbContext Db;
 
-        public NotificationController(PnmtdDbContext db)
+        public NotificationRuleController(PnmtdDbContext db)
         {
             this.Db = db;
         }
@@ -24,33 +24,32 @@ namespace PNMTD.Controllers
         [HttpGet]
         public IEnumerable<NotificationPoco> Get()
         {
-            return Db.Notifications.Select(n => n.ToPoco()).ToList();
+            return Db.NotificationRules.Select(n => n.ToPoco()).ToList();
         }
 
         // GET api/<NotificationController>/5
         [HttpGet("{id}")]
         public NotificationPoco Get(Guid id)
         {
-            return Db.Notifications.Where(n => n.Id == id).Select(x => x.ToPoco()).Single();
+            return Db.NotificationRules.Where(n => n.Id == id).Select(x => x.ToPoco()).Single();
         }
 
         // POST api/<NotificationController>
         [HttpPost]
         public DefaultResponse Post([FromBody] NotificationPoco notificationPoco)
         {
-            notificationPoco.Id = Guid.NewGuid();
-            Db.Notifications.Add(notificationPoco.ToEntity(Db));
+            var notificationEntity = Db.CreateNewNotificationRule(notificationPoco);
             Db.SaveChanges();
-            return new DefaultResponse() { Success = true, Message = "", Data = notificationPoco.Id };
+            return new DefaultResponse() { Success = true, Message = "", Data = notificationEntity.Id };
         }
 
         // PUT api/<NotificationController>/5
         [HttpPut]
         public DefaultResponse Put([FromBody] NotificationPoco notificationPoco)
         {
-            var notificationEntity = notificationPoco.ToEntity(Db);
-            Db.Notifications.Attach(notificationEntity);
-            Db.Update<NotificationEntity>(notificationEntity);
+            var notificationEntity = notificationPoco.ToEntity(isNew: false);
+            Db.NotificationRules.Attach(notificationEntity);
+            Db.Update<NotificationRuleEntity>(notificationEntity);
             Db.SaveChanges();
             return new DefaultResponse() { Success = true, Message = "", Data = notificationPoco.Id };
         }
@@ -59,7 +58,7 @@ namespace PNMTD.Controllers
         [HttpDelete("{id}")]
         public DefaultResponse Delete(Guid id)
         {
-            Db.Notifications.Remove(Db.Notifications.Where(n => n.Id == id).Single());
+            Db.NotificationRules.Remove(Db.NotificationRules.Where(n => n.Id == id).Single());
             Db.SaveChanges();
 
             return new DefaultResponse() { Success = true, Message = "", Data = id };

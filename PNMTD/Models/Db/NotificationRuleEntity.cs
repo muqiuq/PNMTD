@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PNMTD.Models.Db
 {
-    [Table("notifications")]
-    public class NotificationEntity
+    [Table("notificationrules")]
+    public class NotificationRuleEntity
     {
         [Key]
         public Guid Id { get; set; }
@@ -12,10 +12,8 @@ namespace PNMTD.Models.Db
         public string Recipient { get; set; }
 
         public bool Enabled { get; set; }
-
-        public virtual List<HostEntity> SubscribedHosts { get; set; } = new List<HostEntity>();
-        
-        public virtual List<SensorEntity> SubscribedSensors { get; set; } = new List<SensorEntity>();
+       
+        public virtual List<NotificationRuleSensorEntity> SubscribedSensors { get; set; } = new List<NotificationRuleSensorEntity>();
 
     }
 }
