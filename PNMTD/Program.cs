@@ -30,8 +30,6 @@ public partial class Program
 
         db.Dispose();
 
-
-
         var app = RunApi(args, out var appTask);
         appTask.Wait();
     }
@@ -63,6 +61,7 @@ public partial class Program
         });
 
         var app = builder.Build();
+        Global.App = app;
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
@@ -72,8 +71,6 @@ public partial class Program
 
 
         }
-
-        Global.App = app;
 
         app.UseHttpsRedirection();
 

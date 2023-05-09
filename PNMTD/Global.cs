@@ -17,6 +17,7 @@ namespace PNMTD
 
         public static ILogger<T> CreateLogger<T>()
         {
+            if(App == null) { return null;  }
             return App.Services.GetRequiredService<ILogger<T>>();
         }
 

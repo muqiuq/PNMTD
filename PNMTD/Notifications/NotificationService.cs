@@ -1,10 +1,12 @@
-﻿using PNMTD.Base;
+﻿using PNMTD.Helper;
 using System.Diagnostics;
 
 namespace PNMTD.Notifications
 {
-    public class NotificationService : InternalLogger<NotificationService>
+    public class NotificationService
     {
+        private static readonly ILogger _logger = LogManager.CreateLogger<NotificationService>();
+
         public static void SendNotification(string recipient, string subject, string messageContent)
         {
             var type = typeof(INotificationProvider);
@@ -23,7 +25,7 @@ namespace PNMTD.Notifications
                 {
                     if (Global.IsDevelopment)
                     {
-                        Logger.LogInformation($"Sending notification ({notificationProvider.GetType().Name}) to {recipient} subject '{subject}' content '{messageContent}' ");
+                        _logger.LogInformation($"Sending notification ({notificationProvider.GetType().Name}) to {recipient} subject '{subject}' content '{messageContent}' ");
                         // notificationProvider.SendNotification(recipient, subject, messageContent);
                     }
                     else

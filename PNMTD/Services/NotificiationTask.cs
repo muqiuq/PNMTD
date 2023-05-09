@@ -28,14 +28,25 @@ namespace PNMTD.Services
         {
             logger.LogInformation("Starting NotificationTask");
 
-            _timer = new Timer(DoWork, null, TimeSpan.Zero,
+            _timer = new Timer(tryDoWork, null, TimeSpan.Zero,
             TimeSpan.FromSeconds(5));
 
             return Task.CompletedTask;
         }
 
 
-        private void DoWork(object? state)
+        private void tryDoWork(object? state)
+        {
+            try
+            {
+                doWork(state);
+            }catch (Exception ex)
+            {
+                logger.LogError("NotificiationService DoWork Exception", ex);
+            }
+        }
+
+        private void doWork(object? state)
         {
             var count = Interlocked.Increment(ref executionCount);
 
@@ -47,6 +58,8 @@ namespace PNMTD.Services
 
                 allPendingNotifications = dbContext.GetAllPendingNotifications();
             }
+
+            if (allPendingNotifications.Count == 0) return;
 
             logger.LogInformation(
                 $"Found {allPendingNotifications.Count} pending notifications");

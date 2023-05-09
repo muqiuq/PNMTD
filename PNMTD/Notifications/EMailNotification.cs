@@ -1,11 +1,13 @@
-﻿using PNMTD.Base;
+﻿using PNMTD.Helper;
 using System.Net.Mail;
 using System.Text.RegularExpressions;
 
 namespace PNMTD.Notifications
 {
-    public class EMailNotification : InternalLogger<EMailNotification>, INotificationProvider 
+    public class EMailNotification : INotificationProvider 
     {
+        private static readonly ILogger _logger = LogManager.CreateLogger<EMailNotification>();
+
         public bool IsMatch(string recipient)
         {
             Regex regexIsEMail = new Regex(@"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
@@ -32,7 +34,7 @@ namespace PNMTD.Notifications
                 client.Send(message);
             }catch(SmtpException ex)
             {
-                Logger.LogWarning($"Failed to Send E-Mail to {recipient}", ex);
+                _logger.LogWarning($"Failed to Send E-Mail to {recipient}", ex);
             }
 
             message.Dispose();
