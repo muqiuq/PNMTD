@@ -1,9 +1,10 @@
-﻿using System.Net.Mail;
+﻿using PNMTD.Base;
+using System.Net.Mail;
 using System.Text.RegularExpressions;
 
 namespace PNMTD.Notifications
 {
-    public class EMailNotification : INotificationProvider
+    public class EMailNotification : InternalLogger<EMailNotification>, INotificationProvider
     {
         public bool IsMatch(string recipient)
         {
@@ -22,12 +23,17 @@ namespace PNMTD.Notifications
 
             MailMessage message = new MailMessage(from, to);
             message.Body = messageContent;
-            // Include some non-ASCII characters in body and subject.
             message.BodyEncoding = System.Text.Encoding.UTF8;
             message.Subject = subject;
             message.SubjectEncoding = System.Text.Encoding.UTF8;
 
-            client.Send(message);
+            try
+            {
+                client.Send(message);
+            }catch(SmtpException ex)
+            {
+                Logger.LogWarning($"Failed to Send E-Mail to {recipient}", ex);
+            }
 
             message.Dispose();
         }

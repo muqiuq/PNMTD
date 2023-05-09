@@ -51,6 +51,11 @@ public partial class Program
 
         builder.Services.AddHostedService<NotificiationService>();
 
+        builder.Logging.ClearProviders();
+        builder.Logging.AddConsole();
+        builder.Logging.AddDebug();
+        builder.Logging.AddFile("pnmtd.log", fileSizeLimitBytes: 52430000, retainedFileCountLimit: 10);
+
         builder.Services.ConfigureHttpJsonOptions((j) =>
         {
             j.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
@@ -68,7 +73,7 @@ public partial class Program
 
         }
 
-        
+        Global.App = app;
 
         app.UseHttpsRedirection();
 
