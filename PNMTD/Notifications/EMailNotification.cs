@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace PNMTD.Notifications
 {
-    public class EMailNotification : InternalLogger<EMailNotification>, INotificationProvider
+    public class EMailNotification : InternalLogger<EMailNotification>, INotificationProvider 
     {
         public bool IsMatch(string recipient)
         {
