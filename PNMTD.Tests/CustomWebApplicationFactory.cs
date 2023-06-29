@@ -19,6 +19,9 @@ namespace PNMTD.Tests
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            // TODO: Change this. This is only for Global.IsDevelopment
+            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
+
             builder.ConfigureServices(services =>
             {
                 var dbContextDescriptor = services.SingleOrDefault(
