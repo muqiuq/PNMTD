@@ -9,6 +9,11 @@ namespace PNMTD.Models.Db
     {
         [Key]
         public Guid Id { get; set; }
+
+        public Guid? OlderSiblingId { get; set; }
+
+        public virtual SensorEntity? OlderSibling { get; set; }
+
         public virtual HostEntity Parent { get; set; }
 
         public SensorType Type { get; set; }

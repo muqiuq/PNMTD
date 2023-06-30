@@ -52,12 +52,9 @@ namespace PNMTD.Services
 
             IList<PendingNotification> allPendingNotifications;
 
-            using (var scope = services.CreateScope())
-            {
-                var dbContext = scope.ServiceProvider.GetRequiredService<PnmtdDbContext>();
+            var dbContext = new PnmtdDbContext();
 
-                allPendingNotifications = dbContext.GetAllPendingNotifications();
-            }
+            allPendingNotifications = dbContext.GetAllPendingNotifications();
 
             if (allPendingNotifications.Count == 0) return;
 
@@ -72,14 +69,9 @@ namespace PNMTD.Services
                     $"{pnm.EventEntity.Sensor.Name} is now State {pnm.EventEntity.Code}"
                     );
 
-                using (var scope = services.CreateScope())
-                {
-                    var dbContext = scope.ServiceProvider.GetRequiredService<PnmtdDbContext>();
+                dbContext.CreateNotificationRuleEventEntitiesOfPendingNotifications(pnm);
 
-                    dbContext.CreateNotificationRuleEventEntitiesOfPendingNotifications(pnm);
-
-                    dbContext.SaveChanges();
-                }
+                dbContext.SaveChanges();
             }
         }
 

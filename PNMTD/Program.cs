@@ -40,7 +40,7 @@ public partial class Program
 
         // Add services to the container.
         builder.Services.AddAuthorization();
-        builder.Services.AddDbContext<PnmtdDbContext>(ServiceLifetime.Scoped);
+        builder.Services.AddDbContext<PnmtdDbContext>(ServiceLifetime.Transient);
         builder.Services.AddControllers();
 
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

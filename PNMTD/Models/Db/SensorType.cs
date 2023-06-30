@@ -7,6 +7,7 @@ namespace PNMTD.Models.Db
         HEARTBEAT,
         PING,
         VALUECHECK,
+        ENCAPSULADED,
     }
 }
 
