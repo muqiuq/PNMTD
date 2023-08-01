@@ -7,7 +7,7 @@ namespace PNMTD.Notifications
     {
         private static readonly ILogger _logger = LogManager.CreateLogger<NotificationService>();
 
-        public static void SendNotification(string recipient, string subject, string messageContent)
+        public static void SendNotification(string recipient, string subject, string messageContent, bool onlySimulate = false)
         {
             var type = typeof(INotificationProvider);
 
@@ -23,12 +23,8 @@ namespace PNMTD.Notifications
 
                 if(notificationProvider.IsMatch(recipient))
                 {
-                    if (Global.IsDevelopment)
-                    {
-                        _logger.LogInformation($"Sending notification ({notificationProvider.GetType().Name}) to {recipient} subject '{subject}' content '{messageContent}' ");
-                        // notificationProvider.SendNotification(recipient, subject, messageContent);
-                    }
-                    else
+                    _logger.LogInformation($"Sending notification ({notificationProvider.GetType().Name}) to {recipient} subject '{subject}' content '{messageContent}' ");
+                    if (!onlySimulate)
                     {
                         notificationProvider.SendNotification(recipient, subject, messageContent);
                     }

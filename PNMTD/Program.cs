@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PNMTD.Data;
+using PNMTD.Helper;
 using PNMTD.Models.Db;
 using PNMTD.Models.Poco;
 using PNMTD.Services;
@@ -25,7 +26,7 @@ public partial class Program
         if(!databaseAlreadyExists && Global.IsDevelopment)
         {
             Debug.WriteLine("Popuplating DB with test data");
-            DbTestHelper.Populate(db);
+            DbTestHelper.Populate(db, ConfigurationHelper.InitConfiguration());
         }
 
         db.Dispose();
@@ -61,6 +62,9 @@ public partial class Program
         });
 
         var app = builder.Build();
+
+        GlobalConfiguration.Init(app.Configuration);
+
         Global.App = app;
 
         // Configure the HTTP request pipeline.
@@ -68,8 +72,6 @@ public partial class Program
         {
             app.UseSwagger();
             app.UseSwaggerUI();
-
-
         }
 
         app.UseHttpsRedirection();

@@ -2,8 +2,10 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PNMTD.Data;
+using PNMTD.Helper;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,10 +19,12 @@ namespace PNMTD.Tests
     {
         internal DbTestHelper DbTestHelper { get; private set; }
 
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             // TODO: Change this. This is only for Global.IsDevelopment
             Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
+            
 
             builder.ConfigureServices(services =>
             {
@@ -30,11 +34,17 @@ namespace PNMTD.Tests
 
                 services.Remove(dbContextDescriptor);
 
+                var config = ConfigurationHelper.InitConfiguration();
+
+                GlobalConfiguration.Init(config);
+
+                services.AddSingleton<IConfiguration>(config);
+
                 var connectionString = "DataSource=myshareddb;mode=memory;cache=shared";
                 var keepAliveConnection = new SqliteConnection(connectionString);
                 keepAliveConnection.Open();
 
-                DbTestHelper = new DbTestHelper();
+                DbTestHelper = new DbTestHelper(config);
 
                 // Create open SqliteConnection so EF won't automatically close it.
                 services.AddSingleton<DbTestHelper>(DbTestHelper);

@@ -2,7 +2,10 @@
 using Microsoft.Extensions.Logging;
 using PNMTD.Data;
 using PNMTD.Models.Helper;
+using PNMTD.Models.Poco;
 using PNMTD.Notifications;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace PNMTD.Services
 {
@@ -10,13 +13,15 @@ namespace PNMTD.Services
     {
         private readonly ILogger<NotificiationService> logger;
         private readonly IServiceProvider services;
+        private readonly IConfiguration configuration;
         private Timer _timer;
         private int executionCount;
 
-        public NotificiationService(ILogger<NotificiationService> _logger, IServiceProvider services)
+        public NotificiationService(ILogger<NotificiationService> _logger, IServiceProvider services, IConfiguration configuration)
         {
             logger = _logger;
             this.services = services;
+            this.configuration = configuration;
         }
 
         public void Dispose()
@@ -63,11 +68,14 @@ namespace PNMTD.Services
 
             foreach (var pnm in allPendingNotifications)
             {
+                var eventEntityPoco = new EventEntityPoco(pnm.EventEntity);
+
                 NotificationService.SendNotification(
                     pnm.NotitificationRule.Recipient,
                     "Alert",
-                    $"{pnm.EventEntity.Sensor.Name} is now State {pnm.EventEntity.Code}"
-                    );
+                    $"{pnm.EventEntity.Sensor.Name} is now State {pnm.EventEntity.Code}\n\n--- DATA ---\n{JsonSerializer.Serialize(eventEntityPoco)}",
+                    configuration["Development:DoNotSendNotifications"] == null ? false : bool.Parse(configuration["Development:DoNotSendNotifications"])
+                    ) ;
 
                 dbContext.CreateNotificationRuleEventEntitiesOfPendingNotifications(pnm);
 
