@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 using PNMTD.Data;
@@ -22,6 +23,7 @@ namespace PNMTD.Controllers
             this.db = db;
         }
 
+        [AllowAnonymous]
         [HttpGet("event/{sensorId}/{code}/{message?}", Name = "Submit Event (Get)")]
         public object GetEvent(string sensorId, int code, string? message)
         {
@@ -49,6 +51,7 @@ namespace PNMTD.Controllers
             return new DefaultResponse() { Success = true, Data = eventEntity.Id };
         }
 
+        [AllowAnonymous]
         [HttpPost("event/{sensorId}/{code}", Name = "Submit Event (Post)")]
         public async Task<object> PostEvent(string sensorId, int code)
         {
