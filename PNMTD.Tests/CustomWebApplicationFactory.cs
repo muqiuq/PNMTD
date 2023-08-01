@@ -9,6 +9,7 @@ using PNMTD.Helper;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -19,6 +20,9 @@ namespace PNMTD.Tests
     {
         internal DbTestHelper DbTestHelper { get; private set; }
 
+        public string JwtToken { get; private set; }
+
+        
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -38,6 +42,8 @@ namespace PNMTD.Tests
 
                 GlobalConfiguration.Init(config);
 
+                JwtToken = JwtTokenHelper.GenerateNewToken(config, "unittest");
+
                 services.AddSingleton<IConfiguration>(config);
 
                 var connectionString = "DataSource=myshareddb;mode=memory;cache=shared";
@@ -54,6 +60,13 @@ namespace PNMTD.Tests
             });
 
             builder.UseEnvironment("Development");
+        }
+
+        protected override void ConfigureClient(HttpClient client)
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", JwtToken);
+
+            base.ConfigureClient(client);
         }
     }
 }

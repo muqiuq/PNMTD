@@ -20,6 +20,7 @@ namespace PNMTD.Tests.Controllers
         public void Init()
         {
             _client = _factory.CreateClient();
+            
         }
 
 
