@@ -38,6 +38,7 @@ namespace PNMTD.Tests.Controllers
         {
             var num_of_notification = Db.NotificationRules.Count();
             var host = Db.Hosts.First();
+            var originalNumberOfHosts = Db.Hosts.Count();
             var notificationPoco = new NotificationPoco()
             {
                 Enabled = true,
@@ -55,7 +56,7 @@ namespace PNMTD.Tests.Controllers
 
             Assert.IsTrue(notifications.Count() == 1);
             Assert.AreEqual(1, notifications.First().SubscribedSensors.Count());
-            Assert.AreEqual(DbTestHelper.NUMBER_OF_HOST_ENTITIES, Db.Hosts.Count());
+            Assert.AreEqual(originalNumberOfHosts, Db.Hosts.Count());
             Assert.AreEqual(num_of_notification + 1, Db.NotificationRules.Count());
         }
 

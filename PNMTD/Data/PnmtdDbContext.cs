@@ -39,6 +39,7 @@ namespace PNMTD.Data
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {
             options.UseLazyLoadingProxies();
+            options.LogTo(x => Debug.WriteLine(x));
             if (inMemory)
             {
                 options.UseSqlite("DataSource=myshareddb;mode=memory;cache=shared");

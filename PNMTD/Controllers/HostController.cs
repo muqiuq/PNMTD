@@ -1,53 +1,82 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.AspNetCore.Mvc;
 using PNMTD.Data;
+using PNMTD.Models.Db;
 using PNMTD.Models.Poco;
-using System.Diagnostics;
+using PNMTD.Models.Poco.Extensions;
+using PNMTD.Models.Responses;
+
+// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace PNMTD.Controllers
 {
+    [Route("host")]
     [ApiController]
-    public class HostController : Controller
+    public class HostController : ControllerBase
     {
+        public PnmtdDbContext Db { get; }
 
-        private readonly PnmtdDbContext db;
-
-        public HostController(PnmtdDbContext db)
+        public HostController(PnmtdDbContext Db)
         {
-            this.db = db;
+            this.Db = Db;
         }
-        [Authorize]
-        [HttpGet("hosts", Name = "Hosts")]
-        public IResult GetHosts()
+
+        // GET: api/<HostController>
+        [HttpGet]
+        public IEnumerable<HostPoco> Get()
         {
-            var hosts = db.Hosts.ToList();
+            return Db.Hosts.Select(h => h.ToPoco()).ToList();
+        }
 
-            var hostStates = new List<HostStatePoco>();
+        // GET api/<HostController>/5
+        [HttpGet("{id}")]
+        public HostPoco Get(Guid id)
+        {
+            return Db.Hosts.Where(h => h.Id == id).Single().ToPoco();
+        }
 
-            foreach (var host in hosts)
+        // POST api/<HostController>
+        [HttpPost]
+        public DefaultResponse Post([FromBody] HostPoco hostPoco)
+        {
+            var entity = hostPoco.ToEntity(true);
+            var change = Db.Hosts.Add(entity);
+            Db.SaveChanges();
+            return new DefaultResponse() { 
+                Success = change.State == Microsoft.EntityFrameworkCore.EntityState.Added, 
+                Message = "", Data = entity.Id };
+        }
+
+        // PUT api/<HostController>/5
+        [HttpPut]
+        public DefaultResponse Put([FromBody] HostPoco hostPoco)
+        {
+            var entity = hostPoco.ToEntity(false);
+            Db.Hosts.Attach(entity);
+            var change = Db.Update<HostEntity>(entity);
+            Db.SaveChanges();
+            return new DefaultResponse()
             {
-                var sensorsWithLastState = db.GetLastSensorStatesForHosts(host);
-
-                var hostState = new HostStatePoco()
-                {
-                    Created = host.Created,
-                    Enabled = host.Enabled,
-                    Id = host.Id,
-                    Location = host.Location,
-                    Name = host.Name,
-                    Notes = host.Notes,
-                    State = sensorsWithLastState.All(nw => nw.IsSuccess) ? HostState.Ok : HostState.Error,
-                    Sensors = sensorsWithLastState
-                };
-
-                hostStates.Add(hostState);
-            }
-
-            return Results.Ok(hostStates);
+                Success = change.State == Microsoft.EntityFrameworkCore.EntityState.Unchanged,
+                Message = "",
+                Data = entity.Id
+            };
         }
 
+        // DELETE api/<HostController>/5
+        [HttpDelete("{id}")]
+        public DefaultResponse Delete(Guid id)
+        {
+            var host = Db.Hosts.Where(n => n.Id == id).Single();
+            host.Sensors.ForEach(s => Db.Sensors.Remove(s));
+            var change = Db.Hosts.Remove(Db.Hosts.Where(n => n.Id == id).Single());
+            Db.SaveChanges();
+
+            return new DefaultResponse()
+            {
+                Success = change.State == Microsoft.EntityFrameworkCore.EntityState.Detached,
+                Message = "",
+                Data = id
+            };
+        }
     }
 }
