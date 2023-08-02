@@ -9,9 +9,11 @@ using PNMTD.Data;
 using PNMTD.Helper;
 using PNMTD.Models.Db;
 using PNMTD.Models.Poco;
+using PNMTD.Notifications;
 using PNMTD.Services;
 using PNMTD.Tests;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -20,6 +22,8 @@ namespace PNMTD;
 
 public partial class Program
 {
+    private static readonly ILogger _logger = LogManager.CreateLogger<Program>();
+
     public static void Main(string[] args)
     {
         var db = new PnmtdDbContext();
@@ -32,6 +36,10 @@ public partial class Program
         {
             Debug.WriteLine("Popuplating DB with test data");
             DbTestHelper.Populate(db, ConfigurationHelper.InitConfiguration());
+        }
+        if(databaseAlreadyExists)
+        {
+            _logger.LogInformation($"Created DB in {db.DbPath}");
         }
 
         db.Dispose();
@@ -53,6 +61,11 @@ public partial class Program
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+
+        if (!Global.IsDevelopment && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            builder.Configuration.AddJsonFile("/var/lib/pnmtd/config.json", true, true);
+        }
 
         builder.Services.AddHostedService<NotificiationService>();
 

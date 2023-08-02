@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -29,9 +30,19 @@ namespace PNMTD.Data
 
         public PnmtdDbContext(bool inMemory = false)
 		{
-            var folder = Environment.SpecialFolder.LocalApplicationData;
-            var path = Environment.GetFolderPath(folder);
-            path = "";
+            var path = "";
+            if(!Global.IsDevelopment)
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    path = Path.Join("/var/lib/pnmtd");
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    path = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "PNMTD");
+                }
+                if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+            }
             DbPath = System.IO.Path.Join(path, "pnmtd.db");
             this.inMemory = inMemory;
         }
