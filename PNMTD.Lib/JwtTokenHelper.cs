@@ -1,13 +1,14 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace PNMTD.Helper
+namespace PNMTD.Lib
 {
     public class JwtTokenHelper
     {
-        public static string GenerateNewToken(IConfiguration configuration, string username, string issuer, string audience, string keystr,
+        public static string GenerateNewToken(string username, string issuer, string audience, string keystr,
             int validForMonths = 12, int validForMinutes = 5)
         {
             var key = Encoding.ASCII.GetBytes
@@ -41,8 +42,7 @@ namespace PNMTD.Helper
             var issuer = configuration["Jwt:Issuer"];
             var audience = configuration["Jwt:Audience"];
             var keystr = configuration["Jwt:Key"];
-            return GenerateNewToken(configuration, username, issuer, audience, keystr, validForMonths, validForMinutes);
-            
+            return GenerateNewToken(username, issuer, audience, keystr, validForMonths, validForMinutes);
         }
     }
 }
