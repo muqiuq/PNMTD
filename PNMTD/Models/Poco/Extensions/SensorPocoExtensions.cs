@@ -15,7 +15,7 @@ namespace PNMTD.Models.Poco.Extensions
                 GracePeriod = sensorEntity.GracePeriod,
                 Interval = sensorEntity.Interval,
                 Name = sensorEntity.Name,
-                ParentId = sensorEntity.Parent.Id,
+                ParentId = sensorEntity.ParentId,
                 TextId = sensorEntity.TextId,
                 Type = sensorEntity.Type,
             };

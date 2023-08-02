@@ -36,6 +36,7 @@ namespace PNMTD.Tests.Controllers
         public async Task T01_AddNewSensor()
         {
             var num_of_sensor = Db.Sensors.Count();
+            var host = Db.Hosts.First();
             var sensor = Db.Sensors.First();
             var sensorPoco = new SensorPoco()
             {
@@ -43,6 +44,7 @@ namespace PNMTD.Tests.Controllers
                 GracePeriod = 15,
                 Interval = 10,
                 Name = "SomeNewName",
+                ParentId = host.Id,
             };
 
             var resp_sensors = await _client.PostAsync("/sensor", TestHelper.SerializeToHttpContent(sensorPoco));
@@ -98,11 +100,9 @@ namespace PNMTD.Tests.Controllers
         [TestMethod]
         public async Task T04_DeleteSensor()
         {
-            var sensors = Db.Sensors.ToList();
-            var sensorFromDbBefore = sensors.First();
+            var sensorFromDbBefore = Db.Sensors.First();
             var sensor = sensorFromDbBefore.ToPoco();
             Db.ChangeTracker.Clear();
-            var num_of_sensor = Db.Sensors.Count();
             var num_of_sensors = Db.Sensors.Count();
 
             var resp_sensors = await _client.DeleteAsync($"/sensor/{sensor.Id}");
@@ -114,7 +114,7 @@ namespace PNMTD.Tests.Controllers
             var sensorFromDb = Db.Sensors.Where(n => n.Id == sensor.Id).SingleOrDefault();
 
             Assert.IsTrue(defaultResponse.Success);
-            Assert.AreEqual(num_of_sensor - 1, Db.Sensors.Count());
+            Assert.AreEqual(num_of_sensors - 1, Db.Sensors.Count());
             Assert.IsNull(sensorFromDb);
         }
     }

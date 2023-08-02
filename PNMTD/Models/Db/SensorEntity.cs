@@ -14,7 +14,7 @@ namespace PNMTD.Models.Db
 
         public virtual SensorEntity? OlderSibling { get; set; }
 
-        public Guid? ParentId { get; set; }
+        public Guid ParentId { get; set; }
 
         public virtual HostEntity Parent { get; set; }
 
