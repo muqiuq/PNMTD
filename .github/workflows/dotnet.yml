@@ -20,7 +20,7 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - name: Apply appsettings for github actions
-      run: cp -vf PNMTD/appsettings.github-action.json PNMTD/appsettings.json
+      run: cp -vf PNMTD/appsettings.github-action.json PNMTD/appsettings.Development.json
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
