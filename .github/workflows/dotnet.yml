@@ -11,7 +11,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -20,6 +19,8 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
+    - name: Copy Secrets
+      run: cp -f PNMTD/appsettings.github-action.json PNMTD/appsettings.json
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
