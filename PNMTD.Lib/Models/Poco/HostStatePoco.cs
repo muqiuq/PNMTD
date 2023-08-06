@@ -1,6 +1,5 @@
-﻿using PNMTD.Models.Db;
-
-namespace PNMTD.Models.Poco
+﻿
+namespace PNMTD.Lib.Models.Poco
 {
     public class HostStatePoco
     {

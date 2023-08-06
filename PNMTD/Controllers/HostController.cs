@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PNMTD.Data;
+using PNMTD.Lib.Models.Poco;
 using PNMTD.Models.Db;
 using PNMTD.Models.Poco;
 using PNMTD.Models.Poco.Extensions;

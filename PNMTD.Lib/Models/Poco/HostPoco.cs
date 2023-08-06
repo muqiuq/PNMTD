@@ -1,7 +1,5 @@
-﻿using PNMTD.Models.Db;
-using System.Text.Json.Serialization;
-
-namespace PNMTD.Models.Poco
+﻿
+namespace PNMTD.Lib.Models.Poco
 {
     public class HostPoco
     {

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using PNMTD.Lib.Models.Poco;
 using PNMTD.Models.Db;
 using PNMTD.Models.Poco;
 

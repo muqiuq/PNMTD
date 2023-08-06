@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Newtonsoft.Json;
 using NuGet.Frameworks;
+using PNMTD.Lib.Models.Poco;
 using PNMTD.Models.Poco;
 using PNMTD.Models.Responses;
 using System.Buffers.Text;

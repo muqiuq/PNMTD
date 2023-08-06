@@ -1,4 +1,4 @@
-﻿namespace PNMTD.Models.Poco
+﻿namespace PNMTD.Lib.Models.Poco
 {
     public class LastSensorStatePoco
     {

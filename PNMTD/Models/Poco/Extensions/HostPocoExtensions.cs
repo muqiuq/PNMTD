@@ -1,4 +1,5 @@
-﻿using PNMTD.Models.Db;
+﻿using PNMTD.Lib.Models.Poco;
+using PNMTD.Models.Db;
 
 namespace PNMTD.Models.Poco.Extensions
 {

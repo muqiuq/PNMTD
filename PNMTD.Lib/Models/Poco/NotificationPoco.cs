@@ -1,7 +1,6 @@
-﻿using PNMTD.Models.Db;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace PNMTD.Models.Poco
+namespace PNMTD.Lib.Models.Poco
 {
     public class NotificationPoco
     {

@@ -1,8 +1,10 @@
 ﻿using Castle.Core.Logging;
 using Microsoft.Extensions.Logging;
 using PNMTD.Data;
+using PNMTD.Lib.Models.Poco;
 using PNMTD.Models.Helper;
 using PNMTD.Models.Poco;
+using PNMTD.Models.Poco.Extensions;
 using PNMTD.Notifications;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -68,7 +70,7 @@ namespace PNMTD.Services
 
             foreach (var pnm in allPendingNotifications)
             {
-                var eventEntityPoco = new EventEntityPoco(pnm.EventEntity);
+                var eventEntityPoco = pnm.EventEntity.ToPoco();
 
                 NotificationService.SendNotification(
                     pnm.NotitificationRule.Recipient,

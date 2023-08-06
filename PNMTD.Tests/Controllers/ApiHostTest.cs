@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using PNMTD.Models.Poco.Extensions;
+using PNMTD.Lib.Models.Poco;
 
 namespace PNMTD.Tests.Controllers
 {

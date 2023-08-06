@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using PNMTD.Data;
+using PNMTD.Lib.Models.Poco;
+using PNMTD.Lib.Models.Poco.Extensions;
 using PNMTD.Models.Poco;
 using PNMTD.Models.Poco.Extensions;
 using PNMTD.Models.Responses;

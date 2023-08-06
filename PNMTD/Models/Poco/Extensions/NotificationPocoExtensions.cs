@@ -2,7 +2,7 @@
 using PNMTD.Data;
 using PNMTD.Models.Db;
 
-namespace PNMTD.Models.Poco.Extensions
+namespace PNMTD.Lib.Models.Poco.Extensions
 {
     public static class NotificationPocoExtensions
     {
