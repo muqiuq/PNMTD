@@ -43,7 +43,7 @@ namespace PNMTD.Controllers
             var change = Db.Hosts.Add(entity);
             Db.SaveChanges();
             return new DefaultResponse() { 
-                Success = change.State == Microsoft.EntityFrameworkCore.EntityState.Added, 
+                Success = change.State == Microsoft.EntityFrameworkCore.EntityState.Unchanged, 
                 Message = "", Data = entity.Id };
         }
 

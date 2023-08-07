@@ -20,7 +20,7 @@ namespace PNMTD.Controllers
         {
             this.db = db;
         }
-        [Authorize]
+
         [HttpGet("hosts", Name = "Hosts")]
         public IResult GetHosts()
         {
@@ -48,6 +48,29 @@ namespace PNMTD.Controllers
             }
 
             return Results.Ok(hostStates);
+        }
+
+        [HttpGet("hosts/{id}", Name = "Host by Id")]
+        public IResult GetHosts(Guid id)
+        {
+            var host = db.Hosts.Single(h => h.Id == id);
+
+
+            var sensorsWithLastState = db.GetLastSensorStatesForHosts(host);
+
+            var hostState = new HostStatePoco()
+            {
+                Created = host.Created,
+                Enabled = host.Enabled,
+                Id = host.Id,
+                Location = host.Location,
+                Name = host.Name,
+                Notes = host.Notes,
+                State = sensorsWithLastState.All(nw => nw.IsSuccess) ? HostState.Ok : HostState.Error,
+                Sensors = sensorsWithLastState
+            };
+
+            return Results.Ok(hostState);
         }
 
     }

@@ -31,6 +31,12 @@ namespace PNMTD.Controllers
             return Db.Sensors.Where(h => h.Id == id).Single().ToPoco();
         }
 
+        [HttpGet("byhost/{id}")]
+        public IEnumerable<SensorPoco> GetByHostId(Guid id)
+        {
+            return Db.Sensors.Where(s => s.ParentId == id).Select(s => s.ToPoco()).ToList();
+        }
+
         [HttpPost]
         public DefaultResponse Post([FromBody] SensorPoco sensorPoco)
         {
