@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using PNMTD.Data;
 using PNMTD.Exceptions;
 using PNMTD.Helper;
+using PNMTD.Lib.Models.Enum;
 using PNMTD.Models.Db;
 using PNMTD.Models.Requests;
 using PNMTD.Models.Responses;

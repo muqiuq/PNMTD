@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PNMTD.Models.Db
+namespace PNMTD.Lib.Models.Enum
 {
     public enum SensorType
     {

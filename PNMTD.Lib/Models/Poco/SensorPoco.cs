@@ -1,4 +1,4 @@
-﻿using PNMTD.Models.Db;
+﻿using PNMTD.Lib.Models.Enum;
 
 namespace PNMTD.Models.Poco
 {
