@@ -1,4 +1,5 @@
-﻿using PNMTD.Lib.Models.Poco;
+﻿using Microsoft.EntityFrameworkCore;
+using PNMTD.Lib.Models.Poco;
 using PNMTD.Lib.Models.Poco.Extensions;
 using PNMTD.Models.Db;
 using PNMTD.Models.Helper;
@@ -39,6 +40,7 @@ namespace PNMTD.Data
                 {
                     Created = DateTime.UtcNow,
                     Id = Guid.NewGuid(),
+                    NoAction = pendingNotification.NoAction,
                     Event = pendingNotification.EventEntity,
                     NotificationRule = pendingNotification.NotitificationRule
                 });
@@ -49,15 +51,33 @@ namespace PNMTD.Data
             return notificationRuleEventEntities;
         }
 
-        public static IList<PendingNotification> GetAllPendingNotifications(this PnmtdDbContext db)
+        public static int CleanNotificationRuleEventEntities(this PnmtdDbContext db)
+        {
+            var maxTimeSpanToKeepEntries = TimeSpan.FromMinutes(60);
+
+            var oldEventEntities = db.NotificationRuleEvents.ToList()
+                .Where(nre => (DateTime.Now - nre.Created) > maxTimeSpanToKeepEntries).ToList();
+
+            db.NotificationRuleEvents.RemoveRange(oldEventEntities);
+
+            db.SaveChanges();
+
+            return oldEventEntities.Count;
+        }
+
+        public static IList<PendingNotification> GetAllPendingNotificationsForLastMinutes(this PnmtdDbContext db, int minutes = 30)
         {
             var eventIdsWithNotifications = db.NotificationRuleEvents
                 .Select(nre => nre.Event.Id)
                 .Distinct()
                 .ToList();
 
+            var maxTimeSpan = TimeSpan.FromMinutes(minutes);
+
             var pendingEvents = db.Events
                 .Where(e => !eventIdsWithNotifications.Contains(e.Id))
+                .ToList()
+                .Where(e => (DateTime.Now - e.Created) < maxTimeSpan)
                 .ToList();
 
             var pendingNotifications = pendingEvents

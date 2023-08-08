@@ -1,6 +1,7 @@
 ﻿using Castle.Core.Logging;
 using Microsoft.Extensions.Logging;
 using PNMTD.Data;
+using PNMTD.Lib.Logic;
 using PNMTD.Lib.Models.Poco;
 using PNMTD.Models.Helper;
 using PNMTD.Models.Poco;
@@ -61,7 +62,7 @@ namespace PNMTD.Services
 
             var dbContext = new PnmtdDbContext();
 
-            allPendingNotifications = dbContext.GetAllPendingNotifications();
+            allPendingNotifications = dbContext.GetAllPendingNotificationsForLastMinutes();
 
             if (allPendingNotifications.Count == 0) return;
 
@@ -72,12 +73,33 @@ namespace PNMTD.Services
             {
                 var eventEntityPoco = pnm.EventEntity.ToPoco();
 
-                NotificationService.SendNotification(
+                var lastEventForSensor = dbContext.Events
+                    .Where(e => e.SensorId == eventEntityPoco.SensorId && e.Id != pnm.EventEntity.Id)
+                    .OrderByDescending(e => e.Created)
+                    .FirstOrDefault();
+
+                int oldStatusCode = -1;
+
+                if(lastEventForSensor != null)
+                {
+                    oldStatusCode = lastEventForSensor.Code;
+                }
+
+                if(NotificationRuleTriggerLogic.Eval(pnm.NotitificationRule.Type, oldStatusCode, pnm.EventEntity.Code)
+                    && pnm.NotitificationRule.Enabled)
+                {
+                    pnm.NoAction = false;
+                    NotificationService.SendNotification(
                     pnm.NotitificationRule.Recipient,
                     "Alert",
                     $"{pnm.EventEntity.Sensor.Name} is now State {pnm.EventEntity.Code}\n\n--- DATA ---\n{JsonSerializer.Serialize(eventEntityPoco)}",
                     configuration["Development:DoNotSendNotifications"] == null ? false : bool.Parse(configuration["Development:DoNotSendNotifications"])
-                    ) ;
+                    );
+                }
+                else
+                {
+                    pnm.NoAction = true;
+                }
 
                 dbContext.CreateNotificationRuleEventEntitiesOfPendingNotifications(pnm);
 

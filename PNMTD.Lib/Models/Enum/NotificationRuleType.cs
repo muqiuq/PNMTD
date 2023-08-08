@@ -12,6 +12,7 @@ namespace PNMTD.Lib.Models.Enum
         ALWAYS,
         ONLY_ON_CHANGE,
         ONLY_FAILURES,
-        ONLY_FAILURES_ON_CHANGE
+        ONLY_FAILURES_ON_CHANGE,
+        ONLY_FAILURES_ON_CHANGE_AND_BACK_TO_OK
     }
 }

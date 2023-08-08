@@ -45,6 +45,7 @@ namespace PNMTD.Tests.Controllers
             {
                 Enabled = true,
                 Recipient = "test@test.com",
+                Name = "Test Notification Poco",
                 SubscribedSensors = new List<Guid>() { host.Sensors.First().Id }
             };
 

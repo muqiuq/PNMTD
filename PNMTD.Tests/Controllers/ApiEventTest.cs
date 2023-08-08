@@ -148,7 +148,7 @@ namespace PNMTD.Tests.Controllers
             var encodedMessage = "$" + Convert.ToBase64String(Encoding.UTF8.GetBytes(testMessage));
             var resp_hosts = await _client.GetAsync($"/event/{randomGuid}/200/{encodedMessage}");
 
-            Assert.AreEqual(System.Net.HttpStatusCode.InternalServerError, resp_hosts.StatusCode);
+            Assert.AreEqual(System.Net.HttpStatusCode.NotFound, resp_hosts.StatusCode);
 
             Assert.AreEqual(numberOfEventsBefore, _factory.DbTestHelper.DbContext.Events.Count());
         }

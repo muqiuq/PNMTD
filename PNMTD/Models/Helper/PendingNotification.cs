@@ -8,5 +8,10 @@ namespace PNMTD.Models.Helper
 
         public EventEntity EventEntity { get; set; }
 
+        /// <summary>
+        /// If the NotificationRule did not trigger an notification action (was not executed) this is set to true
+        /// </summary>
+        public bool NoAction { get; set; }
+
     }
 }

@@ -7,6 +7,7 @@ using PNMTD.Exceptions;
 using PNMTD.Helper;
 using PNMTD.Lib.Models.Enum;
 using PNMTD.Models.Db;
+using PNMTD.Models.Poco.Extensions;
 using PNMTD.Models.Requests;
 using PNMTD.Models.Responses;
 using System.Text;
@@ -24,16 +25,56 @@ namespace PNMTD.Controllers
             this.db = db;
         }
 
+        [HttpGet("events/sensor/{sensorIdStr}", Name = "Get Events (Get)")]
+        public object GetEvents(string sensorIdStr)
+        {
+            var sensorId = Guid.Parse(sensorIdStr);
+
+            var sensor = db.Sensors.Where(s => s.Id == sensorId).SingleOrDefault();
+
+            if(sensor == null)
+            {
+                return NotFound();
+            }
+
+            var events = db.Events
+                .Where(e => e.SensorId == sensorId).ToList();
+
+            return events.Select(e => e.ToPoco()).ToList();
+        }
+
         [AllowAnonymous]
         [HttpGet("event/{sensorId}/{code}/{message?}", Name = "Submit Event (Get)")]
-        public object GetEvent(string sensorId, int code, string? message)
+        public object SubmitEvent(string sensorId, int code, string? message)
         {
-            var sensor = db.Sensors.First(s => s.Id == Guid.Parse(sensorId));
+            var sensorIdGuid = Guid.Parse(sensorId);
+
+            var sensorR = db.Sensors.Where(s => s.Id == sensorIdGuid);
+
+            if(!sensorR.Any())
+            {
+                return NotFound();
+            }
+
+            var sensor = sensorR.Single();
 
             // A $ indicated that the contect of the message is encoded with Base64
             if(message.StartsWith("$"))
             {
                 message = Encoding.UTF8.GetString(Convert.FromBase64String(message.Substring(1)));
+            }
+
+            var lastEvent = db.Events.Where(e => e.SensorId == sensorIdGuid)
+                .OrderByDescending(e => e.Created).FirstOrDefault();
+
+            if(lastEvent != null)
+            {
+                if((DateTime.Now - lastEvent.Created) < TimeSpan.FromSeconds(GlobalConfiguration.MINIMUM_TIME_DIFFERENCE_BETWEEN_EVENTS_IN_SECONDS)
+                    && !Global.IsDevelopment
+                    )
+                {
+                    return Problem("Too many requesteds", statusCode: 425);
+                }
             }
 
             var eventEntity = new EventEntity()
@@ -56,8 +97,18 @@ namespace PNMTD.Controllers
         [HttpPost("event/{sensorId}/{code}", Name = "Submit Event (Post)")]
         public async Task<object> PostEvent(string sensorId, int code)
         {
+            var sensorIdGuid = Guid.Parse(sensorId);
+
+            var sensorR = db.Sensors.Where(s => s.Id == sensorIdGuid);
+
+            if (!sensorR.Any())
+            {
+                return NotFound();
+            }
+
+            var sensor = sensorR.Single();
+
             var message = (await Request.GetRequestBody()).Trim();
-            var sensor = db.Sensors.First(s => s.Id == Guid.Parse(sensorId));
 
             // A $ indicated that the contect of the message is encoded with Base64
             if (message.StartsWith("$"))

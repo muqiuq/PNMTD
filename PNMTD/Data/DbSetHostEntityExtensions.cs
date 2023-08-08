@@ -33,7 +33,9 @@ namespace PNMTD.Data
                     IsSuccess = g.Event?.Event?.IsSuccess ?? true,
                     LastCode = g.Event?.Event?.Code ?? -1,
                     LastMessage = g.Event?.Event?.Message,
-                    Name = g.Sensor.Name
+                    Since = g.Event?.Event?.Created,
+                    Name = g.Sensor.Name,
+                    Type = g.Sensor.Type
                 })
                 .ToList();
         }

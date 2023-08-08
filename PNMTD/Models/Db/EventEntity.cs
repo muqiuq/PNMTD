@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PNMTD.Lib.Models.Poco;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -7,10 +8,10 @@ namespace PNMTD.Models.Db
     [Table("events")]
     public class EventEntity
     {
-        public const int END_OF_SUCCESS_CODES = 399;
-
         [Key]
         public Guid Id { get; set; }
+
+        public Guid SensorId { get; set; }
 
         public virtual SensorEntity Sensor { get; set; }
 
@@ -20,7 +21,7 @@ namespace PNMTD.Models.Db
 
         public bool IsSuccess { get
             {
-                return Code <= END_OF_SUCCESS_CODES;
+                return Code <= EventEntityPoco.END_OF_SUCCESS_CODES;
             }
         }
 

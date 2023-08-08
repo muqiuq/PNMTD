@@ -40,12 +40,13 @@ namespace PNMTD.Tests.Services
             var allEvents = Db.Events.ToList();
             var randomEvent = allEvents[random.Next(allEvents.Count)];
 
-            var pendingNotificationBefore = Db.GetAllPendingNotifications();
+            var pendingNotificationBefore = Db.GetAllPendingNotificationsForLastMinutes();
 
             var notificationPoco = new NotificationRulePoco()
             {
                 Enabled = true,
                 Recipient = "nst@nst.nst",
+                Name = "Test",
                 SubscribedSensors = new List<Guid>() { randomEvent.Sensor.Id }
             };
 
@@ -53,7 +54,7 @@ namespace PNMTD.Tests.Services
 
             Db.SaveChanges();
 
-            var pendingNotificationAfter = Db.GetAllPendingNotifications();
+            var pendingNotificationAfter = Db.GetAllPendingNotificationsForLastMinutes();
 
             Assert.IsTrue(pendingNotificationAfter.Count() != pendingNotificationBefore.Count());
             Assert.IsTrue(pendingNotificationAfter.Where(x => x.NotitificationRule.Recipient == notificationPoco.Recipient).Any());
@@ -70,6 +71,7 @@ namespace PNMTD.Tests.Services
             {
                 Enabled = true,
                 Recipient = "nst@nst2.nst",
+                Name = "Test",
                 SubscribedSensors = new List<Guid>() { randomEvent.Sensor.Id }
             };
 
