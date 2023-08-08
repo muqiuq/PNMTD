@@ -33,6 +33,8 @@ namespace PNMTD.Models.Db
 
         public int GracePeriod { get; set; }
 
+        public string? Parameters { get; set; }
+
         public virtual List<NotificationRuleSensorEntity> SubscribedByNotifications { get; set; } = new List<NotificationRuleSensorEntity>();
     }
 }

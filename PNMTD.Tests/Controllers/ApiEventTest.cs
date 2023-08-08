@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using PNMTD.Lib.Models.Enum;
 using PNMTD.Models.Poco;
 using PNMTD.Models.Requests;
 using PNMTD.Models.Responses;
@@ -28,7 +29,7 @@ namespace PNMTD.Tests.Controllers
         {
             var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Count();
             var hostEntity = _factory.DbTestHelper.HostEntities[0];
-            var sensorEntity = hostEntity.Sensors.Where(s => s.Type == Models.Db.SensorType.HEARTBEAT).First();
+            var sensorEntity = hostEntity.Sensors.Where(s => s.Type == SensorType.HEARTBEAT).First();
             var testMessage = "TestMessage 1234, this is test {\":,\"}";
             var resp_hosts = await _client.GetAsync($"/event/{sensorEntity.Id}/200/{testMessage}");
 
@@ -50,7 +51,7 @@ namespace PNMTD.Tests.Controllers
         {
             var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Count();
             var hostEntity = _factory.DbTestHelper.HostEntities[0];
-            var sensorEntity = hostEntity.Sensors.Where(s => s.Type == Models.Db.SensorType.HEARTBEAT).First();
+            var sensorEntity = hostEntity.Sensors.Where(s => s.Type == SensorType.HEARTBEAT).First();
             var testMessage = "TestMessage 1234, this is test {\":,\"}";
             var content = new StringContent(testMessage, Encoding.UTF8, "text/plain");
             var resp_hosts = await _client.PostAsync($"/event/{sensorEntity.Id}/200", content);
@@ -75,7 +76,7 @@ namespace PNMTD.Tests.Controllers
             var numberOfSensorEntitiesBefore = _factory.DbTestHelper.DbContext.Sensors.Count();
 
             var hostEntity = _factory.DbTestHelper.HostEntities[0];
-            var sensorEntity = hostEntity.Sensors.Where(s => s.Type == Models.Db.SensorType.ENCAPSULADED).First();
+            var sensorEntity = hostEntity.Sensors.Where(s => s.Type == SensorType.ENCAPSULADED).First();
             var encapsulatedEvent1 = new EncapsulatedEvent()
             {
                 Name = "Number1",

@@ -10,7 +10,7 @@ namespace PNMTD.Data
     public static class DbContextNotificationExtensions
     {
 
-        public static NotificationRuleEntity CreateNewNotificationRule(this PnmtdDbContext db, NotificationPoco notificationPoco)
+        public static NotificationRuleEntity CreateNewNotificationRule(this PnmtdDbContext db, NotificationRulePoco notificationPoco)
         {
             var notificationEntity = notificationPoco.ToEntity(isNew: true);
             db.NotificationRules.Add(notificationEntity);

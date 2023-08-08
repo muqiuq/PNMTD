@@ -41,7 +41,7 @@ namespace PNMTD.Tests.Controllers
             var num_of_notification = Db.NotificationRules.Count();
             var host = Db.Hosts.First();
             var originalNumberOfHosts = Db.Hosts.Count();
-            var notificationPoco = new NotificationPoco()
+            var notificationPoco = new NotificationRulePoco()
             {
                 Enabled = true,
                 Recipient = "test@test.com",
@@ -69,7 +69,7 @@ namespace PNMTD.Tests.Controllers
             var num_of_notification = Db.NotificationRules.Count();
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var content = await resp_hosts.Content.ReadAsStringAsync();
-            var notifictions = JsonConvert.DeserializeObject<List<NotificationPoco>>(content);
+            var notifictions = JsonConvert.DeserializeObject<List<NotificationRulePoco>>(content);
 
             Assert.AreEqual(num_of_notification, notifictions.Count);
             Assert.IsTrue(num_of_notification >= DbTestHelper.NUMBER_OF_NOTIFICATIONS);

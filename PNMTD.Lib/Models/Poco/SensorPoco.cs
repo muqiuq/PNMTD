@@ -23,5 +23,7 @@ namespace PNMTD.Models.Poco
         public int Interval { get; set; }
 
         public int GracePeriod { get; set; }
+
+        public string? Parameters { get; set; }
     }
 }

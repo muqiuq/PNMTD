@@ -30,9 +30,17 @@ namespace PNMTD.Controllers
 
         // GET api/<HostController>/5
         [HttpGet("{id}")]
-        public HostPoco Get(Guid id)
+        public IActionResult Get(Guid id)
         {
-            return Db.Hosts.Where(h => h.Id == id).Single().ToPoco();
+            var host = Db.Hosts.Where(h => h.Id == id);
+            if(host.Any())
+            {
+                return Ok(host.Single().ToPoco());
+            }
+            else
+            {
+                return NotFound();
+            }
         }
 
         // POST api/<HostController>

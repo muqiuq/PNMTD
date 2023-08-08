@@ -42,7 +42,7 @@ namespace PNMTD.Tests.Services
 
             var pendingNotificationBefore = Db.GetAllPendingNotifications();
 
-            var notificationPoco = new NotificationPoco()
+            var notificationPoco = new NotificationRulePoco()
             {
                 Enabled = true,
                 Recipient = "nst@nst.nst",
@@ -66,7 +66,7 @@ namespace PNMTD.Tests.Services
             var allEvents = Db.Events.ToList();
             var randomEvent = allEvents[random.Next(allEvents.Count)];
 
-            var notificationPoco = new NotificationPoco()
+            var notificationPoco = new NotificationRulePoco()
             {
                 Enabled = true,
                 Recipient = "nst@nst2.nst",

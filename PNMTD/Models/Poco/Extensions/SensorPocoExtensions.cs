@@ -18,6 +18,7 @@ namespace PNMTD.Models.Poco.Extensions
                 ParentId = sensorEntity.ParentId,
                 TextId = sensorEntity.TextId,
                 Type = sensorEntity.Type,
+                Parameters = sensorEntity.Parameters,
             };
         }
 
@@ -34,7 +35,7 @@ namespace PNMTD.Models.Poco.Extensions
                 ParentId = sensorPoco.ParentId,
                 TextId = sensorPoco.TextId,
                 Type = sensorPoco.Type,
-
+                Parameters = sensorPoco.Parameters
             };
 
             if (!isNew)

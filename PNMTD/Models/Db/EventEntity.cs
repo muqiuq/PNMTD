@@ -7,7 +7,7 @@ namespace PNMTD.Models.Db
     [Table("events")]
     public class EventEntity
     {
-        public const int END_OF_SUCCESS_CODES = 500;
+        public const int END_OF_SUCCESS_CODES = 399;
 
         [Key]
         public Guid Id { get; set; }

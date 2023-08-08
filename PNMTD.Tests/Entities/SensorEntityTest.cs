@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PNMTD.Data;
+using PNMTD.Lib.Models.Enum;
 using PNMTD.Models.Db;
 using System;
 using System.Collections.Generic;
