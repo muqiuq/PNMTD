@@ -10,7 +10,7 @@ namespace PNMTD.Data
 {
     public class PnmtdDbContext : DbContext
     {
-        private readonly bool inMemory;
+        public readonly bool inMemory;
 
         public DbSet<HostEntity> Hosts { get; set; }
 

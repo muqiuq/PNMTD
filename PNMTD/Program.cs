@@ -28,7 +28,7 @@ public partial class Program
     {
         var db = new PnmtdDbContext();
 
-        var databaseAlreadyExists = !db.Database.EnsureCreated();
+        var databaseAlreadyExists = db.Database.CanConnect();
 
         db.Database.Migrate();
 

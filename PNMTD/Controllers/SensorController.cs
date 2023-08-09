@@ -37,6 +37,23 @@ namespace PNMTD.Controllers
             return Db.Sensors.Where(s => s.ParentId == id).Select(s => s.ToPoco()).ToList();
         }
 
+        [HttpGet("newsecrettoken/{id}")]
+        public object NewSecretToken(Guid id)
+        {
+            var sensor = Db.Sensors.Where(h => h.Id == id).SingleOrDefault();
+            if(sensor == null)
+            {
+                return NotFound();
+            }
+            sensor.SetNewSecretToken();
+            Db.SaveChanges();
+            return new DefaultResponse()
+            {
+                Success = true,
+                Data = sensor.SecretToken
+            };
+        }
+
         [HttpPost]
         public DefaultResponse Post([FromBody] SensorPoco sensorPoco)
         {

@@ -23,6 +23,8 @@ namespace PNMTD.Models.Db
 
         public string Name { get; set; }
 
+        public string SecretToken { get; set; }
+
         public string? TextId { get; set; }
 
         public DateTime Created { get; set; }

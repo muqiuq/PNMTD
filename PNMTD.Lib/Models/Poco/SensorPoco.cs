@@ -1,4 +1,5 @@
 ﻿using PNMTD.Lib.Models.Enum;
+using PNMTD.Lib.Models.Poco;
 
 namespace PNMTD.Models.Poco
 {
@@ -14,6 +15,8 @@ namespace PNMTD.Models.Poco
 
         public string Name { get; set; }
 
+        public string? SecretToken { get; set; }
+
         public string? TextId { get; set; }
 
         public DateTime Created { get; set; }
@@ -25,5 +28,7 @@ namespace PNMTD.Models.Poco
         public int GracePeriod { get; set; }
 
         public string? Parameters { get; set; }
+
+        public HostPoco? Parent { get; set; }
     }
 }

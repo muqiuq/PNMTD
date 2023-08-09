@@ -19,7 +19,11 @@ namespace PNMTD.Models.Db
 
         public string? Message { get; set; }
 
-        public bool IsSuccess { get
+        public string Source { get; set; }
+
+        public bool IsSuccess
+        {
+            get
             {
                 return Code <= EventEntityPoco.END_OF_SUCCESS_CODES;
             }

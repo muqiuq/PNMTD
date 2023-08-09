@@ -82,7 +82,8 @@ namespace PNMTD.Controllers
                 Code = code,
                 Message = message,
                 Created = DateTime.Now,
-                Sensor = sensor
+                Sensor = sensor,
+                Source = this.GetRemoteIpAddressOrDefault()
             };
             db.Events.Add(eventEntity);
 
@@ -116,6 +117,8 @@ namespace PNMTD.Controllers
                 message = Encoding.UTF8.GetString(Convert.FromBase64String(message.Substring(1)));
             }
 
+            
+
             EventEntity eventEntity = null;
 
             if (sensor.Type == SensorType.ENCAPSULADED)
@@ -143,6 +146,7 @@ namespace PNMTD.Controllers
                             Interval = sensor.Interval,
                             GracePeriod = sensor.GracePeriod,
                         };
+                        siblingSensor.SetNewSecretToken();
                         db.Sensors.Add(siblingSensor);
                     }
                     else
@@ -155,7 +159,8 @@ namespace PNMTD.Controllers
                         Code = encapsulatedEvent.Code,
                         Message = encapsulatedEvent.Message,
                         Created = DateTime.Now,
-                        Sensor = siblingSensor
+                        Sensor = siblingSensor,
+                        Source = this.GetRemoteIpAddressOrDefault(),
                     };
                     db.Events.Add(eventEntity);
                 }
@@ -166,7 +171,8 @@ namespace PNMTD.Controllers
                     Code = code,
                     Message = message,
                     Created = DateTime.Now,
-                    Sensor = sensor
+                    Sensor = sensor,
+                    Source = this.GetRemoteIpAddressOrDefault()
                 };
                 db.Events.Add(eventEntity);
             }

@@ -86,7 +86,7 @@ namespace PNMTD.Services
                 }
 
                 if(NotificationRuleTriggerLogic.Eval(pnm.NotitificationRule.Type, oldStatusCode, pnm.EventEntity.Code)
-                    && pnm.NotitificationRule.Enabled)
+                    && pnm.NotitificationRule.Enabled && pnm.EventEntity.Sensor.Enabled && pnm.EventEntity.Sensor.Parent.Enabled)
                 {
                     pnm.NoAction = false;
                     NotificationService.SendNotification(

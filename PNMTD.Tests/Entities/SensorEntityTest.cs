@@ -43,8 +43,9 @@ namespace PNMTD.Tests.Entities
                 Parent = host,
                 Type = SensorType.ENCAPSULADED,
                 Interval = 60,
-                GracePeriod = 60
-
+                GracePeriod = 60,
+                SecretToken = ""
+                
             };
             Db.Sensors.Add(olderSensor);
             var siblingSensor = new SensorEntity()
@@ -58,6 +59,7 @@ namespace PNMTD.Tests.Entities
                 Type = SensorType.VALUECHECK,
                 Interval = 60,
                 GracePeriod = 60,
+                SecretToken = ""
             };
             Db.Sensors.Add(siblingSensor);
             Db.SaveChanges();

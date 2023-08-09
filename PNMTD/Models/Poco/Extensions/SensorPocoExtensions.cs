@@ -19,7 +19,23 @@ namespace PNMTD.Models.Poco.Extensions
                 TextId = sensorEntity.TextId,
                 Type = sensorEntity.Type,
                 Parameters = sensorEntity.Parameters,
+                Parent = sensorEntity.Parent != null ? sensorEntity.Parent.ToPoco() : null,
+                SecretToken = sensorEntity.SecretToken,
             };
+        }
+
+        public static void SetNewSecretToken(this SensorEntity sensorEntity)
+        {
+            string beginOfSecretToken;
+            using (System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create())
+            {
+                byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(sensorEntity.Id.ToString());
+                byte[] hashBytes = md5.ComputeHash(inputBytes);
+
+                beginOfSecretToken = Convert.ToHexString(hashBytes);
+            }
+
+            sensorEntity.SecretToken = beginOfSecretToken.Substring(0, 7) + "-" +Guid.NewGuid().ToString();
         }
 
         public static SensorEntity ToEntity(this SensorPoco sensorPoco, bool isNew)
@@ -35,7 +51,8 @@ namespace PNMTD.Models.Poco.Extensions
                 ParentId = sensorPoco.ParentId,
                 TextId = sensorPoco.TextId,
                 Type = sensorPoco.Type,
-                Parameters = sensorPoco.Parameters
+                Parameters = sensorPoco.Parameters,
+                SecretToken = sensorPoco.SecretToken
             };
 
             if (!isNew)
@@ -45,6 +62,7 @@ namespace PNMTD.Models.Poco.Extensions
             else
             {
                 sensorEntity.Id = Guid.NewGuid();
+                sensorEntity.SetNewSecretToken();
             }
 
             return sensorEntity;
