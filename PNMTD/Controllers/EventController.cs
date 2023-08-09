@@ -44,22 +44,21 @@ namespace PNMTD.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("event/{sensorId}/{code}/{message?}", Name = "Submit Event (Get)")]
-        public object SubmitEvent(string sensorId, int code, string? message)
+        [HttpGet("event/{secretToken}/{code}/{message?}", Name = "Submit Event (Get)")]
+        public object SubmitEvent(string secretToken, int code, string? message)
         {
-            var sensorIdGuid = Guid.Parse(sensorId);
+            var sensorR = db.Sensors.Where(s => s.SecretToken == secretToken);
 
-            var sensorR = db.Sensors.Where(s => s.Id == sensorIdGuid);
-
-            if(!sensorR.Any())
+            if (!sensorR.Any())
             {
                 return NotFound();
             }
 
             var sensor = sensorR.Single();
+            var sensorIdGuid = sensor.Id;
 
             // A $ indicated that the contect of the message is encoded with Base64
-            if(message.StartsWith("$"))
+            if (message.StartsWith("$"))
             {
                 message = Encoding.UTF8.GetString(Convert.FromBase64String(message.Substring(1)));
             }
@@ -95,12 +94,10 @@ namespace PNMTD.Controllers
         }
 
         [AllowAnonymous]
-        [HttpPost("event/{sensorId}/{code}", Name = "Submit Event (Post)")]
-        public async Task<object> PostEvent(string sensorId, int code)
+        [HttpPost("event/{secretToken}/{code}", Name = "Submit Event (Post)")]
+        public async Task<object> PostEvent(string secretToken, int code)
         {
-            var sensorIdGuid = Guid.Parse(sensorId);
-
-            var sensorR = db.Sensors.Where(s => s.Id == sensorIdGuid);
+            var sensorR = db.Sensors.Where(s => s.SecretToken == secretToken);
 
             if (!sensorR.Any())
             {
@@ -108,6 +105,7 @@ namespace PNMTD.Controllers
             }
 
             var sensor = sensorR.Single();
+            var sensorIdGuid = sensor.Id;
 
             var message = (await Request.GetRequestBody()).Trim();
 
@@ -116,9 +114,6 @@ namespace PNMTD.Controllers
             {
                 message = Encoding.UTF8.GetString(Convert.FromBase64String(message.Substring(1)));
             }
-
-            
-
             EventEntity eventEntity = null;
 
             if (sensor.Type == SensorType.ENCAPSULADED)

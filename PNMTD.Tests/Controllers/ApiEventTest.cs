@@ -31,7 +31,7 @@ namespace PNMTD.Tests.Controllers
             var hostEntity = _factory.DbTestHelper.HostEntities[0];
             var sensorEntity = hostEntity.Sensors.Where(s => s.Type == SensorType.HEARTBEAT).First();
             var testMessage = "TestMessage 1234, this is test {\":,\"}";
-            var resp_hosts = await _client.GetAsync($"/event/{sensorEntity.Id}/200/{testMessage}");
+            var resp_hosts = await _client.GetAsync($"/event/{sensorEntity.SecretToken}/200/{testMessage}");
 
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var rawContent = await resp_hosts.Content.ReadAsStringAsync();
@@ -54,7 +54,7 @@ namespace PNMTD.Tests.Controllers
             var sensorEntity = hostEntity.Sensors.Where(s => s.Type == SensorType.HEARTBEAT).First();
             var testMessage = "TestMessage 1234, this is test {\":,\"}";
             var content = new StringContent(testMessage, Encoding.UTF8, "text/plain");
-            var resp_hosts = await _client.PostAsync($"/event/{sensorEntity.Id}/200", content);
+            var resp_hosts = await _client.PostAsync($"/event/{sensorEntity.SecretToken}/200", content);
 
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var rawContent = await resp_hosts.Content.ReadAsStringAsync();
@@ -95,7 +95,7 @@ namespace PNMTD.Tests.Controllers
             };
             var testMessage = JsonConvert.SerializeObject(encapsulatedEvents, Formatting.Indented);
             var content = new StringContent(testMessage, Encoding.UTF8, "text/plain");
-            var resp_hosts = await _client.PostAsync($"/event/{sensorEntity.Id}/200", content);
+            var resp_hosts = await _client.PostAsync($"/event/{sensorEntity.SecretToken}/200", content);
 
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var rawContent = await resp_hosts.Content.ReadAsStringAsync();
@@ -119,7 +119,7 @@ namespace PNMTD.Tests.Controllers
             var sensorEntity = hostEntity.Sensors.First();
             var testMessage = "{}K:,-()%*";
             var encodedMessage = "$" + Convert.ToBase64String(Encoding.UTF8.GetBytes(testMessage));
-            var resp_hosts = await _client.GetAsync($"/event/{sensorEntity.Id}/200/{encodedMessage}");
+            var resp_hosts = await _client.GetAsync($"/event/{sensorEntity.SecretToken}/200/{encodedMessage}");
 
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var rawContent = await resp_hosts.Content.ReadAsStringAsync();
@@ -163,18 +163,18 @@ namespace PNMTD.Tests.Controllers
 
             for (int a = 0; a < GlobalConfiguration.MAXIMUM_NUM_OF_EVENTS_PER_SENSOR + 5; a++)
             {
-                await createRandomEventForSensorId(sensorEntity.Id);
+                await createRandomEventForSensorId(sensorEntity.SecretToken);
             }
             //Do prevent two SaveChanges only one save changes occurs. It will always return one event more. Thats the +1
             Assert.AreEqual(GlobalConfiguration.MAXIMUM_NUM_OF_EVENTS_PER_SENSOR + 1,
                 _factory.DbTestHelper.DbContext.Events.Where(i => i.Sensor == sensorEntity).Count());
         }
 
-        private async Task createRandomEventForSensorId(Guid SensorId)
+        private async Task createRandomEventForSensorId(string secretToken)
         {
             var random = new Random();
             var testMessage = random.Next(0, 10000).ToString();
-            var resp_hosts = await _client.GetAsync($"/event/{SensorId}/200/{testMessage}");
+            var resp_hosts = await _client.GetAsync($"/event/{secretToken}/200/{testMessage}");
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
         }
 
