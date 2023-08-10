@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PNMTD.Data;
+using PNMTD.Lib.Models.Enum;
 using PNMTD.Models.Db;
 using PNMTD.Models.Poco;
 using PNMTD.Models.Poco.Extensions;
@@ -35,6 +36,12 @@ namespace PNMTD.Controllers
         public IEnumerable<SensorPoco> GetByHostId(Guid id)
         {
             return Db.Sensors.Where(s => s.ParentId == id).Select(s => s.ToPoco()).ToList();
+        }
+
+        [HttpGet("bytype/{sensorType}")]
+        public IEnumerable<SensorPoco> GetByHostId(SensorType sensorType)
+        {
+            return Db.Sensors.Where(s => s.Type == sensorType).Select(s => s.ToPoco()).ToList();
         }
 
         [HttpGet("newsecrettoken/{id}")]

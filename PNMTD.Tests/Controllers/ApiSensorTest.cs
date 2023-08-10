@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using PNMTD.Models.Poco.Extensions;
+using PNMTD.Lib.Models.Enum;
 
 namespace PNMTD.Tests.Controllers
 {
@@ -73,7 +74,35 @@ namespace PNMTD.Tests.Controllers
         }
 
         [TestMethod]
-        public async Task T03_UpdateSensor()
+        public async Task T03_GetSensorsByType()
+        {
+            var resp_sensors = await _client.GetAsync($"/sensor/bytype/{SensorType.HEARTBEAT.ToString()}");
+            var num_of_sensor = Db.Sensors.Where(s => s.Type == SensorType.HEARTBEAT).Count();
+            Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_sensors.StatusCode);
+            var content = await resp_sensors.Content.ReadAsStringAsync();
+            var sensors = JsonConvert.DeserializeObject<List<SensorPoco>>(content);
+
+            Assert.IsTrue(sensors.All(s => s.Type == SensorType.HEARTBEAT));
+            Assert.AreEqual(num_of_sensor, sensors.Count);
+        }
+
+        [TestMethod]
+        public async Task T04_GetSensorByHost()
+        {
+            var host = Db.Hosts.First();
+            var resp_sensors = await _client.GetAsync($"/sensor/byhost/{host.Id}");
+            var num_of_sensor = Db.Sensors.Where(s => s.ParentId == host.Id).Count();
+            
+            Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_sensors.StatusCode);
+            var content = await resp_sensors.Content.ReadAsStringAsync();
+            var sensors = JsonConvert.DeserializeObject<List<SensorPoco>>(content);
+
+            Assert.IsTrue(sensors.All(s => s.ParentId == host.Id));
+            Assert.AreEqual(num_of_sensor, sensors.Count);
+        }
+
+        [TestMethod]
+        public async Task T05_UpdateSensor()
         {
             var sensorFromDB = Db.Sensors.First();
             var sensor = sensorFromDB.ToPoco();
@@ -98,7 +127,7 @@ namespace PNMTD.Tests.Controllers
         }
 
         [TestMethod]
-        public async Task T04_DeleteSensor()
+        public async Task T06_DeleteSensor()
         {
             var sensorFromDbBefore = Db.Sensors.First();
             var sensor = sensorFromDbBefore.ToPoco();

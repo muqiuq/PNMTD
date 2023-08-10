@@ -35,7 +35,7 @@ namespace PNMTD.Models.Poco.Extensions
                 beginOfSecretToken = Convert.ToHexString(hashBytes);
             }
 
-            sensorEntity.SecretToken = beginOfSecretToken.Substring(0, 7) + "-" +Guid.NewGuid().ToString();
+            sensorEntity.SecretToken = (beginOfSecretToken.Substring(0, 7) + "-" + Guid.NewGuid().ToString()).ToLower();
         }
 
         public static SensorEntity ToEntity(this SensorPoco sensorPoco, bool isNew)

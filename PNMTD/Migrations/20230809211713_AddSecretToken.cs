@@ -15,7 +15,7 @@ namespace PNMTD.Migrations
                 table: "sensors",
                 type: "TEXT",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "0000000-" + Guid.NewGuid().ToString());
         }
 
         /// <inheritdoc />

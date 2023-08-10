@@ -4,7 +4,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace PNMTD.Lib
+namespace PNMTD.Lib.Authentification
 {
     public class JwtTokenHelper
     {

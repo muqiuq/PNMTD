@@ -47,7 +47,7 @@ namespace PNMTD.Controllers
         [HttpGet("event/{secretToken}/{code}/{message?}", Name = "Submit Event (Get)")]
         public object SubmitEvent(string secretToken, int code, string? message)
         {
-            var sensorR = db.Sensors.Where(s => s.SecretToken == secretToken);
+            var sensorR = db.Sensors.Where(s => s.SecretToken == secretToken && s.Enabled);
 
             if (!sensorR.Any())
             {
@@ -97,7 +97,7 @@ namespace PNMTD.Controllers
         [HttpPost("event/{secretToken}/{code}", Name = "Submit Event (Post)")]
         public async Task<object> PostEvent(string secretToken, int code)
         {
-            var sensorR = db.Sensors.Where(s => s.SecretToken == secretToken);
+            var sensorR = db.Sensors.Where(s => s.SecretToken == secretToken && s.Enabled);
 
             if (!sensorR.Any())
             {
