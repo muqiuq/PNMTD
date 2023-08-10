@@ -107,7 +107,7 @@ namespace PNMTD.Services
                 var lastEvent = dbContext.Events.Where(e => e.SensorId == sensor.Id).OrderByDescending(e => e.Created).FirstOrDefault();
                 if(lastEvent != null)
                 {
-                    lastEventSuccess = lastEvent.IsSuccess;
+                    lastEventSuccess = lastEvent.Code == PNMTStatusCodes.PING_SUCCESSFULL;
                     lastCheck = lastEvent.Created;
                 }
 

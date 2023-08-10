@@ -66,9 +66,9 @@ namespace PNMTD.Controllers
             var lastEvent = db.Events.Where(e => e.SensorId == sensorIdGuid)
                 .OrderByDescending(e => e.Created).FirstOrDefault();
 
-            if(lastEvent != null)
+            if (lastEvent != null)
             {
-                if((DateTime.Now - lastEvent.Created) < TimeSpan.FromSeconds(GlobalConfiguration.MINIMUM_TIME_DIFFERENCE_BETWEEN_EVENTS_IN_SECONDS)
+                if ((DateTime.Now - lastEvent.Created) < TimeSpan.FromSeconds(GlobalConfiguration.MINIMUM_TIME_DIFFERENCE_BETWEEN_EVENTS_IN_SECONDS)
                     && !Global.IsDevelopment
                     )
                 {
@@ -76,6 +76,17 @@ namespace PNMTD.Controllers
                 }
             }
 
+            EventEntity eventEntity = createNewEntity(code, message, sensor);
+
+            db.Events.CleanUpEntitiesForHost(sensor.Id);
+
+            db.SaveChanges();
+
+            return new DefaultResponse() { Success = true, Data = eventEntity.Id };
+        }
+
+        private EventEntity createNewEntity(int code, string? message, SensorEntity sensor)
+        {
             var eventEntity = new EventEntity()
             {
                 Code = code,
@@ -84,13 +95,11 @@ namespace PNMTD.Controllers
                 Sensor = sensor,
                 Source = this.GetRemoteIpAddressOrDefault()
             };
+            if (sensor.Type == SensorType.VALUECHECK) SensorTypeActionHelper.AdjustCodeForValueCheckSensorTypeInEvent(eventEntity, sensor);
+
             db.Events.Add(eventEntity);
 
-            db.Events.CleanUpEntitiesForHost(sensor.Id);
-
-            db.SaveChanges();
-
-            return new DefaultResponse() { Success = true, Data = eventEntity.Id };
+            return eventEntity;
         }
 
         [AllowAnonymous]
@@ -137,9 +146,10 @@ namespace PNMTD.Controllers
                             Enabled = true,
                             Name = encapsulatedEvent.Name,
                             Parent = sensor.Parent,
-                            Type = SensorType.VALUECHECK,
+                            Type = SensorType.SIMPLE,
                             Interval = sensor.Interval,
                             GracePeriod = sensor.GracePeriod,
+                            Parameters = "",
                         };
                         siblingSensor.SetNewSecretToken();
                         db.Sensors.Add(siblingSensor);
@@ -149,27 +159,11 @@ namespace PNMTD.Controllers
                         siblingSensor = existingYoungerSibling.Single();
                     }
 
-                    eventEntity = new EventEntity()
-                    {
-                        Code = encapsulatedEvent.Code,
-                        Message = encapsulatedEvent.Message,
-                        Created = DateTime.Now,
-                        Sensor = siblingSensor,
-                        Source = this.GetRemoteIpAddressOrDefault(),
-                    };
-                    db.Events.Add(eventEntity);
+                    eventEntity = createNewEntity(encapsulatedEvent.Code, encapsulatedEvent.Message, siblingSensor);
                 }
             }else
             {
-                eventEntity = new EventEntity()
-                {
-                    Code = code,
-                    Message = message,
-                    Created = DateTime.Now,
-                    Sensor = sensor,
-                    Source = this.GetRemoteIpAddressOrDefault()
-                };
-                db.Events.Add(eventEntity);
+                eventEntity = createNewEntity(code, message, sensor);
             }
 
             db.Events.CleanUpEntitiesForHost(sensor.Id);
