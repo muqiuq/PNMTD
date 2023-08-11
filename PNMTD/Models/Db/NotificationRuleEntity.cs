@@ -17,7 +17,7 @@ namespace PNMTD.Models.Db
         public bool Enabled { get; set; }
         
         public NotificationRuleType Type { get; set; }
-        
+
         public virtual List<NotificationRuleSensorEntity> SubscribedSensors { get; set; } = new List<NotificationRuleSensorEntity>();
     }
 }

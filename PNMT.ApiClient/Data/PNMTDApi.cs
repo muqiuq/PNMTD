@@ -12,6 +12,8 @@ namespace PNMT.ApiClient.Data
 
         public static string BaseAddress = "https://localhost:7328";
 
+        public static string BaseUrlForEventSubmission = "https://localhost:7328";
+
         public readonly HostApiCrud Hosts;
         public readonly SensorApiCrud Sensors;
         public readonly NotificationRuleApiCrud NotificationRules;
@@ -29,7 +31,7 @@ namespace PNMT.ApiClient.Data
         }
 
         public string GetSensorEventUrl(SensorPoco sensor) {
-            return $"{BaseAddress}/event/{sensor.SecretToken}/";
+            return $"{BaseUrlForEventSubmission}/event/{sensor.SecretToken}/";
         }
 
         public string GetSensorEventUrl(SensorPoco sensor, string code, string message)

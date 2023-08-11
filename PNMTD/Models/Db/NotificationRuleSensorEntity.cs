@@ -10,9 +10,9 @@ namespace PNMTD.Models.Db
 
         public Guid NotificationRuleId { get; set; }
 
+        public Guid SensorId { get; set; }
         public virtual SensorEntity Sensor { get; set; }
 
-        public Guid SensorId { get; set; }
-
+        public string? Parameter { get; set; }
     }
 }
