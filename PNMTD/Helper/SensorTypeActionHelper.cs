@@ -19,7 +19,7 @@ namespace PNMTD.Helper
 
         public static void AdjustCodeForValueCheckSensorTypeInEvent(EventEntity eventEntity, SensorEntity sensor)
         {
-            if (sensor.Type != SensorType.VALUECHECK) return;
+            if (sensor.Type != SensorType.VALUECHECK && sensor.Type != SensorType.HEARTBEAT_VALUECHECK) return;
 
             var checkResult = IsContentAMatch(eventEntity.Message, sensor.Parameters);
 
