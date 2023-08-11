@@ -9,6 +9,54 @@ namespace PNMTD.Data
     public static class DbSetHostEntityExtensions
     {
 
+        public static decimal CalculateUpdateFor(this PnmtdDbContext db, HostEntity hostEntity, TimeSpan spanFromNow)
+        {
+            var nowMinus30Days = DateTime.Now - spanFromNow;
+            var events = db.Events
+                .Where(e => e.Sensor.Parent.Id == hostEntity.Id && e.Created > nowMinus30Days)
+                .OrderBy(e => e.Created)
+                .ToList();
+            DateTime? lastDate = null;
+            bool lastState = false;
+
+            TimeSpan online = TimeSpan.Zero;
+            TimeSpan offline = TimeSpan.Zero;
+
+            events.Add(new EventEntity()
+            {
+                Created = DateTime.Now,
+                Code = 0,
+                Message = ""
+            });
+
+            foreach (var e in events)
+            {
+                if (lastDate == null)
+                {
+                    lastDate = e.Created;
+                    lastState = e.IsSuccess;
+                }
+                else
+                {
+                    var diff = e.Created - lastDate;
+                    if (lastState)
+                    {
+                        online += diff.Value;
+                    }
+                    else
+                    {
+                        offline += diff.Value;
+                    }
+
+                    lastDate = e.Created;
+                    lastState = e.IsSuccess;
+                }
+            }
+            var totalTimeSpan = (decimal)offline.TotalSeconds + (decimal)online.TotalSeconds;
+            if (totalTimeSpan == 0) return 100;
+            return ((decimal)online.TotalSeconds) / (totalTimeSpan) * 100 ;
+        }
+
         public static List<LastSensorStatePoco> GetLastSensorStatesForHosts(this PnmtdDbContext db, HostEntity hostEntity)
         {
             return hostEntity.Sensors
@@ -36,7 +84,9 @@ namespace PNMTD.Data
                     Since = g.Event?.Event?.Created,
                     Name = g.Sensor.Name,
                     Type = g.Sensor.Type,
-                    Enabled = g.Sensor.Enabled
+                    Enabled = g.Sensor.Enabled,
+                    UpTime30days = db.CalculateUpdateFor(hostEntity, TimeSpan.FromDays(30)),
+                    UpTime24h = db.CalculateUpdateFor(hostEntity, TimeSpan.FromHours(24))
                 })
                 .ToList();
         }

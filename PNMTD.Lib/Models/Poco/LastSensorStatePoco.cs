@@ -17,6 +17,10 @@ namespace PNMTD.Lib.Models.Poco
 
         public string? LastMessage { get; set; }
 
+        public decimal? UpTime30days { get; set; }
+
+        public decimal? UpTime24h { get; set; }
+
         public bool IsSuccess { get; set; }
 
         public DateTime? Since { get; set; }
