@@ -1,4 +1,4 @@
-﻿using PNMTD.Lib;
+﻿using PNMTD.Lib.Authentification;
 using System.CommandLine;
 
 namespace PNMTD.Cli
