@@ -35,7 +35,8 @@ namespace PNMTD.Data
                     LastMessage = g.Event?.Event?.Message,
                     Since = g.Event?.Event?.Created,
                     Name = g.Sensor.Name,
-                    Type = g.Sensor.Type
+                    Type = g.Sensor.Type,
+                    Enabled = g.Sensor.Enabled
                 })
                 .ToList();
         }

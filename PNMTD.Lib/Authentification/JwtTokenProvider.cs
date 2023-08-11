@@ -2,7 +2,7 @@
 {
     public class JwtTokenProvider
     {
-        public string JwtToken { get; }
+        public string JwtToken { get; set; }
 
         public JwtTokenProvider(bool isDevelopment)
         {

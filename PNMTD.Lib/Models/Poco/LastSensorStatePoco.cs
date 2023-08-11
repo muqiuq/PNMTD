@@ -9,6 +9,8 @@ namespace PNMTD.Lib.Models.Poco
 
         public string Name { get; set; }
 
+        public bool Enabled { get; set; }
+
         public SensorType Type { get; set; }
 
         public int LastCode { get; set; }

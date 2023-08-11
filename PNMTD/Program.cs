@@ -56,7 +56,8 @@ public partial class Program
         builder.Services.AddAuthorization();
         builder.Services.AddDbContext<PnmtdDbContext>(ServiceLifetime.Transient);
 
-        builder.Services.AddControllers().AddMvcOptions(options => options.Filters.Add(new AuthorizeFilter()));
+        builder.Services.AddControllers()
+            .AddMvcOptions(options => options.Filters.Add(new AuthorizeFilter()));
 
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
@@ -64,7 +65,7 @@ public partial class Program
 
         if (!Global.IsDevelopment && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
-            builder.Configuration.AddJsonFile("/var/lib/pnmtd/config.json", true, true);
+            builder.Configuration.AddJsonFile(Path.Combine(GlobalConfiguration.LinuxBasePath,"config.json"), true, true);
         }
 
         builder.Services.AddHostedService<NotificiationService>();
@@ -123,9 +124,23 @@ public partial class Program
         builder.Logging.ClearProviders();
         builder.Logging.AddConsole();
         builder.Logging.AddDebug();
-        builder.Logging.AddFile("pnmtd.log", fileSizeLimitBytes: 52430000, retainedFileCountLimit: 10);
 
+        var logFolder = "";
+        if (!Global.IsDevelopment && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            logFolder = Path.Combine(GlobalConfiguration.LinuxBasePath, "logs");
+            if (!Directory.Exists(logFolder))
+            {
+                Directory.CreateDirectory(logFolder);
+            }
+        }
 
+        builder.Logging.AddFile(Path.Combine(logFolder, "pnmtd.log"), fileSizeLimitBytes: 52430000, retainedFileCountLimit: 10);
+
+        if(Global.IsDevelopment)
+        {
+            builder.WebHost.UseUrls("http://localhost:7327","https://localhost:7328");
+        }
 
         builder.Services.ConfigureHttpJsonOptions((j) =>
         {
