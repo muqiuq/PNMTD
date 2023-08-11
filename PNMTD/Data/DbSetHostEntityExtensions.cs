@@ -9,11 +9,11 @@ namespace PNMTD.Data
     public static class DbSetHostEntityExtensions
     {
 
-        public static decimal CalculateUpdateFor(this PnmtdDbContext db, HostEntity hostEntity, TimeSpan spanFromNow)
+        public static decimal CalculateUpdateFor(this PnmtdDbContext db, SensorEntity sensorEntity, TimeSpan spanFromNow)
         {
             var nowMinus30Days = DateTime.Now - spanFromNow;
             var events = db.Events
-                .Where(e => e.Sensor.Parent.Id == hostEntity.Id && e.Created > nowMinus30Days)
+                .Where(e => e.SensorId == sensorEntity.Id && e.Created > nowMinus30Days)
                 .OrderBy(e => e.Created)
                 .ToList();
             DateTime? lastDate = null;
@@ -85,8 +85,8 @@ namespace PNMTD.Data
                     Name = g.Sensor.Name,
                     Type = g.Sensor.Type,
                     Enabled = g.Sensor.Enabled,
-                    UpTime30days = db.CalculateUpdateFor(hostEntity, TimeSpan.FromDays(30)),
-                    UpTime24h = db.CalculateUpdateFor(hostEntity, TimeSpan.FromHours(24))
+                    UpTime30days = db.CalculateUpdateFor(g.Sensor, TimeSpan.FromDays(30)),
+                    UpTime24h = db.CalculateUpdateFor(g.Sensor, TimeSpan.FromHours(24))
                 })
                 .ToList();
         }
