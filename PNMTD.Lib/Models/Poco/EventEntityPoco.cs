@@ -3,6 +3,8 @@
     public class EventEntityPoco
     {
         public const int END_OF_SUCCESS_CODES = 399;
+        
+        public Guid Id { get; set; }
         public Guid SensorId { get; set; }
         public int StatusCode { get; set; }
         public string? Message { get; set; }

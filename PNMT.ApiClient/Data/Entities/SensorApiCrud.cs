@@ -16,5 +16,16 @@ namespace PNMT.ApiClient.Data.Entities
             return await httpClient.GetFromJsonAsync<List<SensorPoco>>($"/sensor/bytype/{sensorType.ToString()}");
         }
 
+        public async Task<SensorPoco> BySecretToken(string secretToken)
+        {
+            try
+            {
+                return await httpClient.GetFromJsonAsync<SensorPoco>($"/sensor/bysecrettoken/{secretToken}");
+            }catch(HttpRequestException e)
+            {
+                return null;
+            }
+        }
+
     }
 }

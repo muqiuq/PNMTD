@@ -58,7 +58,7 @@ namespace PNMTD.Controllers
             var sensorIdGuid = sensor.Id;
 
             // A $ indicated that the contect of the message is encoded with Base64
-            if (message.StartsWith("$"))
+            if (message != null && message.StartsWith("$"))
             {
                 message = Encoding.UTF8.GetString(Convert.FromBase64String(message.Substring(1)));
             }
@@ -119,13 +119,13 @@ namespace PNMTD.Controllers
             var message = (await Request.GetRequestBody()).Trim();
 
             // A $ indicated that the contect of the message is encoded with Base64
-            if (message.StartsWith("$"))
+            if (message != null && message.StartsWith("$"))
             {
                 message = Encoding.UTF8.GetString(Convert.FromBase64String(message.Substring(1)));
             }
             EventEntity eventEntity = null;
 
-            if (sensor.Type == SensorType.ENCAPSULADED)
+            if (sensor.Type == SensorType.ENCAPSULADED && message != null)
             {
                 var encapsulatedEvents = JsonSerializer.Deserialize<IEnumerable<EncapsulatedEvent>>(message);
                 foreach(var encapsulatedEvent in encapsulatedEvents) 

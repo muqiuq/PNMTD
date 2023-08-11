@@ -11,6 +11,7 @@ namespace PNMTD.Models.Poco.Extensions
         {
             return new EventEntityPoco()
             {
+                Id = entity.Id,
                 SensorId = entity.Sensor.Id,
                 StatusCode = entity.Code,
                 Message = entity.Message,
