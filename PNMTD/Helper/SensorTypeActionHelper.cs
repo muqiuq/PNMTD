@@ -21,6 +21,8 @@ namespace PNMTD.Helper
         {
             if (sensor.Type != SensorType.VALUECHECK && sensor.Type != SensorType.HEARTBEAT_VALUECHECK) return;
 
+            if (eventEntity.Message == null || sensor.Parameters == null) return;
+            
             var checkResult = IsContentAMatch(eventEntity.Message, sensor.Parameters);
 
             eventEntity.Code = checkResult ? PNMTStatusCodes.VALUECHECK_OK : PNMTStatusCodes.VALUECHECK_FAILED;
