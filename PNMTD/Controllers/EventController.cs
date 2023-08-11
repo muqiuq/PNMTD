@@ -95,7 +95,10 @@ namespace PNMTD.Controllers
                 Sensor = sensor,
                 Source = this.GetRemoteIpAddressOrDefault()
             };
-            if (sensor.Type == SensorType.VALUECHECK) SensorTypeActionHelper.AdjustCodeForValueCheckSensorTypeInEvent(eventEntity, sensor);
+            if (sensor.Type == SensorType.VALUECHECK || sensor.Type == SensorType.HEARTBEAT_VALUECHECK)
+            {
+                SensorTypeActionHelper.AdjustCodeForValueCheckSensorTypeInEvent(eventEntity, sensor);
+            }
 
             db.Events.Add(eventEntity);
 

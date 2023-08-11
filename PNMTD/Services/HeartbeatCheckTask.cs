@@ -61,7 +61,9 @@ namespace PNMTD.Services
         {
             var dbContext = new PnmtdDbContext();
 
-            var relevantSensors = dbContext.Sensors.Where(s => s.Type == SensorType.HEARTBEAT && s.Enabled).ToList();
+            var relevantSensors = dbContext.Sensors.Where(s => 
+                (s.Type == SensorType.HEARTBEAT || s.Type == SensorType.HEARTBEAT_VALUECHECK)
+                && s.Enabled).ToList();
 
             int counterCreatedEvents = 0;
 
