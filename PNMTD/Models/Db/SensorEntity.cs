@@ -37,6 +37,8 @@ namespace PNMTD.Models.Db
 
         public string? Parameters { get; set; }
 
+        public string? Source { get ; set; }
+
         public virtual List<NotificationRuleSensorEntity> SubscribedByNotifications { get; set; } = new List<NotificationRuleSensorEntity>();
     }
 }

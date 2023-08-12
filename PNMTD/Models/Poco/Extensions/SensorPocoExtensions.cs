@@ -21,6 +21,7 @@ namespace PNMTD.Models.Poco.Extensions
                 Parameters = sensorEntity.Parameters,
                 Parent = sensorEntity.Parent != null ? sensorEntity.Parent.ToPoco() : null,
                 SecretToken = sensorEntity.SecretToken,
+                Source = sensorEntity.Source,   
             };
         }
 
@@ -52,7 +53,8 @@ namespace PNMTD.Models.Poco.Extensions
                 TextId = sensorPoco.TextId,
                 Type = sensorPoco.Type,
                 Parameters = sensorPoco.Parameters,
-                SecretToken = sensorPoco.SecretToken
+                SecretToken = sensorPoco.SecretToken,
+                Source = sensorPoco.Source,
             };
 
             if (!isNew)
