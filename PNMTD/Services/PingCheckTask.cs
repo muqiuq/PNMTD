@@ -103,12 +103,17 @@ namespace PNMTD.Services
             {
                 var lastEventSuccess = false;
                 var lastCheck = DateTime.Today.AddDays(-365);
+                var firstTime = false;
 
                 var lastEvent = dbContext.Events.Where(e => e.SensorId == sensor.Id).OrderByDescending(e => e.Created).FirstOrDefault();
                 if(lastEvent != null)
                 {
                     lastEventSuccess = lastEvent.Code == PNMTStatusCodes.PING_SUCCESSFULL;
                     lastCheck = lastEvent.Created;
+                }
+                else
+                {
+                    firstTime = true;
                 }
 
                 if (DateTime.Now - lastCheck > TimeSpan.FromSeconds(sensor.Interval) &&
@@ -122,7 +127,8 @@ namespace PNMTD.Services
                     logger.LogDebug($"Ping {sensor.Parameters} was {pingSuccessfull} ({sensor.Id})");
 
                     if ((pingSuccessfull && !lastEventSuccess) ||
-                            (!pingSuccessfull && lastEventSuccess))
+                            (!pingSuccessfull && lastEventSuccess) ||
+                            firstTime)
                     {
                         var newEvent = new EventEntity()
                         {

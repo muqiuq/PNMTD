@@ -9,7 +9,7 @@ namespace PNMTD.Helper
         {
             var config = new ConfigurationBuilder()
                .AddJsonFile("appsettings.Development.json")
-               .AddUserSecrets(Assembly.GetExecutingAssembly(), true)
+               .AddUserSecrets(Assembly.GetCallingAssembly(), false)
                .AddEnvironmentVariables()
                .Build();
             return config;

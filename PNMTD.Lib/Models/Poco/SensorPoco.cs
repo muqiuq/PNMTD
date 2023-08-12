@@ -29,6 +29,8 @@ namespace PNMTD.Models.Poco
 
         public string? Parameters { get; set; }
 
+        public string? Source { get; set; }
+
         public HostPoco? Parent { get; set; }
     }
 }
