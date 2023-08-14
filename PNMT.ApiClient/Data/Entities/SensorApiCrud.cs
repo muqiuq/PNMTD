@@ -11,6 +11,11 @@ namespace PNMT.ApiClient.Data.Entities
         {
         }
 
+        public async Task<List<SensorPoco>> ByHost(Guid hostId)
+        {
+            return await httpClient.GetFromJsonAsync<List<SensorPoco>>($"/sensor/byhost/{hostId}");
+        }
+
         public async Task<List<SensorPoco>> ByType(SensorType sensorType)
         {
             return await httpClient.GetFromJsonAsync<List<SensorPoco>>($"/sensor/bytype/{sensorType.ToString()}");

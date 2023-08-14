@@ -24,7 +24,7 @@ namespace PNMTD.Data
 
         public DbSet<NotificationRuleSensorEntity> NotificationRuleSensor { get; set; }
 
-
+        public DbSet<MailInputEntity> MailInputs { get; set; }
 
         public string DbPath { get; }
 

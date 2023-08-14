@@ -17,6 +17,7 @@ namespace PNMT.ApiClient.Data
         public readonly HostApiCrud Hosts;
         public readonly SensorApiCrud Sensors;
         public readonly NotificationRuleApiCrud NotificationRules;
+        public readonly MailInputApiCrud MailInputs;
         public readonly EventApiCrud Events;
 
         public PNMTDApi(HttpClient httpClient, JwtTokenProvider jwtTokenProvider)
@@ -28,6 +29,7 @@ namespace PNMT.ApiClient.Data
             this.Sensors = new SensorApiCrud(httpClient);
             this.NotificationRules = new NotificationRuleApiCrud(httpClient);
             this.Events = new EventApiCrud(httpClient);
+            this.MailInputs = new MailInputApiCrud(httpClient);
         }
 
         public string GetSensorEventUrl(SensorPoco sensor) {
