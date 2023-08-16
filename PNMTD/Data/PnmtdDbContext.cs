@@ -26,6 +26,8 @@ namespace PNMTD.Data
 
         public DbSet<MailInputEntity> MailInputs { get; set; }
 
+        public DbSet<KeyValueEntity> KeyValues { get; set; }
+
         public string DbPath { get; }
 
         public PnmtdDbContext(bool inMemory = false)
@@ -60,6 +62,15 @@ namespace PNMTD.Data
                 options.UseSqlite($"Data Source={DbPath}");
             }
             
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<KeyValueEntity>()
+                .HasIndex(k => new { k.Key })
+                .IsUnique(true);
+            
+            base.OnModelCreating(modelBuilder);
         }
 
     }

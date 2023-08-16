@@ -37,11 +37,19 @@ namespace PNMT.ApiClient.Data
         public async Task AddNew(T t)
         {
             var result = await httpClient.PostAsJsonAsync<T>($"/{path}", t).ConfigureAwait(false);
-            var response = await result.Content.ReadFromJsonAsync<DefaultResponse>();
+            DefaultResponse? response;
+            try
+            {
+                response = await result.Content.ReadFromJsonAsync<DefaultResponse>();
+            }
+            catch(System.Text.Json.JsonException ex)
+            {
+                throw new PNMTDApiException($"Json Parse Exception");
+            }
 
             if (!result.IsSuccessStatusCode || !response.Success)
             {
-                throw new PNMTDApiException($"HTTP {result.StatusCode}");
+                throw new PNMTDApiException($"HTTP {result.StatusCode} {response?.Success} {response?.Message}");
             }
         }
 
