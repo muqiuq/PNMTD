@@ -11,6 +11,8 @@ namespace PNMTD.Lib.Models.Poco
 
         public bool Enabled { get; set; }
 
+        public bool Ignore { get; set; }
+
         public SensorType Type { get; set; }
 
         public int LastCode { get; set; }

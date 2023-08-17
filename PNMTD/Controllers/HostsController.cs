@@ -40,7 +40,7 @@ namespace PNMTD.Controllers
                     Location = host.Location,
                     Name = host.Name,
                     Notes = host.Notes,
-                    State = sensorsWithLastState.All(nw => nw.IsSuccess) ? HostState.Ok : HostState.Error,
+                    State = sensorsWithLastState.Where(nw => nw.Enabled && !nw.Ignore).All(nw => nw.IsSuccess) ? HostState.Ok : HostState.Error,
                     Sensors = sensorsWithLastState
                 };
 
@@ -66,7 +66,7 @@ namespace PNMTD.Controllers
                 Location = host.Location,
                 Name = host.Name,
                 Notes = host.Notes,
-                State = sensorsWithLastState.All(nw => nw.IsSuccess) ? HostState.Ok : HostState.Error,
+                State = sensorsWithLastState.Where(nw => nw.Enabled && !nw.Ignore).All(nw => nw.IsSuccess) ? HostState.Ok : HostState.Error,
                 Sensors = sensorsWithLastState
             };
 

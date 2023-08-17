@@ -99,6 +99,7 @@ namespace PNMTD.Services
             }
 
             dbContext.SaveChanges();
+            dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_HEARTBEAT_TASK_RUN);
 
             if(counterCreatedEvents > 0)
             {

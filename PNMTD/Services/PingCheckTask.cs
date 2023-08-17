@@ -89,6 +89,7 @@ namespace PNMTD.Services
 
         Dictionary<Guid, DateTime> SensorIdLastCheck = new Dictionary<Guid, DateTime>();
 
+
         private void doWork(object? state)
         {
             var dbContext = new PnmtdDbContext();
@@ -98,6 +99,8 @@ namespace PNMTD.Services
                 .ToList();
 
             int counterCreatedEvents = 0;
+            int successfullPings = 0;
+            int failedPings = 0;
 
             foreach (var sensor in relevantSensors)
             {
@@ -122,6 +125,9 @@ namespace PNMTD.Services
 
                     bool pingSuccessfull = PingHost(sensor.Parameters, 120) == NUMBER_OF_PINGS;
 
+                    if (pingSuccessfull) successfullPings++;
+                    else failedPings++;
+
                     SensorIdLastCheck[sensor.Id] = DateTime.Now;
 
                     logger.LogDebug($"Ping {sensor.Parameters} was {pingSuccessfull} ({sensor.Id})");
@@ -145,6 +151,10 @@ namespace PNMTD.Services
                     }
                 }
             }
+
+            dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_PING_TASK_RUN);
+            dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.NUM_OF_SUCCESSFULL_PINGS, successfullPings);
+            dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.NUM_OF_FAILED_PINGS, failedPings);
 
             if (counterCreatedEvents > 0)
             {

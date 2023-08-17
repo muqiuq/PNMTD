@@ -48,14 +48,15 @@
 		<InternalsVisibleTo Include="PNMTD.Tests" />
 	</ItemGroup>
 	<ItemGroup>
-	  <Folder Include="Events\" />
-	</ItemGroup>
-	<ItemGroup>
 	  <ProjectReference Include="..\PNMTD.Lib\PNMTD.Lib.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 	  <Content Update="appsettings.Production.json">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </Content>
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Events\" />
+	  <Folder Include="KeyValues\" />
 	</ItemGroup>
 </Project>

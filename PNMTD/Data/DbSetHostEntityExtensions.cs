@@ -86,7 +86,8 @@ namespace PNMTD.Data
                     Type = g.Sensor.Type,
                     Enabled = g.Sensor.Enabled,
                     UpTime30days = db.CalculateUpdateFor(g.Sensor, TimeSpan.FromDays(30)),
-                    UpTime24h = db.CalculateUpdateFor(g.Sensor, TimeSpan.FromHours(24))
+                    UpTime24h = db.CalculateUpdateFor(g.Sensor, TimeSpan.FromHours(24)),
+                    Ignore = g.Sensor.Ignore
                 })
                 .ToList();
         }

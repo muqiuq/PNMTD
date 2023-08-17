@@ -22,6 +22,7 @@ namespace PNMTD.Models.Poco.Extensions
                 Parent = sensorEntity.Parent != null ? sensorEntity.Parent.ToPoco() : null,
                 SecretToken = sensorEntity.SecretToken,
                 Source = sensorEntity.Source,   
+                Ignore = sensorEntity.Ignore,
             };
         }
 
@@ -55,6 +56,7 @@ namespace PNMTD.Models.Poco.Extensions
                 Parameters = sensorPoco.Parameters,
                 SecretToken = sensorPoco.SecretToken,
                 Source = sensorPoco.Source,
+                Ignore = sensorPoco.Ignore,
             };
 
             if (!isNew)

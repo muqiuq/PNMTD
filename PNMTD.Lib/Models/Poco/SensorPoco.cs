@@ -23,6 +23,8 @@ namespace PNMTD.Models.Poco
 
         public bool Enabled { get; set; }
 
+        public bool Ignore { get; set; }
+
         public int Interval { get; set; }
 
         public int GracePeriod { get; set; }
