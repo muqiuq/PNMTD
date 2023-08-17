@@ -22,6 +22,7 @@ namespace PNMTD.Models.Poco.Extensions
                 BodyTest = mailInputEntity.BodyTest,
                 SensorOutputId = mailInputEntity.SensorOutputId,
                 SubjectTest = mailInputEntity.SubjectTest,
+                ExtractMessageRegex = mailInputEntity.ExtractMessageRegex,
             };
         }
 
@@ -41,6 +42,7 @@ namespace PNMTD.Models.Poco.Extensions
                 BodyTest = mailInputPoco.BodyTest,
                 FromTest =mailInputPoco.FromTest,
                 SubjectTest = mailInputPoco.SubjectTest,
+                ExtractMessageRegex = mailInputPoco.ExtractMessageRegex,
             };
 
             if (!isNew)

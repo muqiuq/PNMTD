@@ -19,6 +19,8 @@ namespace PNMTD.Lib.Models.Poco
 
         public string? SubjectTest { get; set; }
 
+        public string? ExtractMessageRegex { get; set; }
+
         public string? FromTest { get; set; }
 
         public int? OkCode { get; set; }

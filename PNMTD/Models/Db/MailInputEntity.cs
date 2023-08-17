@@ -18,6 +18,8 @@ namespace PNMTD.Models.Db
 
         public string? FromTest { get; set; }
 
+        public string? ExtractMessageRegex { get; set; }
+
         public string? SubjectTest { get; set; }
 
         public int? OkCode { get; set; }

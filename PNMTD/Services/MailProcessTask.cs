@@ -94,6 +94,7 @@ namespace PNMTD.Services
                     maillog.Processed = true;
                     if (rule.SensorOutputId.HasValue)
                     {
+                        var message = "";
                         int code = rule.DefaultCode;
                         if (!rule.OkTest.IsNullOrEmpty() && rule.OkCode.HasValue && IsMatch(maillog.Content, rule.OkTest))
                         {
@@ -103,12 +104,23 @@ namespace PNMTD.Services
                         {
                             code = rule.FailCode.Value;
                         }
+                        if(!rule.ExtractMessageRegex.IsNullOrEmpty())
+                        {
+                            Regex pattern = new Regex(rule.ExtractMessageRegex);
+
+                            Match match = pattern.Match(maillog.Content);
+
+                            if(match.Success && match.Groups["msg"].Success)
+                            {
+                                message = ": " + match.Groups["msg"].Value;
+                            }
+                        }
                         var eventEntity = new EventEntity()
                         {
                             Id = Guid.NewGuid(),
                             Code = code,
                             Created = DateTime.Now,
-                            Message = $"MailInput {rule.Name} {rule.Id}",
+                            Message = $"MailInput {rule.Name}({rule.Id}){message}".Trim(),
                             SensorId = rule.SensorOutputId.Value,
                             Source = maillog.From
                         };
