@@ -39,7 +39,7 @@ namespace PNMTD.Tests
 
                 services.Remove(dbContextDescriptor);
 
-                var config = ConfigurationHelper.InitConfiguration();
+                var config = ConfigurationHelper.InitConfiguration(useMain: true);
 
                 GlobalConfiguration.Init(config);
 

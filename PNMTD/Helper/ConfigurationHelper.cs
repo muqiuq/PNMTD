@@ -5,11 +5,16 @@ namespace PNMTD.Helper
     public static class ConfigurationHelper
     {
 
-        public static IConfiguration InitConfiguration()
+        public static IConfiguration InitConfiguration(bool useMain = false)
         {
+            var assemblyForUserSecrets = Assembly.GetCallingAssembly();
+            if(useMain )
+            {
+                assemblyForUserSecrets = Assembly.GetExecutingAssembly();
+            }
             var config = new ConfigurationBuilder()
                .AddJsonFile("appsettings.Development.json")
-               .AddUserSecrets(Assembly.GetCallingAssembly(), true)
+               .AddUserSecrets(assemblyForUserSecrets, true)
                .AddEnvironmentVariables()
                .Build();
             return config;
