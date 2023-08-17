@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PNMTD.Data;
 
@@ -10,9 +11,11 @@ using PNMTD.Data;
 namespace PNMTD.Migrations
 {
     [DbContext(typeof(PnmtdDbContext))]
-    partial class PnmtdDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230817090131_MailLog")]
+    partial class MailLog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -109,13 +112,13 @@ namespace PNMTD.Migrations
                     b.ToTable("keyvalues");
                 });
 
-            modelBuilder.Entity("PNMTD.Models.Db.MailInputRuleEntity", b =>
+            modelBuilder.Entity("PNMTD.Models.Db.MailInputEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("BodyTest")
+                    b.Property<string>("ContentTest")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("DefaultCode")
@@ -130,9 +133,6 @@ namespace PNMTD.Migrations
                     b.Property<string>("FailTest")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("FromTest")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -143,17 +143,17 @@ namespace PNMTD.Migrations
                     b.Property<string>("OkTest")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid?>("SensorOutputId")
+                    b.Property<string>("SenderTest")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("SubjectTest")
+                    b.Property<Guid?>("SensorOutputId")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
                     b.HasIndex("SensorOutputId");
 
-                    b.ToTable("mailinputrules");
+                    b.ToTable("mailinputs");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.MailLogEntity", b =>
@@ -341,7 +341,7 @@ namespace PNMTD.Migrations
                     b.Navigation("Sensor");
                 });
 
-            modelBuilder.Entity("PNMTD.Models.Db.MailInputRuleEntity", b =>
+            modelBuilder.Entity("PNMTD.Models.Db.MailInputEntity", b =>
                 {
                     b.HasOne("PNMTD.Models.Db.SensorEntity", "SensorOutput")
                         .WithMany()
@@ -352,7 +352,7 @@ namespace PNMTD.Migrations
 
             modelBuilder.Entity("PNMTD.Models.Db.MailLogEntity", b =>
                 {
-                    b.HasOne("PNMTD.Models.Db.MailInputRuleEntity", "ProcessedBy")
+                    b.HasOne("PNMTD.Models.Db.MailInputEntity", "ProcessedBy")
                         .WithMany()
                         .HasForeignKey("ProcessedById");
 

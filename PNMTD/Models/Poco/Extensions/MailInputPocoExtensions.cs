@@ -6,27 +6,28 @@ namespace PNMTD.Models.Poco.Extensions
     public static class MailInputPocoExtensions
     {
 
-        public static MailInputPoco ToPoco(this MailInputEntity mailInputEntity)
+        public static MailInputRulePoco ToPoco(this MailInputRuleEntity mailInputEntity)
         {
-            return new MailInputPoco
+            return new MailInputRulePoco
             {
                 Id = mailInputEntity.Id,
                 Enabled = mailInputEntity.Enabled,
                 Name = mailInputEntity.Name,
-                SenderTest = mailInputEntity.SenderTest,
+                FromTest = mailInputEntity.FromTest,
                 OkCode = mailInputEntity.OkCode,
                 OkTest = mailInputEntity.OkTest,
                 FailCode = mailInputEntity.FailCode,
                 FailTest = mailInputEntity.FailTest,
                 DefaultCode = mailInputEntity.DefaultCode,  
-                ContentTest = mailInputEntity.ContentTest,
+                BodyTest = mailInputEntity.BodyTest,
                 SensorOutputId = mailInputEntity.SensorOutputId,
+                SubjectTest = mailInputEntity.SubjectTest,
             };
         }
 
-        public static MailInputEntity ToEntity(this MailInputPoco mailInputPoco, bool isNew)
+        public static MailInputRuleEntity ToEntity(this MailInputRulePoco mailInputPoco, bool isNew)
         {
-            var mailInputEntity = new MailInputEntity()
+            var mailInputEntity = new MailInputRuleEntity()
             {
                 Id=mailInputPoco.Id,
                 Enabled=mailInputPoco.Enabled,
@@ -37,8 +38,9 @@ namespace PNMTD.Models.Poco.Extensions
                 FailCode = mailInputPoco.FailCode,
                 FailTest = mailInputPoco.FailTest,
                 DefaultCode = mailInputPoco.DefaultCode,
-                ContentTest = mailInputPoco.ContentTest,
-                SenderTest =mailInputPoco.SenderTest,
+                BodyTest = mailInputPoco.BodyTest,
+                FromTest =mailInputPoco.FromTest,
+                SubjectTest = mailInputPoco.SubjectTest,
             };
 
             if (!isNew)

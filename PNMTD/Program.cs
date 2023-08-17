@@ -71,6 +71,8 @@ public partial class Program
         builder.Services.AddHostedService<NotificiationService>();
         builder.Services.AddHostedService<HeartbeatCheckTask>();
         builder.Services.AddHostedService<PingCheckTask>();
+        builder.Services.AddHostedService<MailInboxCheckTask>();
+        builder.Services.AddHostedService<MailProcessTask>();
 
         builder.Services.AddSwaggerGen(option =>
         {

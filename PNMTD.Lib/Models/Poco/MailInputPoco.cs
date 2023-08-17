@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace PNMTD.Lib.Models.Poco
 {
-    public class MailInputPoco
+    public class MailInputRulePoco
     {
         public Guid Id { get; set; }
 
@@ -15,9 +15,11 @@ namespace PNMTD.Lib.Models.Poco
 
         public string Name { get; set; }
 
-        public string? ContentTest { get; set; }
+        public string? BodyTest { get; set; }
 
-        public string? SenderTest { get; set; }
+        public string? SubjectTest { get; set; }
+
+        public string? FromTest { get; set; }
 
         public int? OkCode { get; set; }
 

@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace PNMT.ApiClient.Data.Entities
 {
-    public class MailInputApiCrud : ApiCrud<MailInputRulePoco>
+    public class MailLogApiCrud : ApiCrud<MailLogPoco>
     {
-        public MailInputApiCrud(HttpClient httpClient) : base(httpClient, "mailinput")
+        public MailLogApiCrud(HttpClient httpClient) : base(httpClient, "maillog")
         {
         }
     }

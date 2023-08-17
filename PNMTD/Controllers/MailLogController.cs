@@ -8,34 +8,33 @@ using PNMTD.Models.Responses;
 namespace PNMTD.Controllers
 {
     [ApiController]
-    [Route("mailinput")]
-    public class MailInputController : Controller
+    [Route("maillog")]
+    public class MailLogController : Controller
     {
-
         private PnmtdDbContext Db;
 
-        public MailInputController(PnmtdDbContext db)
+        public MailLogController(PnmtdDbContext db)
         {
             this.Db = db;
         }
 
         [HttpGet]
-        public IEnumerable<MailInputRulePoco> Get()
+        public IEnumerable<MailLogPoco> Get()
         {
-            return Db.MailInputs.Select(n => n.ToPoco()).ToList();
+            return Db.MailLogs.Take(1000).OrderByDescending(ml => ml.Created).Select(n => n.ToPoco()).ToList();
         }
 
         [HttpGet("{id}")]
-        public MailInputRulePoco Get(Guid id)
+        public MailLogPoco Get(Guid id)
         {
-            return Db.MailInputs.Where(n => n.Id == id).Select(x => x.ToPoco()).Single();
+            return Db.MailLogs.Where(n => n.Id == id).Select(x => x.ToPoco()).Single();
         }
 
         [HttpPost]
-        public DefaultResponse Post([FromBody] MailInputRulePoco mailInputPoco)
+        public DefaultResponse Post([FromBody] MailLogPoco mailLogPoco)
         {
-            var entity = mailInputPoco.ToEntity(true);
-            Db.MailInputs.Add(entity);
+            var entity = mailLogPoco.ToEntity(true);
+            Db.MailLogs.Add(entity);
             var changes = Db.SaveChanges();
             return new DefaultResponse()
             {
@@ -46,11 +45,11 @@ namespace PNMTD.Controllers
         }
 
         [HttpPut]
-        public DefaultResponse Put([FromBody] MailInputRulePoco mailInputPoco)
+        public DefaultResponse Put([FromBody] MailLogPoco mailLogPoco)
         {
-            var entity = mailInputPoco.ToEntity(false);
-            Db.MailInputs.Attach(entity);
-            Db.Update<MailInputRuleEntity>(entity);
+            var entity = mailLogPoco.ToEntity(false);
+            Db.MailLogs.Attach(entity);
+            Db.Update<MailLogEntity>(entity);
             var changes = Db.SaveChanges();
             return new DefaultResponse()
             {
@@ -63,7 +62,7 @@ namespace PNMTD.Controllers
         [HttpDelete("{id}")]
         public DefaultResponse Delete(Guid id)
         {
-            Db.MailInputs.Remove(Db.MailInputs.Where(n => n.Id == id).Single());
+            Db.MailLogs.Remove(Db.MailLogs.Where(n => n.Id == id).Single());
             Db.SaveChanges();
 
             return new DefaultResponse() { Success = true, Message = "", Data = id };

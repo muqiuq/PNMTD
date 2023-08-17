@@ -4,8 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PNMTD.Models.Db
 {
-    [Table("mailinputs")]
-    public class MailInputEntity
+    [Table("mailinputrules")]
+    public class MailInputRuleEntity
     {
 
         [Key]
@@ -14,9 +14,11 @@ namespace PNMTD.Models.Db
         public bool Enabled { get; set; }
         public string Name { get; set; }
 
-        public string? ContentTest { get; set; }
+        public string? BodyTest { get; set; }
 
-        public string? SenderTest { get; set; }
+        public string? FromTest { get; set; }
+
+        public string? SubjectTest { get; set; }
 
         public int? OkCode { get; set; }
 
