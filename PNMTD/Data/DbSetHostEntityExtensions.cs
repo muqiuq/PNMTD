@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using PNMTD.Lib.Models;
+using PNMTD.Lib.Models.Enum;
 using PNMTD.Lib.Models.Poco;
 using PNMTD.Models.Db;
 using PNMTD.Models.Poco;
@@ -54,12 +56,13 @@ namespace PNMTD.Data
             }
             var totalTimeSpan = (decimal)offline.TotalSeconds + (decimal)online.TotalSeconds;
             if (totalTimeSpan == 0) return 100;
-            return ((decimal)online.TotalSeconds) / (totalTimeSpan) * 100 ;
+            return ((decimal)online.TotalSeconds) / (totalTimeSpan) * 100;
         }
 
         public static List<LastSensorStatePoco> GetLastSensorStatesForHosts(this PnmtdDbContext db, HostEntity hostEntity)
         {
             return hostEntity.Sensors
+                .Where(s => s.Type != SensorType.ALL_WITHIN_TIMESPAN && s.Type != SensorType.ONE_WITHIN_TIMESPAN)
                 .GroupJoin(
                     db.Events, sensor => sensor, e => e.Sensor,
                     (sensor, events) => new { Sensor = sensor, Events = events }
@@ -74,6 +77,28 @@ namespace PNMTD.Data
                     Sensor = g.Key,
                     Event = g.OrderByDescending(se => se.Event?.Created).FirstOrDefault()
                 })
+                .Union(
+                    hostEntity.Sensors.Where(s => s.Type == SensorType.ALL_WITHIN_TIMESPAN || s.Type == SensorType.ONE_WITHIN_TIMESPAN)
+                .GroupJoin(
+                    db.Events, sensor => sensor, e => e.Sensor,
+                    (sensor, events) => new { Sensor = sensor, Events = events }
+                )
+                .SelectMany(
+                    se => se.Events.DefaultIfEmpty(),
+                    (se, e) => new { Sensor = se.Sensor, Event = e }
+                )
+                .Where(e => e.Event?.Code == PNMTStatusCodes.ONE_WITHIN_TIMESPAN_OK
+                    || e.Event?.Code == PNMTStatusCodes.ONE_WITHIN_TIMESPAN_FAILED
+                    || e.Event?.Code == PNMTStatusCodes.ALL_WITHIN_TIMESPAN_OK
+                    || e.Event?.Code == PNMTStatusCodes.ONE_WITHIN_TIMESPAN_FAILED
+                    || e.Event == null)
+                .GroupBy(se => se.Sensor)
+                .Select(g => new
+                {
+                    Sensor = g.Key,
+                    Event = g.OrderByDescending(se => se.Event?.Created).FirstOrDefault()
+                })
+                )
                 .ToList()
                 .Select(g => new LastSensorStatePoco()
                 {

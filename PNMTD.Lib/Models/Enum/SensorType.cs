@@ -10,6 +10,8 @@ namespace PNMTD.Lib.Models.Enum
         PING = 30,
         VALUECHECK = 40,
         ENCAPSULADED = 50,
+        ONE_WITHIN_TIMESPAN = 60,
+        ALL_WITHIN_TIMESPAN = 61
     }
 }
 

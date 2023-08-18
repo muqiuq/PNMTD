@@ -38,7 +38,7 @@ namespace PNMTD.Data
                 db.Attach(pendingNotification.NotitificationRule);
                 var notificationRuleEvent = db.NotificationRuleEvents.Add(new NotificationRuleEventEntity()
                 {
-                    Created = DateTime.UtcNow,
+                    Created = DateTime.Now,
                     Id = Guid.NewGuid(),
                     NoAction = pendingNotification.NoAction,
                     Event = pendingNotification.EventEntity,
@@ -53,7 +53,7 @@ namespace PNMTD.Data
 
         public static int CleanNotificationRuleEventEntities(this PnmtdDbContext db)
         {
-            var maxTimeSpanToKeepEntries = TimeSpan.FromMinutes(60);
+            var maxTimeSpanToKeepEntries = TimeSpan.FromHours(24);
 
             var oldEventEntities = db.NotificationRuleEvents.ToList()
                 .Where(nre => (DateTime.Now - nre.Created) > maxTimeSpanToKeepEntries).ToList();

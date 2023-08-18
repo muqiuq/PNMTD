@@ -2,7 +2,10 @@
 using Microsoft.Extensions.Logging;
 using PNMTD.Data;
 using PNMTD.Lib.Logic;
+using PNMTD.Lib.Models;
+using PNMTD.Lib.Models.Enum;
 using PNMTD.Lib.Models.Poco;
+using PNMTD.Models.Db;
 using PNMTD.Models.Helper;
 using PNMTD.Models.Poco;
 using PNMTD.Models.Poco.Extensions;
@@ -48,7 +51,8 @@ namespace PNMTD.Services
             try
             {
                 doWork(state);
-            }catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 logger.LogError("NotificiationService DoWork Exception", ex);
             }
@@ -69,26 +73,64 @@ namespace PNMTD.Services
             logger.LogInformation(
                 $"Found {allPendingNotifications.Count} pending notifications");
 
+            if (count % 5 == 0)
+            {
+                var result = dbContext.CleanNotificationRuleEventEntities();
+                logger.LogDebug($"Cleanup. Removed: {result}");
+            }
+
             foreach (var pnm in allPendingNotifications)
             {
                 var eventEntityPoco = pnm.EventEntity.ToPoco();
 
-                var lastEventForSensor = dbContext.Events
+                pnm.NoAction = false;
+
+                if ((pnm.EventEntity.Sensor.Type == SensorType.ONE_WITHIN_TIMESPAN
+                    && pnm.EventEntity.Code != PNMTStatusCodes.ONE_WITHIN_TIMESPAN_OK
+                    && pnm.EventEntity.Code != PNMTStatusCodes.ONE_WITHIN_TIMESPAN_FAILED) ||
+                    (pnm.EventEntity.Sensor.Type == SensorType.ALL_WITHIN_TIMESPAN
+                    && pnm.EventEntity.Code != PNMTStatusCodes.ALL_WITHIN_TIMESPAN_OK
+                    && pnm.EventEntity.Code != PNMTStatusCodes.ALL_WITHIN_TIMESPAN_FAILED))
+                {
+                    pnm.NoAction = true;
+                    logger.LogDebug($"Ignoring event {pnm.EventEntity.Id} with code {pnm.EventEntity.Code} because of invalid within timespan code");
+                }
+
+                EventEntity? lastEventForSensor;
+
+                if (pnm.EventEntity.Sensor.Type == SensorType.ONE_WITHIN_TIMESPAN
+                    || pnm.EventEntity.Sensor.Type == SensorType.ALL_WITHIN_TIMESPAN)
+                {
+                    lastEventForSensor = dbContext.Events
+                    .Where(e => e.SensorId == eventEntityPoco.SensorId
+                        && e.Id != pnm.EventEntity.Id
+                        && (e.Code == PNMTStatusCodes.ONE_WITHIN_TIMESPAN_OK
+                            || e.Code == PNMTStatusCodes.ONE_WITHIN_TIMESPAN_FAILED
+                            || e.Code == PNMTStatusCodes.ALL_WITHIN_TIMESPAN_OK
+                            || e.Code == PNMTStatusCodes.ALL_WITHIN_TIMESPAN_FAILED
+                        ))
+                    .OrderByDescending(e => e.Created)
+                    .FirstOrDefault();
+                }
+                else
+                {
+                    lastEventForSensor = dbContext.Events
                     .Where(e => e.SensorId == eventEntityPoco.SensorId && e.Id != pnm.EventEntity.Id)
                     .OrderByDescending(e => e.Created)
                     .FirstOrDefault();
+                }
 
                 int oldStatusCode = -1;
 
-                if(lastEventForSensor != null)
+                if (lastEventForSensor != null)
                 {
                     oldStatusCode = lastEventForSensor.Code;
                 }
 
-                if(NotificationRuleTriggerLogic.Eval(pnm.NotitificationRule.Type, oldStatusCode, pnm.EventEntity.Code)
-                    && pnm.NotitificationRule.Enabled && 
-                    pnm.EventEntity.Sensor.Enabled && 
-                    !pnm.EventEntity.Sensor.Ignore && 
+                if (pnm.NoAction == false && NotificationRuleTriggerLogic.Eval(pnm.NotitificationRule.Type, oldStatusCode, pnm.EventEntity.Code)
+                    && pnm.NotitificationRule.Enabled &&
+                    pnm.EventEntity.Sensor.Enabled &&
+                    !pnm.EventEntity.Sensor.Ignore &&
                     pnm.EventEntity.Sensor.Parent.Enabled)
                 {
                     pnm.NoAction = false;
