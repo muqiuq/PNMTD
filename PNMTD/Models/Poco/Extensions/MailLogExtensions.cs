@@ -19,6 +19,7 @@ namespace PNMTD.Models.Poco.Extensions
                 ProcessedById = mailLogEntity.ProcessedById,
                 ProcessLog = mailLogEntity.ProcessLog,
                 Subject = mailLogEntity.Subject,
+                MessageDate = mailLogEntity.MessageDate,
             };
         }
 
@@ -35,6 +36,7 @@ namespace PNMTD.Models.Poco.Extensions
                 ProcessedById = mailLogPoco.ProcessedById,
                 ProcessLog = mailLogPoco.ProcessLog,
                 Subject = mailLogPoco.Subject,
+                MessageDate = mailLogPoco.MessageDate,
             };
 
             if (!isNew)

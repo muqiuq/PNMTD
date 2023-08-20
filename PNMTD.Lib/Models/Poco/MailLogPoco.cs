@@ -18,6 +18,8 @@ namespace PNMTD.Lib.Models.Poco
 
         public DateTime Created { get; set; }
 
+        public DateTime MessageDate { get; set; }
+
         public string From { get; set; }
 
         public string To { get; set; }
