@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,7 @@ using PNMTD.Notifications;
 using PNMTD.Services;
 using PNMTD.Tests;
 using System.Diagnostics;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
@@ -73,6 +75,7 @@ public partial class Program
         builder.Services.AddHostedService<PingCheckTask>();
         builder.Services.AddHostedService<MailInboxCheckTask>();
         builder.Services.AddHostedService<MailProcessTask>();
+        builder.Services.AddHostedService<TimespanConditionsCheckTask>();
 
         builder.Services.AddSwaggerGen(option =>
         {
@@ -102,6 +105,18 @@ public partial class Program
                 });
         });
 
+        if(builder.Configuration["Proxy"] != null)
+        {
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+                options.RequireHeaderSymmetry = false;
+                options.ForwardLimit = null;
+                // Example format: ::ffff:172.20.10.20
+                options.KnownProxies.Add(IPAddress.Parse(builder.Configuration["Proxy"]));
+            });
+        }
+        
         builder.Services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -164,6 +179,7 @@ public partial class Program
         }
 
         app.UseHttpsRedirection();
+        app.UseForwardedHeaders();
 
         app.UseAuthentication();
         app.UseAuthorization();

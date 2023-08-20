@@ -32,18 +32,41 @@ namespace PNMTD.Tests.Logic
         [TestMethod]
         public void ParseMonthly2()
         {
-            var intervalDescription = IntervalDescriptionHelper.Parse("monthly on the 29");
+            var intervalDescription = IntervalDescriptionHelper.Parse("monthly on the 13");
 
-            Assert.AreEqual(29, intervalDescription.DayOfMonth);
+            Assert.AreEqual(13, intervalDescription.DayOfMonth);
             Assert.AreEqual(IntervalDescriptionType.MONTHLY, intervalDescription.Type);
         }
 
         [TestMethod]
-        public void ParseDaily()
+        [ExpectedException(typeof(IntervalDescriptionParseException))]
+        public void ParseMonthly3()
+        {
+            IntervalDescriptionHelper.Parse("monthly on the 31");
+        }
+
+        [TestMethod]
+        public void ParseDaily1()
         {
             var intervalDescription = IntervalDescriptionHelper.Parse("daily");
 
             Assert.AreEqual(IntervalDescriptionType.DAILY, intervalDescription.Type);
+        }
+
+        [TestMethod]
+        public void ParseDaily2()
+        {
+            var intervalDescription = IntervalDescriptionHelper.Parse("daily at 12 o'clock");
+
+            Assert.AreEqual(IntervalDescriptionType.DAILY, intervalDescription.Type);
+            Assert.AreEqual(12, intervalDescription.HourOfDay);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(IntervalDescriptionParseException))]
+        public void ParseDaily3()
+        {
+            IntervalDescriptionHelper.Parse("daily at 24 o'clock");
         }
 
     }

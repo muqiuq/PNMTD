@@ -9,7 +9,7 @@ namespace PNMTD.Services
 {
     public class MailProcessTask : IHostedService, IDisposable
     {
-        private readonly ILogger<NotificiationService> logger;
+        private readonly ILogger<MailProcessTask> logger;
         private readonly IServiceProvider services;
         private readonly IConfiguration configuration;
         private Timer _timer;
@@ -18,7 +18,7 @@ namespace PNMTD.Services
         private string? host;
         private string? password;
 
-        public MailProcessTask(ILogger<NotificiationService> _logger, IServiceProvider services, IConfiguration configuration)
+        public MailProcessTask(ILogger<MailProcessTask> _logger, IServiceProvider services, IConfiguration configuration)
         {
             logger = _logger;
             this.services = services;

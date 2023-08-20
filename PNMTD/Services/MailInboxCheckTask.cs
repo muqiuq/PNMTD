@@ -13,7 +13,7 @@ namespace PNMTD.Services
 {
     public class MailInboxCheckTask : IHostedService, IDisposable
     {
-        private readonly ILogger<NotificiationService> logger;
+        private readonly ILogger<MailInboxCheckTask> logger;
         private readonly IServiceProvider services;
         private readonly IConfiguration configuration;
         private Timer _timer;
@@ -22,7 +22,7 @@ namespace PNMTD.Services
         private string? host;
         private string? password;
 
-        public MailInboxCheckTask(ILogger<NotificiationService> _logger, IServiceProvider services, IConfiguration configuration)
+        public MailInboxCheckTask(ILogger<MailInboxCheckTask> _logger, IServiceProvider services, IConfiguration configuration)
         {
             logger = _logger;
             this.services = services;
@@ -92,6 +92,7 @@ namespace PNMTD.Services
                             To = MailHelper.ExtractMailAdresses(message.To),
                             Content = MailHelper.ExtractBodyText(message),
                             Subject = message.Subject.ToString(),
+                            MessageDate = message.Date.DateTime,
                             Created = DateTime.Now,
                             Processed = false,
                             ProcessedBy = null,

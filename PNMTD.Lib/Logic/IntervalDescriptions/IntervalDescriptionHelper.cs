@@ -10,6 +10,24 @@ namespace PNMTD.Lib.Logic.IntervalDescriptions
 {
     public class IntervalDescriptionHelper
     {
+        public static bool TryParse(string value, out IntervalDescription description)
+        {
+            if (value == null)
+            {
+                description = null;
+                return false;
+            }
+            try
+            {
+                description = Parse(value);
+                return true;
+            }catch(IntervalDescriptionParseException ex)
+            {
+                description = null;
+                return false;
+            }
+        }
+
         public static IntervalDescription Parse(string v)
         {
             v = v.Replace("  ", " ");
@@ -28,10 +46,32 @@ namespace PNMTD.Lib.Logic.IntervalDescriptions
                 {
                     throw new IntervalDescriptionParseException("For monthly number of day in month is required");
                 }
+                var enteredDayOfTheMonth = int.Parse(match.Value);
+                if(enteredDayOfTheMonth < 1 || enteredDayOfTheMonth > 28)
+                {
+                    throw new IntervalDescriptionParseException("Invalid day of the month. Must be between 0 and 28");
+                }
                 return new IntervalDescription(IntervalDescriptionType.MONTHLY, int.Parse(match.Value));
             }
             if (parts.Any(x => x == "daily") || parts.Any(x => x == "day"))
             {
+                Regex regex = new Regex(@"\d+");
+
+                var match = regex.Match(v);
+
+                if (match.Success)
+                {
+                    if(match.Groups.Count != 1)
+                    {
+                        throw new IntervalDescriptionParseException("Only one single number expected for hour of the day");
+                    }
+                    var enteredHourOfTheDay = int.Parse(match.Value);
+                    if (enteredHourOfTheDay < 0 || enteredHourOfTheDay > 23)
+                    {
+                        throw new IntervalDescriptionParseException("Invalid hour of the day. Must be between 0 and 23");
+                    }
+                    return new IntervalDescription(IntervalDescriptionType.DAILY, enteredHourOfTheDay);
+                }
                 return new IntervalDescription(IntervalDescriptionType.DAILY);
             }
             throw new IntervalDescriptionParseException("Could not parse");

@@ -7,13 +7,13 @@ namespace PNMTD.Services
 {
     public class HeartbeatCheckTask : IHostedService, IDisposable
     {
-        private readonly ILogger<NotificiationService> logger;
+        private readonly ILogger<HeartbeatCheckTask> logger;
         private readonly IServiceProvider services;
         private readonly IConfiguration configuration;
         private Timer _timer;
         private int executionCount;
 
-        public HeartbeatCheckTask(ILogger<NotificiationService> _logger, IServiceProvider services, IConfiguration configuration)
+        public HeartbeatCheckTask(ILogger<HeartbeatCheckTask> _logger, IServiceProvider services, IConfiguration configuration)
         {
             logger = _logger;
             this.services = services;
