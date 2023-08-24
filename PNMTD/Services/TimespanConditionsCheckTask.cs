@@ -18,6 +18,7 @@ namespace PNMTD.Services
         private string? username;
         private string? host;
         private string? password;
+        private PnmtdDbContext dbContext;
 
         public TimespanConditionsCheckTask(ILogger<TimespanConditionsCheckTask> _logger, IServiceProvider services, IConfiguration configuration)
         {
@@ -46,11 +47,15 @@ namespace PNMTD.Services
         {
             try
             {
+                dbContext = new PnmtdDbContext();
                 doWork(state);
             }
             catch (Exception ex)
             {
                 logger.LogError("TimespanConditionsCheckTask", ex);
+            }finally
+            {
+                dbContext.Dispose();
             }
         }
 
@@ -65,8 +70,6 @@ namespace PNMTD.Services
 
         private void doWork(object? state)
         {
-            var dbContext = new PnmtdDbContext();
-
             var relevantSensors = dbContext.Sensors.Where(s =>
                 (s.Type == SensorType.ONE_WITHIN_TIMESPAN)
                 && s.Enabled).ToList();

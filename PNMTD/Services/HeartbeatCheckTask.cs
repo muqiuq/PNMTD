@@ -12,6 +12,7 @@ namespace PNMTD.Services
         private readonly IConfiguration configuration;
         private Timer _timer;
         private int executionCount;
+        private PnmtdDbContext dbContext;
 
         public HeartbeatCheckTask(ILogger<HeartbeatCheckTask> _logger, IServiceProvider services, IConfiguration configuration)
         {
@@ -49,18 +50,21 @@ namespace PNMTD.Services
         {
             try
             {
+                dbContext = new PnmtdDbContext();
                 doWork(state);
             }
             catch (Exception ex)
             {
                 logger.LogError("HeartbeatCheckTask DoWork Exception", ex);
             }
+            finally
+            {
+                dbContext?.Dispose();
+            }
         }
 
         private void doWork(object? state)
         {
-            var dbContext = new PnmtdDbContext();
-
             var relevantSensors = dbContext.Sensors.Where(s => 
                 (s.Type == SensorType.HEARTBEAT || s.Type == SensorType.HEARTBEAT_VALUECHECK)
                 && s.Enabled).ToList();
@@ -100,8 +104,9 @@ namespace PNMTD.Services
 
             dbContext.SaveChanges();
             dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_HEARTBEAT_TASK_RUN);
+            
 
-            if(counterCreatedEvents > 0)
+            if (counterCreatedEvents > 0)
             {
                 logger.LogInformation($"HeartbeatCheckTask created {counterCreatedEvents} HEARTBEAT_MISSING events");
             }
