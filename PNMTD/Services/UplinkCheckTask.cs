@@ -78,7 +78,7 @@ namespace PNMTD.Services
             
 
             _timer = new Timer(tryDoWork, null, TimeSpan.Zero,
-            TimeSpan.FromSeconds(10));
+            TimeSpan.FromSeconds(120));
 
             return Task.CompletedTask;
         }
@@ -120,7 +120,7 @@ namespace PNMTD.Services
                 }
                 else
                 {
-                    if (numberOfFailuresInARow > 0) numberOfFailuresInARow--;
+                    numberOfFailuresInARow = 0;
                 }
                 lastTryFailed = true;
 
@@ -128,11 +128,13 @@ namespace PNMTD.Services
                 {
                     dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.UPLINK_OK, false);
                     justWereInFailedState = true;
+                    logger.LogWarning($"Uplink failed more then {MAXIMUM_NUMBER_OF_FAILURES_IN_A_ROW}. UPLINK_OK is now false");
                 }
                 else if (numberOfFailuresInARow == 0 && justWereInFailedState)
                 {
                     dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.UPLINK_OK, true);
                     justWereInFailedState = false;
+                    logger.LogWarning($"Uplink OK again");
                 }
 
                 dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_UPLINK_CHECK);
