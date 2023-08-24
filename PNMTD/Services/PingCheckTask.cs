@@ -2,6 +2,7 @@
 using PNMTD.Lib.Models;
 using PNMTD.Lib.Models.Enum;
 using PNMTD.Models.Db;
+using PNMTD.Services.Helpers;
 using System;
 using System.Net.NetworkInformation;
 using System.Threading;
@@ -57,16 +58,11 @@ namespace PNMTD.Services
         {
             try
             {
-                dbContext = new PnmtdDbContext();
                 doWork(state);
             }
             catch (Exception ex)
             {
                 logger.LogError("PingWorker DoWork Exception", ex);
-            }
-            finally 
-            {
-                dbContext?.Dispose();
             }
         }
 
@@ -93,78 +89,82 @@ namespace PNMTD.Services
         }
 
         Dictionary<Guid, DateTime> SensorIdLastCheck = new Dictionary<Guid, DateTime>();
-        private PnmtdDbContext dbContext;
+
+        private TaskRunDecisionMaker decisionMaker = new TaskRunDecisionMaker();
 
         private void doWork(object? state)
         {
-            
+            using(var dbContext = new PnmtdDbContext())
+            {
+                if (!decisionMaker.DetermineIfTaskShouldRun(dbContext)) return;
 
-            var relevantSensors = dbContext.Sensors
+                var relevantSensors = dbContext.Sensors
                 .Where(s => s.Type == SensorType.PING && s.Enabled && s.Parameters != null)
                 .ToList();
 
-            int counterCreatedEvents = 0;
-            int successfullPings = 0;
-            int failedPings = 0;
+                int counterCreatedEvents = 0;
+                int successfullPings = 0;
+                int failedPings = 0;
 
-            foreach (var sensor in relevantSensors)
-            {
-                var lastEventSuccess = false;
-                var lastCheck = DateTime.Today.AddDays(-365);
-                var firstTime = false;
-
-                var lastEvent = dbContext.Events.Where(e => e.SensorId == sensor.Id).OrderByDescending(e => e.Created).FirstOrDefault();
-                if(lastEvent != null)
+                foreach (var sensor in relevantSensors)
                 {
-                    lastEventSuccess = lastEvent.Code == PNMTStatusCodes.PING_SUCCESSFULL;
-                    lastCheck = lastEvent.Created;
-                }
-                else
-                {
-                    firstTime = true;
-                }
+                    var lastEventSuccess = false;
+                    var lastCheck = DateTime.Today.AddDays(-365);
+                    var firstTime = false;
 
-                if (DateTime.Now - lastCheck > TimeSpan.FromSeconds(sensor.Interval) &&
-                    (!SensorIdLastCheck.ContainsKey(sensor.Id) || DateTime.Now - SensorIdLastCheck[sensor.Id] > TimeSpan.FromSeconds(sensor.Interval)))
-                {
-
-                    bool pingSuccessfull = PingHost(sensor.Parameters, 120) == NUMBER_OF_PINGS;
-
-                    if (pingSuccessfull) successfullPings++;
-                    else failedPings++;
-
-                    SensorIdLastCheck[sensor.Id] = DateTime.Now;
-
-                    logger.LogDebug($"Ping {sensor.Parameters} was {pingSuccessfull} ({sensor.Id})");
-
-                    if ((pingSuccessfull && !lastEventSuccess) ||
-                            (!pingSuccessfull && lastEventSuccess) ||
-                            firstTime)
+                    var lastEvent = dbContext.Events.Where(e => e.SensorId == sensor.Id).OrderByDescending(e => e.Created).FirstOrDefault();
+                    if (lastEvent != null)
                     {
-                        var newEvent = new EventEntity()
+                        lastEventSuccess = lastEvent.Code == PNMTStatusCodes.PING_SUCCESSFULL;
+                        lastCheck = lastEvent.Created;
+                    }
+                    else
+                    {
+                        firstTime = true;
+                    }
+
+                    if (DateTime.Now - lastCheck > TimeSpan.FromSeconds(sensor.Interval) &&
+                        (!SensorIdLastCheck.ContainsKey(sensor.Id) || DateTime.Now - SensorIdLastCheck[sensor.Id] > TimeSpan.FromSeconds(sensor.Interval)))
+                    {
+
+                        bool pingSuccessfull = PingHost(sensor.Parameters, 120) == NUMBER_OF_PINGS;
+
+                        if (pingSuccessfull) successfullPings++;
+                        else failedPings++;
+
+                        SensorIdLastCheck[sensor.Id] = DateTime.Now;
+
+                        logger.LogDebug($"Ping {sensor.Parameters} was {pingSuccessfull} ({sensor.Id})");
+
+                        if ((pingSuccessfull && !lastEventSuccess) ||
+                                (!pingSuccessfull && lastEventSuccess) ||
+                                firstTime)
                         {
-                            Created = DateTime.Now,
-                            Code = pingSuccessfull ? PNMTStatusCodes.PING_SUCCESSFULL : PNMTStatusCodes.PING_FAILED,
-                            Id = Guid.NewGuid(),
-                            Message = "Ping " + (pingSuccessfull ? "successfull" : "failed"),
-                            Sensor = sensor,
-                            SensorId = sensor.Id,
-                            Source = "PingCheckTask"
-                        };
-                        dbContext.Events.Add(newEvent);
-                        counterCreatedEvents++;
+                            var newEvent = new EventEntity()
+                            {
+                                Created = DateTime.Now,
+                                Code = pingSuccessfull ? PNMTStatusCodes.PING_SUCCESSFULL : PNMTStatusCodes.PING_FAILED,
+                                Id = Guid.NewGuid(),
+                                Message = "Ping " + (pingSuccessfull ? "successfull" : "failed"),
+                                Sensor = sensor,
+                                SensorId = sensor.Id,
+                                Source = "PingCheckTask"
+                            };
+                            dbContext.Events.Add(newEvent);
+                            counterCreatedEvents++;
+                        }
                     }
                 }
-            }
 
-            dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_PING_TASK_RUN);
-            dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.NUM_OF_SUCCESSFULL_PINGS, successfullPings);
-            dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.NUM_OF_FAILED_PINGS, failedPings);
+                dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_PING_TASK_RUN);
+                dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.NUM_OF_SUCCESSFULL_PINGS, successfullPings);
+                dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.NUM_OF_FAILED_PINGS, failedPings);
 
-            if (counterCreatedEvents > 0)
-            {
-                dbContext.SaveChanges();
-                logger.LogInformation($"PingWorker created {counterCreatedEvents} PINGFAIL events");
+                if (counterCreatedEvents > 0)
+                {
+                    dbContext.SaveChanges();
+                    logger.LogInformation($"PingWorker created {counterCreatedEvents} PINGFAIL events");
+                }
             }
         }
     }

@@ -44,6 +44,11 @@ namespace PNMTD.Services
         {
             logger.LogInformation("Starting UplinkCheckTask");
 
+            using (var dbContext = new PnmtdDbContext())
+            {
+                dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.UPLINK_OK, true);
+            }
+
             var uplink_sharedKey = configuration["UplinkCheck:SharedKey"];
 
             if (uplink_sharedKey == null)
@@ -70,18 +75,10 @@ namespace PNMTD.Services
                 return Task.CompletedTask;
             }
 
-            _timer = new Timer(tryDoWork, null, TimeSpan.Zero,
-            TimeSpan.FromSeconds(60));
+            
 
-            try
-            {
-                dbContext = new PnmtdDbContext();
-                dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.UPLINK_OK, true);
-            }
-            catch (Exception e)
-            {
-                logger.LogError("PnmtdDbContext init in UplinkCheckTask", e);
-            }
+            _timer = new Timer(tryDoWork, null, TimeSpan.Zero,
+            TimeSpan.FromSeconds(10));
 
             return Task.CompletedTask;
         }
@@ -103,62 +100,64 @@ namespace PNMTD.Services
         int numberOfFailuresInARow = 0;
         int currentPosition = 0;
         bool lastTryFailed = false;
-        bool justWereInFailedstate = false;
+        bool justWereInFailedState = false;
 
         private async Task doWork(object? state)
         {
-            var count = Interlocked.Increment(ref executionCount);
-
-            currentPosition++;
-
-            if (currentPosition >= uplinkEndpoints.Count)
+            using(var dbContext = new PnmtdDbContext())
             {
-                currentPosition = 0;
-            }
+                var count = Interlocked.Increment(ref executionCount);
+                currentPosition++;
 
-            if(lastTryFailed)
-            {
-                numberOfFailuresInARow++;
-            }
-            else
-            {
-                if(numberOfFailuresInARow > 0) numberOfFailuresInARow--;
-            }
-            lastTryFailed = true;
-
-            if(numberOfFailuresInARow >= MAXIMUM_NUMBER_OF_FAILURES_IN_A_ROW && !justWereInFailedstate)
-            {
-                dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.UPLINK_OK, false);
-                justWereInFailedstate = true;
-            }
-            else if(numberOfFailuresInARow == 0 && justWereInFailedstate)
-            {
-                dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.UPLINK_OK, true);
-                justWereInFailedstate = false;
-            }
-
-            dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_UPLINK_CHECK);
-
-            var currentUrlEndpoint = uplinkEndpoints[currentPosition];
-
-            var challenge = RandomString(32);
-
-            var result = await httpClient.GetAsync(QueryHelpers.AddQueryString(currentUrlEndpoint, "challenge", challenge));
-
-            if (result.IsSuccessStatusCode)
-            {
-                var content = await result.Content.ReadAsStringAsync();
-
-                var cParts = content.Split(",");
-
-                if (cParts.Length == 2)
+                if (currentPosition >= uplinkEndpoints.Count)
                 {
-                    var correctHash = ComputeHMACSHA256(challenge, uplinkSharedKey, cParts[1]);
-                    if (correctHash == cParts[0])
+                    currentPosition = 0;
+                }
+
+                if (lastTryFailed)
+                {
+                    numberOfFailuresInARow++;
+                }
+                else
+                {
+                    if (numberOfFailuresInARow > 0) numberOfFailuresInARow--;
+                }
+                lastTryFailed = true;
+
+                if (numberOfFailuresInARow >= MAXIMUM_NUMBER_OF_FAILURES_IN_A_ROW && !justWereInFailedState)
+                {
+                    dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.UPLINK_OK, false);
+                    justWereInFailedState = true;
+                }
+                else if (numberOfFailuresInARow == 0 && justWereInFailedState)
+                {
+                    dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.UPLINK_OK, true);
+                    justWereInFailedState = false;
+                }
+
+                dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_UPLINK_CHECK);
+
+                var currentUrlEndpoint = uplinkEndpoints[currentPosition];
+
+                dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.LAST_UPLINK_CHECKED_LINK, currentUrlEndpoint);
+
+                var challenge = RandomString(32);
+
+                var result = await httpClient.GetAsync(QueryHelpers.AddQueryString(currentUrlEndpoint, "challenge", challenge));
+
+                if (result.IsSuccessStatusCode)
+                {
+                    var content = await result.Content.ReadAsStringAsync();
+                    var cParts = content.Split(",");
+
+                    if (cParts.Length == 2)
                     {
-                        lastTryFailed = false;
-                        dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.LAST_UPLINK_CHECKED_LINK, currentUrlEndpoint);
-                        dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_UPLINK_CHECK_SUCCESSFULL);
+                        var correctHash = ComputeHMACSHA256(challenge, uplinkSharedKey, cParts[1]);
+                        if (correctHash.ToUpper() == cParts[0].ToUpper())
+                        {
+                            lastTryFailed = false;
+                            dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_UPLINK_CHECK_SUCCESSFULL);
+                        }
                     }
                 }
             }
@@ -178,7 +177,6 @@ namespace PNMTD.Services
 
         private static Random random = new Random();
         private object currentUrlEndpoint;
-        private PnmtdDbContext dbContext;
 
         public static string RandomString(int length)
         {
@@ -192,8 +190,6 @@ namespace PNMTD.Services
             logger.LogInformation("UplinkCheckTask is stopping.");
 
             _timer?.Change(Timeout.Infinite, 0);
-
-            dbContext?.Dispose();
 
             return Task.CompletedTask;
         }

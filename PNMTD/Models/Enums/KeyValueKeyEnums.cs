@@ -16,5 +16,7 @@
         LAST_UPLINK_CHECKED_LINK = 211,
         LAST_UPLINK_CHECK_SUCCESSFULL = 212,
         UPLINK_OK = 213,
+
+        UNUSED = 999,
     }
 }

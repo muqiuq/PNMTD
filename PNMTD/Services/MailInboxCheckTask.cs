@@ -22,7 +22,6 @@ namespace PNMTD.Services
         private string? username;
         private string? host;
         private string? password;
-        private PnmtdDbContext dbContext;
 
         public MailInboxCheckTask(ILogger<MailInboxCheckTask> _logger, IServiceProvider services, IConfiguration configuration)
         {
@@ -60,58 +59,57 @@ namespace PNMTD.Services
         {
             try
             {
-                dbContext = new PnmtdDbContext();
                 doWork(state);
             }
             catch (Exception ex)
             {
                 logger.LogError("MailInboxCheckTask", ex);
             }
-            finally
-            {
-                dbContext?.Dispose();
-            }
+            
         }
 
         private void doWork(object? state)
         {
-            var count = Interlocked.Increment(ref executionCount);
-
-            using (var client = new Pop3Client())
+            using(var dbContext = new PnmtdDbContext())
             {
-                client.Connect(host, 995, true);
+                var count = Interlocked.Increment(ref executionCount);
 
-                client.Authenticate(username, password);
-
-                if(client.Count != 0)
+                using (var client = new Pop3Client())
                 {
-                    logger.LogInformation($"Found {client.Count} new E-Mails in {username} at {host}");
+                    client.Connect(host, 995, true);
 
-                    for (int i = 0; i < client.Count; i++)
+                    client.Authenticate(username, password);
+
+                    if (client.Count != 0)
                     {
-                        var message = client.GetMessage(i);
-                        var mailLog = new MailLogEntity()
+                        logger.LogInformation($"Found {client.Count} new E-Mails in {username} at {host}");
+
+                        for (int i = 0; i < client.Count; i++)
                         {
-                            Id = Guid.NewGuid(),
-                            From = MailHelper.ExtractMailAdresses(message.From),
-                            To = MailHelper.ExtractMailAdresses(message.To),
-                            Content = MailHelper.ExtractBodyText(message),
-                            Subject = message.Subject.ToString(),
-                            MessageDate = message.Date.DateTime,
-                            Created = DateTime.Now,
-                            Processed = false,
-                            ProcessedBy = null,
-                            ProcessedById = null,
-                            ProcessLog = ""
-                        };
-                        dbContext.MailLogs.Add(mailLog);
-                        dbContext.SaveChanges();
-                        client.DeleteMessage(i);
+                            var message = client.GetMessage(i);
+                            var mailLog = new MailLogEntity()
+                            {
+                                Id = Guid.NewGuid(),
+                                From = MailHelper.ExtractMailAdresses(message.From),
+                                To = MailHelper.ExtractMailAdresses(message.To),
+                                Content = MailHelper.ExtractBodyText(message),
+                                Subject = message.Subject.ToString(),
+                                MessageDate = message.Date.DateTime,
+                                Created = DateTime.Now,
+                                Processed = false,
+                                ProcessedBy = null,
+                                ProcessedById = null,
+                                ProcessLog = ""
+                            };
+                            dbContext.MailLogs.Add(mailLog);
+                            dbContext.SaveChanges();
+                            client.DeleteMessage(i);
+                        }
                     }
+                    client.Disconnect(true);
                 }
-                client.Disconnect(true);
+                dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_MAILBOX_CHECK);
             }
-            dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_MAILBOX_CHECK);
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

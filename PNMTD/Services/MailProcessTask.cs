@@ -18,7 +18,6 @@ namespace PNMTD.Services
         private string? username;
         private string? host;
         private string? password;
-        private PnmtdDbContext dbContext;
 
         public MailProcessTask(ILogger<MailProcessTask> _logger, IServiceProvider services, IConfiguration configuration)
         {
@@ -47,16 +46,11 @@ namespace PNMTD.Services
         {
             try
             {
-                dbContext = new PnmtdDbContext();
                 doWork(state);
             }
             catch (Exception ex)
             {
                 logger.LogError("MailProcessTask", ex);
-            }
-            finally
-            {
-                dbContext?.Dispose();
             }
         }
 
@@ -71,18 +65,21 @@ namespace PNMTD.Services
 
         private void doWork(object? state)
         {
-            var count = Interlocked.Increment(ref executionCount);
-
-            var maillogs = dbContext.MailLogs.Where(ml => ml.Processed == false).ToList();
-
-            var mailinputrules = dbContext.MailInputs.Where(ml => ml.Enabled).ToList();
-
-            foreach (var maillog in maillogs)
+            using (var dbContext = new PnmtdDbContext())
             {
-                ProcessSingleEntry(maillog, mailinputrules, dbContext);
-            }
+                var count = Interlocked.Increment(ref executionCount);
 
-            dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_MAIL_PROCESSING);
+                var maillogs = dbContext.MailLogs.Where(ml => ml.Processed == false).ToList();
+
+                var mailinputrules = dbContext.MailInputs.Where(ml => ml.Enabled).ToList();
+
+                foreach (var maillog in maillogs)
+                {
+                    ProcessSingleEntry(maillog, mailinputrules, dbContext);
+                }
+
+                dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_MAIL_PROCESSING);
+            }
         }
 
         private void ProcessSingleEntry(MailLogEntity maillog, List<MailInputRuleEntity> mailinputrules, PnmtdDbContext dbContext)
@@ -109,13 +106,13 @@ namespace PNMTD.Services
                         {
                             code = rule.FailCode.Value;
                         }
-                        if(!rule.ExtractMessageRegex.IsNullOrEmpty())
+                        if (!rule.ExtractMessageRegex.IsNullOrEmpty())
                         {
                             Regex pattern = new Regex(rule.ExtractMessageRegex);
 
                             Match match = pattern.Match(maillog.Content);
 
-                            if(match.Success && match.Groups["msg"].Success)
+                            if (match.Success && match.Groups["msg"].Success)
                             {
                                 message = ": " + match.Groups["msg"].Value;
                             }

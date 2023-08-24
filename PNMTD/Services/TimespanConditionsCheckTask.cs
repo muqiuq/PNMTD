@@ -14,11 +14,7 @@ namespace PNMTD.Services
         private readonly IServiceProvider services;
         private readonly IConfiguration configuration;
         private Timer _timer;
-        private int executionCount;
-        private string? username;
-        private string? host;
-        private string? password;
-        private PnmtdDbContext dbContext;
+
 
         public TimespanConditionsCheckTask(ILogger<TimespanConditionsCheckTask> _logger, IServiceProvider services, IConfiguration configuration)
         {
@@ -47,15 +43,11 @@ namespace PNMTD.Services
         {
             try
             {
-                dbContext = new PnmtdDbContext();
                 doWork(state);
             }
             catch (Exception ex)
             {
                 logger.LogError("TimespanConditionsCheckTask", ex);
-            }finally
-            {
-                dbContext.Dispose();
             }
         }
 
@@ -70,30 +62,33 @@ namespace PNMTD.Services
 
         private void doWork(object? state)
         {
-            var relevantSensors = dbContext.Sensors.Where(s =>
+            using(var dbContext = new PnmtdDbContext())
+            {
+                var relevantSensors = dbContext.Sensors.Where(s =>
                 (s.Type == SensorType.ONE_WITHIN_TIMESPAN)
                 && s.Enabled).ToList();
 
-            int counterCreatedEvents = 0;
+                int counterCreatedEvents = 0;
 
-            foreach (var sensor in relevantSensors)
-            {
-                if(sensor.Type == SensorType.ONE_WITHIN_TIMESPAN)
+                foreach (var sensor in relevantSensors)
                 {
-                    ProcessSensor(logger, dbContext, sensor, PNMTStatusCodes.ONE_WITHIN_TIMESPAN_OK, PNMTStatusCodes.ONE_WITHIN_TIMESPAN_FAILED);
+                    if (sensor.Type == SensorType.ONE_WITHIN_TIMESPAN)
+                    {
+                        ProcessSensor(logger, dbContext, sensor, PNMTStatusCodes.ONE_WITHIN_TIMESPAN_OK, PNMTStatusCodes.ONE_WITHIN_TIMESPAN_FAILED);
+                    }
+                    else if (sensor.Type == SensorType.ALL_WITHIN_TIMESPAN)
+                    {
+                        ProcessSensor(logger, dbContext, sensor, PNMTStatusCodes.ALL_WITHIN_TIMESPAN_OK, PNMTStatusCodes.ALL_WITHIN_TIMESPAN_FAILED);
+                    }
                 }
-                else if (sensor.Type == SensorType.ALL_WITHIN_TIMESPAN)
+
+                dbContext.SaveChanges();
+                dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_TIMESPAN_CONDITIONS_CHECK_TASK_RUN);
+
+                if (counterCreatedEvents > 0)
                 {
-                    ProcessSensor(logger, dbContext, sensor, PNMTStatusCodes.ALL_WITHIN_TIMESPAN_OK, PNMTStatusCodes.ALL_WITHIN_TIMESPAN_FAILED);
+                    logger.LogInformation($"TimespanConditionsCheckTask created {counterCreatedEvents} HEARTBEAT_MISSING events");
                 }
-            }
-
-            dbContext.SaveChanges();
-            dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_TIMESPAN_CONDITIONS_CHECK_TASK_RUN);
-
-            if (counterCreatedEvents > 0)
-            {
-                logger.LogInformation($"TimespanConditionsCheckTask created {counterCreatedEvents} HEARTBEAT_MISSING events");
             }
         }
 

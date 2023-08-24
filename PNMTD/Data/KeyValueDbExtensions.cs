@@ -33,6 +33,14 @@ namespace PNMTD.Data
             }
         }
 
+        public static bool KeyValueKeyExists(this PnmtdDbContext db, KeyValueKeyEnums keyEnum)
+        {
+            var keyStr = Enum.GetName<KeyValueKeyEnums>(keyEnum).ToLower();
+            var entry = db.KeyValues.Where(kv => kv.Key == keyStr).SingleOrDefault();
+
+            return entry != null;
+        }
+
         public static T? GetKeyValueByEnum<T>(this PnmtdDbContext db, KeyValueKeyEnums keyEnum)
         {
             var keyStr = Enum.GetName<KeyValueKeyEnums>(keyEnum).ToLower();

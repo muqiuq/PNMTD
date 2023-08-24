@@ -1,6 +1,8 @@
 ﻿using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using PNMT.ApiClient.Data.Entities;
 using PNMTD.Lib.Authentification;
+using PNMTD.Lib.Models.Poco;
 using PNMTD.Models.Poco;
 
 
@@ -43,6 +45,11 @@ namespace PNMT.ApiClient.Data
         public string GetSensorEventUrl(SensorPoco sensor, string code, string message)
         {
             return $"{GetSensorEventUrl(sensor)}{code}/{message}";
+        }
+
+        public async Task<UplinkStatePoco> GetUplinkState()
+        {
+            return await httpClient.GetFromJsonAsync<UplinkStatePoco>($"/state");
         }
 
     }
