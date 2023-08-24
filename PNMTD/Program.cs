@@ -64,6 +64,7 @@ public partial class Program
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+        builder.Services.AddHttpClient();
 
         if (!Global.IsDevelopment && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
@@ -76,6 +77,7 @@ public partial class Program
         builder.Services.AddHostedService<MailInboxCheckTask>();
         builder.Services.AddHostedService<MailProcessTask>();
         builder.Services.AddHostedService<TimespanConditionsCheckTask>();
+        builder.Services.AddHostedService<UplinkCheckTask>();
 
         builder.Services.AddSwaggerGen(option =>
         {

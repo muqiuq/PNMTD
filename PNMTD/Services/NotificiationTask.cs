@@ -1,4 +1,5 @@
 ﻿using Castle.Core.Logging;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using PNMTD.Data;
 using PNMTD.Lib.Logic;
@@ -22,6 +23,7 @@ namespace PNMTD.Services
         private readonly IConfiguration configuration;
         private Timer _timer;
         private int executionCount;
+        private PnmtdDbContext dbContext;
 
         public NotificiationService(ILogger<NotificiationService> _logger, IServiceProvider services, IConfiguration configuration)
         {
@@ -50,11 +52,15 @@ namespace PNMTD.Services
         {
             try
             {
+                dbContext = new PnmtdDbContext();
                 doWork(state);
             }
             catch (Exception ex)
             {
                 logger.LogError("NotificiationService DoWork Exception", ex);
+            }finally
+            {
+                dbContext?.Dispose();
             }
         }
 
@@ -63,8 +69,6 @@ namespace PNMTD.Services
             var count = Interlocked.Increment(ref executionCount);
 
             IList<PendingNotification> allPendingNotifications;
-
-            var dbContext = new PnmtdDbContext();
 
             allPendingNotifications = dbContext.GetAllPendingNotificationsForLastMinutes();
 

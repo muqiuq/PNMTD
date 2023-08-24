@@ -1,5 +1,6 @@
 ﻿using PNMTD.Models.Db;
 using PNMTD.Models.Enums;
+using System.ComponentModel;
 
 namespace PNMTD.Data
 {
@@ -11,7 +12,7 @@ namespace PNMTD.Data
         {
             var keyStr = Enum.GetName<KeyValueKeyEnums>(keyEnum).ToLower();
             var entry = db.KeyValues.Where(kv => kv.Key == keyStr).SingleOrDefault();
-            if(entry == null )
+            if (entry == null)
             {
                 entry = new KeyValueEntity()
                 {
@@ -30,6 +31,30 @@ namespace PNMTD.Data
                 entry.Value = value.ToString();
                 db.SaveChanges();
             }
+        }
+
+        public static T? GetKeyValueByEnum<T>(this PnmtdDbContext db, KeyValueKeyEnums keyEnum)
+        {
+            var keyStr = Enum.GetName<KeyValueKeyEnums>(keyEnum).ToLower();
+            var entry = db.KeyValues.Where(kv => kv.Key == keyStr).SingleOrDefault();
+
+            if (entry == null)
+            {
+                return default(T);
+            }
+            try
+            {
+                var converter = TypeDescriptor.GetConverter(typeof(T));
+                if (converter != null)
+                {
+                    return (T)converter.ConvertFromString(entry.Value);
+                }
+            }
+            catch (NotSupportedException ex)
+            {
+                return default(T);
+            }
+            return default(T);
         }
 
         public static void UpdateKeyValueTimestampToNow(this PnmtdDbContext db, KeyValueKeyEnums keyEnum)

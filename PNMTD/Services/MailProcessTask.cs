@@ -1,4 +1,5 @@
 ﻿using MailKit.Net.Pop3;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PNMTD.Data;
 using PNMTD.Mails;
@@ -17,6 +18,7 @@ namespace PNMTD.Services
         private string? username;
         private string? host;
         private string? password;
+        private PnmtdDbContext dbContext;
 
         public MailProcessTask(ILogger<MailProcessTask> _logger, IServiceProvider services, IConfiguration configuration)
         {
@@ -45,11 +47,16 @@ namespace PNMTD.Services
         {
             try
             {
+                dbContext = new PnmtdDbContext();
                 doWork(state);
             }
             catch (Exception ex)
             {
                 logger.LogError("MailProcessTask", ex);
+            }
+            finally
+            {
+                dbContext?.Dispose();
             }
         }
 
@@ -65,8 +72,6 @@ namespace PNMTD.Services
         private void doWork(object? state)
         {
             var count = Interlocked.Increment(ref executionCount);
-
-            var dbContext = new PnmtdDbContext();
 
             var maillogs = dbContext.MailLogs.Where(ml => ml.Processed == false).ToList();
 

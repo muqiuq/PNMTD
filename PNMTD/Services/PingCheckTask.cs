@@ -57,11 +57,16 @@ namespace PNMTD.Services
         {
             try
             {
+                dbContext = new PnmtdDbContext();
                 doWork(state);
             }
             catch (Exception ex)
             {
                 logger.LogError("PingWorker DoWork Exception", ex);
+            }
+            finally 
+            {
+                dbContext?.Dispose();
             }
         }
 
@@ -88,11 +93,11 @@ namespace PNMTD.Services
         }
 
         Dictionary<Guid, DateTime> SensorIdLastCheck = new Dictionary<Guid, DateTime>();
-
+        private PnmtdDbContext dbContext;
 
         private void doWork(object? state)
         {
-            var dbContext = new PnmtdDbContext();
+            
 
             var relevantSensors = dbContext.Sensors
                 .Where(s => s.Type == SensorType.PING && s.Enabled && s.Parameters != null)

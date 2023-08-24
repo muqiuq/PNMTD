@@ -1,4 +1,5 @@
 ﻿using MailKit.Net.Pop3;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PNMTD.Data;
 using PNMTD.Lib.Logic;
@@ -21,6 +22,7 @@ namespace PNMTD.Services
         private string? username;
         private string? host;
         private string? password;
+        private PnmtdDbContext dbContext;
 
         public MailInboxCheckTask(ILogger<MailInboxCheckTask> _logger, IServiceProvider services, IConfiguration configuration)
         {
@@ -58,19 +60,22 @@ namespace PNMTD.Services
         {
             try
             {
+                dbContext = new PnmtdDbContext();
                 doWork(state);
             }
             catch (Exception ex)
             {
                 logger.LogError("MailInboxCheckTask", ex);
             }
+            finally
+            {
+                dbContext?.Dispose();
+            }
         }
 
         private void doWork(object? state)
         {
             var count = Interlocked.Increment(ref executionCount);
-
-            var dbContext = new PnmtdDbContext();
 
             using (var client = new Pop3Client())
             {
