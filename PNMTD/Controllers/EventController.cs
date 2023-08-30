@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using PNMTD.Data;
 using PNMTD.Exceptions;
 using PNMTD.Helper;
 using PNMTD.Lib.Models.Enum;
+using PNMTD.Lib.Models.Poco;
 using PNMTD.Models.Db;
 using PNMTD.Models.Poco.Extensions;
 using PNMTD.Models.Requests;
@@ -25,6 +27,19 @@ namespace PNMTD.Controllers
             this.db = db;
         }
 
+        [HttpGet("events/lasterrors", Name = "Get last few error events (Get)")]
+        public object GetLastErrorEvents()
+        {
+            var events = db.Events.Where(e => e.Code > EventEntityPoco.END_OF_SUCCESS_CODES 
+                && e.Sensor.Type != SensorType.ONE_WITHIN_TIMESPAN)
+                .Include(e => e.Sensor)
+                .ThenInclude(e => e.Parent)
+                .OrderByDescending(e => e.Created)
+                .Take(10).ToList();
+
+            return events.Select(e => e.ToPoco()).ToList();
+        }
+
         [HttpGet("events/sensor/{sensorIdStr}", Name = "Get Events (Get)")]
         public object GetEvents(string sensorIdStr)
         {
@@ -38,7 +53,10 @@ namespace PNMTD.Controllers
             }
 
             var events = db.Events
-                .Where(e => e.SensorId == sensorId).ToList();
+                .Where(e => e.SensorId == sensorId)
+                .Include(e => e.Sensor)
+                .ThenInclude(e => e.Parent)
+                .ToList();
 
             return events.Select(e => e.ToPoco()).ToList();
         }

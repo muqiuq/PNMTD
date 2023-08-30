@@ -17,5 +17,10 @@ namespace PNMT.ApiClient.Data.Entities
             return await httpClient.GetFromJsonAsync<List<EventEntityPoco>>($"/events/sensor/{Id}");
         }
 
+        public async Task<List<EventEntityPoco>> GetLastFewEventsWithError()
+        {
+            return await httpClient.GetFromJsonAsync<List<EventEntityPoco>>($"/events/lasterrors");
+        }
+
     }
 }

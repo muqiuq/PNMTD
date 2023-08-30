@@ -18,7 +18,7 @@ namespace PNMTD.Models.Poco.Extensions
                 Created = entity.Created,
                 SensorName = entity.Sensor.Name,
                 IsSuccess = entity.IsSuccess,
-                HostName = entity.Sensor.Name,
+                HostName = entity.Sensor.Parent.Name,
                 HostId = entity.Sensor.ParentId,
                 Source = entity.Source
             };

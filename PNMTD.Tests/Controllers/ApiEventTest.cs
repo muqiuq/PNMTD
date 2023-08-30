@@ -2,6 +2,7 @@
 using PNMTD.Data;
 using PNMTD.Lib.Models;
 using PNMTD.Lib.Models.Enum;
+using PNMTD.Lib.Models.Poco;
 using PNMTD.Models.Poco;
 using PNMTD.Models.Requests;
 using PNMTD.Models.Responses;
@@ -195,6 +196,16 @@ namespace PNMTD.Tests.Controllers
             Assert.AreEqual(numberOfEventsBefore + 1, _factory.DbTestHelper.DbContext.Events.Count());
             Assert.AreEqual(testMessage, eventT.Message);
             Assert.AreEqual(PNMTStatusCodes.VALUECHECK_OK, eventT.Code);
+        }
+
+        [TestMethod]
+        public async Task Api_GetLastErrorEvents()
+        {
+            var response = (await _client.GetAsync($"/events/lasterrors"));
+            var rawContent = await response.Content.ReadAsStringAsync();
+            var parsedResponse = JsonConvert.DeserializeObject<List<EventEntityPoco>>(rawContent);
+
+            Assert.IsTrue(parsedResponse.All(e => !e.IsSuccess));
         }
 
         [TestMethod]
