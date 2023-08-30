@@ -31,7 +31,7 @@ namespace PNMTD.Controllers
         public object GetLastErrorEvents()
         {
             var events = db.Events.Where(e => e.Code > EventEntityPoco.END_OF_SUCCESS_CODES 
-                && e.Sensor.Type != SensorType.ONE_WITHIN_TIMESPAN)
+                && e.Sensor.Type != SensorType.ONE_WITHIN_TIMESPAN && e.Sensor.Enabled && !e.Sensor.Ignore)
                 .Include(e => e.Sensor)
                 .ThenInclude(e => e.Parent)
                 .OrderByDescending(e => e.Created)
