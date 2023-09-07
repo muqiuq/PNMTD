@@ -134,11 +134,12 @@ namespace PNMTD.Services
                         !pnm.EventEntity.Sensor.Ignore &&
                         pnm.EventEntity.Sensor.Parent.Enabled)
                     {
+                        var emailSubject = pnm.EventEntity.IsSuccess ? "Resolved" : "Alert";
                         pnm.NoAction = false;
                         NotificationService.SendNotification(
                         pnm.NotitificationRule.Recipient,
-                        "Alert",
-                        $"{pnm.EventEntity.Sensor.Name} is now State {pnm.EventEntity.Code}\n\n--- DATA ---\n{JsonSerializer.Serialize(eventEntityPoco)}",
+                        $"{emailSubject} ({pnm.EventEntity.Sensor.Name})",
+                        $"Host {pnm.EventEntity.Sensor.Parent.Name}, Sensor {pnm.EventEntity.Sensor.Name} is now State {pnm.EventEntity.Code}\n\n--- DATA ---\n{JsonSerializer.Serialize(eventEntityPoco)}",
                         configuration["Development:DoNotSendNotifications"] == null ? false : bool.Parse(configuration["Development:DoNotSendNotifications"])
                         );
                     }

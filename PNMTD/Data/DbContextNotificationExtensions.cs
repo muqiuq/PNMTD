@@ -76,6 +76,8 @@ namespace PNMTD.Data
 
             var pendingEvents = db.Events
                 .Where(e => !eventIdsWithNotifications.Contains(e.Id))
+                .Include(e => e.Sensor)
+                .ThenInclude(es => es.Parent)
                 .ToList()
                 .Where(e => (DateTime.Now - e.Created) < maxTimeSpan)
                 .ToList();
