@@ -20,6 +20,7 @@ namespace PNMTD.Models.Poco.Extensions
                 ProcessLog = mailLogEntity.ProcessLog,
                 Subject = mailLogEntity.Subject,
                 MessageDate = mailLogEntity.MessageDate,
+                RemoteId = mailLogEntity.RemoteId,
             };
         }
 
@@ -37,6 +38,7 @@ namespace PNMTD.Models.Poco.Extensions
                 ProcessLog = mailLogPoco.ProcessLog,
                 Subject = mailLogPoco.Subject,
                 MessageDate = mailLogPoco.MessageDate,
+                RemoteId = mailLogPoco.RemoteId,
             };
 
             if (!isNew)

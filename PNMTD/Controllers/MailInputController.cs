@@ -35,7 +35,7 @@ namespace PNMTD.Controllers
         public DefaultResponse Post([FromBody] MailInputRulePoco mailInputPoco)
         {
             var entity = mailInputPoco.ToEntity(true);
-            entity.ExtractMessageRegex = entity.ExtractMessageRegex.Trim();
+            if(entity.ExtractMessageRegex != null) entity.ExtractMessageRegex = entity.ExtractMessageRegex.Trim();
             Db.MailInputs.Add(entity);
             var changes = Db.SaveChanges();
             return new DefaultResponse()
@@ -50,7 +50,7 @@ namespace PNMTD.Controllers
         public DefaultResponse Put([FromBody] MailInputRulePoco mailInputPoco)
         {
             var entity = mailInputPoco.ToEntity(false);
-            entity.ExtractMessageRegex = entity.ExtractMessageRegex.Trim();
+            if (entity.ExtractMessageRegex != null) entity.ExtractMessageRegex = entity.ExtractMessageRegex.Trim();
             Db.MailInputs.Attach(entity);
             Db.Update<MailInputRuleEntity>(entity);
             var changes = Db.SaveChanges();

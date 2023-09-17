@@ -10,6 +10,8 @@ namespace PNMTD.Lib.Models.Poco
     {
         public Guid Id { get; set; }
 
+        public string RemoteId { get; set; }
+
         public bool Processed { get; set; }
 
         public string ProcessLog { get; set; }

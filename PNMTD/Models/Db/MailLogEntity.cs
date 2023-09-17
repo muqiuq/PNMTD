@@ -9,6 +9,8 @@ namespace PNMTD.Models.Db
         [Key]
         public Guid Id { get; set; }
 
+        public string RemoteId { get; set; }
+
         public bool Processed { get; set; }
 
 
