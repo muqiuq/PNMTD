@@ -78,6 +78,8 @@ namespace PNMTD.Services
                     ProcessSingleEntry(maillog, mailinputrules, dbContext);
                 }
 
+                dbContext.MailLogs.CleanUpMailLog();
+
                 dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_MAIL_PROCESSING);
             }
         }
