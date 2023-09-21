@@ -87,16 +87,15 @@ namespace PNMTD.Data
                     se => se.Events.DefaultIfEmpty(),
                     (se, e) => new { Sensor = se.Sensor, Event = e }
                 )
-                .Where(e => e.Event?.Code == PNMTStatusCodes.ONE_WITHIN_TIMESPAN_OK
-                    || e.Event?.Code == PNMTStatusCodes.ONE_WITHIN_TIMESPAN_FAILED
-                    || e.Event?.Code == PNMTStatusCodes.ALL_WITHIN_TIMESPAN_OK
-                    || e.Event?.Code == PNMTStatusCodes.ONE_WITHIN_TIMESPAN_FAILED
-                    || e.Event == null)
                 .GroupBy(se => se.Sensor)
                 .Select(g => new
                 {
                     Sensor = g.Key,
-                    Event = g.OrderByDescending(se => se.Event?.Created).FirstOrDefault()
+                    Event = g.Where(e => e.Event?.Code == PNMTStatusCodes.ONE_WITHIN_TIMESPAN_OK
+                                    || e.Event?.Code == PNMTStatusCodes.ONE_WITHIN_TIMESPAN_FAILED
+                                    || e.Event?.Code == PNMTStatusCodes.ALL_WITHIN_TIMESPAN_OK
+                                    || e.Event?.Code == PNMTStatusCodes.ONE_WITHIN_TIMESPAN_FAILED)
+                                    .OrderByDescending(se => se.Event?.Created).FirstOrDefault()
                 })
                 )
                 .ToList()
