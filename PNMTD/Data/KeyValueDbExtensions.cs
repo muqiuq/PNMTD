@@ -8,7 +8,7 @@ namespace PNMTD.Data
     {
 
 
-        public static void SetKeyValueEntryByEnum(this PnmtdDbContext db, KeyValueKeyEnums keyEnum, object value)
+        public static void SetKeyValueEntryByEnum(this PnmtdDbContext db, KeyValueKeyEnums keyEnum, object value, bool readOnly = true)
         {
             var keyStr = Enum.GetName<KeyValueKeyEnums>(keyEnum).ToLower();
             var entry = db.KeyValues.Where(kv => kv.Key == keyStr).SingleOrDefault();
@@ -18,7 +18,7 @@ namespace PNMTD.Data
                 {
                     Id = Guid.NewGuid(),
                     Enabled = true,
-                    IsReadOnly = true,
+                    IsReadOnly = readOnly,
                     Key = keyStr,
                     Value = value.ToString(),
                     Note = ""
@@ -29,6 +29,7 @@ namespace PNMTD.Data
             else
             {
                 entry.Value = value.ToString();
+                entry.Enabled = true;
                 db.SaveChanges();
             }
         }
@@ -44,7 +45,7 @@ namespace PNMTD.Data
         public static T? GetKeyValueByEnum<T>(this PnmtdDbContext db, KeyValueKeyEnums keyEnum)
         {
             var keyStr = Enum.GetName<KeyValueKeyEnums>(keyEnum).ToLower();
-            var entry = db.KeyValues.Where(kv => kv.Key == keyStr).SingleOrDefault();
+            var entry = db.KeyValues.Where(kv => kv.Key == keyStr && kv.Enabled).SingleOrDefault();
 
             if (entry == null)
             {
@@ -65,11 +66,53 @@ namespace PNMTD.Data
             return default(T);
         }
 
+
+        public static bool TryGetKeyValueByEnumSetIfFailed<T>(this PnmtdDbContext db, KeyValueKeyEnums keyEnum, T setValue, out T? outValue, bool readOnly = true)
+        {
+            if(TryGetKeyValueByEnum(db, keyEnum, out outValue))
+            {
+                return true;
+            }
+            else
+            {
+                SetKeyValueEntryByEnum(db, keyEnum, setValue, readOnly);
+                return false;
+            }
+        }
+
+        public static bool TryGetKeyValueByEnum<T>(this PnmtdDbContext db, KeyValueKeyEnums keyEnum, out T? outValue)
+        {
+            var keyStr = Enum.GetName<KeyValueKeyEnums>(keyEnum).ToLower();
+            var entry = db.KeyValues.Where(kv => kv.Key == keyStr && kv.Enabled).SingleOrDefault();
+
+            if (entry == null)
+            {
+                outValue = default(T);
+                return false;
+            }
+            try
+            {
+                var converter = TypeDescriptor.GetConverter(typeof(T));
+                if (converter != null)
+                {
+                    outValue = (T)converter.ConvertFromString(entry.Value);
+                    return true;
+                }
+            }
+            catch (NotSupportedException ex)
+            {
+                outValue = default(T);
+                return false;
+            }
+            outValue = default(T);
+            return false;
+        }
+
         public static void UpdateKeyValueTimestampToNow(this PnmtdDbContext db, KeyValueKeyEnums keyEnum)
         {
             var keyStr = Enum.GetName<KeyValueKeyEnums>(keyEnum).ToLower();
             var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-            var entry = db.KeyValues.Where(kv => kv.Key == keyStr).SingleOrDefault();
+            var entry = db.KeyValues.Where(kv => kv.Key == keyStr && kv.Enabled).SingleOrDefault();
             if (entry == null)
             {
                 entry = new KeyValueEntity()

@@ -22,6 +22,8 @@ namespace PNMTD.Services
         private const string PROCESSED_SUBFOLDER_NAME = "ARCHIVE";
         private const string PREPROCESSED_SUBFOLDER_NAME = "RECEIVED";
 
+        private const int DEFAULT_MARGIN_IN_DAYS = 7;
+        private const int DEFAULT_DELETE_ARCHIVED_MESSAGES_OLDER_THEN_DAYS = 365;
 
         private readonly ILogger<MailInboxCheckTask> logger;
         private readonly IServiceProvider services;
@@ -64,8 +66,6 @@ namespace PNMTD.Services
 
             password = configuration["Mailbox:Password"];
 
-            
-
             if(username.IsNullOrEmpty() || password.IsNullOrEmpty() || host.IsNullOrEmpty()) {
                 logger.LogError("MailInboxCheckTask failed to start. Require Mailbox:Username, Mailbox:Host, Mailbox:Password");
                 return Task.CompletedTask;
@@ -105,6 +105,20 @@ namespace PNMTD.Services
             {
                 var count = Interlocked.Increment(ref executionCount);
 
+                #region LoadDefaults from KeyValueStore
+                var defaultMargin = DEFAULT_MARGIN_IN_DAYS;
+                var defaultDeleteArchivedMessagesOlderThenDays = DEFAULT_DELETE_ARCHIVED_MESSAGES_OLDER_THEN_DAYS;
+
+                if (dbContext.TryGetKeyValueByEnumSetIfFailed<int>(Models.Enums.KeyValueKeyEnums.MAILBOX_DEFAULT_MARGIN_IN_DAYS, DEFAULT_MARGIN_IN_DAYS, out var outMailboxDefaultMarginInDays, readOnly: false))
+                {
+                    defaultMargin = outMailboxDefaultMarginInDays;
+                }
+                if (dbContext.TryGetKeyValueByEnumSetIfFailed<int>(Models.Enums.KeyValueKeyEnums.MAILBOX_DEFAULT_DELETE_ARCHIVED_MESSAGES_OLDER_THEN_DAYS, DEFAULT_DELETE_ARCHIVED_MESSAGES_OLDER_THEN_DAYS, out var outMailboxDefautDeleteArchivedMessagesOlderThenDays, readOnly: false))
+                {
+                    defaultDeleteArchivedMessagesOlderThenDays = outMailboxDefautDeleteArchivedMessagesOlderThenDays;
+                }
+                #endregion
+
                 using (var client = new ImapClient())
                 {
                     #region Connect and prepare variables
@@ -132,7 +146,7 @@ namespace PNMTD.Services
 
                         foreach (var item in items)
                         {
-                            if (DateTime.Now - item.Date.DateTime > TimeSpan.FromDays(7)) continue;
+                            if (DateTime.Now - item.Date.DateTime > TimeSpan.FromDays(defaultMargin)) continue;
 
                             var message = preProcessedFolder.GetMessage(item.UniqueId);
 
@@ -154,7 +168,7 @@ namespace PNMTD.Services
                         }
                     }
 
-                    logger.LogInformation($"Moved {numOfMessagesMovedToProcessed} messages from {PREPROCESSED_SUBFOLDER_NAME} to {PROCESSED_SUBFOLDER_NAME} folder");
+                    if(numOfMessagesMovedToProcessed != 0) logger.LogInformation($"Moved {numOfMessagesMovedToProcessed} messages from {PREPROCESSED_SUBFOLDER_NAME} to {PROCESSED_SUBFOLDER_NAME} folder");
 
                     #endregion
 
@@ -197,6 +211,26 @@ namespace PNMTD.Services
                     }
 
                     #endregion
+
+                    #region Delete old messages from archive
+                    int deletedMessages = 0;
+                    processedFolder.Open(MailKit.FolderAccess.ReadWrite);
+                    if (processedFolder.Count != 0)
+                    {
+                        var items = processedFolder.Fetch(0, -1, MessageSummaryItems.Envelope | MessageSummaryItems.UniqueId | MessageSummaryItems.Size | MessageSummaryItems.Flags | MessageSummaryItems.EmailId);
+
+                        foreach (var item in items)
+                        {
+                            if (DateTime.Now - item.Date.DateTime < TimeSpan.FromDays(defaultDeleteArchivedMessagesOlderThenDays)) continue;
+
+                            processedFolder.AddFlags(item.UniqueId, MessageFlags.Deleted, false);
+                            processedFolder.Expunge();
+                            deletedMessages++;
+                        }
+                    }
+                    #endregion
+
+                    if(deletedMessages != 0) logger.LogInformation($"Deleted {deletedMessages} messages from {PROCESSED_SUBFOLDER_NAME} folder");
 
                     client.Disconnect(true);
                 }
