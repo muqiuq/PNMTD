@@ -76,14 +76,12 @@ namespace PNMTD.Controllers
             return Db.NotificationRules.Select(n => n.ToPoco()).ToList();
         }
 
-        // GET api/<NotificationController>/5
         [HttpGet("{id}")]
         public NotificationRulePoco Get(Guid id)
         {
             return Db.NotificationRules.Where(n => n.Id == id).Select(x => x.ToPoco()).Single();
         }
 
-        // POST api/<NotificationController>
         [HttpPost]
         public DefaultResponse Post([FromBody] NotificationRulePoco notificationPoco)
         {

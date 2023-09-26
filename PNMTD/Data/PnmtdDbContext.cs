@@ -30,6 +30,10 @@ namespace PNMTD.Data
 
         public DbSet<MailLogEntity> MailLogs { get; set; }
 
+        public DbSet<DnsZoneEntity> DnsZones { get; set; }
+        public DbSet<DnsZoneEntryEntity> DnsZoneEntries { get; set; }
+        public DbSet<DnsZoneLogEntryEntity> DnsZoneLogEntries { get; set; }
+
         public string DbPath { get; }
 
         public PnmtdDbContext(bool inMemory = false)

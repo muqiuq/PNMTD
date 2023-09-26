@@ -1,37 +1,34 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PNMTD.Data;
 using PNMTD.Lib.Models.Poco;
 using PNMTD.Models.Db;
-using PNMTD.Models.Poco;
-using PNMTD.Models.Poco.Extensions;
 using PNMTD.Models.Responses;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace PNMTD.Controllers
 {
-    [Route("host")]
     [ApiController]
-    public class HostController : ControllerBase
+    public class DnsZoneController : ControllerBase
     {
-        public PnmtdDbContext Db { get; }
 
-        public HostController(PnmtdDbContext Db)
+        private readonly PnmtdDbContext Db;
+
+        public DnsZoneController(PnmtdDbContext db)
         {
-            this.Db = Db;
+            this.Db = db;
         }
 
         [HttpGet]
         public IEnumerable<HostPoco> Get()
         {
-            return Db.Hosts.Select(h => h.ToPoco()).ToList();
+            return Db.DnsZoneEntries.Include(d => d.DnsZone).Select(d => d.ToPoco()).ToList();
         }
 
         [HttpGet("{id}")]
         public IActionResult Get(Guid id)
         {
             var host = Db.Hosts.Where(h => h.Id == id);
-            if(host.Any())
+            if (host.Any())
             {
                 return Ok(host.Single().ToPoco());
             }
@@ -47,9 +44,12 @@ namespace PNMTD.Controllers
             var entity = hostPoco.ToEntity(true);
             var change = Db.Hosts.Add(entity);
             Db.SaveChanges();
-            return new DefaultResponse() { 
-                Success = change.State == Microsoft.EntityFrameworkCore.EntityState.Unchanged, 
-                Message = "", Data = entity.Id };
+            return new DefaultResponse()
+            {
+                Success = change.State == Microsoft.EntityFrameworkCore.EntityState.Unchanged,
+                Message = "",
+                Data = entity.Id
+            };
         }
 
         [HttpPut]
