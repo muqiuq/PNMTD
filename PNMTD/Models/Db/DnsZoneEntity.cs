@@ -16,5 +16,7 @@ namespace PNMTD.Models.Db
         public string ZoneFileContent { get; set; }
 
         public virtual List<DnsZoneEntryEntity> DnsZoneEntries { get; set; } = new List<DnsZoneEntryEntity>();
+
+        
     }
 }

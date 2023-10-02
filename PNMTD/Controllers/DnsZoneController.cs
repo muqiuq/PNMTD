@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PNMTD.Data;
 using PNMTD.Lib.Models.Poco;
 using PNMTD.Models.Db;
+using PNMTD.Models.Poco.Extensions;
 using PNMTD.Models.Responses;
 
 namespace PNMTD.Controllers
@@ -19,15 +20,15 @@ namespace PNMTD.Controllers
         }
 
         [HttpGet]
-        public IEnumerable<HostPoco> Get()
+        public IEnumerable<DnsZonePoco> Get()
         {
-            return Db.DnsZoneEntries.Include(d => d.DnsZone).Select(d => d.ToPoco()).ToList();
+            return Db.DnsZones.Include(d => d.DnsZoneEntries).Select(d => d.ToPoco()).ToList();
         }
 
         [HttpGet("{id}")]
         public IActionResult Get(Guid id)
         {
-            var host = Db.Hosts.Where(h => h.Id == id);
+            var host = Db.DnsZones.Where(h => h.Id == id);
             if (host.Any())
             {
                 return Ok(host.Single().ToPoco());
@@ -39,10 +40,10 @@ namespace PNMTD.Controllers
         }
 
         [HttpPost]
-        public DefaultResponse Post([FromBody] HostPoco hostPoco)
+        public DefaultResponse Post([FromBody] DnsZonePoco dnsZonePoco)
         {
-            var entity = hostPoco.ToEntity(true);
-            var change = Db.Hosts.Add(entity);
+            var entity = dnsZonePoco.ToEntity();
+            var change = Db.DnsZones.Add(entity);
             Db.SaveChanges();
             return new DefaultResponse()
             {
@@ -53,11 +54,11 @@ namespace PNMTD.Controllers
         }
 
         [HttpPut]
-        public DefaultResponse Put([FromBody] HostPoco hostPoco)
+        public DefaultResponse Put([FromBody] DnsZonePoco dnsZonePoco)
         {
-            var entity = hostPoco.ToEntity(false);
-            Db.Hosts.Attach(entity);
-            var change = Db.Update<HostEntity>(entity);
+            var entity = dnsZonePoco.ToEntity();
+            Db.DnsZones.Attach(entity);
+            var change = Db.Update<DnsZoneEntity>(entity);
             Db.SaveChanges();
             return new DefaultResponse()
             {
@@ -70,9 +71,15 @@ namespace PNMTD.Controllers
         [HttpDelete("{id}")]
         public DefaultResponse Delete(Guid id)
         {
-            var host = Db.Hosts.Where(n => n.Id == id).Single();
-            host.Sensors.ForEach(s => Db.Sensors.Remove(s));
-            var change = Db.Hosts.Remove(Db.Hosts.Where(n => n.Id == id).Single());
+            var dnsZone = Db.DnsZones
+                .Include(d => d.DnsZoneEntries)
+                .ThenInclude(d => d.DnsZoneLogEntries)
+                .Where(n => n.Id == id).Single();
+            dnsZone.DnsZoneEntries.ForEach(s => {
+                s.DnsZoneLogEntries.ForEach(e => { Db.DnsZoneLogEntries.Remove(e);  });
+                Db.DnsZoneEntries.Remove(s);
+                });
+            var change = Db.DnsZones.Remove(dnsZone);
             Db.SaveChanges();
 
             return new DefaultResponse()

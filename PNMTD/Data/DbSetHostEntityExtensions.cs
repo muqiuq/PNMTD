@@ -11,6 +11,8 @@ namespace PNMTD.Data
     public static class DbSetHostEntityExtensions
     {
 
+        //public static List<decimal>
+
         public static decimal CalculateUpdateFor(this PnmtdDbContext db, SensorEntity sensorEntity, TimeSpan spanFromNow)
         {
             var nowMinus30Days = DateTime.Now - spanFromNow;

@@ -25,6 +25,8 @@ namespace PNMTD.Models.Db
 
         public DateTime Updated { get; set; }
 
+        public virtual List<DnsZoneLogEntryEntity> DnsZoneLogEntries { get; set; } = new List<DnsZoneLogEntryEntity>();
+
         [NotMapped]
         public bool IsMatch { get
             {
