@@ -3,9 +3,7 @@
     public class UptimeAggregatedSpan
     {
 
-        public DateTime TimePeriodBegin { get; set; }
-
-        public TimeSpan Duration { get; set; }
+        public DateTime Day { get; set; }
 
         public decimal Uptime { get; set; }
 

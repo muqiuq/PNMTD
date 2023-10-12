@@ -8,6 +8,7 @@ using PNMTD.Models.Responses;
 
 namespace PNMTD.Controllers
 {
+    [Route("dnszone")]
     [ApiController]
     public class DnsZoneController : ControllerBase
     {
@@ -28,7 +29,9 @@ namespace PNMTD.Controllers
         [HttpGet("{id}")]
         public IActionResult Get(Guid id)
         {
-            var host = Db.DnsZones.Where(h => h.Id == id);
+            var host = Db.DnsZones
+                .Include(d => d.DnsZoneEntries)
+                .Where(h => h.Id == id);
             if (host.Any())
             {
                 return Ok(host.Single().ToPoco());

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using PNMTD.Data.UptimeGraphs;
 using PNMTD.Lib.Models;
 using PNMTD.Lib.Models.Enum;
 using PNMTD.Lib.Models.Poco;
@@ -113,6 +114,7 @@ namespace PNMTD.Data
                     Enabled = g.Sensor.Enabled,
                     UpTime30days = db.CalculateUpdateFor(g.Sensor, TimeSpan.FromDays(30)),
                     UpTime24h = db.CalculateUpdateFor(g.Sensor, TimeSpan.FromHours(24)),
+                    UptimePerDay = g.Sensor.AggregateStatesForTimeperiodInDays(db).ToDictionary(i => i.Day, i => i.Uptime),
                     Ignore = g.Sensor.Ignore
                 })
                 .ToList();

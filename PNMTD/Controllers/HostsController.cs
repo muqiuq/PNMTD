@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using PNMTD.Data;
 using PNMTD.Lib.Models.Poco;
+using PNMTD.Models.Db;
 using PNMTD.Models.Poco;
 using System.Diagnostics;
 
@@ -21,6 +22,33 @@ namespace PNMTD.Controllers
             this.db = db;
         }
 
+        private HostStatePoco getHostState(HostEntity host)
+        {
+            var sensorsWithLastState = db.GetLastSensorStatesForHosts(host);
+
+            var uptimeOverAll = sensorsWithLastState
+                .Where(x => x.Enabled && !x.Ignore && !x.UptimePerDay.All(t => t.Value == -1))
+                .SelectMany(x => x.UptimePerDay)
+                .GroupBy(x => x.Key)
+                .ToDictionary(x => x.Key, i => Decimal.Round(i.Average(x => x.Value), 2));
+
+            var hostState = new HostStatePoco()
+            {
+                Created = host.Created,
+                Enabled = host.Enabled,
+                Id = host.Id,
+                Location = host.Location,
+                Name = host.Name,
+                Notes = host.Notes,
+                State = sensorsWithLastState.Where(nw => nw.Enabled && !nw.Ignore).All(nw => nw.IsSuccess) ? HostState.Ok : HostState.Error,
+                Sensors = sensorsWithLastState,
+                UptimePerDay = uptimeOverAll,
+                UpTime30days = sensorsWithLastState.Where(x => x.Enabled && !x.Ignore).Average(x => x.UpTime30days)
+            };
+
+            return hostState;
+        }
+
         [HttpGet("hosts", Name = "Hosts")]
         public IResult GetHosts()
         {
@@ -30,21 +58,7 @@ namespace PNMTD.Controllers
 
             foreach (var host in hosts)
             {
-                var sensorsWithLastState = db.GetLastSensorStatesForHosts(host);
-
-                var hostState = new HostStatePoco()
-                {
-                    Created = host.Created,
-                    Enabled = host.Enabled,
-                    Id = host.Id,
-                    Location = host.Location,
-                    Name = host.Name,
-                    Notes = host.Notes,
-                    State = sensorsWithLastState.Where(nw => nw.Enabled && !nw.Ignore).All(nw => nw.IsSuccess) ? HostState.Ok : HostState.Error,
-                    Sensors = sensorsWithLastState
-                };
-
-                hostStates.Add(hostState);
+                hostStates.Add(getHostState(host));
             }
 
             return Results.Ok(hostStates);
@@ -56,19 +70,7 @@ namespace PNMTD.Controllers
             var host = db.Hosts.Single(h => h.Id == id);
 
 
-            var sensorsWithLastState = db.GetLastSensorStatesForHosts(host);
-
-            var hostState = new HostStatePoco()
-            {
-                Created = host.Created,
-                Enabled = host.Enabled,
-                Id = host.Id,
-                Location = host.Location,
-                Name = host.Name,
-                Notes = host.Notes,
-                State = sensorsWithLastState.Where(nw => nw.Enabled && !nw.Ignore).All(nw => nw.IsSuccess) ? HostState.Ok : HostState.Error,
-                Sensors = sensorsWithLastState
-            };
+            var hostState = getHostState(host);
 
             return Results.Ok(hostState);
         }

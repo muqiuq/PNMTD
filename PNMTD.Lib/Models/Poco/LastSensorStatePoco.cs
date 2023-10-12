@@ -25,6 +25,8 @@ namespace PNMTD.Lib.Models.Poco
 
         public bool IsSuccess { get; set; }
 
+        public Dictionary<DateTime, decimal> UptimePerDay { get; set; }
+
         public DateTime? Since { get; set; }
 
     }

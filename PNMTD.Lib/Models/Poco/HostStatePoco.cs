@@ -20,5 +20,9 @@ namespace PNMTD.Lib.Models.Poco
 
         public List<LastSensorStatePoco> Sensors { get; set; } = new List<LastSensorStatePoco>();
 
+        public Dictionary<DateTime, decimal> UptimePerDay { get; set; }
+
+        public decimal? UpTime30days { get; set; }
+
     }
 }
