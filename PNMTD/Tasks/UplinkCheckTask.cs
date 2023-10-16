@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace PNMTD.Services
+namespace PNMTD.Tasks
 {
     public class UplinkCheckTask : IHostedService, IDisposable
     {

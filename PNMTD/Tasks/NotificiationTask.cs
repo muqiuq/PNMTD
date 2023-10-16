@@ -14,7 +14,7 @@ using PNMTD.Notifications;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace PNMTD.Services
+namespace PNMTD.Tasks
 {
     public class NotificiationService : IHostedService, IDisposable
     {

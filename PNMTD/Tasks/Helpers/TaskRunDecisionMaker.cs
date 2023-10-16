@@ -1,6 +1,6 @@
 ﻿using PNMTD.Data;
 
-namespace PNMTD.Services.Helpers
+namespace PNMTD.Tasks.Helpers
 {
     public class TaskRunDecisionMaker
     {

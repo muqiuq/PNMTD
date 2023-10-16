@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using PNMTD.Lib.Logic.IntervalDescriptions;
 using Microsoft.EntityFrameworkCore;
 
-namespace PNMTD.Services
+namespace PNMTD.Tasks
 {
     public class TimespanConditionsCheckTask : IHostedService, IDisposable
     {

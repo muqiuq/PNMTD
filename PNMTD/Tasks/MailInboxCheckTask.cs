@@ -15,7 +15,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace PNMTD.Services
+namespace PNMTD.Tasks
 {
     public class MailInboxCheckTask : IHostedService, IDisposable
     {
@@ -55,10 +55,11 @@ namespace PNMTD.Services
             username = configuration["Mailbox:Username"];
             host = configuration["Mailbox:Host"];
             port = 993;
-            if(host.Split(":").Length == 2)
+            if (host.Split(":").Length == 2)
             {
                 var portStr = host.Split(":")[1];
-                if (int.TryParse(portStr, out var parsedPort)) { 
+                if (int.TryParse(portStr, out var parsedPort))
+                {
                     port = parsedPort;
                     host = host.Split(':')[0];
                 }
@@ -66,7 +67,8 @@ namespace PNMTD.Services
 
             password = configuration["Mailbox:Password"];
 
-            if(username.IsNullOrEmpty() || password.IsNullOrEmpty() || host.IsNullOrEmpty()) {
+            if (username.IsNullOrEmpty() || password.IsNullOrEmpty() || host.IsNullOrEmpty())
+            {
                 logger.LogError("MailInboxCheckTask failed to start. Require Mailbox:Username, Mailbox:Host, Mailbox:Password");
                 return Task.CompletedTask;
             }
@@ -90,7 +92,7 @@ namespace PNMTD.Services
             }
             catch (Exception ex)
             {
-                if(Debugger.IsAttached)
+                if (Debugger.IsAttached)
                 {
                     throw ex;
                 }
@@ -101,7 +103,7 @@ namespace PNMTD.Services
 
         private void doWork(object? state)
         {
-            using(var dbContext = new PnmtdDbContext())
+            using (var dbContext = new PnmtdDbContext())
             {
                 var count = Interlocked.Increment(ref executionCount);
 
@@ -109,11 +111,11 @@ namespace PNMTD.Services
                 var defaultMargin = DEFAULT_MARGIN_IN_DAYS;
                 var defaultDeleteArchivedMessagesOlderThenDays = DEFAULT_DELETE_ARCHIVED_MESSAGES_OLDER_THEN_DAYS;
 
-                if (dbContext.TryGetKeyValueByEnumSetIfFailed<int>(Models.Enums.KeyValueKeyEnums.MAILBOX_DEFAULT_MARGIN_IN_DAYS, DEFAULT_MARGIN_IN_DAYS, out var outMailboxDefaultMarginInDays, readOnly: false))
+                if (dbContext.TryGetKeyValueByEnumSetIfFailed(Models.Enums.KeyValueKeyEnums.MAILBOX_DEFAULT_MARGIN_IN_DAYS, DEFAULT_MARGIN_IN_DAYS, out var outMailboxDefaultMarginInDays, readOnly: false))
                 {
                     defaultMargin = outMailboxDefaultMarginInDays;
                 }
-                if (dbContext.TryGetKeyValueByEnumSetIfFailed<int>(Models.Enums.KeyValueKeyEnums.MAILBOX_DEFAULT_DELETE_ARCHIVED_MESSAGES_OLDER_THEN_DAYS, DEFAULT_DELETE_ARCHIVED_MESSAGES_OLDER_THEN_DAYS, out var outMailboxDefautDeleteArchivedMessagesOlderThenDays, readOnly: false))
+                if (dbContext.TryGetKeyValueByEnumSetIfFailed(Models.Enums.KeyValueKeyEnums.MAILBOX_DEFAULT_DELETE_ARCHIVED_MESSAGES_OLDER_THEN_DAYS, DEFAULT_DELETE_ARCHIVED_MESSAGES_OLDER_THEN_DAYS, out var outMailboxDefautDeleteArchivedMessagesOlderThenDays, readOnly: false))
                 {
                     defaultDeleteArchivedMessagesOlderThenDays = outMailboxDefautDeleteArchivedMessagesOlderThenDays;
                 }
@@ -127,7 +129,7 @@ namespace PNMTD.Services
                     client.Authenticate(username, password);
 
                     var inbox = client.Inbox;
-                    
+
                     var toplevel = client.GetFolder(client.PersonalNamespaces[0]);
 
                     IMailFolder processedFolder = CreateOrGetFolder(toplevel, PROCESSED_SUBFOLDER_NAME);
@@ -139,10 +141,10 @@ namespace PNMTD.Services
 
                     #region Check if any messages in preprocessed folder are ready for move to processed folder
 
-                    preProcessedFolder.Open(MailKit.FolderAccess.ReadWrite);
+                    preProcessedFolder.Open(FolderAccess.ReadWrite);
                     if (preProcessedFolder.Count != 0)
                     {
-                        var items = preProcessedFolder.Fetch(0, -1, MessageSummaryItems.Envelope |  MessageSummaryItems.UniqueId | MessageSummaryItems.Size | MessageSummaryItems.Flags | MessageSummaryItems.EmailId);
+                        var items = preProcessedFolder.Fetch(0, -1, MessageSummaryItems.Envelope | MessageSummaryItems.UniqueId | MessageSummaryItems.Size | MessageSummaryItems.Flags | MessageSummaryItems.EmailId);
 
                         foreach (var item in items)
                         {
@@ -168,20 +170,20 @@ namespace PNMTD.Services
                         }
                     }
 
-                    if(numOfMessagesMovedToProcessed != 0) logger.LogInformation($"Moved {numOfMessagesMovedToProcessed} messages from {PREPROCESSED_SUBFOLDER_NAME} to {PROCESSED_SUBFOLDER_NAME} folder");
+                    if (numOfMessagesMovedToProcessed != 0) logger.LogInformation($"Moved {numOfMessagesMovedToProcessed} messages from {PREPROCESSED_SUBFOLDER_NAME} to {PROCESSED_SUBFOLDER_NAME} folder");
 
                     #endregion
 
                     #region Process new messages
 
-                    inbox.Open(MailKit.FolderAccess.ReadWrite);
+                    inbox.Open(FolderAccess.ReadWrite);
                     if (inbox.Count != 0)
                     {
                         logger.LogInformation($"Found {inbox.Count} new E-Mails in {username} at {host}");
 
                         var items = inbox.Fetch(0, -1, MessageSummaryItems.UniqueId | MessageSummaryItems.Size | MessageSummaryItems.Flags | MessageSummaryItems.EmailId);
 
-                        foreach(var item in items )
+                        foreach (var item in items)
                         {
                             var message = inbox.GetMessage(item.UniqueId);
                             inbox.Store(item.UniqueId, new StoreFlagsRequest(StoreAction.Add, MessageFlags.Seen) { Silent = true });
@@ -214,7 +216,7 @@ namespace PNMTD.Services
 
                     #region Delete old messages from archive
                     int deletedMessages = 0;
-                    processedFolder.Open(MailKit.FolderAccess.ReadWrite);
+                    processedFolder.Open(FolderAccess.ReadWrite);
                     if (processedFolder.Count != 0)
                     {
                         var items = processedFolder.Fetch(0, -1, MessageSummaryItems.Envelope | MessageSummaryItems.UniqueId | MessageSummaryItems.Size | MessageSummaryItems.Flags | MessageSummaryItems.EmailId);
@@ -230,7 +232,7 @@ namespace PNMTD.Services
                     }
                     #endregion
 
-                    if(deletedMessages != 0) logger.LogInformation($"Deleted {deletedMessages} messages from {PROCESSED_SUBFOLDER_NAME} folder");
+                    if (deletedMessages != 0) logger.LogInformation($"Deleted {deletedMessages} messages from {PROCESSED_SUBFOLDER_NAME} folder");
 
                     client.Disconnect(true);
                 }

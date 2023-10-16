@@ -56,9 +56,4 @@
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </Content>
 	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="Events\" />
-	  <Folder Include="KeyValues\" />
-	  <Folder Include="Logic\" />
-	</ItemGroup>
 </Project>

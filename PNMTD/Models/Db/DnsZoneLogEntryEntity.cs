@@ -16,6 +16,10 @@ namespace PNMTD.Models.Db
 
         public virtual DnsZoneEntity? DnsZone { get; set; }
 
+        public Guid? DnsZoneEntryId { get; set; }
+
+        public virtual DnsZoneEntryEntity? DnsZoneEntry { get; set; }
+
         public DnsZoneLogEntryType EntryType { get; set; }
 
         public string Message { get; set; }

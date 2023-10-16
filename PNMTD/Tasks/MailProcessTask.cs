@@ -6,7 +6,7 @@ using PNMTD.Mails;
 using PNMTD.Models.Db;
 using System.Text.RegularExpressions;
 
-namespace PNMTD.Services
+namespace PNMTD.Tasks
 {
     public class MailProcessTask : IHostedService, IDisposable
     {

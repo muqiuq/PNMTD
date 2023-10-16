@@ -18,7 +18,5 @@ namespace PNMTD.Models.Poco.Extensions
             };
         }
 
-        //public static DnsZoneLogEntryEntity
-
     }
 }

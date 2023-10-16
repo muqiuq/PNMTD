@@ -2,12 +2,12 @@
 using PNMTD.Lib.Models;
 using PNMTD.Lib.Models.Enum;
 using PNMTD.Models.Db;
-using PNMTD.Services.Helpers;
+using PNMTD.Tasks.Helpers;
 using System;
 using System.Net.NetworkInformation;
 using System.Threading;
 
-namespace PNMTD.Services
+namespace PNMTD.Tasks
 {
     public class PingCheckTask : IHostedService, IDisposable
     {

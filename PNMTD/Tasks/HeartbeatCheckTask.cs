@@ -3,9 +3,9 @@ using PNMTD.Data;
 using PNMTD.Lib.Models;
 using PNMTD.Lib.Models.Enum;
 using PNMTD.Models.Db;
-using PNMTD.Services.Helpers;
+using PNMTD.Tasks.Helpers;
 
-namespace PNMTD.Services
+namespace PNMTD.Tasks
 {
     public class HeartbeatCheckTask : IHostedService, IDisposable
     {
