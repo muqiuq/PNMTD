@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using PNMTD.Lib.Models.Enum;
+using PNMTD.Services.DnsZones;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PNMTD.Models.Db
@@ -17,11 +19,13 @@ namespace PNMTD.Models.Db
 
         public int TTL { get; set; }
 
-        public string Type { get; set; }
+        public DnsZoneResourceType RecordType { get; set; }
+
+        public string Name { get; set; }
 
         public string ReferenceValue { get; set; }
 
-        public string ActualValue { get; set; }
+        public string? ActualValue { get; set; }
 
         public DateTime Updated { get; set; }
 

@@ -1,4 +1,6 @@
-﻿namespace PNMTD.Services.DnsZones
+﻿using PNMTD.Lib.Models.Enum;
+
+namespace PNMTD.Services.DnsZones
 {
     public class DnsZoneResourceRecord
     {

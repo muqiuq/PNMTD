@@ -1,20 +1,29 @@
-﻿using PNMTD.Models.Enums;
+﻿using PNMTD.Lib.Models.Enum;
+using PNMTD.Models.Enums;
 
 namespace PNMTD.Services.DnsZones
 {
     public class DnsZoneFile
     {
         public IReadOnlyList<DnsZoneResourceRecord> Records;
-        private string raw;
+        public readonly string Raw;
 
         public DnsZoneFile(string raw) {
-            this.raw = raw;
+            this.Raw = raw;
             parse();
+        }
+
+        public string Name
+        {
+            get
+            {
+                return Records.First(p => p.RecordType == DnsZoneResourceType.SOA).Name;
+            }
         }
 
         private void parse()
         {
-            String[] lines = raw.Split('\n');
+            String[] lines = Raw.Split('\n');
 
             var records = new List<DnsZoneResourceRecord>();
 

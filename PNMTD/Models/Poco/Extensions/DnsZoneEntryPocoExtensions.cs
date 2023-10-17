@@ -16,8 +16,9 @@ namespace PNMTD.Models.Poco.Extensions
                 ReferenceValue = dnsZoneEntryEntity.ReferenceValue,
                 Ignore = dnsZoneEntryEntity.Ignore,
                 TTL = dnsZoneEntryEntity.TTL,
-                Type = dnsZoneEntryEntity.Type,
+                RecordType = dnsZoneEntryEntity.RecordType,
                 Updated = dnsZoneEntryEntity.Updated,
+                Name = dnsZoneEntryEntity.Name,
             };
         }
 
@@ -31,8 +32,9 @@ namespace PNMTD.Models.Poco.Extensions
                 ReferenceValue = dnsZoneEntryPoco.ReferenceValue,
                 Ignore = dnsZoneEntryPoco.Ignore,
                 TTL = dnsZoneEntryPoco.TTL,
-                Type = dnsZoneEntryPoco.Type,
+                RecordType = dnsZoneEntryPoco.RecordType,
                 Updated = dnsZoneEntryPoco.Updated,
+                Name = dnsZoneEntryPoco.Name,
             };
         }
 

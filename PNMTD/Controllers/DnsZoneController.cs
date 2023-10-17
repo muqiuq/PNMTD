@@ -29,12 +29,14 @@ namespace PNMTD.Controllers
         [HttpGet("{id}")]
         public IActionResult Get(Guid id)
         {
-            var host = Db.DnsZones
+            var dnsZone = Db.DnsZones
                 .Include(d => d.DnsZoneEntries)
                 .Where(h => h.Id == id);
-            if (host.Any())
+
+            if (dnsZone.Any())
             {
-                return Ok(host.Single().ToPoco());
+                var dnsZonePoco = dnsZone.Single().ToPoco();
+                return Ok(dnsZonePoco);
             }
             else
             {

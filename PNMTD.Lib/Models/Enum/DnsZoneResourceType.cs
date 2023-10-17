@@ -1,4 +1,4 @@
-﻿namespace PNMTD.Services.DnsZones
+﻿namespace PNMTD.Lib.Models.Enum
 {
     public enum DnsZoneResourceType
     {

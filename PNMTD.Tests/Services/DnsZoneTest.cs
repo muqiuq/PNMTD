@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.FileSystemGlobbing.Internal;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileSystemGlobbing.Internal;
+using PNMTD.Data;
+using PNMTD.Lib.Models.Enum;
 using PNMTD.Lib.Models.Poco;
 using PNMTD.Services.DnsZones;
 using System;
@@ -13,6 +16,24 @@ namespace PNMTD.Tests.Services
     [TestClass]
     public class DnsZoneTest
     {
+        private HttpClient _client;
+
+        public static readonly CustomWebApplicationFactory<Program> _factory = new CustomWebApplicationFactory<Program>();
+
+        public static PnmtdDbContext Db
+        {
+            get
+            {
+                return _factory.DbTestHelper.DbContext;
+            }
+        }
+
+        [TestInitialize]
+        public void Init()
+        {
+            _client = _factory.CreateClient();
+        }
+
         [TestMethod]
         public void ParseDnsZoneTest()
         {
@@ -32,6 +53,48 @@ namespace PNMTD.Tests.Services
                 dnsZoneFile.Records.Where(r => r.Name == "nas.example.com.").Select(r => r.Value).Single());
             Assert.AreEqual("mx02.sui-inter.net.",
                 dnsZoneFile.Records.Where(r => r.Name == "example.com." && r.Priority == 20).Select(r => r.Value).Single());
+
+            Assert.AreEqual("example.com.", dnsZoneFile.Name);
+        }
+
+        [TestMethod]
+        public void ParseAndTransformTest()
+        {
+            var dnsZoneFile = new DnsZoneFile(DbTestHelper.DnsExampleZoneFile);
+
+            var dnsZoneEntity = dnsZoneFile.DnsZoneToEntity();
+
+            Assert.AreEqual(dnsZoneEntity.ZoneName, dnsZoneFile.Name);
+
+            Assert.AreEqual(dnsZoneEntity.DnsZoneEntries.Count, dnsZoneFile.Records.Count);
+        }
+
+        [TestMethod]
+        public void ParseTransformAndAddTest()
+        {
+            var dnsZoneFile = new DnsZoneFile(DbTestHelper.DnsExampleZoneFile);
+
+            var dnsZoneEntity = dnsZoneFile.DnsZoneToEntity();
+
+            Db.DnsZones.Add(dnsZoneEntity);
+
+            Db.SaveChanges();
+
+            var dnsZoneFromDb = Db.DnsZones
+                .Include(d => d.DnsZoneEntries)
+                .First(d => d.Id == dnsZoneEntity.Id);
+
+            Assert.AreEqual(dnsZoneFile.Name, dnsZoneFromDb.ZoneName);
+
+            Assert.AreEqual(dnsZoneFile.Records.Count, dnsZoneFromDb.DnsZoneEntries.Count);
+
+            dnsZoneFromDb.DnsZoneEntries.ForEach(r => Db.DnsZoneEntries.Remove(r));
+
+            Db.DnsZones.Remove(dnsZoneEntity);
+
+            Db.SaveChanges();
+
+            Assert.IsFalse(Db.DnsZones.Any(d => d.Id == dnsZoneEntity.Id));
         }
     }
 }

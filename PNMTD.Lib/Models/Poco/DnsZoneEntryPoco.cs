@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PNMTD.Lib.Models.Enum;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
@@ -17,7 +18,9 @@ namespace PNMTD.Lib.Models.Poco
 
         public int TTL { get; set; }
 
-        public string Type { get; set; }
+        public DnsZoneResourceType RecordType { get; set; }
+
+        public string Name { get; set; }
 
         public string ReferenceValue { get; set; }
 
