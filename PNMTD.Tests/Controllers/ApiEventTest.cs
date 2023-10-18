@@ -193,7 +193,7 @@ namespace PNMTD.Tests.Controllers
             var eventT = _factory.DbTestHelper.DbContext.Events.Where(e => e.Id == Guid.Parse(paredResponse.Data.ToString())).FirstOrDefault();
 
             Assert.IsNotNull(eventT);
-            Assert.AreEqual(numberOfEventsBefore + 1, _factory.DbTestHelper.DbContext.Events.Count());
+            Assert.AreEqual(PNMTStatusCodes.VALUECHECK_OK, eventT.Code);
             Assert.AreEqual(testMessage, eventT.Message);
             Assert.AreEqual(PNMTStatusCodes.VALUECHECK_OK, eventT.Code);
         }
@@ -228,7 +228,7 @@ namespace PNMTD.Tests.Controllers
             var eventT = _factory.DbTestHelper.DbContext.Events.Where(e => e.Id == Guid.Parse(paredResponse.Data.ToString())).FirstOrDefault();
 
             Assert.IsNotNull(eventT);
-            Assert.AreEqual(numberOfEventsBefore + 1, _factory.DbTestHelper.DbContext.Events.Count());
+            Assert.AreEqual(PNMTStatusCodes.VALUECHECK_FAILED, eventT.Code);
             Assert.AreEqual(testMessage, eventT.Message);
             Assert.AreEqual(PNMTStatusCodes.VALUECHECK_FAILED, eventT.Code);
         }

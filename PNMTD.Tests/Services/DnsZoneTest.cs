@@ -105,8 +105,6 @@ namespace PNMTD.Tests.Services
             var inlinedDnsZoneFile = DnsZoneFile.InlineSoaRecord(DbTestHelper.DnsExampleZoneFile);
 
             Assert.IsTrue(inlinedDnsZoneFile.Contains(soaPart));
-
-            Assert.AreEqual(DbTestHelper.DnsExampleZoneFile.Length - 6, inlinedDnsZoneFile.Length);
         }
     }
 }

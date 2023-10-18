@@ -40,6 +40,10 @@ namespace PNMTD.Tests.Services
             var allEvents = Db.Events.ToList();
             var randomEvent = allEvents[random.Next(allEvents.Count)];
 
+            randomEvent.Created = DateTime.Now;
+
+            Db.SaveChanges();
+
             var pendingNotificationBefore = Db.GetAllPendingNotificationsForLastMinutes();
 
             var notificationPoco = new NotificationRulePoco()

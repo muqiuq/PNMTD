@@ -12,16 +12,16 @@
 	<PropertyGroup Condition=" '$(RunConfiguration)' == 'https' " />
 	<PropertyGroup Condition=" '$(RunConfiguration)' == 'http' " />
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-	  <NoWarn>1701;1702;CS8618;CS8604;CS8602;CS8600</NoWarn>
+	  <NoWarn>1701;1702;CS8618;CS8604;CS8602;CS8600;CS8618</NoWarn>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-	  <NoWarn>1701;1702;CS8618;CS8604;CS8602;CS8600</NoWarn>
+	  <NoWarn>1701;1702;CS8618;CS8604;CS8602;CS8600;CS8618</NoWarn>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-	  <NoWarn>1701;1702;CS8618;CS8604;CS8602;CS8600</NoWarn>
+	  <NoWarn>1701;1702;CS8618;CS8604;CS8602;CS8600;CS8618</NoWarn>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-	  <NoWarn>1701;1702;CS8618;CS8604;CS8602;CS8600</NoWarn>
+	  <NoWarn>1701;1702;CS8618;CS8604;CS8602;CS8600;CS8618</NoWarn>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="MailKit" Version="4.1.0" />
