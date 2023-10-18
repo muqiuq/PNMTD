@@ -54,6 +54,13 @@ namespace PNMTD.Tasks
 
             username = configuration["Mailbox:Username"];
             host = configuration["Mailbox:Host"];
+
+            if (username.IsNullOrEmpty() || password.IsNullOrEmpty() || host.IsNullOrEmpty())
+            {
+                logger.LogError("MailInboxCheckTask failed to start. Require Mailbox:Username, Mailbox:Host, Mailbox:Password");
+                return Task.CompletedTask;
+            }
+
             port = 993;
             if (host.Split(":").Length == 2)
             {
@@ -66,12 +73,6 @@ namespace PNMTD.Tasks
             }
 
             password = configuration["Mailbox:Password"];
-
-            if (username.IsNullOrEmpty() || password.IsNullOrEmpty() || host.IsNullOrEmpty())
-            {
-                logger.LogError("MailInboxCheckTask failed to start. Require Mailbox:Username, Mailbox:Host, Mailbox:Password");
-                return Task.CompletedTask;
-            }
 
             logger.LogInformation($"MailInboxCheckTask started with {username} @ {host} port {port}");
 
