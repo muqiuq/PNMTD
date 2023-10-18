@@ -15,6 +15,7 @@ namespace PNMTD.Models.Poco.Extensions
                 ZoneEntries = dnsZoneEntity.DnsZoneEntries.Select(d => d.ToPoco()).ToList(),
                 ZoneFileContent = dnsZoneEntity.ZoneFileContent,
                 ZoneName = dnsZoneEntity.ZoneName,
+                RequiresProcessing = dnsZoneEntity.RequiresProcessing,
             };
         }
 
@@ -25,7 +26,8 @@ namespace PNMTD.Models.Poco.Extensions
                 Id = dnsZonePoco.Id,
                 Enabled = dnsZonePoco.Enabled,
                 ZoneFileContent = dnsZonePoco.ZoneFileContent,
-                ZoneName = dnsZonePoco.ZoneName
+                ZoneName = dnsZonePoco.ZoneName,
+                RequiresProcessing = dnsZonePoco.RequiresProcessing
             };
         }
 

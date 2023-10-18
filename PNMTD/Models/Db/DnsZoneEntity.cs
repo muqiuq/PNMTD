@@ -11,6 +11,8 @@ namespace PNMTD.Models.Db
 
         public bool Enabled { get; set; }
 
+        public bool RequiresProcessing { get; set; }
+
         public string ZoneName { get; set; }
 
         public string ZoneFileContent { get; set; }

@@ -21,9 +21,45 @@ namespace PNMTD.Services.DnsZones
             }
         }
 
+        public static string InlineSoaRecord(string rawZoneFile)
+        {
+            var returnStr = "";
+            var soaStart = rawZoneFile.IndexOf("IN SOA");
+            if (soaStart == -1) return rawZoneFile;
+            returnStr = rawZoneFile.Substring(0, soaStart);
+            int endPos = -1;
+            bool lastCharacterWasWhitespace = false;
+            for(int a = soaStart; a < rawZoneFile.Length; a++)
+            {
+                if(rawZoneFile[a] != '\n' && rawZoneFile[a] != '\r')
+                {
+                    returnStr += rawZoneFile[a];
+                }
+                else if (rawZoneFile[a] == '\n')
+                {
+                    if(!lastCharacterWasWhitespace)
+                    {
+                        returnStr += ' ';
+                    }
+                }
+                if (rawZoneFile[a] == ')')
+                {
+                    endPos = a;
+                    break;
+                }
+                lastCharacterWasWhitespace = rawZoneFile[a] == ' ';
+            }
+            if(endPos != -1)
+            {
+                endPos += 1;
+                returnStr += rawZoneFile.Substring(endPos, rawZoneFile.Length - endPos);
+            }
+            return returnStr;
+        }
+
         private void parse()
         {
-            String[] lines = Raw.Split('\n');
+            String[] lines = InlineSoaRecord(Raw).Split('\n');
 
             var records = new List<DnsZoneResourceRecord>();
 
@@ -35,6 +71,7 @@ namespace PNMTD.Services.DnsZones
                 {
                     var typeString = parts[3].Trim();
                     var value = parts[4].Trim();
+                    var name = parts[0].Trim();
                     if (!typeNames.Contains(typeString)) continue;
                     var typeVal = (DnsZoneResourceType) Enum.Parse(typeof(DnsZoneResourceType), typeString);
                     int priority = -1;
@@ -45,10 +82,17 @@ namespace PNMTD.Services.DnsZones
                         value = mxParts[1].Trim();
                         if (!Int32.TryParse(mxParts[0].Trim(), out priority)) continue;
                     }
+                    if(typeVal == DnsZoneResourceType.CNAME 
+                        || typeVal == DnsZoneResourceType.NS 
+                        || typeVal == DnsZoneResourceType.MX)
+                    {
+                        if(value.EndsWith(".")) value = value.Substring(0, value.Length - 1);
+                    }
+                    if (name.EndsWith(".")) name = name.Substring(0, name.Length - 1);
                     if (!Int32.TryParse(parts[1].Trim(), out int timeout)) continue;
                     var record = new DnsZoneResourceRecord()
                     {
-                        Name = parts[0].Trim(),
+                        Name = name,
                         Timeout = timeout,
                         RecordType = typeVal,
                         Value = value,

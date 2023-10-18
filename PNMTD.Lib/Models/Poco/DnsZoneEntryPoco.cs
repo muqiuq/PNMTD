@@ -24,7 +24,7 @@ namespace PNMTD.Lib.Models.Poco
 
         public string ReferenceValue { get; set; }
 
-        public string ActualValue { get; set; }
+        public string? ActualValue { get; set; }
 
         public DateTime Updated { get; set; }
 
