@@ -30,7 +30,7 @@ namespace PNMTD.Tests.Logic
         }
 
         [TestMethod]
-        public async Task GetTimespansWithDayForPeriodTest()
+        public void GetTimespansWithDayForPeriodTest()
         {
             var e = Db.Events.First();
             var sensor = Db.Sensors.Where(s => s.Id == e.SensorId).First();
@@ -39,7 +39,7 @@ namespace PNMTD.Tests.Logic
         }
 
         [TestMethod]
-        public async Task GetTimespansWithDayForPeriodTestWithNoEventBefore()
+        public void GetTimespansWithDayForPeriodTestWithNoEventBefore()
         {
             var e = Db.Events.First();
             var sensor = Db.Sensors.Where(s => s.Id == e.SensorId).First();
@@ -48,7 +48,7 @@ namespace PNMTD.Tests.Logic
         }
 
         [TestMethod]
-        public async Task UptimeGraphAggregatorTest()
+        public void UptimeGraphAggregatorTest()
         {
             var e = Db.Events.First();
             var sensor = Db.Sensors.Where(s => s.Id == e.SensorId).First();
@@ -57,7 +57,7 @@ namespace PNMTD.Tests.Logic
         }
 
         [TestMethod]
-        public async Task UptimeGraphAggregatorWithNoEventBefore()
+        public void UptimeGraphAggregatorWithNoEventBefore()
         {
             var e = Db.Events.First();
             var sensor = Db.Sensors.Where(s => s.Id == e.SensorId).First();

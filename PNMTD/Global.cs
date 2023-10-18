@@ -15,7 +15,7 @@ namespace PNMTD
                 return Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
             } 
         }
-
+#pragma warning disable CS8603 // Possible null reference return.
         public static ILogger<T> CreateLogger<T>()
         {
             if(App == null) { return null; }
@@ -29,6 +29,7 @@ namespace PNMTD
                 return null;
             }
         }
+#pragma warning restore CS8603 // Possible null reference return.
 
     }
 }
