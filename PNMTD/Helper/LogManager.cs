@@ -4,7 +4,7 @@
     {
         public static ILogger<T> CreateLogger<T>()
         {
-            var l =  Global.CreateLogger<T>();
+            var l = Global.CreateLogger<T>();
             if (l != null) return l;
 
             var tempFactory = LoggerFactory.Create(builder =>
