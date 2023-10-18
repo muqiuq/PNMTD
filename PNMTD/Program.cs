@@ -118,7 +118,12 @@ public partial class Program
                 options.KnownProxies.Add(IPAddress.Parse(builder.Configuration["Proxy"]));
             });
         }
-        
+
+        if (builder.Configuration["Identity"] != null)
+        {
+            ServerInfo._Identity = builder.Configuration["Identity"] ?? ServerInfo._Identity;
+        }
+
         builder.Services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

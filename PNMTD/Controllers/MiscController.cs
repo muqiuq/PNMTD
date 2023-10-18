@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using PNMTD.Data;
 using PNMTD.Lib.Models.Poco;
+using PNMTD.Models.Poco.Extensions;
 
 namespace PNMTD.Controllers
 {
@@ -13,6 +14,12 @@ namespace PNMTD.Controllers
         public MiscController(PnmtdDbContext db)
         {
             this.db = db;
+        }
+
+        [HttpGet("info", Name = "Get server info")]
+        public object GetVersion()
+        {
+            return (new ServerInfo()).ToPoco();
         }
 
         [HttpGet("state", Name = "Get Uplink State")]

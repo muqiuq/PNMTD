@@ -56,5 +56,10 @@ namespace PNMT.ApiClient.Data
             return await httpClient.GetFromJsonAsync<UplinkStatePoco>($"/state");
         }
 
+        public async Task<ServerInfoPoco> GetServerInfo()
+        {
+            return await httpClient.GetFromJsonAsync<ServerInfoPoco>($"/info");
+        }
+
     }
 }
