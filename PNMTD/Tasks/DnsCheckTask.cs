@@ -314,12 +314,22 @@ namespace PNMTD.Tasks
 
                     foreach (var otherEntity in otherZoneFile.DnsZoneEntries)
                     {
-                        var currentEntity = dnsZone.DnsZoneEntries
+                        var relevantEntities = dnsZone.DnsZoneEntries
                             .Where(d => d.Name == otherEntity.Name && d.RecordType == otherEntity.RecordType && d.ReferenceValue == otherEntity.ReferenceValue)
-                            .FirstOrDefault();
+                            .ToList();
 
-                        if (currentEntity == null) newEntitiesToCreate.Add(otherEntity);
-                        else notFoundExistingEntries.Remove(currentEntity);
+                        if (relevantEntities.Any())
+                        {
+                            if (relevantEntities.Count > 1)
+                            {
+                                dbContext.DnsZoneEntries.RemoveRange(relevantEntities.Skip(1));
+                            }
+                            relevantEntities.ForEach(r => notFoundExistingEntries.Remove(r));
+                        }
+                        else
+                        {
+                            newEntitiesToCreate.Add(otherEntity);
+                        }
                     }
                     dbContext.DnsZoneEntries.RemoveRange(notFoundExistingEntries);
                     dbContext.DnsZoneEntries.AddRange(newEntitiesToCreate.Select(e => {

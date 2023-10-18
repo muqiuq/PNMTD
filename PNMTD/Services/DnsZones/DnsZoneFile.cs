@@ -89,9 +89,13 @@ namespace PNMTD.Services.DnsZones
                     {
                         if (value.StartsWith("\"") && value.EndsWith("\"")) value = value.Substring(1, value.Length - 2);
                     }
+                    if(typeVal == DnsZoneResourceType.CNAME)
+                    {
+                        value = value.ToLower();
+                    }
                     var record = new DnsZoneResourceRecord()
                     {
-                        Name = name,
+                        Name = name.ToLower(),
                         Timeout = timeout,
                         RecordType = typeVal,
                         Value = value,
