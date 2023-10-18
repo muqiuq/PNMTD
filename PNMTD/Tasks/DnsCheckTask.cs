@@ -94,7 +94,7 @@ namespace PNMTD.Tasks
                 {
                     throw ex;
                 }
-                logger.LogError("DnsCheckTask", ex);
+                logger.LogError($"DnsCheckTask {ex.Message}", ex);
             }
             isRunning = false;
         }
@@ -276,7 +276,16 @@ namespace PNMTD.Tasks
 
             foreach (var dnsZone in dnsZones)
             {
-                var zoneFile = new DnsZoneFile(dnsZone.ZoneFileContent);
+                DnsZoneFile zoneFile;
+                try
+                {
+                    zoneFile = new DnsZoneFile(dnsZone.ZoneFileContent);
+                }catch(Exception ex)
+                {
+                    logger.LogError($"Parse error {dnsZone.Id}");
+                    continue;
+                }
+                
 
                 var otherZoneFile = zoneFile.DnsZoneToEntity();
 
@@ -307,7 +316,7 @@ namespace PNMTD.Tasks
                     {
                         var currentEntity = dnsZone.DnsZoneEntries
                             .Where(d => d.Name == otherEntity.Name && d.RecordType == otherEntity.RecordType && d.ReferenceValue == otherEntity.ReferenceValue)
-                            .SingleOrDefault();
+                            .FirstOrDefault();
 
                         if (currentEntity == null) newEntitiesToCreate.Add(otherEntity);
                         else notFoundExistingEntries.Remove(currentEntity);
@@ -324,21 +333,6 @@ namespace PNMTD.Tasks
             }
 
             dbContext.SaveChanges();
-        }
-
-        private IMailFolder CreateOrGetFolder(IMailFolder toplevel, string folderName)
-        {
-            var subfolders = toplevel.GetSubfolders();
-
-            if (!subfolders.Any(sb => sb.Name == folderName))
-            {
-                logger.LogInformation($"Created {folderName} on mail server as archive");
-                return toplevel.Create(folderName, true);
-            }
-            else
-            {
-                return subfolders.Single(sb => sb.Name == folderName);
-            }
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
