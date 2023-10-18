@@ -23,6 +23,7 @@ namespace PNMTD.Models.Poco.Extensions
                 SecretToken = sensorEntity.SecretToken,
                 Source = sensorEntity.Source,   
                 Ignore = sensorEntity.Ignore,
+                Status = sensorEntity.Status,
             };
         }
 
@@ -57,6 +58,7 @@ namespace PNMTD.Models.Poco.Extensions
                 SecretToken = sensorPoco.SecretToken,
                 Source = sensorPoco.Source,
                 Ignore = sensorPoco.Ignore,
+                Status = sensorPoco.Status,
             };
 
             if (!isNew)

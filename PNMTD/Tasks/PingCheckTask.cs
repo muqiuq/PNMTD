@@ -66,18 +66,24 @@ namespace PNMTD.Tasks
             }
         }
 
-        private int PingHost(string host, int timeout)
+        private Tuple<int, long> PingHost(string host, int timeout)
         {
             int successCounter = 0;
 
-            for(int a = 0; a < NUMBER_OF_PINGS; a++)
+            long rtt = 0;
+
+            for (int a = 0; a < NUMBER_OF_PINGS; a++)
             {
                 Ping pingSender = new Ping();
                 PingOptions options = new PingOptions();
                 try
                 {
                     PingReply reply = pingSender.Send(host, timeout);
-                    if (reply.Status == IPStatus.Success) successCounter++;
+                    if (reply.Status == IPStatus.Success)
+                    {
+                        rtt = (rtt * a + reply.RoundtripTime) / (a+1);
+                        successCounter++;
+                    }
                 }
                 catch (Exception ex) when (ex is PingException || ex is ArgumentOutOfRangeException || ex is ArgumentNullException)
                 {
@@ -85,7 +91,7 @@ namespace PNMTD.Tasks
                 }
             }
 
-            return successCounter;
+            return new Tuple<int, long>(successCounter, rtt);
         }
 
         Dictionary<Guid, DateTime> SensorIdLastCheck = new Dictionary<Guid, DateTime>();
@@ -127,10 +133,19 @@ namespace PNMTD.Tasks
                         (!SensorIdLastCheck.ContainsKey(sensor.Id) || DateTime.Now - SensorIdLastCheck[sensor.Id] > TimeSpan.FromSeconds(sensor.Interval)))
                     {
 
-                        bool pingSuccessfull = PingHost(sensor.Parameters, 120) == NUMBER_OF_PINGS;
+                        var pingResult = PingHost(sensor.Parameters, 120);
+                        bool pingSuccessfull = pingResult.Item1 == NUMBER_OF_PINGS;
 
-                        if (pingSuccessfull) successfullPings++;
-                        else failedPings++;
+                        if (pingSuccessfull)
+                        {
+                            sensor.Status = $"Reply {pingResult.Item2} ms";
+                            successfullPings++;
+                        }
+                        else
+                        {
+                            sensor.Status = "Timeout";
+                            failedPings++;
+                        }
 
                         SensorIdLastCheck[sensor.Id] = DateTime.Now;
 
@@ -160,11 +175,16 @@ namespace PNMTD.Tasks
                 dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.NUM_OF_SUCCESSFULL_PINGS, successfullPings);
                 dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.NUM_OF_FAILED_PINGS, failedPings);
 
-                if (counterCreatedEvents > 0)
+                if(successfullPings != 0 || failedPings != 0)
                 {
                     dbContext.SaveChanges();
-                    logger.LogInformation($"PingWorker created {counterCreatedEvents} PINGFAIL events");
                 }
+
+                if (counterCreatedEvents > 0)
+                {
+                    logger.LogInformation($"PingWorker created {counterCreatedEvents} ping changed events");
+                }
+                
             }
         }
     }
