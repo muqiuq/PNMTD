@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PNMTD.Data;
 
@@ -10,9 +11,11 @@ using PNMTD.Data;
 namespace PNMTD.Migrations
 {
     [DbContext(typeof(PnmtdDbContext))]
-    partial class PnmtdDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231018123509_DnsZoneChanges")]
+    partial class DnsZoneChanges
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -65,9 +68,6 @@ namespace PNMTD.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("Ignore")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsMatch")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")

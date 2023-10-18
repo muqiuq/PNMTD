@@ -1,5 +1,6 @@
 ﻿using PNMTD.Models.Responses;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace PNMT.ApiClient.Data
 {
@@ -34,7 +35,7 @@ namespace PNMT.ApiClient.Data
             return await httpClient.GetFromJsonAsync<T>($"/{path}/{Id}").ConfigureAwait(false);
         }
 
-        public async Task AddNew(T t)
+        public async Task<object?> AddNew(T t)
         {
             var result = await httpClient.PostAsJsonAsync<T>($"/{path}", t).ConfigureAwait(false);
             DefaultResponse? response;
@@ -51,6 +52,15 @@ namespace PNMT.ApiClient.Data
             {
                 throw new PNMTDApiException($"HTTP {result.StatusCode} {response?.Success} {response?.Message}");
             }
+
+            var returnData = response.Data;
+            if(returnData is JsonElement)
+            {
+                var je = (JsonElement) returnData;
+                returnData = je.GetString();
+            }
+
+            return returnData;
         }
 
         public async Task Update(T t)

@@ -13,11 +13,11 @@ namespace PNMTD.Services.DnsZones
             parse();
         }
 
-        public string Name
+        public string? Name
         {
             get
             {
-                return Records.First(p => p.RecordType == DnsZoneResourceType.SOA).Name;
+                return Records.FirstOrDefault(p => p.RecordType == DnsZoneResourceType.SOA)?.Name;
             }
         }
 
@@ -81,12 +81,6 @@ namespace PNMTD.Services.DnsZones
                         if(mxParts.Length != 2) continue;
                         value = mxParts[1].Trim();
                         if (!Int32.TryParse(mxParts[0].Trim(), out priority)) continue;
-                    }
-                    if(typeVal == DnsZoneResourceType.CNAME 
-                        || typeVal == DnsZoneResourceType.NS 
-                        || typeVal == DnsZoneResourceType.MX)
-                    {
-                        if(value.EndsWith(".")) value = value.Substring(0, value.Length - 1);
                     }
                     if (name.EndsWith(".")) name = name.Substring(0, name.Length - 1);
                     if (!Int32.TryParse(parts[1].Trim(), out int timeout)) continue;

@@ -78,6 +78,7 @@ public partial class Program
         builder.Services.AddHostedService<MailProcessTask>();
         builder.Services.AddHostedService<TimespanConditionsCheckTask>();
         builder.Services.AddHostedService<UplinkCheckTask>();
+        builder.Services.AddHostedService<DnsCheckTask>();
 
         builder.Services.AddSwaggerGen(option =>
         {

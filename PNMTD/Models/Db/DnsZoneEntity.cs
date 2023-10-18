@@ -13,6 +13,10 @@ namespace PNMTD.Models.Db
 
         public bool RequiresProcessing { get; set; }
 
+        public DateTime LastChecked { get; set; }
+
+        public bool RecordsMatch { get; set; }
+
         public string ZoneName { get; set; }
 
         public string ZoneFileContent { get; set; }

@@ -13,5 +13,10 @@ namespace PNMT.ApiClient.Data.Entities
         public DnsZoneApiCrud(HttpClient httpClient) : base(httpClient, "dnszone")
         {
         }
+
+        public async Task<List<DnsZoneLogEntryPoco>> GetLogs(Guid Id)
+        {
+            return await httpClient.GetFromJsonAsync<List<DnsZoneLogEntryPoco>>($"/dnszone/logs/{Id}");
+        }
     }
 }

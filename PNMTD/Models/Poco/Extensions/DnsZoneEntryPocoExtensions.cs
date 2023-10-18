@@ -19,6 +19,7 @@ namespace PNMTD.Models.Poco.Extensions
                 RecordType = dnsZoneEntryEntity.RecordType,
                 Updated = dnsZoneEntryEntity.Updated,
                 Name = dnsZoneEntryEntity.Name,
+                IsMatch = dnsZoneEntryEntity.IsMatch,
             };
         }
 
@@ -35,6 +36,7 @@ namespace PNMTD.Models.Poco.Extensions
                 RecordType = dnsZoneEntryPoco.RecordType,
                 Updated = dnsZoneEntryPoco.Updated,
                 Name = dnsZoneEntryPoco.Name,
+                IsMatch= dnsZoneEntryPoco.IsMatch,
             };
         }
 

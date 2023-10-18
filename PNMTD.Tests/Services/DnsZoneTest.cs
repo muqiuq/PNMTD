@@ -44,14 +44,14 @@ namespace PNMTD.Tests.Services
             Assert.AreEqual(2, dnsZoneFile.Records.Where(r => r.RecordType == DnsZoneResourceType.NS).Count());
             Assert.AreEqual(3, dnsZoneFile.Records.Where(r => r.RecordType == DnsZoneResourceType.TXT).Count());
             Assert.AreEqual(7, dnsZoneFile.Records.Where(r => r.RecordType == DnsZoneResourceType.MX).Count());
-            Regex NSRegex = new Regex(@"^ns[12]\.example\.com$");
+            Regex NSRegex = new Regex(@"^ns[12]\.example\.com.$");
             Assert.IsTrue(
                 NSRegex.IsMatch(dnsZoneFile.Records.Where(d => d.RecordType == DnsZoneResourceType.NS).Select(d => d.Value).First()));
             Assert.IsTrue(
                 NSRegex.IsMatch(dnsZoneFile.Records.Where(d => d.RecordType == DnsZoneResourceType.NS).Select(d => d.Value).Last()));
-            Assert.AreEqual("cc.zh.example.com", 
+            Assert.AreEqual("cc.zh.example.com.", 
                 dnsZoneFile.Records.Where(r => r.Name == "nas.example.com").Select(r => r.Value).Single());
-            Assert.AreEqual("mx02.sui-inter.net",
+            Assert.AreEqual("mx02.sui-inter.net.",
                 dnsZoneFile.Records.Where(r => r.Name == "example.com" && r.Priority == 20).Select(r => r.Value).Single());
 
             Assert.AreEqual("example.com", dnsZoneFile.Name);

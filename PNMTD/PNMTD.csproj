@@ -26,6 +26,7 @@
 	  <NoWarn>1701;1702;CS8618;CS8604;CS8602;CS8600;CS8618</NoWarn>
 	</PropertyGroup>
 	<ItemGroup>
+		<PackageReference Include="DnsClient" Version="1.7.0" />
 		<PackageReference Include="MailKit" Version="4.1.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="7.0.10" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.10" />

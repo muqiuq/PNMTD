@@ -26,6 +26,24 @@ namespace PNMTD.Controllers
             return Db.DnsZones.Include(d => d.DnsZoneEntries).Select(d => d.ToPoco()).ToList();
         }
 
+        [HttpGet("logs/{id}")]
+        public IActionResult GetLogs(Guid id)
+        {
+            var dnsZone = Db.DnsZones
+                .Where(h => h.Id == id).SingleOrDefault();
+
+            if (dnsZone != null)
+            {
+                var dnsLogEntries = Db.DnsZoneLogEntries.Where(d => d.DnsZoneId == dnsZone.Id).OrderByDescending(d => d.Created).Select(d => d.ToPoco()).ToList();
+                return Ok(dnsLogEntries);
+            }
+            else
+            {
+                return NotFound();
+            }
+        }
+
+
         [HttpGet("{id}")]
         public IActionResult Get(Guid id)
         {
@@ -88,12 +106,20 @@ namespace PNMTD.Controllers
         {
             var dnsZone = Db.DnsZones
                 .Include(d => d.DnsZoneEntries)
-                .ThenInclude(d => d.DnsZoneLogEntries)
                 .Where(n => n.Id == id).SingleOrDefault();
             if(dnsZone == null) return NotFound();
 
+            Db.DnsZoneLogEntries.RemoveRange(Db.DnsZoneLogEntries.Where(d => d.DnsZoneId == dnsZone.Id).ToList());
+
+            dnsZone.Enabled = false;
+            dnsZone.RequiresProcessing = false;
+
+            Db.SaveChanges();
+
+            // Optimistic wait for DnsCheckTask to finish
+            Thread.Sleep(2000);
+
             dnsZone.DnsZoneEntries.ForEach(s => {
-                s.DnsZoneLogEntries.ForEach(e => { Db.DnsZoneLogEntries.Remove(e);  });
                 Db.DnsZoneEntries.Remove(s);
                 });
             var change = Db.DnsZones.Remove(dnsZone);

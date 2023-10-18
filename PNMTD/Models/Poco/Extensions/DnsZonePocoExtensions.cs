@@ -16,6 +16,8 @@ namespace PNMTD.Models.Poco.Extensions
                 ZoneFileContent = dnsZoneEntity.ZoneFileContent,
                 ZoneName = dnsZoneEntity.ZoneName,
                 RequiresProcessing = dnsZoneEntity.RequiresProcessing,
+                LastChecked = dnsZoneEntity.LastChecked,
+                RecordsMatch = dnsZoneEntity.RecordsMatch,
             };
         }
 
@@ -27,7 +29,9 @@ namespace PNMTD.Models.Poco.Extensions
                 Enabled = dnsZonePoco.Enabled,
                 ZoneFileContent = dnsZonePoco.ZoneFileContent,
                 ZoneName = dnsZonePoco.ZoneName,
-                RequiresProcessing = dnsZonePoco.RequiresProcessing
+                RequiresProcessing = dnsZonePoco.RequiresProcessing,
+                LastChecked = dnsZonePoco.LastChecked,
+                RecordsMatch = dnsZonePoco.RecordsMatch,
             };
         }
 

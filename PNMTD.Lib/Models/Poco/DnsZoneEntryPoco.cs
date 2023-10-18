@@ -28,13 +28,6 @@ namespace PNMTD.Lib.Models.Poco
 
         public DateTime Updated { get; set; }
 
-        [NotMapped]
-        public bool IsMatch
-        {
-            get
-            {
-                return ActualValue == ReferenceValue;
-            }
-        }
+        public bool IsMatch { get; set; }
     }
 }

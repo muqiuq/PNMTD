@@ -64,11 +64,11 @@ namespace PNMTD.Controllers
             }
             sensor.SetNewSecretToken();
             Db.SaveChanges();
-            return new DefaultResponse()
+            return Ok(new DefaultResponse()
             {
                 Success = true,
                 Data = sensor.SecretToken
-            };
+            });
         }
 
         [HttpPost]
@@ -86,32 +86,36 @@ namespace PNMTD.Controllers
         }
 
         [HttpPut]
-        public DefaultResponse Put([FromBody] SensorPoco sensorPoco)
+        public IActionResult Put([FromBody] SensorPoco sensorPoco)
         {
+            if (!Db.Sensors.Any(s => s.Id == sensorPoco.Id)) NotFound();
+
             var entity = sensorPoco.ToEntity(false);
             Db.Sensors.Attach(entity);
             var change = Db.Update<SensorEntity>(entity);
             Db.SaveChanges();
-            return new DefaultResponse()
+            return Ok(new DefaultResponse()
             {
                 Success = change.State == Microsoft.EntityFrameworkCore.EntityState.Unchanged,
                 Message = "",
                 Data = entity.Id
-            };
+            });
         }
 
         [HttpDelete("{id}")]
-        public DefaultResponse Delete(Guid id)
+        public IActionResult Delete(Guid id)
         {
-            var change = Db.Sensors.Remove(Db.Sensors.Where(n => n.Id == id).Single());
+            var sensor = Db.Sensors.Where(n => n.Id == id).SingleOrDefault();
+            if (sensor == null) return NotFound();
+            var change = Db.Sensors.Remove(sensor);
             Db.SaveChanges();
 
-            return new DefaultResponse()
+            return Ok(new DefaultResponse()
             {
                 Success = change.State == Microsoft.EntityFrameworkCore.EntityState.Detached,
                 Message = "",
                 Data = id
-            };
+            });
         }
     }
 }

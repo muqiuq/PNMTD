@@ -15,10 +15,13 @@ namespace PNMTD.Lib.Models.Poco
 
         public bool RequiresProcessing { get; set; }
 
+        public DateTime LastChecked { get; set; }
+
+        public bool RecordsMatch { get; set; }
         public string ZoneName { get; set; }
 
         public string ZoneFileContent { get; set; }
 
-        public List<DnsZoneEntryPoco> ZoneEntries { get; set; }
+        public List<DnsZoneEntryPoco> ZoneEntries { get; set; } = new List<DnsZoneEntryPoco>();
     }
 }
