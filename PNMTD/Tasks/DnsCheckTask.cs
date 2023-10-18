@@ -74,7 +74,7 @@ namespace PNMTD.Tasks
             }
 
             _timer = new Timer(tryDoWork, null, TimeSpan.Zero,
-            TimeSpan.FromSeconds(60));
+            TimeSpan.FromSeconds(15));
 
             return Task.CompletedTask;
         }
@@ -174,7 +174,7 @@ namespace PNMTD.Tasks
                             valuesToCompare.Add(nsRecord.NSDName.ToString());
                             break;
                         case TxtRecord txtRecord:
-                            valuesToCompare.Add(txtRecord.Text.ToString());
+                            valuesToCompare.Add(string.Join("", txtRecord.Text));
                             break;
                         case SoaRecord soaRecord:
                             valuesToCompare.Add(soaRecord.ToString());

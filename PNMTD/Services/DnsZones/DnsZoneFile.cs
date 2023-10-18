@@ -65,6 +65,7 @@ namespace PNMTD.Services.DnsZones
 
             foreach(var line in lines)
             {
+                if (line.StartsWith(";")) continue;
                 var parts = line.Split(" ", 5);
                 var typeNames = Enum.GetNames(typeof(DnsZoneResourceType));
                 if (parts.Length == 5 && parts[2] == "IN")
@@ -84,6 +85,10 @@ namespace PNMTD.Services.DnsZones
                     }
                     if (name.EndsWith(".")) name = name.Substring(0, name.Length - 1);
                     if (!Int32.TryParse(parts[1].Trim(), out int timeout)) continue;
+                    if(typeVal == DnsZoneResourceType.TXT)
+                    {
+                        if (value.StartsWith("\"") && value.EndsWith("\"")) value = value.Substring(1, value.Length - 2);
+                    }
                     var record = new DnsZoneResourceRecord()
                     {
                         Name = name,
