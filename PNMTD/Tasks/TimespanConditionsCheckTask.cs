@@ -103,9 +103,12 @@ namespace PNMTD.Tasks
 
             if (!IntervalDescriptionHelper.TryParse(sensor.Parameters, out var intervalDescription))
             {
+                sensor.Status = "invalid interval description";
                 logger?.LogError($"Invalid interval description {sensor.Parameters} for {sensor.Name} ({sensor.Id})");
                 return;
             }
+
+            if (sensor.Status != "") sensor.Status = "";
 
             if (!intervalDescription.IsNow(now))
             {

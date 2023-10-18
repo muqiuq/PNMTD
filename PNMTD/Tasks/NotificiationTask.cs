@@ -41,7 +41,7 @@ namespace PNMTD.Tasks
             logger.LogInformation("Starting NotificationTask");
 
             _timer = new Timer(tryDoWork, null, TimeSpan.Zero,
-            TimeSpan.FromSeconds(5));
+            TimeSpan.FromSeconds(10));
 
             return Task.CompletedTask;
         }

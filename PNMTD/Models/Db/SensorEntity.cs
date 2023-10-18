@@ -23,7 +23,7 @@ namespace PNMTD.Models.Db
 
         public string Name { get; set; }
 
-        public string Status { get; set; }
+        public string? Status { get; set; }
 
         public string SecretToken { get; set; }
 

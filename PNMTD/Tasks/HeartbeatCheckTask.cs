@@ -84,6 +84,11 @@ namespace PNMTD.Tasks
                         lastCode = lastEvent.Code;
                         lastCheck = lastEvent.Created;
                     }
+                    else
+                    {
+                        // Will only start if any events are available
+                        continue;
+                    }
 
                     if (lastCode == PNMTStatusCodes.HEARTBEAT_MISSING) continue;
 

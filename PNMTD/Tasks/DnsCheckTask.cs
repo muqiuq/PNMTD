@@ -74,7 +74,7 @@ namespace PNMTD.Tasks
             }
 
             _timer = new Timer(tryDoWork, null, TimeSpan.Zero,
-            TimeSpan.FromSeconds(15));
+            TimeSpan.FromSeconds(60));
 
             return Task.CompletedTask;
         }
