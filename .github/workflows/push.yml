@@ -23,3 +23,5 @@ jobs:
         - run: |
             docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/muqiuq/pnmtd:${{ github.sha }}
             docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/muqiuq/pnmtd:${{ github.sha }}
+            docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/muqiuq/pnmtd:latest
+            docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/muqiuq/pnmtd:latest 
