@@ -18,6 +18,11 @@ namespace PNMTD.Notifications
         public void SendNotification(string recipient, string subject, string messageContent)
         {
             SmtpClient client = new SmtpClient(GlobalConfiguration.SMTP_HOST, GlobalConfiguration.SMTP_PORT);
+
+            if(GlobalConfiguration.SMTP_PORT != 25)
+            {
+                client.EnableSsl = true;
+            }
             
             if(!string.IsNullOrWhiteSpace(GlobalConfiguration.SMTP_USERNAME) 
                 && !string.IsNullOrWhiteSpace(GlobalConfiguration.SMTP_PASSWORD))
