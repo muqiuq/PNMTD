@@ -108,7 +108,7 @@ public partial class Program
                 });
         });
 
-        if(builder.Configuration["Proxy"] != null)
+        if(!string.IsNullOrWhiteSpace(builder.Configuration["Proxy"]))
         {
             builder.Services.Configure<ForwardedHeadersOptions>(options =>
             {
@@ -120,7 +120,7 @@ public partial class Program
             });
         }
 
-        if (builder.Configuration["Identity"] != null)
+        if (!string.IsNullOrWhiteSpace(builder.Configuration["Identity"]))
         {
             ServerInfo._Identity = builder.Configuration["Identity"] ?? ServerInfo._Identity;
         }

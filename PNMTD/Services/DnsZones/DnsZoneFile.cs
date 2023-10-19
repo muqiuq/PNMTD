@@ -89,7 +89,7 @@ namespace PNMTD.Services.DnsZones
                     {
                         if (value.StartsWith("\"") && value.EndsWith("\"")) value = value.Substring(1, value.Length - 2);
                     }
-                    if(typeVal == DnsZoneResourceType.CNAME)
+                    if(typeVal == DnsZoneResourceType.CNAME || typeVal == DnsZoneResourceType.NS)
                     {
                         value = value.ToLower();
                     }
