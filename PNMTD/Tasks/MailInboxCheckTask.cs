@@ -54,6 +54,7 @@ namespace PNMTD.Tasks
 
             username = configuration["Mailbox:Username"];
             host = configuration["Mailbox:Host"];
+            password = configuration["Mailbox:Password"];
 
             if (username.IsNullOrEmpty() || password.IsNullOrEmpty() || host.IsNullOrEmpty())
             {
@@ -71,8 +72,6 @@ namespace PNMTD.Tasks
                     host = host.Split(':')[0];
                 }
             }
-
-            password = configuration["Mailbox:Password"];
 
             logger.LogInformation($"MailInboxCheckTask started with {username} @ {host} port {port}");
 
