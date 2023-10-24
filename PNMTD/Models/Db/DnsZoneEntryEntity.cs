@@ -13,6 +13,8 @@ namespace PNMTD.Models.Db
 
         public bool Ignore { get; set; }
 
+        public int NumOfFailuresInARow { get; set; }
+
         public Guid DnsZoneId { get; set; }
 
         public virtual DnsZoneEntity DnsZone { get; set; }

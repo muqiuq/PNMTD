@@ -14,6 +14,8 @@ namespace PNMTD.Lib.Models.Poco
 
         public bool Ignore { get; set; }
 
+        public int NumOfFailuresInARow { get; set; }
+
         public Guid DnsZoneId { get; set; }
 
         public int TTL { get; set; }

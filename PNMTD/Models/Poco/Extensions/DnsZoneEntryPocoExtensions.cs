@@ -20,6 +20,7 @@ namespace PNMTD.Models.Poco.Extensions
                 Updated = dnsZoneEntryEntity.Updated,
                 Name = dnsZoneEntryEntity.Name,
                 IsMatch = dnsZoneEntryEntity.IsMatch,
+                NumOfFailuresInARow = dnsZoneEntryEntity.NumOfFailuresInARow,
             };
         }
 
@@ -37,6 +38,7 @@ namespace PNMTD.Models.Poco.Extensions
                 Updated = dnsZoneEntryPoco.Updated,
                 Name = dnsZoneEntryPoco.Name,
                 IsMatch= dnsZoneEntryPoco.IsMatch,
+                NumOfFailuresInARow = dnsZoneEntryPoco.NumOfFailuresInARow,
             };
         }
 

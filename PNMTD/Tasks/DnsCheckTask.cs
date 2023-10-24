@@ -15,12 +15,14 @@ using PNMTD.Services.DnsZones;
 using PNMTD.Migrations;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Org.BouncyCastle.Tls;
 
 namespace PNMTD.Tasks
 {
     public class DnsCheckTask : IHostedService, IDisposable
     {
         private const string DefaultDnsServer = "9.9.9.9";
+        private const int NumOfFailuresRequiredBeforeAlarm = 3;
 
         private readonly ILogger<DnsCheckTask> logger;
         private readonly IServiceProvider services;
@@ -57,20 +59,9 @@ namespace PNMTD.Tasks
             {
                 DnsServers.Add(configuration["dns:server2"]);
             }
-
-            if (DnsServers.Count == 0)
+            if(DnsServers.Count == 0)
             {
-                logger.LogWarning($"No DNS servers set using default DNS server {DefaultDnsServer}");
                 DnsServers.Add(DefaultDnsServer);
-            }
-
-            foreach (var dnsServer in DnsServers)
-            {
-                if (!IPAddress.TryParse(dnsServer, out IPAddress ip))
-                {
-                    logger.LogError($"Could not parse IP address out of {dnsServer}");
-                }
-                DnsNameServers.Add(new NameServer(ip));
             }
 
             _timer = new Timer(tryDoWork, null, TimeSpan.Zero,
@@ -105,11 +96,37 @@ namespace PNMTD.Tasks
             {
                 var count = Interlocked.Increment(ref executionCount);
 
+                UpdateDnsServerConfig(dbContext);
+
                 UpdateZonesThatRequireProcessing(dbContext);
 
                 UpdateMostOutdatedZone(dbContext);
 
                 dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_DNS_CHECK);
+            }
+        }
+
+        public void UpdateDnsServerConfig(PnmtdDbContext dbContext)
+        {
+            if (dbContext.TryGetKeyValueByEnumSetIfFailed<string>(Models.Enums.KeyValueKeyEnums.DNS_SERVERS, string.Join(",", DnsServers), out var outDnsServers, readOnly: false))
+            {
+                DnsNameServers.Clear();
+                outDnsServers.Split(",").ToList().ForEach(d => {
+                    var dnsServerProvidedByUser = d.Trim();
+                    if (IPAddress.TryParse(dnsServerProvidedByUser, out var ip))
+                    {
+                        DnsNameServers.Add(new NameServer(ip));
+                    }
+                    else
+                    {
+                        logger.LogError($"Could not parse IP address out of {dnsServerProvidedByUser}");
+                    }
+                });
+                if (DnsNameServers.Count == 0)
+                {
+                    DnsNameServers.Add(new NameServer(IPAddress.Parse(DefaultDnsServer)));
+                    logger.LogWarning($"No set DNS servers are valid. using default DNS server {DefaultDnsServer}");
+                }
             }
         }
 
@@ -196,6 +213,7 @@ namespace PNMTD.Tasks
                         matchingEntry.ActualValue = valueToCompare;
                         matchingEntry.Updated = DateTime.Now;
                         matchingEntry.IsMatch = true;
+                        matchingEntry.NumOfFailuresInARow = 0;
                         valuesMatched.Add(matchingEntry);
                         valuesToMatch.Remove(matchingEntry);
                     }
@@ -219,6 +237,7 @@ namespace PNMTD.Tasks
                         firstValue.IsMatch = false;
                         firstValue.ActualValue = valueToCompare;
                         firstValue.Updated = DateTime.Now;
+                        firstValue.NumOfFailuresInARow = 0;
                         valuesMatched.Add(firstValue);
                         valuesToMatch.Remove(firstValue);
                         if (shoudLog && !actualValueAlreadyWrong) logEntries.Add(NewDnsLogEntry(DnsZoneLogEntryType.ENTRY_DISCREPANCY, dnsZone, 
@@ -230,12 +249,20 @@ namespace PNMTD.Tasks
                             $"Actual value contains more (act) {valueToCompare}"));
                     }
                 }
+                // By now all entries should have been matched.
                 foreach(var valueToMatch in valuesToMatch)
                 {
                     valueToMatch.Updated = DateTime.Now;
-                    if (shoudLog && valueToMatch.IsMatch) logEntries.Add(NewDnsLogEntry(DnsZoneLogEntryType.ENTRY_DISCREPANCY, dnsZone,
+                    if(valueToMatch.NumOfFailuresInARow >= NumOfFailuresRequiredBeforeAlarm)
+                    {
+                        valueToMatch.IsMatch = false;
+                        if (shoudLog && valueToMatch.IsMatch) logEntries.Add(NewDnsLogEntry(DnsZoneLogEntryType.ENTRY_DISCREPANCY, dnsZone,
                             $"Could not resolve {dnsZoneEntry.Name} {dnsZoneEntry.RecordType}"));
-                    valueToMatch.IsMatch = false;
+                    }
+                    else
+                    {
+                        valueToMatch.NumOfFailuresInARow += 1;
+                    }
                 }
 
 

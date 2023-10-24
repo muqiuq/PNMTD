@@ -21,6 +21,7 @@
         MAILBOX_DEFAULT_MARGIN_IN_DAYS = 231,
 
         LAST_DNS_CHECK = 240,
+        DNS_SERVERS = 241,
 
         UNUSED = 999,
     }
