@@ -168,6 +168,7 @@ namespace PNMTD.Tasks
                 })
                 .ToList();
 
+            dnsZone.ForceUpdate = false;
             dnsZone.LastChecked = DateTime.Now;
             dnsZone.NextCheck = DateTime.Now.AddSeconds(dnsZone.Interval);
 

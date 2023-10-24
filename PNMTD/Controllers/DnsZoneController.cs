@@ -95,6 +95,7 @@ namespace PNMTD.Controllers
 
             entityFormDb.Enabled = dnsZonePoco.Enabled;
             entityFormDb.Interval = dnsZonePoco.Interval;
+            entityFormDb.ForceUpdate = dnsZonePoco.ForceUpdate;
             if(entityFormDb.ZoneFileContent != dnsZonePoco.ZoneFileContent)
             {
                 entityFormDb.RequiresProcessing = true;
