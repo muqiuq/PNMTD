@@ -13,7 +13,13 @@ namespace PNMTD.Models.Db
 
         public bool RequiresProcessing { get; set; }
 
+        public bool ForceUpdate { get; set; }
+
+        public int Interval { get; set; }
+
         public DateTime LastChecked { get; set; }
+
+        public DateTime NextCheck { get; set; }
 
         public bool RecordsMatch { get; set; }
 

@@ -65,7 +65,7 @@ namespace PNMTD.Tasks
             }
 
             _timer = new Timer(tryDoWork, null, TimeSpan.Zero,
-            TimeSpan.FromSeconds(60));
+            TimeSpan.FromSeconds(15));
 
             return Task.CompletedTask;
         }
@@ -130,11 +130,27 @@ namespace PNMTD.Tasks
             }
         }
 
+        private bool IncreaseNumOfFailuresAndHadAdjustMatch(DnsZoneEntryEntity dnsZoneEntry)
+        {
+            if (dnsZoneEntry.NumOfFailuresInARow >= NumOfFailuresRequiredBeforeAlarm)
+            {
+                dnsZoneEntry.IsMatch = false;
+                return true;
+            }
+            else
+            {
+                dnsZoneEntry.NumOfFailuresInARow += 1;
+                return false;
+            }
+        }
+
         private void UpdateMostOutdatedZone(PnmtdDbContext dbContext)
         {
             var dnsZone = dbContext
                     .DnsZones
-                    .Where(d => d.Enabled).OrderBy(d => d.LastChecked).FirstOrDefault();
+                    .Where(d => d.Enabled && (d.NextCheck < DateTime.Now || d.ForceUpdate))
+                    .OrderBy(d => d.LastChecked)
+                    .FirstOrDefault();
 
             if (dnsZone == null) return;
 
@@ -153,6 +169,7 @@ namespace PNMTD.Tasks
                 .ToList();
 
             dnsZone.LastChecked = DateTime.Now;
+            dnsZone.NextCheck = DateTime.Now.AddSeconds(dnsZone.Interval);
 
             dbContext.SaveChanges();
 
@@ -160,16 +177,35 @@ namespace PNMTD.Tasks
 
             foreach (var dnsZoneEntry in dnsZoneEntries)
             {
-                var result = lookup.Query(new DnsQuestion(dnsZoneEntry.Name, dnsZoneEntry.RecordType.ToQueryType()),
+                var shoudLog = !(dnsZoneEntry.Entities.Count == 1 && dnsZoneEntry.Entities.First().Ignore);
+
+                IDnsQueryResponse result = null;
+                try
+                {
+                    result = lookup.Query(new DnsQuestion(dnsZoneEntry.Name, dnsZoneEntry.RecordType.ToQueryType()),
                     new DnsQueryAndServerOptions()
                     {
                         Retries = 2,
                         Timeout = TimeSpan.FromSeconds(5),
                     });
+                }
+                catch(DnsClient.DnsResponseException ex)
+                {
+                    var firstEntry = dnsZoneEntry.Entities.First();
+                    if (IncreaseNumOfFailuresAndHadAdjustMatch(firstEntry))
+                    {
+                        if (shoudLog) logEntries.Add(NewDnsLogEntry(DnsZoneLogEntryType.ENTRY_DISCREPANCY, dnsZone,
+                            $"Exception while looking up {dnsZoneEntry.Name} {dnsZoneEntry.RecordType}"));
+                    }
+                    logger.LogWarning(ex, $"{dnsZoneEntry.Name} {dnsZoneEntry.RecordType}");
+                }
+                
+                if(result == null)
+                {
+                    dnsZoneEntry.Entities.First().NumOfFailuresInARow += 1;
+                }
 
                 var valuesToCompare = new List<string>();
-
-                var shoudLog = !(dnsZoneEntry.Entities.Count == 1 && dnsZoneEntry.Entities.First().Ignore);
 
                 foreach (var answer in result.Answers)
                 {
@@ -253,15 +289,10 @@ namespace PNMTD.Tasks
                 foreach(var valueToMatch in valuesToMatch)
                 {
                     valueToMatch.Updated = DateTime.Now;
-                    if(valueToMatch.NumOfFailuresInARow >= NumOfFailuresRequiredBeforeAlarm)
+                    if(IncreaseNumOfFailuresAndHadAdjustMatch(valueToMatch))
                     {
-                        valueToMatch.IsMatch = false;
                         if (shoudLog && valueToMatch.IsMatch) logEntries.Add(NewDnsLogEntry(DnsZoneLogEntryType.ENTRY_DISCREPANCY, dnsZone,
                             $"Could not resolve {dnsZoneEntry.Name} {dnsZoneEntry.RecordType}"));
-                    }
-                    else
-                    {
-                        valueToMatch.NumOfFailuresInARow += 1;
                     }
                 }
 
@@ -309,7 +340,7 @@ namespace PNMTD.Tasks
                     zoneFile = new DnsZoneFile(dnsZone.ZoneFileContent);
                 }catch(Exception ex)
                 {
-                    logger.LogError($"Parse error {dnsZone.Id}");
+                    logger.LogError(ex, $"Parse error {dnsZone.Id}");
                     continue;
                 }
                 

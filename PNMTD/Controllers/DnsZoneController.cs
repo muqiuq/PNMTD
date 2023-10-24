@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using PNMTD.Data;
 using PNMTD.Lib.Models.Poco;
+using PNMTD.Migrations;
 using PNMTD.Models.Db;
 using PNMTD.Models.Poco.Extensions;
 using PNMTD.Models.Responses;
@@ -24,6 +25,13 @@ namespace PNMTD.Controllers
         public IEnumerable<DnsZonePoco> Get()
         {
             return Db.DnsZones.Include(d => d.DnsZoneEntries).Select(d => d.ToPoco()).ToList();
+        }
+
+        [HttpGet("logs")]
+        public IActionResult GetAllLogs()
+        {
+            var dnsLogEntries = Db.DnsZoneLogEntries.OrderByDescending(d => d.Created).Take(30).Select(d => d.ToPoco()).ToList();
+            return Ok(dnsLogEntries);
         }
 
         [HttpGet("logs/{id}")]
@@ -68,6 +76,7 @@ namespace PNMTD.Controllers
             var entity = dnsZonePoco.ToEntity();
             entity.Id = Guid.NewGuid();
             entity.RequiresProcessing = true;
+            entity.Interval = 600;
             var change = Db.DnsZones.Add(entity);
             Db.SaveChanges();
             return new DefaultResponse()
@@ -85,6 +94,7 @@ namespace PNMTD.Controllers
             if (entityFormDb == null) return NotFound();
 
             entityFormDb.Enabled = dnsZonePoco.Enabled;
+            entityFormDb.Interval = dnsZonePoco.Interval;
             if(entityFormDb.ZoneFileContent != dnsZonePoco.ZoneFileContent)
             {
                 entityFormDb.RequiresProcessing = true;

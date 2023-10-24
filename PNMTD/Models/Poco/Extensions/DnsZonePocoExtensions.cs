@@ -18,6 +18,9 @@ namespace PNMTD.Models.Poco.Extensions
                 RequiresProcessing = dnsZoneEntity.RequiresProcessing,
                 LastChecked = dnsZoneEntity.LastChecked,
                 RecordsMatch = dnsZoneEntity.RecordsMatch,
+                ForceUpdate = dnsZoneEntity.ForceUpdate,
+                Interval = dnsZoneEntity.Interval,
+                NextCheck = dnsZoneEntity.NextCheck,
             };
         }
 
@@ -32,6 +35,8 @@ namespace PNMTD.Models.Poco.Extensions
                 RequiresProcessing = dnsZonePoco.RequiresProcessing,
                 LastChecked = dnsZonePoco.LastChecked,
                 RecordsMatch = dnsZonePoco.RecordsMatch,
+                Interval = dnsZonePoco.Interval,
+                NextCheck = dnsZonePoco.NextCheck,
             };
         }
 

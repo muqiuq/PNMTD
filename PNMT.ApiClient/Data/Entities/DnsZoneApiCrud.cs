@@ -18,5 +18,10 @@ namespace PNMT.ApiClient.Data.Entities
         {
             return await httpClient.GetFromJsonAsync<List<DnsZoneLogEntryPoco>>($"/dnszone/logs/{Id}");
         }
+
+        public async Task<List<DnsZoneLogEntryPoco>> GetLogs()
+        {
+            return await httpClient.GetFromJsonAsync<List<DnsZoneLogEntryPoco>>($"/dnszone/logs");
+        }
     }
 }
