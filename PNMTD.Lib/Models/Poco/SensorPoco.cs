@@ -17,7 +17,9 @@ namespace PNMTD.Models.Poco
 
         public string? Status { get; set; }
 
-        public string? SecretToken { get; set; }
+        public string? SecretWriteToken { get; set; }
+
+        public string? SecretReadToken { get; set; }
 
         public string? TextId { get; set; }
 

@@ -42,8 +42,13 @@ namespace PNMT.ApiClient.Data
             this.DnsZoneEntries = new DnsZoneEntryApiCrud(httpClient);
         }
 
+        public string GetSensorReadUrl(SensorPoco sensor)
+        {
+            return $"{BaseUrlForEventSubmission}/read/{sensor.SecretReadToken}/json";
+        }
+
         public string GetSensorEventUrl(SensorPoco sensor) {
-            return $"{BaseUrlForEventSubmission}/event/{sensor.SecretToken}/";
+            return $"{BaseUrlForEventSubmission}/event/{sensor.SecretWriteToken}/";
         }
 
         public string GetSensorEventUrl(SensorPoco sensor, string code, string message)

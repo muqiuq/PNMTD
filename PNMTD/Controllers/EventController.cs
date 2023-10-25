@@ -15,6 +15,8 @@ using PNMTD.Models.Responses;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using PNMTD.Services.ApiOutputFormat;
+using PNMTD.Lib.Models;
 
 namespace PNMTD.Controllers
 {
@@ -61,11 +63,55 @@ namespace PNMTD.Controllers
             return events.Select(e => e.ToPoco()).ToList();
         }
 
+
+        [AllowAnonymous]
+        [HttpGet("read/{secretToken}/{option?}", Name = "Read last event value")]
+        public object ReadEvent(string secretToken, string? option)
+        {
+            var sensorR = db.Sensors.Where(s => s.SecretReadToken == secretToken && s.Enabled).SingleOrDefault();
+
+            if (sensorR == null)
+            {
+                return NotFound();
+            }
+
+            EventEntity lastEvent = null;
+
+            if (sensorR.Type == SensorType.ALL_WITHIN_TIMESPAN || sensorR.Type == SensorType.ONE_WITHIN_TIMESPAN)
+            {
+                lastEvent = db.Events
+                    .Where(e => e.SensorId == sensorR.Id && 
+                            (e.Code == PNMTStatusCodes.ALL_WITHIN_TIMESPAN_FAILED ||
+                             e.Code == PNMTStatusCodes.ALL_WITHIN_TIMESPAN_OK ||
+                             e.Code == PNMTStatusCodes.ONE_WITHIN_TIMESPAN_FAILED ||
+                             e.Code == PNMTStatusCodes.ONE_WITHIN_TIMESPAN_OK))
+                    .OrderByDescending(e => e.Created).FirstOrDefault();
+            }
+            else
+            {
+                lastEvent = db.Events.Where(e => e.SensorId == sensorR.Id).OrderByDescending(e => e.Created).FirstOrDefault();
+            }
+
+            bool? lastEventSuccess = null;
+            string? lastEventMessage = null;
+            if (lastEvent != null)
+            {
+                lastEventSuccess = lastEvent.IsSuccess;
+                lastEventMessage = lastEvent.Message;
+            }
+
+            return Ok(ApiOutputFormatter.FormatOutput(new List<KeyValuePair<string, object>>()
+            {
+                new("lastEventSuccess", lastEventSuccess),
+                new("lastEventMessage", lastEventMessage),
+            }, option));
+        }
+
         [AllowAnonymous]
         [HttpGet("event/{secretToken}/{code}/{message?}", Name = "Submit Event (Get)")]
         public object SubmitEvent(string secretToken, int code, string? message)
         {
-            var sensorR = db.Sensors.Where(s => s.SecretToken == secretToken && s.Enabled);
+            var sensorR = db.Sensors.Where(s => s.SecretWriteToken == secretToken && s.Enabled);
 
             if (!sensorR.Any())
             {
@@ -127,7 +173,7 @@ namespace PNMTD.Controllers
         [HttpPost("event/{secretToken}/{code}", Name = "Submit Event (Post)")]
         public async Task<object> PostEvent(string secretToken, int code)
         {
-            var sensorR = db.Sensors.Where(s => s.SecretToken == secretToken && s.Enabled);
+            var sensorR = db.Sensors.Where(s => s.SecretWriteToken == secretToken && s.Enabled);
 
             if (!sensorR.Any())
             {

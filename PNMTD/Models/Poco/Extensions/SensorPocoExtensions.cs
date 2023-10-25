@@ -1,4 +1,5 @@
 ﻿using PNMTD.Models.Db;
+using System.Text;
 
 namespace PNMTD.Models.Poco.Extensions
 {
@@ -20,25 +21,41 @@ namespace PNMTD.Models.Poco.Extensions
                 Type = sensorEntity.Type,
                 Parameters = sensorEntity.Parameters,
                 Parent = sensorEntity.Parent != null ? sensorEntity.Parent.ToPoco() : null,
-                SecretToken = sensorEntity.SecretToken,
+                SecretWriteToken = sensorEntity.SecretWriteToken,
+                SecretReadToken = sensorEntity.SecretReadToken,
                 Source = sensorEntity.Source,   
                 Ignore = sensorEntity.Ignore,
                 Status = sensorEntity.Status,
             };
         }
 
-        public static void SetNewSecretToken(this SensorEntity sensorEntity)
+        public static void SetRandomSecretReadToken(this SensorEntity sensorEntity)
         {
+            sensorEntity.SecretReadToken = GetRandomSecretToken(sensorEntity.Id, offset: 3);
+        }
+
+        private static string GetRandomSecretToken(Guid seedId, int offset = 0)
+        {
+            if (offset < 0 || offset > 3)
+            {
+                throw new ArgumentOutOfRangeException(nameof(offset), "offset must be in between (inclusive) 0 and 3");
+            }
             string beginOfSecretToken;
             using (System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create())
             {
-                byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(sensorEntity.Id.ToString());
+                byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(seedId.ToString());
                 byte[] hashBytes = md5.ComputeHash(inputBytes);
 
                 beginOfSecretToken = Convert.ToHexString(hashBytes);
             }
 
-            sensorEntity.SecretToken = (beginOfSecretToken.Substring(0, 7) + "-" + Guid.NewGuid().ToString()).ToLower();
+            return (beginOfSecretToken.Substring(offset, 7) + "-" + Guid.NewGuid().ToString()).ToLower();
+        }
+
+        public static void SetNewSecretToken(this SensorEntity sensorEntity)
+        {
+            sensorEntity.SecretWriteToken = GetRandomSecretToken(sensorEntity.Id);
+            sensorEntity.SecretReadToken = GetRandomSecretToken(sensorEntity.Id, offset: 3);
         }
 
         public static SensorEntity ToEntity(this SensorPoco sensorPoco, bool isNew)
@@ -55,7 +72,8 @@ namespace PNMTD.Models.Poco.Extensions
                 TextId = sensorPoco.TextId,
                 Type = sensorPoco.Type,
                 Parameters = sensorPoco.Parameters,
-                SecretToken = sensorPoco.SecretToken,
+                SecretWriteToken = sensorPoco.SecretWriteToken,
+                SecretReadToken = sensorPoco.SecretReadToken,
                 Source = sensorPoco.Source,
                 Ignore = sensorPoco.Ignore,
                 Status = sensorPoco.Status,
@@ -70,6 +88,8 @@ namespace PNMTD.Models.Poco.Extensions
                 sensorEntity.Id = Guid.NewGuid();
                 sensorEntity.SetNewSecretToken();
             }
+
+            sensorEntity.SecretReadToken ??= GetRandomSecretToken(sensorEntity.Id, offset: 3);
 
             return sensorEntity;
         }

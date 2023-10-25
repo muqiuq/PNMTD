@@ -44,6 +44,8 @@ public partial class Program
             _logger.LogInformation($"Created DB in {db.DbPath}");
         }
 
+        db.RunCustomMigrations();
+
         db.Dispose();
 
         var app = RunApi(args, out var appTask);

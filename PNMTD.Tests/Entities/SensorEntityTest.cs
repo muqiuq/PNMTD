@@ -44,7 +44,7 @@ namespace PNMTD.Tests.Entities
                 Type = SensorType.ENCAPSULADED,
                 Interval = 60,
                 GracePeriod = 60,
-                SecretToken = ""
+                SecretWriteToken = ""
                 
             };
             Db.Sensors.Add(olderSensor);
@@ -59,7 +59,7 @@ namespace PNMTD.Tests.Entities
                 Type = SensorType.VALUECHECK,
                 Interval = 60,
                 GracePeriod = 60,
-                SecretToken = ""
+                SecretWriteToken = ""
             };
             Db.Sensors.Add(siblingSensor);
             Db.SaveChanges();

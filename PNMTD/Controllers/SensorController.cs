@@ -49,7 +49,7 @@ namespace PNMTD.Controllers
         public object GetBySecretToken(string secretToken)
         {
             return HttpResultHelper.ReturnSinglePocoOrNotFound<SensorEntity, SensorPoco>(
-                Db.Sensors.Where(s => s.SecretToken == secretToken), 
+                Db.Sensors.Where(s => s.SecretWriteToken == secretToken), 
                 t => t.ToPoco()
                 );
         }
@@ -67,7 +67,7 @@ namespace PNMTD.Controllers
             return Ok(new DefaultResponse()
             {
                 Success = true,
-                Data = sensor.SecretToken
+                Data = sensor.SecretWriteToken
             });
         }
 

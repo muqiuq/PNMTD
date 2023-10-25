@@ -1,16 +1,12 @@
 ﻿using Newtonsoft.Json;
-using PNMTD.Data;
 using PNMTD.Lib.Models;
 using PNMTD.Lib.Models.Enum;
 using PNMTD.Lib.Models.Poco;
-using PNMTD.Models.Poco;
 using PNMTD.Models.Requests;
 using PNMTD.Models.Responses;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace PNMTD.Tests.Controllers
 {
@@ -32,16 +28,16 @@ namespace PNMTD.Tests.Controllers
         {
             var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Count();
             var hostEntity = _factory.DbTestHelper.HostEntities[0];
-            var sensorEntity = hostEntity.Sensors.Where(s => s.Type == SensorType.HEARTBEAT).First();
+            var sensorEntity = hostEntity.Sensors.First(s => s.Type == SensorType.HEARTBEAT);
             var testMessage = "TestMessage 1234, this is test {\":,\"}";
-            var resp_hosts = await _client.GetAsync($"/event/{sensorEntity.SecretToken}/200/{testMessage}");
+            var resp_hosts = await _client.GetAsync($"/event/{sensorEntity.SecretWriteToken}/200/{testMessage}");
 
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var rawContent = await resp_hosts.Content.ReadAsStringAsync();
             var paredResponse = JsonConvert.DeserializeObject<DefaultResponse>(rawContent);
 
             Assert.IsTrue(paredResponse.Success);
-            var eventT = _factory.DbTestHelper.DbContext.Events.Where(e => e.Id == Guid.Parse(paredResponse.Data.ToString())).FirstOrDefault();
+            var eventT = _factory.DbTestHelper.DbContext.Events.FirstOrDefault(e => e.Id == Guid.Parse(paredResponse.Data.ToString()));
 
             Assert.IsNotNull(eventT);
             Assert.AreEqual(numberOfEventsBefore + 1, _factory.DbTestHelper.DbContext.Events.Count());
@@ -54,17 +50,17 @@ namespace PNMTD.Tests.Controllers
         {
             var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Count();
             var hostEntity = _factory.DbTestHelper.HostEntities[0];
-            var sensorEntity = hostEntity.Sensors.Where(s => s.Type == SensorType.HEARTBEAT).First();
+            var sensorEntity = hostEntity.Sensors.First(s => s.Type == SensorType.HEARTBEAT);
             var testMessage = "TestMessage 1234, this is test {\":,\"}";
             var content = new StringContent(testMessage, Encoding.UTF8, "text/plain");
-            var resp_hosts = await _client.PostAsync($"/event/{sensorEntity.SecretToken}/200", content);
+            var resp_hosts = await _client.PostAsync($"/event/{sensorEntity.SecretWriteToken}/200", content);
 
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var rawContent = await resp_hosts.Content.ReadAsStringAsync();
             var paredResponse = JsonConvert.DeserializeObject<DefaultResponse>(rawContent);
 
             Assert.IsTrue(paredResponse.Success);
-            var eventT = _factory.DbTestHelper.DbContext.Events.Where(e => e.Id == Guid.Parse(paredResponse.Data.ToString())).FirstOrDefault();
+            var eventT = _factory.DbTestHelper.DbContext.Events.FirstOrDefault(e => e.Id == Guid.Parse(paredResponse.Data.ToString()));
 
             Assert.IsNotNull(eventT);
             Assert.AreEqual(numberOfEventsBefore + 1, _factory.DbTestHelper.DbContext.Events.Count());
@@ -79,7 +75,7 @@ namespace PNMTD.Tests.Controllers
             var numberOfSensorEntitiesBefore = _factory.DbTestHelper.DbContext.Sensors.Count();
 
             var hostEntity = _factory.DbTestHelper.HostEntities[0];
-            var sensorEntity = hostEntity.Sensors.Where(s => s.Type == SensorType.ENCAPSULADED).First();
+            var sensorEntity = hostEntity.Sensors.First(s => s.Type == SensorType.ENCAPSULADED);
             var encapsulatedEvent1 = new EncapsulatedEvent()
             {
                 Name = "Number1",
@@ -98,14 +94,14 @@ namespace PNMTD.Tests.Controllers
             };
             var testMessage = JsonConvert.SerializeObject(encapsulatedEvents, Formatting.Indented);
             var content = new StringContent(testMessage, Encoding.UTF8, "text/plain");
-            var resp_hosts = await _client.PostAsync($"/event/{sensorEntity.SecretToken}/200", content);
+            var resp_hosts = await _client.PostAsync($"/event/{sensorEntity.SecretWriteToken}/200", content);
 
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var rawContent = await resp_hosts.Content.ReadAsStringAsync();
             var paredResponse = JsonConvert.DeserializeObject<DefaultResponse>(rawContent);
 
             Assert.IsTrue(paredResponse.Success);
-            var eventT = _factory.DbTestHelper.DbContext.Events.Where(e => e.Id == Guid.Parse(paredResponse.Data.ToString())).FirstOrDefault();
+            var eventT = _factory.DbTestHelper.DbContext.Events.FirstOrDefault(e => e.Id == Guid.Parse(paredResponse.Data.ToString()));
 
             Assert.IsNotNull(eventT);
             Assert.AreEqual(numberOfEventsBefore + 2, _factory.DbTestHelper.DbContext.Events.Count());
@@ -122,14 +118,14 @@ namespace PNMTD.Tests.Controllers
             var sensorEntity = hostEntity.Sensors.First();
             var testMessage = "{}K:,-()%*";
             var encodedMessage = "$" + Convert.ToBase64String(Encoding.UTF8.GetBytes(testMessage));
-            var resp_hosts = await _client.GetAsync($"/event/{sensorEntity.SecretToken}/200/{encodedMessage}");
+            var resp_hosts = await _client.GetAsync($"/event/{sensorEntity.SecretWriteToken}/200/{encodedMessage}");
 
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var rawContent = await resp_hosts.Content.ReadAsStringAsync();
             var paredResponse = JsonConvert.DeserializeObject<DefaultResponse>(rawContent);
 
             Assert.IsTrue(paredResponse.Success);
-            var eventT = _factory.DbTestHelper.DbContext.Events.Where(e => e.Id == Guid.Parse(paredResponse.Data.ToString())).FirstOrDefault();
+            var eventT = _factory.DbTestHelper.DbContext.Events.FirstOrDefault(e => e.Id == Guid.Parse(paredResponse.Data.ToString()));
 
             Assert.IsNotNull(eventT);
             Assert.AreEqual(numberOfEventsBefore + 1, _factory.DbTestHelper.DbContext.Events.Count());
@@ -162,15 +158,15 @@ namespace PNMTD.Tests.Controllers
             var hostEntity = _factory.DbTestHelper.HostEntities[0];
             var sensorEntity = hostEntity.Sensors.First();
             GlobalConfiguration.MAXIMUM_NUM_OF_EVENTS_PER_SENSOR = 10;
-            var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Where(i => i.Sensor == sensorEntity).Count();
+            var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Count(i => i.Sensor == sensorEntity);
 
             for (int a = 0; a < GlobalConfiguration.MAXIMUM_NUM_OF_EVENTS_PER_SENSOR + 5; a++)
             {
-                await createRandomEventForSensorId(sensorEntity.SecretToken);
+                await createRandomEventForSensorId(sensorEntity.SecretWriteToken);
             }
             //Do prevent two SaveChanges only one save changes occurs. It will always return one event more. Thats the +1
             Assert.AreEqual(GlobalConfiguration.MAXIMUM_NUM_OF_EVENTS_PER_SENSOR + 1,
-                _factory.DbTestHelper.DbContext.Events.Where(i => i.Sensor == sensorEntity).Count());
+                _factory.DbTestHelper.DbContext.Events.Count(i => i.Sensor == sensorEntity));
         }
 
         [TestMethod]
@@ -178,19 +174,19 @@ namespace PNMTD.Tests.Controllers
         {
             var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Count();
             
-            var sensorEntity = _factory.DbTestHelper.DbContext.Sensors.Where(s => s.Type == SensorType.VALUECHECK).First();
+            var sensorEntity = _factory.DbTestHelper.DbContext.Sensors.First(s => s.Type == SensorType.VALUECHECK);
             sensorEntity.Parameters = "NEEDLE";
             _factory.DbTestHelper.DbContext.SaveChanges();
             var testMessage = "TestMessage 1234, this is test with a NEEDLE";
             var content = new StringContent(testMessage, Encoding.UTF8, "text/plain");
-            var resp_hosts = await _client.PostAsync($"/event/{sensorEntity.SecretToken}/0", content);
+            var resp_hosts = await _client.PostAsync($"/event/{sensorEntity.SecretWriteToken}/0", content);
 
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var rawContent = await resp_hosts.Content.ReadAsStringAsync();
             var paredResponse = JsonConvert.DeserializeObject<DefaultResponse>(rawContent);
 
             Assert.IsTrue(paredResponse.Success);
-            var eventT = _factory.DbTestHelper.DbContext.Events.Where(e => e.Id == Guid.Parse(paredResponse.Data.ToString())).FirstOrDefault();
+            var eventT = _factory.DbTestHelper.DbContext.Events.FirstOrDefault(e => e.Id == Guid.Parse(paredResponse.Data.ToString()));
 
             Assert.IsNotNull(eventT);
             Assert.AreEqual(PNMTStatusCodes.VALUECHECK_OK, eventT.Code);
@@ -213,24 +209,69 @@ namespace PNMTD.Tests.Controllers
         {
             var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Count();
 
-            var sensorEntity = _factory.DbTestHelper.DbContext.Sensors.Where(s => s.Type == SensorType.VALUECHECK).First();
+            var sensorEntity = _factory.DbTestHelper.DbContext.Sensors.First(s => s.Type == SensorType.VALUECHECK);
             sensorEntity.Parameters = "NEEDLE";
             _factory.DbTestHelper.DbContext.SaveChanges();
             var testMessage = "TestMessage 1234, this is test with a";
             var content = new StringContent(testMessage, Encoding.UTF8, "text/plain");
-            var resp_hosts = await _client.PostAsync($"/event/{sensorEntity.SecretToken}/0", content);
+            var resp_hosts = await _client.PostAsync($"/event/{sensorEntity.SecretWriteToken}/0", content);
 
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var rawContent = await resp_hosts.Content.ReadAsStringAsync();
             var paredResponse = JsonConvert.DeserializeObject<DefaultResponse>(rawContent);
 
             Assert.IsTrue(paredResponse.Success);
-            var eventT = _factory.DbTestHelper.DbContext.Events.Where(e => e.Id == Guid.Parse(paredResponse.Data.ToString())).FirstOrDefault();
+            var eventT = _factory.DbTestHelper.DbContext.Events.FirstOrDefault(e => e.Id == Guid.Parse(paredResponse.Data.ToString()));
 
             Assert.IsNotNull(eventT);
             Assert.AreEqual(PNMTStatusCodes.VALUECHECK_FAILED, eventT.Code);
             Assert.AreEqual(testMessage, eventT.Message);
             Assert.AreEqual(PNMTStatusCodes.VALUECHECK_FAILED, eventT.Code);
+        }
+
+
+        [TestMethod]
+        public async Task Api_ReadEvent_Raw()
+        {
+            var someEvent = _factory.DbTestHelper.DbContext.Events
+                .Include(s => s.Sensor)
+                .Where(s => s.Sensor.Type != SensorType.ONE_WITHIN_TIMESPAN && s.Sensor.Type != SensorType.ALL_WITHIN_TIMESPAN)
+                .OrderByDescending(d => d.Created)
+                .First();
+
+            var sensorEntity = someEvent.Sensor;
+
+            var resp_entity = await _client.GetAsync($"/read/{sensorEntity.SecretReadToken}/raw");
+
+            Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_entity.StatusCode);
+            var rawContent = await resp_entity.Content.ReadAsStringAsync();
+            
+            Assert.AreEqual(($"{someEvent.IsSuccess};{someEvent.Message}").Trim(), rawContent);
+        }
+
+        [TestMethod]
+        public async Task Api_ReadEvent_Json()
+        {
+            var someEvent = _factory.DbTestHelper.DbContext.Events
+                .Include(s => s.Sensor)
+                .Where(s => s.Sensor.Type != SensorType.ONE_WITHIN_TIMESPAN && s.Sensor.Type != SensorType.ALL_WITHIN_TIMESPAN)
+                .OrderByDescending(d => d.Created)
+                .First();
+
+            var sensorEntity = someEvent.Sensor;
+
+            var resp_entity = await _client.GetAsync($"/read/{sensorEntity.SecretReadToken}/json");
+
+            Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_entity.StatusCode);
+            var rawContent = await resp_entity.Content.ReadAsStringAsync();
+
+            var returnObj = new
+            {
+                lastEventSuccess = someEvent.IsSuccess,
+                lastEventMessage = someEvent.Message,
+            };
+
+            Assert.AreEqual(JsonSerializer.Serialize(returnObj), rawContent);
         }
 
         private async Task createRandomEventForSensorId(string secretToken)
