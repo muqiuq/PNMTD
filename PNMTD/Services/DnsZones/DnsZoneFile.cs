@@ -66,7 +66,14 @@ namespace PNMTD.Services.DnsZones
             foreach(var line in lines)
             {
                 if (line.StartsWith(";")) continue;
-                var parts = line.Split(" ", 5);
+                var cleanLine = line.Replace("\t", " ");
+                var saferCounter = 0;
+                while (cleanLine.Contains("  ") && saferCounter < 100)
+                {
+                    cleanLine = cleanLine.Replace("  ", " ");
+                    saferCounter++;
+                }
+                var parts = cleanLine.Split(" ", 5);
                 var typeNames = Enum.GetNames(typeof(DnsZoneResourceType));
                 if (parts.Length == 5 && parts[2] == "IN")
                 {

@@ -233,6 +233,12 @@ namespace PNMTD.Tasks
                         case SoaRecord soaRecord:
                             valuesToCompare.Add(soaRecord.ToString());
                             break;
+                        case SrvRecord srvRecord:
+                            valuesToCompare.Add($"{srvRecord.Priority} {srvRecord.Weight} {srvRecord.Port} {srvRecord.Target.Value}");
+                            break;
+                        case PtrRecord ptrRecord:
+                            valuesToCompare.Add(ptrRecord.ToString());
+                            break;
                         default:
                             break;
                     }
