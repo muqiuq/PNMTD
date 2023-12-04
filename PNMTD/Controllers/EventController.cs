@@ -15,6 +15,7 @@ using PNMTD.Models.Responses;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using PNMTD.Lib.Helper;
 using PNMTD.Services.ApiOutputFormat;
 using PNMTD.Lib.Models;
 
@@ -127,20 +128,13 @@ namespace PNMTD.Controllers
                 message = Encoding.UTF8.GetString(Convert.FromBase64String(message.Substring(1)));
             }
 
-            var lastEvent = db.Events.Where(e => e.SensorId == sensorIdGuid)
-                .OrderByDescending(e => e.Created).FirstOrDefault();
+            var lastEvent = getLastEvent(sensorIdGuid);
 
-            if (lastEvent != null)
-            {
-                if ((DateTime.Now - lastEvent.Created) < TimeSpan.FromSeconds(GlobalConfiguration.MINIMUM_TIME_DIFFERENCE_BETWEEN_EVENTS_IN_SECONDS)
-                    && !Global.IsDevelopment
-                    )
-                {
-                    return Problem("Too many requesteds", statusCode: 425);
-                }
-            }
+            if (HasToManyRequests(lastEvent, out var result)) return result!;
 
             EventEntity eventEntity = createNewEntity(code, message, sensor);
+
+            compareWithLastEventRemoveIfYes(lastEvent, eventEntity);
 
             db.Events.CleanUpEntitiesForHost(sensor.Id);
 
@@ -169,6 +163,38 @@ namespace PNMTD.Controllers
             return eventEntity;
         }
 
+        private void compareWithLastEventRemoveIfYes(EventEntity lastEvent, EventEntity currentEvent)
+        {
+            if (lastEvent.Code == currentEvent.Code && lastEvent.Message == currentEvent.Message &&
+                RemoteAddressHelper.StripPortFromRemoteAddressIfAny(lastEvent.Source) == RemoteAddressHelper.StripPortFromRemoteAddressIfAny(currentEvent.Source))
+            {
+                db.Events.Remove(lastEvent);
+            }
+        }
+
+        private EventEntity? getLastEvent(Guid sensorId)
+        {
+            return db.Events.Where(e => e.SensorId == sensorId)
+                .OrderByDescending(e => e.Created).FirstOrDefault();
+        }
+
+        private bool HasToManyRequests(EventEntity? lastEvent, out ObjectResult? result)
+        {
+            if (lastEvent != null)
+            {
+                if ((DateTime.Now - lastEvent.Created) < TimeSpan.FromSeconds(GlobalConfiguration.MINIMUM_TIME_DIFFERENCE_BETWEEN_EVENTS_IN_SECONDS)
+                    && !Global.IsDevelopment
+                   )
+                {
+                    result = Problem("Too many requesteds", statusCode: 425);
+                    return true;
+                }
+            }
+
+            result = null;
+            return false;
+        }
+
         [AllowAnonymous]
         [HttpPost("event/{secretToken}/{code}", Name = "Submit Event (Post)")]
         public async Task<object> PostEvent(string secretToken, int code)
@@ -183,6 +209,10 @@ namespace PNMTD.Controllers
             var sensor = sensorR.Single();
             var sensorIdGuid = sensor.Id;
 
+            var lastEvent = getLastEvent(sensorIdGuid);
+
+            if (HasToManyRequests(lastEvent, out var result)) return result!;
+
             var message = (await Request.GetRequestBody()).Trim();
 
             // A $ indicated that the contect of the message is encoded with Base64
@@ -190,6 +220,7 @@ namespace PNMTD.Controllers
             {
                 message = Encoding.UTF8.GetString(Convert.FromBase64String(message.Substring(1)));
             }
+
             EventEntity eventEntity = null;
 
             if (sensor.Type == SensorType.ENCAPSULADED && message != null)
@@ -231,6 +262,8 @@ namespace PNMTD.Controllers
             }else
             {
                 eventEntity = createNewEntity(code, message, sensor);
+
+                compareWithLastEventRemoveIfYes(lastEvent, eventEntity);
             }
 
             db.Events.CleanUpEntitiesForHost(sensor.Id);
