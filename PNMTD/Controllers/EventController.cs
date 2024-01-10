@@ -132,7 +132,7 @@ namespace PNMTD.Controllers
 
             if (HasToManyRequests(lastEvent, out var result)) return result!;
 
-            var eventEntity = createOrUpdateEvent(lastEvent, code, message);
+            var eventEntity = createOrUpdateEvent(lastEvent, code, message, sensor);
 
             db.Events.CleanUpEntitiesForHost(sensor.Id);
 
@@ -161,9 +161,9 @@ namespace PNMTD.Controllers
             return eventEntity;
         }
 
-        private EventEntity createOrUpdateEvent(EventEntity lastEvent, int newCode, string message)
+        private EventEntity createOrUpdateEvent(EventEntity? lastEvent, int newCode, string message, SensorEntity sensor)
         {
-            if (lastEvent.Code == newCode && lastEvent.Message == message &&
+            if (lastEvent != null && lastEvent.Code == newCode && lastEvent.Message == message &&
                 RemoteAddressHelper.StripPortFromRemoteAddressIfAny(lastEvent.Source) == RemoteAddressHelper.StripPortFromRemoteAddressIfAny(this.GetRemoteIpAddressOrDefault()))
             {
                 lastEvent.Created = DateTime.Now;
@@ -171,7 +171,7 @@ namespace PNMTD.Controllers
             }
             else
             {
-                return createNewEntity(newCode, message, lastEvent.Sensor);
+                return createNewEntity(newCode, message, sensor);
             }
         }
 
@@ -264,7 +264,7 @@ namespace PNMTD.Controllers
                 }
             }else
             {
-                eventEntity = createOrUpdateEvent(lastEvent, code, message); 
+                eventEntity = createOrUpdateEvent(lastEvent, code, message, sensor); 
             }
 
             db.Events.CleanUpEntitiesForHost(sensor.Id);

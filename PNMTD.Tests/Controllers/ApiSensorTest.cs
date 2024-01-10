@@ -4,17 +4,31 @@ using PNMTD.Models.Poco;
 using PNMTD.Models.Responses;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using PNMTD.Models.Poco.Extensions;
 using PNMTD.Lib.Models.Enum;
+using PNMTD.Models.Db;
 
 namespace PNMTD.Tests.Controllers
 {
     [TestClass]
     public class ApiSensorTest
     {
+        private TestContext testContextInstance;
+
+        /// <summary>
+        /// Gets or sets the test context which provides
+        /// information about and functionality for the current test run.
+        /// </summary>
+        public TestContext TestContext
+        {
+            get { return testContextInstance; }
+            set { testContextInstance = value; }
+        }
+
         private HttpClient _client;
 
         public static readonly CustomWebApplicationFactory<Program> _factory = new CustomWebApplicationFactory<Program>();
@@ -126,25 +140,47 @@ namespace PNMTD.Tests.Controllers
             Assert.AreEqual(originalName + "2", sensorFromDb.Name);
         }
 
-        [TestMethod]
-        public async Task T06_DeleteSensor()
+        private async Task DeleteSensor(bool encapsuladed)
         {
-            var sensorFromDbBefore = Db.Sensors.First();
+            var allSensors = Db.Sensors.ToList();
+            SensorEntity sensorFromDbBefore;
+            var numOfSensorsToBeDeleted = 1;
+            if (encapsuladed)
+            {
+                sensorFromDbBefore = Db.Sensors.First(s => s.Type == SensorType.ENCAPSULADED);
+                numOfSensorsToBeDeleted += Db.Sensors.Count(s => s.OlderSibling == sensorFromDbBefore);
+            }
+            else
+            {
+                sensorFromDbBefore = Db.Sensors.First(s => s.Type != SensorType.ENCAPSULADED);
+            }
             var sensor = sensorFromDbBefore.ToPoco();
             Db.ChangeTracker.Clear();
-            var num_of_sensors = Db.Sensors.Count();
 
+            var num_of_sensors = Db.Sensors.Count();
             var resp_sensors = await _client.DeleteAsync($"/sensor/{sensor.Id}");
 
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_sensors.StatusCode);
             var content = await resp_sensors.Content.ReadAsStringAsync();
             var defaultResponse = JsonConvert.DeserializeObject<DefaultResponse>(content);
 
-            var sensorFromDb = Db.Sensors.Where(n => n.Id == sensor.Id).SingleOrDefault();
+            var sensorFromDb = Db.Sensors.SingleOrDefault(n => n.Id == sensor.Id);
 
             Assert.IsTrue(defaultResponse.Success);
-            Assert.AreEqual(num_of_sensors - 1, Db.Sensors.Count());
+            Assert.AreEqual(num_of_sensors - numOfSensorsToBeDeleted, Db.Sensors.Count());
             Assert.IsNull(sensorFromDb);
+        }
+
+        [TestMethod]
+        public async Task T06_DeleteSensor_not_Encapsuladed()
+        {
+            await DeleteSensor(false);
+        }
+
+        [TestMethod]
+        public async Task T07_DeleteSensor_Encapsuladed()
+        {
+            await DeleteSensor(true);
         }
     }
 }

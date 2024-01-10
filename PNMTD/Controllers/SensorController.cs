@@ -108,13 +108,7 @@ namespace PNMTD.Controllers
         {
             var sensor = Db.Sensors.SingleOrDefault(n => n.Id == id);
             if (sensor == null) return NotFound();
-            var notificationRules = Db.NotificationRuleEvents
-                .Include(n => n.Event)
-                .Where(nre => nre.Event != null && nre.Event.SensorId == sensor.Id)
-                .ToList();
-            Db.NotificationRuleEvents.RemoveRange(notificationRules);
-            var eventEntities = Db.Events.Where(se => se.SensorId == id).ToList();
-            Db.Events.RemoveRange(eventEntities);
+            Db.RemoveRange(Db.Sensors.Where(s => s.OlderSibling == sensor));
             var change = Db.Sensors.Remove(sensor);
             Db.SaveChanges();
 

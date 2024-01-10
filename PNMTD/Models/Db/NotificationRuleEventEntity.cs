@@ -16,7 +16,7 @@ namespace PNMTD.Models.Db
 
         public virtual NotificationRuleEntity NotificationRule { get; set; }
 
-        public virtual EventEntity? Event { get; set; }
+        public virtual EventEntity Event { get; set; }
 
         public DateTime Created { get; set; }
 
