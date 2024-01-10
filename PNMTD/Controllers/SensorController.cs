@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PNMTD.Data;
 using PNMTD.Helper;
 using PNMTD.Lib.Models.Enum;
@@ -105,8 +106,15 @@ namespace PNMTD.Controllers
         [HttpDelete("{id}")]
         public IActionResult Delete(Guid id)
         {
-            var sensor = Db.Sensors.Where(n => n.Id == id).SingleOrDefault();
+            var sensor = Db.Sensors.SingleOrDefault(n => n.Id == id);
             if (sensor == null) return NotFound();
+            var notificationRules = Db.NotificationRuleEvents
+                .Include(n => n.Event)
+                .Where(nre => nre.Event != null && nre.Event.SensorId == sensor.Id)
+                .ToList();
+            Db.NotificationRuleEvents.RemoveRange(notificationRules);
+            var eventEntities = Db.Events.Where(se => se.SensorId == id).ToList();
+            Db.Events.RemoveRange(eventEntities);
             var change = Db.Sensors.Remove(sensor);
             Db.SaveChanges();
 
