@@ -24,7 +24,7 @@ namespace PNMTD.Tests.Controllers
         }
 
         [TestMethod]
-        public async Task Api_GetEvent()
+        public async Task T01_Api_GetEvent()
         {
             var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Count();
             var hostEntity = _factory.DbTestHelper.HostEntities[0];
@@ -45,15 +45,14 @@ namespace PNMTD.Tests.Controllers
             Assert.AreEqual(200, eventT.Code);
         }
 
-        [TestMethod]
-        public async Task Api_PostEvent_Heartbeat()
+        private async Task Api_PostEvent_Hearbeat(int code, bool willAddOneMore)
         {
             var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Count();
             var hostEntity = _factory.DbTestHelper.HostEntities[0];
             var sensorEntity = hostEntity.Sensors.First(s => s.Type == SensorType.HEARTBEAT);
             var testMessage = "TestMessage 1234, this is test {\":,\"}";
             var content = new StringContent(testMessage, Encoding.UTF8, "text/plain");
-            var resp_hosts = await _client.PostAsync($"/event/{sensorEntity.SecretWriteToken}/200", content);
+            var resp_hosts = await _client.PostAsync($"/event/{sensorEntity.SecretWriteToken}/{code}", content);
 
             Assert.AreEqual(System.Net.HttpStatusCode.OK, resp_hosts.StatusCode);
             var rawContent = await resp_hosts.Content.ReadAsStringAsync();
@@ -63,13 +62,26 @@ namespace PNMTD.Tests.Controllers
             var eventT = _factory.DbTestHelper.DbContext.Events.FirstOrDefault(e => e.Id == Guid.Parse(paredResponse.Data.ToString()));
 
             Assert.IsNotNull(eventT);
-            Assert.AreEqual(numberOfEventsBefore + 1, _factory.DbTestHelper.DbContext.Events.Count());
+            Assert.AreEqual(numberOfEventsBefore + (willAddOneMore ? 1 : 0), _factory.DbTestHelper.DbContext.Events.Count());
             Assert.AreEqual(testMessage, eventT.Message);
-            Assert.AreEqual(200, eventT.Code);
+            Assert.AreEqual(code, eventT.Code);
         }
 
         [TestMethod]
-        public async Task Api_PostEvent_Encapsulated()
+        public async Task T02_Api_PostEvent_Heartbeat()
+        {
+            await Api_PostEvent_Hearbeat(210, willAddOneMore: true);
+        }
+
+        [TestMethod]
+        public async Task T03_Api_PostEvent_Heartbeat_Duplicate()
+        {
+            await Api_PostEvent_Hearbeat(220, willAddOneMore: true);
+            await Api_PostEvent_Hearbeat(220, willAddOneMore: false);
+        }
+
+        [TestMethod]
+        public async Task T04_Api_PostEvent_Encapsulated()
         {
             var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Count();
             var numberOfSensorEntitiesBefore = _factory.DbTestHelper.DbContext.Sensors.Count();
@@ -111,7 +123,7 @@ namespace PNMTD.Tests.Controllers
         }
 
         [TestMethod]
-        public async Task Api_GetEvent_Base64()
+        public async Task T05_Api_GetEvent_Base64()
         {
             var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Count();
             var hostEntity = _factory.DbTestHelper.HostEntities[0];
@@ -134,7 +146,7 @@ namespace PNMTD.Tests.Controllers
         }
 
         [TestMethod]
-        public async Task Api_GetEvent_InvalidSensorId()
+        public async Task T06_Api_GetEvent_InvalidSensorId()
         {
             var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Count();
             var hostEntity = _factory.DbTestHelper.HostEntities[0];
@@ -153,7 +165,7 @@ namespace PNMTD.Tests.Controllers
         }
 
         [TestMethod]
-        public async Task Api_Test_Maximal_Number_of_Events()
+        public async Task T07_Api_Test_Maximal_Number_of_Events()
         {
             var hostEntity = _factory.DbTestHelper.HostEntities[0];
             var sensorEntity = hostEntity.Sensors.First();
@@ -170,7 +182,7 @@ namespace PNMTD.Tests.Controllers
         }
 
         [TestMethod]
-        public async Task Api_GetEvent_Valuecheck_OK()
+        public async Task T08_Api_GetEvent_Valuecheck_OK()
         {
             var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Count();
             
@@ -195,7 +207,7 @@ namespace PNMTD.Tests.Controllers
         }
 
         [TestMethod]
-        public async Task Api_GetLastErrorEvents()
+        public async Task T09_Api_GetLastErrorEvents()
         {
             var response = (await _client.GetAsync($"/events/lasterrors"));
             var rawContent = await response.Content.ReadAsStringAsync();
@@ -205,7 +217,7 @@ namespace PNMTD.Tests.Controllers
         }
 
         [TestMethod]
-        public async Task Api_GetEvent_Valuecheck_FAIL()
+        public async Task T10_Api_GetEvent_Valuecheck_FAIL()
         {
             var numberOfEventsBefore = _factory.DbTestHelper.DbContext.Events.Count();
 
@@ -231,7 +243,7 @@ namespace PNMTD.Tests.Controllers
 
 
         [TestMethod]
-        public async Task Api_ReadEvent_Raw()
+        public async Task T11_Api_ReadEvent_Raw()
         {
             var someEvent = _factory.DbTestHelper.DbContext.Events
                 .Include(s => s.Sensor)
@@ -250,7 +262,7 @@ namespace PNMTD.Tests.Controllers
         }
 
         [TestMethod]
-        public async Task Api_ReadEvent_Json()
+        public async Task T12_Api_ReadEvent_Json()
         {
             var someEvent = _factory.DbTestHelper.DbContext.Events
                 .Include(s => s.Sensor)
