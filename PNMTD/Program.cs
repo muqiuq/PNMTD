@@ -67,13 +67,14 @@ public partial class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         builder.Services.AddHttpClient();
+        builder.Services.AddSingleton<NotificationService>();
 
         if (!Global.IsDevelopment && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             builder.Configuration.AddJsonFile(Path.Combine(GlobalConfiguration.LinuxBasePath,"config.json"), true, true);
         }
 
-        builder.Services.AddHostedService<NotificiationService>();
+        builder.Services.AddHostedService<NotificationTask>();
         builder.Services.AddHostedService<HeartbeatCheckTask>();
         builder.Services.AddHostedService<PingCheckTask>();
         builder.Services.AddHostedService<MailInboxCheckTask>();
@@ -176,8 +177,6 @@ public partial class Program
         });
 
         var app = builder.Build();
-
-        GlobalConfiguration.Init(app.Configuration);
 
         Global.App = app;
 

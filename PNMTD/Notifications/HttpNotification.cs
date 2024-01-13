@@ -11,11 +11,16 @@ namespace PNMTD.Notifications
             return recipient.StartsWith("http://") || recipient.StartsWith("https://");
         }
 
-        public void SendNotification(string recipient, string subject, string messageContent)
+        public void Configure(IConfiguration configuration)
+        {
+            
+        }
+
+        public void SendNotification(string recipient, string subject, string messageShort, string messageLong)
         {
             using(var client = new HttpClient())
             {
-                var content = new StringContent($"{subject}\n{messageContent}");
+                var content = new StringContent($"{subject}\n{messageLong}");
                 var postTask = client.PostAsync(recipient, content);
                 postTask.Wait();
                 if(!postTask.IsCompletedSuccessfully || postTask.Result == null)

@@ -41,8 +41,6 @@ namespace PNMTD.Tests
 
                 var config = ConfigurationHelper.InitConfiguration(useMain: true);
 
-                GlobalConfiguration.Init(config);
-
                 JwtToken = JwtTokenHelper.GenerateNewToken(config, "unittest");
 
                 services.AddSingleton<IConfiguration>(config);

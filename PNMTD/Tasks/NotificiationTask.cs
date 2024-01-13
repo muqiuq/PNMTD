@@ -16,19 +16,24 @@ using System.Text.Json.Serialization;
 
 namespace PNMTD.Tasks
 {
-    public class NotificiationService : IHostedService, IDisposable
+    public class NotificationTask : IHostedService, IDisposable
     {
-        private readonly ILogger<NotificiationService> logger;
+        private readonly ILogger<NotificationTask> logger;
         private readonly IServiceProvider services;
         private readonly IConfiguration configuration;
         private Timer _timer;
         private int executionCount;
+        private readonly NotificationService notificationService;
 
-        public NotificiationService(ILogger<NotificiationService> _logger, IServiceProvider services, IConfiguration configuration)
+        public NotificationTask(ILogger<NotificationTask> _logger,
+            IServiceProvider services, 
+            IConfiguration configuration,
+            NotificationService service)
         {
             logger = _logger;
             this.services = services;
             this.configuration = configuration;
+            this.notificationService = service;
         }
 
         public void Dispose()
@@ -136,11 +141,13 @@ namespace PNMTD.Tasks
                     {
                         var emailSubject = pnm.EventEntity.IsSuccess ? "Resolved" : "Alert";
                         pnm.NoAction = false;
-                        NotificationService.SendNotification(
-                        pnm.NotitificationRule.Recipient,
-                        $"{emailSubject} ({pnm.EventEntity.Sensor.Name})",
-                        $"Host {pnm.EventEntity.Sensor.Parent.Name}, Sensor {pnm.EventEntity.Sensor.Name} is now State {pnm.EventEntity.Code}\n\n--- DATA ---\n{JsonSerializer.Serialize(eventEntityPoco)}",
-                        configuration["Development:DoNotSendNotifications"] == null ? false : bool.Parse(configuration["Development:DoNotSendNotifications"])
+                        var messageShort = $"Host {pnm.EventEntity.Sensor.Parent.Name}, Sensor {pnm.EventEntity.Sensor.Name} is now State {pnm.EventEntity.Code}";
+                        notificationService.SendNotification(
+                            pnm.NotitificationRule.Recipient,
+                            $"{emailSubject} ({pnm.EventEntity.Sensor.Name})",
+                            messageShort,
+                            $"{messageShort}\n\n--- DATA ---\n{JsonSerializer.Serialize(eventEntityPoco)}",
+                            configuration["Development:DoNotSendNotifications"] != null && bool.Parse(configuration["Development:DoNotSendNotifications"])
                         );
                     }
                     else
