@@ -3,7 +3,7 @@
 
 # PNMTD - Personal Network Monitoring Tool
 
-A monitoring oversight system that checks the uptime of primary monitoring tools. 
+A monitoring application to keep an eye on Hosts, Emails, and DNS Zones. Useful for additional oversight of main monitoring systems..
 
 ![example workflow](https://github.com/muqiuq/PNMTD/actions/workflows/dotnet.yml/badge.svg)
 
