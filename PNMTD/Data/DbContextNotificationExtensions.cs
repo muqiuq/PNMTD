@@ -39,10 +39,12 @@ namespace PNMTD.Data
                 var notificationRuleEvent = db.NotificationRuleEvents.Add(new NotificationRuleEventEntity()
                 {
                     Created = DateTime.Now,
+                    Updated = DateTime.Now,
                     Id = Guid.NewGuid(),
                     NoAction = pendingNotification.NoAction,
                     Event = pendingNotification.EventEntity,
-                    NotificationRule = pendingNotification.NotitificationRule
+                    NotificationRule = pendingNotification.NotitificationRule,
+                    LastCleanupEventCreated = pendingNotification.EventEntity.Created
                 });
 
                 notificationRuleEventEntities.Add(notificationRuleEvent.Entity);
@@ -55,10 +57,32 @@ namespace PNMTD.Data
         {
             var maxTimeSpanToKeepEntries = TimeSpan.FromHours(24);
 
-            var oldEventEntities = db.NotificationRuleEvents.ToList()
-                .Where(nre => (DateTime.Now - nre.Created) > maxTimeSpanToKeepEntries).ToList();
+            var oldEventEntities = db.NotificationRuleEvents
+                .Include(n => n.Event)
+                .Where(n => n.Event.Created == n.LastCleanupEventCreated)
+                .ToList()
+                .Where(nre => (DateTime.Now - nre.Updated) > maxTimeSpanToKeepEntries)
+                .ToList();
 
             db.NotificationRuleEvents.RemoveRange(oldEventEntities);
+
+            db.SaveChanges();
+
+            return oldEventEntities.Count;
+        }
+
+        public static int UpdateLastCleanupEvents(this PnmtdDbContext db)
+        {
+            var oldEventEntities = db.NotificationRuleEvents
+                .Include(n => n.Event)
+                .Where(n => n.Event.Created != n.LastCleanupEventCreated)
+                .ToList();
+
+            oldEventEntities.ForEach(oE =>
+            {
+                oE.LastCleanupEventCreated = oE.Event.Created;
+                oE.Updated = DateTime.Now;
+            });
 
             db.SaveChanges();
 

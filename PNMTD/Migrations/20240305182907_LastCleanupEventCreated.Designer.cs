@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PNMTD.Data;
 
@@ -10,9 +11,11 @@ using PNMTD.Data;
 namespace PNMTD.Migrations
 {
     [DbContext(typeof(PnmtdDbContext))]
-    partial class PnmtdDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240305182907_LastCleanupEventCreated")]
+    partial class LastCleanupEventCreated
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -363,9 +366,6 @@ namespace PNMTD.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<Guid>("NotificationRuleId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("Updated")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

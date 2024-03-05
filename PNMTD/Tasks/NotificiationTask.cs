@@ -83,6 +83,8 @@ namespace PNMTD.Tasks
                 {
                     var result = dbContext.CleanNotificationRuleEventEntities();
                     logger.LogDebug($"Cleanup. Removed: {result}");
+                    var updateResult = dbContext.UpdateLastCleanupEvents();
+                    logger.LogDebug($"Updated NotificationEntities {updateResult}");
                 }
 
                 foreach (var pnm in allPendingNotifications)
