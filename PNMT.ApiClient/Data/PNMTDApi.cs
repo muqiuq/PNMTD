@@ -12,9 +12,9 @@ namespace PNMT.ApiClient.Data
     {
         private readonly HttpClient httpClient;
 
-        public static string BaseAddress = "https://localhost:7328";
+        public static string BaseAddress = "http://localhost:7328";
 
-        public static string BaseUrlForEventSubmission = "https://localhost:7328";
+        public static string BaseUrlForEventSubmission = "http://localhost:7328";
 
         public readonly HostApiCrud Hosts;
         public readonly SensorApiCrud Sensors;
