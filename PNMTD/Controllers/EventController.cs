@@ -129,10 +129,11 @@ namespace PNMTD.Controllers
             }
 
             var lastEvent = getLastEvent(sensorIdGuid);
+            var preLastEvent = getPreLastEvent(sensorIdGuid);
 
             if (HasToManyRequests(lastEvent, out var result)) return result!;
 
-            var eventEntity = createOrUpdateEvent(lastEvent, code, message, sensor);
+            var eventEntity = createOrUpdateEvent(lastEvent, preLastEvent, code, message, sensor);
 
             db.Events.CleanUpEntitiesForHost(sensor.Id);
 
@@ -161,9 +162,14 @@ namespace PNMTD.Controllers
             return eventEntity;
         }
 
-        private EventEntity createOrUpdateEvent(EventEntity? lastEvent, int newCode, string message, SensorEntity sensor)
+        private EventEntity createOrUpdateEvent(EventEntity? lastEvent, EventEntity? preLastEvent, int newCode, string message, SensorEntity sensor)
         {
-            if (lastEvent != null && lastEvent.Code == newCode && lastEvent.Message == message &&
+            if (preLastEvent != null &&
+                lastEvent != null &&
+                preLastEvent.Code == lastEvent.Code &&
+                preLastEvent.Message == lastEvent.Message &&
+                RemoteAddressHelper.StripPortFromRemoteAddressIfAny(lastEvent.Source) == RemoteAddressHelper.StripPortFromRemoteAddressIfAny(preLastEvent.Source) &&
+                lastEvent.Code == newCode && lastEvent.Message == message &&
                 RemoteAddressHelper.StripPortFromRemoteAddressIfAny(lastEvent.Source) == RemoteAddressHelper.StripPortFromRemoteAddressIfAny(this.GetRemoteIpAddressOrDefault()))
             {
                 lastEvent.Created = DateTime.Now;
@@ -179,6 +185,12 @@ namespace PNMTD.Controllers
         {
             return db.Events.Where(e => e.SensorId == sensorId)
                 .OrderByDescending(e => e.Created).FirstOrDefault();
+        }
+
+        private EventEntity? getPreLastEvent(Guid sensorId)
+        {
+            return db.Events.Where(e => e.SensorId == sensorId)
+                .OrderByDescending(e => e.Created).Skip(1).FirstOrDefault();
         }
 
         private bool HasToManyRequests(EventEntity? lastEvent, out ObjectResult? result)
@@ -213,6 +225,7 @@ namespace PNMTD.Controllers
             var sensorIdGuid = sensor.Id;
 
             var lastEvent = getLastEvent(sensorIdGuid);
+            var preLastEvent = getPreLastEvent(sensorIdGuid);
 
             if (HasToManyRequests(lastEvent, out var result)) return result!;
 
@@ -264,7 +277,7 @@ namespace PNMTD.Controllers
                 }
             }else
             {
-                eventEntity = createOrUpdateEvent(lastEvent, code, message, sensor); 
+                eventEntity = createOrUpdateEvent(lastEvent, preLastEvent, code, message, sensor); 
             }
 
             db.Events.CleanUpEntitiesForHost(sensor.Id);

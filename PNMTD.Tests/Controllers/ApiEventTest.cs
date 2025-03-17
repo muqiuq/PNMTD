@@ -77,6 +77,7 @@ namespace PNMTD.Tests.Controllers
         public async Task T03_Api_PostEvent_Heartbeat_Duplicate()
         {
             await Api_PostEvent_Hearbeat(220, willAddOneMore: true);
+            await Api_PostEvent_Hearbeat(220, willAddOneMore: true);
             await Api_PostEvent_Hearbeat(220, willAddOneMore: false);
         }
 
