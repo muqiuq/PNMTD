@@ -2,17 +2,28 @@
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace PNMTD.Lib.Authentification
 {
     public class JwtTokenHelper
     {
+        public static byte[] ExpandKey(string keyStr)
+        {
+            byte[] key;
+            using (SHA512 sha512 = SHA512.Create())
+            {
+                key = sha512.ComputeHash(Encoding.ASCII.GetBytes(keyStr));
+            }
+
+            return key;
+        }
+
         public static string GenerateNewToken(string username, string issuer, string audience, string keystr,
             int validForMonths = 12, int validForMinutes = 5)
         {
-            var key = Encoding.ASCII.GetBytes
-            (keystr);
+            var key = ExpandKey(keystr);
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
