@@ -27,6 +27,10 @@ namespace PNMTD.Models.Db
 
         public string ZoneFileContent { get; set; }
 
+        public Guid? HostId { get; set; }
+
+        public virtual HostEntity? Host { get; set; }
+
         public virtual List<DnsZoneEntryEntity> DnsZoneEntries { get; set; } = new List<DnsZoneEntryEntity>();
 
         

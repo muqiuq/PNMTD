@@ -24,7 +24,9 @@ namespace PNMTD.Controllers
         [HttpGet]
         public IEnumerable<DnsZonePoco> Get()
         {
-            return Db.DnsZones.Include(d => d.DnsZoneEntries).Select(d => d.ToPoco()).ToList();
+            return Db.DnsZones
+                .Include(d => d.Host)
+                .Include(d => d.DnsZoneEntries).Select(d => d.ToPoco()).ToList();
         }
 
         [HttpGet("logs")]
@@ -56,6 +58,7 @@ namespace PNMTD.Controllers
         public IActionResult Get(Guid id)
         {
             var dnsZone = Db.DnsZones
+                .Include(d => d.Host)
                 .Include(d => d.DnsZoneEntries)
                 .Where(h => h.Id == id);
 
@@ -96,6 +99,7 @@ namespace PNMTD.Controllers
             entityFormDb.Enabled = dnsZonePoco.Enabled;
             entityFormDb.Interval = dnsZonePoco.Interval;
             entityFormDb.ForceUpdate = dnsZonePoco.ForceUpdate;
+            entityFormDb.HostId = dnsZonePoco.HostId;
             if(entityFormDb.ZoneFileContent != dnsZonePoco.ZoneFileContent)
             {
                 entityFormDb.RequiresProcessing = true;

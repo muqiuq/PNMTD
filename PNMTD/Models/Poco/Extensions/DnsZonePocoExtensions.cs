@@ -21,6 +21,8 @@ namespace PNMTD.Models.Poco.Extensions
                 ForceUpdate = dnsZoneEntity.ForceUpdate,
                 Interval = dnsZoneEntity.Interval,
                 NextCheck = dnsZoneEntity.NextCheck,
+                Host = dnsZoneEntity.Host?.ToPoco(),
+                HostId = dnsZoneEntity.HostId,
             };
         }
 
@@ -37,6 +39,7 @@ namespace PNMTD.Models.Poco.Extensions
                 RecordsMatch = dnsZonePoco.RecordsMatch,
                 Interval = dnsZonePoco.Interval,
                 NextCheck = dnsZonePoco.NextCheck,
+                HostId = dnsZonePoco.HostId,
             };
         }
 

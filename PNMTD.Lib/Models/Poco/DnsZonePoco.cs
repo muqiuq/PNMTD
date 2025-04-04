@@ -28,6 +28,10 @@ namespace PNMTD.Lib.Models.Poco
 
         public string ZoneFileContent { get; set; }
 
+        public Guid? HostId { get; set; }
+
+        public HostPoco? Host { get; set; }
+
         public List<DnsZoneEntryPoco> ZoneEntries { get; set; } = new List<DnsZoneEntryPoco>();
     }
 }
