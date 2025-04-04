@@ -16,6 +16,8 @@ using PNMTD.Migrations;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Org.BouncyCastle.Tls;
+using PNMTD.Lib.Models;
+using PNMTD.Models.Poco.Extensions;
 
 namespace PNMTD.Tasks
 {
@@ -316,9 +318,61 @@ namespace PNMTD.Tasks
 
             dbContext.SaveChanges();
 
+            CreateOrUpdateSensorEntity(dbContext, dnsZone);
+
             dbContext.DnsZoneLogEntries.RemoveRange(dbContext.DnsZoneLogEntries.Where(d => d.DnsZoneId == dnsZone.Id).Skip(500).ToList());
 
             dbContext.SaveChanges();
+        }
+
+        private void CreateOrUpdateSensorEntity(PnmtdDbContext dbContext, DnsZoneEntity dnsZone)
+        {
+            if (dnsZone.Host == null) return;
+
+            var existingSensor = dbContext.Sensors
+                .FirstOrDefault(s => s.ParentId == dnsZone.HostId && s.Type == SensorType.DNS && s.Name == dnsZone.ZoneName);
+            if (existingSensor == null)
+            {
+                existingSensor = new SensorEntity()
+                {
+                    Created = DateTime.Now,
+                    Enabled = true,
+                    GracePeriod = 0,
+                    Id = Guid.NewGuid(),
+                    Ignore = false,
+                    Interval = 0,
+                    Name = dnsZone.ZoneName,
+                    Parent = dnsZone.Host,
+                    ParentId = dnsZone.HostId.Value,
+                    Type = SensorType.DNS,
+                    TextId = dnsZone.Id.ToString()
+                };
+                existingSensor.SetNewSecretToken();
+                dbContext.Sensors.Add(existingSensor);
+                dbContext.SaveChanges();
+            }
+
+            var currentCode = (dnsZone.RecordsMatch ? PNMTStatusCodes.DNS_OK : PNMTStatusCodes.DNS_FAILED);
+            var lastEvent = dbContext.Events
+                .Where(e => e.SensorId == existingSensor.Id)
+                .OrderByDescending(e => e.Created)
+                .FirstOrDefault();
+
+            if (lastEvent == null || lastEvent.Code != currentCode)
+            {
+                var newEvent = new EventEntity()
+                {
+                    Code = currentCode,
+                    Created = DateTime.Now,
+                    Id = Guid.NewGuid(),
+                    Sensor = existingSensor,
+                    SensorId = existingSensor.Id,
+                    Source = "DnsCheckTask"
+                };
+                dbContext.Events.Add(newEvent);
+                dbContext.SaveChanges();
+            }
+
         }
 
         private DnsZoneLogEntryEntity NewDnsLogEntry(DnsZoneLogEntryType entryType, DnsZoneEntity dnsZoneEntity, string message)

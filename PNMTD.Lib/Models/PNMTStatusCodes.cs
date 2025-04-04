@@ -14,7 +14,10 @@ namespace PNMTD.Lib.Models
         public const int HEARTBEAT_MISSING = 460;
         public const int PING_FAILED = 470;
         public const int PING_SUCCESSFULL = 270;
-        
+
+        public const int DNS_OK = 211;
+        public const int DNS_FAILED = 411;
+
         public const int VALUECHECK_OK = 275;
         public const int VALUECHECK_FAILED = 475;
 
