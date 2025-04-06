@@ -21,6 +21,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using PNMTD.Lib.Authentification;
 using PNMTD.Models.Helper;
+using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 
 namespace PNMTD;
 
@@ -127,8 +128,15 @@ public partial class Program
                 options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
                 options.RequireHeaderSymmetry = false;
                 options.ForwardLimit = null;
-                // Example format: ::ffff:172.20.10.20
-                options.KnownProxies.Add(IPAddress.Parse(builder.Configuration["Proxy"]));
+                if (builder.Configuration["Proxy"] == "docker")
+                {
+                    options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("::ffff:172.16.0.0"), 12));
+                }
+                else
+                {
+                    // Example format: ::ffff:172.20.10.20
+                    options.KnownProxies.Add(IPAddress.Parse(builder.Configuration["Proxy"]));
+                }
             });
         }
 
