@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   pnmtd:
-    image: uisach/pnmtd
+    image: uisach/pnmtd:v0.12.0
     restart: unless-stopped
     environment:
       #- Smtp__Username=
@@ -27,20 +27,20 @@ services:
     ports:
       - "5001:80" # adjust if needed
     volumes:
-      - ./data:/var/lib/pnmtd/
+      - ./pnmtd-data:/var/lib/pnmtd/
 
   pnmtwebapp:
-    image: uisach/pnmt.webapp
+    image: uisach/pnmt.webapp:v0.11.0
     restart: unless-stopped
     depends_on:
       - pnmtd
     environment:
       #- JwtToken=
       - apiurl=http://pnmtd
-      #- externalApiurl=
+      - externalApiurl=
       #- externalDomain=
       - ASPNETCORE_URLS=http://*:80/
     ports:
       - "5000:80" 
     volumes:
-      - ./data:/var/lib/pnmt/      
+      - ./pnmtwebapp-data:/var/lib/pnmt/      
