@@ -5,7 +5,7 @@
 
 A monitoring application to keep an eye on Hosts, Emails, and DNS Zones. Useful for additional oversight of main monitoring systems.
 
-![Build](https://github.com/muqiuq/PNMTD/actions/workflows/dotnet.yml/badge.svg) [![Docker](https://img.shields.io/docker/cloud/build/uisach/pnmtd?label=Docker&style=flat)](https://hub.docker.com/r/uisach/pnmt/builds)
+![Build](https://github.com/muqiuq/PNMTD/actions/workflows/dotnet.yml/badge.svg) [![Docker](https://img.shields.io/docker/pulls/uisach/pnmtd?label=Docker&style=flat)](https://hub.docker.com/r/uisach/pnmtd/builds)
 
 ![Screenshot](docs/Screenshot.png)
 
