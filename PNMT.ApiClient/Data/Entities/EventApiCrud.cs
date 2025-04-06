@@ -1,4 +1,5 @@
-﻿using PNMTD.Lib.Models.Poco;
+﻿using Microsoft.AspNetCore.WebUtilities;
+using PNMTD.Lib.Models.Poco;
 using System.Net.Http;
 using System.Net.Http.Json;
 
@@ -22,5 +23,15 @@ namespace PNMT.ApiClient.Data.Entities
             return await httpClient.GetFromJsonAsync<List<EventEntityPoco>>($"/events/lasterrors");
         }
 
+        public async Task<List<EventEntityPoco>> GetLastEvents(int skip = 0, int count = 1000)
+        {
+            var query = new Dictionary<string, string?>
+            {
+                ["skip"] = skip.ToString(),
+                ["count"] = count.ToString()
+            };
+            var url = QueryHelpers.AddQueryString("/events/last", query);
+            return await httpClient.GetFromJsonAsync<List<EventEntityPoco>>(url);
+        }
     }
 }

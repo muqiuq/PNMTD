@@ -43,6 +43,19 @@ namespace PNMTD.Controllers
             return events.Select(e => e.ToPoco()).ToList();
         }
 
+        [HttpGet("events/last", Name = "Get last events (Get)")]
+        public object GetlastEvents(int skip = 0, int count = 1000)
+        {
+            count = Math.Min(count, 1000);
+            var events = db.Events.Where(e => e.Sensor.Enabled && !e.Sensor.Ignore)
+                .Include(e => e.Sensor)
+                .ThenInclude(e => e.Parent)
+                .OrderByDescending(e => e.Created)
+                .Skip(skip).Take(count).ToList();
+
+            return events.Select(e => e.ToPoco()).ToList();
+        }
+
         [HttpGet("events/sensor/{sensorIdStr}", Name = "Get Events (Get)")]
         public object GetEvents(string sensorIdStr)
         {
