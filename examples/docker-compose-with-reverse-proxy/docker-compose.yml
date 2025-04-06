@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v2.10
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=you@example.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/letsencrypt:/letsencrypt
+
+  pnmtd:
+    image: uisach/pnmtd:v0.12.0
+    restart: unless-stopped
+    environment:
+      #- Smtp__Username=
+      #- Smtp__Sender=
+      #- Smtp__Password=
+      #- Smtp__Host=
+      #- Pushover__ApiKey=
+      #- Development__HttpNotificationUrl=
+      #- Development__Email=
+      #- Development__DoNotSendNotifications=False
+      #- Mailbox__Host=
+      #- Mailbox__Username=
+      #- Mailbox__Password=
+      #- UplinkCheck__SharedKey=
+      #- UplinkCheck__Url1=
+      #- UplinkCheck__Url2=
+      - Proxy=docker
+      - Jwt__Issuer=ChangeMe
+      - Jwt__Audience=ChangeMe
+      - Jwt__Key=ChangeMeWithSomethingSecure
+      - ASPNETCORE_URLS=http://*:80/
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pnmtd.rule=Host(`pnmtd.example.com`)"
+      - "traefik.http.routers.pnmtd.entrypoints=websecure"
+      - "traefik.http.routers.pnmtd.tls.certresolver=letsencrypt"
+    expose:
+      - "80"
+    volumes:
+      - ./pnmtd-data:/var/lib/pnmtd/
+
+  pnmtwebapp:
+    image: uisach/pnmt.webapp:v0.11.0
+    restart: unless-stopped
+    depends_on:
+      - pnmtd
+    environment:
+      - apiurl=http://pnmtd
+      - externalApiurl=https://pnmtd.example.com
+      - ASPNETCORE_URLS=http://*:80/
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pnmtwebapp.rule=Host(`webapp.example.com`)"
+      - "traefik.http.routers.pnmtwebapp.entrypoints=websecure"
+      - "traefik.http.routers.pnmtwebapp.tls.certresolver=letsencrypt"
+    expose:
+      - "80"
+    volumes:
+      - ./pnmtwebapp-data:/var/lib/pnmt/
