@@ -55,5 +55,6 @@ namespace PNMTD.Lib.Authentification
             var keystr = configuration["Jwt:Key"];
             return GenerateNewToken(username, issuer, audience, keystr, validForMonths, validForMinutes);
         }
+
     }
 }

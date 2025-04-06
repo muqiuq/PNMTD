@@ -2,14 +2,11 @@
 {
     public class JwtTokenProvider
     {
-        public string JwtToken { get; set; }
+        public string JwtToken { get; private set; }
 
-        public JwtTokenProvider(bool isDevelopment)
+        public JwtTokenProvider(string jwtToken)
         {
-            if (isDevelopment)
-            {
-                JwtToken = JwtTokenHelper.GenerateNewToken("dev", "PNMTD", "PNMTD", "Development123456789");
-            }
+            JwtToken = jwtToken;
         }
     }
 }

@@ -20,6 +20,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using PNMTD.Lib.Authentification;
+using PNMTD.Models.Helper;
 
 namespace PNMTD;
 
@@ -70,9 +71,16 @@ public partial class Program
         builder.Services.AddHttpClient();
         builder.Services.AddSingleton<NotificationService>();
 
-        if (!Global.IsDevelopment && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        var configJsonPath = Path.Combine(GlobalConfiguration.LinuxBasePath, "config.json");
+
+        if (!Global.IsDevelopment)
         {
-            builder.Configuration.AddJsonFile(Path.Combine(GlobalConfiguration.LinuxBasePath,"config.json"), true, true);
+            builder.Configuration.AddEnvironmentVariables();
+        }
+
+        if (!Global.IsDevelopment && RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && File.Exists(configJsonPath))
+        {
+            builder.Configuration.AddJsonFile(configJsonPath, true, true);
         }
 
         builder.Services.AddHostedService<NotificationTask>();
@@ -129,6 +137,22 @@ public partial class Program
             ServerInfo._Identity = builder.Configuration["Identity"] ?? ServerInfo._Identity;
         }
 
+        var jwtTokenConfig = new JwtTokenConfig()
+        {
+            Issuer = builder.Configuration["Jwt:Issuer"]!,
+            Audience = builder.Configuration["Jwt:Audience"]!,
+            Key = builder.Configuration["Jwt:Key"]!
+        };
+
+        if (string.IsNullOrEmpty(jwtTokenConfig.Issuer) || string.IsNullOrEmpty(jwtTokenConfig.Audience) ||
+            string.IsNullOrEmpty(jwtTokenConfig.Key))
+        {
+            _logger.LogError("Missing Jwt:Issuer, Jwt:Audience or Jwt:Key. Aborting startup");
+            throw new ArgumentException("Missing Jwt:Issuer, Jwt:Audience or Jwt:Key. Aborting startup");
+        }
+
+        builder.Services.AddSingleton<JwtTokenConfig>(jwtTokenConfig);
+
         builder.Services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -138,10 +162,10 @@ public partial class Program
         {
             o.TokenValidationParameters = new TokenValidationParameters
             {
-                ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                ValidAudience = builder.Configuration["Jwt:Audience"],
+                ValidIssuer = jwtTokenConfig.Issuer,
+                ValidAudience = jwtTokenConfig.Audience,
                 IssuerSigningKey = new SymmetricSecurityKey
-                    (JwtTokenHelper.ExpandKey(builder.Configuration["Jwt:Key"])),
+                    (JwtTokenHelper.ExpandKey(jwtTokenConfig.Key)),
                 ValidateIssuer = true,
                 ValidateAudience = true,
                 ValidateLifetime = false,

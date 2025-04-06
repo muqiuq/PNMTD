@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  pnmtd:
+    image: uisach/pnmtd
+    restart: unless-stopped
+    environment:
+      #- Smtp__Username=
+      #- Smtp__Sender=
+      #- Smtp__Password=
+      #- Smtp__Host=
+      #- Pushover__ApiKey=
+      #- Development__HttpNotificationUrl=
+      #- Development__Email=
+      #- Development__DoNotSendNotifications=False
+      #- Mailbox__Host=
+      #- Mailbox__Username=
+      #- Mailbox__Password=
+      #- UplinkCheck__SharedKey=
+      #- UplinkCheck__Url1=
+      #- UplinkCheck__Url2=
+      - Jwt__Issuer=ChangeMe
+      - Jwt__Audience=ChangeMe
+      - Jwt__Key=ChangeMeWithSomethingSecure
+      #- Proxy="::ffff:192.168.1.80"
+      - ASPNETCORE_URLS=http://*:80/
+    ports:
+      - "5001:80" # adjust if needed
+    volumes:
+      - ./data:/var/lib/pnmtd/
+
+  pnmtwebapp:
+    image: uisach/pnmt.webapp
+    restart: unless-stopped
+    depends_on:
+      - pnmtd
+    environment:
+      #- JwtToken=
+      - apiurl=http://pnmtd
+      #- externalApiurl=
+      #- externalDomain=
+      - ASPNETCORE_URLS=http://*:80/
+    ports:
+      - "5000:80" 
+    volumes:
+      - ./data:/var/lib/pnmt/      

@@ -27,7 +27,7 @@ namespace PNMTD.Notifications
                 || string.IsNullOrWhiteSpace(configuration["Smtp:Sender"])
                )
             {
-                _logger.LogWarning("Smtp:Host or sender is empty. Define in appsettings.Production.json");
+                _logger.LogWarning("Smtp:Host or sender is empty. E-Mail sending not possible.");
                 return;
             }
             smtpHost = configuration["Smtp:Host"];
