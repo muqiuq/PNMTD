@@ -37,7 +37,7 @@ We only provide a Docker Compose setup here. It has only been tested on Debian 1
 
 ### Steps
 
- - Download docker-compose.yml into /opt/pnmt (or your prefered folder)
+ - Download docker-compose.yml into /opt/pnmt (or your preferred folder)
 ```bash
 mkdir -p /opt/pnmt && cd /opt/pnmt && wget https://raw.githubusercontent.com/muqiuq/PNMTD/refs/heads/master/docker-compose.yml
 ```
