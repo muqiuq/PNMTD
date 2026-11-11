@@ -35,6 +35,10 @@ namespace PNMTD.Data
         public DbSet<DnsZoneEntryEntity> DnsZoneEntries { get; set; }
         public DbSet<DnsZoneLogEntryEntity> DnsZoneLogEntries { get; set; }
 
+        public DbSet<UserEntity> Users { get; set; }
+
+        public DbSet<AuthLogEntity> AuthLog { get; set; }
+
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
         }
@@ -75,6 +79,10 @@ namespace PNMTD.Data
             // Latest event per sensor, events of a sensor in a time range, and retention.
             modelBuilder.Entity<EventEntity>().HasIndex(e => new { e.SensorId, e.Created });
             modelBuilder.Entity<EventEntity>().HasIndex(e => e.Created);
+
+            modelBuilder.Entity<UserEntity>().HasIndex(u => u.NormalizedUsername).IsUnique();
+            modelBuilder.Entity<AuthLogEntity>().HasIndex(l => l.CreatedAt);
+            modelBuilder.Entity<AuthLogEntity>().HasIndex(l => new { l.UserId, l.CreatedAt });
 
             base.OnModelCreating(modelBuilder);
         }

@@ -10,7 +10,7 @@ namespace PNMTD.Cli
     /// </summary>
     public static class CommandLine
     {
-        private static readonly string[] Commands = ["db", "import-sqlite", "help", "--help", "-h"];
+        private static readonly string[] Commands = ["db", "import-sqlite", "users", "help", "--help", "-h"];
 
         public static bool IsCommand(string arg) => Commands.Contains(arg);
 
@@ -22,6 +22,17 @@ namespace PNMTD.Cli
                   [--users <users.json>]            the WebApp's users, imported in the same transaction
                   [--source-time-zone <IANA zone>]  the zone v0.12 wrote its timestamps in (default: UTC)
                   [--reset]                         replace what an earlier import wrote (rehearsals)
+
+              users list                            every user: role, state, 2FA, lockout, last sign-in
+              users add <name> [--role admin|user|viewer] [--display-name <text>] [--password-stdin]
+                                                    a new user (default role: user)
+              users reset-password <name> [--password-stdin]
+                                                    a new password; ends the user's sessions, lifts a lockout
+              users unlock <name>                   lifts a lockout
+              users set-role <name> <admin|user|viewer>
+
+            Without --password-stdin a temporary password is generated and printed once: valid for 7 days,
+            changed at the next sign-in. With it, the first line of standard input is the password.
 
             Without a command, pnmtd runs the server. The database comes from the Database:* settings
             (Database__Host, Database__Password, … in the environment).
@@ -37,6 +48,7 @@ namespace PNMTD.Cli
                 {
                     ["db", "migrate"] => Migrate(logger),
                     ["import-sqlite", .. var rest] => ImportSqlite(rest, loggerFactory),
+                    ["users", .. var rest] => UsersCommand.Run(rest, Database, logger),
                     _ => UsageError(args[0] is "help" or "--help" or "-h" ? null : $"Unknown command: {string.Join(' ', args)}"),
                 };
             }
@@ -73,7 +85,7 @@ namespace PNMTD.Cli
                 .Build();
         }
 
-        private static PnmtdDbContext Database() =>
+        internal static PnmtdDbContext Database() =>
             PnmtdDbContext.Create(DatabaseSettings.ConnectionString(Configuration()));
 
         private static int Migrate(ILogger logger)
@@ -104,7 +116,7 @@ namespace PNMTD.Cli
         }
 
         /// <summary>--name value and --flag, nothing more.</summary>
-        private sealed class Options
+        internal sealed class Options
         {
             private readonly Dictionary<string, string?> values = new();
             private readonly HashSet<string> used = new();

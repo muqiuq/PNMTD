@@ -30,13 +30,16 @@ public sealed class EndpointAuditTests
         "GET /read/{secretToken}/{option?}",
         "GET /healthz",
         "GET /api/v1/system/info",
+        "POST /api/v1/auth/login",
+        "GET /api/v1/auth/me",
         "GET /pnmt-admin/{**path:nonfile}",
         "HEAD /pnmt-admin/{**path:nonfile}",
     ];
 
     /// <summary>
     /// Who may call each v1 endpoint: the lowest role (Viewer, User, Admin). Writes need User;
-    /// mail contents need User; key values and task health need Admin.
+    /// mail contents need User; users, the audit log, key values and task health need Admin. One's own
+    /// session and account are every role's. (The anonymous login is in the allowlist above.)
     /// </summary>
     private static readonly Dictionary<string, string> Matrix = new()
     {
@@ -90,6 +93,18 @@ public sealed class EndpointAuditTests
         ["DELETE /api/v1/mail-input-rules/{id:guid}"] = Roles.User,
         ["GET /api/v1/mail-log"] = Roles.User,
         ["GET /api/v1/mail-log/{id:guid}"] = Roles.User,
+        ["GET /api/v1/auth/me"] = Roles.Viewer,
+        ["POST /api/v1/auth/logout"] = Roles.Viewer,
+        ["POST /api/v1/account/password"] = Roles.Viewer,
+        ["POST /api/v1/account/sessions/revoke"] = Roles.Viewer,
+        ["GET /api/v1/users"] = Roles.Admin,
+        ["GET /api/v1/users/{id:guid}"] = Roles.Admin,
+        ["POST /api/v1/users"] = Roles.Admin,
+        ["PUT /api/v1/users/{id:guid}"] = Roles.Admin,
+        ["DELETE /api/v1/users/{id:guid}"] = Roles.Admin,
+        ["POST /api/v1/users/{id:guid}/reset-password"] = Roles.Admin,
+        ["POST /api/v1/users/{id:guid}/unlock"] = Roles.Admin,
+        ["GET /api/v1/auth-log"] = Roles.Admin,
         ["GET /api/v1/key-values"] = Roles.Admin,
         ["GET /api/v1/key-values/{id:guid}"] = Roles.Admin,
         ["POST /api/v1/key-values"] = Roles.Admin,
@@ -134,7 +149,10 @@ public sealed class EndpointAuditTests
         {
             var policies = e.Endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>().Select(a => a.Policy).ToList();
             Assert.IsTrue(policies.Count > 0 && policies.All(p => known.Contains(p)), $"{e.Key}: policies {string.Join(",", policies)}");
-            if (e.Method != "GET")
+            // Writes need CanWrite, except one's own session and account, which every role manages.
+            var selfService = e.Pattern.StartsWith("/api/v1/auth/", StringComparison.Ordinal)
+                || e.Pattern.StartsWith("/api/v1/account/", StringComparison.Ordinal);
+            if (e.Method != "GET" && !selfService)
             {
                 Assert.IsTrue(policies.Contains(Policies.CanWrite) || policies.Contains(Policies.Admin), $"{e.Key} writes without CanWrite");
             }
@@ -145,7 +163,8 @@ public sealed class EndpointAuditTests
     public void TheRoleMatrixCoversEveryV1Endpoint()
     {
         var v1 = Endpoints()
-            .Where(e => e.Pattern.StartsWith("/api/v1/", StringComparison.Ordinal) && !e.Pattern.Contains("{**rest}") && e.Key != "GET /api/v1/system/info")
+            .Where(e => e.Pattern.StartsWith("/api/v1/", StringComparison.Ordinal) && !e.Pattern.Contains("{**rest}")
+                && e.Key is not ("GET /api/v1/system/info" or "POST /api/v1/auth/login"))
             .Select(e => e.Key)
             .Order(StringComparer.Ordinal)
             .ToList();

@@ -22,7 +22,7 @@ namespace PNMTD.Tests;
 /// role in its <see cref="TestSignIn.RoleHeader"/> header. <c>testSignIn: false</c> keeps the real
 /// cookie scheme (what a signed-out client meets).
 /// </summary>
-public sealed class TestApp(bool testSignIn = true) : WebApplicationFactory<Program>
+public sealed class TestApp(bool testSignIn = true, IReadOnlyDictionary<string, string?>? settings = null) : WebApplicationFactory<Program>
 {
     private DbTestHelper? dbTestHelper;
 
@@ -35,6 +35,10 @@ public sealed class TestApp(bool testSignIn = true) : WebApplicationFactory<Prog
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
         builder.UseEnvironment("Development");
         builder.UseSetting(WebHostDefaults.WebRootKey, TestDefaults.WebRoot);
+        foreach (var (key, value) in settings ?? new Dictionary<string, string?>())
+        {
+            builder.UseSetting(key, value);
+        }
         if (testSignIn)
         {
             builder.ConfigureTestServices(services => services
@@ -65,7 +69,49 @@ public sealed class TestApp(bool testSignIn = true) : WebApplicationFactory<Prog
     public void ClearDashboardCache() => Services.GetRequiredService<PNMTD.Services.Domain.DashboardCache>().Invalidate();
 }
 
-/// <summary>Signs a request in with the role its X-Test-Role header names; without it, signed out.</summary>
+/// <summary>
+/// One user per role, seeded once per run with <see cref="Password"/>: TestSignIn signs in as them,
+/// and the cookie tests sign in with their passwords.
+/// </summary>
+public static class TestUsers
+{
+    public const string Password = "test-password-1";
+
+    public static readonly Guid Admin = new("a0000000-0000-0000-0000-00000000000a");
+    public static readonly Guid User = new("a0000000-0000-0000-0000-00000000000b");
+    public static readonly Guid Viewer = new("a0000000-0000-0000-0000-00000000000c");
+
+    public static Guid IdOf(string role) => role switch
+    {
+        global::PNMTD.Auth.Roles.Admin => Admin,
+        global::PNMTD.Auth.Roles.User => User,
+        _ => Viewer,
+    };
+
+    public static string NameOf(string role) => $"test-{role.ToLowerInvariant()}";
+
+    internal static void Seed(PnmtdDbContext db)
+    {
+        var hash = Lib.Security.PasswordHasher.Hash(Password);
+        foreach (var role in global::PNMTD.Auth.Roles.All)
+        {
+            db.Users.Add(new Models.Db.UserEntity
+            {
+                Id = IdOf(role),
+                Username = NameOf(role),
+                NormalizedUsername = NameOf(role),
+                DisplayName = $"Test {role}",
+                PasswordHash = hash,
+                Role = role,
+                SecurityStamp = global::PNMTD.Auth.UserAccounts.NewStamp(),
+                CreatedAt = Lib.Helper.Clock.UtcNow,
+            });
+        }
+        db.SaveChanges();
+    }
+}
+
+/// <summary>Signs a request in as the test user of the role its X-Test-Role header names; without it, signed out.</summary>
 public sealed class TestSignIn(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
@@ -80,7 +126,7 @@ public sealed class TestSignIn(IOptionsMonitor<AuthenticationSchemeOptions> opti
             return Task.FromResult(AuthenticateResult.NoResult());
         }
         var identity = new ClaimsIdentity(
-            [new Claim(ClaimTypes.NameIdentifier, Guid.Empty.ToString()), new Claim(ClaimTypes.Name, $"test-{role}"), new Claim(ClaimTypes.Role, role!)],
+            [new Claim(ClaimTypes.NameIdentifier, TestUsers.IdOf(role!).ToString()), new Claim(ClaimTypes.Name, TestUsers.NameOf(role!)), new Claim(ClaimTypes.Role, role!)],
             Scheme);
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme)));
     }

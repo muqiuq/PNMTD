@@ -9,7 +9,7 @@
 #   dotnet    restore (locked), build, PNMTD.Tests on a throwaway PostgreSQL (tools/test-db.sh),
 #             in a zone east and one west of UTC
 #   contract  the image from the working tree against the golden sensor contract (tools/contract.sh)
-#   deploy    deploy/ for real: init, up, a sensor event, backup, another event, restore, check
+#   deploy    deploy/ for real: init, up, sign-in, the user scripts, a sensor event, backup, restore
 #   shell     bash -n and shellcheck (in a container) over every script
 #
 # dotnet runs with the .NET SDK on this machine; node never does (phase 5 adds a web group that
@@ -72,7 +72,7 @@ group_contract() {
 group_deploy() {
   echo "deploy"
   step "image from the working tree" env ENGINE="$ENGINE" tools/contract.sh build
-  step "init, up, event, backup, event, restore" tools/deploy-test.sh
+  step "init, up, sign-in, user scripts, backup, restore" tools/deploy-test.sh
 }
 
 group_shell() {

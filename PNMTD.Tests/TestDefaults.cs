@@ -25,6 +25,8 @@ public static class TestDefaults
         // Warnings and errors only: the Development settings log every SQL command.
         Environment.SetEnvironmentVariable("Logging__LogLevel__Default", "Warning");
         Environment.SetEnvironmentVariable("Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command", "Warning");
+        // Many sign-ins per minute from one address; the rate limit test sets its own.
+        Environment.SetEnvironmentVariable("Auth__LoginRateLimit__PermitLimit", "100000");
         // The monitoring tasks would add events under the tests' feet.
         Environment.SetEnvironmentVariable("BackgroundTasks__Enabled", "false");
         Environment.SetEnvironmentVariable("Database__ConnectionString", CreateDatabase());
@@ -40,6 +42,7 @@ public static class TestDefaults
         using var db = PnmtdDbContext.Create(DatabaseSettings.ConnectionString(Configuration));
         db.Database.Migrate();
         DbTestHelper.Populate(db, Configuration);
+        TestUsers.Seed(db);
     }
 
     public static IConfiguration Configuration { get; private set; } = null!;

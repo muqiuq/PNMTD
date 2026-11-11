@@ -140,6 +140,7 @@ public sealed class ApiExceptionFilterAttribute : ExceptionFilterAttribute
 /// <summary>The base of every v1 controller: JSON in and out, ProblemDetails for errors.</summary>
 [ApiController]
 [ApiExceptionFilter]
+[Auth.CsrfProtection]
 public abstract class V1ControllerBase : ControllerBase
 {
     /// <summary>User and Admin see tokens, sensor URLs and mail contents; a Viewer does not (§4.10).</summary>

@@ -56,8 +56,22 @@ Local changes to the stack go into `docker-compose.override.yml`. Git ignores th
 | `./backup.sh` | Writes a backup folder to `backups/` |
 | `./backup.sh --keep 14` | …and deletes all but the newest 14 |
 | `./restore.sh <folder>` | Restores a backup, here or into a fresh deployment |
+| `./add-user.sh <name> [--role viewer\|user\|admin]` | Adds a user, and shows a temporary password once |
+| `./list-users.sh` | Lists the users: role, state, 2FA, lockout, last sign-in |
+| `./reset-password.sh <name>` | Gives a user a new temporary password, ends their sessions and lifts a lockout |
+| `./reset-password.sh <name> --unlock-only` | Only lifts a lockout |
 | `docker compose logs -f pnmtd` | Shows the app's log |
-| `docker compose exec pnmtd pnmtd help` | Shows the app's command line (database, import; users come with 1.0) |
+| `docker compose exec pnmtd pnmtd help` | Shows the app's command line (database, import, users) |
+
+**Users** sign in at `/pnmt-admin/`:
+
+- **Roles:**
+  - **Viewer** reads everything except tokens and mail contents.
+  - **User** also manages hosts, sensors, rules and zones.
+  - **Admin** also manages users, the audit log and system health.
+- **Temporary passwords:** a password from `add-user.sh` or `reset-password.sh` is valid for 7 days and must be changed at the first sign-in. With `--password-stdin`, the first line of standard input is a permanent password of your choice.
+- **Lockout:** 5 wrong passwords in a row lock an account for 5 minutes, then 10, 20, 40 and at most 60. An admin unlocks it in the UI, or anyone on the server with `./reset-password.sh <name> --unlock-only`.
+- **A lost admin password:** `./reset-password.sh <name>` on the server.
 
 **Scheduled backups** (cron, daily at 03:30):
 

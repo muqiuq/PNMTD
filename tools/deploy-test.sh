@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# deploy/ for real, in a scratch copy with a project name of its own: init.sh, docker compose up, a
-# sensor event, backup.sh, another event, restore.sh, and the first event is what /read says again.
+# deploy/ for real, in a scratch copy with a project name of its own: init.sh, docker compose up,
+# signing in as the first admin, add-user.sh, reset-password.sh, list-users.sh, a sensor event,
+# backup.sh, another event, restore.sh, and the first event is what /read says again.
 # Runs the image tools/contract.sh build made (pnmtd:dev). Needs docker and compose; on a Mac the
 # docker CLI may talk to Podman. KEEP=1 leaves the stack running.
 set -euo pipefail
@@ -45,6 +46,35 @@ status() { curl -s -o /dev/null -w '%{http_code}' "http://localhost:${PORT}$1"; 
 [[ "$(status /api/v1/hosts)" == "401" ]] || fail "/api/v1/hosts without a session: $(status /api/v1/hosts)"
 [[ "$(status /)" == "404" && "$(status /hosts)" == "404" ]] || fail "/ or /hosts is not a 404"
 curl -fsS "http://localhost:${PORT}/api/v1/system/info" | grep -q '"identity"' || fail "/api/v1/system/info"
+
+# Sign-in as a browser does it (§4.5, §4.7): the first admin with init.sh's password must change it
+# first; unsafe calls carry the XSRF-TOKEN cookie in X-XSRF-TOKEN.
+jar="$dir/cookies.txt"
+api() {  # api METHOD PATH [JSON] → the status, the body in $dir/body
+  local token
+  token="$(awk '$6 == "XSRF-TOKEN" {print $7}' "$jar" 2>/dev/null | tail -1)"
+  curl -s -o "$dir/body" -w '%{http_code}' -b "$jar" -c "$jar" -X "$1" -H 'Content-Type: application/json' \
+    ${token:+-H "X-XSRF-TOKEN: $token"} ${3:+--data "$3"} "http://localhost:${PORT}$2"
+}
+login() { rm -f "$jar"; api POST /api/v1/auth/login "{\"username\":\"$1\",\"password\":\"$2\"}"; }
+admin_password="$(env_value Auth__InitialAdmin__Password)"
+[[ "$(login admin "$admin_password")" == "200" ]] || fail "the first admin's sign-in: $(cat "$dir/body")"
+grep -q '"mustChangePassword":true' "$dir/body" || fail "the first admin need not change the password: $(cat "$dir/body")"
+[[ "$(api GET /api/v1/hosts)" == "403" ]] || fail "a session with a password to change reads hosts"
+[[ "$(api POST /api/v1/account/password "{\"currentPassword\":\"$admin_password\",\"newPassword\":\"deploy-test-password-1\"}")" == "204" ]] \
+  || fail "changing the first admin's password: $(cat "$dir/body")"
+[[ "$(api GET /api/v1/hosts)" == "200" ]] || fail "hosts after the password change: $(cat "$dir/body")"
+
+# The user scripts against the running stack (§4.10).
+./add-user.sh ops --role viewer --display-name "Ops Team" >"$dir/add-user.out" || fail "add-user.sh: $(cat "$dir/add-user.out")"
+ops_password="$(awk '/^    [A-Za-z0-9]+$/ {print $1}' "$dir/add-user.out")"
+[[ -n "$ops_password" ]] || fail "add-user.sh printed no password: $(cat "$dir/add-user.out")"
+[[ "$(login ops "$ops_password")" == "200" ]] || fail "sign-in with add-user.sh's password: $(cat "$dir/body")"
+./reset-password.sh ops >"$dir/reset.out" || fail "reset-password.sh: $(cat "$dir/reset.out")"
+reset_password="$(awk '/^    [A-Za-z0-9]+$/ {print $1}' "$dir/reset.out")"
+[[ "$(login ops "$ops_password")" == "401" ]] || fail "the old password still signs in after reset-password.sh"
+[[ "$(login ops "$reset_password")" == "200" ]] || fail "sign-in with reset-password.sh's password: $(cat "$dir/body")"
+./list-users.sh | grep -Eq '^ops +Viewer +active' || fail "list-users.sh: $(./list-users.sh)"
 
 sql() { compose exec -T db psql -U pnmtd -d pnmtd -tAc "$1"; }
 sql "INSERT INTO hosts (\"Id\",\"Created\",\"Enabled\",\"Name\") VALUES ('11111111-1111-1111-1111-111111111111', now(), true, 'h');

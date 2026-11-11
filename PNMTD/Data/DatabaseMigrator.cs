@@ -29,14 +29,31 @@ namespace PNMTD.Data
         }
     }
 
-    /// <summary>Registered before every other hosted service, so they start on a migrated database.</summary>
-    public sealed class DatabaseMigrationService(IDbContextFactory<PnmtdDbContext> factory, ILogger<DatabaseMigrationService> logger) : IHostedService
+    /// <summary>
+    /// Registered before every other hosted service, so they start on a migrated database. Then, on
+    /// a new installation, the first admin (§4.8).
+    /// </summary>
+    public sealed class DatabaseMigrationService(IDbContextFactory<PnmtdDbContext> factory, IConfiguration configuration,
+        ILogger<DatabaseMigrationService> logger) : IHostedService
     {
-        public Task StartAsync(CancellationToken cancellationToken)
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
-            using var db = factory.CreateDbContext();
+            await using var db = await factory.CreateDbContextAsync(cancellationToken);
             DatabaseMigrator.Migrate(db, logger);
-            return Task.CompletedTask;
+            var (admin, generated) = await new Auth.UserAccounts(db).SeedAsync(configuration, cancellationToken);
+            if (admin is not null)
+            {
+                if (generated is not null)
+                {
+                    // Once: Auth:InitialAdmin:Password was not set (deploy/init.sh sets it).
+                    logger.LogWarning("Created the first admin {Username} with the password {Password}. Change it at the first sign-in.",
+                        admin.Username, generated);
+                }
+                else
+                {
+                    logger.LogInformation("Created the first admin {Username} with Auth:InitialAdmin:Password.", admin.Username);
+                }
+            }
         }
 
         public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

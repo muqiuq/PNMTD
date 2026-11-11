@@ -28,6 +28,8 @@ namespace PNMTD.Import
         public string SourceTimeZone { get; set; } = "UTC";
         public List<(string Table, long Rows)> Tables { get; } = [];
         public List<string> Warnings { get; } = [];
+        /// <summary>The users imported from users.json, with what happens at their first sign-in.</summary>
+        public List<string> Users { get; } = [];
         public TimeSpan Duration { get; set; }
 
         public string ToText()
@@ -39,6 +41,10 @@ namespace PNMTD.Import
             foreach (var (table, rows) in Tables)
             {
                 sb.AppendLine($"  {table,-24} {rows,10} rows");
+            }
+            foreach (var user in Users)
+            {
+                sb.AppendLine($"  User {user}");
             }
             foreach (var warning in Warnings)
             {
@@ -91,10 +97,7 @@ namespace PNMTD.Import
             var scratch = Path.Combine(Path.GetTempPath(), "pnmtd-import-" + Guid.NewGuid().ToString("N"));
             try
             {
-                if (options.UsersJsonPath is not null)
-                {
-                    throw new ImportException("--users: the users table arrives in phase 3 of the 1.0 work; import without it for now.");
-                }
+                var users = options.UsersJsonPath is null ? null : UsersJsonImporter.Read(options.UsersJsonPath);
                 var sourceZone = ResolveZone(options.SourceTimeZone);
                 report.SourceTimeZone = sourceZone.Id;
 
@@ -108,6 +111,10 @@ namespace PNMTD.Import
                 using var transaction = connection.BeginTransaction();
 
                 PrepareTarget(connection, transaction, options.Reset);
+                if (users is not null)
+                {
+                    PrepareUsers(connection, transaction, options.Reset);
+                }
 
                 var expectedDigests = new Dictionary<string, string>();
                 foreach (var (sourceTable, targetTable) in TableOrder)
@@ -121,6 +128,10 @@ namespace PNMTD.Import
                 }
 
                 Verify(source, connection, transaction, expectedDigests, sourceZone, report);
+                if (users is not null)
+                {
+                    InsertUsers(connection, transaction, users, report);
+                }
                 DuplicateTokenWarnings(connection, transaction, report);
 
                 transaction.Commit();
@@ -189,6 +200,67 @@ namespace PNMTD.Import
                 throw new ImportException($"The database is at migration {newest ?? "(none)"}, not {ExpectedSourceMigration} (v0.12.x). " +
                     "Run v0.12.1 on it once to bring it up to date, then import again.");
             }
+        }
+
+        /// <summary>
+        /// Users are only imported into an empty users table (a server that started first created its
+        /// admin there); --reset empties it first. Without --users the users stay as they are.
+        /// </summary>
+        private void PrepareUsers(NpgsqlConnection connection, NpgsqlTransaction transaction, bool reset)
+        {
+            if (reset)
+            {
+                Execute(connection, transaction, "TRUNCATE users");
+                return;
+            }
+            var existing = Scalar<long>(connection, transaction, "SELECT COUNT(*) FROM users");
+            if (existing > 0)
+            {
+                throw new ImportException($"--users: the database has {existing} user(s) already (a server that started before the import " +
+                    "creates the first admin). Import into a new database, or add --reset to replace them.");
+            }
+        }
+
+        private void InsertUsers(NpgsqlConnection connection, NpgsqlTransaction transaction, List<UsersJsonImporter.ImportedUser> users,
+            ImportReport report)
+        {
+            foreach (var (user, note) in users)
+            {
+                using var command = new NpgsqlCommand("""
+                    INSERT INTO users ("Id", "Username", "NormalizedUsername", "DisplayName", "PasswordHash", "Role", "IsActive",
+                        "MustChangePassword", "SecurityStamp", "IsTotpEnabled", "FailedLoginCount", "LockoutCount", "CreatedAt")
+                    VALUES (@id, @username, @normalized, @display, @hash, @role, TRUE, @mustChange, @stamp, FALSE, 0, 0, @created);
+                    INSERT INTO auth_log ("Id", "CreatedAt", "UserId", "Username", "EventType", "Detail")
+                    VALUES (@logId, @created, @id, @username, 'UserCreated', 'import of users.json: ' || @role);
+                    """, connection, transaction);
+                command.Parameters.AddWithValue("id", user.Id);
+                command.Parameters.AddWithValue("username", user.Username);
+                command.Parameters.AddWithValue("normalized", user.NormalizedUsername);
+                command.Parameters.AddWithValue("display", user.DisplayName);
+                command.Parameters.AddWithValue("hash", user.PasswordHash);
+                command.Parameters.AddWithValue("role", user.Role);
+                command.Parameters.AddWithValue("mustChange", user.MustChangePassword);
+                command.Parameters.AddWithValue("stamp", user.SecurityStamp);
+                command.Parameters.AddWithValue("created", user.CreatedAt);
+                command.Parameters.AddWithValue("logId", Guid.NewGuid());
+                command.ExecuteNonQuery();
+                report.Users.Add($"{user.Username} ({user.Role}): {note}");
+            }
+            // Read back: every user, with the hash it was given.
+            var stored = new Dictionary<Guid, string>();
+            using (var read = new NpgsqlCommand("""SELECT "Id", "PasswordHash" FROM users""", connection, transaction))
+            using (var reader = read.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    stored[reader.GetGuid(0)] = reader.GetString(1);
+                }
+            }
+            if (stored.Count != users.Count || users.Any(u => !stored.TryGetValue(u.User.Id, out var hash) || hash != u.User.PasswordHash))
+            {
+                throw new ImportException("users: what was written differs from users.json.");
+            }
+            report.Tables.Add(("users", users.Count));
         }
 
         private void PrepareTarget(NpgsqlConnection connection, NpgsqlTransaction transaction, bool reset)

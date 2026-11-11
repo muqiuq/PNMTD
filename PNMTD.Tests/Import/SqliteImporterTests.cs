@@ -19,25 +19,7 @@ public sealed class SqliteImporterTests
 {
     private static string FixturePath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "v0.12-sample.db");
 
-    private static PnmtdDbContext FreshDatabase(string name)
-    {
-        var server = new NpgsqlConnectionStringBuilder(Environment.GetEnvironmentVariable("PNMTD_TEST_DB") ?? TestDefaults.DefaultServer)
-        {
-            Database = "postgres",
-            Pooling = false,
-        };
-        using (var connection = new NpgsqlConnection(server.ConnectionString))
-        {
-            connection.Open();
-            using var command = connection.CreateCommand();
-            command.CommandText = $"DROP DATABASE IF EXISTS {name} WITH (FORCE); CREATE DATABASE {name};";
-            command.ExecuteNonQuery();
-        }
-        server.Database = name;
-        var db = PnmtdDbContext.Create(server.ConnectionString);
-        DatabaseMigrator.Migrate(db, NullLogger.Instance);
-        return db;
-    }
+    private static PnmtdDbContext FreshDatabase(string name) => TestDatabases.Fresh(name);
 
     private static ImportReport Import(PnmtdDbContext db, string? path = null, string? zone = "Europe/Zurich", bool reset = false) =>
         new SqliteImporter(db, NullLogger<SqliteImporter>.Instance).Import(new SqliteImportOptions

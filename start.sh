@@ -9,13 +9,17 @@
 #                                  as the real upgrade does; the folder is mounted read-only
 #   IMPORT=1 LEGACY_DIR=… ./start.sh
 #                                  import again, replacing the database's contents
+#   LEGACY_USERS=~/pnmt/webapp-data/users.json
+#                                  with LEGACY_DIR: the WebApp's users too, with their passwords
 #   SOURCE_TZ=Europe/Zurich        the zone the v0.12 data was written in (default UTC)
 #   PORT=7400 ./start.sh           another host port
 #   VERBOSE=1 ./start.sh           show the build log, which is otherwise only printed on failure
 #   ENGINE=docker ./start.sh       Docker instead of Podman
 #
 # Settings come from dev.env (gitignored, 0600, deploy/.env format: Smtp__Host=…, Identity=…, TZ=…).
-# The first run creates it with a generated database password. ./stop.sh stops everything again.
+# The first run creates it with a generated database password and a password for the first admin
+# (admin, Auth__InitialAdmin__Password), which the server makes you change at the first sign-in.
+# ./stop.sh stops everything again.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -29,6 +33,7 @@ PG_VOLUME="${PG_VOLUME:-pnmtd-pgdata}"
 KEYS_VOLUME="${KEYS_VOLUME:-pnmtd-keys-dev}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-docker.io/library/postgres:18-alpine}"
 LEGACY_DIR="${LEGACY_DIR:-}"
+LEGACY_USERS="${LEGACY_USERS:-}"
 IMPORT="${IMPORT:-0}"
 SOURCE_TZ="${SOURCE_TZ:-UTC}"
 VERBOSE="${VERBOSE:-0}"
@@ -59,12 +64,21 @@ if [[ -z "$(setting PNMTD_DB_PASSWORD)" ]]; then
   add_setting PNMTD_DB_PASSWORD "$(random_secret)"
 fi
 db_password="$(setting PNMTD_DB_PASSWORD)"
+# Read by the server while the database has no users (as deploy/.env's).
+if [[ -z "$(setting Auth__InitialAdmin__Password)" ]]; then
+  add_setting Auth__InitialAdmin__Password "$(random_secret)"
+fi
 
 if [[ -n "$LEGACY_DIR" ]]; then
   LEGACY_DIR="$(cd "$LEGACY_DIR" && pwd)" || die "LEGACY_DIR: no such folder."
   [[ -f "$LEGACY_DIR/pnmtd.db" ]] || die "LEGACY_DIR has no pnmtd.db: point it at a v0.12 pnmtd-data folder."
 elif [[ "$IMPORT" != "0" ]]; then
   die "IMPORT=1 needs LEGACY_DIR, the v0.12 data folder to import."
+fi
+if [[ -n "$LEGACY_USERS" ]]; then
+  [[ -n "$LEGACY_DIR" ]] || die "LEGACY_USERS goes with LEGACY_DIR: the users are imported with the data."
+  [[ -f "$LEGACY_USERS" ]] || die "LEGACY_USERS: no such file."
+  LEGACY_USERS="$(cd "$(dirname "$LEGACY_USERS")" && pwd)/$(basename "$LEGACY_USERS")"
 fi
 
 # Something else publishing the port would stop the app at the very end: said here, before the build.
@@ -120,8 +134,13 @@ if [[ -n "$LEGACY_DIR" ]] && [[ "$hosts" == "0" || "$IMPORT" != "0" ]]; then
   echo "Importing ${LEGACY_DIR}/pnmtd.db (read-only; the importer works on a copy)…"
   reset=()
   [[ "$IMPORT" != "0" ]] && reset=(--reset)
-  if ! pnmtd -v "${LEGACY_DIR}:/legacy:ro" "$IMAGE" \
-      import-sqlite --from /legacy/pnmtd.db --source-time-zone "$SOURCE_TZ" ${reset[@]+"${reset[@]}"} >"$scratch/import.log" 2>&1; then
+  users=()
+  if [[ -n "$LEGACY_USERS" ]]; then
+    users=(-v "${LEGACY_USERS}:/legacy-users/users.json:ro")
+  fi
+  if ! pnmtd -v "${LEGACY_DIR}:/legacy:ro" ${users[@]+"${users[@]}"} "$IMAGE" \
+      import-sqlite --from /legacy/pnmtd.db ${LEGACY_USERS:+--users /legacy-users/users.json} \
+      --source-time-zone "$SOURCE_TZ" ${reset[@]+"${reset[@]}"} >"$scratch/import.log" 2>&1; then
     grep -v '^info: \|^ *Executed DbCommand' "$scratch/import.log" >&2 || true
     die "The import stopped; the report above says why. ${LEGACY_DIR} is untouched."
   fi
@@ -156,9 +175,11 @@ echo "PNMTD running on http://localhost:${PORT}/  (Development)"
 echo "Sensor API:  http://localhost:${PORT}/event/<write token>/200/hello"
 echo "             http://localhost:${PORT}/read/<read token>/json"
 echo "API:         http://localhost:${PORT}/api/v1/  (document: PNMTD.WebUI/src/api/openapi.json)"
+echo "Sign-in:     admin, with Auth__InitialAdmin__Password from dev.env until you change it"
+echo "             (only while the database had no users: imported users keep their passwords)"
 if (( imported )); then
   echo "Imported:    ${LEGACY_DIR}/pnmtd.db"
-  grep -E '^ +[a-z]+ +[0-9]+ rows$|Warning' "$scratch/import.log" | sed 's/^ */             /' || true
+  grep -E '^ +[a-z_]+ +[0-9]+ rows$|^ +User |Warning' "$scratch/import.log" | sed 's/^ */             /' || true
 elif [[ -n "$LEGACY_DIR" ]]; then
   echo "Data:        as it was. IMPORT=1 imports ${LEGACY_DIR} again, replacing it."
 fi

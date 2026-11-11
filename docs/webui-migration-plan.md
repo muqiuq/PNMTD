@@ -7,7 +7,7 @@
 | Revision | 3.1: review decisions applied, including the answers to the revision 3 questions (§10.2). .NET 10 everywhere, PostgreSQL instead of SQLite, a frozen sensor API, old management routes and JWT removed, a `deploy/` folder plus `start.sh`/`stop.sh`, a Viewer role, a compact UI with a redesigned dashboard, release **v1.0.0** |
 | Scope | Replace the separate Blazor Server frontend (`PNMT.WebApp`, v0.11.0) with a Vue 3 single-page app served by PNMTD under `/pnmt-admin`. Upgrade every project to .NET 10. Move storage from SQLite to PostgreSQL. Add a new management API `/api/v1` and remove everything else except the sensor API. Move user management into PNMTD (username + password + TOTP). Production deployment from `deploy/`, local debugging with `start.sh`/`stop.sh` |
 | Non-goals | Changing the monitoring logic. **Any observable change to the sensor API** (`/event`, `/read`) |
-| Progress | **Phase 0 done** (2026-11-11): golden sensor contract recorded from v0.12.1 (`tools/contract.sh`), every project on .NET 10, the .NET 10 image passes the contract.<br>**Phase 1 done** (2026-11-11): PostgreSQL with UTC timestamps, `pnmtd db migrate` / `import-sqlite` with verification, `start.sh`/`stop.sh`, `run-tests.sh`, the `deploy/` skeleton. The PostgreSQL image passes the contract with the fixture imported.<br>**Phase 2 done** (2026-11-11): `/api/v1` for every resource of §3.7 on domain services, deny by default with the Viewer/User/Admin policies, `/pnmt-admin` hosting, `/` and the old routes as empty 404s, JWT, `/trust` and lazy loading removed. The anonymous-surface test, the role matrix and the v1 tests are green, and the image still passes the contract. Sign-in follows in phase 3. See §7.1 for where the implementation differs from this plan |
+| Progress | **Phase 0 done** (2026-11-11): golden sensor contract recorded from v0.12.1 (`tools/contract.sh`), every project on .NET 10, the .NET 10 image passes the contract.<br>**Phase 1 done** (2026-11-11): PostgreSQL with UTC timestamps, `pnmtd db migrate` / `import-sqlite` with verification, `start.sh`/`stop.sh`, `run-tests.sh`, the `deploy/` skeleton. The PostgreSQL image passes the contract with the fixture imported.<br>**Phase 2 done** (2026-11-11): `/api/v1` for every resource of §3.7 on domain services, deny by default with the Viewer/User/Admin policies, `/pnmt-admin` hosting, `/` and the old routes as empty 404s, JWT, `/trust` and lazy loading removed. The anonymous-surface test, the role matrix and the v1 tests are green, and the image still passes the contract. <br>**Phase 3 done** (2026-11-11): `users` and `auth_log`, cookie sign-in with lockout and the login rate limit, session revocation by security stamp, antiforgery, the last-admin guard, temporary passwords, the first admin, `users.json` import with the WebApp's hashes, `pnmtd users …` with `add-user.sh`, `list-users.sh` and `reset-password.sh`. TOTP follows in phase 4. See §7.1 for where the implementation differs from this plan |
 | References | `~/source/plm`: deploy folder, start/stop scripts, PostgreSQL, SQLite import, contract harness. `~/source/exam-trainer`: Vue + Vite in Podman, the same deploy pattern. `~/source/PortUpAcademy`: auth and TOTP code. `~/source/PNMT.WebApp`: the current UI |
 
 ---
@@ -1314,6 +1314,35 @@ Phase 2:
   - 139 tests in four time zones, plus the opt-in performance test.
   - The endpoint audit compares the anonymous endpoints with §3.6.
   - The role matrix runs all 55 v1 endpoints as anonymous, Viewer, User and Admin. A new endpoint fails it until the matrix lists it.
+
+Phase 3:
+
+- **Schema:** `users` and `auth_log` arrive as a second migration (`AddUsersAndAuthLog`) rather than in the baseline, so existing development and test databases keep working. The TOTP columns are part of it, so phase 4 adds no migration. `LockoutCount` is new: it lets each lockout double the next.
+- **Sessions:**
+  - The cookie's stamp, role and active state are compared with the database, cached for a minute. This server forgets a user's entry the moment it changes the user, so its own changes end sessions at once. `pnmtd users …` runs as another process, so its changes take up to the minute.
+  - Changing your own password, and "sign out all sessions", end every *other* session; the current one continues with a renewed cookie.
+  - Logout ends the session on that device only.
+- **Must change the password:** while the session carries `pnmt:must_change_password`, a middleware answers every `/api/v1` call except `/auth/*`, `/account/password` and `/system/info` with 403 `must_change_password`. The seeded admin must change the password but has no expiry, because `init.sh` may run long before the first sign-in.
+- **Antiforgery:**
+  - The request token goes in the readable `XSRF-TOKEN` cookie; the HttpOnly cookie token is `pnmt.antiforgery`.
+  - A resource filter on all v1 controllers requires the token for unsafe calls of **cookie** sessions only, except the login. A signed-out request still gets its 401 first.
+  - Unlike the plan's §4.7 wording, the logout is protected too.
+- **Login:**
+  - Unknown users are verified against a dummy hash.
+  - Failure reasons (unknown user, wrong password, inactive, expired temporary password, locked out) appear only in the audit log.
+  - Only wrong passwords count towards a lockout.
+  - While locked, even the right password gets 429 `locked_out` with `Retry-After`.
+  - The rate limit is read per client (`Auth:LoginRateLimit:PermitLimit`), so it can be configured. The tests raise it.
+  - Usernames are case-insensitive: `NormalizedUsername` is unique.
+- **Temporary passwords:** generated passwords are 20 characters without look-alikes, valid for 7 days. `--password-stdin` sets a permanent password of the operator's choice instead.
+- **Import:**
+  - `import-sqlite --users` writes the users in the same transaction and reads the hashes back before committing.
+  - It refuses a users table that already has entries (a server that started first seeded its admin), unless `--reset`.
+  - `start.sh` takes `LEGACY_USERS=…/users.json`, and its `dev.env` gets a generated first-admin password, like `init.sh`'s `.env`.
+- **Tests:**
+  - The test sign-in now signs in as one seeded user per role, so account endpoints work in the role matrix.
+  - The cookie tests use a small browser helper that keeps cookies and echoes the XSRF token, as the SPA will.
+  - `tools/deploy-test.sh` signs in as `init.sh`'s admin, changes the password with the XSRF token via curl, and runs `add-user.sh`, `reset-password.sh` and `list-users.sh` against the running stack.
 
 **Total: about 36–51 person-days.**
 
