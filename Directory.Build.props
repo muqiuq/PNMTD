@@ -2,6 +2,8 @@
   <!-- Every project in the solution (docs/webui-migration-plan.md §3.2). -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <!-- The release: /api/v1/system/info and the UI show it. -->
+    <Version>1.0.0</Version>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

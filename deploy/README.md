@@ -4,7 +4,7 @@ The production stack: the published image `uisach/pnmtd` and PostgreSQL, in two 
 
 Nothing here builds from source. To debug on a laptop, use `../start.sh` instead.
 
-**Upgrading from v0.12 (two containers, SQLite)?** Read [UPGRADING-1.0.md](UPGRADING-1.0.md) first. *(It arrives with the 1.0 release.)*
+**Upgrading from v0.12 (two containers, SQLite)?** Read [UPGRADING-1.0.md](UPGRADING-1.0.md) first: `./init.sh`, then `./upgrade-1.0.sh --legacy <old folder>` instead of `docker compose up`.
 
 ## First run
 
@@ -61,6 +61,7 @@ Local changes to the stack go into `docker-compose.override.yml`. Git ignores th
 | `./reset-password.sh <name>` | Gives a user a new temporary password, ends their sessions and lifts a lockout |
 | `./reset-password.sh <name> --unlock-only` | Only lifts a lockout |
 | `./reset-totp.sh <name>` | Turns a user's 2FA off (a lost authenticator), ends their sessions and lifts a lockout |
+| `./upgrade-1.0.sh --legacy <dir>` | Moves a v0.12 installation here, once ([UPGRADING-1.0.md](UPGRADING-1.0.md)) |
 | `docker compose logs -f pnmtd` | Shows the app's log |
 | `docker compose exec pnmtd pnmtd help` | Shows the app's command line (database, import, users) |
 
@@ -101,6 +102,51 @@ A **new PostgreSQL major version** means `./backup.sh`, the new image in `docker
   - With the proxy on the same host, set `PNMTD_BIND_ADDRESS=127.0.0.1`.
 - **Sensor URLs:** they stay plain HTTP if they were before. The app never redirects them.
 - **Restricting paths:** the app enforces sign-in itself. If you restrict paths at the proxy anyway, keep `/event/` and `/read/` open, and match them case-insensitively, because the app accepts `/EVENT/` too.
+
+Each example below forwards one hostname to the app. For a proxy on the same host, set `PNMTD_BIND_ADDRESS=127.0.0.1` and `Proxy=docker`. Through the published port, the app sees requests coming from Docker's bridge, which `docker` trusts (172.16.0.0/12).
+
+**Caddy:**
+
+```
+pnmt.example.com {
+    reverse_proxy 127.0.0.1:5001
+}
+```
+
+**nginx:**
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name pnmt.example.com;
+    # ssl_certificate …; ssl_certificate_key …;
+    location / {
+        proxy_pass http://127.0.0.1:5001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+**Traefik:** add the labels to the `pnmtd` service in `docker-compose.override.yml`, and join Traefik's network:
+
+```yaml
+services:
+  pnmtd:
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.pnmtd.rule=Host(`pnmt.example.com`)
+      - traefik.http.routers.pnmtd.entrypoints=websecure
+      - traefik.http.routers.pnmtd.tls.certresolver=letsencrypt
+      - traefik.http.services.pnmtd.loadbalancer.server.port=8080
+    networks: [default, traefik]
+networks:
+  traefik:
+    external: true
+```
+
+With Traefik, set `Proxy=docker`. The sensors' old `:5001` URLs keep working on the published port as long as `PNMTD_BIND_ADDRESS` is not `127.0.0.1`.
 
 ## What lives where
 

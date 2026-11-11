@@ -36,6 +36,9 @@ echo "  Sensors:    ${url:-http://<this host>:${port}}/event/<token>/<code>/<mes
 echo "  Backups:    $(ls -1d "$(env_value PNMTD_BACKUP_DIR || echo backups)"/pnmtd-* 2>/dev/null | wc -l | tr -d ' ') in $(env_value PNMTD_BACKUP_DIR)"
 
 warnings=()
+if is_running "$SERVICE" && ! curl -fsS -o /dev/null "http://127.0.0.1:${port}/healthz" 2>/dev/null; then
+  warnings+=("The app runs but does not answer /healthz: is the database up? docker compose logs --tail 50 pnmtd db")
+fi
 [[ -n "$url" ]] || warnings+=("PublicBaseUrl is empty: the UI shows sensor URLs with whatever address the browser used.")
 [[ "$url" == https://* || -z "$url" ]] || warnings+=("PublicBaseUrl is plain HTTP: passwords and session cookies travel unencrypted.")
 [[ -n "$(env_value Proxy)" || "$(env_value PNMTD_BIND_ADDRESS)" != "127.0.0.1" ]] || warnings+=("Bound to 127.0.0.1 (a reverse proxy?) but Proxy is empty: lockout and the audit log see the proxy's address.")

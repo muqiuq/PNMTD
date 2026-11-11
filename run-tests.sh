@@ -2,7 +2,7 @@
 # Every check, in one command (docs/webui-migration-plan.md §8).
 #
 #   ./run-tests.sh                  everything
-#   ./run-tests.sh --only web       one group: web, dotnet, contract, deploy, e2e, shell (several: --only web,shell)
+#   ./run-tests.sh --only web       one group: web, dotnet, contract, deploy, upgrade, e2e, shell (several: --only web,shell)
 #   ./run-tests.sh --list           what it would run
 #
 # Groups:
@@ -12,6 +12,8 @@
 #             in a zone east and one west of UTC
 #   contract  the image from the working tree against the golden sensor contract (tools/contract.sh)
 #   deploy    deploy/ for real: init, up, sign-in, the user scripts, a sensor event, backup, restore
+#   upgrade   a v0.12.1 installation moved to 1.0 by deploy/upgrade-1.0.sh, a failed attempt rolled
+#             back first (tools/upgrade-test.sh); the v0.12.1 image is built from its git tag once
 #   e2e       the browser tests (Playwright) against a seeded stack of their own (tools/e2e.sh)
 #   shell     bash -n and shellcheck (in a container) over every script
 #
@@ -22,7 +24,7 @@ set -uo pipefail
 cd "$(dirname "$0")" || exit 1
 
 ENGINE="${ENGINE:-podman}"
-ALL_GROUPS=(web dotnet contract deploy e2e shell)
+ALL_GROUPS=(web dotnet contract deploy upgrade e2e shell)
 NODE_IMAGE="${NODE_IMAGE:-docker.io/library/node:24-slim}"
 NPM_CACHE="${NPM_CACHE:-pnmtd-npm-cache}"
 WEB_HOLDER="pnmtd-test-web-$$"
@@ -89,6 +91,14 @@ group_web() {
   step "build (Vite)" in_web npm run --silent build
 }
 
+group_upgrade() {
+  echo "upgrade"
+  step "image from the working tree" env ENGINE="$ENGINE" tools/contract.sh build
+  step "v0.12.1 image (from its git tag, once)" bash -c \
+    "'$ENGINE' image inspect pnmtd-contract:v0.12.1 >/dev/null 2>&1 || ENGINE='$ENGINE' tools/contract.sh baseline"
+  step "v0.12.1 → 1.0: rollback, then the upgrade" tools/upgrade-test.sh
+}
+
 group_e2e() {
   echo "e2e"
   step "browser tests (Playwright) against the image" env ENGINE="$ENGINE" tools/e2e.sh
@@ -126,7 +136,7 @@ group_shell() {
 
 for group in "${selected[@]}"; do
   case "$group" in
-    web|dotnet|contract|deploy|e2e|shell) "group_$group" ;;
+    web|dotnet|contract|deploy|upgrade|e2e|shell) "group_$group" ;;
     *) echo "unknown group: $group (${ALL_GROUPS[*]})" >&2; exit 2 ;;
   esac
 done

@@ -17,6 +17,14 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v4
 
+      # One image for amd64 and arm64: both build stages run on the runner's platform (Dockerfile),
+      # only the runtime stage's package install runs under emulation.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Log in to Docker Hub
         uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
         with:
@@ -28,6 +36,10 @@ jobs:
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: uisach/pnmtd
+          # The release tag as it is (v1.0.0), and latest for releases that are not pre-releases.
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
 
       - name: Build and push Docker image
         id: push
@@ -35,6 +47,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
