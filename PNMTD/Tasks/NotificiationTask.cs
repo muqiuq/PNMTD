@@ -1,4 +1,4 @@
-﻿using Castle.Core.Logging;
+using PNMTD.Tasks.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using PNMTD.Data;
@@ -52,27 +52,37 @@ namespace PNMTD.Tasks
         }
 
 
+        private readonly RunGuard runGuard = new();
+
         private void tryDoWork(object? state)
         {
+            if (!runGuard.TryEnter()) return;
             try
             {
                 doWork(state);
             }
             catch (Exception ex)
             {
-                logger.LogError("NotificiationService DoWork Exception", ex);
+                logger.LogError(ex, "NotificiationService DoWork Exception");
+            }
+            finally
+            {
+                runGuard.Exit();
             }
         }
 
         private void doWork(object? state)
         {
-            using (var dbContext = new PnmtdDbContext())
+            using (var dbContext = services.CreateDbContext())
             {
                 var count = Interlocked.Increment(ref executionCount);
 
                 IList<PendingNotification> allPendingNotifications;
 
                 allPendingNotifications = dbContext.GetAllPendingNotificationsForLastMinutes();
+
+                // Every run, so that /api/v1/system/tasks can tell a stalled task from a quiet one.
+                dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_NOTIFICATION_TASK_RUN);
 
                 if (allPendingNotifications.Count == 0) return;
 
@@ -158,7 +168,6 @@ namespace PNMTD.Tasks
                     }
 
                     dbContext.CreateNotificationRuleEventEntitiesOfPendingNotifications(pnm);
-                    dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_NOTIFICATION_TASK_RUN);
                     dbContext.SaveChanges();
                 }
             }

@@ -13,12 +13,12 @@ namespace PNMTD.Tests
     {
         private HttpClient _client;
 
-        public static readonly CustomWebApplicationFactory<Program> _factory = new CustomWebApplicationFactory<Program>();
+        public static readonly TestApp _factory = new TestApp();
 
         [TestInitialize]
         public void Init()
         {
-            _client = _factory.CreateClient();
+            _client = _factory.Client();
         }
 
         [TestMethod]

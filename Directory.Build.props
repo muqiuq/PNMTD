@@ -1,0 +1,15 @@
+<Project>
+  <!-- Every project in the solution (docs/webui-migration-plan.md §3.2). -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <!-- The nullable warnings of the code from before 1.0; new code is written warning-free, and
+         TreatWarningsAsErrors comes once the old code is gone or fixed. -->
+    <NoWarn>$(NoWarn);CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8625</NoWarn>
+    <!-- Lock files: the image restores in locked mode, so a lock file out of step fails the build. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+</Project>

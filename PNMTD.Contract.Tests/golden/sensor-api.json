@@ -1,0 +1,3954 @@
+{
+  "recordedFrom": "pnmtd-contract:v0.12.1",
+  "cases": [
+    {
+      "id": "root",
+      "request": {
+        "method": "GET",
+        "path": "/"
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "event-bare",
+      "request": {
+        "method": "GET",
+        "path": "/event"
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "read-bare",
+      "request": {
+        "method": "GET",
+        "path": "/read"
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "event-token-only",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple40}"
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "get-basic",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple01}/200/hello"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#1>\"}"
+      }
+    },
+    {
+      "id": "get-no-message",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple02}/200"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#2>\"}"
+      }
+    },
+    {
+      "id": "get-trailing-slash",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple03}/200/"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#3>\"}"
+      }
+    },
+    {
+      "id": "get-percent-encoded",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple04}/200/hello%20world%21"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#4>\"}"
+      }
+    },
+    {
+      "id": "get-plus",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple05}/200/a+b"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#5>\"}"
+      }
+    },
+    {
+      "id": "get-unicode",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple06}/200/Gr%C3%BCezi%20%E2%9C%93"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#6>\"}"
+      }
+    },
+    {
+      "id": "get-special-chars",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple07}/200/%22quoted%22%20%3C%3E%26%27"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#7>\"}"
+      }
+    },
+    {
+      "id": "get-base64",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple08}/200/$SGVsbG8gV29ybGQ="
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#8>\"}"
+      }
+    },
+    {
+      "id": "get-base64-unicode",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple09}/200/$R3LDvGV6aSDinJM%3D"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#9>\"}"
+      }
+    },
+    {
+      "id": "get-base64-invalid",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple10}/200/$not*base64"
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "get-base64-urlsafe",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple11}/200/$SGk-_w"
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "get-base64-with-slash",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple12}/200/$YT8/Pw=="
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "get-base64-with-pct2f",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple12}/200/$YT8%2FPw=="
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "get-dollar-only",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple13}/200/$"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#10>\"}"
+      }
+    },
+    {
+      "id": "get-long-message",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple14}/200/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#11>\"}"
+      }
+    },
+    {
+      "id": "get-code-not-numeric",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple15}/abc/x"
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "content-type": "application/problem+json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.1\",\"title\":\"One or more validation errors occurred.\",\"status\":400,\"errors\":{\"code\":[\"The value 'abc' is not valid.\"]},\"traceId\":\"<traceId>\"}"
+      }
+    },
+    {
+      "id": "get-code-overflow",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple15}/99999999999/x"
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "content-type": "application/problem+json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.1\",\"title\":\"One or more validation errors occurred.\",\"status\":400,\"errors\":{\"code\":[\"The value '99999999999' is not valid.\"]},\"traceId\":\"<traceId>\"}"
+      }
+    },
+    {
+      "id": "get-code-negative",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple16}/-1/negative"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#12>\"}"
+      }
+    },
+    {
+      "id": "get-code-failure",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple17}/500/broken"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#13>\"}"
+      }
+    },
+    {
+      "id": "get-unknown-token",
+      "request": {
+        "method": "GET",
+        "path": "/event/unknown-token/200/x"
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/problem+json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.5\",\"title\":\"Not Found\",\"status\":404,\"traceId\":\"<traceId>\"}"
+      }
+    },
+    {
+      "id": "get-read-token-as-write",
+      "request": {
+        "method": "GET",
+        "path": "/event/{r:simple18}/200/x"
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/problem+json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.5\",\"title\":\"Not Found\",\"status\":404,\"traceId\":\"<traceId>\"}"
+      }
+    },
+    {
+      "id": "get-disabled",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:disabled}/200/x"
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/problem+json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.5\",\"title\":\"Not Found\",\"status\":404,\"traceId\":\"<traceId>\"}"
+      }
+    },
+    {
+      "id": "get-ignored",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:ignored}/200/x"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#14>\"}"
+      }
+    },
+    {
+      "id": "get-duplicate-token",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:dupA}/200/x"
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "get-upper-case-path",
+      "request": {
+        "method": "GET",
+        "path": "/EVENT/{w:simple19}/200/upper"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#15>\"}"
+      }
+    },
+    {
+      "id": "get-query-ignored",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple20}/200/withquery?foo=bar&message=other"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#16>\"}"
+      }
+    },
+    {
+      "id": "get-too-many-segments",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple21}/200/a/b"
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "get-accept-json",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple22}/200/acceptjson",
+        "accept": "application/json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#17>\"}"
+      }
+    },
+    {
+      "id": "get-accept-any",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:simple23}/200/acceptany",
+        "accept": "*/*"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#18>\"}"
+      }
+    },
+    {
+      "id": "head-event",
+      "request": {
+        "method": "HEAD",
+        "path": "/event/{w:simple24}/200/x"
+      },
+      "response": {
+        "status": 405,
+        "headers": {
+          "allow": "GET",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "options-event",
+      "request": {
+        "method": "OPTIONS",
+        "path": "/event/{w:simple24}/200/x"
+      },
+      "response": {
+        "status": 405,
+        "headers": {
+          "allow": "GET",
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "post-on-get-route",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple24}/200/x",
+        "contentType": "text/plain",
+        "body": "x"
+      },
+      "response": {
+        "status": 405,
+        "headers": {
+          "allow": "GET",
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "put-on-post-route",
+      "request": {
+        "method": "PUT",
+        "path": "/event/{w:simple24}/200",
+        "contentType": "text/plain",
+        "body": "x"
+      },
+      "response": {
+        "status": 405,
+        "headers": {
+          "allow": "GET, POST",
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "delete-event",
+      "request": {
+        "method": "DELETE",
+        "path": "/event/{w:simple24}/200"
+      },
+      "response": {
+        "status": 405,
+        "headers": {
+          "allow": "GET, POST",
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "rate-first",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:rate}/200/a"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#19>\"}"
+      }
+    },
+    {
+      "id": "rate-second",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:rate}/200/b"
+      },
+      "response": {
+        "status": 425,
+        "headers": {
+          "content-type": "application/problem+json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"status\":425,\"detail\":\"Too many requesteds\",\"traceId\":\"<traceId>\"}"
+      }
+    },
+    {
+      "id": "rate-post-first",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:rate2}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "a"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#20>\"}"
+      }
+    },
+    {
+      "id": "rate-post-second",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:rate2}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "b"
+      },
+      "response": {
+        "status": 425,
+        "headers": {
+          "content-type": "application/problem+json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"status\":425,\"detail\":\"Too many requesteds\",\"traceId\":\"<traceId>\"}"
+      }
+    },
+    {
+      "id": "dedupe-1",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:dedupe}/200/same"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#21>\"}"
+      }
+    },
+    {
+      "id": "dedupe-2",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:dedupe}/200/same"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#22>\"}"
+      }
+    },
+    {
+      "id": "dedupe-3",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:dedupe}/200/same"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#22>\"}"
+      }
+    },
+    {
+      "id": "dedupe-post-1",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:dedupePost}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "same"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#23>\"}"
+      }
+    },
+    {
+      "id": "dedupe-post-2",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:dedupePost}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "same"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#24>\"}"
+      }
+    },
+    {
+      "id": "dedupe-post-3",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:dedupePost}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "same"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#24>\"}"
+      }
+    },
+    {
+      "id": "vc-match",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:vc1}/200/OK%20all%20good"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#25>\"}"
+      }
+    },
+    {
+      "id": "vc-no-match",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:vc2}/200/disk%20full"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#26>\"}"
+      }
+    },
+    {
+      "id": "vc-no-message",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:vc3}/200"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#27>\"}"
+      }
+    },
+    {
+      "id": "vc-post-match",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:vcpost}/500",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "OK via post"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#28>\"}"
+      }
+    },
+    {
+      "id": "vc-invalid-regex",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:vcbad}/200/x"
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "vc-no-parameters",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:vcnull}/200/x"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#29>\"}"
+      }
+    },
+    {
+      "id": "hbvc-match",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:hbvc}/200/12345"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#30>\"}"
+      }
+    },
+    {
+      "id": "hb-basic",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:hb}/200/alive"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#31>\"}"
+      }
+    },
+    {
+      "id": "post-text",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple25}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "hello post"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#32>\"}"
+      }
+    },
+    {
+      "id": "post-empty",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple26}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": ""
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#33>\"}"
+      }
+    },
+    {
+      "id": "post-no-body",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple27}/200"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#34>\"}"
+      }
+    },
+    {
+      "id": "post-whitespace",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple28}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "  padded \r\n\t"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#35>\"}"
+      }
+    },
+    {
+      "id": "post-form",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple29}/200",
+        "contentType": "application/x-www-form-urlencoded",
+        "body": "a=b&c=d"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#36>\"}"
+      }
+    },
+    {
+      "id": "post-json-content-type",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple30}/200",
+        "contentType": "application/json",
+        "body": "{\"x\":1}"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#37>\"}"
+      }
+    },
+    {
+      "id": "post-no-content-type",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple31}/200",
+        "body": "no content type"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#38>\"}"
+      }
+    },
+    {
+      "id": "post-bom",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple32}/200",
+        "contentType": "text/plain",
+        "bodyBase64": "77u/Ym9t"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#39>\"}"
+      }
+    },
+    {
+      "id": "post-base64",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple33}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "$SGVsbG8gZnJvbSBiYXNlNjQ="
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#40>\"}"
+      }
+    },
+    {
+      "id": "post-base64-padded",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple34}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "  $IGtlZXBzIGlubmVyIHNwYWNlcyA=  "
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#41>\"}"
+      }
+    },
+    {
+      "id": "post-base64-invalid",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple35}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "$***"
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "post-unicode",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple36}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "Grüezi ✓ \"<>&'"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#42>\"}"
+      }
+    },
+    {
+      "id": "post-multiline",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple37}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "line1\nline2\r\nline3"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#43>\"}"
+      }
+    },
+    {
+      "id": "post-code-not-numeric",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple38}/abc",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "x"
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "content-type": "application/problem+json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.1\",\"title\":\"One or more validation errors occurred.\",\"status\":400,\"errors\":{\"code\":[\"The value 'abc' is not valid.\"]},\"traceId\":\"<traceId>\"}"
+      }
+    },
+    {
+      "id": "post-unknown-token",
+      "request": {
+        "method": "POST",
+        "path": "/event/unknown-token/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "x"
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/problem+json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.5\",\"title\":\"Not Found\",\"status\":404,\"traceId\":\"<traceId>\"}"
+      }
+    },
+    {
+      "id": "post-disabled",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:disabled}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "x"
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/problem+json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.5\",\"title\":\"Not Found\",\"status\":404,\"traceId\":\"<traceId>\"}"
+      }
+    },
+    {
+      "id": "post-duplicate-token",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:dupA}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "x"
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "post-trailing-slash",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:simple39}/200/",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "trailing"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#44>\"}"
+      }
+    },
+    {
+      "id": "post-upper-case-path",
+      "request": {
+        "method": "POST",
+        "path": "/Event/{w:simple40}/201",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "upper"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#45>\"}"
+      }
+    },
+    {
+      "id": "enc-valid",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:enc1}/999",
+        "contentType": "application/json",
+        "body": "[{\"Name\":\"a\",\"Code\":200,\"Message\":\"ok\"},{\"Name\":\"b\",\"Code\":500,\"Message\":\"fail\"}]"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#46>\"}"
+      }
+    },
+    {
+      "id": "enc-reuse-sibling",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:enc1}/0",
+        "contentType": "application/json",
+        "body": "[{\"Name\":\"a\",\"Code\":201,\"Message\":\"again\"}]"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#47>\"}"
+      }
+    },
+    {
+      "id": "enc-duplicate-names",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:enc2}/200",
+        "contentType": "application/json",
+        "body": "[{\"Name\":\"x\",\"Code\":200,\"Message\":\"1\"},{\"Name\":\"x\",\"Code\":500,\"Message\":\"2\"}]"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#48>\"}"
+      }
+    },
+    {
+      "id": "enc-no-message",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:enc2}/200",
+        "contentType": "application/json",
+        "body": "[{\"Name\":\"y\",\"Code\":200}]"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#49>\"}"
+      }
+    },
+    {
+      "id": "enc-base64",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:enc3}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "$W3siTmFtZSI6InoiLCJDb2RlIjoyMDAsIk1lc3NhZ2UiOiJiNjQifV0="
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#50>\"}"
+      }
+    },
+    {
+      "id": "enc-lower-case-names",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:enc4}/200",
+        "contentType": "application/json",
+        "body": "[{\"name\":\"a\",\"code\":200,\"message\":\"x\"}]"
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "enc-invalid-json",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:enc4}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "not json"
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "enc-empty-body",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:enc4}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": ""
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "enc-null",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:enc4}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "null"
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "enc-empty-array",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:enc4}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "[]"
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "enc-code-as-string",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:enc5}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "[{\"Name\":\"s\",\"Code\":\"200\",\"Message\":\"x\"}]"
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "enc-get",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:enc5}/200/via-get"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#51>\"}"
+      }
+    },
+    {
+      "id": "enc-max-first",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:encmax}/200",
+        "contentType": "application/json",
+        "body": "[{\"Name\":\"n01\",\"Code\":200,\"Message\":\"m1\"},{\"Name\":\"n02\",\"Code\":200,\"Message\":\"m2\"},{\"Name\":\"n03\",\"Code\":200,\"Message\":\"m3\"},{\"Name\":\"n04\",\"Code\":200,\"Message\":\"m4\"},{\"Name\":\"n05\",\"Code\":200,\"Message\":\"m5\"},{\"Name\":\"n06\",\"Code\":200,\"Message\":\"m6\"},{\"Name\":\"n07\",\"Code\":200,\"Message\":\"m7\"},{\"Name\":\"n08\",\"Code\":200,\"Message\":\"m8\"},{\"Name\":\"n09\",\"Code\":200,\"Message\":\"m9\"},{\"Name\":\"n10\",\"Code\":200,\"Message\":\"m10\"},{\"Name\":\"n11\",\"Code\":200,\"Message\":\"m11\"},{\"Name\":\"n12\",\"Code\":200,\"Message\":\"m12\"},{\"Name\":\"n13\",\"Code\":200,\"Message\":\"m13\"},{\"Name\":\"n14\",\"Code\":200,\"Message\":\"m14\"},{\"Name\":\"n15\",\"Code\":200,\"Message\":\"m15\"},{\"Name\":\"n16\",\"Code\":200,\"Message\":\"m16\"},{\"Name\":\"n17\",\"Code\":200,\"Message\":\"m17\"},{\"Name\":\"n18\",\"Code\":200,\"Message\":\"m18\"},{\"Name\":\"n19\",\"Code\":200,\"Message\":\"m19\"},{\"Name\":\"n20\",\"Code\":200,\"Message\":\"m20\"},{\"Name\":\"n21\",\"Code\":200,\"Message\":\"m21\"},{\"Name\":\"n22\",\"Code\":200,\"Message\":\"m22\"},{\"Name\":\"n23\",\"Code\":200,\"Message\":\"m23\"},{\"Name\":\"n24\",\"Code\":200,\"Message\":\"m24\"},{\"Name\":\"n25\",\"Code\":200,\"Message\":\"m25\"},{\"Name\":\"n26\",\"Code\":200,\"Message\":\"m26\"},{\"Name\":\"n27\",\"Code\":200,\"Message\":\"m27\"},{\"Name\":\"n28\",\"Code\":200,\"Message\":\"m28\"},{\"Name\":\"n29\",\"Code\":200,\"Message\":\"m29\"},{\"Name\":\"n30\",\"Code\":200,\"Message\":\"m30\"},{\"Name\":\"n31\",\"Code\":200,\"Message\":\"m31\"},{\"Name\":\"n32\",\"Code\":200,\"Message\":\"m32\"},{\"Name\":\"n33\",\"Code\":200,\"Message\":\"m33\"},{\"Name\":\"n34\",\"Code\":200,\"Message\":\"m34\"},{\"Name\":\"n35\",\"Code\":200,\"Message\":\"m35\"},{\"Name\":\"n36\",\"Code\":200,\"Message\":\"m36\"},{\"Name\":\"n37\",\"Code\":200,\"Message\":\"m37\"},{\"Name\":\"n38\",\"Code\":200,\"Message\":\"m38\"},{\"Name\":\"n39\",\"Code\":200,\"Message\":\"m39\"},{\"Name\":\"n40\",\"Code\":200,\"Message\":\"m40\"},{\"Name\":\"n41\",\"Code\":200,\"Message\":\"m41\"},{\"Name\":\"n42\",\"Code\":200,\"Message\":\"m42\"},{\"Name\":\"n43\",\"Code\":200,\"Message\":\"m43\"},{\"Name\":\"n44\",\"Code\":200,\"Message\":\"m44\"},{\"Name\":\"n45\",\"Code\":200,\"Message\":\"m45\"},{\"Name\":\"n46\",\"Code\":200,\"Message\":\"m46\"},{\"Name\":\"n47\",\"Code\":200,\"Message\":\"m47\"},{\"Name\":\"n48\",\"Code\":200,\"Message\":\"m48\"},{\"Name\":\"n49\",\"Code\":200,\"Message\":\"m49\"},{\"Name\":\"n50\",\"Code\":200,\"Message\":\"m50\"},{\"Name\":\"n51\",\"Code\":200,\"Message\":\"m51\"},{\"Name\":\"n52\",\"Code\":200,\"Message\":\"m52\"},{\"Name\":\"n53\",\"Code\":200,\"Message\":\"m53\"},{\"Name\":\"n54\",\"Code\":200,\"Message\":\"m54\"},{\"Name\":\"n55\",\"Code\":200,\"Message\":\"m55\"},{\"Name\":\"n56\",\"Code\":200,\"Message\":\"m56\"},{\"Name\":\"n57\",\"Code\":200,\"Message\":\"m57\"},{\"Name\":\"n58\",\"Code\":200,\"Message\":\"m58\"},{\"Name\":\"n59\",\"Code\":200,\"Message\":\"m59\"},{\"Name\":\"n60\",\"Code\":200,\"Message\":\"m60\"},{\"Name\":\"n61\",\"Code\":200,\"Message\":\"m61\"},{\"Name\":\"n62\",\"Code\":200,\"Message\":\"m62\"},{\"Name\":\"n63\",\"Code\":200,\"Message\":\"m63\"},{\"Name\":\"n64\",\"Code\":200,\"Message\":\"m64\"},{\"Name\":\"n65\",\"Code\":200,\"Message\":\"m65\"},{\"Name\":\"n66\",\"Code\":200,\"Message\":\"m66\"}]"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#52>\"}"
+      }
+    },
+    {
+      "id": "enc-max-exceeded",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:encmax}/200",
+        "contentType": "application/json",
+        "body": "[{\"Name\":\"one-too-many\",\"Code\":200,\"Message\":\"x\"}]"
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "enc-max-existing-name",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:encmax}/200",
+        "contentType": "application/json",
+        "body": "[{\"Name\":\"n01\",\"Code\":500,\"Message\":\"existing\"}]"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#53>\"}"
+      }
+    },
+    {
+      "id": "read-setup-msg",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:readmsg}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": "Grüezi \"quoted\" <tag> & 'apostrophe' +plus `tick`\nsecond line"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#54>\"}"
+      }
+    },
+    {
+      "id": "read-json",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readmsg}/json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"lastEventSuccess\":true,\"lastEventMessage\":\"Gr\\u00FCezi \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060\\nsecond line\"}"
+      }
+    },
+    {
+      "id": "read-json-upper",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readmsg}/JSON"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"lastEventSuccess\":true,\"lastEventMessage\":\"Gr\\u00FCezi \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060\\nsecond line\"}"
+      }
+    },
+    {
+      "id": "read-default",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readmsg}"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"lastEventSuccess\":true,\"lastEventMessage\":\"Gr\\u00FCezi \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060\\nsecond line\"}"
+      }
+    },
+    {
+      "id": "read-default-trailing-slash",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readmsg}/"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"lastEventSuccess\":true,\"lastEventMessage\":\"Gr\\u00FCezi \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060\\nsecond line\"}"
+      }
+    },
+    {
+      "id": "read-property",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readmsg}/property"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "lastEventSuccess = True\nlastEventMessage = Grüezi \"quoted\" <tag> & 'apostrophe' +plus `tick`\nsecond line\n"
+      }
+    },
+    {
+      "id": "read-raw",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readmsg}/raw"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "True;Grüezi \"quoted\" <tag> & 'apostrophe' +plus `tick`\nsecond line"
+      }
+    },
+    {
+      "id": "read-unknown-option",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readmsg}/xml"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"lastEventSuccess\":true,\"lastEventMessage\":\"Gr\\u00FCezi \\u0022quoted\\u0022 \\u003Ctag\\u003E \\u0026 \\u0027apostrophe\\u0027 \\u002Bplus \\u0060tick\\u0060\\nsecond line\"}"
+      }
+    },
+    {
+      "id": "read-accept-json",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readmsg}/raw",
+        "accept": "application/json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "\"True;Grüezi \\\"quoted\\\" <tag> & 'apostrophe' +plus `tick`\\nsecond line\""
+      }
+    },
+    {
+      "id": "read-accept-json-default",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readmsg}/json",
+        "accept": "application/json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "\"{\\\"lastEventSuccess\\\":true,\\\"lastEventMessage\\\":\\\"Gr\\\\u00FCezi \\\\u0022quoted\\\\u0022 \\\\u003Ctag\\\\u003E \\\\u0026 \\\\u0027apostrophe\\\\u0027 \\\\u002Bplus \\\\u0060tick\\\\u0060\\\\nsecond line\\\"}\""
+      }
+    },
+    {
+      "id": "read-accept-any",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readmsg}/raw",
+        "accept": "*/*"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "True;Grüezi \"quoted\" <tag> & 'apostrophe' +plus `tick`\nsecond line"
+      }
+    },
+    {
+      "id": "read-accept-text",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readmsg}/raw",
+        "accept": "text/plain"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "True;Grüezi \"quoted\" <tag> & 'apostrophe' +plus `tick`\nsecond line"
+      }
+    },
+    {
+      "id": "read-accept-xml",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readmsg}/raw",
+        "accept": "application/xml"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "True;Grüezi \"quoted\" <tag> & 'apostrophe' +plus `tick`\nsecond line"
+      }
+    },
+    {
+      "id": "read-upper-case-path",
+      "request": {
+        "method": "GET",
+        "path": "/READ/{r:readmsg}/raw"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "True;Grüezi \"quoted\" <tag> & 'apostrophe' +plus `tick`\nsecond line"
+      }
+    },
+    {
+      "id": "read-query-ignored",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readmsg}/raw?option=json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "True;Grüezi \"quoted\" <tag> & 'apostrophe' +plus `tick`\nsecond line"
+      }
+    },
+    {
+      "id": "read-too-many-segments",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readmsg}/raw/extra"
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "head-read",
+      "request": {
+        "method": "HEAD",
+        "path": "/read/{r:readmsg}/raw"
+      },
+      "response": {
+        "status": 405,
+        "headers": {
+          "allow": "GET",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "post-read",
+      "request": {
+        "method": "POST",
+        "path": "/read/{r:readmsg}/raw",
+        "contentType": "text/plain",
+        "body": "x"
+      },
+      "response": {
+        "status": 405,
+        "headers": {
+          "allow": "GET",
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "read-none-json",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readnone}/json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"lastEventSuccess\":null,\"lastEventMessage\":null}"
+      }
+    },
+    {
+      "id": "read-none-property",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readnone}/property"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "lastEventSuccess = \nlastEventMessage = \n"
+      }
+    },
+    {
+      "id": "read-none-raw",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readnone}/raw"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": ";"
+      }
+    },
+    {
+      "id": "read-setup-fail",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:readfail}/503/service%20down"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#55>\"}"
+      }
+    },
+    {
+      "id": "read-fail-json",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readfail}/json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"lastEventSuccess\":false,\"lastEventMessage\":\"service down\"}"
+      }
+    },
+    {
+      "id": "read-fail-raw",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readfail}/raw"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "False;service down"
+      }
+    },
+    {
+      "id": "read-fail-property",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readfail}/property"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "lastEventSuccess = False\nlastEventMessage = service down\n"
+      }
+    },
+    {
+      "id": "read-setup-null-message",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:readnull}/200"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#56>\"}"
+      }
+    },
+    {
+      "id": "read-null-message-json",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readnull}/json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"lastEventSuccess\":true,\"lastEventMessage\":null}"
+      }
+    },
+    {
+      "id": "read-null-message-raw",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readnull}/raw"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "True;"
+      }
+    },
+    {
+      "id": "read-setup-empty-message",
+      "request": {
+        "method": "POST",
+        "path": "/event/{w:readempty}/200",
+        "contentType": "text/plain; charset=utf-8",
+        "body": ""
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#57>\"}"
+      }
+    },
+    {
+      "id": "read-empty-message-property",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readempty}/property"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "lastEventSuccess = True\nlastEventMessage = \n"
+      }
+    },
+    {
+      "id": "read-unknown-token",
+      "request": {
+        "method": "GET",
+        "path": "/read/unknown-token/json"
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/problem+json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.5\",\"title\":\"Not Found\",\"status\":404,\"traceId\":\"<traceId>\"}"
+      }
+    },
+    {
+      "id": "read-write-token",
+      "request": {
+        "method": "GET",
+        "path": "/read/{w:readmsg}/json"
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/problem+json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.5\",\"title\":\"Not Found\",\"status\":404,\"traceId\":\"<traceId>\"}"
+      }
+    },
+    {
+      "id": "read-disabled",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readdisabled}/json"
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/problem+json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.5\",\"title\":\"Not Found\",\"status\":404,\"traceId\":\"<traceId>\"}"
+      }
+    },
+    {
+      "id": "read-ignored-setup",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:readignored}/200/ignored%20but%20readable"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#58>\"}"
+      }
+    },
+    {
+      "id": "read-ignored",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:readignored}/raw"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "True;ignored but readable"
+      }
+    },
+    {
+      "id": "read-duplicate-token",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:dupA}/json"
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-length": "0",
+          "server": "Kestrel"
+        }
+      }
+    },
+    {
+      "id": "one-setup-plain",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:oneA}/200/plain"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#59>\"}"
+      }
+    },
+    {
+      "id": "one-read-plain",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:oneA}/json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"lastEventSuccess\":null,\"lastEventMessage\":null}"
+      }
+    },
+    {
+      "id": "one-setup-280",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:oneB}/280/within"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#60>\"}"
+      }
+    },
+    {
+      "id": "one-read-280",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:oneB}/json"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"lastEventSuccess\":true,\"lastEventMessage\":\"within\"}"
+      }
+    },
+    {
+      "id": "all-setup-481",
+      "request": {
+        "method": "GET",
+        "path": "/event/{w:allA}/481/missed"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "{\"success\":true,\"message\":null,\"data\":\"<guid#61>\"}"
+      }
+    },
+    {
+      "id": "all-read-481",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:allA}/raw"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "False;missed"
+      }
+    },
+    {
+      "id": "all-read-none",
+      "request": {
+        "method": "GET",
+        "path": "/read/{r:allB}/property"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "server": "Kestrel",
+          "transfer-encoding": "chunked"
+        },
+        "body": "lastEventSuccess = \nlastEventMessage = \n"
+      }
+    }
+  ],
+  "state": {
+    "allA": {
+      "events": [
+        {
+          "code": 481,
+          "message": "missed",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "allB": {
+      "events": [],
+      "siblings": []
+    },
+    "dedupe": {
+      "events": [
+        {
+          "code": 200,
+          "message": "same",
+          "source": "<ip>:<port>"
+        },
+        {
+          "code": 200,
+          "message": "same",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "dedupePost": {
+      "events": [
+        {
+          "code": 200,
+          "message": "same",
+          "source": "<ip>:<port>"
+        },
+        {
+          "code": 200,
+          "message": "same",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "disabled": {
+      "events": [],
+      "siblings": []
+    },
+    "dupA": {
+      "events": [],
+      "siblings": []
+    },
+    "dupB": {
+      "events": [],
+      "siblings": []
+    },
+    "enc1": {
+      "events": [],
+      "siblings": [
+        {
+          "name": "a",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "ok",
+              "source": "<ip>:<port>"
+            },
+            {
+              "code": 201,
+              "message": "again",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "b",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 500,
+              "message": "fail",
+              "source": "<ip>:<port>"
+            }
+          ]
+        }
+      ]
+    },
+    "enc2": {
+      "events": [],
+      "siblings": [
+        {
+          "name": "x",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "1",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "x",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 500,
+              "message": "2",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "y",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": null,
+              "source": "<ip>:<port>"
+            }
+          ]
+        }
+      ]
+    },
+    "enc3": {
+      "events": [],
+      "siblings": [
+        {
+          "name": "z",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "b64",
+              "source": "<ip>:<port>"
+            }
+          ]
+        }
+      ]
+    },
+    "enc4": {
+      "events": [],
+      "siblings": []
+    },
+    "enc5": {
+      "events": [
+        {
+          "code": 200,
+          "message": "via-get",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "encmax": {
+      "events": [],
+      "siblings": [
+        {
+          "name": "n01",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m1",
+              "source": "<ip>:<port>"
+            },
+            {
+              "code": 500,
+              "message": "existing",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n02",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m2",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n03",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m3",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n04",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m4",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n05",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m5",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n06",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m6",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n07",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m7",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n08",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m8",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n09",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m9",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n10",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m10",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n11",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m11",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n12",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m12",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n13",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m13",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n14",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m14",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n15",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m15",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n16",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m16",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n17",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m17",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n18",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m18",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n19",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m19",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n20",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m20",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n21",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m21",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n22",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m22",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n23",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m23",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n24",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m24",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n25",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m25",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n26",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m26",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n27",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m27",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n28",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m28",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n29",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m29",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n30",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m30",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n31",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m31",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n32",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m32",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n33",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m33",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n34",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m34",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n35",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m35",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n36",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m36",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n37",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m37",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n38",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m38",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n39",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m39",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n40",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m40",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n41",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m41",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n42",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m42",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n43",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m43",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n44",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m44",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n45",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m45",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n46",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m46",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n47",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m47",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n48",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m48",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n49",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m49",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n50",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m50",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n51",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m51",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n52",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m52",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n53",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m53",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n54",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m54",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n55",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m55",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n56",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m56",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n57",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m57",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n58",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m58",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n59",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m59",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n60",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m60",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n61",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m61",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n62",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m62",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n63",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m63",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n64",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m64",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n65",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m65",
+              "source": "<ip>:<port>"
+            }
+          ]
+        },
+        {
+          "name": "n66",
+          "type": 10,
+          "enabled": true,
+          "ignore": false,
+          "interval": 86400,
+          "gracePeriod": 86400,
+          "parameters": "",
+          "events": [
+            {
+              "code": 200,
+              "message": "m66",
+              "source": "<ip>:<port>"
+            }
+          ]
+        }
+      ]
+    },
+    "hb": {
+      "events": [
+        {
+          "code": 200,
+          "message": "alive",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "hbvc": {
+      "events": [
+        {
+          "code": 275,
+          "message": "12345",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "ignored": {
+      "events": [
+        {
+          "code": 200,
+          "message": "x",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "oneA": {
+      "events": [
+        {
+          "code": 200,
+          "message": "plain",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "oneB": {
+      "events": [
+        {
+          "code": 280,
+          "message": "within",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "rate": {
+      "events": [
+        {
+          "code": 200,
+          "message": "a",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "rate2": {
+      "events": [
+        {
+          "code": 200,
+          "message": "a",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "readdisabled": {
+      "events": [],
+      "siblings": []
+    },
+    "readempty": {
+      "events": [
+        {
+          "code": 200,
+          "message": "",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "readfail": {
+      "events": [
+        {
+          "code": 503,
+          "message": "service down",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "readignored": {
+      "events": [
+        {
+          "code": 200,
+          "message": "ignored but readable",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "readmsg": {
+      "events": [
+        {
+          "code": 200,
+          "message": "Grüezi \"quoted\" <tag> & 'apostrophe' +plus `tick`\nsecond line",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "readnone": {
+      "events": [],
+      "siblings": []
+    },
+    "readnull": {
+      "events": [
+        {
+          "code": 200,
+          "message": null,
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple01": {
+      "events": [
+        {
+          "code": 200,
+          "message": "hello",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple02": {
+      "events": [
+        {
+          "code": 200,
+          "message": null,
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple03": {
+      "events": [
+        {
+          "code": 200,
+          "message": null,
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple04": {
+      "events": [
+        {
+          "code": 200,
+          "message": "hello world!",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple05": {
+      "events": [
+        {
+          "code": 200,
+          "message": "a+b",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple06": {
+      "events": [
+        {
+          "code": 200,
+          "message": "Grüezi ✓",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple07": {
+      "events": [
+        {
+          "code": 200,
+          "message": "\"quoted\" <>&'",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple08": {
+      "events": [
+        {
+          "code": 200,
+          "message": "Hello World",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple09": {
+      "events": [
+        {
+          "code": 200,
+          "message": "Grüezi ✓",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple10": {
+      "events": [],
+      "siblings": []
+    },
+    "simple11": {
+      "events": [],
+      "siblings": []
+    },
+    "simple12": {
+      "events": [],
+      "siblings": []
+    },
+    "simple13": {
+      "events": [
+        {
+          "code": 200,
+          "message": "",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple14": {
+      "events": [
+        {
+          "code": 200,
+          "message": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple15": {
+      "events": [],
+      "siblings": []
+    },
+    "simple16": {
+      "events": [
+        {
+          "code": -1,
+          "message": "negative",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple17": {
+      "events": [
+        {
+          "code": 500,
+          "message": "broken",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple18": {
+      "events": [],
+      "siblings": []
+    },
+    "simple19": {
+      "events": [
+        {
+          "code": 200,
+          "message": "upper",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple20": {
+      "events": [
+        {
+          "code": 200,
+          "message": "withquery",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple21": {
+      "events": [],
+      "siblings": []
+    },
+    "simple22": {
+      "events": [
+        {
+          "code": 200,
+          "message": "acceptjson",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple23": {
+      "events": [
+        {
+          "code": 200,
+          "message": "acceptany",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple24": {
+      "events": [],
+      "siblings": []
+    },
+    "simple25": {
+      "events": [
+        {
+          "code": 200,
+          "message": "hello post",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple26": {
+      "events": [
+        {
+          "code": 200,
+          "message": "",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple27": {
+      "events": [
+        {
+          "code": 200,
+          "message": "",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple28": {
+      "events": [
+        {
+          "code": 200,
+          "message": "padded",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple29": {
+      "events": [
+        {
+          "code": 200,
+          "message": "",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple30": {
+      "events": [
+        {
+          "code": 200,
+          "message": "{\"x\":1}",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple31": {
+      "events": [
+        {
+          "code": 200,
+          "message": "no content type",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple32": {
+      "events": [
+        {
+          "code": 200,
+          "message": "bom",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple33": {
+      "events": [
+        {
+          "code": 200,
+          "message": "Hello from base64",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple34": {
+      "events": [
+        {
+          "code": 200,
+          "message": " keeps inner spaces ",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple35": {
+      "events": [],
+      "siblings": []
+    },
+    "simple36": {
+      "events": [
+        {
+          "code": 200,
+          "message": "Grüezi ✓ \"<>&'",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple37": {
+      "events": [
+        {
+          "code": 200,
+          "message": "line1\nline2\r\nline3",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple38": {
+      "events": [],
+      "siblings": []
+    },
+    "simple39": {
+      "events": [
+        {
+          "code": 200,
+          "message": "trailing",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "simple40": {
+      "events": [
+        {
+          "code": 201,
+          "message": "upper",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "vc1": {
+      "events": [
+        {
+          "code": 275,
+          "message": "OK all good",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "vc2": {
+      "events": [
+        {
+          "code": 475,
+          "message": "disk full",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "vc3": {
+      "events": [
+        {
+          "code": 200,
+          "message": null,
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "vcbad": {
+      "events": [],
+      "siblings": []
+    },
+    "vcnull": {
+      "events": [
+        {
+          "code": 200,
+          "message": "x",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    },
+    "vcpost": {
+      "events": [
+        {
+          "code": 275,
+          "message": "OK via post",
+          "source": "<ip>:<port>"
+        }
+      ],
+      "siblings": []
+    }
+  }
+}

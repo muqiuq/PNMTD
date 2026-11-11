@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PNMTD.Lib.Helper;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -42,7 +43,7 @@ namespace PNMTD.Lib.Logic.IntervalDescriptions
 
         public bool IsNow()
         {
-            return IsNow(DateTime.Now);
+            return IsNow(Clock.LocalNow);
         }
 
         public bool IsNow(DateTime now)

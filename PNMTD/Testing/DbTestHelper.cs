@@ -1,10 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using PNMTD.Data;
 using PNMTD.Lib.Models.Enum;
-using PNMTD.Lib.Models.Poco;
 using PNMTD.Models.Db;
-using PNMTD.Models.Poco;
-using PNMTD.Models.Poco.Extensions;
 using PNMTD.Services.DnsZones;
 using System;
 using System.Collections.Generic;
@@ -16,7 +13,7 @@ namespace PNMTD.Tests
 {
     internal class DbTestHelper
     {
-        public PnmtdDbContext DbContext = new PnmtdDbContext(inMemory: true);
+        public PnmtdDbContext DbContext;
 
 
         public const int NUMBER_OF_HOST_ENTITIES = 3;
@@ -35,22 +32,13 @@ namespace PNMTD.Tests
         public DbTestHelper(IConfiguration configuration)
         {
             Configuration = configuration;
-            var numberOfMigrations = DbContext.Database.GetPendingMigrations().Count();
-            DbContext.Database.Migrate();
-            if(numberOfMigrations > 0)
-            {
-                Populate();
-            }
+            // The tests migrate and seed the database once per run (PNMTD.Tests/TestDefaults.cs).
+            DbContext = PnmtdDbContext.Create(DatabaseSettings.ConnectionString(configuration));
             HostEntities = DbContext.Hosts.ToList();
             SensorEntities = DbContext.Sensors.ToList();
             EventEntities = DbContext.Events.ToList();
 
             //DbContext.Database.ExecuteSqlRaw("CREATE TABLE PNMTDTESTS");
-        }
-
-        public void Populate()
-        {
-            DbTestHelper.Populate(DbContext, Configuration);
         }
 
         public static void Populate(PnmtdDbContext dbContext, IConfiguration Configuration)
@@ -125,22 +113,7 @@ namespace PNMTD.Tests
             }
             dbContext.SaveChanges();
 
-            var eventEntity = dbContext.Events.First();
-            var notificationPoco1 = new NotificationRulePoco()
-            {
-                Enabled = true,
-                Name = "E-Mail Test",
-                Recipient = Configuration["Development:Email"],
-                SubscribedSensors = new List<Guid>() { eventEntity.Sensor.Id }
-            };
-            var notificationPoco2 = new NotificationRulePoco()
-            {
-                Enabled = true,
-                Name = "HTTP Test",
-                Recipient = Configuration["Development:HttpNotificationUrl"],
-                SubscribedSensors = new List<Guid>() { eventEntity.Sensor.Id }
-            };
-
+            var eventEntity = dbContext.Events.OrderBy(e => e.Created).First();
             var dnsZoneFile = new DnsZoneFile(DbTestHelper.DnsExampleZoneFile);
 
             var dnsZoneEntity = dnsZoneFile.DnsZoneToEntity();
@@ -155,12 +128,38 @@ namespace PNMTD.Tests
 
             dbContext.DnsZones.Add(dnsZoneEntity2);
 
-            dbContext.CreateNewNotificationRule(notificationPoco1);
-            dbContext.CreateNewNotificationRule(notificationPoco2);
+            CreateNotificationRule(dbContext, "E-Mail Test", Configuration["Development:Email"]!, NotificationRuleType.ALWAYS, eventEntity.SensorId);
+            CreateNotificationRule(dbContext, "HTTP Test", Configuration["Development:HttpNotificationUrl"]!, NotificationRuleType.ALWAYS, eventEntity.SensorId);
 
             dbContext.SaveChanges();
         }
 
+
+        /// <summary>A rule and its links to the given sensors (added, not saved).</summary>
+        public static NotificationRuleEntity CreateNotificationRule(PnmtdDbContext dbContext, string name, string recipient,
+            NotificationRuleType type, params Guid[] sensorIds)
+        {
+            var rule = new NotificationRuleEntity()
+            {
+                Id = Guid.NewGuid(),
+                Name = name,
+                Recipient = recipient,
+                Enabled = true,
+                Type = type,
+            };
+            dbContext.NotificationRules.Add(rule);
+            foreach (var sensorId in sensorIds)
+            {
+                dbContext.NotificationRuleSensor.Add(new NotificationRuleSensorEntity()
+                {
+                    Id = Guid.NewGuid(),
+                    NotificationRule = rule,
+                    NotificationRuleId = rule.Id,
+                    SensorId = sensorId,
+                });
+            }
+            return rule;
+        }
 
         public const string DnsExampleZoneFile = @";Configuration for DNS Zone example.com
 

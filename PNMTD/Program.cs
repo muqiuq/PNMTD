@@ -1,127 +1,81 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Http.HttpResults;
+using System.Net;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Authorization;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using PNMTD.Api;
+using PNMTD.Auth;
 using PNMTD.Data;
 using PNMTD.Helper;
-using PNMTD.Models.Db;
-using PNMTD.Models.Poco;
+using PNMTD.Hosting;
 using PNMTD.Notifications;
+using PNMTD.SensorApi;
+using PNMTD.Services.Domain;
 using PNMTD.Tasks;
-using PNMTD.Tests;
-using System.Diagnostics;
-using System.Net;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using PNMTD.Lib.Authentification;
-using PNMTD.Models.Helper;
-using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 
 namespace PNMTD;
 
 public partial class Program
 {
-    private static readonly ILogger _logger = LogManager.CreateLogger<Program>();
-
-    public static void Main(string[] args)
+    public static int Main(string[] args)
     {
-        var db = new PnmtdDbContext();
-
-        var databaseAlreadyExists = db.Database.CanConnect();
-
-        db.Database.Migrate();
-
-        if (!databaseAlreadyExists && Global.IsDevelopment)
+        // `pnmtd <command> …` (docker compose exec pnmtd pnmtd …): the command line, no web host.
+        if (args.Length > 0 && Cli.CommandLine.IsCommand(args[0]))
         {
-            Debug.WriteLine("Popuplating DB with test data");
-            DbTestHelper.Populate(db, ConfigurationHelper.InitConfiguration());
-        }
-        if(databaseAlreadyExists)
-        {
-            _logger.LogInformation($"Created DB in {db.DbPath}");
+            return Cli.CommandLine.Run(args);
         }
 
-        db.RunCustomMigrations();
-
-        db.Dispose();
-
-        var app = RunApi(args, out var appTask);
+        // The database is migrated by DatabaseMigrationService, the first hosted service.
+        RunApi(args, out var appTask);
         appTask.Wait();
+        return 0;
     }
 
-    public static WebApplication RunApi(string[] args, out Task appTask, bool test = false)
+    public static WebApplication RunApi(string[] args, out Task appTask)
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
-        builder.Services.AddAuthorization();
-        builder.Services.AddDbContext<PnmtdDbContext>(ServiceLifetime.Transient);
-
-        builder.Services.AddControllers()
-            .AddMvcOptions(options => options.Filters.Add(new AuthorizeFilter()));
-
-        // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen();
-        builder.Services.AddHttpClient();
-        builder.Services.AddSingleton<NotificationService>();
-
         var configJsonPath = Path.Combine(GlobalConfiguration.LinuxBasePath, "config.json");
-
-        if (!Global.IsDevelopment)
-        {
-            builder.Configuration.AddEnvironmentVariables();
-        }
-
         if (!Global.IsDevelopment && RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && File.Exists(configJsonPath))
         {
             builder.Configuration.AddJsonFile(configJsonPath, true, true);
         }
 
-        builder.Services.AddHostedService<NotificationTask>();
-        builder.Services.AddHostedService<HeartbeatCheckTask>();
-        builder.Services.AddHostedService<PingCheckTask>();
-        builder.Services.AddHostedService<MailInboxCheckTask>();
-        builder.Services.AddHostedService<MailProcessTask>();
-        builder.Services.AddHostedService<TimespanConditionsCheckTask>();
-        builder.Services.AddHostedService<UplinkCheckTask>();
-        builder.Services.AddHostedService<DnsCheckTask>();
+        // PostgreSQL (§3.4): a context per request for controllers, the factory for background tasks.
+        var connectionString = DatabaseSettings.ConnectionString(builder.Configuration);
+        builder.Services.AddDbContextFactory<PnmtdDbContext>(o => PnmtdDbContext.Configure(o, connectionString));
 
-        builder.Services.AddSwaggerGen(option =>
+        builder.Services.AddControllers();
+        builder.Services.AddPnmtdApi();
+        builder.Services.AddPnmtdAuth(builder.Configuration);
+        builder.Services.AddDomainServices();
+        // The v1 document only; written at build time to PNMTD.WebUI/src/api/openapi.json (§3.7).
+        builder.Services.AddOpenApi("v1", o => o.ShouldInclude = d => d.RelativePath?.StartsWith("api/v1/", StringComparison.Ordinal) == true);
+        builder.Services.AddHttpClient();
+        builder.Services.AddSingleton<NotificationService>();
+
+        // The build writes the OpenAPI document by starting the host without a database (GetDocument.Insider).
+        var documentBuild = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
+
+        // First: the others start on a migrated database.
+        if (!documentBuild)
         {
-            option.SwaggerDoc("v1", new OpenApiInfo { Title = "PNMTD", Version = "v1" });
-            option.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-            {
-                In = ParameterLocation.Header,
-                Description = "Please enter a valid token",
-                Name = "Authorization",
-                Type = SecuritySchemeType.Http,
-                BearerFormat = "JWT",
-                Scheme = "Bearer"
-            });
-            option.AddSecurityRequirement(new OpenApiSecurityRequirement
-                {
-                    {
-                        new OpenApiSecurityScheme
-                        {
-                            Reference = new OpenApiReference
-                            {
-                                Type=ReferenceType.SecurityScheme,
-                                Id="Bearer"
-                            }
-                        },
-                        new string[]{}
-                    }
-                });
-        });
+            builder.Services.AddHostedService<DatabaseMigrationService>();
+        }
 
-        if(!string.IsNullOrWhiteSpace(builder.Configuration["Proxy"]))
+        // BackgroundTasks:Enabled=false: none of the monitoring tasks (the integration tests).
+        if (!documentBuild && builder.Configuration.GetValue("BackgroundTasks:Enabled", true))
+        {
+            builder.Services.AddHostedService<NotificationTask>();
+            builder.Services.AddHostedService<HeartbeatCheckTask>();
+            builder.Services.AddHostedService<PingCheckTask>();
+            builder.Services.AddHostedService<MailInboxCheckTask>();
+            builder.Services.AddHostedService<MailProcessTask>();
+            builder.Services.AddHostedService<TimespanConditionsCheckTask>();
+            builder.Services.AddHostedService<UplinkCheckTask>();
+            builder.Services.AddHostedService<DnsCheckTask>();
+        }
+
+        if (!string.IsNullOrWhiteSpace(builder.Configuration["Proxy"]))
         {
             builder.Services.Configure<ForwardedHeadersOptions>(options =>
             {
@@ -130,107 +84,57 @@ public partial class Program
                 options.ForwardLimit = null;
                 if (builder.Configuration["Proxy"] == "docker")
                 {
-                    options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("::ffff:172.16.0.0"), 12));
+                    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("::ffff:172.16.0.0"), 12));
                 }
                 else
                 {
                     // Example format: ::ffff:172.20.10.20
-                    options.KnownProxies.Add(IPAddress.Parse(builder.Configuration["Proxy"]));
+                    options.KnownProxies.Add(IPAddress.Parse(builder.Configuration["Proxy"]!));
                 }
             });
         }
 
         if (!string.IsNullOrWhiteSpace(builder.Configuration["Identity"]))
         {
-            ServerInfo._Identity = builder.Configuration["Identity"] ?? ServerInfo._Identity;
+            ServerInfo.Identity = builder.Configuration["Identity"]!;
         }
 
-        var jwtTokenConfig = new JwtTokenConfig()
-        {
-            Issuer = builder.Configuration["Jwt:Issuer"]!,
-            Audience = builder.Configuration["Jwt:Audience"]!,
-            Key = builder.Configuration["Jwt:Key"]!
-        };
-
-        if (string.IsNullOrEmpty(jwtTokenConfig.Issuer) || string.IsNullOrEmpty(jwtTokenConfig.Audience) ||
-            string.IsNullOrEmpty(jwtTokenConfig.Key))
-        {
-            _logger.LogError("Missing Jwt:Issuer, Jwt:Audience or Jwt:Key. Aborting startup");
-            throw new ArgumentException("Missing Jwt:Issuer, Jwt:Audience or Jwt:Key. Aborting startup");
-        }
-
-        builder.Services.AddSingleton<JwtTokenConfig>(jwtTokenConfig);
-
-        builder.Services.AddAuthentication(options =>
-        {
-            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-        }).AddJwtBearer(o =>
-        {
-            o.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidIssuer = jwtTokenConfig.Issuer,
-                ValidAudience = jwtTokenConfig.Audience,
-                IssuerSigningKey = new SymmetricSecurityKey
-                    (JwtTokenHelper.ExpandKey(jwtTokenConfig.Key)),
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = false,
-                ValidateIssuerSigningKey = true
-            };
-        });
-        builder.Services.AddAuthorization();
-
+        // Console only: in a container that is `docker compose logs`, rotated by the log driver.
         builder.Logging.ClearProviders();
         builder.Logging.AddConsole();
         builder.Logging.AddDebug();
-
-        var logFolder = "";
-        if (!Global.IsDevelopment && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            logFolder = Path.Combine(GlobalConfiguration.LinuxBasePath, "logs");
-            if (!Directory.Exists(logFolder))
-            {
-                Directory.CreateDirectory(logFolder);
-            }
-        }
-
-        builder.Logging.AddFile(Path.Combine(logFolder, "pnmtd.log"), fileSizeLimitBytes: 52430000, retainedFileCountLimit: 10);
-
-        if(Global.IsDevelopment)
-        {
-            builder.WebHost.UseUrls("http://localhost:7327","https://localhost:7328");
-        }
-
-        builder.Services.ConfigureHttpJsonOptions((j) =>
-        {
-            j.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-
-        });
 
         var app = builder.Build();
 
         Global.App = app;
 
-        // Configure the HTTP request pipeline.
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI();
-        }
-
-        app.UseHttpsRedirection();
+        // The order matters (§3.5). First the client's real address and scheme. There is no HTTPS
+        // redirect anywhere: TLS ends at the reverse proxy, and sensor URLs must never be redirected.
         app.UseForwardedHeaders();
+        app.UseSecurityHeaders();          // not on /event and /read
+        app.UseApiErrors();                // ProblemDetails, on /api only
+        app.UseWebUiFiles();               // /pnmt-admin/** files, anonymous
+        app.UseRouting();
+        app.UsePlainNotFound();            // no endpoint: empty 404; routing's 405: empty, with Allow
+        // The sensor API is anonymous and must not see the session cookie (a sliding renewal would
+        // add a Set-Cookie header v0.12 never sent).
+        app.UseWhen(c => !SensorPaths.IsSensorPath(c.Request.Path), b => b.UseAuthentication());
+        app.UseAuthorization();            // deny by default (§3.6)
 
-        app.UseAuthentication();
-        app.UseAuthorization();
+        // The container's health check: 200 while the database answers, 503 when it does not.
+        // Nothing else, so it may be reachable from anywhere.
+        app.MapGet("/healthz", async (PnmtdDbContext db, CancellationToken ct) =>
+            await db.Database.CanConnectAsync(ct)
+                ? Results.Text("ok")
+                : Results.Text("unavailable", statusCode: StatusCodes.Status503ServiceUnavailable))
+            .AllowAnonymous()
+            .ExcludeFromDescription();
 
-        app.MapControllers();
+        app.MapControllers();              // /api/v1/**, /event/**, /read/**
+        app.MapWebUi();                    // SPA deep links, /api 404s
 
         appTask = app.RunAsync();
 
         return app;
     }
 }
-

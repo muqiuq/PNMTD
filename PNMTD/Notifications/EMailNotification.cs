@@ -1,7 +1,6 @@
 ﻿using PNMTD.Helper;
 using System.Net.Mail;
 using System.Text.RegularExpressions;
-using Microsoft.IdentityModel.Tokens;
 
 namespace PNMTD.Notifications
 {
@@ -42,7 +41,7 @@ namespace PNMTD.Notifications
 
         public void SendNotification(string recipient, string subject, string messageShort, string messageLong)
         {
-            if (smtpHost.IsNullOrEmpty() || smtpSender.IsNullOrEmpty())
+            if (string.IsNullOrEmpty(smtpHost) || string.IsNullOrEmpty(smtpSender))
             {
                 _logger.LogError($"Smtp:Host or Smtp:sender is empty. Cannot send E-Mail to {recipient}");
                 return;

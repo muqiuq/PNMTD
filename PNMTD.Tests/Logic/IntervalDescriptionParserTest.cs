@@ -39,10 +39,9 @@ namespace PNMTD.Tests.Logic
         }
 
         [TestMethod]
-        [ExpectedException(typeof(IntervalDescriptionParseException))]
         public void ParseMonthly3()
         {
-            IntervalDescriptionHelper.Parse("monthly on the 31");
+            Assert.ThrowsExactly<IntervalDescriptionParseException>(() => IntervalDescriptionHelper.Parse("monthly on the 31"));
         }
 
         [TestMethod]
@@ -63,10 +62,9 @@ namespace PNMTD.Tests.Logic
         }
 
         [TestMethod]
-        [ExpectedException(typeof(IntervalDescriptionParseException))]
         public void ParseDaily3()
         {
-            IntervalDescriptionHelper.Parse("daily at 24 o'clock");
+            Assert.ThrowsExactly<IntervalDescriptionParseException>(() => IntervalDescriptionHelper.Parse("daily at 24 o'clock"));
         }
 
     }

@@ -18,7 +18,7 @@ namespace PNMTD.Tests.Services
     {
         private HttpClient _client;
 
-        public static readonly CustomWebApplicationFactory<Program> _factory = new CustomWebApplicationFactory<Program>();
+        public static readonly TestApp _factory = new TestApp();
 
         public static PnmtdDbContext Db
         {
@@ -31,7 +31,7 @@ namespace PNMTD.Tests.Services
         [TestInitialize]
         public void Init()
         {
-            _client = _factory.CreateClient();
+            _client = _factory.Client();
         }
 
         [TestMethod]

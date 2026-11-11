@@ -1,6 +1,4 @@
-# This workflow will build a .NET project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
-
+# Build and test on .NET 10 (docs/webui-migration-plan.md §6.6).
 name: Build and test
 
 on:
@@ -12,18 +10,58 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    # The integration tests' PostgreSQL, where tools/test-db.sh puts it locally.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_PASSWORD: test
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.x
-    - name: Apply appsettings for github actions
-      run: cp -vf PNMTD/appsettings.github-action.json PNMTD/appsettings.Development.json
-    - name: Restore dependencies
-      run: dotnet restore
+        global-json-file: global.json
+    - name: Restore (locked)
+      run: dotnet restore PNMTD.slnx --locked-mode
     - name: Build
-      run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet build PNMTD.slnx --no-restore
+    - name: OpenAPI document up to date
+      # The Debug build writes it (§3.7); the UI's types are generated from the committed copy.
+      run: |
+        if [ -n "$(git status --porcelain -- PNMTD.WebUI/src/api/openapi.json)" ]; then
+          git diff -- PNMTD.WebUI/src/api/openapi.json | head -50
+          echo "PNMTD.WebUI/src/api/openapi.json differs from the API: build and commit it." >&2
+          exit 1
+        fi
+    - name: No model change without its migration
+      run: dotnet tool restore && dotnet ef migrations has-pending-model-changes --project PNMTD/PNMTD.csproj --no-build
+    - name: Test (time zone east of UTC)
+      run: dotnet test --solution PNMTD.slnx --no-build
+    - name: Test (time zone west of UTC)
+      run: PNMTD_TEST_TZ=America/New_York dotnet test --project PNMTD.Tests/PNMTD.Tests.csproj --no-build
+
+  # The sensor API must answer exactly as v0.12.1 does: hundreds of applications report to it.
+  sensor-contract:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: global.json
+    - name: Replay the golden contract against the image
+      run: ENGINE=docker tools/contract.sh verify
+    - name: Keep the actual recording
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: sensor-contract-actual
+        path: artifacts/contract/actual.json

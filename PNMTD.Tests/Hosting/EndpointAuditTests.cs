@@ -1,0 +1,193 @@
+using System.Net;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
+using PNMTD.Auth;
+
+namespace PNMTD.Tests.Hosting;
+
+/// <summary>
+/// No endpoint slips in unprotected (docs/webui-migration-plan.md §3.6): the anonymous endpoints are
+/// exactly the allowlist, every v1 endpoint names its policy, and every v1 endpoint answers each
+/// role as the matrix of §4.10 says. A new endpoint fails these tests until it is added below.
+/// </summary>
+[TestClass]
+public sealed class EndpointAuditTests
+{
+    private static TestApp app = null!;
+
+    [ClassInitialize]
+    public static void Start(TestContext _) => app = new TestApp();
+
+    [ClassCleanup]
+    public static void Stop() => app.Dispose();
+
+    /// <summary>§3.6. Static files under /pnmt-admin are served before routing and are anonymous too.</summary>
+    private static readonly string[] AnonymousAllowlist =
+    [
+        "GET /event/{secretToken}/{code}/{message?}",
+        "POST /event/{secretToken}/{code}",
+        "GET /read/{secretToken}/{option?}",
+        "GET /healthz",
+        "GET /api/v1/system/info",
+        "GET /pnmt-admin/{**path:nonfile}",
+        "HEAD /pnmt-admin/{**path:nonfile}",
+    ];
+
+    /// <summary>
+    /// Who may call each v1 endpoint: the lowest role (Viewer, User, Admin). Writes need User;
+    /// mail contents need User; key values and task health need Admin.
+    /// </summary>
+    private static readonly Dictionary<string, string> Matrix = new()
+    {
+        ["GET /api/v1/dashboard"] = Roles.Viewer,
+        ["GET /api/v1/search"] = Roles.Viewer,
+        ["GET /api/v1/system/uplink"] = Roles.Viewer,
+        ["GET /api/v1/system/tasks"] = Roles.Admin,
+        ["GET /api/v1/system/status-codes"] = Roles.Viewer,
+        ["GET /api/v1/system/sensor-types"] = Roles.Viewer,
+        ["GET /api/v1/system/notification-rule-types"] = Roles.Viewer,
+        ["GET /api/v1/hosts"] = Roles.Viewer,
+        ["GET /api/v1/hosts/{id:guid}"] = Roles.Viewer,
+        ["POST /api/v1/hosts"] = Roles.User,
+        ["PUT /api/v1/hosts/{id:guid}"] = Roles.User,
+        ["DELETE /api/v1/hosts/{id:guid}"] = Roles.User,
+        ["GET /api/v1/sensors"] = Roles.Viewer,
+        ["GET /api/v1/sensors/{id:guid}"] = Roles.Viewer,
+        ["POST /api/v1/sensors"] = Roles.User,
+        ["PUT /api/v1/sensors/{id:guid}"] = Roles.User,
+        ["DELETE /api/v1/sensors/{id:guid}"] = Roles.User,
+        ["POST /api/v1/sensors/{id:guid}/tokens/rotate"] = Roles.User,
+        ["POST /api/v1/sensors/lookup"] = Roles.User,
+        ["GET /api/v1/sensors/{id:guid}/events"] = Roles.Viewer,
+        ["GET /api/v1/sensors/{id:guid}/notification-rules"] = Roles.Viewer,
+        ["PUT /api/v1/sensors/{id:guid}/notification-rules/{ruleId:guid}"] = Roles.User,
+        ["DELETE /api/v1/sensors/{id:guid}/notification-rules/{ruleId:guid}"] = Roles.User,
+        ["GET /api/v1/events"] = Roles.Viewer,
+        ["GET /api/v1/events/{id:guid}"] = Roles.Viewer,
+        ["GET /api/v1/events/state-changes"] = Roles.Viewer,
+        ["GET /api/v1/notification-rules"] = Roles.Viewer,
+        ["GET /api/v1/notification-rules/{id:guid}"] = Roles.Viewer,
+        ["POST /api/v1/notification-rules"] = Roles.User,
+        ["PUT /api/v1/notification-rules/{id:guid}"] = Roles.User,
+        ["DELETE /api/v1/notification-rules/{id:guid}"] = Roles.User,
+        ["GET /api/v1/notification-rules/{id:guid}/sensors"] = Roles.Viewer,
+        ["PUT /api/v1/notification-rules/{id:guid}/sensors/{sensorId:guid}"] = Roles.User,
+        ["DELETE /api/v1/notification-rules/{id:guid}/sensors/{sensorId:guid}"] = Roles.User,
+        ["GET /api/v1/dns-zones"] = Roles.Viewer,
+        ["GET /api/v1/dns-zones/{id:guid}"] = Roles.Viewer,
+        ["POST /api/v1/dns-zones"] = Roles.User,
+        ["PUT /api/v1/dns-zones/{id:guid}"] = Roles.User,
+        ["DELETE /api/v1/dns-zones/{id:guid}"] = Roles.User,
+        ["POST /api/v1/dns-zones/{id:guid}/force-update"] = Roles.User,
+        ["PUT /api/v1/dns-zones/{id:guid}/records/{recordId:guid}"] = Roles.User,
+        ["GET /api/v1/dns-zones/{id:guid}/log"] = Roles.Viewer,
+        ["GET /api/v1/dns-zones/log"] = Roles.Viewer,
+        ["GET /api/v1/mail-input-rules"] = Roles.Viewer,
+        ["GET /api/v1/mail-input-rules/{id:guid}"] = Roles.Viewer,
+        ["POST /api/v1/mail-input-rules"] = Roles.User,
+        ["PUT /api/v1/mail-input-rules/{id:guid}"] = Roles.User,
+        ["DELETE /api/v1/mail-input-rules/{id:guid}"] = Roles.User,
+        ["GET /api/v1/mail-log"] = Roles.User,
+        ["GET /api/v1/mail-log/{id:guid}"] = Roles.User,
+        ["GET /api/v1/key-values"] = Roles.Admin,
+        ["GET /api/v1/key-values/{id:guid}"] = Roles.Admin,
+        ["POST /api/v1/key-values"] = Roles.Admin,
+        ["PUT /api/v1/key-values/{id:guid}"] = Roles.Admin,
+        ["DELETE /api/v1/key-values/{id:guid}"] = Roles.Admin,
+    };
+
+    private sealed record EndpointInfo(string Key, string Method, string Pattern, RouteEndpoint Endpoint);
+
+    private static List<EndpointInfo> Endpoints()
+    {
+        var sources = app.Services.GetRequiredService<IEnumerable<EndpointDataSource>>();
+        return sources.SelectMany(s => s.Endpoints).OfType<RouteEndpoint>()
+            .SelectMany(e =>
+            {
+                var pattern = "/" + e.RoutePattern.RawText!.TrimStart('/');
+                var methods = e.Metadata.GetMetadata<HttpMethodMetadata>()?.HttpMethods ?? ["*"];
+                return methods.Select(m => new EndpointInfo($"{m} {pattern}", m, pattern, e));
+            })
+            .ToList();
+    }
+
+    [TestMethod]
+    public void AnonymousEndpointsAreExactlyTheAllowlist()
+    {
+        var anonymous = Endpoints()
+            .Where(e => e.Endpoint.Metadata.GetMetadata<IAllowAnonymous>() is not null)
+            .Select(e => e.Key)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+        CollectionAssert.AreEqual(AnonymousAllowlist.Order(StringComparer.Ordinal).ToList(), anonymous,
+            "Anonymous: " + string.Join(", ", anonymous));
+    }
+
+    [TestMethod]
+    public void EveryV1EndpointNamesItsPolicy()
+    {
+        var known = new[] { Policies.CanRead, Policies.CanWrite, Policies.Admin };
+        var v1 = Endpoints().Where(e => e.Pattern.StartsWith("/api/v1/", StringComparison.Ordinal) && !e.Pattern.Contains("{**rest}")).ToList();
+        Assert.IsGreaterThan(30, v1.Count);
+        foreach (var e in v1.Where(e => e.Key != "GET /api/v1/system/info"))
+        {
+            var policies = e.Endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>().Select(a => a.Policy).ToList();
+            Assert.IsTrue(policies.Count > 0 && policies.All(p => known.Contains(p)), $"{e.Key}: policies {string.Join(",", policies)}");
+            if (e.Method != "GET")
+            {
+                Assert.IsTrue(policies.Contains(Policies.CanWrite) || policies.Contains(Policies.Admin), $"{e.Key} writes without CanWrite");
+            }
+        }
+    }
+
+    [TestMethod]
+    public void TheRoleMatrixCoversEveryV1Endpoint()
+    {
+        var v1 = Endpoints()
+            .Where(e => e.Pattern.StartsWith("/api/v1/", StringComparison.Ordinal) && !e.Pattern.Contains("{**rest}") && e.Key != "GET /api/v1/system/info")
+            .Select(e => e.Key)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+        CollectionAssert.AreEqual(Matrix.Keys.Order(StringComparer.Ordinal).ToList(), v1,
+            "Not in the matrix: " + string.Join(", ", v1.Except(Matrix.Keys)) + "; gone: " + string.Join(", ", Matrix.Keys.Except(v1)));
+    }
+
+    /// <summary>
+    /// Every endpoint × signed out, Viewer, User, Admin: 401, 403, or anything else for a role that
+    /// may. Ids are random and bodies empty, so the allowed calls end in 404 or 400 and change nothing.
+    /// </summary>
+    [TestMethod]
+    public async Task EveryV1EndpointAnswersEachRoleAsTheMatrixSays()
+    {
+        var rank = new Dictionary<string, int> { [Roles.Viewer] = 1, [Roles.User] = 2, [Roles.Admin] = 3 };
+        var failures = new List<string>();
+        foreach (var (key, minimum) in Matrix)
+        {
+            var method = key[..key.IndexOf(' ')];
+            var path = System.Text.RegularExpressions.Regex.Replace(key[(key.IndexOf(' ') + 1)..], @"\{[^}]+\}", _ => Guid.NewGuid().ToString());
+            foreach (var role in new string?[] { null, Roles.Viewer, Roles.User, Roles.Admin })
+            {
+                using var request = new HttpRequestMessage(new HttpMethod(method), path);
+                if (method is "POST" or "PUT")
+                {
+                    request.Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
+                }
+                using var response = await app.Client(role).SendAsync(request);
+                var status = response.StatusCode;
+                var expected = role is null ? "401" : rank[role] >= rank[minimum] ? "allowed" : "403";
+                var ok = expected switch
+                {
+                    "401" => status == HttpStatusCode.Unauthorized,
+                    "403" => status == HttpStatusCode.Forbidden,
+                    _ => status is not (HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden) && (int)status < 500,
+                };
+                if (!ok)
+                {
+                    failures.Add($"{key} as {role ?? "anonymous"}: {(int)status}, expected {expected}");
+                }
+            }
+        }
+        Assert.AreEqual(0, failures.Count, string.Join("\n", failures));
+    }
+}

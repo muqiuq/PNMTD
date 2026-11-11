@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The frozen sensor API contract (docs/webui-migration-plan.md §3.3, §8.1).
+       HttpClient against a running container only: no reference to the app, so the same
+       test verifies v0.12.1, every 1.0 build and an imported production copy. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <EnableMSTestRunner>true</EnableMSTestRunner>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MSTest.TestFramework" />
+    <PackageReference Include="MSTest.TestAdapter" />
+    <PackageReference Include="MSTest.Analyzers" PrivateAssets="all" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+</Project>

@@ -1,17 +1,18 @@
-﻿using System;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql;
+using PNMTD.Lib.Helper;
 using PNMTD.Models.Db;
 
 namespace PNMTD.Data
 {
+    /// <summary>
+    /// PNMTD's database: PostgreSQL (docs/webui-migration-plan.md §3.4). Configured from the
+    /// Database:* settings; see <see cref="DatabaseSettings"/>.
+    /// </summary>
     public class PnmtdDbContext : DbContext
     {
-        public readonly bool inMemory;
-
         public DbSet<HostEntity> Hosts { get; set; }
 
         public DbSet<SensorEntity> Sensors { get; set; }
@@ -34,40 +35,27 @@ namespace PNMTD.Data
         public DbSet<DnsZoneEntryEntity> DnsZoneEntries { get; set; }
         public DbSet<DnsZoneLogEntryEntity> DnsZoneLogEntries { get; set; }
 
-        public string DbPath { get; }
-
-        public PnmtdDbContext(bool inMemory = false)
-		{
-            var path = "";
-            if(!Global.IsDevelopment)
-            {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
-                    path = Path.Join("/var/lib/pnmtd");
-                }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    path = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "PNMTD");
-                }
-                if (!Directory.Exists(path)) Directory.CreateDirectory(path);
-            }
-            DbPath = System.IO.Path.Join(path, "pnmtd.db");
-            this.inMemory = inMemory;
+        public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
+        {
         }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder options)
+        /// <summary>
+        /// The one place the provider is chosen, for the app, the CLI and the tests. No lazy loading:
+        /// every navigation a query needs is in an Include or a projection, because each lazy load
+        /// would be a round trip (and PostgreSQL has no MARS for one inside an open reader).
+        /// </summary>
+        public static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) =>
+            options.UseNpgsql(connectionString);
+
+        public static PnmtdDbContext Create(string connectionString) =>
+            new(((DbContextOptionsBuilder<PnmtdDbContext>)Configure(new DbContextOptionsBuilder<PnmtdDbContext>(), connectionString)).Options);
+
+        protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
-            options.UseLazyLoadingProxies();
-            //options.LogTo(x => Debug.WriteLine(x));
-            if (inMemory)
-            {
-                options.UseSqlite("DataSource=myshareddb;mode=memory;cache=shared");
-            }
-            else
-            {
-                options.UseSqlite($"Data Source={DbPath}");
-            }
-            
+            // timestamptz takes UTC only. Code from before 1.0 may still hand over an Unspecified
+            // value (an unset property, a value parsed somewhere): taken as UTC, as Clock.AsUtc does.
+            configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+            configurationBuilder.Properties<DateTime?>().HaveConversion<NullableUtcDateTimeConverter>();
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -75,10 +63,67 @@ namespace PNMTD.Data
             modelBuilder.Entity<KeyValueEntity>()
                 .HasIndex(k => new { k.Key })
                 .IsUnique(true);
-            
+
+            // Lower-case like every other table (it had no [Table] attribute).
+            modelBuilder.Entity<NotificationRuleSensorEntity>().ToTable("notificationrulesensor");
+
+            // The sensor API looks sensors up by token on every request. Not unique: v0.12 databases
+            // can hold duplicates, which keep failing as they always did (§3.3).
+            modelBuilder.Entity<SensorEntity>().HasIndex(s => s.SecretWriteToken);
+            modelBuilder.Entity<SensorEntity>().HasIndex(s => s.SecretReadToken);
+
+            // Latest event per sensor, events of a sensor in a time range, and retention.
+            modelBuilder.Entity<EventEntity>().HasIndex(e => new { e.SensorId, e.Created });
+            modelBuilder.Entity<EventEntity>().HasIndex(e => e.Created);
+
             base.OnModelCreating(modelBuilder);
         }
 
+        private sealed class UtcDateTimeConverter() : ValueConverter<DateTime, DateTime>(
+            v => Clock.AsUtc(v),
+            v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+        private sealed class NullableUtcDateTimeConverter() : ValueConverter<DateTime?, DateTime?>(
+            v => v.HasValue ? Clock.AsUtc(v.Value) : v,
+            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+    }
+
+    /// <summary>
+    /// The connection: Database:ConnectionString when set (tests), otherwise built from
+    /// Database:Host, :Port, :Name, :Username and :Password (the compose file sets these).
+    /// </summary>
+    public static class DatabaseSettings
+    {
+        public static string ConnectionString(IConfiguration configuration)
+        {
+            var explicitString = configuration["Database:ConnectionString"];
+            if (!string.IsNullOrWhiteSpace(explicitString))
+            {
+                return explicitString;
+            }
+            var builder = new NpgsqlConnectionStringBuilder
+            {
+                Host = configuration["Database:Host"] ?? "localhost",
+                Port = int.TryParse(configuration["Database:Port"], out var port) ? port : 5432,
+                Database = configuration["Database:Name"] ?? "pnmtd",
+                Username = configuration["Database:Username"] ?? "pnmtd",
+                Password = configuration["Database:Password"],
+            };
+            return builder.ConnectionString;
+        }
+    }
+
+    /// <summary>For `dotnet ef migrations add`: never connects.</summary>
+    public sealed class PnmtdDesignTimeDbContextFactory : IDesignTimeDbContextFactory<PnmtdDbContext>
+    {
+        public PnmtdDbContext CreateDbContext(string[] args) =>
+            PnmtdDbContext.Create("Host=localhost;Database=pnmtd;Username=pnmtd;Password=design-time");
+    }
+
+    public static class DbContextServiceProviderExtensions
+    {
+        /// <summary>A context of its own, for one run of a background task.</summary>
+        public static PnmtdDbContext CreateDbContext(this IServiceProvider services) =>
+            services.GetRequiredService<IDbContextFactory<PnmtdDbContext>>().CreateDbContext();
     }
 }
-

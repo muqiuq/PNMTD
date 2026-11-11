@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using PNMTD.Data;
 using PNMTD.Lib.Models.Poco;
@@ -19,7 +19,7 @@ namespace PNMTD.Tests.Services
     {
         private HttpClient _client;
 
-        public static readonly CustomWebApplicationFactory<Program> _factory = new CustomWebApplicationFactory<Program>();
+        public static readonly TestApp _factory = new TestApp();
         private NotificationRuleEntity notificationRule;
         private EventEntity? eventEntity;
         private EventEntity? eventEntity2;
@@ -37,7 +37,7 @@ namespace PNMTD.Tests.Services
         [TestInitialize]
         public void Init()
         {
-            _client = _factory.CreateClient();
+            _client = _factory.Client();
 
             notificationRule = new NotificationRuleEntity()
             {
@@ -178,22 +178,14 @@ namespace PNMTD.Tests.Services
 
             var pendingNotificationBefore = Db.GetAllPendingNotificationsForLastMinutes();
 
-            var notificationPoco = new NotificationRulePoco()
-            {
-                Enabled = true,
-                Recipient = "nst@nst.nst",
-                Name = "Test",
-                SubscribedSensors = new List<Guid>() { randomEvent.Sensor.Id }
-            };
-
-            Db.CreateNewNotificationRule(notificationPoco);
+            var notificationRule = DbTestHelper.CreateNotificationRule(Db, "Test", "nst@nst.nst", NotificationRuleType.ALWAYS, randomEvent.SensorId);
 
             Db.SaveChanges();
 
             var pendingNotificationAfter = Db.GetAllPendingNotificationsForLastMinutes();
 
             Assert.IsTrue(pendingNotificationAfter.Count() != pendingNotificationBefore.Count());
-            Assert.IsTrue(pendingNotificationAfter.Where(x => x.NotitificationRule.Recipient == notificationPoco.Recipient).Any());
+            Assert.IsTrue(pendingNotificationAfter.Where(x => x.NotitificationRule.Recipient == notificationRule.Recipient).Any());
         }
 
         [TestMethod]
@@ -203,15 +195,7 @@ namespace PNMTD.Tests.Services
             var allEvents = Db.Events.ToList();
             var randomEvent = allEvents[random.Next(allEvents.Count)];
 
-            var notificationPoco = new NotificationRulePoco()
-            {
-                Enabled = true,
-                Recipient = "nst@nst2.nst",
-                Name = "Test",
-                SubscribedSensors = new List<Guid>() { randomEvent.Sensor.Id }
-            };
-
-            var notificationRule = Db.CreateNewNotificationRule(notificationPoco);
+            var notificationRule = DbTestHelper.CreateNotificationRule(Db, "Test", "nst@nst2.nst", NotificationRuleType.ALWAYS, randomEvent.SensorId);
 
             Db.NotificationRuleEvents.Add(new Models.Db.NotificationRuleEventEntity()
             {

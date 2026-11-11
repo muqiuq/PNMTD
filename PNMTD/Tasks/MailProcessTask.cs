@@ -1,6 +1,7 @@
-﻿using MailKit.Net.Pop3;
+using PNMTD.Tasks.Helpers;
+using PNMTD.Lib.Helper;
+using MailKit.Net.Pop3;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using PNMTD.Data;
 using PNMTD.Mails;
 using PNMTD.Models.Db;
@@ -42,15 +43,22 @@ namespace PNMTD.Tasks
         }
 
 
+        private readonly RunGuard runGuard = new();
+
         private void tryDoWork(object? state)
         {
+            if (!runGuard.TryEnter()) return;
             try
             {
                 doWork(state);
             }
             catch (Exception ex)
             {
-                logger.LogError("MailProcessTask", ex);
+                logger.LogError(ex, "MailProcessTask");
+            }
+            finally
+            {
+                runGuard.Exit();
             }
         }
 
@@ -65,7 +73,7 @@ namespace PNMTD.Tasks
 
         private void doWork(object? state)
         {
-            using (var dbContext = new PnmtdDbContext())
+            using (var dbContext = services.CreateDbContext())
             {
                 var count = Interlocked.Increment(ref executionCount);
 
@@ -79,6 +87,7 @@ namespace PNMTD.Tasks
                 }
 
                 dbContext.MailLogs.CleanUpMailLog();
+                dbContext.SaveChanges();
 
                 dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_MAIL_PROCESSING);
             }
@@ -89,8 +98,8 @@ namespace PNMTD.Tasks
             foreach (var rule in mailinputrules)
             {
                 if (IsMatch(maillog.From, rule.FromTest) &&
-                    (rule.SubjectTest.IsNullOrEmpty() || IsMatch(maillog.Subject, rule.SubjectTest)) &&
-                    (rule.BodyTest.IsNullOrEmpty() || IsMatch(maillog.Content, rule.BodyTest)))
+                    (string.IsNullOrEmpty(rule.SubjectTest) || IsMatch(maillog.Subject, rule.SubjectTest)) &&
+                    (string.IsNullOrEmpty(rule.BodyTest) || IsMatch(maillog.Content, rule.BodyTest)))
                 {
                     maillog.ProcessLog += $"\nmatched {rule.Name}({rule.Id})";
                     maillog.ProcessedBy = rule;
@@ -100,15 +109,15 @@ namespace PNMTD.Tasks
                     {
                         var message = "";
                         int code = rule.DefaultCode;
-                        if (!rule.OkTest.IsNullOrEmpty() && rule.OkCode.HasValue && IsMatch(maillog.Content, rule.OkTest))
+                        if (!string.IsNullOrEmpty(rule.OkTest) && rule.OkCode.HasValue && IsMatch(maillog.Content, rule.OkTest))
                         {
                             code = rule.OkCode.Value;
                         }
-                        if (!rule.FailTest.IsNullOrEmpty() && rule.FailCode.HasValue && IsMatch(maillog.Content, rule.FailTest))
+                        if (!string.IsNullOrEmpty(rule.FailTest) && rule.FailCode.HasValue && IsMatch(maillog.Content, rule.FailTest))
                         {
                             code = rule.FailCode.Value;
                         }
-                        if (!rule.ExtractMessageRegex.IsNullOrEmpty())
+                        if (!string.IsNullOrEmpty(rule.ExtractMessageRegex))
                         {
                             Regex pattern = new Regex(rule.ExtractMessageRegex);
 
@@ -123,7 +132,7 @@ namespace PNMTD.Tasks
                         {
                             Id = Guid.NewGuid(),
                             Code = code,
-                            Created = DateTime.Now,
+                            Created = Clock.UtcNow,
                             Message = $"MailInput {rule.Name}({rule.Id}){message}".Trim(),
                             SensorId = rule.SensorOutputId.Value,
                             Source = maillog.From

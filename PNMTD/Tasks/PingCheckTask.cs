@@ -1,4 +1,5 @@
-﻿using PNMTD.Data;
+using PNMTD.Lib.Helper;
+using PNMTD.Data;
 using PNMTD.Lib.Models;
 using PNMTD.Lib.Models.Enum;
 using PNMTD.Models.Db;
@@ -54,15 +55,22 @@ namespace PNMTD.Tasks
         }
 
 
+        private readonly RunGuard runGuard = new();
+
         private void tryDoWork(object? state)
         {
+            if (!runGuard.TryEnter()) return;
             try
             {
                 doWork(state);
             }
             catch (Exception ex)
             {
-                logger.LogError("PingWorker DoWork Exception", ex);
+                logger.LogError(ex, "PingWorker DoWork Exception");
+            }
+            finally
+            {
+                runGuard.Exit();
             }
         }
 
@@ -87,7 +95,7 @@ namespace PNMTD.Tasks
                 }
                 catch (Exception ex) when (ex is PingException || ex is ArgumentOutOfRangeException || ex is ArgumentNullException)
                 {
-                    logger.LogWarning("PingWorker PingException", ex);
+                    logger.LogWarning(ex, "PingWorker PingException");
                 }
             }
 
@@ -100,7 +108,7 @@ namespace PNMTD.Tasks
 
         private void doWork(object? state)
         {
-            using(var dbContext = new PnmtdDbContext())
+            using(var dbContext = services.CreateDbContext())
             {
                 if (!decisionMaker.DetermineIfTaskShouldRun(dbContext)) return;
 
@@ -115,7 +123,7 @@ namespace PNMTD.Tasks
                 foreach (var sensor in relevantSensors)
                 {
                     var lastEventSuccess = false;
-                    var lastCheck = DateTime.Today.AddDays(-365);
+                    var lastCheck = Clock.UtcNow.AddDays(-365);
                     var firstTime = false;
 
                     var lastEvent = dbContext.Events.Where(e => e.SensorId == sensor.Id).OrderByDescending(e => e.Created).FirstOrDefault();
@@ -129,8 +137,8 @@ namespace PNMTD.Tasks
                         firstTime = true;
                     }
 
-                    if (DateTime.Now - lastCheck > TimeSpan.FromSeconds(sensor.Interval) &&
-                        (!SensorIdLastCheck.ContainsKey(sensor.Id) || DateTime.Now - SensorIdLastCheck[sensor.Id] > TimeSpan.FromSeconds(sensor.Interval)))
+                    if (Clock.UtcNow - lastCheck > TimeSpan.FromSeconds(sensor.Interval) &&
+                        (!SensorIdLastCheck.ContainsKey(sensor.Id) || Clock.UtcNow - SensorIdLastCheck[sensor.Id] > TimeSpan.FromSeconds(sensor.Interval)))
                     {
 
                         var pingResult = PingHost(sensor.Parameters, 120);
@@ -147,7 +155,7 @@ namespace PNMTD.Tasks
                             failedPings++;
                         }
 
-                        SensorIdLastCheck[sensor.Id] = DateTime.Now;
+                        SensorIdLastCheck[sensor.Id] = Clock.UtcNow;
 
                         logger.LogDebug($"Ping {sensor.Parameters} was {pingSuccessfull} ({sensor.Id})");
 
@@ -157,7 +165,7 @@ namespace PNMTD.Tasks
                         {
                             var newEvent = new EventEntity()
                             {
-                                Created = DateTime.Now,
+                                Created = Clock.UtcNow,
                                 Code = pingSuccessfull ? PNMTStatusCodes.PING_SUCCESSFULL : PNMTStatusCodes.PING_FAILED,
                                 Id = Guid.NewGuid(),
                                 Message = "Ping " + (pingSuccessfull ? "successfull" : "failed"),
@@ -175,10 +183,7 @@ namespace PNMTD.Tasks
                 dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.NUM_OF_SUCCESSFULL_PINGS, successfullPings);
                 dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.NUM_OF_FAILED_PINGS, failedPings);
 
-                if(successfullPings != 0 || failedPings != 0)
-                {
-                    dbContext.SaveChanges();
-                }
+                dbContext.SaveChanges();
 
                 if (counterCreatedEvents > 0)
                 {

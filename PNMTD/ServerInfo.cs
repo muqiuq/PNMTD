@@ -1,34 +1,14 @@
-﻿using System.Reflection;
+using System.Reflection;
 
-namespace PNMTD
+namespace PNMTD;
+
+/// <summary>What this instance is: the Identity setting (to tell instances apart) and the version.</summary>
+public static class ServerInfo
 {
-    public class ServerInfo
-    {
-        public static string _Identity = "no identity set";
-        
-        public string Version
-        {
-            get
-            {
-                return Assembly.GetEntryAssembly().GetName().Version.ToString();
-            }
-        }
+    public static string Identity { get; set; } = "no identity set";
 
-        public string Name
-        {
-            get
-            {
-                return Assembly.GetEntryAssembly().GetName().Name ?? "PNMTD";
-            }
-        }
-
-        public string Identity
-        {
-            get
-            {
-                return _Identity;
-            }
-        }
-
-    }
+    public static string Version { get; } =
+        typeof(ServerInfo).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
+        ?? typeof(ServerInfo).Assembly.GetName().Version?.ToString()
+        ?? "0.0.0";
 }

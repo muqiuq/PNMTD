@@ -1,31 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
-using PNMTD.Lib.Models.Poco;
-using PNMTD.Lib.Models.Poco.Extensions;
+using PNMTD.Lib.Helper;
+using Microsoft.EntityFrameworkCore;
 using PNMTD.Models.Db;
 using PNMTD.Models.Helper;
-using PNMTD.Models.Poco;
-using PNMTD.Models.Poco.Extensions;
 
 namespace PNMTD.Data
 {
     public static class DbContextNotificationExtensions
     {
-
-        public static NotificationRuleEntity CreateNewNotificationRule(this PnmtdDbContext db, NotificationRulePoco notificationPoco)
-        {
-            var notificationEntity = notificationPoco.ToEntity(isNew: true);
-            db.NotificationRules.Add(notificationEntity);
-            notificationPoco.SubscribedSensors.ForEach(sid =>
-            {
-                db.NotificationRuleSensor.Add(new NotificationRuleSensorEntity()
-                {
-                    Id = Guid.NewGuid(),
-                    NotificationRule = notificationEntity,
-                    Sensor = db.Sensors.Single(s => s.Id == sid)
-                });
-            });
-            return notificationEntity;
-        }
 
         public static IList<NotificationRuleEventEntity> CreateNotificationRuleEventEntitiesOfPendingNotifications(this PnmtdDbContext db
             , params PendingNotification[] pendingNotifications)
@@ -38,8 +19,8 @@ namespace PNMTD.Data
                 db.Attach(pendingNotification.NotitificationRule);
                 var notificationRuleEvent = db.NotificationRuleEvents.Add(new NotificationRuleEventEntity()
                 {
-                    Created = DateTime.Now,
-                    Updated = DateTime.Now,
+                    Created = Clock.UtcNow,
+                    Updated = Clock.UtcNow,
                     Id = Guid.NewGuid(),
                     NoAction = pendingNotification.NoAction,
                     Event = pendingNotification.EventEntity,
@@ -61,7 +42,7 @@ namespace PNMTD.Data
                 .Include(n => n.Event)
                 .Where(n => n.Event.Created == n.LastCleanupEventCreated)
                 .ToList()
-                .Where(nre => (DateTime.Now - nre.Updated) > maxTimeSpanToKeepEntries)
+                .Where(nre => (Clock.UtcNow - nre.Updated) > maxTimeSpanToKeepEntries)
                 .ToList();
 
             db.NotificationRuleEvents.RemoveRange(oldEventEntities);
@@ -81,7 +62,7 @@ namespace PNMTD.Data
             oldEventEntities.ForEach(oE =>
             {
                 oE.LastCleanupEventCreated = oE.Event.Created;
-                oE.Updated = DateTime.Now;
+                oE.Updated = Clock.UtcNow;
             });
 
             db.SaveChanges();
@@ -91,19 +72,18 @@ namespace PNMTD.Data
 
         public static IList<PendingNotification> GetAllPendingNotificationsForLastMinutes(this PnmtdDbContext db, int minutes = 30)
         {
-            var eventIdsWithNotifications = db.NotificationRuleEvents
-                .Select(nre => nre.Event.Id)
-                .Distinct()
-                .ToList();
-
-            var maxTimeSpan = TimeSpan.FromMinutes(minutes);
+            // The window in SQL: v0.12 loaded every event without a notification row into memory
+            // and filtered by age afterwards, every 10 s.
+            var cutoff = Clock.UtcNow - TimeSpan.FromMinutes(minutes);
 
             var pendingEvents = db.Events
-                .Where(e => !eventIdsWithNotifications.Contains(e.Id))
+                .Where(e => e.Created > cutoff && !db.NotificationRuleEvents.Any(nre => nre.Event.Id == e.Id))
                 .Include(e => e.Sensor)
-                .ThenInclude(es => es.Parent)
-                .ToList()
-                .Where(e => (DateTime.Now - e.Created) < maxTimeSpan)
+                    .ThenInclude(s => s.Parent)
+                .Include(e => e.Sensor)
+                    .ThenInclude(s => s.SubscribedByNotifications)
+                        .ThenInclude(n => n.NotificationRule)
+                .AsSplitQuery()
                 .ToList();
 
             var pendingNotifications = pendingEvents

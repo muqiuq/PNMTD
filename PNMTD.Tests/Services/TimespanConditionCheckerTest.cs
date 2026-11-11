@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using PNMTD.Lib.Helper;
+using Microsoft.Extensions.Hosting;
 using PNMTD.Data;
 using PNMTD.Lib.Models;
 using PNMTD.Lib.Models.Enum;
@@ -18,12 +19,12 @@ namespace PNMTD.Tests.Services
     {
         private HttpClient _client;
 
-        public static readonly CustomWebApplicationFactory<Program> _factory = new CustomWebApplicationFactory<Program>();
+        public static readonly TestApp _factory = new TestApp();
 
         [TestInitialize]
         public void Init()
         {
-            _client = _factory.CreateClient();
+            _client = _factory.Client();
         }
 
         private PnmtdDbContext Db
@@ -104,9 +105,11 @@ namespace PNMTD.Tests.Services
             var sensor = tuple.Item1;
             var shouldBeSuccessfullEvent = Db.Events.Where(e => e.SensorId == sensor.Id).OrderByDescending(e => e.Created).First();
             Assert.AreEqual(successfullEvent.Id, shouldBeSuccessfullEvent.Id);
-            var now = DateTime.Now;
-            now = now.AddMinutes(60 - now.Minute);
-            now = now.AddHours(24 - now.Hour);
+            // The next midnight on the wall clock of the app's time zone, as an instant.
+            var localNow = Clock.LocalNow;
+            localNow = localNow.AddMinutes(60 - localNow.Minute);
+            localNow = localNow.AddHours(24 - localNow.Hour);
+            var now = Clock.ToUtc(localNow);
             TimespanConditionsCheckTask.ProcessSensor(null, Db, sensor, 
                 PNMTStatusCodes.ONE_WITHIN_TIMESPAN_OK, PNMTStatusCodes.ONE_WITHIN_TIMESPAN_FAILED,
                 now: now);
@@ -146,10 +149,12 @@ namespace PNMTD.Tests.Services
 
             var shouldBeFailedEvent = Db.Events.Where(e => e.SensorId == sensor.Id).OrderByDescending(e => e.Created).First();
             Assert.AreEqual(501, shouldBeFailedEvent.Code);
-            var now = DateTime.Now;
-            now = now.AddMinutes(60 - now.Minute);
-            now = now.AddHours(24 - now.Hour);
-            now = now.AddDays(1);
+            // The next midnight on the wall clock of the app's time zone, as an instant.
+            var localNow = Clock.LocalNow;
+            localNow = localNow.AddMinutes(60 - localNow.Minute);
+            localNow = localNow.AddHours(24 - localNow.Hour);
+            var now = Clock.ToUtc(localNow);
+            now = Clock.ToUtc(localNow.AddDays(1));
             TimespanConditionsCheckTask.ProcessSensor(null, Db, sensor,
                 PNMTStatusCodes.ONE_WITHIN_TIMESPAN_OK, PNMTStatusCodes.ONE_WITHIN_TIMESPAN_FAILED,
                 now: now);
@@ -167,9 +172,11 @@ namespace PNMTD.Tests.Services
             var sensor = tuple.Item1;
             var shouldBeSuccessfullEvent = Db.Events.Where(e => e.SensorId == sensor.Id).OrderByDescending(e => e.Created).First();
             Assert.AreEqual(successfullEvent.Id, shouldBeSuccessfullEvent.Id);
-            var now = DateTime.Now;
-            now = now.AddMinutes(60 - now.Minute);
-            now = now.AddHours(24 - now.Hour);
+            // The next midnight on the wall clock of the app's time zone, as an instant.
+            var localNow = Clock.LocalNow;
+            localNow = localNow.AddMinutes(60 - localNow.Minute);
+            localNow = localNow.AddHours(24 - localNow.Hour);
+            var now = Clock.ToUtc(localNow);
             TimespanConditionsCheckTask.ProcessSensor(null, Db, sensor,
                 PNMTStatusCodes.ALL_WITHIN_TIMESPAN_OK, PNMTStatusCodes.ALL_WITHIN_TIMESPAN_FAILED,
                 now: now);
@@ -207,10 +214,12 @@ namespace PNMTD.Tests.Services
             }
             Db.SaveChanges();
 
-            var now = DateTime.Now;
-            now = now.AddMinutes(60 - now.Minute);
-            now = now.AddHours(24 - now.Hour);
-            now = now.AddDays(1);
+            // The next midnight on the wall clock of the app's time zone, as an instant.
+            var localNow = Clock.LocalNow;
+            localNow = localNow.AddMinutes(60 - localNow.Minute);
+            localNow = localNow.AddHours(24 - localNow.Hour);
+            var now = Clock.ToUtc(localNow);
+            now = Clock.ToUtc(localNow.AddDays(1));
             TimespanConditionsCheckTask.ProcessSensor(null, Db, sensor,
                 PNMTStatusCodes.ALL_WITHIN_TIMESPAN_OK, PNMTStatusCodes.ALL_WITHIN_TIMESPAN_FAILED,
                 now: now);
@@ -228,9 +237,11 @@ namespace PNMTD.Tests.Services
             var sensor = tuple.Item1;
             var shouldBeSuccessfullEvent = Db.Events.Where(e => e.SensorId == sensor.Id).OrderByDescending(e => e.Created).First();
             Assert.AreEqual(successfullEvent.Id, shouldBeSuccessfullEvent.Id);
-            var now = DateTime.Now;
-            now = now.AddMinutes(60 - now.Minute);
-            now = now.AddHours(24 - now.Hour);
+            // The next midnight on the wall clock of the app's time zone, as an instant.
+            var localNow = Clock.LocalNow;
+            localNow = localNow.AddMinutes(60 - localNow.Minute);
+            localNow = localNow.AddHours(24 - localNow.Hour);
+            var now = Clock.ToUtc(localNow);
             TimespanConditionsCheckTask.ProcessSensor(null, Db, sensor,
                 PNMTStatusCodes.ALL_WITHIN_TIMESPAN_OK, PNMTStatusCodes.ALL_WITHIN_TIMESPAN_FAILED,
                 now: now);

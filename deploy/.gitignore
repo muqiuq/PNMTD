@@ -1,0 +1,6 @@
+.env
+.env.tmp
+docker-compose.override.yml
+backups/
+logs/
+temporary-passwords-*.txt

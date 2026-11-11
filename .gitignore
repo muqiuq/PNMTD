@@ -407,3 +407,7 @@ ASALocalRun/
 /PNMTD/pnmtd.db-shm
 /PNMTD/pnmtd.db-wal
 /PNMTD/create-web-app-token.txt
+
+# local scratch (start.sh, tools/contract.sh)
+.tmpcheck/
+dev.env

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using PNMTD.Lib.Helper;
+using Microsoft.EntityFrameworkCore;
 using PNMTD.Data;
 using PNMTD.Lib.Models;
 using PNMTD.Lib.Models.Enum;
@@ -47,23 +48,41 @@ namespace PNMTD.Tasks
         }
 
 
+        private readonly RunGuard runGuard = new();
+
         private void tryDoWork(object? state)
         {
+            if (!runGuard.TryEnter()) return;
             try
             {
                 doWork(state);
             }
             catch (Exception ex)
             {
-                logger.LogError("HeartbeatCheckTask DoWork Exception", ex);
+                logger.LogError(ex, "HeartbeatCheckTask DoWork Exception");
+            }
+            finally
+            {
+                runGuard.Exit();
             }
         }
 
         private TaskRunDecisionMaker decisionMaker = new TaskRunDecisionMaker();
 
+        private readonly DateTime startedAt = Clock.UtcNow;
+
+        /// <summary>
+        /// No 460s for a while after a start (Heartbeat:StartupGraceMinutes, default 5): a sensor
+        /// whose report fell into the downtime of an update gets time to report again before it is
+        /// called missing (docs/webui-migration-plan.md §6.5).
+        /// </summary>
+        private TimeSpan StartupGrace => TimeSpan.FromMinutes(configuration.GetValue("Heartbeat:StartupGraceMinutes", 5));
+
         private void doWork(object? state)
         {
-            using (var dbContext = new PnmtdDbContext())
+            if (Clock.UtcNow - startedAt < StartupGrace) return;
+
+            using (var dbContext = services.CreateDbContext())
             {
                 if (!decisionMaker.DetermineIfTaskShouldRun(dbContext)) return;
 
@@ -75,7 +94,7 @@ namespace PNMTD.Tasks
 
                 foreach (var sensor in relevantSensors)
                 {
-                    var lastCheck = DateTime.Today.AddDays(-365);
+                    var lastCheck = Clock.UtcNow.AddDays(-365);
                     var lastCode = -1;
                     var listOfEventsQuery = dbContext.Events.Where(e => e.SensorId == sensor.Id).OrderByDescending(e => e.Created);
                     if (listOfEventsQuery.Any())
@@ -92,11 +111,11 @@ namespace PNMTD.Tasks
 
                     if (lastCode == PNMTStatusCodes.HEARTBEAT_MISSING) continue;
 
-                    if (DateTime.Now - lastCheck > TimeSpan.FromSeconds(sensor.Interval) + TimeSpan.FromSeconds(sensor.GracePeriod))
+                    if (Clock.UtcNow - lastCheck > TimeSpan.FromSeconds(sensor.Interval) + TimeSpan.FromSeconds(sensor.GracePeriod))
                     {
                         var newEvent = new EventEntity()
                         {
-                            Created = DateTime.Now,
+                            Created = Clock.UtcNow,
                             Code = PNMTStatusCodes.HEARTBEAT_MISSING,
                             Id = Guid.NewGuid(),
                             Message = "Heartbeat missing",

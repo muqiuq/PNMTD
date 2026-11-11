@@ -1,4 +1,5 @@
-﻿using PNMTD.Data;
+﻿using PNMTD.Lib.Helper;
+using PNMTD.Data;
 
 namespace PNMTD.Tasks.Helpers
 {
@@ -26,9 +27,9 @@ namespace PNMTD.Tasks.Helpers
             {
                 uplinkWasNoAvailable = false;
                 //After Uplink returns wait for at least 5 minutes
-                waitUntil = DateTime.Now.AddMinutes(5);
+                waitUntil = Clock.UtcNow.AddMinutes(5);
             }
-            if (waitUntil.HasValue && waitUntil.Value > DateTime.Now)
+            if (waitUntil.HasValue && waitUntil.Value > Clock.UtcNow)
             {
                 return false;
             }

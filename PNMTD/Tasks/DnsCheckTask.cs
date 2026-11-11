@@ -1,6 +1,6 @@
-﻿using MailKit.Net.Imap;
+using PNMTD.Lib.Helper;
+using MailKit.Net.Imap;
 using MailKit;
-using Microsoft.IdentityModel.Tokens;
 using PNMTD.Data;
 using PNMTD.Mails;
 using PNMTD.Models.Db;
@@ -12,7 +12,6 @@ using PNMTD.Tasks.Helpers;
 using PNMTD.Lib.Models.Enum;
 using DnsClient.Protocol;
 using PNMTD.Services.DnsZones;
-using PNMTD.Migrations;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Org.BouncyCastle.Tls;
@@ -31,7 +30,6 @@ namespace PNMTD.Tasks
         private readonly IConfiguration configuration;
         private Timer _timer;
         private int executionCount;
-        private bool isRunning = false;
 
         public List<string> DnsServers = new List<string>();
         public List<NameServer> DnsNameServers = new List<NameServer>();
@@ -73,28 +71,28 @@ namespace PNMTD.Tasks
         }
 
 
+        private readonly RunGuard runGuard = new();
+
         private void tryDoWork(object? state)
         {
+            if (!runGuard.TryEnter()) return;
             try
             {
-                if (isRunning) return;
-                isRunning = true;
                 doWork(state);
             }
             catch (Exception ex)
             {
-                if (Debugger.IsAttached)
-                {
-                    throw ex;
-                }
-                logger.LogError($"DnsCheckTask {ex.Message}", ex);
+                logger.LogError(ex, "DnsCheckTask");
             }
-            isRunning = false;
+            finally
+            {
+                runGuard.Exit();
+            }
         }
 
         private void doWork(object? state)
         {
-            using (var dbContext = new PnmtdDbContext())
+            using (var dbContext = services.CreateDbContext())
             {
                 var count = Interlocked.Increment(ref executionCount);
 
@@ -150,7 +148,7 @@ namespace PNMTD.Tasks
         {
             var dnsZone = dbContext
                     .DnsZones
-                    .Where(d => d.Enabled && (d.NextCheck < DateTime.Now || d.ForceUpdate))
+                    .Where(d => d.Enabled && (d.NextCheck < Clock.UtcNow || d.ForceUpdate))
                     .OrderBy(d => d.LastChecked)
                     .FirstOrDefault();
 
@@ -171,8 +169,8 @@ namespace PNMTD.Tasks
                 .ToList();
 
             dnsZone.ForceUpdate = false;
-            dnsZone.LastChecked = DateTime.Now;
-            dnsZone.NextCheck = DateTime.Now.AddSeconds(dnsZone.Interval);
+            dnsZone.LastChecked = Clock.UtcNow;
+            dnsZone.NextCheck = Clock.UtcNow.AddSeconds(dnsZone.Interval);
 
             dbContext.SaveChanges();
 
@@ -256,7 +254,7 @@ namespace PNMTD.Tasks
                     if (matchingEntry != null)
                     {
                         matchingEntry.ActualValue = valueToCompare;
-                        matchingEntry.Updated = DateTime.Now;
+                        matchingEntry.Updated = Clock.UtcNow;
                         matchingEntry.IsMatch = true;
                         matchingEntry.NumOfFailuresInARow = 0;
                         valuesMatched.Add(matchingEntry);
@@ -281,7 +279,7 @@ namespace PNMTD.Tasks
                         var actualValueAlreadyWrong = firstValue.ActualValue == valueToCompare;
                         firstValue.IsMatch = false;
                         firstValue.ActualValue = valueToCompare;
-                        firstValue.Updated = DateTime.Now;
+                        firstValue.Updated = Clock.UtcNow;
                         firstValue.NumOfFailuresInARow = 0;
                         valuesMatched.Add(firstValue);
                         valuesToMatch.Remove(firstValue);
@@ -297,7 +295,7 @@ namespace PNMTD.Tasks
                 // By now all entries should have been matched.
                 foreach(var valueToMatch in valuesToMatch)
                 {
-                    valueToMatch.Updated = DateTime.Now;
+                    valueToMatch.Updated = Clock.UtcNow;
                     if(IncreaseNumOfFailuresAndHadAdjustMatch(valueToMatch))
                     {
                         if (shoudLog && valueToMatch.IsMatch) logEntries.Add(NewDnsLogEntry(DnsZoneLogEntryType.ENTRY_DISCREPANCY, dnsZone,
@@ -320,14 +318,17 @@ namespace PNMTD.Tasks
 
             CreateOrUpdateSensorEntity(dbContext, dnsZone);
 
-            dbContext.DnsZoneLogEntries.RemoveRange(dbContext.DnsZoneLogEntries.Where(d => d.DnsZoneId == dnsZone.Id).Skip(500).ToList());
+            // The newest 500 stay. v0.12 skipped in insertion order (SQLite's rowid), which deleted the
+            // newest entries instead, and PostgreSQL has no order at all without ORDER BY.
+            dbContext.DnsZoneLogEntries.RemoveRange(dbContext.DnsZoneLogEntries.Where(d => d.DnsZoneId == dnsZone.Id)
+                .OrderByDescending(d => d.Created).Skip(500).ToList());
 
             dbContext.SaveChanges();
         }
 
         private void CreateOrUpdateSensorEntity(PnmtdDbContext dbContext, DnsZoneEntity dnsZone)
         {
-            if (dnsZone.Host == null) return;
+            if (dnsZone.HostId == null) return;
 
             var existingSensor = dbContext.Sensors
                 .FirstOrDefault(s => s.ParentId == dnsZone.HostId && s.Type == SensorType.DNS && s.Name == dnsZone.ZoneName);
@@ -335,14 +336,13 @@ namespace PNMTD.Tasks
             {
                 existingSensor = new SensorEntity()
                 {
-                    Created = DateTime.Now,
+                    Created = Clock.UtcNow,
                     Enabled = true,
                     GracePeriod = 0,
                     Id = Guid.NewGuid(),
                     Ignore = false,
                     Interval = 0,
                     Name = dnsZone.ZoneName,
-                    Parent = dnsZone.Host,
                     ParentId = dnsZone.HostId.Value,
                     Type = SensorType.DNS,
                     TextId = dnsZone.Id.ToString()
@@ -363,7 +363,7 @@ namespace PNMTD.Tasks
                 var newEvent = new EventEntity()
                 {
                     Code = currentCode,
-                    Created = DateTime.Now,
+                    Created = Clock.UtcNow,
                     Id = Guid.NewGuid(),
                     Sensor = existingSensor,
                     SensorId = existingSensor.Id,
@@ -379,7 +379,7 @@ namespace PNMTD.Tasks
         {
             return new DnsZoneLogEntryEntity()
             {
-                Created = DateTime.Now,
+                Created = Clock.UtcNow,
                 EntryType = DnsZoneLogEntryType.ENTRY_DISCREPANCY,
                 DnsZoneId = dnsZoneEntity.Id,
                 Id = Guid.NewGuid(),
@@ -424,7 +424,7 @@ namespace PNMTD.Tasks
                         }).ToList());
                     dnsZone.ZoneName = otherZoneFile.ZoneName;
                     dnsZone.RequiresProcessing = false;
-                    dnsZone.LastChecked = DateTime.MinValue;
+                    dnsZone.LastChecked = Clock.Never;
                 }
                 else
                 {

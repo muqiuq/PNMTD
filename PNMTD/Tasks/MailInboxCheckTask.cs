@@ -1,9 +1,10 @@
-﻿using MailKit;
+﻿using PNMTD.Tasks.Helpers;
+using PNMTD.Lib.Helper;
+using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Net.Pop3;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
 using Org.BouncyCastle.Asn1.X509;
 using PNMTD.Data;
 using PNMTD.Lib.Logic;
@@ -30,7 +31,6 @@ namespace PNMTD.Tasks
         private readonly IConfiguration configuration;
         private Timer _timer;
         private int executionCount;
-        private bool isRunning = false;
         private string? username;
         private string? host;
         private int port;
@@ -56,7 +56,7 @@ namespace PNMTD.Tasks
             host = configuration["Mailbox:Host"];
             password = configuration["Mailbox:Password"];
 
-            if (username.IsNullOrEmpty() || password.IsNullOrEmpty() || host.IsNullOrEmpty())
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(host))
             {
                 logger.LogError("MailInboxCheckTask failed to start. Require Mailbox:Username, Mailbox:Host, Mailbox:Password");
                 return Task.CompletedTask;
@@ -82,28 +82,28 @@ namespace PNMTD.Tasks
         }
 
 
+        private readonly RunGuard runGuard = new();
+
         private void tryDoWork(object? state)
         {
+            if (!runGuard.TryEnter()) return;
             try
             {
-                if (isRunning) return;
-                isRunning = true;
                 doWork(state);
             }
             catch (Exception ex)
             {
-                if (Debugger.IsAttached)
-                {
-                    throw ex;
-                }
-                logger.LogError("MailInboxCheckTask", ex);
+                logger.LogError(ex, "MailInboxCheckTask");
             }
-            isRunning = false;
+            finally
+            {
+                runGuard.Exit();
+            }
         }
 
         private void doWork(object? state)
         {
-            using (var dbContext = new PnmtdDbContext())
+            using (var dbContext = services.CreateDbContext())
             {
                 var count = Interlocked.Increment(ref executionCount);
 
@@ -148,13 +148,13 @@ namespace PNMTD.Tasks
 
                         foreach (var item in items)
                         {
-                            if (DateTime.Now - item.Date.DateTime > TimeSpan.FromDays(defaultMargin)) continue;
+                            if (Clock.UtcNow - item.Date.UtcDateTime > TimeSpan.FromDays(defaultMargin)) continue;
 
                             var message = preProcessedFolder.GetMessage(item.UniqueId);
 
                             var mailLog = dbContext.MailLogs.Where(ml =>
                                 ml.Subject == message.Subject &&
-                                ml.MessageDate == message.Date.DateTime &&
+                                ml.MessageDate == message.Date.UtcDateTime &&
                                 ml.To == MailHelper.ExtractMailAdresses(message.To) &&
                                 ml.From == MailHelper.ExtractMailAdresses(message.From))
                                 .SingleOrDefault();
@@ -198,8 +198,8 @@ namespace PNMTD.Tasks
                                 To = MailHelper.ExtractMailAdresses(message.To),
                                 Content = MailHelper.ExtractBodyText(message),
                                 Subject = message.Subject.ToString(),
-                                MessageDate = message.Date.DateTime,
-                                Created = DateTime.Now,
+                                MessageDate = message.Date.UtcDateTime,
+                                Created = Clock.UtcNow,
                                 Processed = false,
                                 ProcessedBy = null,
                                 ProcessedById = null,
@@ -223,7 +223,7 @@ namespace PNMTD.Tasks
 
                         foreach (var item in items)
                         {
-                            if (DateTime.Now - item.Date.DateTime < TimeSpan.FromDays(defaultDeleteArchivedMessagesOlderThenDays)) continue;
+                            if (Clock.UtcNow - item.Date.UtcDateTime < TimeSpan.FromDays(defaultDeleteArchivedMessagesOlderThenDays)) continue;
 
                             processedFolder.AddFlags(item.UniqueId, MessageFlags.Deleted, false);
                             processedFolder.Expunge();

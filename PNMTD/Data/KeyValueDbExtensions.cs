@@ -1,6 +1,8 @@
-﻿using PNMTD.Models.Db;
+using PNMTD.Lib.Helper;
+using PNMTD.Models.Db;
 using PNMTD.Models.Enums;
 using System.ComponentModel;
+using Microsoft.EntityFrameworkCore;
 
 namespace PNMTD.Data
 {
@@ -8,35 +10,26 @@ namespace PNMTD.Data
     {
 
 
+        /// <summary>
+        /// Writes a value (and enables the entry) in one statement, with no SaveChanges: the tasks
+        /// call this every few seconds, and two of them may write the same key at once.
+        /// </summary>
         public static void SetKeyValueEntryByEnum(this PnmtdDbContext db, KeyValueKeyEnums keyEnum, object value, bool readOnly = true)
         {
-            var keyStr = Enum.GetName<KeyValueKeyEnums>(keyEnum).ToLower();
-            var entry = db.KeyValues.Where(kv => kv.Key == keyStr).SingleOrDefault();
-            if (entry == null)
-            {
-                entry = new KeyValueEntity()
-                {
-                    Id = Guid.NewGuid(),
-                    Enabled = true,
-                    IsReadOnly = readOnly,
-                    Key = keyStr,
-                    Value = value.ToString(),
-                    Note = ""
-                };
-                db.KeyValues.Add(entry);
-                db.SaveChanges();
-            }
-            else
-            {
-                entry.Value = value.ToString();
-                entry.Enabled = true;
-                db.SaveChanges();
-            }
+            var keyStr = KeyOf(keyEnum);
+            var text = value.ToString() ?? "";
+            db.Database.ExecuteSql($"""
+                INSERT INTO keyvalues ("Id", "Enabled", "Note", "Key", "Value", "IsReadOnly")
+                VALUES ({Guid.NewGuid()}, TRUE, '', {keyStr}, {text}, {readOnly})
+                ON CONFLICT ("Key") DO UPDATE SET "Value" = EXCLUDED."Value", "Enabled" = TRUE
+                """);
         }
+
+        public static string KeyOf(KeyValueKeyEnums keyEnum) => Enum.GetName(keyEnum)!.ToLowerInvariant();
 
         public static bool KeyValueKeyExists(this PnmtdDbContext db, KeyValueKeyEnums keyEnum)
         {
-            var keyStr = Enum.GetName<KeyValueKeyEnums>(keyEnum).ToLower();
+            var keyStr = KeyOf(keyEnum);
             var entry = db.KeyValues.Where(kv => kv.Key == keyStr).SingleOrDefault();
 
             return entry != null;
@@ -44,7 +37,7 @@ namespace PNMTD.Data
 
         public static T? GetKeyValueByEnum<T>(this PnmtdDbContext db, KeyValueKeyEnums keyEnum)
         {
-            var keyStr = Enum.GetName<KeyValueKeyEnums>(keyEnum).ToLower();
+            var keyStr = KeyOf(keyEnum);
             var entry = db.KeyValues.Where(kv => kv.Key == keyStr && kv.Enabled).SingleOrDefault();
 
             if (entry == null)
@@ -82,7 +75,7 @@ namespace PNMTD.Data
 
         public static bool TryGetKeyValueByEnum<T>(this PnmtdDbContext db, KeyValueKeyEnums keyEnum, out T? outValue)
         {
-            var keyStr = Enum.GetName<KeyValueKeyEnums>(keyEnum).ToLower();
+            var keyStr = KeyOf(keyEnum);
             var entry = db.KeyValues.Where(kv => kv.Key == keyStr && kv.Enabled).SingleOrDefault();
 
             if (entry == null)
@@ -110,28 +103,14 @@ namespace PNMTD.Data
 
         public static void UpdateKeyValueTimestampToNow(this PnmtdDbContext db, KeyValueKeyEnums keyEnum)
         {
-            var keyStr = Enum.GetName<KeyValueKeyEnums>(keyEnum).ToLower();
-            var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-            var entry = db.KeyValues.Where(kv => kv.Key == keyStr && kv.Enabled).SingleOrDefault();
-            if (entry == null)
-            {
-                entry = new KeyValueEntity()
-                {
-                    Id = Guid.NewGuid(),
-                    Enabled = true,
-                    IsReadOnly = true,
-                    Key = keyStr,
-                    Value = timestamp,
-                    Note = ""
-                };
-                db.KeyValues.Add(entry);
-                db.SaveChanges();
-            }
-            else
-            {
-                entry.Value = timestamp;
-                db.SaveChanges();
-            }
+            var keyStr = KeyOf(keyEnum);
+            // ISO 8601 in UTC ("2026-11-11T09:15:00.1234567Z"); v0.12 wrote local time without an offset.
+            var timestamp = Clock.UtcNow.ToString("o");
+            db.Database.ExecuteSql($"""
+                INSERT INTO keyvalues ("Id", "Enabled", "Note", "Key", "Value", "IsReadOnly")
+                VALUES ({Guid.NewGuid()}, TRUE, '', {keyStr}, {timestamp}, TRUE)
+                ON CONFLICT ("Key") DO UPDATE SET "Value" = EXCLUDED."Value"
+                """);
         }
 
     }

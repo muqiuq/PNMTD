@@ -1,4 +1,3 @@
-﻿using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -91,7 +90,7 @@ namespace PNMTD.Lib.Logic.IntervalDescriptions
                     selectedDayOfWeek = day;
                 }
             }
-            if (matches != 1 || selectedDayOfWeek.IsNullOrEmpty()) throw new IntervalDescriptionParseException("failure extracing dayofweek");
+            if (matches != 1 || string.IsNullOrEmpty(selectedDayOfWeek)) throw new IntervalDescriptionParseException("failure extracing dayofweek");
             return Enum.Parse<DayOfWeek>(selectedDayOfWeek);
         }
     }

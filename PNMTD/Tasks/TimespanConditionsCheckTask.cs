@@ -1,4 +1,6 @@
-﻿using PNMTD.Data;
+﻿using PNMTD.Tasks.Helpers;
+using PNMTD.Lib.Helper;
+using PNMTD.Data;
 using PNMTD.Lib.Models.Enum;
 using PNMTD.Lib.Models;
 using PNMTD.Models.Db;
@@ -39,15 +41,22 @@ namespace PNMTD.Tasks
         }
 
 
+        private readonly RunGuard runGuard = new();
+
         private void tryDoWork(object? state)
         {
+            if (!runGuard.TryEnter()) return;
             try
             {
                 doWork(state);
             }
             catch (Exception ex)
             {
-                logger.LogError("TimespanConditionsCheckTask", ex);
+                logger.LogError(ex, "TimespanConditionsCheckTask");
+            }
+            finally
+            {
+                runGuard.Exit();
             }
         }
 
@@ -62,7 +71,7 @@ namespace PNMTD.Tasks
 
         private void doWork(object? state)
         {
-            using(var dbContext = new PnmtdDbContext())
+            using(var dbContext = services.CreateDbContext())
             {
                 var relevantSensors = dbContext.Sensors.Where(s =>
                 (s.Type == SensorType.ONE_WITHIN_TIMESPAN)
@@ -95,11 +104,14 @@ namespace PNMTD.Tasks
         public static void ProcessSensor(ILogger<TimespanConditionsCheckTask> logger, PnmtdDbContext dbContext, SensorEntity sensor,
             int withinSuccessCode, int withinFailedCode, DateTime now = new DateTime())
         {
-            // Testing purposes
+            // now: an instant (UTC); tests pass their own. The descriptor ("daily at 8") is about the
+            // wall clock in the configured time zone.
             if(now == new DateTime())
             {
-                now = DateTime.Now;
+                now = Clock.UtcNow;
             }
+            now = Clock.AsUtc(now);
+            var localNow = Clock.ToLocal(now);
 
             if (!IntervalDescriptionHelper.TryParse(sensor.Parameters, out var intervalDescription))
             {
@@ -110,7 +122,7 @@ namespace PNMTD.Tasks
 
             if (sensor.Status != "") sensor.Status = "";
 
-            if (!intervalDescription.IsNow(now))
+            if (!intervalDescription.IsNow(localNow))
             {
                 return;
             }

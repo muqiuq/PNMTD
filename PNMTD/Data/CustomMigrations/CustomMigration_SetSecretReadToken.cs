@@ -1,4 +1,4 @@
-﻿using PNMTD.Models.Poco.Extensions;
+using PNMTD.Models.Db;
 
 namespace PNMTD.Data.CustomMigrations
 {

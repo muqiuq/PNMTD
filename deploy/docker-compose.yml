@@ -1,0 +1,71 @@
+# PNMTD's production stack (deploy/README.md). Local changes go into docker-compose.override.yml
+# (gitignored), so `git pull` can replace this file.
+#
+#   ./init.sh && docker compose up -d && ./info.sh
+#
+# The repository's start.sh is the debugging setup; this file only ever runs a published image.
+name: pnmtd
+
+services:
+  db:
+    image: docker.io/library/postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pnmtd
+      POSTGRES_DB: pnmtd
+      POSTGRES_PASSWORD: "${PNMTD_DB_PASSWORD:?PNMTD_DB_PASSWORD is not set in .env - run ./init.sh (an upgrade from v0.12 - UPGRADING-1.0.md)}"
+    volumes:
+      # A new PostgreSQL major is ./backup.sh, a new image here, ./restore.sh — never just a new tag.
+      - pnmtd-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q -h 127.0.0.1 -U pnmtd -d pnmtd"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  pnmtd:
+    image: ${PNMTD_IMAGE:-uisach/pnmtd}:${PNMTD_IMAGE_TAG:-v1.0.0}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # v0.12's port: the URLs hundreds of sensors report to keep working. Behind a reverse proxy on
+      # this host, PNMTD_BIND_ADDRESS=127.0.0.1 keeps it off the network.
+      - "${PNMTD_BIND_ADDRESS:-0.0.0.0}:${PNMTD_PORT:-5001}:8080"
+    # Every setting in .env reaches the app: Identity, PublicBaseUrl, TZ, Smtp__*, Auth__*, …
+    env_file:
+      - .env
+    environment:
+      Database__Host: db
+      Database__Name: pnmtd
+      Database__Username: pnmtd
+      Database__Password: ${PNMTD_DB_PASSWORD}
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      net.ipv4.ping_group_range: "0 2147483647"   # PING sensors as a non-root user, no capability
+    volumes:
+      - pnmtd-keys:/var/lib/pnmtd/keys             # sessions and 2FA secrets: backed up by ./backup.sh
+    healthcheck:                                   # here as well: Podman's OCI images drop HEALTHCHECK
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s                            # a new release applies its migrations first
+      retries: 3
+    stop_grace_period: 40s                         # .NET's shutdown timeout is 30 s; Docker's default grace 10 s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  pnmtd-pgdata:
+  pnmtd-keys:

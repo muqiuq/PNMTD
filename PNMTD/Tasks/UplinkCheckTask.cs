@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.WebUtilities;
+﻿using PNMTD.Tasks.Helpers;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using PNMTD.Data;
 using PNMTD.Models.Db;
@@ -44,7 +45,7 @@ namespace PNMTD.Tasks
         {
             logger.LogInformation("Starting UplinkCheckTask");
 
-            using (var dbContext = new PnmtdDbContext())
+            using (var dbContext = services.CreateDbContext())
             {
                 dbContext.SetKeyValueEntryByEnum(Models.Enums.KeyValueKeyEnums.UPLINK_OK, true);
             }
@@ -84,8 +85,11 @@ namespace PNMTD.Tasks
         }
 
 
+        private readonly RunGuard runGuard = new();
+
         private void tryDoWork(object? state)
         {
+            if (!runGuard.TryEnter()) return;
             try
             {
                 var t = doWork(state);
@@ -93,7 +97,11 @@ namespace PNMTD.Tasks
             }
             catch (Exception ex)
             {
-                logger.LogError("UplinkCheckTask", ex);
+                logger.LogError(ex, "UplinkCheckTask");
+            }
+            finally
+            {
+                runGuard.Exit();
             }
         }
 
@@ -104,7 +112,7 @@ namespace PNMTD.Tasks
 
         private async Task doWork(object? state)
         {
-            using(var dbContext = new PnmtdDbContext())
+            using(var dbContext = services.CreateDbContext())
             {
                 var count = Interlocked.Increment(ref executionCount);
                 currentPosition++;

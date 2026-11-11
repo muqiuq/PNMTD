@@ -1,4 +1,5 @@
-﻿using PNMTD.Models.Db;
+﻿using PNMTD.Lib.Helper;
+using PNMTD.Models.Db;
 
 namespace PNMTD.Services.DnsZones
 {
@@ -24,7 +25,7 @@ namespace PNMTD.Services.DnsZones
                     RecordType = r.RecordType,
                     Id = Guid.NewGuid(),
                     TTL = r.Timeout,
-                    Updated = DateTime.MinValue,
+                    Updated = Clock.Never,
                     Ignore = r.RecordType == Lib.Models.Enum.DnsZoneResourceType.SOA ? true : false,
                     Name = r.Name
                 }
