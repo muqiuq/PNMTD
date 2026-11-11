@@ -1,9 +1,22 @@
 # PNMTD's image (docs/webui-migration-plan.md §6.3).
 #
-# The SDK stage runs on the build platform and publishes one portable, framework-dependent build
-# that runs on amd64 and arm64 alike, restored in locked mode from the committed lock files.
-# The web UI stage (node) joins in phase 5; node never runs on the host.
+# Both build stages run on the build platform: the web UI is plain files, and the SDK stage
+# publishes one portable, framework-dependent build that runs on amd64 and arm64 alike, restored
+# in locked mode from the committed lock files. A multi-arch image compiles nothing under emulation.
 
+# --- 1. the web UI (PNMTD.WebUI → dist/, served under /pnmt-admin) -------------------------------
+# Node runs here, or in the containers of start.sh, run-tests.sh and tools/npm.sh: never on a host.
+# Node 24 (LTS) on Debian rather than Alpine: musl's resolver fails a whole lookup when Podman's DNS
+# answers AAAA with SERVFAIL. npm ci installs exactly the lock file, without install scripts.
+FROM --platform=$BUILDPLATFORM docker.io/library/node:24-slim AS web
+WORKDIR /web
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false NPM_CONFIG_FUND=false NPM_CONFIG_AUDIT=false
+COPY PNMTD.WebUI/package.json PNMTD.WebUI/package-lock.json ./
+RUN npm ci --ignore-scripts --loglevel=error
+COPY PNMTD.WebUI/ ./
+RUN npm run build
+
+# --- 2. the .NET app ---------------------------------------------------------------------------
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY global.json Directory.Build.props Directory.Packages.props ./
@@ -14,9 +27,11 @@ COPY PNMTD.Lib/PNMTD.Lib.csproj PNMTD.Lib/packages.lock.json PNMTD.Lib/
 RUN dotnet restore PNMTD/PNMTD.csproj --locked-mode
 COPY PNMTD/ PNMTD/
 COPY PNMTD.Lib/ PNMTD.Lib/
+COPY --from=web /web/dist PNMTD/wwwroot/pnmt-admin/
 RUN dotnet publish PNMTD/PNMTD.csproj -c Release -o /app --no-restore -p:UseAppHost=false \
  && rm -f /app/*.pdb
 
+# --- 3. the runtime ------------------------------------------------------------------------------
 # Ubuntu, as Microsoft's default .NET 10 image: glibc's resolver copes with Podman's DNS, which
 # musl's does not (an AAAA SERVFAIL fails the whole lookup), and ICU keeps culture behaviour as
 # v0.12.1 had it on Debian. tzdata is in the image already: TZ names the zone for local-day rules.

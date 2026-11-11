@@ -28,3 +28,7 @@ artifacts
 docs
 examples
 PNMTD.Contract.Tests
+PNMTD.WebUI/dist
+PNMTD.WebUI/test-results
+PNMTD.WebUI/playwright-report
+PNMTD/wwwroot/pnmt-admin

@@ -2,23 +2,30 @@
 # Every check, in one command (docs/webui-migration-plan.md §8).
 #
 #   ./run-tests.sh                  everything
-#   ./run-tests.sh --only dotnet    one group: dotnet, contract, deploy, shell (several: --only dotnet,shell)
+#   ./run-tests.sh --only web       one group: web, dotnet, contract, deploy, e2e, shell (several: --only web,shell)
 #   ./run-tests.sh --list           what it would run
 #
 # Groups:
+#   web       the UI in a node container: the npm package check, npm ci, the API types against
+#             openapi.json, vue-tsc, ESLint, Prettier, Vitest, the build
 #   dotnet    restore (locked), build, PNMTD.Tests on a throwaway PostgreSQL (tools/test-db.sh),
 #             in a zone east and one west of UTC
 #   contract  the image from the working tree against the golden sensor contract (tools/contract.sh)
 #   deploy    deploy/ for real: init, up, sign-in, the user scripts, a sensor event, backup, restore
+#   e2e       the browser tests (Playwright) against a stack of their own (tools/e2e.sh)
 #   shell     bash -n and shellcheck (in a container) over every script
 #
-# dotnet runs with the .NET SDK on this machine; node never does (phase 5 adds a web group that
-# runs in a container). Podman by default, ENGINE=docker for Docker.
+# dotnet runs with the .NET SDK on this machine; node never does: the web group copies PNMTD.WebUI
+# into a node container (the repository stays read-only), with npm's cache in a volume.
+# Podman by default, ENGINE=docker for Docker.
 set -uo pipefail
 cd "$(dirname "$0")" || exit 1
 
 ENGINE="${ENGINE:-podman}"
-ALL_GROUPS=(dotnet contract deploy shell)
+ALL_GROUPS=(web dotnet contract deploy e2e shell)
+NODE_IMAGE="${NODE_IMAGE:-docker.io/library/node:24-slim}"
+NPM_CACHE="${NPM_CACHE:-pnmtd-npm-cache}"
+WEB_HOLDER="pnmtd-test-web-$$"
 ONLY=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -37,6 +44,7 @@ fi
 mkdir -p .tmpcheck
 log_dir=$(mktemp -d "$PWD/.tmpcheck/run-tests.XXXXXX")
 failures=()
+trap '"$ENGINE" rm -f "$WEB_HOLDER" >/dev/null 2>&1 || true' EXIT
 
 # step NAME COMMAND…: runs it with its output in a log file, shown only on failure.
 step() {
@@ -51,6 +59,39 @@ step() {
     sed 's/^/      /' "$log" | tail -40
     failures+=("$name")
   fi
+}
+
+# --- containers -------------------------------------------------------------------------------
+
+in_node() { "$ENGINE" run --rm -v "$PWD":/w:ro -w /w "$NODE_IMAGE" "$@"; }
+
+# PNMTD.WebUI copied into one container that lives for the run: npm ci once, then every check in
+# the same node_modules, without touching the working tree.
+web_holder() {
+  "$ENGINE" container inspect "$WEB_HOLDER" >/dev/null 2>&1 && return 0
+  "$ENGINE" run -d --rm --name "$WEB_HOLDER" -v "$PWD":/w:ro -v "${NPM_CACHE}":/root/.npm \
+    -e NPM_CONFIG_UPDATE_NOTIFIER=false -e NPM_CONFIG_FUND=false -e NPM_CONFIG_AUDIT=false -e NO_COLOR=1 \
+    "$NODE_IMAGE" sleep 3600 >/dev/null || return 1
+  "$ENGINE" exec "$WEB_HOLDER" sh -c 'mkdir -p /tmp/web && cd /w/PNMTD.WebUI \
+    && tar --exclude=node_modules --exclude=dist --exclude=test-results -cf - . | tar -C /tmp/web -xf -'
+}
+in_web() { web_holder && "$ENGINE" exec -w /tmp/web "$WEB_HOLDER" "$@"; }
+
+group_web() {
+  echo "web"
+  step "npm packages: pinned, npmjs.org, open-source licences" in_node node tools/check-npm-packages.mjs
+  step "npm ci (locked, no install scripts)" in_web npm ci --ignore-scripts --loglevel=error
+  step "API types generated from openapi.json" in_web npm run --silent check:api
+  step "typecheck (vue-tsc)" in_web npm run --silent typecheck
+  step "lint (ESLint)" in_web npm run --silent lint
+  step "format (Prettier)" in_web npm run --silent format:check
+  step "unit tests (Vitest)" in_web npm test --silent
+  step "build (Vite)" in_web npm run --silent build
+}
+
+group_e2e() {
+  echo "e2e"
+  step "browser tests (Playwright) against the image" env ENGINE="$ENGINE" tools/e2e.sh
 }
 
 group_dotnet() {
@@ -85,7 +126,7 @@ group_shell() {
 
 for group in "${selected[@]}"; do
   case "$group" in
-    dotnet|contract|deploy|shell) "group_$group" ;;
+    web|dotnet|contract|deploy|e2e|shell) "group_$group" ;;
     *) echo "unknown group: $group (${ALL_GROUPS[*]})" >&2; exit 2 ;;
   esac
 done

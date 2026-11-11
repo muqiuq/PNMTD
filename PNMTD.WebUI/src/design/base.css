@@ -1,0 +1,224 @@
+/*
+ * Base styles (docs/webui-migration-plan.md §5.3): 14 px text, a 4/8 px spacing scale, the status
+ * colours, light and dark. PrimeVue's tokens are CSS variables (--p-…); everything here builds on them.
+ */
+
+:root {
+  font-size: 14px;
+  --pnmt-font: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --pnmt-mono: 'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --pnmt-space-1: 4px;
+  --pnmt-space-2: 8px;
+  --pnmt-space-3: 12px;
+  --pnmt-space-4: 16px;
+  --pnmt-space-6: 24px;
+
+  --pnmt-header-height: 48px;
+  --pnmt-page-header-height: 40px;
+  --pnmt-drawer-width: 232px;
+  --pnmt-rail-width: 56px;
+
+  --pnmt-bg: var(--p-surface-50);
+  --pnmt-panel: var(--p-surface-0);
+  --pnmt-border: var(--p-surface-200);
+  --pnmt-text: var(--p-surface-900);
+  --pnmt-muted: var(--p-surface-500);
+
+  /* Status colours (StatusBadge, UptimeBar, CodeTag), legible on both themes. */
+  --pnmt-ok: var(--p-green-600);
+  --pnmt-ok-soft: var(--p-green-100);
+  --pnmt-fail: var(--p-red-600);
+  --pnmt-fail-soft: var(--p-red-100);
+  --pnmt-warn: var(--p-amber-600);
+  --pnmt-warn-soft: var(--p-amber-100);
+  --pnmt-none: var(--p-surface-400);
+  --pnmt-none-soft: var(--p-surface-100);
+
+  color-scheme: light;
+}
+
+:root.pnmt-dark {
+  --pnmt-bg: var(--p-surface-950);
+  --pnmt-panel: var(--p-surface-900);
+  --pnmt-border: var(--p-surface-700);
+  --pnmt-text: var(--p-surface-0);
+  --pnmt-muted: var(--p-surface-400);
+
+  --pnmt-ok: var(--p-green-400);
+  --pnmt-ok-soft: color-mix(in srgb, var(--p-green-500) 18%, transparent);
+  --pnmt-fail: var(--p-red-400);
+  --pnmt-fail-soft: color-mix(in srgb, var(--p-red-500) 20%, transparent);
+  --pnmt-warn: var(--p-amber-400);
+  --pnmt-warn-soft: color-mix(in srgb, var(--p-amber-500) 20%, transparent);
+  --pnmt-none: var(--p-surface-500);
+  --pnmt-none-soft: var(--p-surface-800);
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--pnmt-font);
+  font-size: 1rem;
+  line-height: 1.43;
+  color: var(--pnmt-text);
+  background: var(--pnmt-bg);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'tnum';
+}
+
+#app {
+  min-height: 100%;
+}
+
+a {
+  color: var(--p-primary-color);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+h1 {
+  font-size: 1.2857rem; /* 18 px */
+}
+
+h2 {
+  font-size: 1.1429rem; /* 16 px */
+}
+
+h3 {
+  font-size: 1rem;
+}
+
+code,
+.mono {
+  font-family: var(--pnmt-mono);
+  font-size: 0.9286rem; /* 13 px */
+}
+
+.muted {
+  color: var(--pnmt-muted);
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* One line, cut with an ellipsis (long messages, notes, values: §5.3). */
+.ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* A panel: the plain surface pages are built of (instead of heavy cards). */
+.panel {
+  background: var(--pnmt-panel);
+  border: 1px solid var(--pnmt-border);
+  border-radius: var(--p-border-radius-md);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--pnmt-space-2);
+  min-height: 40px;
+  padding: 0 var(--pnmt-space-3);
+  border-bottom: 1px solid var(--pnmt-border);
+  font-weight: 600;
+}
+
+.panel-body {
+  padding: var(--pnmt-space-3);
+}
+
+/* Forms: label above the field, 12 px between rows. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-1);
+}
+
+.field > label {
+  font-weight: 500;
+}
+
+.field-error {
+  color: var(--p-red-500);
+  font-size: 0.9286rem;
+}
+
+.field-hint {
+  color: var(--pnmt-muted);
+  font-size: 0.9286rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--pnmt-space-2);
+  align-items: center;
+}
+
+/* Page content below its header line. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-3);
+  padding: var(--pnmt-space-3) var(--pnmt-space-4) var(--pnmt-space-6);
+}
+
+/* Two columns from 1200 px (configuration left, live data right: §5.3), one below. */
+.two-columns {
+  display: grid;
+  gap: var(--pnmt-space-3);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (min-width: 1200px) {
+  .two-columns {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+}
+
+@media (max-width: 599px) {
+  .page {
+    padding: var(--pnmt-space-2) var(--pnmt-space-2) var(--pnmt-space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

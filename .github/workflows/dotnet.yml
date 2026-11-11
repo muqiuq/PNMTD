@@ -48,6 +48,15 @@ jobs:
     - name: Test (time zone west of UTC)
       run: PNMTD_TEST_TZ=America/New_York dotnet test --project PNMTD.Tests/PNMTD.Tests.csproj --no-build
 
+  # The web UI, in node containers as everywhere (§6.1): the package check, types against
+  # openapi.json, vue-tsc, ESLint, Prettier, Vitest, the build; and the shell scripts.
+  web:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Web UI and scripts
+      run: ENGINE=docker ./run-tests.sh --only web,shell
+
   # The sensor API must answer exactly as v0.12.1 does: hundreds of applications report to it.
   sensor-contract:
     runs-on: ubuntu-latest

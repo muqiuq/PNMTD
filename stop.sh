@@ -12,6 +12,7 @@ WEB_NAME="${WEB_NAME:-pnmtd-web}"
 NETWORK="${NETWORK:-pnmtd-dev}"
 PG_VOLUME="${PG_VOLUME:-pnmtd-pgdata}"
 KEYS_VOLUME="${KEYS_VOLUME:-pnmtd-keys-dev}"
+WEB_MODULES_VOLUME="${WEB_MODULES_VOLUME:-pnmtd-web-node-modules}"
 
 remove_data=0
 for arg in "$@"; do
@@ -20,7 +21,8 @@ for arg in "$@"; do
     -h|--help)
       echo "Usage: $0 [--data]"
       echo "  --data   also offer to delete the volumes, one question each:"
-      echo "           ${PG_VOLUME} (the database), ${KEYS_VOLUME} (sessions and 2FA secrets)"
+      echo "           ${PG_VOLUME} (the database), ${KEYS_VOLUME} (sessions and 2FA secrets),"
+      echo "           ${WEB_MODULES_VOLUME} (the web UI's node_modules)"
       exit 0 ;;
     *) echo "Unknown option: $arg" >&2; exit 1 ;;
   esac
@@ -61,3 +63,4 @@ remove_container "$DB_NAME"
 # Only now: a volume in use cannot go.
 offer_volume "$PG_VOLUME" "the database (a LEGACY_DIR import can fill it again)"
 offer_volume "$KEYS_VOLUME" "the Data Protection keys (sessions end, 2FA must be set up again)"
+offer_volume "$WEB_MODULES_VOLUME" "the web UI's node_modules (npm ci fills it again)"

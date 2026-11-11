@@ -411,3 +411,6 @@ ASALocalRun/
 # local scratch (start.sh, tools/contract.sh)
 .tmpcheck/
 dev.env
+
+# The web UI, built into the image only (Dockerfile)
+PNMTD/wwwroot/pnmt-admin/

@@ -3,7 +3,9 @@
 # migrations and the app, on http://localhost:7327/. Production runs from deploy/ with Docker; this
 # is not how it is deployed (docs/webui-migration-plan.md §6.2).
 #
-#   ./start.sh                     build and (re)start
+#   ./start.sh                     build and (re)start: http://localhost:7327/pnmt-admin/
+#   WEB=dev ./start.sh             also Vite with HMR: http://localhost:5173/pnmt-admin/, edits of
+#                                  PNMTD.WebUI are live (/api, /event and /read go to the app)
 #   LEGACY_DIR=~/pnmt/pnmtd-data ./start.sh
 #                                  on an empty database: import that v0.12 data folder (its pnmtd.db),
 #                                  as the real upgrade does; the folder is mounted read-only
@@ -12,7 +14,7 @@
 #   LEGACY_USERS=~/pnmt/webapp-data/users.json
 #                                  with LEGACY_DIR: the WebApp's users too, with their passwords
 #   SOURCE_TZ=Europe/Zurich        the zone the v0.12 data was written in (default UTC)
-#   PORT=7400 ./start.sh           another host port
+#   PORT=7400 WEB_PORT=5174        other host ports
 #   VERBOSE=1 ./start.sh           show the build log, which is otherwise only printed on failure
 #   ENGINE=docker ./start.sh       Docker instead of Podman
 #
@@ -37,8 +39,19 @@ LEGACY_USERS="${LEGACY_USERS:-}"
 IMPORT="${IMPORT:-0}"
 SOURCE_TZ="${SOURCE_TZ:-UTC}"
 VERBOSE="${VERBOSE:-0}"
+WEB="${WEB:-}"
+WEB_NAME="${WEB_NAME:-pnmtd-web}"
+WEB_PORT="${WEB_PORT:-5173}"
+WEB_MODULES_VOLUME="${WEB_MODULES_VOLUME:-pnmtd-web-node-modules}"
+NPM_CACHE="${NPM_CACHE:-pnmtd-npm-cache}"
+NODE_IMAGE="${NODE_IMAGE:-docker.io/library/node:24-slim}"
 
 die() { echo "$@" >&2; exit 1; }
+
+case "$WEB" in
+  ""|dev) ;;
+  *) die "WEB=${WEB}: the only value is dev (Vite with HMR beside the app)." ;;
+esac
 
 # A setting of dev.env: its last line, without the quotes .env allows around a value.
 setting() {
@@ -81,9 +94,14 @@ if [[ -n "$LEGACY_USERS" ]]; then
   LEGACY_USERS="$(cd "$(dirname "$LEGACY_USERS")" && pwd)/$(basename "$LEGACY_USERS")"
 fi
 
-# Something else publishing the port would stop the app at the very end: said here, before the build.
-holder=$("$ENGINE" ps --format '{{.Names}} {{.Ports}}' | awk -v port=":${PORT}->" -v app="$NAME" '$1 != app && index($0, port) { print $1; exit }')
-[[ -z "$holder" ]] || die "Port ${PORT} is taken by the container ${holder}: stop it, or choose another (PORT=… ./start.sh)."
+# Something else publishing a port would stop the app at the very end: said here, before the build.
+ports=("$PORT")
+[[ "$WEB" == dev ]] && ports+=("$WEB_PORT")
+for port in "${ports[@]}"; do
+  holder=$("$ENGINE" ps --format '{{.Names}} {{.Ports}}' \
+    | awk -v port=":${port}->" -v app="$NAME" -v web="$WEB_NAME" '$1 != app && $1 != web && index($0, port) { print $1; exit }')
+  [[ -z "$holder" ]] || die "Port ${port} is taken by the container ${holder}: stop it, or choose others (PORT=… WEB_PORT=… ./start.sh)."
+done
 
 # Under the repository: Podman on macOS cannot mount /tmp or /var/folders.
 mkdir -p .tmpcheck
@@ -169,9 +187,48 @@ for _ in $(seq 1 120); do
 done
 curl -fsS -o /dev/null "http://localhost:${PORT}/healthz" || { "$ENGINE" logs --tail 40 "$NAME" >&2; die "${NAME} is up but /healthz did not answer."; }
 
+# Vite with HMR (WEB=dev), its node_modules in a volume of their own (Linux binaries, not the
+# Mac's). npm ci runs whenever package-lock.json changed since the volume was filled. Vite proxies
+# the API to the app by its name on the network; tools/vite-dev.config.mjs adds a polling watcher,
+# since the VM passes no file events through the mount.
+start_web() {
+  echo "Starting ${WEB_NAME} (Vite)…"
+  "$ENGINE" rm -f "$WEB_NAME" >/dev/null 2>&1 || true
+  # shellcheck disable=SC2016 # expanded in the container
+  "$ENGINE" run -d --name "$WEB_NAME" --network "$NETWORK" -p "${WEB_PORT}:5173" \
+    -e NPM_CONFIG_UPDATE_NOTIFIER=false -e NPM_CONFIG_FUND=false -e NPM_CONFIG_AUDIT=false \
+    -e "PNMTD_API_URL=http://${NAME}:8080" \
+    -v "$PWD/PNMTD.WebUI:/web" -v "${WEB_MODULES_VOLUME}:/web/node_modules" -v "${NPM_CACHE}:/root/.npm" \
+    -v "$PWD/tools/vite-dev.config.mjs:/pnmtd/vite-dev.config.mjs:ro" -w /web \
+    "$NODE_IMAGE" sh -c '
+      if ! cmp -s package-lock.json node_modules/.installed-lock; then
+        find node_modules -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+        npm ci --ignore-scripts --loglevel=error && cp package-lock.json node_modules/.installed-lock || exit 1
+      fi
+      mkdir -p node_modules/.pnmtd-dev && cp /pnmtd/vite-dev.config.mjs node_modules/.pnmtd-dev/vite.config.mjs || exit 1
+      exec node_modules/.bin/vite --config node_modules/.pnmtd-dev/vite.config.mjs --host 0.0.0.0 --port 5173 --strictPort' >/dev/null
+  for _ in $(seq 1 240); do
+    if curl -fsS -o /dev/null "http://localhost:${WEB_PORT}/pnmt-admin/" 2>/dev/null; then return 0; fi
+    if [[ -z "$("$ENGINE" ps -q --filter "name=^${WEB_NAME}$")" ]]; then break; fi
+    sleep 0.5
+  done
+  "$ENGINE" logs --tail 30 "$WEB_NAME" >&2 || true
+  die "${WEB_NAME} did not come up."
+}
+
+if [[ "$WEB" == dev ]]; then
+  start_web
+elif [[ -n "$("$ENGINE" ps -aq --filter "name=^${WEB_NAME}$" 2>/dev/null)" ]]; then
+  "$ENGINE" rm -f "$WEB_NAME" >/dev/null 2>&1 || true
+  echo "Removed ${WEB_NAME}: this start is without WEB=dev."
+fi
+
 echo
 echo "─────────────────────────────────────────────"
-echo "PNMTD running on http://localhost:${PORT}/  (Development)"
+echo "PNMTD running on http://localhost:${PORT}/pnmt-admin/  (Development)"
+if [[ "$WEB" == dev ]]; then
+  echo "Vite (HMR):  http://localhost:${WEB_PORT}/pnmt-admin/  (edits of PNMTD.WebUI are live)"
+fi
 echo "Sensor API:  http://localhost:${PORT}/event/<write token>/200/hello"
 echo "             http://localhost:${PORT}/read/<read token>/json"
 echo "API:         http://localhost:${PORT}/api/v1/  (document: PNMTD.WebUI/src/api/openapi.json)"
@@ -186,4 +243,4 @@ fi
 echo "Database:    ${DB_NAME} (volume ${PG_VOLUME}); psql: ${ENGINE} exec -it ${DB_NAME} psql -U pnmtd"
 echo "Logs:        ${ENGINE} logs -f ${NAME}"
 echo "─────────────────────────────────────────────"
-echo "Rerun for code changes. ./stop.sh stops it; ./stop.sh --data also offers to delete the data."
+echo "Rerun for .NET changes$([[ "$WEB" == dev ]] || echo ' and web changes (or WEB=dev ./start.sh for live web edits)'). ./stop.sh stops it; ./stop.sh --data also offers to delete the data."

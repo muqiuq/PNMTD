@@ -23,7 +23,7 @@ public static class ApiPaths
 /// /api/v1's own JSON and errors (docs/webui-migration-plan.md §3.7), kept apart from the sensor API,
 /// which stays on MVC's defaults:
 /// <list type="bullet">
-/// <item>JSON: web defaults (camelCase) with enums as strings. The input and output formatters only
+/// <item>JSON: web defaults (camelCase) with enums as strings and strict numbers. The input and output formatters only
 ///   take requests under /api, so nothing here can change a sensor response. The same options feed
 ///   the OpenAPI document.</item>
 /// <item>Errors: ProblemDetails with a stable <c>code</c>, for /api only.</item>
@@ -33,7 +33,13 @@ public static class ApiSetup
 {
     public static IServiceCollection AddPnmtdApi(this IServiceCollection services)
     {
-        services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+        services.ConfigureHttpJsonOptions(o =>
+        {
+            o.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            // Numbers are numbers: the web defaults also read "5" as 5, which types every number of
+            // the OpenAPI document as number-or-string, and the UI's generated types with it.
+            o.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
+        });
 
         services.AddOptions<MvcOptions>()
             .Configure<IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions>, ILoggerFactory>((mvc, json, loggers) =>
@@ -41,6 +47,7 @@ public static class ApiSetup
                 var options = json.Value.SerializerOptions;
                 // MVC's input options start from the same web defaults; only the converters differ.
                 var input = new JsonOptions();
+                input.JsonSerializerOptions.NumberHandling = options.NumberHandling;
                 foreach (var converter in options.Converters)
                 {
                     input.JsonSerializerOptions.Converters.Add(converter);
