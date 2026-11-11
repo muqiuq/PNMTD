@@ -118,7 +118,7 @@ test('the shell works on a phone and in the dark theme', async ({ page }) => {
   await page.getByRole('button', { name: 'Open navigation' }).click()
   await expect(page.locator('aside.drawer')).toBeVisible()
   await shot(page, '10-drawer-phone')
-  await page.getByRole('link', { name: 'Hosts' }).click()
+  await page.locator('aside.drawer').getByRole('link', { name: 'Hosts' }).click()
   await expect(page.locator('aside.drawer')).toBeHidden()
 
   await page.setViewportSize({ width: 1440, height: 900 })

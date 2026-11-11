@@ -4,7 +4,7 @@ import { formatDuration, formatPercent, formatRelative } from './format'
 describe('formatting', () => {
   it('names durations by their two largest units', () => {
     expect(formatDuration(40_000)).toBe('40 s')
-    expect(formatDuration(5 * 60_000 + 20_000)).toBe('5 min 20 s')
+    expect(formatDuration(5 * 60_000 + 20_000)).toBe('5 min')
     expect(formatDuration((2 * 60 + 14) * 60_000)).toBe('2 h 14 min')
     expect(formatDuration((27 * 60 + 5) * 60_000)).toBe('1 d 3 h')
     expect(formatDuration(3 * 3_600_000)).toBe('3 h')

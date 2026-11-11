@@ -40,22 +40,6 @@ const session = useSession()
 </template>
 
 <style scoped>
-.facts {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: var(--pnmt-space-2) var(--pnmt-space-4);
-  margin: 0;
-  align-items: center;
-}
-
-dt {
-  color: var(--pnmt-muted);
-}
-
-dd {
-  margin: 0;
-}
-
 .on {
   color: var(--pnmt-ok);
 }

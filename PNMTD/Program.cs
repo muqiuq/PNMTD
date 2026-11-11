@@ -49,7 +49,23 @@ public partial class Program
         builder.Services.AddPnmtdAuth(builder.Configuration);
         builder.Services.AddDomainServices();
         // The v1 document only; written at build time to PNMTD.WebUI/src/api/openapi.json (§3.7).
-        builder.Services.AddOpenApi("v1", o => o.ShouldInclude = d => d.RelativePath?.StartsWith("api/v1/", StringComparison.Ordinal) == true);
+        builder.Services.AddOpenApi("v1", o =>
+        {
+            o.ShouldInclude = d => d.RelativePath?.StartsWith("api/v1/", StringComparison.Ordinal) == true;
+            // Query parameters in camelCase, as the JSON (?page=2&pageSize=50&hostId=…). Binding
+            // ignores case, so this only names them in the document the UI's types come from.
+            o.AddOperationTransformer((operation, _, _) =>
+            {
+                foreach (var parameter in operation.Parameters?.OfType<Microsoft.OpenApi.OpenApiParameter>() ?? [])
+                {
+                    if (parameter.In == Microsoft.OpenApi.ParameterLocation.Query && parameter.Name is { Length: > 0 } name)
+                    {
+                        parameter.Name = System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(name);
+                    }
+                }
+                return Task.CompletedTask;
+            });
+        });
         builder.Services.AddHttpClient();
         builder.Services.AddSingleton<NotificationService>();
 

@@ -357,10 +357,10 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    Page?: number;
-                    PageSize?: number;
-                    Sort?: string;
-                    Search?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -622,12 +622,12 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    UserId?: string;
-                    Type?: string;
-                    Page?: number;
-                    PageSize?: number;
-                    Sort?: string;
-                    Search?: string;
+                    userId?: string;
+                    type?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -666,10 +666,10 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    Page?: number;
-                    PageSize?: number;
-                    Sort?: string;
-                    Search?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -903,10 +903,10 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    Page?: number;
-                    PageSize?: number;
-                    Sort?: string;
-                    Search?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
                 };
                 header?: never;
                 path: {
@@ -947,10 +947,10 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    Page?: number;
-                    PageSize?: number;
-                    Sort?: string;
-                    Search?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -989,15 +989,15 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    HostId?: string;
-                    SensorId?: string;
-                    Status?: string;
-                    From?: string;
-                    To?: string;
-                    Page?: number;
-                    PageSize?: number;
-                    Sort?: string;
-                    Search?: string;
+                    hostId?: string;
+                    sensorId?: string;
+                    status?: string;
+                    from?: string;
+                    to?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -1075,11 +1075,11 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    From?: string;
-                    To?: string;
-                    HostId?: string;
-                    SensorId?: string;
-                    Limit?: number;
+                    from?: string;
+                    to?: string;
+                    hostId?: string;
+                    sensorId?: string;
+                    limit?: number;
                 };
                 header?: never;
                 path?: never;
@@ -1118,11 +1118,11 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    State?: components["schemas"]["HostState"];
-                    Page?: number;
-                    PageSize?: number;
-                    Sort?: string;
-                    Search?: string;
+                    state?: components["schemas"]["HostState"];
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -1275,10 +1275,10 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    Page?: number;
-                    PageSize?: number;
-                    Sort?: string;
-                    Search?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -1431,10 +1431,10 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    Page?: number;
-                    PageSize?: number;
-                    Sort?: string;
-                    Search?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -1587,11 +1587,11 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    Processed?: boolean;
-                    Page?: number;
-                    PageSize?: number;
-                    Sort?: string;
-                    Search?: string;
+                    processed?: boolean;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -1669,10 +1669,10 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    Page?: number;
-                    PageSize?: number;
-                    Sort?: string;
-                    Search?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -1920,13 +1920,13 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    HostId?: string;
-                    Type?: components["schemas"]["SensorType"];
-                    State?: components["schemas"]["SensorState"];
-                    Page?: number;
-                    PageSize?: number;
-                    Sort?: string;
-                    Search?: string;
+                    hostId?: string;
+                    type?: components["schemas"]["SensorType"];
+                    state?: components["schemas"]["SensorState"];
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
                 };
                 header?: never;
                 path?: never;
@@ -2167,15 +2167,15 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    HostId?: string;
-                    SensorId?: string;
-                    Status?: string;
-                    From?: string;
-                    To?: string;
-                    Page?: number;
-                    PageSize?: number;
-                    Sort?: string;
-                    Search?: string;
+                    hostId?: string;
+                    sensorId?: string;
+                    status?: string;
+                    from?: string;
+                    to?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
                 };
                 header?: never;
                 path: {

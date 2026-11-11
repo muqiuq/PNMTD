@@ -6,6 +6,7 @@
 #   ./start.sh                     build and (re)start: http://localhost:7327/pnmt-admin/
 #   WEB=dev ./start.sh             also Vite with HMR: http://localhost:5173/pnmt-admin/, edits of
 #                                  PNMTD.WebUI are live (/api, /event and /read go to the app)
+#   SEED=1 ./start.sh              on an empty database: demo data (50 hosts, 300 sensors, 90 days)
 #   LEGACY_DIR=~/pnmt/pnmtd-data ./start.sh
 #                                  on an empty database: import that v0.12 data folder (its pnmtd.db),
 #                                  as the real upgrade does; the folder is mounted read-only
@@ -18,7 +19,8 @@
 #   VERBOSE=1 ./start.sh           show the build log, which is otherwise only printed on failure
 #   ENGINE=docker ./start.sh       Docker instead of Podman
 #
-# Settings come from dev.env (gitignored, 0600, deploy/.env format: Smtp__Host=…, Identity=…, TZ=…).
+# Settings come from dev.env (gitignored, 0600, deploy/.env format: Smtp__Host=…, Identity=…, TZ=…),
+# or the file ENV_FILE names (tools/e2e.sh).
 # The first run creates it with a generated database password and a password for the first admin
 # (admin, Auth__InitialAdmin__Password), which the server makes you change at the first sign-in.
 # ./stop.sh stops everything again.
@@ -37,8 +39,10 @@ POSTGRES_IMAGE="${POSTGRES_IMAGE:-docker.io/library/postgres:18-alpine}"
 LEGACY_DIR="${LEGACY_DIR:-}"
 LEGACY_USERS="${LEGACY_USERS:-}"
 IMPORT="${IMPORT:-0}"
+SEED="${SEED:-0}"
 SOURCE_TZ="${SOURCE_TZ:-UTC}"
 VERBOSE="${VERBOSE:-0}"
+ENV_FILE="${ENV_FILE:-dev.env}"
 WEB="${WEB:-}"
 WEB_NAME="${WEB_NAME:-pnmtd-web}"
 WEB_PORT="${WEB_PORT:-5173}"
@@ -55,23 +59,23 @@ esac
 
 # A setting of dev.env: its last line, without the quotes .env allows around a value.
 setting() {
-  sed -n "s/^$1=//p" dev.env | tail -1 | sed -E "s/^'(.*)'\$/\\1/; s/^\"(.*)\"\$/\\1/"
+  sed -n "s/^$1=//p" "$ENV_FILE" | tail -1 | sed -E "s/^'(.*)'\$/\\1/; s/^\"(.*)\"\$/\\1/"
 }
 
 # A line appended to dev.env, which is edited by hand and may lack its final newline.
 add_setting() {
-  if [[ -s dev.env && -n "$(tail -c1 dev.env)" ]]; then echo >> dev.env; fi
-  printf '%s=%s\n' "$1" "$2" >> dev.env
+  if [[ -s "$ENV_FILE" && -n "$(tail -c1 "$ENV_FILE")" ]]; then echo >> "$ENV_FILE"; fi
+  printf '%s=%s\n' "$1" "$2" >> "$ENV_FILE"
 }
 
 # 32 hex digits; a fixed read, since tr on an endless stream ends in SIGPIPE.
 random_secret() { od -An -N16 -tx1 /dev/urandom | tr -d ' \n'; }
 
-if [[ ! -f dev.env ]]; then
+if [[ ! -f "$ENV_FILE" ]]; then
   (umask 077 && printf '%s\n' \
     '# Settings for ./start.sh, in deploy/.env format (ASP.NET names: Smtp__Host=…, Identity=…, TZ=…).' \
-    '# Only what differs from the defaults needs a line.' > dev.env)
-  echo "dev.env created."
+    '# Only what differs from the defaults needs a line.' > "$ENV_FILE")
+  echo "$ENV_FILE created."
 fi
 if [[ -z "$(setting PNMTD_DB_PASSWORD)" ]]; then
   add_setting PNMTD_DB_PASSWORD "$(random_secret)"
@@ -139,7 +143,7 @@ fi
 
 # pnmtd, run once in the image beside the database.
 pnmtd() {
-  "$ENGINE" run --rm --network "$NETWORK" --env-file dev.env \
+  "$ENGINE" run --rm --network "$NETWORK" --env-file "$ENV_FILE" \
     -e "Database__Host=${DB_NAME}" -e "Database__Password=${db_password}" "$@"
 }
 
@@ -165,11 +169,23 @@ if [[ -n "$LEGACY_DIR" ]] && [[ "$hosts" == "0" || "$IMPORT" != "0" ]]; then
   imported=1
 fi
 
+seeded=0
+if [[ "$SEED" != "0" && "$imported" == "0" ]]; then
+  if [[ "$hosts" == "0" ]]; then
+    echo "Seeding demo data…"
+    pnmtd -e ASPNETCORE_ENVIRONMENT=Development "$IMAGE" dev seed >"$scratch/seed.log" 2>&1 \
+      || { cat "$scratch/seed.log" >&2; die "The seed failed."; }
+    seeded=1
+  else
+    echo "SEED=1: the database has hosts already, nothing seeded (./stop.sh --data empties it)."
+  fi
+fi
+
 "$ENGINE" rm -f "$NAME" >/dev/null 2>&1 || true
 # As hardened as in deploy/docker-compose.yml, so what fails there fails here first.
 "$ENGINE" run -d --name "$NAME" --hostname "$NAME" --network "$NETWORK" \
   -p "${PORT}:8080" \
-  --env-file dev.env \
+  --env-file "$ENV_FILE" \
   -e ASPNETCORE_ENVIRONMENT=Development \
   -e "Database__Host=${DB_NAME}" -e "Database__Password=${db_password}" \
   --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
@@ -232,8 +248,11 @@ fi
 echo "Sensor API:  http://localhost:${PORT}/event/<write token>/200/hello"
 echo "             http://localhost:${PORT}/read/<read token>/json"
 echo "API:         http://localhost:${PORT}/api/v1/  (document: PNMTD.WebUI/src/api/openapi.json)"
-echo "Sign-in:     admin, with Auth__InitialAdmin__Password from dev.env until you change it"
+echo "Sign-in:     admin, with Auth__InitialAdmin__Password from ${ENV_FILE} until you change it"
 echo "             (only while the database had no users: imported users keep their passwords)"
+if (( seeded )); then
+  echo "Seeded:      $(grep '^Seeded' "$scratch/seed.log")"
+fi
 if (( imported )); then
   echo "Imported:    ${LEGACY_DIR}/pnmtd.db"
   grep -E '^ +[a-z_]+ +[0-9]+ rows$|^ +User |Warning' "$scratch/import.log" | sed 's/^ */             /' || true

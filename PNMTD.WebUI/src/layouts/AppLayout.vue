@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
-import { computed, ref, watch } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
+import { computed, ref, watch, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import GlobalSearch from '@/components/GlobalSearch.vue'
 import LogoMark from '@/components/LogoMark.vue'
+import RelativeTime from '@/components/RelativeTime.vue'
+import { useDashboard } from '@/composables/useDashboard'
 import { useMedia } from '@/composables/useMedia'
+import { pageTitle } from '@/router'
 import { usePreferences } from '@/stores/preferences'
 import { useSession } from '@/stores/session'
 import { visibleNavigation } from './navigation'
@@ -21,6 +26,28 @@ const router = useRouter()
 const phone = useMedia('(max-width: 599px)')
 const narrow = useMedia('(max-width: 959px)')
 const overlayOpen = ref(false)
+
+// The failure count follows every page (§5.4): on the Dashboard item and in the tab title, so a tab
+// in the background still shows problems.
+const dashboard = useDashboard()
+const failing = computed(() => dashboard.data.value?.summary.sensors.failing ?? 0)
+const updatedAt = computed(() =>
+  dashboard.dataUpdatedAt.value ? new Date(dashboard.dataUpdatedAt.value).toISOString() : null,
+)
+watchEffect(() => {
+  document.title = pageTitle(route.meta.title, session.identity, failing.value)
+})
+
+const queryClient = useQueryClient()
+const refreshing = ref(false)
+async function refresh() {
+  refreshing.value = true
+  try {
+    await queryClient.refetchQueries({ type: 'active' })
+  } finally {
+    refreshing.value = false
+  }
+}
 
 const groups = computed(() => visibleNavigation(session.can))
 const rail = computed(() => !phone.value && (narrow.value || preferences.drawerCollapsed))
@@ -89,6 +116,13 @@ async function signOut() {
           >
             <i :class="item.icon" aria-hidden="true" />
             <span v-if="!rail" class="label">{{ item.label }}</span>
+            <span
+              v-if="item.name === 'dashboard' && failing"
+              class="badge"
+              :class="{ dot: rail }"
+              :aria-label="`${failing} failing`"
+              >{{ rail ? '' : failing }}</span
+            >
             <span v-else class="sr-only">{{ item.label }}</span>
           </RouterLink>
         </section>
@@ -111,9 +145,21 @@ async function signOut() {
           @click="toggleDrawer"
         />
         <span class="instance ellipsis" :title="session.identity">{{ session.identity }}</span>
-        <div class="app-bar-center"><slot name="search" /></div>
+        <div class="app-bar-center"><GlobalSearch v-if="!phone" /></div>
         <div class="app-bar-end">
-          <slot name="status" />
+          <span v-if="updatedAt && !phone" class="updated muted">
+            {{ dashboard.isError.value ? 'Connection lost ·' : 'Updated' }} <RelativeTime :value="updatedAt" />
+          </span>
+          <Button
+            v-tooltip.bottom="'Refresh'"
+            icon="pi pi-refresh"
+            text
+            rounded
+            severity="secondary"
+            :loading="refreshing"
+            aria-label="Refresh"
+            @click="refresh"
+          />
           <Button
             v-tooltip.bottom="preferences.isDark() ? 'Light theme' : 'Dark theme'"
             :icon="preferences.isDark() ? 'pi pi-sun' : 'pi pi-moon'"
@@ -249,6 +295,7 @@ async function signOut() {
   display: flex;
   align-items: center;
   gap: var(--pnmt-space-3);
+  position: relative;
   height: 34px;
   padding: 0 var(--pnmt-space-2);
   border-radius: var(--p-border-radius-md);
@@ -269,6 +316,33 @@ async function signOut() {
   background: var(--p-highlight-background);
   color: var(--p-highlight-color);
   font-weight: 500;
+}
+
+.badge {
+  margin-left: auto;
+  min-width: 1.4rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--pnmt-fail);
+  color: #fff;
+  font-size: 0.786rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.badge.dot {
+  position: absolute;
+  margin: 0 0 14px 18px;
+  min-width: 0;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+}
+
+.updated {
+  font-size: 0.857rem;
+  white-space: nowrap;
 }
 
 .nav-item i {

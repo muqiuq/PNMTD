@@ -32,14 +32,16 @@ export function formatDay(value: string | Date): string {
   return dateOnly.format(date)
 }
 
-/** "3 d 4 h", "2 h 14 min", "5 min", "40 s": the two largest units. */
+/** "3 d 4 h", "2 h 14 min", "5 min", "40 s": the two largest units, seconds only below a minute. */
 export function formatDuration(ms: number): string {
   const seconds = Math.max(0, Math.round(ms / 1000))
+  if (seconds < 60) {
+    return `${seconds} s`
+  }
   const units: [number, string][] = [
     [86_400, 'd'],
     [3_600, 'h'],
     [60, 'min'],
-    [1, 's'],
   ]
   const parts: string[] = []
   let rest = seconds
@@ -48,7 +50,7 @@ export function formatDuration(ms: number): string {
       break
     }
     const count = Math.floor(rest / size)
-    if (count > 0 || (unit === 's' && parts.length === 0)) {
+    if (count > 0) {
       parts.push(`${count} ${unit}`)
       rest -= count * size
     } else if (parts.length > 0) {

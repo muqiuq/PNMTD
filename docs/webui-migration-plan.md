@@ -7,7 +7,7 @@
 | Revision | 3.1: review decisions applied, including the answers to the revision 3 questions (§10.2). .NET 10 everywhere, PostgreSQL instead of SQLite, a frozen sensor API, old management routes and JWT removed, a `deploy/` folder plus `start.sh`/`stop.sh`, a Viewer role, a compact UI with a redesigned dashboard, release **v1.0.0** |
 | Scope | Replace the separate Blazor Server frontend (`PNMT.WebApp`, v0.11.0) with a Vue 3 single-page app served by PNMTD under `/pnmt-admin`. Upgrade every project to .NET 10. Move storage from SQLite to PostgreSQL. Add a new management API `/api/v1` and remove everything else except the sensor API. Move user management into PNMTD (username + password + TOTP). Production deployment from `deploy/`, local debugging with `start.sh`/`stop.sh` |
 | Non-goals | Changing the monitoring logic. **Any observable change to the sensor API** (`/event`, `/read`) |
-| Progress | **Phase 0 done** (2026-11-11): golden sensor contract recorded from v0.12.1 (`tools/contract.sh`), every project on .NET 10, the .NET 10 image passes the contract.<br>**Phase 1 done** (2026-11-11): PostgreSQL with UTC timestamps, `pnmtd db migrate` / `import-sqlite` with verification, `start.sh`/`stop.sh`, `run-tests.sh`, the `deploy/` skeleton. The PostgreSQL image passes the contract with the fixture imported.<br>**Phase 2 done** (2026-11-11): `/api/v1` for every resource of §3.7 on domain services, deny by default with the Viewer/User/Admin policies, `/pnmt-admin` hosting, `/` and the old routes as empty 404s, JWT, `/trust` and lazy loading removed. The anonymous-surface test, the role matrix and the v1 tests are green, and the image still passes the contract. <br>**Phase 3 done** (2026-11-11): `users` and `auth_log`, cookie sign-in with lockout and the login rate limit, session revocation by security stamp, antiforgery, the last-admin guard, temporary passwords, the first admin, `users.json` import with the WebApp's hashes, `pnmtd users …` with `add-user.sh`, `list-users.sh` and `reset-password.sh`.<br>**Phase 4 done** (2026-11-11): TOTP with replay protection, setup and confirmation with a pending secret on the server, the code as login step 2, turning it off with password and code, `Auth:TotpPolicy` enforced on every request, the admin's reset, `pnmtd users reset-totp` and `reset-totp.sh`, the `info.sh` warning. RFC 6238 vectors and the flow tests are green.<br>**Phase 5 done** (2026-11-11): `PNMTD.WebUI` (Vue 3.5, TypeScript, PrimeVue 4.5, Pinia, Vue Query, openapi-fetch) built only in containers (`tools/npm.sh`, `WEB=dev ./start.sh`, the image's node stage), the shell with drawer and app bar in light and dark, sign-in with the 2FA step, the forced password change, the 2FA prompt and setup, Account and Security, the shared components, Vitest, and Playwright against the image (`tools/e2e.sh`). See §7.1 for where the implementation differs from this plan |
+| Progress | **Phase 0 done** (2026-11-11): golden sensor contract recorded from v0.12.1 (`tools/contract.sh`), every project on .NET 10, the .NET 10 image passes the contract.<br>**Phase 1 done** (2026-11-11): PostgreSQL with UTC timestamps, `pnmtd db migrate` / `import-sqlite` with verification, `start.sh`/`stop.sh`, `run-tests.sh`, the `deploy/` skeleton. The PostgreSQL image passes the contract with the fixture imported.<br>**Phase 2 done** (2026-11-11): `/api/v1` for every resource of §3.7 on domain services, deny by default with the Viewer/User/Admin policies, `/pnmt-admin` hosting, `/` and the old routes as empty 404s, JWT, `/trust` and lazy loading removed. The anonymous-surface test, the role matrix and the v1 tests are green, and the image still passes the contract. <br>**Phase 3 done** (2026-11-11): `users` and `auth_log`, cookie sign-in with lockout and the login rate limit, session revocation by security stamp, antiforgery, the last-admin guard, temporary passwords, the first admin, `users.json` import with the WebApp's hashes, `pnmtd users …` with `add-user.sh`, `list-users.sh` and `reset-password.sh`.<br>**Phase 4 done** (2026-11-11): TOTP with replay protection, setup and confirmation with a pending secret on the server, the code as login step 2, turning it off with password and code, `Auth:TotpPolicy` enforced on every request, the admin's reset, `pnmtd users reset-totp` and `reset-totp.sh`, the `info.sh` warning. RFC 6238 vectors and the flow tests are green.<br>**Phase 5 done** (2026-11-11): `PNMTD.WebUI` (Vue 3.5, TypeScript, PrimeVue 4.5, Pinia, Vue Query, openapi-fetch) built only in containers (`tools/npm.sh`, `WEB=dev ./start.sh`, the image's node stage), the shell with drawer and app bar in light and dark, sign-in with the 2FA step, the forced password change, the 2FA prompt and setup, Account and Security, the shared components, Vitest, and Playwright against the image (`tools/e2e.sh`).<br>**Phase 6 done** (2026-11-11): the dashboard of §5.5 with its acceptance targets met at 1440×900, 1920×1080 and 390×844 (Playwright, both themes), and every page of §5.6: hosts, sensors with their integration panel, events, notification rules, DNS zones, mail inputs and log, key values, users, the auth log, system health and the documentation; the global search, the failure badge and the tab title; `pnmtd dev seed` behind `SEED=1`. See §7.1 for where the implementation differs from this plan |
 | References | `~/source/plm`: deploy folder, start/stop scripts, PostgreSQL, SQLite import, contract harness. `~/source/exam-trainer`: Vue + Vite in Podman, the same deploy pattern. `~/source/PortUpAcademy`: auth and TOTP code. `~/source/PNMT.WebApp`: the current UI |
 
 ---
@@ -1392,6 +1392,43 @@ Phase 5:
   - **Vitest:** 40 tests, including the API client (XSRF header, ProblemDetails, Retry-After, the network error), the guard, UptimeBar, StatusBadge, CodeTag, RelativeTime and InlineField.
   - **Playwright, earlier than planned:** `tools/e2e.sh` starts a stack of its own with `start.sh` (other names, volumes and port 7398), creates an admin with a temporary password, and runs Playwright in its image on the stack's network. It covers the first sign-in, the forced change, the prompt and setup, the 2FA sign-in, the password change on the Account page, sign-out, a wrong code, the phone drawer and the dark theme. The screenshots land in `PNMTD.WebUI/test-results/screens`.
   - **run-tests.sh:** new `web` and `e2e` groups. CI runs `web` and `shell`; Playwright joins CI in phase 7.
+
+Phase 6:
+
+- **API:** query parameters are camelCase in the OpenAPI document (`?page=2&pageSize=50&hostId=…`), like the JSON. An operation transformer renames them; binding ignores case, so nothing else changed.
+- **Demo data:** `pnmtd dev seed` (Development only, into a database without hosts) and `SEED=1 ./start.sh` write 50 hosts, 300 sensors, about 180,000 events over 90 days, outages, recent flaps, 6 sensors failing now in 3 hosts, 2 DNS zones (one mismatch), notification and mail rules, and a processed mail log. It stays stable while the tasks run:
+  - Pings go to 127.0.0.1; the failing one goes to a TEST-NET address that never answers.
+  - Heartbeats are daily, DNS zones are due the next day, and every mail is already processed.
+  - Notification rules link only sensors without events in the notification task's 30-minute window.
+  - A .NET test pins its shape.
+- **Shell:**
+  - The dashboard query (30 s, from the server's cache) also feeds the failure badge on the Dashboard item, the tab title and "Updated … ago" with a refresh button.
+  - The global search (Ctrl/⌘ K) also looks up an exact token for User and Admin.
+- **Dashboard:**
+  - A failing sensor takes one line when the problems panel is at least 860 px wide (a container query), two lines otherwise. That is what fits the recent changes into 1920×1080.
+  - The inline Ignore (a *should*) has an Undo in its toast.
+  - The hosts panel defaults to rows on a desktop and tiles on a phone until the user picks one.
+- **Lists:**
+  - `ListTable` is a lazy DataTable on a desktop and a list of two-line rows with a pager below 600 px.
+  - Page, sort, search and filters live in the URL, so the dashboard's tiles link into filtered lists.
+  - Destructive actions sit in a ⋯ menu, and their confirmations name what goes with them (a host's sensors and events).
+- **Pages:**
+  - **Sensor:**
+    - The type can change between the types one may create, as in v0.12. A DNS sensor's type stays, and it links to the zones.
+    - The integration panel's Base64 example posts the message: the sensor API decodes standard Base64, whose `/` would break a GET path.
+  - **Events:** the presets have a custom range of days beside them, and Live switches the refresh from 30 s to 10 s.
+  - **Mail input:** the regular expressions are checked in the browser as they are typed; the server's .NET regex has the last word. The latest mails are tested on sender and subject only, since the list carries no body. That is the part of the *should* "live regex test" that needs no new endpoint.
+  - **Users:** a temporary password is shown once in a dialog of its own. One's own password and 2FA stay under Account and Security, not in the user list.
+  - **DNS zone:** "Check now" follows the zone every 2 s until the server has processed it. The zone editor is a monospace text area; CodeMirror (a *should*) is not done.
+- **Tooling:**
+  - `start.sh` takes `ENV_FILE`. `tools/e2e.sh` uses one of its own, with a higher login rate limit, because the browser tests sign in more often than 10 times a minute from one address. The .NET tests cover the limit itself.
+  - The e2e stack also has an `e2e-admin` and an `e2e-viewer` with passwords of their own.
+- **Tests:** 13 browser tests:
+  - the dashboard's targets (§5.5);
+  - every page as Admin, with no script error, Vue warning or CSP violation;
+  - a host and sensor created, reported to through the sensor API and deleted;
+  - the search, the events drawer and a Viewer's limits;
+  - no sideways scrolling at 360 px.
 
 **Total: about 36–51 person-days.**
 

@@ -12,7 +12,7 @@
 #             in a zone east and one west of UTC
 #   contract  the image from the working tree against the golden sensor contract (tools/contract.sh)
 #   deploy    deploy/ for real: init, up, sign-in, the user scripts, a sensor event, backup, restore
-#   e2e       the browser tests (Playwright) against a stack of their own (tools/e2e.sh)
+#   e2e       the browser tests (Playwright) against a seeded stack of their own (tools/e2e.sh)
 #   shell     bash -n and shellcheck (in a container) over every script
 #
 # dotnet runs with the .NET SDK on this machine; node never does: the web group copies PNMTD.WebUI

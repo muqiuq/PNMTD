@@ -60,3 +60,17 @@ export function credentials() {
   }
   return { user, password }
 }
+
+/** Signs in as e2e-admin or e2e-viewer (no 2FA, own password) and skips the 2FA prompt. */
+export async function signIn(page: Page, who: 'admin' | 'viewer' = 'admin') {
+  const password = who === 'admin' ? process.env.E2E_ADMIN_PASSWORD : process.env.E2E_VIEWER_PASSWORD
+  if (!password) {
+    throw new Error('E2E_ADMIN_PASSWORD / E2E_VIEWER_PASSWORD: tools/e2e.sh sets them.')
+  }
+  await page.goto('/pnmt-admin/login')
+  await page.getByLabel('Username').fill(`e2e-${who}`)
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await page.getByRole('button', { name: 'Later' }).click()
+  await page.waitForURL(/\/pnmt-admin\/$/)
+}

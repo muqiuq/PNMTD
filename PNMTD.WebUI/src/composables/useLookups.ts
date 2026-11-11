@@ -1,0 +1,73 @@
+import { useQuery } from '@tanstack/vue-query'
+import { computed } from 'vue'
+import { api, keys } from '@/api/resources'
+
+/** "HEARTBEAT_MISSING" → "Heartbeat missing". */
+export function humanize(name: string): string {
+  const words = name
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\bsuccessfull\b/, 'successful')
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
+const forever = { staleTime: Infinity, gcTime: Infinity }
+
+/** The status codes with their names (§5.3: "460 Heartbeat missing"); other codes by range. */
+export function useStatusCodes() {
+  const query = useQuery({ queryKey: [...keys.system, 'status-codes'], queryFn: api.system.statusCodes, ...forever })
+  const byCode = computed(() => new Map((query.data.value ?? []).map((c) => [c.code, c])))
+  return {
+    query,
+    list: computed(() => query.data.value ?? []),
+    nameOf(code: number | null | undefined): string | undefined {
+      if (code === null || code === undefined) {
+        return undefined
+      }
+      const known = byCode.value.get(code)
+      if (known) {
+        return humanize(known.name)
+      }
+      return code < 0 ? 'Never reported' : code <= 399 ? 'Success' : 'Failure'
+    },
+  }
+}
+
+export function useSensorTypes() {
+  const query = useQuery({ queryKey: [...keys.system, 'sensor-types'], queryFn: api.system.sensorTypes, ...forever })
+  return {
+    query,
+    list: computed(() => query.data.value ?? []),
+    info: (type: string | null | undefined) => (query.data.value ?? []).find((t) => t.type === type),
+  }
+}
+
+export function useRuleTypes() {
+  const query = useQuery({ queryKey: [...keys.system, 'rule-types'], queryFn: api.system.ruleTypes, ...forever })
+  return { query, list: computed(() => query.data.value ?? []) }
+}
+
+/** The label of a sensor type: "HEARTBEAT_VALUECHECK" → "Heartbeat valuecheck". */
+export const typeLabel = (type: string) => (type === 'ENCAPSULADED' ? 'Encapsulated (JSON)' : humanize(type))
+
+/** The PrimeIcon of a sensor type. */
+export function typeIcon(type: string): string {
+  switch (type) {
+    case 'PING':
+      return 'pi pi-wifi'
+    case 'HEARTBEAT':
+    case 'HEARTBEAT_VALUECHECK':
+      return 'pi pi-heart'
+    case 'VALUECHECK':
+      return 'pi pi-check-square'
+    case 'DNS':
+      return 'pi pi-globe'
+    case 'ENCAPSULADED':
+      return 'pi pi-sitemap'
+    case 'ONE_WITHIN_TIMESPAN':
+    case 'ALL_WITHIN_TIMESPAN':
+      return 'pi pi-clock'
+    default:
+      return 'pi pi-bolt'
+  }
+}

@@ -26,7 +26,8 @@ export const usePreferences = defineStore('preferences', () => {
   const stored = read()
   const theme = ref<Theme>(stored.theme ?? 'system')
   const drawerCollapsed = ref(stored.drawerCollapsed ?? false)
-  const hostsView = ref<HostsView>(stored.hostsView ?? 'rows')
+  // null: the default, rows on a desktop and tiles on a phone (§5.5).
+  const hostsView = ref<HostsView | null>(stored.hostsView ?? null)
   const systemDark = ref(false)
 
   const media =

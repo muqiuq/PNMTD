@@ -155,6 +155,24 @@ code,
   padding: var(--pnmt-space-3);
 }
 
+/* Label/value pairs: "Username   e2e-admin". */
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--pnmt-space-2) var(--pnmt-space-4);
+  margin: 0;
+  align-items: center;
+}
+
+.facts > dt {
+  color: var(--pnmt-muted);
+}
+
+.facts > dd {
+  margin: 0;
+  min-width: 0;
+}
+
 /* Forms: label above the field, 12 px between rows. */
 .form {
   display: flex;
@@ -210,7 +228,26 @@ code,
   }
 }
 
+/* Two columns of fields in a form, one on a phone. */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pnmt-space-3) var(--pnmt-space-4);
+}
+
+.form-grid .wide {
+  grid-column: 1 / -1;
+}
+
+.row-muted {
+  opacity: 0.6;
+}
+
 @media (max-width: 599px) {
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .page {
     padding: var(--pnmt-space-2) var(--pnmt-space-2) var(--pnmt-space-4);
   }
