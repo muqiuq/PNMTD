@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # deploy/ for real, in a scratch copy with a project name of its own: init.sh, docker compose up,
-# signing in as the first admin, add-user.sh, reset-password.sh, list-users.sh, a sensor event,
+# signing in as the first admin, add-user.sh, reset-password.sh, list-users.sh, reset-totp.sh, a sensor event,
 # backup.sh, another event, restore.sh, and the first event is what /read says again.
 # Runs the image tools/contract.sh build made (pnmtd:dev). Needs docker and compose; on a Mac the
 # docker CLI may talk to Podman. KEEP=1 leaves the stack running.
@@ -76,7 +76,17 @@ reset_password="$(awk '/^    [A-Za-z0-9]+$/ {print $1}' "$dir/reset.out")"
 [[ "$(login ops "$reset_password")" == "200" ]] || fail "sign-in with reset-password.sh's password: $(cat "$dir/body")"
 ./list-users.sh | grep -Eq '^ops +Viewer +active' || fail "list-users.sh: $(./list-users.sh)"
 
+# reset-totp.sh (§4.6): 2FA turned on behind the app's back (the enrollment itself is in the
+# integration tests), so the password alone no longer signs in; after the reset it does again.
 sql() { compose exec -T db psql -U pnmtd -d pnmtd -tAc "$1"; }
+sql "UPDATE users SET \"IsTotpEnabled\" = true, \"TotpSecretProtected\" = 'unreadable' WHERE \"NormalizedUsername\" = 'ops'" >/dev/null
+[[ "$(login ops "$reset_password")" == "200" ]] && grep -q '"next":"totp"' "$dir/body" || fail "no code step with 2FA on: $(cat "$dir/body")"
+./list-users.sh | grep -Eq '^ops +Viewer +active +2FA' || fail "list-users.sh shows no 2FA: $(./list-users.sh)"
+./reset-totp.sh ops >"$dir/reset-totp.out" || fail "reset-totp.sh: $(cat "$dir/reset-totp.out")"
+grep -q 'Turned 2FA off for ops' "$dir/reset-totp.out" || fail "reset-totp.sh: $(cat "$dir/reset-totp.out")"
+[[ "$(login ops "$reset_password")" == "200" ]] && grep -q '"next":"done"' "$dir/body" || fail "2FA still asked after reset-totp.sh: $(cat "$dir/body")"
+./info.sh | grep -q 'Admins without 2FA: admin\.' || fail "info.sh does not warn about the admin without 2FA: $(./info.sh)"
+
 sql "INSERT INTO hosts (\"Id\",\"Created\",\"Enabled\",\"Name\") VALUES ('11111111-1111-1111-1111-111111111111', now(), true, 'h');
      INSERT INTO sensors (\"Id\",\"ParentId\",\"Type\",\"Name\",\"Created\",\"Enabled\",\"Ignore\",\"Interval\",\"GracePeriod\",\"SecretWriteToken\",\"SecretReadToken\")
      VALUES ('22222222-2222-2222-2222-222222222222','11111111-1111-1111-1111-111111111111',10,'s',now(),true,false,86400,86400,'wtok-deploy','rtok-deploy');" >/dev/null

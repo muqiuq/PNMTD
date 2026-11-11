@@ -191,6 +191,24 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
         return temporary;
     }
 
+    /// <summary>
+    /// "Reset 2FA" (§4.6), for a user who lost the authenticator: 2FA off, every session ended, a
+    /// lockout lifted (the failed codes caused it). The next sign-in offers the setup again.
+    /// Returns whether 2FA was on.
+    /// </summary>
+    public async Task<bool> ResetTotpAsync(Guid id, AuditContext audit, CancellationToken ct = default)
+    {
+        var user = await GetAsync(id, ct);
+        var wasEnabled = user.IsTotpEnabled;
+        ClearTotp(user);
+        user.SecurityStamp = NewStamp();
+        Unlock(user);
+        Log(AuthEvents.TotpReset, user, audit, wasEnabled ? null : "2FA was off");
+        await SaveAsync(ct);
+        sessions?.Forget(user.Id);
+        return wasEnabled;
+    }
+
     public async Task UnlockAsync(Guid id, AuditContext audit, CancellationToken ct = default)
     {
         var user = await GetAsync(id, ct);
@@ -278,6 +296,15 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
         }
     }
 
+    internal static void ClearTotp(UserEntity user)
+    {
+        user.TotpSecretProtected = null;
+        user.IsTotpEnabled = false;
+        user.TotpLastUsedStep = null;
+        user.PendingTotpSecretProtected = null;
+        user.PendingTotpCreatedAt = null;
+    }
+
     internal static void Unlock(UserEntity user)
     {
         user.FailedLoginCount = 0;
@@ -317,6 +344,12 @@ public static class SessionClaims
     public const string DisplayName = "pnmt:display_name";
     public const string SecurityStamp = "pnmt:stamp";
     public const string MustChangePassword = "pnmt:must_change_password";
+
+    /// <summary>
+    /// Auth:TotpPolicy requires 2FA and the user has none yet. Not stored in the cookie: added on every
+    /// request (SessionCache.ValidateAsync), so a policy change applies to running sessions too.
+    /// </summary>
+    public const string TotpSetupPending = "pnmt:totp_setup_pending";
 
     public static ClaimsPrincipal Create(UserEntity user)
     {

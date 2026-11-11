@@ -8,9 +8,15 @@ public sealed class LoginRequest
     public string? Password { get; init; }
 }
 
+/// <summary><c>POST /auth/login/totp</c>: the code from the authenticator app (6 digits, spaces allowed).</summary>
+public sealed class TotpCodeRequest
+{
+    public string? Code { get; init; }
+}
+
 /// <summary>
 /// After a login step: <c>next</c> is <c>done</c> (signed in, <see cref="User"/> and <see cref="Flags"/>
-/// set) or <c>totp</c> (the code is next).
+/// set) or <c>totp</c> (the code is next, within 5 minutes, at <c>/auth/login/totp</c>).
 /// </summary>
 public sealed record LoginResponse(string Next, CurrentUser? User, SessionFlags? Flags);
 
@@ -31,6 +37,21 @@ public sealed class ChangePasswordRequest
     public string? CurrentPassword { get; init; }
 
     public string? NewPassword { get; init; }
+}
+
+/// <summary>
+/// <c>POST /account/totp/setup</c>: a new secret for the authenticator app, as a QR code
+/// (<see cref="OtpauthUri"/>) or typed (<see cref="Secret"/>, Base32). It turns 2FA on only when
+/// <c>/account/totp/confirm</c> gets a code from it before <see cref="ExpiresAt"/>.
+/// </summary>
+public sealed record TotpSetup(string Secret, string OtpauthUri, DateTime ExpiresAt);
+
+/// <summary><c>POST /account/totp/disable</c>: the password and a current code.</summary>
+public sealed class TotpDisableRequest
+{
+    public string? Password { get; init; }
+
+    public string? Code { get; init; }
 }
 
 /// <summary>A user as admins see it. LockedUntil is set while a lockout lasts.</summary>

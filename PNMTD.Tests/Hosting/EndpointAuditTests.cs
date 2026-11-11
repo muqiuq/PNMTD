@@ -31,6 +31,7 @@ public sealed class EndpointAuditTests
         "GET /healthz",
         "GET /api/v1/system/info",
         "POST /api/v1/auth/login",
+        "POST /api/v1/auth/login/totp",
         "GET /api/v1/auth/me",
         "GET /pnmt-admin/{**path:nonfile}",
         "HEAD /pnmt-admin/{**path:nonfile}",
@@ -39,7 +40,7 @@ public sealed class EndpointAuditTests
     /// <summary>
     /// Who may call each v1 endpoint: the lowest role (Viewer, User, Admin). Writes need User;
     /// mail contents need User; users, the audit log, key values and task health need Admin. One's own
-    /// session and account are every role's. (The anonymous login is in the allowlist above.)
+    /// session and account are every role's. (The anonymous login steps are in the allowlist above.)
     /// </summary>
     private static readonly Dictionary<string, string> Matrix = new()
     {
@@ -97,12 +98,16 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/auth/logout"] = Roles.Viewer,
         ["POST /api/v1/account/password"] = Roles.Viewer,
         ["POST /api/v1/account/sessions/revoke"] = Roles.Viewer,
+        ["POST /api/v1/account/totp/setup"] = Roles.Viewer,
+        ["POST /api/v1/account/totp/confirm"] = Roles.Viewer,
+        ["POST /api/v1/account/totp/disable"] = Roles.Viewer,
         ["GET /api/v1/users"] = Roles.Admin,
         ["GET /api/v1/users/{id:guid}"] = Roles.Admin,
         ["POST /api/v1/users"] = Roles.Admin,
         ["PUT /api/v1/users/{id:guid}"] = Roles.Admin,
         ["DELETE /api/v1/users/{id:guid}"] = Roles.Admin,
         ["POST /api/v1/users/{id:guid}/reset-password"] = Roles.Admin,
+        ["POST /api/v1/users/{id:guid}/reset-totp"] = Roles.Admin,
         ["POST /api/v1/users/{id:guid}/unlock"] = Roles.Admin,
         ["GET /api/v1/auth-log"] = Roles.Admin,
         ["GET /api/v1/key-values"] = Roles.Admin,
@@ -164,7 +169,7 @@ public sealed class EndpointAuditTests
     {
         var v1 = Endpoints()
             .Where(e => e.Pattern.StartsWith("/api/v1/", StringComparison.Ordinal) && !e.Pattern.Contains("{**rest}")
-                && e.Key is not ("GET /api/v1/system/info" or "POST /api/v1/auth/login"))
+                && e.Key is not ("GET /api/v1/system/info" or "POST /api/v1/auth/login" or "POST /api/v1/auth/login/totp"))
             .Select(e => e.Key)
             .Order(StringComparer.Ordinal)
             .ToList();

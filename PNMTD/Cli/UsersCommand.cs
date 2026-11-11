@@ -9,8 +9,8 @@ using PNMTD.Models.Db;
 namespace PNMTD.Cli;
 
 /// <summary>
-/// `pnmtd users …` (docs/webui-migration-plan.md §4.10), behind deploy/add-user.sh, list-users.sh and
-/// reset-password.sh. Changes are logged with the origin "cli". A running server notices ended
+/// `pnmtd users …` (docs/webui-migration-plan.md §4.10), behind deploy/add-user.sh, list-users.sh,
+/// reset-password.sh and reset-totp.sh. Changes are logged with the origin "cli". A running server notices ended
 /// sessions within a minute (its session cache).
 /// </summary>
 internal static class UsersCommand
@@ -27,6 +27,7 @@ internal static class UsersCommand
                 ["list"] => List(db),
                 ["add", var name, .. var rest] => Add(accounts, name, new CommandLine.Options(rest)),
                 ["reset-password", var name, .. var rest] => ResetPassword(accounts, name, new CommandLine.Options(rest)),
+                ["reset-totp", var name] => ResetTotp(accounts, name),
                 ["unlock", var name] => Unlock(accounts, name),
                 ["set-role", var name, var role] => SetRole(accounts, name, role),
                 _ => throw new CommandLineException($"Unknown users command: {string.Join(' ', args)}"),
@@ -88,6 +89,16 @@ internal static class UsersCommand
         var temporary = accounts.ResetPasswordAsync(user.Id, fromStdin ? ReadPassword() : null, AuditContext.Cli).GetAwaiter().GetResult();
         Console.WriteLine($"Reset the password of {user.Username}: their sessions end, a lockout is lifted.");
         PrintTemporary(user, temporary);
+        return 0;
+    }
+
+    private static int ResetTotp(UserAccounts accounts, string name)
+    {
+        var user = Find(accounts, name);
+        var wasEnabled = accounts.ResetTotpAsync(user.Id, AuditContext.Cli).GetAwaiter().GetResult();
+        Console.WriteLine(wasEnabled
+            ? $"Turned 2FA off for {user.Username}: their sessions end, a lockout is lifted. The next sign-in offers the setup again."
+            : $"{user.Username} had no 2FA. Their sessions end and a lockout is lifted all the same.");
         return 0;
     }
 

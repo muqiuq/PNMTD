@@ -15,11 +15,13 @@ namespace PNMTD.Api.V1;
 /// <summary>Sign-in and sign-out (docs/webui-migration-plan.md §4.5, §4.9).</summary>
 [Route("api/v1/auth")]
 [Authorize(Policy = Policies.CanRead)]
-public sealed class AuthController(AuthService auth, UserAccounts accounts, PnmtdDbContext db, IConfiguration configuration) : V1ControllerBase
+public sealed class AuthController(AuthService auth, UserAccounts accounts, TotpSecrets secrets, PnmtdDbContext db,
+    IConfiguration configuration) : V1ControllerBase
 {
     /// <summary>
-    /// 200 <c>{ next: "done" }</c> with the session cookie; 401 invalid_credentials (also for an unknown
-    /// user, an inactive one or an expired temporary password); 429 locked_out with Retry-After.
+    /// Step 1. 200 <c>{ next: "done" }</c> with the session cookie, or <c>{ next: "totp" }</c> with the
+    /// pnmt.2fa cookie when the account has 2FA; 401 invalid_credentials (also for an unknown user, an
+    /// inactive one or an expired temporary password); 429 locked_out with Retry-After.
     /// </summary>
     [HttpPost("login")]
     [AllowAnonymous]
@@ -30,16 +32,63 @@ public sealed class AuthController(AuthService auth, UserAccounts accounts, Pnmt
         var outcome = await auth.LoginAsync(request.Username, request.Password, AuditContext.From(HttpContext), ct);
         switch (outcome.Status)
         {
-            case LoginStatus.LockedOut:
-                Response.Headers.RetryAfter = ((int)Math.Ceiling(outcome.RetryAfter!.Value.TotalSeconds)).ToString(System.Globalization.CultureInfo.InvariantCulture);
-                throw new ApiException(StatusCodes.Status429TooManyRequests, "locked_out", "Too many failed sign-ins. Try again later.");
             case LoginStatus.Success:
                 return await SignInAsync(outcome.User!);
+            case LoginStatus.TotpRequired:
+                Response.Cookies.Append(AuthSetup.TwoFactorCookieName, secrets.IssueTicket(outcome.User!), TwoFactorCookie(TwoFactorService.LoginStepLifetime));
+                return new LoginResponse("totp", null, null);
             default:
-                // TotpRequired cannot happen before phase 4 enables TOTP; until then it is refused.
-                throw new ApiException(StatusCodes.Status401Unauthorized, "invalid_credentials", "Wrong username or password.");
+                throw Refused(outcome);
         }
     }
+
+    /// <summary>
+    /// Step 2, within 5 minutes of step 1 (the pnmt.2fa cookie). 200 <c>{ next: "done" }</c> with the
+    /// session cookie; 401 invalid_code (wrong, or used already), which counts towards the lockout;
+    /// 401 login_expired (no step 1, too late, or the account changed): sign in again from the password.
+    /// </summary>
+    [HttpPost("login/totp")]
+    [AllowAnonymous]
+    [SkipCsrf]
+    [EnableRateLimiting(AuthSetup.LoginRateLimit)]
+    public async Task<ActionResult<LoginResponse>> LoginTotp(TotpCodeRequest request, CancellationToken ct)
+    {
+        var outcome = secrets.ReadTicket(Request.Cookies[AuthSetup.TwoFactorCookieName]) is { } ticket
+            ? await auth.LoginTotpAsync(ticket.UserId, ticket.Stamp, request.Code, AuditContext.From(HttpContext), ct)
+            : new LoginOutcome(LoginStatus.LoginExpired);
+        if (outcome.Status is LoginStatus.InvalidCode)
+        {
+            throw Refused(outcome);
+        }
+        Response.Cookies.Delete(AuthSetup.TwoFactorCookieName, TwoFactorCookie(maxAge: null));
+        return outcome.Status == LoginStatus.Success ? await SignInAsync(outcome.User!) : throw Refused(outcome);
+    }
+
+    private ApiException Refused(LoginOutcome outcome)
+    {
+        switch (outcome.Status)
+        {
+            case LoginStatus.LockedOut:
+                Response.Headers.RetryAfter = ((int)Math.Ceiling(outcome.RetryAfter!.Value.TotalSeconds)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return new ApiException(StatusCodes.Status429TooManyRequests, "locked_out", "Too many failed sign-ins. Try again later.");
+            case LoginStatus.InvalidCode:
+                return new ApiException(StatusCodes.Status401Unauthorized, "invalid_code", "Wrong code, or one that was used already.");
+            case LoginStatus.LoginExpired:
+                return new ApiException(StatusCodes.Status401Unauthorized, "login_expired", "The sign-in has expired. Enter your password again.");
+            default:
+                return new ApiException(StatusCodes.Status401Unauthorized, "invalid_credentials", "Wrong username or password.");
+        }
+    }
+
+    /// <summary>The ticket itself expires after 5 minutes too; Max-Age only spares sending a dead one.</summary>
+    private CookieOptions TwoFactorCookie(TimeSpan? maxAge) => new()
+    {
+        HttpOnly = true,
+        SameSite = SameSiteMode.Strict,
+        Secure = Request.IsHttps,
+        Path = AuthSetup.TwoFactorCookiePath,
+        MaxAge = maxAge,
+    };
 
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken ct)
@@ -92,7 +141,7 @@ public sealed class AuthController(AuthService auth, UserAccounts accounts, Pnmt
 /// <summary>The signed-in user's own account (§4.9).</summary>
 [Route("api/v1/account")]
 [Authorize(Policy = Policies.CanRead)]
-public sealed class AccountController(UserAccounts accounts) : V1ControllerBase
+public sealed class AccountController(UserAccounts accounts, TwoFactorService twoFactor) : V1ControllerBase
 {
     /// <summary>Ends the user's other sessions; this one continues with a fresh cookie.</summary>
     [HttpPost("password")]
@@ -110,6 +159,40 @@ public sealed class AccountController(UserAccounts accounts) : V1ControllerBase
     {
         var id = User.UserId() ?? throw ApiException.NotFound("User");
         await accounts.RevokeSessionsAsync(id, AuditContext.From(HttpContext), ct);
+        await RenewSessionAsync(id, ct);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Step 1 of setting up 2FA: a new secret, pending for 15 minutes (it replaces an earlier pending
+    /// one). 409 totp_already_enabled.
+    /// </summary>
+    [HttpPost("totp/setup")]
+    public async Task<ActionResult<TotpSetup>> SetupTotp(CancellationToken ct) =>
+        await twoFactor.SetupAsync(User.UserId() ?? throw ApiException.NotFound("User"), ct);
+
+    /// <summary>
+    /// Step 2: a code from the new secret turns 2FA on. Every other session of the user ends; this
+    /// one continues. 400 for a wrong code, 409 totp_setup_expired: start again.
+    /// </summary>
+    [HttpPost("totp/confirm")]
+    public async Task<IActionResult> ConfirmTotp(TotpCodeRequest request, CancellationToken ct)
+    {
+        var id = User.UserId() ?? throw ApiException.NotFound("User");
+        await twoFactor.ConfirmAsync(id, request.Code, AuditContext.From(HttpContext), ct);
+        await RenewSessionAsync(id, ct);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Turns 2FA off: needs the password and a current code (400 names the wrong one). Every other
+    /// session ends. 409 totp_required while Auth:TotpPolicy requires it, totp_not_enabled.
+    /// </summary>
+    [HttpPost("totp/disable")]
+    public async Task<IActionResult> DisableTotp(TotpDisableRequest request, CancellationToken ct)
+    {
+        var id = User.UserId() ?? throw ApiException.NotFound("User");
+        await twoFactor.DisableAsync(id, request.Password, request.Code, AuditContext.From(HttpContext), ct);
         await RenewSessionAsync(id, ct);
         return NoContent();
     }
@@ -187,6 +270,14 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
         var password = await accounts.ResetPasswordAsync(id, null, AuditContext.From(HttpContext), ct);
         var user = await accounts.GetAsync(id, ct);
         return new TemporaryPassword(password!, user.TemporaryPasswordExpiresAt!.Value);
+    }
+
+    /// <summary>"Reset 2FA" for a user who lost the authenticator: 2FA off, sessions ended, a lockout lifted.</summary>
+    [HttpPost("{id:guid}/reset-totp")]
+    public async Task<IActionResult> ResetTotp(Guid id, CancellationToken ct)
+    {
+        await accounts.ResetTotpAsync(id, AuditContext.From(HttpContext), ct);
+        return NoContent();
     }
 
     [HttpPost("{id:guid}/unlock")]

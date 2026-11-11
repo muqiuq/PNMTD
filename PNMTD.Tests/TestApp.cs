@@ -90,6 +90,10 @@ public static class TestUsers
 
     public static string NameOf(string role) => $"test-{role.ToLowerInvariant()}";
 
+    /// <summary>For an AuthService outside an app: keys in memory, for the run.</summary>
+    internal static readonly global::PNMTD.Auth.TotpSecrets TotpSecrets =
+        new(new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider());
+
     internal static void Seed(PnmtdDbContext db)
     {
         var hash = Lib.Security.PasswordHasher.Hash(Password);

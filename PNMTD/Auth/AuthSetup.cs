@@ -41,6 +41,11 @@ public static class AuthSetup
 {
     public const string CookieName = "pnmt.auth";
 
+    /// <summary>A sign-in between the password and the code (§4.5): 5 minutes, on the auth endpoints only.</summary>
+    public const string TwoFactorCookieName = "pnmt.2fa";
+
+    public const string TwoFactorCookiePath = "/api/v1/auth";
+
     /// <summary>The antiforgery cookie token (HttpOnly) …</summary>
     public const string AntiforgeryCookieName = "pnmt.antiforgery";
 
@@ -60,9 +65,8 @@ public static class AuthSetup
     /// <list type="bullet">
     /// <item>Cookie authentication only. It never redirects: 401 when signed out, 403 for the wrong role.</item>
     /// <item>Deny by default: an endpoint without [AllowAnonymous] requires a signed-in user.</item>
-    /// <item>Data Protection keys on the keys volume, so sessions (and in phase 4 the TOTP secrets) survive restarts.</item>
+    /// <item>Data Protection keys on the keys volume, so sessions and the TOTP secrets survive restarts.</item>
     /// </list>
-    /// Sign-in itself arrives with the users table (phase 3).
     /// </summary>
     public static IServiceCollection AddPnmtdAuth(this IServiceCollection services, IConfiguration configuration)
     {
@@ -100,6 +104,8 @@ public static class AuthSetup
         services.AddSingleton<SessionCache>();
         services.AddScoped<UserAccounts>();
         services.AddScoped<AuthService>();
+        services.AddSingleton<TotpSecrets>();
+        services.AddScoped<TwoFactorService>();
 
         // The double-submit pattern for the SPA: a cookie token, and a request token the SPA echoes
         // in a header on every unsafe call (CsrfProtectionAttribute). Issued by /auth/me and login.
@@ -148,25 +154,39 @@ public static class AuthSetup
 }
 
 /// <summary>
-/// A session that still has to change its password (a temporary one, or the seeded admin's) may only
-/// do that, sign out and read who it is (§4.6): every other /api/v1 call is 403 must_change_password.
-/// The claim goes when the password changes and the cookie is issued anew.
+/// What a session must do before anything else (§4.6). Every other /api/v1 call is 403 with the code:
+/// <list type="bullet">
+/// <item>must_change_password (a temporary password, or the seeded admin's): it may only change it,
+///   sign out and read who it is. The claim goes when the password changes and the cookie is issued anew.</item>
+/// <item>totp_setup_required (Auth:TotpPolicy, and no 2FA yet): it may also set 2FA up. The password
+///   comes first, so this one allows changing it.</item>
+/// </list>
 /// </summary>
-public static class MustChangePasswordGate
+public static class SessionGates
 {
-    private static readonly string[] Allowed = ["/api/v1/auth", "/api/v1/account/password", "/api/v1/system/info"];
+    private static readonly (string Claim, string Code, string Detail, string[] Allowed)[] Gates =
+    [
+        (SessionClaims.MustChangePassword, "must_change_password", "Change your password first.",
+            ["/api/v1/auth", "/api/v1/account/password", "/api/v1/system/info"]),
+        (SessionClaims.TotpSetupPending, "totp_setup_required", "Set up two-factor authentication first.",
+            ["/api/v1/auth", "/api/v1/account/password", "/api/v1/account/totp", "/api/v1/system/info"]),
+    ];
 
-    public static IApplicationBuilder UseMustChangePasswordGate(this IApplicationBuilder app) =>
+    public static IApplicationBuilder UseSessionGates(this IApplicationBuilder app) =>
         app.Use(async (context, next) =>
         {
             var path = context.Request.Path;
-            if (context.User.HasClaim(SessionClaims.MustChangePassword, "true")
-                && path.StartsWithSegments(ApiPaths.V1, StringComparison.OrdinalIgnoreCase)
-                && !Allowed.Any(a => path.StartsWithSegments(a, StringComparison.OrdinalIgnoreCase)))
+            if (path.StartsWithSegments(ApiPaths.V1, StringComparison.OrdinalIgnoreCase))
             {
-                await Results.Problem(statusCode: StatusCodes.Status403Forbidden, detail: "Change your password first.",
-                    extensions: new Dictionary<string, object?> { ["code"] = "must_change_password" }).ExecuteAsync(context);
-                return;
+                foreach (var (claim, code, detail, allowed) in Gates)
+                {
+                    if (context.User.HasClaim(claim, "true") && !allowed.Any(a => path.StartsWithSegments(a, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        await Results.Problem(statusCode: StatusCodes.Status403Forbidden, detail: detail,
+                            extensions: new Dictionary<string, object?> { ["code"] = code }).ExecuteAsync(context);
+                        return;
+                    }
+                }
             }
             await next(context);
         });
@@ -212,7 +232,7 @@ public sealed class CsrfProtectionAttribute : Attribute, IAsyncResourceFilter
     private const string CsrfHeaderName = AuthSetup.CsrfHeaderName;
 }
 
-/// <summary>No antiforgery check: the login endpoints, which run before there is a session.</summary>
+/// <summary>No antiforgery check: the login steps, which run before there is a session.</summary>
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class SkipCsrfAttribute : Attribute;
 

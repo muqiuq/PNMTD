@@ -28,6 +28,8 @@ namespace PNMTD.Cli
                                                     a new user (default role: user)
               users reset-password <name> [--password-stdin]
                                                     a new password; ends the user's sessions, lifts a lockout
+              users reset-totp <name>               turns 2FA off (a lost authenticator); ends the sessions,
+                                                    lifts a lockout; the next sign-in offers the setup again
               users unlock <name>                   lifts a lockout
               users set-role <name> <admin|user|viewer>
 

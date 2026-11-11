@@ -64,7 +64,7 @@ public sealed class AccountsTests
         Assert.IsNull(admin.TemporaryPasswordExpiresAt, "init.sh's password does not expire before the first sign-in");
         Assert.IsNull(generated);
         Assert.IsNull(again);
-        Assert.AreEqual(LoginStatus.Success, (await new AuthService(db, new UserAccounts(db)).LoginAsync("ROOT", "from-init-sh-1234", AuditContext.Cli)).Status);
+        Assert.AreEqual(LoginStatus.Success, (await new AuthService(db, new UserAccounts(db), TestUsers.TotpSecrets).LoginAsync("ROOT", "from-init-sh-1234", AuditContext.Cli)).Status);
 
         await using var empty = TestDatabases.Fresh("pnmtd_seed_test");
         var (random, password) = await new UserAccounts(empty).SeedAsync(new ConfigurationBuilder().Build());
@@ -116,7 +116,7 @@ public sealed class AccountsTests
         Assert.AreEqual(adminId, users.Single(u => u.Username == "Philipp").Id, "ids are kept");
         Assert.AreEqual("Philipp A.", users.Single(u => u.Username == "Philipp").DisplayName);
         Assert.IsTrue(users.Single(u => u.Username == "pnmt").MustChangePassword);
-        var auth = new AuthService(db, new UserAccounts(db));
+        var auth = new AuthService(db, new UserAccounts(db), TestUsers.TotpSecrets);
         Assert.AreEqual(LoginStatus.Success, (await auth.LoginAsync("philipp", "admin-password-1", AuditContext.Cli)).Status);
         Assert.AreEqual(LoginStatus.Success, (await auth.LoginAsync("ops", "user-password-1", AuditContext.Cli)).Status);
         StringAssert.StartsWith(await db.Users.Where(u => u.Username == "ops").Select(u => u.PasswordHash).SingleAsync(), "pbkdf2-sha256$210000$");
@@ -217,7 +217,7 @@ public sealed class AccountsTests
         var temporary = output.Split('\n').Single(l => l.StartsWith("    ", StringComparison.Ordinal)).Trim();
 
         await using var db = Data.PnmtdDbContext.Create(Data.DatabaseSettings.ConnectionString(TestDefaults.Configuration));
-        var auth = new AuthService(db, new UserAccounts(db));
+        var auth = new AuthService(db, new UserAccounts(db), TestUsers.TotpSecrets);
         var login = await auth.LoginAsync(name, temporary, AuditContext.Cli);
         Assert.AreEqual((LoginStatus.Success, Roles.Viewer, true), (login.Status, login.User!.Role, login.User.MustChangePassword));
 
@@ -238,5 +238,34 @@ public sealed class AccountsTests
         Assert.AreEqual(1, Cli(null, "users", "reset-password", "no-such-user").Exit);
         Assert.AreEqual(1, Cli("short", "users", "add", $"{name}x", "--password-stdin").Exit);
         Assert.AreEqual(2, Cli(null, "users", "frobnicate").Exit);
+    }
+
+    /// <summary>reset-totp.sh's command (§4.6): 2FA off, the sessions ended, a lockout lifted, in the audit log as cli.</summary>
+    [TestMethod]
+    public async Task TheUsersCommandResetsTwoFactor()
+    {
+        var name = $"t{Guid.NewGuid():N}"[..14];
+        Assert.AreEqual(0, Cli("totp-password-123", "users", "add", name, "--password-stdin").Exit);
+        await using var db = Data.PnmtdDbContext.Create(Data.DatabaseSettings.ConnectionString(TestDefaults.Configuration));
+        await db.Users.Where(u => u.Username == name).ExecuteUpdateAsync(u => u
+            .SetProperty(x => x.IsTotpEnabled, true)
+            .SetProperty(x => x.TotpSecretProtected, "protected")
+            .SetProperty(x => x.TotpLastUsedStep, 42L)
+            .SetProperty(x => x.LockoutEnd, DateTime.UtcNow.AddHours(1)));
+        var stamp = await db.Users.Where(u => u.Username == name).Select(u => u.SecurityStamp).SingleAsync();
+
+        var (exit, output) = Cli(null, "users", "reset-totp", name.ToUpperInvariant());
+
+        Assert.AreEqual(0, exit, output);
+        StringAssert.Contains(output, $"Turned 2FA off for {name}");
+        var user = await db.Users.AsNoTracking().SingleAsync(u => u.Username == name);
+        Assert.AreEqual((false, null, null, null), (user.IsTotpEnabled, user.TotpSecretProtected, user.TotpLastUsedStep, user.LockoutEnd));
+        Assert.AreNotEqual(stamp, user.SecurityStamp, "the sessions end");
+        Assert.IsTrue(await db.AuthLog.AnyAsync(l => l.UserId == user.Id && l.EventType == AuthEvents.TotpReset && l.Detail == "cli"));
+
+        (exit, output) = Cli(null, "users", "reset-totp", name);
+        Assert.AreEqual(0, exit, output);
+        StringAssert.Contains(output, "had no 2FA");
+        Assert.AreEqual(1, Cli(null, "users", "reset-totp", "no-such-user").Exit);
     }
 }

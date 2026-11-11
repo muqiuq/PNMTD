@@ -7,7 +7,7 @@
 | Revision | 3.1: review decisions applied, including the answers to the revision 3 questions (§10.2). .NET 10 everywhere, PostgreSQL instead of SQLite, a frozen sensor API, old management routes and JWT removed, a `deploy/` folder plus `start.sh`/`stop.sh`, a Viewer role, a compact UI with a redesigned dashboard, release **v1.0.0** |
 | Scope | Replace the separate Blazor Server frontend (`PNMT.WebApp`, v0.11.0) with a Vue 3 single-page app served by PNMTD under `/pnmt-admin`. Upgrade every project to .NET 10. Move storage from SQLite to PostgreSQL. Add a new management API `/api/v1` and remove everything else except the sensor API. Move user management into PNMTD (username + password + TOTP). Production deployment from `deploy/`, local debugging with `start.sh`/`stop.sh` |
 | Non-goals | Changing the monitoring logic. **Any observable change to the sensor API** (`/event`, `/read`) |
-| Progress | **Phase 0 done** (2026-11-11): golden sensor contract recorded from v0.12.1 (`tools/contract.sh`), every project on .NET 10, the .NET 10 image passes the contract.<br>**Phase 1 done** (2026-11-11): PostgreSQL with UTC timestamps, `pnmtd db migrate` / `import-sqlite` with verification, `start.sh`/`stop.sh`, `run-tests.sh`, the `deploy/` skeleton. The PostgreSQL image passes the contract with the fixture imported.<br>**Phase 2 done** (2026-11-11): `/api/v1` for every resource of §3.7 on domain services, deny by default with the Viewer/User/Admin policies, `/pnmt-admin` hosting, `/` and the old routes as empty 404s, JWT, `/trust` and lazy loading removed. The anonymous-surface test, the role matrix and the v1 tests are green, and the image still passes the contract. <br>**Phase 3 done** (2026-11-11): `users` and `auth_log`, cookie sign-in with lockout and the login rate limit, session revocation by security stamp, antiforgery, the last-admin guard, temporary passwords, the first admin, `users.json` import with the WebApp's hashes, `pnmtd users …` with `add-user.sh`, `list-users.sh` and `reset-password.sh`. TOTP follows in phase 4. See §7.1 for where the implementation differs from this plan |
+| Progress | **Phase 0 done** (2026-11-11): golden sensor contract recorded from v0.12.1 (`tools/contract.sh`), every project on .NET 10, the .NET 10 image passes the contract.<br>**Phase 1 done** (2026-11-11): PostgreSQL with UTC timestamps, `pnmtd db migrate` / `import-sqlite` with verification, `start.sh`/`stop.sh`, `run-tests.sh`, the `deploy/` skeleton. The PostgreSQL image passes the contract with the fixture imported.<br>**Phase 2 done** (2026-11-11): `/api/v1` for every resource of §3.7 on domain services, deny by default with the Viewer/User/Admin policies, `/pnmt-admin` hosting, `/` and the old routes as empty 404s, JWT, `/trust` and lazy loading removed. The anonymous-surface test, the role matrix and the v1 tests are green, and the image still passes the contract. <br>**Phase 3 done** (2026-11-11): `users` and `auth_log`, cookie sign-in with lockout and the login rate limit, session revocation by security stamp, antiforgery, the last-admin guard, temporary passwords, the first admin, `users.json` import with the WebApp's hashes, `pnmtd users …` with `add-user.sh`, `list-users.sh` and `reset-password.sh`.<br>**Phase 4 done** (2026-11-11): TOTP with replay protection, setup and confirmation with a pending secret on the server, the code as login step 2, turning it off with password and code, `Auth:TotpPolicy` enforced on every request, the admin's reset, `pnmtd users reset-totp` and `reset-totp.sh`, the `info.sh` warning. RFC 6238 vectors and the flow tests are green. See §7.1 for where the implementation differs from this plan |
 | References | `~/source/plm`: deploy folder, start/stop scripts, PostgreSQL, SQLite import, contract harness. `~/source/exam-trainer`: Vue + Vite in Podman, the same deploy pattern. `~/source/PortUpAcademy`: auth and TOTP code. `~/source/PNMT.WebApp`: the current UI |
 
 ---
@@ -1330,7 +1330,7 @@ Phase 3:
 - **Login:**
   - Unknown users are verified against a dummy hash.
   - Failure reasons (unknown user, wrong password, inactive, expired temporary password, locked out) appear only in the audit log.
-  - Only wrong passwords count towards a lockout.
+  - Only wrong passwords count towards a lockout (wrong 2FA codes too since phase 4).
   - While locked, even the right password gets 429 `locked_out` with `Retry-After`.
   - The rate limit is read per client (`Auth:LoginRateLimit:PermitLimit`), so it can be configured. The tests raise it.
   - Usernames are case-insensitive: `NormalizedUsername` is unique.
@@ -1343,6 +1343,33 @@ Phase 3:
   - The test sign-in now signs in as one seeded user per role, so account endpoints work in the role matrix.
   - The cookie tests use a small browser helper that keeps cookies and echoes the XSRF token, as the SPA will.
   - `tools/deploy-test.sh` signs in as `init.sh`'s admin, changes the password with the XSRF token via curl, and runs `add-user.sh`, `reset-password.sh` and `list-users.sh` against the running stack.
+
+Phase 4:
+
+- **Code check:** `TotpService` and `Base32` are static, like `PasswordHasher`. A check answers valid, invalid or *reused* (right code, but its step is not later than `TotpLastUsedStep`), so the audit log can tell a replay from a typo. All three candidate steps are compared every time.
+- **Setup:**
+  - A new setup replaces a pending one. While 2FA is on, setup is 409 `totp_already_enabled`: switching to another app means turning it off first.
+  - After 15 minutes the confirmation is 409 `totp_setup_expired`; a wrong code is a 400 on the field `code`.
+  - The confirming code counts as used, so it cannot sign in a second time.
+- **Login step 2:**
+  - The `pnmt.2fa` cookie holds a Data Protection ticket (its own purpose) with the user, the security stamp and the time of step 1. `Max-Age=300`, `Path=/api/v1/auth`, HttpOnly, `SameSite=Strict`.
+  - Unlike §4.5, a missing, forged or expired ticket is 401 **`login_expired`**, not `invalid_code`. So is a user who changed in between (new stamp, deactivated, 2FA reset). The SPA then goes back to the password instead of asking for codes that cannot work. `login_expired` does not count towards the lockout.
+  - A wrong or reused code keeps the ticket for another try and counts towards the lockout. **Only a complete sign-in clears the count**: with 2FA, the right password alone does not, so repeating step 1 buys no extra guesses.
+  - A secret that can no longer be decrypted (lost keys) fails like a wrong code. The audit detail says why, and `reset-totp.sh` is the way out.
+- **Turning it off:**
+  - The password and a code are checked together, and the 400 names the wrong field. Failed attempts are logged as `TotpFailed` but do not count towards the lockout, as with the password change.
+  - While `Auth:TotpPolicy` requires 2FA for the user, it is 409 `totp_required`.
+- **Policy:**
+  - The setup requirement is not stored in the cookie. `OnValidatePrincipal` adds `pnmt:totp_setup_pending` on every request from the cached user state, so a stricter policy applies at once to sessions that are already open.
+  - The 2FA gate also lets `/account/password` and `/system/info` through. Changing the password comes first, and its gate still holds the setup until it is done.
+- **Reset:**
+  - The admin's reset and `pnmtd users reset-totp` also lift a lockout, which the failed codes usually caused.
+  - The security stamp is rotated even when 2FA was already off. The CLI says which case it was.
+- **Issuer:** `PNMT (<Identity>)`, or plain `PNMT` without an Identity. Colons are removed, since they would end the label's issuer part.
+- **Deploy:**
+  - `info.sh` asks PostgreSQL in the `db` container for active admins without 2FA, and the warning mentions what `Auth__TotpPolicy` will do about them.
+  - `tools/deploy-test.sh` turns 2FA on for a user with SQL (the enrollment itself is covered by the integration tests), checks that the sign-in asks for the code, and checks that `reset-totp.sh` removes the step again.
+- **Tests:** 197, with the RFC 6238 and RFC 4648 vectors. The flow tests freeze the clock and move it by hand, since every new code needs a new 30-second step. A policy test carries a session from an app with `Optional` into one with `Required`: both share the key ring, as a session does across a restart with the new setting.
 
 **Total: about 36–51 person-days.**
 

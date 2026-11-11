@@ -40,6 +40,18 @@ warnings=()
 [[ "$url" == https://* || -z "$url" ]] || warnings+=("PublicBaseUrl is plain HTTP: passwords and session cookies travel unencrypted.")
 [[ -n "$(env_value Proxy)" || "$(env_value PNMTD_BIND_ADDRESS)" != "127.0.0.1" ]] || warnings+=("Bound to 127.0.0.1 (a reverse proxy?) but Proxy is empty: lockout and the audit log see the proxy's address.")
 ls -1d "$(env_value PNMTD_BACKUP_DIR || echo backups)"/pnmtd-* >/dev/null 2>&1 || warnings+=("No backup yet: ./backup.sh, and a cron line (README.md).")
+if is_running "$DB_SERVICE"; then
+  # Who could manage users with a password alone (§4.6).
+  admins="$(compose exec -T "$DB_SERVICE" psql -U pnmtd -d pnmtd -tAc \
+    "SELECT string_agg(\"Username\", ', ' ORDER BY \"NormalizedUsername\") FROM users WHERE \"Role\" = 'Admin' AND \"IsActive\" AND NOT \"IsTotpEnabled\"" \
+    2>/dev/null || true)"
+  if [[ -n "$admins" ]]; then
+    case "$(env_value Auth__TotpPolicy | tr '[:upper:]' '[:lower:]')" in
+      required|requiredforadmins) warnings+=("Admins without 2FA yet: ${admins}. Auth__TotpPolicy makes them set it up before anything else.") ;;
+      *) warnings+=("Admins without 2FA: ${admins}. They can set it up under their account; Auth__TotpPolicy=RequiredForAdmins makes them.") ;;
+    esac
+  fi
+fi
 if (( ${#warnings[@]} )); then
   echo
   echo "Warnings"

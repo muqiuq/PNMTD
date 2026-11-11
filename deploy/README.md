@@ -60,6 +60,7 @@ Local changes to the stack go into `docker-compose.override.yml`. Git ignores th
 | `./list-users.sh` | Lists the users: role, state, 2FA, lockout, last sign-in |
 | `./reset-password.sh <name>` | Gives a user a new temporary password, ends their sessions and lifts a lockout |
 | `./reset-password.sh <name> --unlock-only` | Only lifts a lockout |
+| `./reset-totp.sh <name>` | Turns a user's 2FA off (a lost authenticator), ends their sessions and lifts a lockout |
 | `docker compose logs -f pnmtd` | Shows the app's log |
 | `docker compose exec pnmtd pnmtd help` | Shows the app's command line (database, import, users) |
 
@@ -70,8 +71,12 @@ Local changes to the stack go into `docker-compose.override.yml`. Git ignores th
   - **User** also manages hosts, sensors, rules and zones.
   - **Admin** also manages users, the audit log and system health.
 - **Temporary passwords:** a password from `add-user.sh` or `reset-password.sh` is valid for 7 days and must be changed at the first sign-in. With `--password-stdin`, the first line of standard input is a permanent password of your choice.
-- **Lockout:** 5 wrong passwords in a row lock an account for 5 minutes, then 10, 20, 40 and at most 60. An admin unlocks it in the UI, or anyone on the server with `./reset-password.sh <name> --unlock-only`.
-- **A lost admin password:** `./reset-password.sh <name>` on the server.
+- **Two-factor authentication (TOTP):** every user can turn it on under their account, with any authenticator app (Aegis, Google or Microsoft Authenticator, Bitwarden, 1Password, …). The app shows the instance as `PNMT (<Identity>)`, or as `Auth__TotpIssuer`.
+  - `Auth__TotpPolicy=Optional` (the default) suggests it after each sign-in without it. `RequiredForAdmins` and `Required` allow nothing else until it is set up, from the next request on, sessions that are already open included.
+  - `./info.sh` warns about admins without it.
+  - There are no recovery codes. Someone who lost their authenticator asks an admin, who uses *Reset 2FA* in the user list or `./reset-totp.sh <name>` on the server.
+- **Lockout:** 5 failures in a row, wrong passwords and wrong 2FA codes alike, lock an account for 5 minutes, then 10, 20, 40 and at most 60. An admin unlocks it in the UI, or anyone on the server with `./reset-password.sh <name> --unlock-only`.
+- **A lost admin password or authenticator:** `./reset-password.sh <name>` or `./reset-totp.sh <name>` on the server.
 
 **Scheduled backups** (cron, daily at 03:30):
 

@@ -121,7 +121,7 @@ public partial class Program
         // add a Set-Cookie header v0.12 never sent).
         app.UseWhen(c => !SensorPaths.IsSensorPath(c.Request.Path), b => b.UseAuthentication());
         app.UseAuthorization();            // deny by default (§3.6)
-        app.UseMustChangePasswordGate();   // a temporary password must be changed first
+        app.UseSessionGates();   // a temporary password must be changed first
 
         // The container's health check: 200 while the database answers, 503 when it does not.
         // Nothing else, so it may be reachable from anywhere.
