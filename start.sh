@@ -16,6 +16,7 @@
 #                                  with LEGACY_DIR: the WebApp's users too, with their passwords
 #   SOURCE_TZ=Europe/Zurich        the zone the v0.12 data was written in (default UTC)
 #   PORT=7400 WEB_PORT=5174        other host ports
+#   UDP_PORT=5029                  another host port for UDP nodes (default 5028/udp)
 #   VERBOSE=1 ./start.sh           show the build log, which is otherwise only printed on failure
 #   ENGINE=docker ./start.sh       Docker instead of Podman
 #
@@ -31,6 +32,7 @@ ENGINE="${ENGINE:-podman}"
 NAME="${NAME:-pnmtd}"
 IMAGE="${IMAGE:-pnmtd:dev}"
 PORT="${PORT:-7327}"
+UDP_PORT="${UDP_PORT:-5028}"
 DB_NAME="${DB_NAME:-pnmtd-db}"
 NETWORK="${NETWORK:-pnmtd-dev}"
 PG_VOLUME="${PG_VOLUME:-pnmtd-pgdata}"
@@ -99,12 +101,12 @@ if [[ -n "$LEGACY_USERS" ]]; then
 fi
 
 # Something else publishing a port would stop the app at the very end: said here, before the build.
-ports=("$PORT")
+ports=("$PORT" "$UDP_PORT")
 [[ "$WEB" == dev ]] && ports+=("$WEB_PORT")
 for port in "${ports[@]}"; do
   holder=$("$ENGINE" ps --format '{{.Names}} {{.Ports}}' \
     | awk -v port=":${port}->" -v app="$NAME" -v web="$WEB_NAME" '$1 != app && $1 != web && index($0, port) { print $1; exit }')
-  [[ -z "$holder" ]] || die "Port ${port} is taken by the container ${holder}: stop it, or choose others (PORT=… WEB_PORT=… ./start.sh)."
+  [[ -z "$holder" ]] || die "Port ${port} is taken by the container ${holder}: stop it, or choose others (PORT=… WEB_PORT=… UDP_PORT=… ./start.sh)."
 done
 
 # Under the repository: Podman on macOS cannot mount /tmp or /var/folders.
@@ -185,6 +187,7 @@ fi
 # As hardened as in deploy/docker-compose.yml, so what fails there fails here first.
 "$ENGINE" run -d --name "$NAME" --hostname "$NAME" --network "$NETWORK" \
   -p "${PORT}:8080" \
+  -p "${UDP_PORT}:5028/udp" \
   --env-file "$ENV_FILE" \
   -e ASPNETCORE_ENVIRONMENT=Development \
   -e "Database__Host=${DB_NAME}" -e "Database__Password=${db_password}" \
@@ -248,6 +251,8 @@ fi
 echo "Sensor API:  http://localhost:${PORT}/event/<write token>/200/hello"
 echo "             http://localhost:${PORT}/read/<read token>/json"
 echo "API:         http://localhost:${PORT}/api/v1/  (document: PNMTD.WebUI/src/api/openapi.json)"
+echo "UDP nodes:   127.0.0.1:${UDP_PORT}/udp; a simulated device:"
+echo "             ${ENGINE} exec ${NAME} pnmtd udp node --server 127.0.0.1:5028 --id <device id> --key <key>"
 echo "Sign-in:     admin, with Auth__InitialAdmin__Password from ${ENV_FILE} until you change it"
 echo "             (only while the database had no users: imported users keep their passwords)"
 if (( seeded )); then

@@ -29,10 +29,20 @@ public static class AuthEvents
     public const string RoleChanged = "RoleChanged";
     public const string UserDeleted = "UserDeleted";
 
+    // UDP nodes (docs/udp-iot-plan.md §4.3, §4.11): the security-relevant changes, never the key itself.
+    public const string UdpKeyChanged = "UdpKeyChanged";
+    public const string UdpCounterReset = "UdpCounterReset";
+    public const string UdpSessionReset = "UdpSessionReset";
+    public const string UdpFirmwareUploaded = "UdpFirmwareUploaded";
+    public const string UdpFirmwareDeleted = "UdpFirmwareDeleted";
+    public const string UdpUpdateStarted = "UdpUpdateStarted";
+    public const string UdpUpdateCancelled = "UdpUpdateCancelled";
+
     public static readonly string[] All =
     [
         LoginSucceeded, LoginFailed, LockedOut, TotpFailed, Logout, TotpEnabled, TotpDisabled, TotpReset, PasswordChanged,
         PasswordReset, SessionsRevoked, UserCreated, UserUpdated, UserUnlocked, RoleChanged, UserDeleted,
+        UdpKeyChanged, UdpCounterReset, UdpSessionReset, UdpFirmwareUploaded, UdpFirmwareDeleted, UdpUpdateStarted, UdpUpdateCancelled,
     ];
 }
 

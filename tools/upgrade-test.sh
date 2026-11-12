@@ -109,6 +109,8 @@ cd "$dir/deploy"
 env_set PNMTD_IMAGE "${dev_image%:dev}"
 env_set PNMTD_IMAGE_TAG dev
 env_set PNMTD_PORT "$PORT"
+# Not the default 5028/udp: a dev stack (start.sh) may hold it.
+env_set PNMTD_UDP_PORT "${UPGRADE_TEST_UDP_PORT:-5095}"
 env_set COMPOSE_PROJECT_NAME "$PROJECT"
 export COMPOSE_PROJECT_NAME="$PROJECT"
 

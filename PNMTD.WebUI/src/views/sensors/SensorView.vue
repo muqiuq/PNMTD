@@ -21,16 +21,36 @@ import RelativeTime from '@/components/RelativeTime.vue'
 import SensorUrlPanel from '@/components/SensorUrlPanel.vue'
 import SinceText from '@/components/SinceText.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import TabNav from '@/components/TabNav.vue'
 import UptimeBar from '@/components/UptimeBar.vue'
 import { useActions } from '@/composables/useActions'
-import { humanize, typeIcon, typeLabel, useSensorTypes, useStatusCodes } from '@/composables/useLookups'
+import {
+  humanize,
+  typeIcon,
+  typeLabel,
+  usesGracePeriod,
+  useSensorTypes,
+  useStatusCodes,
+} from '@/composables/useLookups'
 import { useServerTable } from '@/composables/useServerTable'
 import { formatAbsolute, formatPercent } from '@/format'
 import { useSession } from '@/stores/session'
+import CommandsTab from './udp/CommandsTab.vue'
+import FirmwareTab from './udp/FirmwareTab.vue'
+import LastPacketsTab from './udp/LastPacketsTab.vue'
+import OtaDialog from './udp/OtaDialog.vue'
+import ProtocolPage from './udp/protocol/ProtocolPage.vue'
+import SecretsDialog from './udp/SecretsDialog.vue'
+import UdpNodePanel from './udp/UdpNodePanel.vue'
+import UdpSettingsDialog from './udp/UdpSettingsDialog.vue'
+import UdpStatusStrip from './udp/UdpStatusStrip.vue'
+import { useNodeActions } from './udp/useNodeActions'
 
 /**
  * A sensor (§5.6). Left: its configuration (by type), how to report to it, its notification rules.
- * Right: its state and uptime, and its events, paged, on the first screen.
+ * Right: its state and uptime, and its events, paged, on the first screen. A UDP node
+ * (docs/udp-iot-plan.md §6.2) adds a status strip and subpages with routes of their own: Last
+ * packets, Commands, Firmware, Protocol; its integration panel shows the endpoint, key and token.
  */
 const route = useRoute()
 const router = useRouter()
@@ -48,8 +68,38 @@ const query = useQuery({
 })
 const sensor = computed(() => query.data.value)
 const canWrite = computed(() => session.can('User'))
+const isAdmin = computed(() => session.can('Admin'))
 const info = computed(() => types.info(sensor.value?.type))
-const heartbeat = computed(() => sensor.value?.type === 'HEARTBEAT' || sensor.value?.type === 'HEARTBEAT_VALUECHECK')
+const heartbeat = computed(() => usesGracePeriod(sensor.value?.type))
+
+// --- a UDP node's subpages ------------------------------------------------------------------
+const isUdp = computed(() => sensor.value?.type === 'UDP_NODE' && !!sensor.value.udp)
+const tab = computed(() => (isUdp.value && typeof route.params.tab === 'string' && route.params.tab) || 'events')
+const tabs = computed(() => {
+  const to = (t?: string) => ({ name: 'sensor', params: { id: id.value, tab: t } })
+  return [
+    { key: 'events', label: 'Events', icon: 'pi pi-list', to: to() },
+    { key: 'last-packets', label: 'Last packets', icon: 'pi pi-inbox', to: to('last-packets') },
+    {
+      key: 'commands',
+      label: 'Commands',
+      icon: 'pi pi-send',
+      to: to('commands'),
+      badge: sensor.value?.udp?.openCommands || null,
+    },
+    { key: 'firmware', label: 'Firmware', icon: 'pi pi-upload', to: to('firmware') },
+    { key: 'protocol', label: 'Protocol', icon: 'pi pi-book', to: to('protocol') },
+  ]
+})
+const settingsOpen = ref(false)
+const secretsOpen = ref(false)
+const secretsMode = ref<'manual' | 'regenerate'>('manual')
+function editSecrets(mode: 'manual' | 'regenerate') {
+  secretsMode.value = mode
+  secretsOpen.value = true
+}
+const updating = ref(false)
+const nodeActions = useNodeActions()
 // The type can change between the types one may create (as in v0.12), not to or from DNS.
 const typeOptions = computed(() =>
   types.list.value.filter((t) => t.canCreate).map((t) => ({ label: typeLabel(t.type), value: t.type })),
@@ -136,7 +186,26 @@ async function remove() {
   }
 }
 
+const udpItems = computed(() => {
+  const s = sensor.value
+  if (!isUdp.value || !s?.udp) return []
+  return [
+    { label: 'Edit UDP settings…', icon: 'pi pi-sliders-h', command: () => (settingsOpen.value = true) },
+    { label: 'Set key or token…', icon: 'pi pi-pencil', command: () => editSecrets('manual') },
+    { label: 'Regenerate key or token…', icon: 'pi pi-refresh', command: () => editSecrets('regenerate') },
+    { label: 'Reset counter…', icon: 'pi pi-undo', command: () => nodeActions.resetCounter(s.id, s.name) },
+    ...(s.udp.sessionMode === 'JoinRequired' || s.udp.sessionActive || s.udp.sessionPending
+      ? [{ label: 'Reset session…', icon: 'pi pi-sign-out', command: () => nodeActions.resetSession(s.id, s.name) }]
+      : []),
+    ...(isAdmin.value && !s.udp.openUpdate
+      ? [{ label: 'Update firmware…', icon: 'pi pi-upload', command: () => (updating.value = true) }]
+      : []),
+    { separator: true },
+  ]
+})
+
 const more = computed(() => [
+  ...udpItems.value,
   ...(sensor.value?.integration
     ? [{ label: 'New tokens…', icon: 'pi pi-key', command: () => (rotating.value = true) }]
     : []),
@@ -172,7 +241,17 @@ const more = computed(() => [
         </template>
       </PageHeader>
 
-      <div class="two-columns">
+      <template v-if="isUdp">
+        <UdpStatusStrip :sensor="sensor" />
+        <TabNav :items="tabs" :active="tab" label="Node pages" />
+      </template>
+
+      <LastPacketsTab v-if="tab === 'last-packets'" :sensor="sensor" />
+      <CommandsTab v-else-if="tab === 'commands'" :sensor="sensor" :can-write="canWrite" />
+      <FirmwareTab v-else-if="tab === 'firmware'" :sensor="sensor" :is-admin="isAdmin" @update="updating = true" />
+      <ProtocolPage v-else-if="tab === 'protocol'" :sensor-id="sensor.id" :sensor-name="sensor.name" />
+
+      <div v-else class="two-columns">
         <div class="column">
           <section class="panel" aria-labelledby="config-title">
             <div id="config-title" class="panel-header">Configuration</div>
@@ -275,6 +354,18 @@ const more = computed(() => [
                   :save="(v) => save({ textId: v ? String(v) : null })"
                 />
               </dd>
+              <dt>Notes</dt>
+              <dd>
+                <InlineField
+                  :value="sensor.notes ?? null"
+                  type="textarea"
+                  label="Notes"
+                  field="notes"
+                  placeholder="No notes"
+                  :readonly="!canWrite"
+                  :save="(v) => save({ notes: v ? String(v) : null })"
+                />
+              </dd>
               <dt>Created</dt>
               <dd>{{ formatAbsolute(sensor.created) }}</dd>
               <template v-if="sensor.parentSensorId">
@@ -288,7 +379,19 @@ const more = computed(() => [
             </dl>
           </section>
 
-          <section v-if="sensor.integration" class="panel" aria-labelledby="integration-title">
+          <section v-if="isUdp" class="panel" aria-labelledby="integration-title">
+            <div id="integration-title" class="panel-header">Reporting over UDP</div>
+            <div class="panel-body">
+              <UdpNodePanel
+                :sensor="sensor"
+                :can-write="canWrite"
+                @edit="settingsOpen = true"
+                @manual="editSecrets('manual')"
+                @regenerate="editSecrets('regenerate')"
+              />
+            </div>
+          </section>
+          <section v-else-if="sensor.integration" class="panel" aria-labelledby="integration-title">
             <div id="integration-title" class="panel-header">Integration</div>
             <div class="panel-body">
               <SensorUrlPanel :integration="sensor.integration" :type="sensor.type" />
@@ -413,6 +516,18 @@ const more = computed(() => [
           </section>
         </div>
       </div>
+
+      <template v-if="isUdp">
+        <UdpSettingsDialog v-if="canWrite" v-model:visible="settingsOpen" :sensor="sensor" />
+        <SecretsDialog
+          v-if="canWrite"
+          v-model:visible="secretsOpen"
+          :sensor-id="sensor.id"
+          :name="sensor.name"
+          :mode="secretsMode"
+        />
+        <OtaDialog v-if="isAdmin" v-model:visible="updating" :sensor-ids="[sensor.id]" :names="[sensor.name]" />
+      </template>
 
       <Dialog v-model:visible="rotating" header="New tokens" modal :style="{ width: '28rem' }">
         <p class="dialog-text">

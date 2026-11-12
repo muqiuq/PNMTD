@@ -472,6 +472,9 @@ namespace PNMTD.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
                     b.Property<Guid?>("OlderSiblingId")
                         .HasColumnType("uuid");
 
@@ -511,6 +514,458 @@ namespace PNMTD.Data.Migrations
                     b.HasIndex("SecretWriteToken");
 
                     b.ToTable("sensors");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.UdpCommandEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Attempts")
+                        .HasColumnType("smallint");
+
+                    b.Property<short>("CmdId")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatedByName")
+                        .HasColumnType("text");
+
+                    b.Property<short>("Delivery")
+                        .HasColumnType("smallint");
+
+                    b.Property<long>("DeviceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastSentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short>("MaxAttempts")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("NodeName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text");
+
+                    b.Property<byte[]>("Payload")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("Result")
+                        .HasColumnType("bytea");
+
+                    b.Property<short?>("ResultStatus")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid?>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("State")
+                        .HasColumnType("smallint");
+
+                    b.Property<byte?>("Suite")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SensorId", "State", "Created");
+
+                    b.ToTable("udp_commands");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.UdpCommandLogEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<short?>("Attempt")
+                        .HasColumnType("smallint");
+
+                    b.Property<short?>("CmdId")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid?>("CommandId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("Datagram")
+                        .HasColumnType("bytea");
+
+                    b.Property<long>("DeviceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<short?>("Direction")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Endpoint")
+                        .HasColumnType("text");
+
+                    b.Property<long?>("Fcnt")
+                        .HasColumnType("bigint");
+
+                    b.Property<short>("Kind")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("NodeName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("OtaJobId")
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Payload")
+                        .HasColumnType("bytea");
+
+                    b.Property<short?>("ResultStatus")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid?>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<byte?>("Suite")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UserName")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Created");
+
+                    b.HasIndex("CommandId", "Created");
+
+                    b.HasIndex("OtaJobId", "Created");
+
+                    b.HasIndex("SensorId", "Created");
+
+                    b.ToTable("udp_command_log");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.UdpFirmwareEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<byte[]>("Sha256")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<int>("Size")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UploadedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UploadedByName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("udp_firmware");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.UdpLastPacketEntity", b =>
+                {
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<byte>("Type")
+                        .HasColumnType("smallint");
+
+                    b.Property<byte[]>("Datagram")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("Fcnt")
+                        .HasColumnType("bigint");
+
+                    b.Property<byte[]>("Payload")
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("Response")
+                        .HasColumnType("bytea");
+
+                    b.Property<byte>("Suite")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("SensorId", "Type");
+
+                    b.ToTable("udp_last_packets");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.UdpNodeEntity", b =>
+                {
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("AckMode")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("AllowedSuites")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("DeviceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("FcntHigh")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("FcntWindow")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FirmwareVersion")
+                        .HasColumnType("text");
+
+                    b.Property<byte[]>("Key")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTime>("KeyChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("KeyChangedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("KeyFamily")
+                        .HasColumnType("smallint");
+
+                    b.Property<short>("KeySource")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime?>("LastBootAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte?>("LastBootReason")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("LastEndpoint")
+                        .HasColumnType("text");
+
+                    b.Property<byte[]>("LastResponse")
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte?>("LastSuite")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime?>("LastUplinkAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("LastUplinkDigest")
+                        .HasColumnType("bytea");
+
+                    b.Property<long?>("LastUplinkFcnt")
+                        .HasColumnType("bigint");
+
+                    b.Property<short>("NextCmdId")
+                        .HasColumnType("smallint");
+
+                    b.Property<short>("NextUpdateId")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime?>("PendingSessionAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("PendingSessionKey")
+                        .HasColumnType("bytea");
+
+                    b.Property<bool>("ReplayProtection")
+                        .HasColumnType("boolean");
+
+                    b.Property<byte?>("ResponseSuite")
+                        .HasColumnType("smallint");
+
+                    b.Property<byte[]>("SessionKey")
+                        .HasColumnType("bytea");
+
+                    b.Property<short>("SessionMode")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime?>("SessionStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("Token")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTime>("TokenChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("TokenChangedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("TokenSource")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("SensorId");
+
+                    b.HasIndex("DeviceId")
+                        .IsUnique();
+
+                    b.ToTable("udp_nodes");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.UdpOtaJobEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AppliedVersion")
+                        .HasColumnType("text");
+
+                    b.Property<long>("BytesServed")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("ChunkRetransmissions")
+                        .HasColumnType("integer");
+
+                    b.Property<short>("ChunkSize")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("ChunksServed")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatedByName")
+                        .HasColumnType("text");
+
+                    b.Property<long>("DeviceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("FirmwareId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FirmwareName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<byte[]>("FirmwareSha256")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<int>("FirmwareSize")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FirmwareVersion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("HighestOffset")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastRequestAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short>("MaxOfferAttempts")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("NodeName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<short>("OfferAttempts")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime?>("OfferedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short?>("Reason")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid?>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short>("State")
+                        .HasColumnType("smallint");
+
+                    b.Property<short>("UpdateId")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Created");
+
+                    b.HasIndex("FirmwareId");
+
+                    b.HasIndex("SensorId", "State", "Created");
+
+                    b.ToTable("udp_ota_jobs");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.UserEntity", b =>
@@ -704,6 +1159,65 @@ namespace PNMTD.Data.Migrations
                     b.Navigation("OlderSibling");
 
                     b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.UdpCommandEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.UdpCommandLogEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.UdpCommandEntity", null)
+                        .WithMany()
+                        .HasForeignKey("CommandId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("PNMTD.Models.Db.UdpOtaJobEntity", null)
+                        .WithMany()
+                        .HasForeignKey("OtaJobId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.UdpLastPacketEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.UdpNodeEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", "Sensor")
+                        .WithOne()
+                        .HasForeignKey("PNMTD.Models.Db.UdpNodeEntity", "SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sensor");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.UdpOtaJobEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.UdpFirmwareEntity", null)
+                        .WithMany()
+                        .HasForeignKey("FirmwareId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.DnsZoneEntity", b =>

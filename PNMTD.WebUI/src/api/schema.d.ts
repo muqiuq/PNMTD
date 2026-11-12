@@ -2600,6 +2600,963 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sensors/{id}/udp/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UdpKeyRequest"];
+                    "text/json": components["schemas"]["UdpKeyRequest"];
+                    "application/*+json": components["schemas"]["UdpKeyRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UdpSecretsChanged"];
+                        "text/json": components["schemas"]["UdpSecretsChanged"];
+                        "text/plain": components["schemas"]["UdpSecretsChanged"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/udp/regenerate-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UdpRegenerateRequest"];
+                    "text/json": components["schemas"]["UdpRegenerateRequest"];
+                    "application/*+json": components["schemas"]["UdpRegenerateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UdpSecretsChanged"];
+                        "text/json": components["schemas"]["UdpSecretsChanged"];
+                        "text/plain": components["schemas"]["UdpSecretsChanged"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/udp/reset-counter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/udp/reset-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/udp/last-packets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UdpPacketView"][];
+                        "text/json": components["schemas"]["UdpPacketView"][];
+                        "text/plain": components["schemas"]["UdpPacketView"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/udp/rejections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UdpRejectionView"][];
+                        "text/json": components["schemas"]["UdpRejectionView"][];
+                        "text/plain": components["schemas"]["UdpRejectionView"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/udp/commands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    state?: components["schemas"]["UdpCommandState"];
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfUdpCommandItem"];
+                        "text/json": components["schemas"]["PagedOfUdpCommandItem"];
+                        "text/plain": components["schemas"]["PagedOfUdpCommandItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UdpCommandRequest"];
+                    "text/json": components["schemas"]["UdpCommandRequest"];
+                    "application/*+json": components["schemas"]["UdpCommandRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UdpCommandCreated"];
+                        "text/json": components["schemas"]["UdpCommandCreated"];
+                        "text/plain": components["schemas"]["UdpCommandCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/udp/commands/{commandId}/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    commandId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UdpLogItem"][];
+                        "text/json": components["schemas"]["UdpLogItem"][];
+                        "text/plain": components["schemas"]["UdpLogItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/udp/commands/{commandId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    commandId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/udp/ota-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UdpOtaJobDetail"][];
+                        "text/json": components["schemas"]["UdpOtaJobDetail"][];
+                        "text/plain": components["schemas"]["UdpOtaJobDetail"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/udp/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UdpStatus"];
+                        "text/json": components["schemas"]["UdpStatus"];
+                        "text/plain": components["schemas"]["UdpStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/udp/nodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    state?: components["schemas"]["SensorState"];
+                    keyFamily?: components["schemas"]["KeyFamily"];
+                    enabled?: boolean;
+                    firmwareVersion?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfUdpNodeListItem"];
+                        "text/json": components["schemas"]["PagedOfUdpNodeListItem"];
+                        "text/plain": components["schemas"]["PagedOfUdpNodeListItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/udp/command-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    sensorId?: string;
+                    deviceId?: number;
+                    kind?: components["schemas"]["UdpLogKind"];
+                    from?: string;
+                    to?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfUdpLogItem"];
+                        "text/json": components["schemas"]["PagedOfUdpLogItem"];
+                        "text/plain": components["schemas"]["PagedOfUdpLogItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/udp/unknown-senders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UdpUnknownSenderItem"][];
+                        "text/json": components["schemas"]["UdpUnknownSenderItem"][];
+                        "text/plain": components["schemas"]["UdpUnknownSenderItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/udp/firmware": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UdpFirmwareItem"][];
+                        "text/json": components["schemas"]["UdpFirmwareItem"][];
+                        "text/plain": components["schemas"]["UdpFirmwareItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        file?: components["schemas"]["IFormFile"];
+                    } & {
+                        name?: string;
+                    } & {
+                        version?: string;
+                    } & {
+                        notes?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UdpFirmwareUploaded"];
+                        "text/json": components["schemas"]["UdpFirmwareUploaded"];
+                        "text/plain": components["schemas"]["UdpFirmwareUploaded"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/udp/firmware/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UdpFirmwareRequest"];
+                    "text/json": components["schemas"]["UdpFirmwareRequest"];
+                    "application/*+json": components["schemas"]["UdpFirmwareRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UdpFirmwareItem"];
+                        "text/json": components["schemas"]["UdpFirmwareItem"];
+                        "text/plain": components["schemas"]["UdpFirmwareItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/udp/firmware/{id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/octet-stream": components["schemas"]["FileContentResult"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/udp/ota-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    state?: components["schemas"]["UdpOtaState"];
+                    firmwareId?: string;
+                    sensorId?: string;
+                    from?: string;
+                    to?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfUdpOtaJobItem"];
+                        "text/json": components["schemas"]["PagedOfUdpOtaJobItem"];
+                        "text/plain": components["schemas"]["PagedOfUdpOtaJobItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UdpOtaJobRequest"];
+                    "text/json": components["schemas"]["UdpOtaJobRequest"];
+                    "application/*+json": components["schemas"]["UdpOtaJobRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UdpOtaJobsCreated"];
+                        "text/json": components["schemas"]["UdpOtaJobsCreated"];
+                        "text/plain": components["schemas"]["UdpOtaJobsCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/udp/ota-jobs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/udp/protocol/examples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    sensorId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UdpProtocolExamples"];
+                        "text/json": components["schemas"]["UdpProtocolExamples"];
+                        "text/plain": components["schemas"]["UdpProtocolExamples"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/udp/protocol/build": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    sensorId?: string;
+                    type?: components["schemas"]["PacketType"];
+                    suite?: components["schemas"]["SecuritySuite"];
+                    fcnt?: number;
+                    ack?: boolean;
+                    payload?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UdpBuildResult"];
+                        "text/json": components["schemas"]["UdpBuildResult"];
+                        "text/plain": components["schemas"]["UdpBuildResult"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2760,6 +3717,10 @@ export interface components {
         };
         /** @enum {unknown} */
         DnsZoneResourceType: "A" | "AAAA" | "CNAME" | "TXT" | "MX" | "SOA" | "PTR" | "SRV" | "NS";
+        EntityTagHeaderValue: {
+            tag?: components["schemas"]["StringSegment"];
+            isWeak?: boolean;
+        };
         EventItem: {
             /** Format: uuid */
             id: string;
@@ -2776,6 +3737,16 @@ export interface components {
             /** Format: uuid */
             hostId: string;
             hostName: string;
+        };
+        FileContentResult: {
+            /** Format: byte */
+            fileContents?: string;
+            contentType?: null | string;
+            fileDownloadName?: null | string;
+            /** Format: date-time */
+            lastModified?: null | string;
+            entityTag?: null | components["schemas"]["EntityTagHeaderValue"];
+            enableRangeProcessing?: boolean;
         };
         HostCounts: {
             /** Format: int32 */
@@ -2835,6 +3806,10 @@ export interface components {
         };
         /** @enum {unknown} */
         HostState: "Ok" | "Failing" | "NoData" | "Disabled";
+        /** Format: binary */
+        IFormFile: string;
+        /** @enum {unknown} */
+        KeyFamily: "HmacSha256" | "Aes" | "HmacSha1" | "HmacMd5";
         KeyValueItem: {
             /** Format: uuid */
             id: string;
@@ -2978,6 +3953,16 @@ export interface components {
             type: components["schemas"]["NotificationRuleType"];
             description: string;
         };
+        PacketField: {
+            /** Format: int32 */
+            offset: number;
+            /** Format: int32 */
+            length: number;
+            name: string;
+            value: string;
+        };
+        /** @enum {unknown} */
+        PacketType: "Heartbeat" | "Data" | "Event" | "CmdResult" | "Boot" | "Join" | "Ota" | "Ack" | "Command" | "JoinAccept" | "OtaOffer" | "OtaChunk";
         PagedOfAuthLogItem: {
             items: components["schemas"]["AuthLogItem"][];
             /** Format: int32 */
@@ -3068,6 +4053,42 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
+        PagedOfUdpCommandItem: {
+            items: components["schemas"]["UdpCommandItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfUdpLogItem: {
+            items: components["schemas"]["UdpLogItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfUdpNodeListItem: {
+            items: components["schemas"]["UdpNodeListItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfUdpOtaJobItem: {
+            items: components["schemas"]["UdpOtaJobItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfUserItem: {
             items: components["schemas"]["UserItem"][];
             /** Format: int32 */
@@ -3126,6 +4147,8 @@ export interface components {
             hostId: string;
             hostName: string;
         };
+        /** @enum {unknown} */
+        SecuritySuite: "None" | "Token32" | "HmacSha256_32" | "HmacSha256_64" | "AesCmac32" | "AesCmac64" | "AesCcm32" | "AesCcm64" | "HmacMd5_32" | "HmacMd5_64" | "HmacSha1_32" | "HmacSha1_64";
         SensorCounts: {
             /** Format: int32 */
             ok: number;
@@ -3174,12 +4197,15 @@ export interface components {
             days: components["schemas"]["UptimeSeries"];
             children: components["schemas"]["SensorSummary"][];
             integration: null | components["schemas"]["SensorIntegration"];
+            notes?: null | string;
+            udp?: null | components["schemas"]["UdpNodeDetail"];
         };
         SensorIntegration: {
             writeToken: string;
             readToken: null | string;
             writeUrl: string;
             readUrl: null | string;
+            udp?: null | components["schemas"]["UdpSecrets"];
         };
         SensorListItem: {
             /** Format: uuid */
@@ -3221,6 +4247,8 @@ export interface components {
             gracePeriod?: number;
             parameters?: null | string;
             textId?: null | string;
+            notes?: null | string;
+            udp?: null | components["schemas"]["UdpNodeRequest"];
         };
         /** @enum {unknown} */
         SensorState: "Ok" | "Failing" | "NoData" | "Ignored" | "Disabled";
@@ -3243,7 +4271,7 @@ export interface components {
             childCount: number;
         };
         /** @enum {unknown} */
-        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN";
+        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN" | "UDP_NODE";
         SensorTypeInfo: {
             type: components["schemas"]["SensorType"];
             description: string;
@@ -3282,6 +4310,15 @@ export interface components {
             name: string;
             success: boolean;
             description: string;
+        };
+        StringSegment: {
+            buffer?: null | string;
+            /** Format: int32 */
+            offset?: number;
+            /** Format: int32 */
+            length?: number;
+            value?: null | string;
+            hasValue?: boolean;
         };
         SystemInfo: {
             identity: string;
@@ -3337,6 +4374,500 @@ export interface components {
             otpauthUri: string;
             /** Format: date-time */
             expiresAt: string;
+        };
+        /** @enum {unknown} */
+        UdpAckMode: "Never" | "OnRequest" | "Always";
+        UdpBuildResult: {
+            referenceKey: boolean;
+            /** Format: byte */
+            datagram: string;
+            fields: components["schemas"]["PacketField"][];
+            hex: string;
+            cArray: string;
+            send: string;
+        };
+        UdpCommandCreated: {
+            command: components["schemas"]["UdpCommandItem"];
+            warnings: string[];
+        };
+        /** @enum {unknown} */
+        UdpCommandDelivery: "ResultRequired" | "FireAndForget";
+        UdpCommandItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            sensorId: null | string;
+            /** Format: int64 */
+            deviceId: number;
+            nodeName: string;
+            /** Format: int16 */
+            cmdId: number;
+            /** Format: byte */
+            payload: string;
+            state: components["schemas"]["UdpCommandState"];
+            delivery: components["schemas"]["UdpCommandDelivery"];
+            suite: null | components["schemas"]["SecuritySuite"];
+            /** Format: int16 */
+            attempts: number;
+            /** Format: int16 */
+            maxAttempts: number;
+            /** Format: date-time */
+            created: string;
+            createdBy: null | string;
+            /** Format: date-time */
+            expiresAt: null | string;
+            /** Format: date-time */
+            lastSentAt: null | string;
+            /** Format: date-time */
+            completedAt: null | string;
+            /** Format: int16 */
+            resultStatus: null | number;
+            resultStatusText: null | string;
+            /** Format: byte */
+            result: null | string;
+            note: null | string;
+        };
+        UdpCommandRequest: {
+            /** Format: byte */
+            payload?: null | string;
+            delivery?: components["schemas"]["UdpCommandDelivery"];
+            suite?: null | components["schemas"]["SecuritySuite"];
+            /** Format: int32 */
+            expiresInHours?: null | number;
+            /** Format: int32 */
+            maxAttempts?: null | number;
+        };
+        /** @enum {unknown} */
+        UdpCommandState: "Queued" | "Sent" | "Completed" | "Failed" | "Expired" | "Cancelled";
+        /** @enum {unknown} */
+        UdpDirection: "Up" | "Down" | null;
+        UdpExample: {
+            title: string;
+            description: string;
+            /** Format: byte */
+            datagram: string;
+            fields: components["schemas"]["PacketField"][];
+            hex: string;
+            cArray: string;
+            shell: null | string;
+        };
+        UdpFirmwareItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            version: string;
+            fileName: string;
+            /** Format: int32 */
+            size: number;
+            sha256: string;
+            notes: null | string;
+            /** Format: date-time */
+            uploadedAt: string;
+            uploadedBy: null | string;
+            /** Format: int32 */
+            jobs: number;
+            /** Format: int32 */
+            openJobs: number;
+            /** Format: int32 */
+            nodesRunning: number;
+            magic: null | string;
+        };
+        UdpFirmwareRequest: {
+            name?: null | string;
+            version?: null | string;
+            notes?: null | string;
+        };
+        UdpFirmwareUploaded: {
+            firmware: components["schemas"]["UdpFirmwareItem"];
+            warnings: string[];
+        };
+        UdpKeyRequest: {
+            key?: null | string;
+            token?: null | string;
+        };
+        UdpLogItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            created: string;
+            kind: components["schemas"]["UdpLogKind"];
+            direction: null | components["schemas"]["UdpDirection"];
+            /** Format: uuid */
+            commandId: null | string;
+            /** Format: uuid */
+            otaJobId: null | string;
+            /** Format: uuid */
+            sensorId: null | string;
+            /** Format: int64 */
+            deviceId: number;
+            nodeName: string;
+            /** Format: int16 */
+            cmdId: null | number;
+            /** Format: int16 */
+            attempt: null | number;
+            endpoint: null | string;
+            suite: null | components["schemas"]["SecuritySuite"];
+            /** Format: int64 */
+            fcnt: null | number;
+            /** Format: byte */
+            datagram: null | string;
+            /** Format: byte */
+            payload: null | string;
+            /** Format: int16 */
+            resultStatus: null | number;
+            userName: null | string;
+            note: null | string;
+            fields: null | components["schemas"]["PacketField"][];
+        };
+        /** @enum {unknown} */
+        UdpLogKind: "Queued" | "Sent" | "Resent" | "ResultReceived" | "UnmatchedResult" | "Cancelled" | "Expired" | "Failed" | "OtaQueued" | "OtaOffered" | "OtaStarted" | "OtaDeclined" | "OtaVerified" | "OtaFailed" | "OtaApplied" | "OtaCancelled" | "OtaExpired";
+        UdpNodeDetail: {
+            /** Format: int64 */
+            deviceId: number;
+            deviceIdBytes: string;
+            keyFamily: components["schemas"]["KeyFamily"];
+            allowedSuites: components["schemas"]["SecuritySuite"][];
+            sessionMode: components["schemas"]["UdpSessionMode"];
+            sessionActive: boolean;
+            sessionPending: boolean;
+            /** Format: date-time */
+            sessionStartedAt: null | string;
+            ackMode: components["schemas"]["UdpAckMode"];
+            replayProtection: boolean;
+            responseSuite: null | components["schemas"]["SecuritySuite"];
+            keySource: components["schemas"]["UdpSecretSource"];
+            /** Format: date-time */
+            keyChangedAt: string;
+            keyChangedBy: null | string;
+            tokenSource: components["schemas"]["UdpSecretSource"];
+            /** Format: date-time */
+            tokenChangedAt: string;
+            tokenChangedBy: null | string;
+            /** Format: int64 */
+            fcnt: null | number;
+            /** Format: date-time */
+            lastSeenAt: null | string;
+            lastEndpoint: null | string;
+            lastSuite: null | components["schemas"]["SecuritySuite"];
+            /** Format: date-time */
+            lastBootAt: null | string;
+            lastBootReason: null | string;
+            firmwareVersion: null | string;
+            last24Hours: components["schemas"]["UdpNumbers"];
+            badTagWarning: boolean;
+            /** Format: int32 */
+            openCommands: number;
+            openUpdate: null | components["schemas"]["UdpOtaProgress"];
+            listenerEnabled: boolean;
+            endpoint: string;
+            warnings: string[];
+        };
+        UdpNodeListItem: {
+            /** Format: uuid */
+            sensorId: string;
+            name: string;
+            host: components["schemas"]["Ref"];
+            /** Format: int64 */
+            deviceId: number;
+            deviceIdBytes: string;
+            enabled: boolean;
+            state: components["schemas"]["SensorState"];
+            keyFamily: components["schemas"]["KeyFamily"];
+            allowedSuites: components["schemas"]["SecuritySuite"][];
+            keySource: components["schemas"]["UdpSecretSource"];
+            /** Format: date-time */
+            keyChangedAt: string;
+            keyChangedBy: null | string;
+            tokenSource: components["schemas"]["UdpSecretSource"];
+            sessionMode: components["schemas"]["UdpSessionMode"];
+            sessionActive: boolean;
+            ackMode: components["schemas"]["UdpAckMode"];
+            responseSuite: null | components["schemas"]["SecuritySuite"];
+            /** Format: date-time */
+            lastSeenAt: null | string;
+            lastEndpoint: null | string;
+            lastSuite: null | components["schemas"]["SecuritySuite"];
+            /** Format: int64 */
+            fcnt: null | number;
+            /** Format: int32 */
+            openCommands: number;
+            firmwareVersion: null | string;
+            openUpdate: null | components["schemas"]["UdpOtaProgress"];
+            /** Format: int64 */
+            packets24Hours: number;
+            /** Format: double */
+            loss24Hours: null | number;
+            /** Format: int64 */
+            rejected24Hours: number;
+            badTagWarning: boolean;
+            notes: null | string;
+        };
+        UdpNodeRequest: {
+            /** Format: int64 */
+            deviceId?: null | number;
+            keyFamily?: components["schemas"]["KeyFamily"];
+            allowedSuites?: null | components["schemas"]["SecuritySuite"][];
+            sessionMode?: components["schemas"]["UdpSessionMode"];
+            ackMode?: components["schemas"]["UdpAckMode"];
+            replayProtection?: boolean;
+            responseSuite?: null | components["schemas"]["SecuritySuite"];
+            key?: null | string;
+            token?: null | string;
+        };
+        UdpNumbers: {
+            /** Format: int64 */
+            accepted: number;
+            /** Format: int64 */
+            rejected: number;
+            /** Format: int64 */
+            bytesIn: number;
+            /** Format: int64 */
+            bytesOut: number;
+            /** Format: double */
+            loss: null | number;
+            rejectedByReason: components["schemas"]["UdpReasonCount"][];
+        };
+        UdpOtaEstimate: {
+            /** Format: int32 */
+            roundTrips: number;
+            /** Format: int64 */
+            bytesOnTheWire: number;
+            /** Format: double */
+            secondsAt100Ms: number;
+            /** Format: double */
+            secondsAt2s: number;
+        };
+        UdpOtaJobDetail: {
+            job: components["schemas"]["UdpOtaJobItem"];
+            log: components["schemas"]["UdpLogItem"][];
+        };
+        UdpOtaJobItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            sensorId: null | string;
+            /** Format: int64 */
+            deviceId: number;
+            nodeName: string;
+            /** Format: uuid */
+            firmwareId: null | string;
+            firmwareName: string;
+            firmwareVersion: string;
+            /** Format: int32 */
+            firmwareSize: number;
+            firmwareSha256: string;
+            /** Format: int16 */
+            updateId: number;
+            /** Format: int16 */
+            chunkSize: number;
+            state: components["schemas"]["UdpOtaState"];
+            /** Format: int16 */
+            reason: null | number;
+            reasonText: null | string;
+            /** Format: int16 */
+            offerAttempts: number;
+            /** Format: int16 */
+            maxOfferAttempts: number;
+            /** Format: int64 */
+            bytesServed: number;
+            /** Format: int32 */
+            chunksServed: number;
+            /** Format: int32 */
+            chunkRetransmissions: number;
+            /** Format: int64 */
+            highestOffset: number;
+            /** Format: double */
+            progress: number;
+            /** Format: date-time */
+            created: string;
+            createdBy: null | string;
+            /** Format: date-time */
+            offeredAt: null | string;
+            /** Format: date-time */
+            startedAt: null | string;
+            /** Format: date-time */
+            lastRequestAt: null | string;
+            /** Format: date-time */
+            finishedAt: null | string;
+            /** Format: date-time */
+            expiresAt: string;
+            appliedVersion: null | string;
+            estimate: components["schemas"]["UdpOtaEstimate"];
+        };
+        UdpOtaJobRequest: {
+            /** Format: uuid */
+            firmwareId?: string;
+            sensorIds?: null | string[];
+            /** Format: int32 */
+            chunkSize?: null | number;
+            /** Format: int32 */
+            expiresInDays?: null | number;
+            /** Format: int32 */
+            maxOfferAttempts?: null | number;
+        };
+        UdpOtaJobsCreated: {
+            created: components["schemas"]["UdpOtaJobItem"][];
+            refused: components["schemas"]["UdpOtaRefusal"][];
+        };
+        UdpOtaProgress: {
+            /** Format: uuid */
+            jobId: string;
+            firmwareName: string;
+            firmwareVersion: string;
+            state: components["schemas"]["UdpOtaState"];
+            /** Format: int64 */
+            highestOffset: number;
+            /** Format: int32 */
+            size: number;
+            /** Format: double */
+            progress: number;
+        };
+        UdpOtaRefusal: {
+            /** Format: uuid */
+            sensorId: string;
+            name: string;
+            reason: string;
+        };
+        /** @enum {unknown} */
+        UdpOtaState: "Queued" | "Offered" | "Downloading" | "Verified" | "Applied" | "Declined" | "Failed" | "Cancelled" | "Expired";
+        UdpPacketView: {
+            type: components["schemas"]["PacketType"];
+            /** Format: date-time */
+            receivedAt: string;
+            endpoint: string;
+            suite: components["schemas"]["SecuritySuite"];
+            /** Format: int64 */
+            fcnt: number;
+            /** Format: byte */
+            datagram: string;
+            /** Format: byte */
+            payload: null | string;
+            fields: components["schemas"]["PacketField"][];
+            /** Format: byte */
+            response: null | string;
+            responseFields: null | components["schemas"]["PacketField"][];
+        };
+        UdpProtocolExamples: {
+            referenceKey: boolean;
+            keyHex: null | string;
+            tokenHex: null | string;
+            /** Format: int64 */
+            deviceId: number;
+            keyFamily: components["schemas"]["KeyFamily"];
+            allowedSuites: components["schemas"]["SecuritySuite"][];
+            endpoint: string;
+            /** Format: int32 */
+            maxDatagram: number;
+            suites: components["schemas"]["UdpSuiteInfo"][];
+            types: components["schemas"]["UdpTypeInfo"][];
+            examples: components["schemas"]["UdpExample"][];
+            vectors: components["schemas"]["UdpExample"][];
+        };
+        UdpReasonCount: {
+            reason: components["schemas"]["UdpRejectReason"];
+            /** Format: int64 */
+            count: number;
+        };
+        UdpRegenerateRequest: {
+            key?: boolean;
+            token?: boolean;
+        };
+        UdpRejectionView: {
+            /** Format: date-time */
+            at: string;
+            reason: components["schemas"]["UdpRejectReason"];
+            endpoint: string;
+            /** Format: byte */
+            datagram: string;
+            detail: null | string;
+            fields: null | components["schemas"]["PacketField"][];
+        };
+        /** @enum {unknown} */
+        UdpRejectReason: "Malformed" | "WrongDirection" | "UnknownDevice" | "Disabled" | "SuiteNotAllowed" | "SessionRequired" | "RateLimited" | "BadTag" | "Replay" | "CounterJump" | "QueueFull" | "Error";
+        UdpSecrets: {
+            key: string;
+            token: string;
+        };
+        UdpSecretsChanged: {
+            secrets: components["schemas"]["UdpSecrets"];
+            warnings: string[];
+        };
+        /** @enum {unknown} */
+        UdpSecretSource: "Generated" | "Manual";
+        /** @enum {unknown} */
+        UdpSessionMode: "None" | "JoinRequired";
+        UdpStatus: {
+            enabled: boolean;
+            listening: boolean;
+            /** Format: int32 */
+            port: null | number;
+            endpoint: string;
+            error: null | string;
+            /** Format: date-time */
+            since: null | string;
+            /** Format: int32 */
+            queueDepth: number;
+            /** Format: int64 */
+            received: number;
+            /** Format: int64 */
+            accepted: number;
+            /** Format: int64 */
+            responses: number;
+            /** Format: int64 */
+            bytesIn: number;
+            /** Format: int64 */
+            bytesOut: number;
+            /** Format: int32 */
+            packetsLastMinute: number;
+            rejected: components["schemas"]["UdpReasonCount"][];
+            /** Format: int32 */
+            nodes: number;
+            warnings: components["schemas"]["UdpWarning"][];
+            /** Format: int32 */
+            firmwareCached: number;
+            /** Format: int64 */
+            firmwareCachedBytes: number;
+        };
+        UdpSuiteInfo: {
+            suite: components["schemas"]["SecuritySuite"];
+            /** Format: int32 */
+            code: number;
+            name: string;
+            /** Format: int32 */
+            tagLength: number;
+            family: null | components["schemas"]["KeyFamily"];
+            keyed: boolean;
+            encrypted: boolean;
+            legacy: boolean;
+        };
+        UdpTypeInfo: {
+            type: components["schemas"]["PacketType"];
+            /** Format: int32 */
+            code: number;
+            name: string;
+            downlink: boolean;
+        };
+        UdpUnknownSenderItem: {
+            /** Format: int64 */
+            deviceId: null | number;
+            address: string;
+            /** Format: date-time */
+            firstSeen: string;
+            /** Format: date-time */
+            lastSeen: string;
+            /** Format: int64 */
+            count: number;
+            lastSuite: null | components["schemas"]["SecuritySuite"];
+            /** Format: byte */
+            lastDatagram: string;
+            problem: null | string;
+            nodeExists: boolean;
+        };
+        UdpWarning: {
+            /** Format: uuid */
+            sensorId: string;
+            nodeName: string;
+            message: string;
         };
         UpdateUserRequest: {
             displayName?: null | string;

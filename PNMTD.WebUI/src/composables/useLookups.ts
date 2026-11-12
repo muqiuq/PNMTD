@@ -48,12 +48,18 @@ export function useRuleTypes() {
 }
 
 /** The label of a sensor type: "HEARTBEAT_VALUECHECK" → "Heartbeat valuecheck". */
-export const typeLabel = (type: string) => (type === 'ENCAPSULADED' ? 'Encapsulated (JSON)' : humanize(type))
+export const typeLabel = (type: string) =>
+  type === 'ENCAPSULADED' ? 'Encapsulated (JSON)' : type === 'UDP_NODE' ? 'UDP node' : humanize(type)
+
+/** Types that report themselves and turn 460 after Interval + GracePeriod without a report. */
+export const usesGracePeriod = (type: string | null | undefined) =>
+  type === 'HEARTBEAT' || type === 'HEARTBEAT_VALUECHECK' || type === 'UDP_NODE'
 
 /** The PrimeIcon of a sensor type. */
 export function typeIcon(type: string): string {
   switch (type) {
     case 'PING':
+    case 'UDP_NODE':
       return 'pi pi-wifi'
     case 'HEARTBEAT':
     case 'HEARTBEAT_VALUECHECK':

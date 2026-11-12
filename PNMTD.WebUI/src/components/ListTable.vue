@@ -1,4 +1,4 @@
-<script setup lang="ts" generic="T extends { id: string }">
+<script setup lang="ts" generic="T extends { id: string | number }">
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -10,7 +10,8 @@ import ErrorState from './ErrorState.vue'
 
 /**
  * A server-paged list (§5.3): a compact DataTable on a desktop; below 600 px a list of two-line
- * rows (the #mobile slot) with a pager, so nothing scrolls sideways.
+ * rows (the #mobile slot) with a pager, so nothing scrolls sideways. With an #expansion slot, the
+ * rows whose ids are in v-model:expanded open their details below them (on a phone too).
  */
 const props = withDefaults(
   defineProps<{
@@ -23,6 +24,8 @@ const props = withDefaults(
   { emptyText: undefined, rowClass: undefined, selectable: false },
 )
 const emit = defineEmits<{ select: [item: T] }>()
+/** The expanded rows by id ({ [id]: true }); a collapsed row is not in it. */
+const expanded = defineModel<Record<string, boolean>>('expanded', { default: () => ({}) })
 const phone = useMedia('(max-width: 599px)')
 const q = computed(() => props.table.query)
 const pages = computed(() => Math.max(1, Math.ceil(props.table.total.value / props.table.pageSize.value)))
@@ -43,6 +46,9 @@ const pages = computed(() => Math.max(1, Math.ceil(props.table.total.value / pro
         @keydown.enter="selectable && emit('select', item)"
       >
         <slot name="mobile" :item="item" />
+        <div v-if="$slots.expansion && expanded[String(item.id)]" class="mobile-expansion" @click.stop>
+          <slot name="expansion" :data="item" />
+        </div>
       </li>
     </ul>
     <div v-if="pages > 1" class="pager">
@@ -75,11 +81,16 @@ const pages = computed(() => Math.max(1, Math.ceil(props.table.total.value / pro
     :row-hover="selectable"
     paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
     current-page-report-template="{first}–{last} of {totalRecords}"
+    :expanded-rows="expanded"
     @page="table.onPage"
     @sort="table.onSort"
+    @update:expanded-rows="(rows: unknown) => (expanded = rows as Record<string, boolean>)"
     @row-click="(e: { data: T }) => selectable && emit('select', e.data)"
   >
     <slot />
+    <template v-if="$slots.expansion" #expansion="{ data }">
+      <slot name="expansion" :data="data as T" />
+    </template>
     <template #empty>
       <EmptyState :title="emptyText ?? `No ${what}.`" />
     </template>
@@ -117,6 +128,11 @@ const pages = computed(() => Math.max(1, Math.ceil(props.table.total.value / pro
 
 .mobile-list li.row-muted {
   opacity: 0.6;
+}
+
+.mobile-expansion {
+  margin-top: var(--pnmt-space-2);
+  cursor: auto;
 }
 
 .center {

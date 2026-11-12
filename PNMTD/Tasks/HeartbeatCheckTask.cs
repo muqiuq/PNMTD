@@ -87,7 +87,7 @@ namespace PNMTD.Tasks
                 if (!decisionMaker.DetermineIfTaskShouldRun(dbContext)) return;
 
                 var relevantSensors = dbContext.Sensors.Where(s =>
-                (s.Type == SensorType.HEARTBEAT || s.Type == SensorType.HEARTBEAT_VALUECHECK)
+                (s.Type == SensorType.HEARTBEAT || s.Type == SensorType.HEARTBEAT_VALUECHECK || s.Type == SensorType.UDP_NODE)
                 && s.Enabled).ToList();
 
                 int counterCreatedEvents = 0;

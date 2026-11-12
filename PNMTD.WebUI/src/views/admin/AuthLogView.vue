@@ -33,12 +33,23 @@ const types = [
   'UserUnlocked',
   'RoleChanged',
   'UserDeleted',
+  'UdpKeyChanged',
+  'UdpCounterReset',
+  'UdpSessionReset',
+  'UdpFirmwareUploaded',
+  'UdpFirmwareDeleted',
+  'UdpUpdateStarted',
+  'UdpUpdateCancelled',
 ]
-const label = (t: string) => t.replace(/([a-z])([A-Z])/g, '$1 $2').replace('Totp', '2FA')
+const label = (t: string) =>
+  t
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace('Totp', '2FA')
+    .replace(/^Udp /, 'UDP ')
 const severity = (t: string) =>
   /Failed|LockedOut/.test(t)
     ? 'danger'
-    : /Deleted|Reset|Revoked|Disabled/.test(t)
+    : /Deleted|Reset|Revoked|Disabled|Cancelled/.test(t)
       ? 'warn'
       : /Succeeded|Enabled|Created/.test(t)
         ? 'success'

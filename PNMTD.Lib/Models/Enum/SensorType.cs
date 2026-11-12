@@ -12,7 +12,9 @@ namespace PNMTD.Lib.Models.Enum
         VALUECHECK = 40,
         ENCAPSULADED = 50,
         ONE_WITHIN_TIMESPAN = 60,
-        ALL_WITHIN_TIMESPAN = 61
+        ALL_WITHIN_TIMESPAN = 61,
+        /// <summary>A device reporting over PNMT-UDP (docs/udp-iot-plan.md §4.1), with heartbeat semantics.</summary>
+        UDP_NODE = 70
     }
 }
 

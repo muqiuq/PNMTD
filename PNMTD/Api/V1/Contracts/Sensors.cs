@@ -59,14 +59,16 @@ public sealed record SensorDetail(
     double? Uptime30Days,
     UptimeSeries Days,
     IReadOnlyList<SensorSummary> Children,
-    SensorIntegration? Integration);
+    SensorIntegration? Integration,
+    string? Notes = null,
+    UdpNodeDetail? Udp = null);
 
 /// <summary>
 /// How an application reports: <c>{WriteUrl}/{code}/{message}</c> (GET) or a POST of the message to
 /// <c>{WriteUrl}/{code}</c>; <c>{ReadUrl}</c> returns the last state. The base is PublicBaseUrl,
 /// or the address of the request.
 /// </summary>
-public sealed record SensorIntegration(string WriteToken, string? ReadToken, string WriteUrl, string? ReadUrl);
+public sealed record SensorIntegration(string WriteToken, string? ReadToken, string WriteUrl, string? ReadUrl, UdpSecrets? Udp = null);
 
 /// <summary>
 /// POST and PUT <c>/sensors</c>. The type cannot be DNS (DnsCheckTask creates those), and a DNS
@@ -94,6 +96,12 @@ public sealed class SensorRequest
     public string? Parameters { get; init; }
 
     public string? TextId { get; init; }
+
+    /// <summary>Free text for every type, at most 4000 characters (docs/udp-iot-plan.md §4.1).</summary>
+    public string? Notes { get; init; }
+
+    /// <summary>A UDP_NODE's protocol settings (docs/udp-iot-plan.md §5); ignored for other types.</summary>
+    public UdpNodeRequest? Udp { get; init; }
 }
 
 /// <summary><c>POST /sensors/{id}/tokens/rotate</c>: which tokens get new values. The old URLs stop working at once.</summary>

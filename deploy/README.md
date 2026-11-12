@@ -31,6 +31,7 @@ docker compose up -d
 |---|---|---|
 | `db` | PostgreSQL 18 | nothing |
 | `pnmtd` | the sensor API, the monitoring tasks and the admin UI | `PNMTD_PORT` (5001) → 8080, on `PNMTD_BIND_ADDRESS` (0.0.0.0) |
+| | the UDP listener for IoT nodes | `PNMTD_UDP_PORT` (5028/udp), on `PNMTD_UDP_BIND_ADDRESS` (0.0.0.0) |
 
 `pnmtd` runs hardened:
 
@@ -148,11 +149,25 @@ networks:
 
 With Traefik, set `Proxy=docker`. The sensors' old `:5001` URLs keep working on the published port as long as `PNMTD_BIND_ADDRESS` is not `127.0.0.1`.
 
+## UDP nodes
+
+Small devices report over PNMT-UDP, a very low-data protocol on 5028/udp ([docs/udp-protocol.md](../docs/udp-protocol.md); the admin UI has the same documentation with live examples under *Admin → UDP nodes → Protocol* and on every node).
+
+- **On by default.** The listener answers only valid packets from nodes defined in PNMT, so with no nodes it never answers anything. `Udp__Enabled=false` in `.env` turns it off; the port then stays published but closed.
+- **The port.** `PNMTD_UDP_PORT=5029` in `.env` moves the published port and the listening port together. `PNMTD_UDP_BIND_ADDRESS` is separate from HTTP's bind address: HTTP is often bound to 127.0.0.1 behind a reverse proxy, UDP must be reachable from the devices.
+- **Device ids.** A new node gets a random free id of 2 header bytes (1–65,535) unless one is entered. `Udp__DeviceIdBytes=1` in `.env` keeps ids at one byte (at most 255 nodes, the smallest packets); `4` uses the full 32-bit range.
+- **No reverse proxy is involved.** Caddy, nginx and Traefik proxy HTTP; devices send straight to the published UDP port. Nothing needs TLS: every keyed suite authenticates.
+- **Firewalls.** Docker's published ports bypass `ufw`, so 5028/udp is usually reachable as soon as the stack runs. A cloud security group still needs a rule for it.
+- **Firmware uploads** go through the UI (Admin): images are stored in PostgreSQL and in every `./backup.sh`. A reverse proxy in front of the UI needs a body limit above the image size: `client_max_body_size 20m;` (nginx), `request_body { max_size 20MB }` (Caddy); Traefik has no limit by default.
+- **Device keys are stored in plaintext**, like the sensor tokens: treat every backup as a credential. `./backup.sh` writes its folder 0700 and its files 0600. If a backup leaks, regenerate the nodes' keys in the UI.
+- **Rootless Podman** with slirp4netns hides the devices' addresses (answers still arrive); pasta keeps them.
+- `./info.sh` shows the listener's port; `docker compose exec pnmtd pnmtd udp node --server 127.0.0.1:5028 --id <id> --key <key>` runs a simulated device next to the server.
+
 ## What lives where
 
 | Where | Holds | Backed up by |
 |---|---|---|
-| volume `pnmtd_pnmtd-pgdata` | the database | `./backup.sh` (`pg_dump`) |
+| volume `pnmtd_pnmtd-pgdata` | the database, with the UDP nodes' keys, their command log and firmware images | `./backup.sh` (`pg_dump`) |
 | volume `pnmtd_pnmtd-keys` | Data Protection keys (sessions, 2FA secrets) | `./backup.sh` |
 | `deploy/.env` | database password, first admin password, settings | you. It is not in any backup |
 | `deploy/backups/` | backup folders | you |

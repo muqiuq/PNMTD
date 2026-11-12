@@ -10,7 +10,7 @@ namespace PNMTD.Cli
     /// </summary>
     public static class CommandLine
     {
-        private static readonly string[] Commands = ["db", "import-sqlite", "users", "dev", "help", "--help", "-h"];
+        private static readonly string[] Commands = ["db", "import-sqlite", "users", "udp", "dev", "help", "--help", "-h"];
 
         public static bool IsCommand(string arg) => Commands.Contains(arg);
 
@@ -34,7 +34,9 @@ namespace PNMTD.Cli
               users set-role <name> <admin|user|viewer>
 
               dev seed                              Development only: demo data (50 hosts, 300 sensors,
-                                                    90 days of events) into a database without hosts
+                                                    90 days of events, UDP nodes) into a database without hosts
+
+            """ + UdpCommand.Usage + """
 
             Without --password-stdin a temporary password is generated and printed once: valid for 7 days,
             changed at the next sign-in. With it, the first line of standard input is the password.
@@ -54,6 +56,7 @@ namespace PNMTD.Cli
                     ["db", "migrate"] => Migrate(logger),
                     ["import-sqlite", .. var rest] => ImportSqlite(rest, loggerFactory),
                     ["users", .. var rest] => UsersCommand.Run(rest, Database, logger),
+                    ["udp", .. var rest] => UdpCommand.Run(rest, Database),
                     ["dev", .. var rest] => DevSeedCommand.Run(rest, Database, logger),
                     _ => UsageError(args[0] is "help" or "--help" or "-h" ? null : $"Unknown command: {string.Join(' ', args)}"),
                 };

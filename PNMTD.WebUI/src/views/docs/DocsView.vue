@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { useQuery } from '@tanstack/vue-query'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import InputText from 'primevue/inputtext'
 import { computed, ref } from 'vue'
+import { api as v1, keys } from '@/api/resources'
 import CodeTag from '@/components/CodeTag.vue'
 import CopyField from '@/components/CopyField.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -14,7 +16,8 @@ import { recipientHint } from '../rules/ruleHelp'
 
 /**
  * The documentation (§5.6), from the API so it never drifts: the sensor API with examples for this
- * instance's address (§3.3), the status codes, the sensor types and the notification rule types.
+ * instance's address (§3.3), UDP nodes (docs/udp-iot-plan.md §6.7, with a link to the protocol
+ * reference), the status codes, the sensor types and the notification rule types.
  */
 const session = useSession()
 const codes = useStatusCodes()
@@ -61,6 +64,16 @@ const api = computed(() => [
   },
 ])
 const visibleApi = computed(() => api.value.filter((a) => has(a.title, a.text, a.code)))
+
+// The endpoint devices send to, from the protocol examples (every role may read them).
+const protocol = useQuery({
+  queryKey: [...keys.udp, 'protocol', 'examples', 'reference'],
+  queryFn: () => v1.udp.examples(),
+  staleTime: 60_000,
+})
+const udpText =
+  'UDP nodes PNMT-UDP heartbeat datagram device id key token HMAC AES suite 230 231 232 460 port 5028 commands firmware OTA'
+const showUdp = computed(() => has(udpText, protocol.data.value?.endpoint))
 const visibleCodes = computed(() => codes.list.value.filter((c) => has(String(c.code), c.name, c.description)))
 const visibleTypes = computed(() => types.list.value.filter((t) => has(t.type, t.description, t.parameters)))
 const visibleRules = computed(() => ruleTypes.list.value.filter((r) => has(r.type, r.description)))
@@ -94,6 +107,36 @@ const visibleRules = computed(() => ruleTypes.list.value.filter((r) => has(r.typ
           <p>{{ a.text }}</p>
           <CopyField :value="a.code" :label="a.title" class="code" />
         </article>
+      </div>
+    </section>
+
+    <section v-if="showUdp" class="panel" aria-labelledby="udp-title">
+      <div id="udp-title" class="panel-header">UDP nodes</div>
+      <div class="panel-body udp">
+        <p>
+          Small devices report over <strong>PNMT-UDP</strong> instead of HTTP: one datagram of 5 to 13 bytes for a
+          heartbeat, signed (HMAC-SHA256, AES-CMAC, legacy HMAC-SHA1 or HMAC-MD5), encrypted (AES-CCM) or, on closed
+          networks, with only a token. A node is a sensor of the type <em>UDP node</em> on a host: its page shows the
+          endpoint, the device id, its key and token, its last packets, and the commands queued for it.
+        </p>
+        <dl class="facts">
+          <dt>Endpoint</dt>
+          <dd>
+            <code>{{ protocol.data.value?.endpoint ?? '…' }}</code> (UDP; 5028 unless <code>PNMTD_UDP_PORT</code> says
+            otherwise)
+          </dd>
+          <dt>Events</dt>
+          <dd>
+            <CodeTag :code="230" /> alive (a heartbeat) · <CodeTag :code="231" /> restarted (BOOT) ·
+            <CodeTag :code="232" /> data, with the payload as the message · <CodeTag :code="460" /> after Interval +
+            GracePeriod without a packet
+          </dd>
+          <dt>Answers</dt>
+          <dd>At most one per accepted packet: an ACK, or a queued command. Invalid packets get no answer at all.</dd>
+        </dl>
+        <RouterLink :to="{ name: 'udp-protocol' }" class="link"
+          >The protocol reference, with examples, test vectors and a packet builder ›</RouterLink
+        >
       </div>
     </section>
 
@@ -168,6 +211,21 @@ const visibleRules = computed(() => ruleTypes.list.value.filter((r) => has(r.typ
 
 .code :deep(.value) {
   white-space: pre-wrap;
+}
+
+.udp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-2);
+}
+
+.udp p {
+  margin: 0;
+  max-width: 60rem;
+}
+
+.udp .facts {
+  align-items: baseline;
 }
 
 .type {

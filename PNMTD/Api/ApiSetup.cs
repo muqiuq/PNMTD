@@ -56,6 +56,10 @@ public static class ApiSetup
                 mvc.OutputFormatters.Insert(0, new V1JsonOutputFormatter(options));
             });
 
+        // An IFormFile parameter (the firmware upload) would add a Consumes constraint, which routing
+        // checks before authorization: other roles would get 404 instead of 403 (§3.6).
+        services.Configure<ApiBehaviorOptions>(o => o.SuppressConsumesConstraintForFormFileParameters = true);
+
         services.AddProblemDetails(o => o.CustomizeProblemDetails = context =>
         {
             // The sensor API's ProblemDetails (404, 400, 425) come from the same factory: untouched.

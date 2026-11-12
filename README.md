@@ -17,6 +17,7 @@ A monitoring application to keep an eye on hosts, e-mails and DNS zones. Useful 
   - value checks with regular expressions;
   - several values in one JSON report;
   - timespan conditions such as "one success daily at 8".
+- **IoT nodes over UDP** (PNMT-UDP, port 5028/udp): a signed heartbeat in 9 bytes, signatures from a static token to HMAC (SHA-256, SHA-1, MD5) and AES-CMAC, AES-CCM encryption, commands delivered with the node's next packet, firmware updates from an uploaded `.bin`, and the protocol documented with live examples in the UI.
 - **E-mail input:** reports from other tools (Synology HyperBackup, Veeam, Zabbix, …) become sensor events, matched by sender, subject and body.
 - **DNS zone monitoring:** a zone file is the reference, and every record is compared with what the resolvers answer.
 - **Notifications** by e-mail, Pushover or webhook: always, on a change, on failures, or on failures and the way back to OK.
@@ -62,6 +63,13 @@ curl "https://pnmt.example.com/read/<read token>/raw"
 ```
 
 The sensor API answers exactly as it did in v0.12, which a recorded contract checks on every build. The UI's *Documentation* page lists every status code and sensor type.
+
+Devices with a radio budget report over UDP instead: a 9-byte heartbeat rather than about 1 KB of HTTP. Add a sensor of type *UDP node*; its page shows the key, ready-made packets and the protocol ([docs/udp-protocol.md](docs/udp-protocol.md)). Without a device at hand, a simulated one:
+
+```sh
+docker compose exec pnmtd pnmtd udp node --server 127.0.0.1:5028 --id 1 --key <the node's key>
+echo 41 01 00 01 00 01 <token> | xxd -r -p | nc -u -w1 pnmt.example.com 5028   # a TOKEN32 heartbeat, no crypto
+```
 
 The UplinkCheck setting needs a remote endpoint. [examples/digitalocean_function.py](examples/digitalocean_function.py) is one, for a [DigitalOcean Function](https://www.digitalocean.com/products/functions).
 

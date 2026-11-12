@@ -36,6 +36,8 @@ if docker image inspect localhost/pnmtd:dev >/dev/null 2>&1; then image=localhos
 env_set PNMTD_IMAGE "$image"
 env_set PNMTD_IMAGE_TAG dev
 env_set PNMTD_PORT "$PORT"
+# Not the default 5028/udp: a dev stack (start.sh) may hold it.
+env_set PNMTD_UDP_PORT "${DEPLOY_TEST_UDP_PORT:-5092}"
 env_set COMPOSE_PROJECT_NAME "$PROJECT"
 
 compose up -d --wait >/dev/null 2>&1 || fail "the stack did not come up healthy"

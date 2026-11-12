@@ -11,6 +11,7 @@ using PNMTD.Notifications;
 using PNMTD.SensorApi;
 using PNMTD.Services.Domain;
 using PNMTD.Tasks;
+using PNMTD.Udp;
 
 namespace PNMTD;
 
@@ -65,9 +66,22 @@ public partial class Program
                 }
                 return Task.CompletedTask;
             });
+            // A file upload (the firmware) is multipart/form-data, which the document does not infer
+            // without the Consumes constraint that ApiSetup turns off.
+            o.AddOperationTransformer((operation, context, _) =>
+            {
+                if (context.Description.ParameterDescriptions.Any(p => p.Type == typeof(IFormFile))
+                    && operation.RequestBody is Microsoft.OpenApi.OpenApiRequestBody { Content: { } content }
+                    && content.Remove("application/x-www-form-urlencoded", out var media))
+                {
+                    content["multipart/form-data"] = media;
+                }
+                return Task.CompletedTask;
+            });
         });
         builder.Services.AddHttpClient();
         builder.Services.AddSingleton<NotificationService>();
+        builder.Services.AddUdpNodes(builder.Configuration);
 
         // The build writes the OpenAPI document by starting the host without a database (GetDocument.Insider).
         var documentBuild = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
@@ -89,6 +103,14 @@ public partial class Program
             builder.Services.AddHostedService<TimespanConditionsCheckTask>();
             builder.Services.AddHostedService<UplinkCheckTask>();
             builder.Services.AddHostedService<DnsCheckTask>();
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<UdpMaintenanceTask>());
+        }
+
+        // UDP nodes (docs/udp-iot-plan.md §4.4): on unless Udp:Enabled=false, not tied to the
+        // monitoring tasks, so the integration tests can run it on a port of their own.
+        if (!documentBuild)
+        {
+            builder.Services.AddHostedService<UdpListener>();
         }
 
         if (!string.IsNullOrWhiteSpace(builder.Configuration["Proxy"]))

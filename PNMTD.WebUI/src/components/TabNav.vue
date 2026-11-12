@@ -1,0 +1,72 @@
+<script setup lang="ts">
+import type { RouteLocationRaw } from 'vue-router'
+
+/** A page's subpages as tabs, each a link with its own route (§6.2), so a tab can be linked and opened anew. */
+defineProps<{
+  items: { key: string; label: string; icon?: string; to: RouteLocationRaw; badge?: string | number | null }[]
+  active: string
+  label: string
+}>()
+</script>
+
+<template>
+  <nav class="tab-nav" :aria-label="label">
+    <RouterLink
+      v-for="item in items"
+      :key="item.key"
+      :to="item.to"
+      class="tab"
+      :class="{ active: item.key === active }"
+      :aria-current="item.key === active ? 'page' : undefined"
+    >
+      <i v-if="item.icon" :class="item.icon" aria-hidden="true" />
+      <span>{{ item.label }}</span>
+      <span v-if="item.badge" class="badge">{{ item.badge }}</span>
+    </RouterLink>
+  </nav>
+</template>
+
+<style scoped>
+.tab-nav {
+  display: flex;
+  gap: var(--pnmt-space-1);
+  border-bottom: 1px solid var(--pnmt-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pnmt-space-2);
+  padding: var(--pnmt-space-2) var(--pnmt-space-3);
+  color: var(--pnmt-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tab:hover {
+  color: var(--pnmt-text);
+  text-decoration: none;
+}
+
+.tab.active {
+  color: var(--p-primary-color);
+  border-bottom-color: var(--p-primary-color);
+}
+
+.tab i {
+  font-size: 0.9rem;
+}
+
+.badge {
+  font-size: 0.786rem;
+  font-weight: 600;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--pnmt-none-soft);
+  color: var(--pnmt-text);
+}
+</style>

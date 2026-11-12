@@ -60,6 +60,8 @@ WORKDIR /app
 ENV DOTNET_NOLOGO=1 \
     DOTNET_CLI_TELEMETRY_OPTOUT=1
 EXPOSE 8080
+# UDP nodes (Udp__Port, default 5028): heartbeats, data, commands and firmware updates.
+EXPOSE 5028/udp
 # 200 while the database answers. The compose file repeats it: Podman's OCI images drop HEALTHCHECK.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD wget -q -O /dev/null "http://127.0.0.1:${ASPNETCORE_HTTP_PORTS:-8080}/healthz" || exit 1

@@ -29,6 +29,8 @@ public static class TestDefaults
         Environment.SetEnvironmentVariable("Auth__LoginRateLimit__PermitLimit", "100000");
         // The monitoring tasks would add events under the tests' feet.
         Environment.SetEnvironmentVariable("BackgroundTasks__Enabled", "false");
+        // The UDP listener only where a test asks for it, on a free port (Udp:Enabled, Udp:Port 0).
+        Environment.SetEnvironmentVariable("Udp__Enabled", "false");
         Environment.SetEnvironmentVariable("Database__ConnectionString", CreateDatabase());
         // Not UTC by default: several time checks are vacuous in UTC (PNMTD_TEST_TZ picks another zone).
         Clock.TimeZone = Clock.FromName(Environment.GetEnvironmentVariable("PNMTD_TEST_TZ") ?? "Europe/Zurich");

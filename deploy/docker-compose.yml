@@ -37,6 +37,10 @@ services:
       # v0.12's port: the URLs hundreds of sensors report to keep working. Behind a reverse proxy on
       # this host, PNMTD_BIND_ADDRESS=127.0.0.1 keeps it off the network.
       - "${PNMTD_BIND_ADDRESS:-0.0.0.0}:${PNMTD_PORT:-5001}:8080"
+      # UDP nodes (docs/udp-iot-plan.md §4.9): devices report here directly, never through the
+      # reverse proxy. One setting, PNMTD_UDP_PORT, moves the published and the listening port
+      # together; Udp__Enabled=false in .env turns the listener off.
+      - "${PNMTD_UDP_BIND_ADDRESS:-0.0.0.0}:${PNMTD_UDP_PORT:-5028}:${PNMTD_UDP_PORT:-5028}/udp"
     # Every setting in .env reaches the app: Identity, PublicBaseUrl, TZ, Smtp__*, Auth__*, …
     env_file:
       - .env
@@ -45,6 +49,7 @@ services:
       Database__Name: pnmtd
       Database__Username: pnmtd
       Database__Password: ${PNMTD_DB_PASSWORD}
+      Udp__Port: ${PNMTD_UDP_PORT:-5028}
     read_only: true
     tmpfs:
       - /tmp

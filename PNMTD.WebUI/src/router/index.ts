@@ -65,7 +65,8 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'New sensor', role: 'User' },
   },
   {
-    path: '/sensors/:id',
+    // A UDP node's subpages are tabs of the same page, each with its route (docs/udp-iot-plan.md §6.2).
+    path: '/sensors/:id/:tab(last-packets|commands|firmware|protocol)?',
     name: 'sensor',
     component: () => import('@/views/sensors/SensorView.vue'),
     meta: { title: 'Sensor' },
@@ -159,6 +160,19 @@ export const routes: RouteRecordRaw[] = [
     name: 'auth-log',
     component: () => import('@/views/admin/AuthLogView.vue'),
     meta: { title: 'Auth log', role: 'Admin' },
+  },
+  {
+    path: '/admin/udp-nodes',
+    name: 'udp-nodes',
+    component: () => import('@/views/admin/UdpNodesView.vue'),
+    meta: { title: 'UDP nodes', role: 'Admin' },
+  },
+  {
+    // The protocol reference without a node, for every role (the Documentation page links it).
+    path: '/admin/udp-nodes/protocol',
+    name: 'udp-protocol',
+    component: () => import('@/views/admin/UdpProtocolView.vue'),
+    meta: { title: 'UDP protocol' },
   },
   {
     path: '/admin/system',

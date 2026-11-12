@@ -27,6 +27,11 @@ namespace PNMTD.Lib.Models
         public const int ALL_WITHIN_TIMESPAN_OK = 281;
         public const int ALL_WITHIN_TIMESPAN_FAILED = 481;
 
+        /// <summary>UDP nodes (docs/udp-iot-plan.md §4.2): alive, restarted, data.</summary>
+        public const int UDP_ALIVE = 230;
+        public const int UDP_BOOT = 231;
+        public const int UDP_DATA = 232;
+
         public static readonly int[] ONE_OR_ALL_WITHIN_CODES = new int[]{ ONE_WITHIN_TIMESPAN_FAILED, ONE_WITHIN_TIMESPAN_OK, ALL_WITHIN_TIMESPAN_OK, ALL_WITHIN_TIMESPAN_FAILED };
     }
 }

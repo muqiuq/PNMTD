@@ -10,7 +10,7 @@ using PNMTD.Models.Db;
 
 namespace PNMTD.Services.Domain;
 
-public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, PublicUrls urls, NotificationRuleService rules)
+public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, PublicUrls urls, NotificationRuleService rules, UdpNodeService udp)
 {
     private static readonly string[] SortFields = ["name", "host", "state", "type", "lastevent"];
 
@@ -60,9 +60,10 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         var days = await reader.DaysAsync(uptimeIds, 90, ct);
         var hours = await reader.HoursAsync(uptimeIds, 24, ct);
 
+        var isUdp = sensor.Type == SensorType.UDP_NODE;
         SensorIntegration? integration = withSecrets
             ? new SensorIntegration(sensor.SecretWriteToken, sensor.SecretReadToken, urls.WriteUrl(sensor.SecretWriteToken),
-                sensor.SecretReadToken is { } read ? urls.ReadUrl(read) : null)
+                sensor.SecretReadToken is { } read ? urls.ReadUrl(read) : null, isUdp ? await udp.SecretsAsync(id, ct) : null)
             : null;
 
         return new SensorDetail(sensor.Id, new Ref(status.Info.HostId, status.Info.HostName), sensor.OlderSiblingId, sensor.Name,
@@ -71,7 +72,7 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             status.LastCode, status.LastMessage, status.LastEventAt, status.FailingSince,
             hours.AverageOverall(uptimeIds, 24), days.AverageOverall(uptimeIds, 30), days.Series(days.Average(uptimeIds)),
             status.Children.OrderBy(c => c.Info.Name, StringComparer.OrdinalIgnoreCase).Select(c => c.ToSummary()).ToList(),
-            integration);
+            integration, sensor.Notes, isUdp ? await udp.DetailAsync(id, ct) : null);
     }
 
     public async Task<SensorDetail> CreateAsync(SensorRequest request, CancellationToken ct)
@@ -85,7 +86,12 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         Apply(sensor, request);
         sensor.SetNewSecretToken();
         db.Sensors.Add(sensor);
+        if (sensor.Type == SensorType.UDP_NODE)
+        {
+            await udp.ApplyAsync(sensor, request.Udp, ct);
+        }
         await db.SaveChangesAsync(ct);
+        udp.Changed();
         return await GetAsync(sensor.Id, withSecrets: true, ct);
     }
 
@@ -99,15 +105,28 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             new ApiValidator()
                 .Check(request.Type == SensorType.DNS, "type", "A DNS sensor keeps its type.")
                 .ThrowIfInvalid();
+            new ApiValidator().Check(request.Notes is null || request.Notes.Length <= UdpNodeService.MaxNotes, "notes",
+                $"At most {UdpNodeService.MaxNotes} characters.").ThrowIfInvalid();
             sensor.Enabled = request.Enabled;
             sensor.Ignore = request.Ignore;
+            sensor.Notes = Text.Trimmed(request.Notes) is null ? null : request.Notes;
         }
         else
         {
+            var wasUdp = sensor.Type == SensorType.UDP_NODE;
             await ValidateAsync(request, sensor, ct);
             Apply(sensor, request);
+            if (sensor.Type == SensorType.UDP_NODE)
+            {
+                await udp.ApplyAsync(sensor, request.Udp, ct);
+            }
+            else if (wasUdp)
+            {
+                await udp.RemoveAsync(sensor.Id, ct);
+            }
         }
         await db.SaveChangesAsync(ct);
+        udp.Changed();
         return await GetAsync(id, withSecrets, ct);
     }
 
@@ -125,6 +144,8 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         await db.Sensors.Where(s => s.OlderSiblingId == id).ExecuteDeleteAsync(ct);
         await db.Sensors.Where(s => s.Id == id).ExecuteDeleteAsync(ct);
         await transaction.CommitAsync(ct);
+        // A UDP node goes with its sensor (cascade); its commands, updates and log stay (§4.3).
+        udp.Changed();
     }
 
     public async Task<SensorIntegration> RotateTokensAsync(Guid id, RotateTokensRequest request, CancellationToken ct)
@@ -194,7 +215,13 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         v.Check(request.Interval is >= 0 and <= 31_536_000, "interval", "Between 0 and 31536000 seconds.");
         v.Check(request.GracePeriod is >= 0 and <= 31_536_000, "gracePeriod", "Between 0 and 31536000 seconds.");
         v.Check(request.TextId is null || request.TextId.Length <= 200, "textId", "At most 200 characters.");
-        if (request.Type is SensorType.HEARTBEAT or SensorType.HEARTBEAT_VALUECHECK or SensorType.PING)
+        v.Check(request.Notes is null || request.Notes.Length <= UdpNodeService.MaxNotes, "notes", $"At most {UdpNodeService.MaxNotes} characters.");
+        if (request.Type == SensorType.UDP_NODE)
+        {
+            var node = existing is null ? null : await db.UdpNodes.AsNoTracking().SingleOrDefaultAsync(n => n.SensorId == existing.Id, ct);
+            await udp.ValidateAsync(request.Udp, node, existing?.Id, v, ct);
+        }
+        if (request.Type is SensorType.HEARTBEAT or SensorType.HEARTBEAT_VALUECHECK or SensorType.PING or SensorType.UDP_NODE)
         {
             v.Check(request.Interval > 0, "interval", $"A {request.Type} sensor needs an interval.");
         }
@@ -248,5 +275,7 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             ? request.Parameters
             : Text.Trimmed(request.Parameters);
         sensor.TextId = Text.Trimmed(request.TextId);
+        // As on hosts: blank is null, otherwise exactly as typed (line breaks matter).
+        sensor.Notes = Text.Trimmed(request.Notes) is null ? null : request.Notes;
     }
 }

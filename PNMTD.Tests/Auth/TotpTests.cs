@@ -272,6 +272,9 @@ public sealed class TwoFactorLoginTests
             Assert.AreEqual("invalid_code", await CodeOf(wrong));
         }
         Assert.IsTrue(browser.Cookies.ContainsKey("pnmt.2fa"), "another try");
+        // The clock is frozen: without a step the two audit entries tie on CreatedAt, and their
+        // order would be up to PostgreSQL's plan.
+        time.Advance(TimeSpan.FromMilliseconds(1));
 
         using var step2 = await browser.PostAsync("/api/v1/auth/login/totp", new { code = Code(secret) });
         var done = await step2.ReadAsync<LoginResponse>();

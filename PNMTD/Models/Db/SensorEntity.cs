@@ -45,6 +45,9 @@ namespace PNMTD.Models.Db
 
         public string? Source { get ; set; }
 
+        /// <summary>Free text for every sensor type, as on hosts (docs/udp-iot-plan.md §4.1). The sensor API never reads it.</summary>
+        public string? Notes { get; set; }
+
         public virtual List<NotificationRuleSensorEntity> SubscribedByNotifications { get; set; } = new List<NotificationRuleSensorEntity>();
     }
 }

@@ -63,6 +63,7 @@ The report is also saved in `logs/upgrade-1.0-<time>.log`.
    - Set `Proxy` in `.env` if a proxy sits in front: see [README.md](README.md#behind-a-reverse-proxy).
 3. **Backups:** add the cron line from [README.md](README.md#everyday-operation) and run `./backup.sh` once.
 4. **Check** with `./info.sh`. It warns about anything that needs attention, such as an admin without 2FA or a missing `PublicBaseUrl`.
+5. **A new port, 5028/udp,** is published for UDP nodes ([README.md](README.md#udp-nodes)). With no UDP nodes defined it never answers anything. `Udp__Enabled=false` in `.env` turns the listener off, and `PNMTD_UDP_PORT` moves it.
 
 ## Rollback
 

@@ -39,6 +39,14 @@ namespace PNMTD.Data
 
         public DbSet<AuthLogEntity> AuthLog { get; set; }
 
+        // UDP nodes (docs/udp-iot-plan.md §4.3).
+        public DbSet<UdpNodeEntity> UdpNodes { get; set; }
+        public DbSet<UdpLastPacketEntity> UdpLastPackets { get; set; }
+        public DbSet<UdpCommandEntity> UdpCommands { get; set; }
+        public DbSet<UdpCommandLogEntity> UdpCommandLog { get; set; }
+        public DbSet<UdpFirmwareEntity> UdpFirmware { get; set; }
+        public DbSet<UdpOtaJobEntity> UdpOtaJobs { get; set; }
+
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
         }
@@ -83,6 +91,41 @@ namespace PNMTD.Data
             modelBuilder.Entity<UserEntity>().HasIndex(u => u.NormalizedUsername).IsUnique();
             modelBuilder.Entity<AuthLogEntity>().HasIndex(l => l.CreatedAt);
             modelBuilder.Entity<AuthLogEntity>().HasIndex(l => new { l.UserId, l.CreatedAt });
+
+            // UDP nodes. The node and its last packets go with the sensor; commands, their log and
+            // updates are permanent and keep a snapshot of the node instead (§4.3).
+            modelBuilder.Entity<UdpNodeEntity>(e =>
+            {
+                e.HasOne(n => n.Sensor).WithOne().HasForeignKey<UdpNodeEntity>(n => n.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(n => n.DeviceId).IsUnique();
+            });
+            modelBuilder.Entity<UdpLastPacketEntity>(e =>
+            {
+                e.HasKey(p => new { p.SensorId, p.Type });
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(p => p.SensorId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<UdpCommandEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(c => c.SensorId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(c => new { c.SensorId, c.State, c.Created });
+            });
+            modelBuilder.Entity<UdpCommandLogEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(l => l.SensorId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<UdpCommandEntity>().WithMany().HasForeignKey(l => l.CommandId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne<UdpOtaJobEntity>().WithMany().HasForeignKey(l => l.OtaJobId).OnDelete(DeleteBehavior.Restrict);
+                e.HasIndex(l => new { l.CommandId, l.Created });
+                e.HasIndex(l => new { l.OtaJobId, l.Created });
+                e.HasIndex(l => new { l.SensorId, l.Created });
+                e.HasIndex(l => l.Created);
+            });
+            modelBuilder.Entity<UdpOtaJobEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(j => j.SensorId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<UdpFirmwareEntity>().WithMany().HasForeignKey(j => j.FirmwareId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(j => new { j.SensorId, j.State, j.Created });
+                e.HasIndex(j => j.Created);
+            });
 
             base.OnModelCreating(modelBuilder);
         }

@@ -7,6 +7,10 @@ export type SensorType = S['SensorType']
 export type SensorState = S['SensorState']
 export type HostState = S['HostState']
 export type RuleType = S['NotificationRuleType']
+export type UdpOtaState = S['UdpOtaState']
+export type UdpCommandState = S['UdpCommandState']
+export type UdpLogKind = S['UdpLogKind']
+export type KeyFamily = S['KeyFamily']
 
 export interface ListQuery {
   page?: number
@@ -125,6 +129,70 @@ export const api = {
     log: (query: ListQuery & { userId?: Id; type?: string }) =>
       call(client.GET('/api/v1/auth-log', { params: { query } })),
   },
+
+  udp: {
+    // --- a node (docs/udp-iot-plan.md §5): CanRead, the writes CanWrite --------------------
+    setSecrets: (id: Id, body: S['UdpKeyRequest']) =>
+      call(client.PUT('/api/v1/sensors/{id}/udp/key', { params: { path: { id } }, body })),
+    regenerate: (id: Id, body: S['UdpRegenerateRequest']) =>
+      call(client.POST('/api/v1/sensors/{id}/udp/regenerate-key', { params: { path: { id } }, body })),
+    resetCounter: (id: Id) => call(client.POST('/api/v1/sensors/{id}/udp/reset-counter', { params: { path: { id } } })),
+    resetSession: (id: Id) => call(client.POST('/api/v1/sensors/{id}/udp/reset-session', { params: { path: { id } } })),
+    lastPackets: (id: Id) => call(client.GET('/api/v1/sensors/{id}/udp/last-packets', { params: { path: { id } } })),
+    rejections: (id: Id) => call(client.GET('/api/v1/sensors/{id}/udp/rejections', { params: { path: { id } } })),
+    commands: (id: Id, query: ListQuery & { state?: UdpCommandState }) =>
+      call(client.GET('/api/v1/sensors/{id}/udp/commands', { params: { path: { id }, query } })),
+    commandLog: (id: Id, commandId: Id) =>
+      call(client.GET('/api/v1/sensors/{id}/udp/commands/{commandId}/log', { params: { path: { id, commandId } } })),
+    queueCommand: (id: Id, body: S['UdpCommandRequest']) =>
+      call(client.POST('/api/v1/sensors/{id}/udp/commands', { params: { path: { id } }, body })),
+    cancelCommand: (id: Id, commandId: Id) =>
+      call(client.DELETE('/api/v1/sensors/{id}/udp/commands/{commandId}', { params: { path: { id, commandId } } })),
+    nodeJobs: (id: Id) => call(client.GET('/api/v1/sensors/{id}/udp/ota-jobs', { params: { path: { id } } })),
+
+    // --- the admin page: Admin only ------------------------------------------------------
+    status: () => call(client.GET('/api/v1/udp/status')),
+    nodes: (
+      query: ListQuery & { state?: SensorState; keyFamily?: KeyFamily; enabled?: boolean; firmwareVersion?: string },
+    ) => call(client.GET('/api/v1/udp/nodes', { params: { query } })),
+    log: (query: ListQuery & { sensorId?: Id; deviceId?: number; kind?: UdpLogKind; from?: string; to?: string }) =>
+      call(client.GET('/api/v1/udp/command-log', { params: { query } })),
+    unknownSenders: () => call(client.GET('/api/v1/udp/unknown-senders')),
+    firmware: () => call(client.GET('/api/v1/udp/firmware')),
+    /** Multipart (file, name, version, notes); the CSRF middleware adds its header as for every call. */
+    uploadFirmware: (form: { file: File; name: string; version: string; notes?: string | null }) => {
+      const data = new FormData()
+      data.append('file', form.file, form.file.name)
+      data.append('name', form.name)
+      data.append('version', form.version)
+      if (form.notes) {
+        data.append('notes', form.notes)
+      }
+      return call(client.POST('/api/v1/udp/firmware', { body: {}, bodySerializer: () => data }))
+    },
+    updateFirmware: (id: Id, body: S['UdpFirmwareRequest']) =>
+      call(client.PUT('/api/v1/udp/firmware/{id}', { params: { path: { id } }, body })),
+    removeFirmware: (id: Id) => call(client.DELETE('/api/v1/udp/firmware/{id}', { params: { path: { id } } })),
+    /** The .bin, for a download link (a GET with the session cookie). */
+    firmwareUrl: (id: Id) =>
+      `${typeof location !== 'undefined' ? location.origin : ''}/api/v1/udp/firmware/${encodeURIComponent(id)}/content`,
+    jobs: (query: ListQuery & { state?: UdpOtaState; firmwareId?: Id; sensorId?: Id; from?: string; to?: string }) =>
+      call(client.GET('/api/v1/udp/ota-jobs', { params: { query } })),
+    startUpdates: (body: S['UdpOtaJobRequest']) => call(client.POST('/api/v1/udp/ota-jobs', { body })),
+    cancelUpdate: (id: Id) => call(client.DELETE('/api/v1/udp/ota-jobs/{id}', { params: { path: { id } } })),
+
+    // --- the Protocol subpage: every role ------------------------------------------------
+    examples: (sensorId?: Id) => call(client.GET('/api/v1/udp/protocol/examples', { params: { query: { sensorId } } })),
+    build: (query: {
+      sensorId?: Id
+      type: S['PacketType']
+      suite: S['SecuritySuite']
+      fcnt: number
+      ack: boolean
+      /** Base64. */
+      payload?: string
+    }) => call(client.GET('/api/v1/udp/protocol/build', { params: { query } })),
+  },
 }
 
 /** Query keys: a change invalidates its resource's prefix (and the dashboard). */
@@ -142,6 +210,9 @@ export const keys = {
   keyValues: ['key-values'] as const,
   users: ['users'] as const,
   system: ['system'] as const,
+  /** Everything UDP: the admin page's lists, a node's packets, commands and updates, the protocol examples. */
+  udp: ['udp'] as const,
+  udpNode: (id: Id) => ['udp', 'node', id] as const,
 }
 
 /** The request of a resource as it is, with some fields changed: v1's PUT takes every writable field. */
@@ -160,6 +231,24 @@ export function sensorRequest(s: S['SensorDetail'], patch: Partial<S['SensorRequ
     gracePeriod: s.gracePeriod,
     parameters: s.parameters,
     textId: s.textId,
+    notes: s.notes ?? null,
+    // A UDP node's settings as they are (never its key or token: omitted means unchanged); without
+    // them a save would reset the node to the defaults.
+    udp: (patch.type ?? s.type) === 'UDP_NODE' && s.udp ? udpNodeRequest(s.udp) : undefined,
+    ...patch,
+  }
+}
+
+/** A node's settings for SensorRequest.udp, without key and token (those stay as they are). */
+export function udpNodeRequest(u: S['UdpNodeDetail'], patch: Partial<S['UdpNodeRequest']> = {}): S['UdpNodeRequest'] {
+  return {
+    deviceId: u.deviceId,
+    keyFamily: u.keyFamily,
+    allowedSuites: [...u.allowedSuites],
+    sessionMode: u.sessionMode,
+    ackMode: u.ackMode,
+    replayProtection: u.replayProtection,
+    responseSuite: u.responseSuite,
     ...patch,
   }
 }

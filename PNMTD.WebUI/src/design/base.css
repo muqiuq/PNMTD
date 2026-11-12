@@ -243,6 +243,35 @@ code,
   opacity: 0.6;
 }
 
+/* The fields of a packet (HexDump, PacketInspector): one colour each, as a tint on both themes. */
+.field-slot-0 {
+  --field-colour: var(--p-blue-500);
+}
+.field-slot-1 {
+  --field-colour: var(--p-violet-500);
+}
+.field-slot-2 {
+  --field-colour: var(--p-teal-500);
+}
+.field-slot-3 {
+  --field-colour: var(--p-amber-500);
+}
+.field-slot-4 {
+  --field-colour: var(--p-pink-500);
+}
+.field-slot-5 {
+  --field-colour: var(--p-green-500);
+}
+.field-slot-6 {
+  --field-colour: var(--p-purple-500);
+}
+.field-slot-7 {
+  --field-colour: var(--p-cyan-500);
+}
+.field-slot-8 {
+  --field-colour: var(--p-orange-500);
+}
+
 @media (max-width: 599px) {
   .form-grid {
     grid-template-columns: minmax(0, 1fr);

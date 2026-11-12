@@ -23,6 +23,16 @@ public sealed class DevSeedTests
         Assert.AreEqual(50, await db.Hosts.CountAsync());
         Assert.AreEqual(300, await db.Sensors.CountAsync());
         Assert.IsGreaterThan(150_000, await db.Events.CountAsync());
+        // UDP nodes (docs/udp-iot-plan.md U6): four fan sensors became nodes, with the real codec's packets.
+        Assert.AreEqual(4, await db.UdpNodes.CountAsync());
+        Assert.AreEqual(4, await db.Sensors.CountAsync(s => s.Type == Lib.Models.Enum.SensorType.UDP_NODE));
+        Assert.AreEqual(8, await db.UdpLastPackets.CountAsync());
+        Assert.IsGreaterThanOrEqualTo(16, await db.UdpCommandLog.CountAsync());
+        Assert.AreEqual(1, await db.UdpFirmware.CountAsync());
+        foreach (var packet in await db.UdpLastPackets.ToListAsync())
+        {
+            Assert.IsTrue(Lib.Udp.PacketCodec.TryParse(packet.Datagram, out _, out _));
+        }
         // Failing now: the newest event above 399, on an enabled, not ignored sensor of an enabled host.
         var failing = await db.Database.SqlQueryRaw<string>("""
             SELECT h."Name" || '/' || s."Name" AS "Value"

@@ -33,6 +33,13 @@ echo "  State:      ${health}"
 echo "  Health:     $(curl -fsS "http://127.0.0.1:${port}/healthz" 2>/dev/null || echo 'no answer')"
 echo "  Published:  $(env_value PNMTD_BIND_ADDRESS):${port}"
 echo "  Sensors:    ${url:-http://<this host>:${port}}/event/<token>/<code>/<message>"
+udp_port="$(env_value PNMTD_UDP_PORT)"; udp_port="${udp_port:-5028}"
+case "$(env_value Udp__Enabled | tr '[:upper:]' '[:lower:]')" in
+  false|0) echo "  UDP nodes:  off (Udp__Enabled=false)" ;;
+  *) udp_bind="$(env_value PNMTD_UDP_BIND_ADDRESS)"
+     udp_host="${url#*://}"; udp_host="${udp_host%%/*}"; udp_host="${udp_host%%:*}"
+     echo "  UDP nodes:  ${udp_bind:-0.0.0.0}:${udp_port}/udp (devices send to ${udp_host:-<this host>}:${udp_port})" ;;
+esac
 echo "  Backups:    $(ls -1d "$(env_value PNMTD_BACKUP_DIR || echo backups)"/pnmtd-* 2>/dev/null | wc -l | tr -d ' ') in $(env_value PNMTD_BACKUP_DIR)"
 
 warnings=()

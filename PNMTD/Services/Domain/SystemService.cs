@@ -91,6 +91,9 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.VALUECHECK_OK, "VALUECHECK_OK", true, "The message matched the sensor's regular expression."),
         new(PNMTStatusCodes.ONE_WITHIN_TIMESPAN_OK, "ONE_WITHIN_TIMESPAN_OK", true, "At least one successful report arrived within the timespan."),
         new(PNMTStatusCodes.ALL_WITHIN_TIMESPAN_OK, "ALL_WITHIN_TIMESPAN_OK", true, "Every report within the timespan was successful."),
+        new(PNMTStatusCodes.UDP_ALIVE, "UDP_ALIVE", true, "A UDP node sent a heartbeat, or another packet that shows it is alive."),
+        new(PNMTStatusCodes.UDP_BOOT, "UDP_BOOT", true, "A UDP node restarted; the message names the reason and its INFO (often the firmware version)."),
+        new(PNMTStatusCodes.UDP_DATA, "UDP_DATA", true, "A UDP node sent DATA; the message is the payload, as text or as hex."),
         new(PNMTStatusCodes.DNS_FAILED, "DNS_FAILED", false, "At least one record of the DNS zone differs from what the resolvers answer."),
         new(PNMTStatusCodes.HEARTBEAT_MISSING, "HEARTBEAT_MISSING", false, "No report within the interval and the grace period."),
         new(PNMTStatusCodes.PING_FAILED, "PING_FAILED", false, "The ping target did not answer."),
@@ -111,6 +114,7 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(SensorType.ONE_WITHIN_TIMESPAN, "At the times the descriptor names, OK (280) when at least one report since the last check succeeded, else 480.", "An interval descriptor: \"daily 8\", \"weekly monday\", \"monthly 15\".", true, false),
         new(SensorType.ALL_WITHIN_TIMESPAN, "Like ONE_WITHIN_TIMESPAN, but every report must have succeeded (281 or 481).", "An interval descriptor.", true, false),
         new(SensorType.DNS, "Created by a DNS zone with a host: 211 while its records match, 411 when not.", null, false, false),
+        new(SensorType.UDP_NODE, "A device reporting over PNMT-UDP (port 5028/udp): 230 when alive, 231 after a restart, 232 for data; 460 after Interval + GracePeriod without a packet.", null, true, true),
     ];
 
     public static IReadOnlyList<NotificationRuleTypeInfo> NotificationRuleTypes() =>
