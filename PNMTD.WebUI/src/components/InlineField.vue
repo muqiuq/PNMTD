@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
@@ -10,9 +11,11 @@ import { useNotify } from '@/composables/useNotify'
 type Value = string | number | boolean | null
 
 /**
- * A value edited where it is shown (§5.7). Enter or leaving the field saves, Esc cancels; a
- * switch or a choice saves at once. The new value shows immediately; if the save fails it rolls
- * back, with the server's message under the field (validation) or a toast.
+ * A value edited where it is shown (§5.7). It is shown as text (a switch as Yes or No); a click on
+ * it (or its pencil) opens an editor with Save and Discard, and only Save stores the value: neither
+ * a change nor leaving the field does. Enter saves (Ctrl/⌘+Enter in a multi-line field), Esc
+ * discards. If the server rejects the value, the editor stays open with it and the reason
+ * underneath (or in a toast, when it is not about a field).
  */
 const props = withDefaults(
   defineProps<{
@@ -33,11 +36,18 @@ const props = withDefaults(
 
 const notify = useNotify()
 const shown = ref<Value>(props.value)
-const draft = ref<string>('')
 const editing = ref(false)
 const saving = ref(false)
 const error = ref<string | null>(null)
+// The draft, by type: text, textarea and number; a choice; a switch.
+const text = ref('')
+const picked = ref<string | number | null>(null)
+const flag = ref(false)
+
+const root = ref<HTMLElement | null>(null)
+const shownButton = ref<HTMLButtonElement | null>(null)
 const input = ref<{ $el?: HTMLElement } | null>(null)
+const choice = ref<{ show: (focus?: boolean) => void; overlayVisible?: boolean } | null>(null)
 
 watch(
   () => props.value,
@@ -49,56 +59,93 @@ watch(
 )
 
 const display = computed(() => {
+  if (props.type === 'bool') {
+    return shown.value ? 'Yes' : 'No'
+  }
   if (props.type === 'enum') {
     return props.options.find((o) => o.value === shown.value)?.label ?? String(shown.value ?? '')
   }
   return shown.value === null || shown.value === '' ? '' : String(shown.value)
 })
 
+const saveHint = computed(() => (props.type === 'textarea' ? 'Save (Ctrl+Enter)' : 'Save (Enter)'))
+
 async function begin() {
   if (props.readonly || editing.value) {
     return
   }
-  draft.value = shown.value === null ? '' : String(shown.value)
+  text.value = shown.value === null ? '' : String(shown.value)
+  picked.value = typeof shown.value === 'string' || typeof shown.value === 'number' ? shown.value : null
+  flag.value = Boolean(shown.value)
   error.value = null
   editing.value = true
   await nextTick()
+  if (props.type === 'enum') {
+    choice.value?.show(true)
+    return
+  }
   const el = input.value?.$el
   const field =
     el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
       ? el
       : el?.querySelector<HTMLInputElement | HTMLTextAreaElement>('input, textarea')
   field?.focus()
-  field?.select()
+  if (props.type !== 'bool') {
+    field?.select()
+  }
 }
 
-function cancel() {
+/** Back to the text; the focus too, if it was in the editor (keyboard use). */
+async function close() {
+  const hadFocus = root.value?.contains(document.activeElement) ?? false
   editing.value = false
   error.value = null
-}
-
-function parse(text: string): Value {
-  if (props.type === 'number') {
-    const trimmed = text.trim()
-    return trimmed === '' ? null : Number(trimmed)
+  if (hadFocus) {
+    await nextTick()
+    shownButton.value?.focus()
   }
-  return text
 }
 
-async function commit(next: Value) {
-  const previous = shown.value
-  editing.value = false
-  if (next === previous || (props.type === 'number' && Number.isNaN(next))) {
+function draftValue(): Value {
+  switch (props.type) {
+    case 'bool':
+      return flag.value
+    case 'enum':
+      return picked.value
+    case 'number': {
+      const trimmed = text.value.trim()
+      return trimmed === '' ? null : Number(trimmed)
+    }
+    default:
+      return text.value
+  }
+}
+
+async function saveDraft() {
+  if (saving.value) {
     return
   }
-  shown.value = next
+  const next = draftValue()
+  if (props.type === 'number' && Number.isNaN(next)) {
+    error.value = 'A number.'
+    return
+  }
+  if (next === shown.value) {
+    await close()
+    return
+  }
   saving.value = true
   error.value = null
   try {
     await props.save(next)
+    shown.value = next
+    await close()
   } catch (e) {
-    shown.value = previous
-    const message = e instanceof ApiError && props.field ? e.field(props.field) : undefined
+    // About this field, or about another one this value needs (a type that needs an interval).
+    const message =
+      e instanceof ApiError
+        ? ((props.field ? e.field(props.field) : undefined) ?? Object.values(e.errors).flat()[0])
+        : undefined
     if (message) {
       error.value = message
     } else {
@@ -109,77 +156,96 @@ async function commit(next: Value) {
   }
 }
 
+// In the capture phase: the Select stops Esc itself. While its list is open, Enter and Esc are its
+// own (pick, close); the buttons keep theirs.
 function onKey(event: KeyboardEvent) {
-  if (event.key === 'Escape') {
-    event.preventDefault()
-    cancel()
-  } else if (event.key === 'Enter' && (props.type !== 'textarea' || event.ctrlKey || event.metaKey)) {
-    event.preventDefault()
-    void commit(parse(draft.value))
+  if (event.key !== 'Enter' && event.key !== 'Escape') {
+    return
   }
-}
-
-function onBlur() {
-  if (editing.value) {
-    void commit(parse(draft.value))
+  if ((event.target as HTMLElement | null)?.closest('.actions')) {
+    return
   }
+  if (props.type === 'enum' && choice.value?.overlayVisible) {
+    return
+  }
+  if (event.key === 'Enter' && props.type === 'textarea' && !event.ctrlKey && !event.metaKey) {
+    return
+  }
+  event.preventDefault()
+  event.stopPropagation()
+  void (event.key === 'Enter' ? saveDraft() : close())
 }
 </script>
 
 <template>
-  <div class="inline-field" :class="{ saving, readonly }">
-    <template v-if="type === 'bool'">
-      <ToggleSwitch
-        :model-value="Boolean(shown)"
-        :disabled="readonly || saving"
-        :aria-label="label"
-        @update:model-value="(v: boolean) => commit(v)"
-      />
-    </template>
-    <template v-else-if="type === 'enum'">
+  <div ref="root" class="inline-field" :class="{ readonly }">
+    <div v-if="editing" class="edit" :class="{ multiline: type === 'textarea' }" @keydown.capture="onKey">
       <Select
-        v-if="!readonly"
-        :model-value="shown"
+        v-if="type === 'enum'"
+        ref="choice"
+        v-model="picked"
         :options="options"
         option-label="label"
         option-value="value"
         size="small"
+        class="editor"
         :disabled="saving"
         :aria-label="label"
-        @update:model-value="(v: string | number) => commit(v)"
       />
-      <span v-else>{{ display }}</span>
-    </template>
-    <template v-else-if="editing">
+      <ToggleSwitch v-else-if="type === 'bool'" ref="input" v-model="flag" :disabled="saving" :aria-label="label" />
       <Textarea
-        v-if="type === 'textarea'"
+        v-else-if="type === 'textarea'"
         ref="input"
-        v-model="draft"
+        v-model="text"
         auto-resize
         rows="3"
         class="editor"
+        :disabled="saving"
         :aria-label="label"
-        @keydown="onKey"
-        @blur="onBlur"
       />
       <InputText
         v-else
         ref="input"
-        v-model="draft"
+        v-model="text"
         size="small"
         class="editor"
         :class="{ mono }"
         :type="type === 'number' ? 'number' : 'text'"
+        :disabled="saving"
         :aria-label="label"
-        @keydown="onKey"
-        @blur="onBlur"
       />
-    </template>
+      <span class="actions">
+        <Button
+          v-tooltip.top="saveHint"
+          icon="pi pi-check"
+          size="small"
+          :loading="saving"
+          :aria-label="`Save ${label}`"
+          @click="saveDraft"
+        />
+        <Button
+          v-tooltip.top="'Discard (Esc)'"
+          icon="pi pi-times"
+          size="small"
+          severity="secondary"
+          text
+          :disabled="saving"
+          :aria-label="`Discard ${label}`"
+          @click="close"
+        />
+      </span>
+    </div>
     <button
       v-else
+      ref="shownButton"
       type="button"
       class="shown"
-      :class="{ mono, empty: display === '', multiline: type === 'textarea' }"
+      :class="{
+        mono,
+        empty: display === '',
+        multiline: type === 'textarea',
+        choice: type === 'enum' || type === 'bool',
+      }"
       :disabled="readonly"
       :aria-label="readonly ? undefined : `Edit ${label}`"
       @click="begin"
@@ -219,6 +285,10 @@ function onBlur() {
   outline: 1px solid var(--p-primary-color);
 }
 
+.shown.choice {
+  cursor: pointer;
+}
+
 .shown:disabled {
   cursor: default;
 }
@@ -248,15 +318,29 @@ function onBlur() {
   color: var(--pnmt-muted);
 }
 
+.edit {
+  display: flex;
+  align-items: center;
+  gap: var(--pnmt-space-1);
+  min-height: 28px;
+}
+
+.edit.multiline {
+  align-items: flex-start;
+}
+
 .editor {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
+}
+
+.actions {
+  display: inline-flex;
+  flex: none;
+  gap: var(--pnmt-space-1);
 }
 
 .mono {
   font-family: var(--pnmt-mono);
-}
-
-.saving {
-  opacity: 0.7;
 }
 </style>

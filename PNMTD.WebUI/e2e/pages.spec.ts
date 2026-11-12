@@ -74,11 +74,45 @@ test('a host, a sensor, an event through the sensor API, and both deleted again'
   await expect(page.getByText('hello from playwright').first()).toBeVisible()
   await expect(page.locator('.status-badge[data-status="Ok"]').first()).toBeVisible()
 
-  // Inline edit: the name, saved with Enter.
+  // Inline edit: nothing is stored before Save (or Enter). The name, saved with Enter.
   await page.getByRole('button', { name: 'Edit Name' }).click()
   await page.getByRole('textbox', { name: 'Name' }).fill('nightly backup')
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { level: 1, name: 'nightly backup' })).toBeVisible()
+
+  // The type: text until clicked; a pick only changes the draft, Discard drops it, Save stores it.
+  await expect(page.getByRole('combobox', { name: 'Type' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Edit Type' }).click()
+  await page.getByRole('option', { name: 'Encapsulated (JSON)', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Save Type' })).toBeVisible()
+  await page.getByRole('button', { name: 'Discard Type' }).click()
+  await expect(page.getByRole('button', { name: 'Edit Type' })).toHaveText('Simple')
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Edit Type' })).toHaveText('Simple')
+  await page.getByRole('button', { name: 'Edit Type' }).click()
+  await page.getByRole('option', { name: 'Encapsulated (JSON)', exact: true }).click()
+  await page.getByRole('button', { name: 'Save Type' }).click()
+  await expect(page.getByRole('button', { name: 'Edit Type' })).toHaveText('Encapsulated (JSON)')
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Edit Type' })).toHaveText('Encapsulated (JSON)')
+
+  // A switch: Yes or No until clicked; a flip only changes the draft, Esc drops it, Save stores it.
+  await expect(page.getByRole('switch', { name: 'Enabled' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Edit Enabled' })).toHaveText('Yes')
+  await page.getByRole('button', { name: 'Edit Enabled' }).click()
+  await expect(page.getByRole('switch', { name: 'Enabled' })).toBeFocused()
+  await page.keyboard.press('Space')
+  await expect(page.getByRole('switch', { name: 'Enabled' })).not.toBeChecked()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('button', { name: 'Edit Enabled' })).toHaveText('Yes')
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Edit Enabled' })).toHaveText('Yes')
+  await page.getByRole('button', { name: 'Edit Enabled' }).click()
+  await page.getByRole('switch', { name: 'Enabled' }).click()
+  await page.getByRole('button', { name: 'Save Enabled' }).click()
+  await expect(page.getByRole('button', { name: 'Edit Enabled' })).toHaveText('No')
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Edit Enabled' })).toHaveText('No')
 
   await page.getByRole('button', { name: 'More actions for the sensor' }).click()
   await page.getByRole('menuitem', { name: 'Delete sensor…' }).click()

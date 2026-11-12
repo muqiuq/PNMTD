@@ -941,9 +941,10 @@ The pages and routes are the same as today, rebuilt on the principles above. Rou
 ### 5.7 Cross-cutting behaviour
 
 - **InlineField** replaces `EditableTextComponent`:
-  - Enter or blur saves, Esc cancels.
-  - Saves are optimistic. On error they roll back with a toast, and server validation messages appear at the field.
-  - It supports text, number, bool (as a switch, not "True"/"False") and enum values, and sends a `PUT` with the cached resource's writable fields.
+  - The value is shown as text: a bool as Yes or No (not "True"/"False"), an enum by its label. A click opens an editor (a field, a switch or a list) with Save and Discard.
+  - Only Save stores the value, or Enter (Ctrl/⌘+Enter in a multi-line field). Neither a change nor leaving the field does. Esc discards.
+  - If the server rejects the value, the editor stays open with it. The message appears at the field, including one about another field the value needs (a type that needs an interval). Other errors come as a toast.
+  - It supports text, multi-line text, number, bool and enum values, and sends a `PUT` with the cached resource's writable fields.
 - **UptimeBar:**
   - SVG that scales to its width and always ends today. Tooltip per day.
   - Thresholds: ≥ 0.99 green, ≥ 0.9 amber, < 0.9 red, no data grey. This fixes issue 23.
@@ -1552,7 +1553,7 @@ Normalised before comparing: `traceId` and generated GUIDs.
   - `UptimeBar`: thresholds, today included, and the day count adapting to the width.
   - `StatusBadge` states and `CodeTag`.
   - `RelativeTime`.
-  - `InlineField`: save, cancel and rollback.
+  - `InlineField`: nothing saved before Save or Enter, discard with Discard or Esc, a rejected value kept in the open editor.
   - The API client: 401 handling, the XSRF header, ProblemDetails mapping.
 - **Playwright** at `/pnmt-admin/`, with the `SEED=1` fixture:
   - Log in with TOTP (code generated in the test).
