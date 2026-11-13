@@ -172,6 +172,12 @@ const choices = [
           <span v-if="loginModes(data)" :class="{ muted: data.backupIntervalHours === null }">{{
             scheduleLabel(data.backupIntervalHours)
           }}</span>
+          <i
+            v-if="data.encryptBackups"
+            v-tooltip.top="'Encrypted with the backup key'"
+            class="pi pi-lock lock"
+            aria-label="encrypted"
+          />
         </template>
       </Column>
       <Column header="Last poll" style="width: 8rem">
@@ -240,5 +246,11 @@ const choices = [
   display: flex;
   align-items: center;
   gap: var(--pnmt-space-2);
+}
+
+.lock {
+  margin-left: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--pnmt-muted);
 }
 </style>

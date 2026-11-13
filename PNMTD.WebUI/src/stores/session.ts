@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { authApi, type CurrentUser, type Role, type SessionFlags, type SystemInfo } from '@/api/auth'
 import { ApiError } from '@/api/client'
+import { clearBackupKey } from '@/composables/useBackupKey'
 
 const rank: Record<Role, number> = { Viewer: 1, User: 2, Admin: 3 }
 
@@ -25,6 +26,8 @@ export const useSession = defineStore('session', () => {
   }
 
   function set(next: CurrentUser | null, nextFlags: SessionFlags | null) {
+    // Signed out: a backup key loaded in this tab goes with the session (docs/mikrotik-backup-plan.md §3.6).
+    if (!next) clearBackupKey()
     user.value = next
     flags.value = nextFlags
     loaded.value = true

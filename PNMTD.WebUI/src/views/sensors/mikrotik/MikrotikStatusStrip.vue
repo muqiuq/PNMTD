@@ -103,6 +103,7 @@ const uptime = computed(() => (r.value?.uptimeSeconds != null ? formatDuration(r
           <RouterLink v-if="m.latestBackup" :to="{ name: 'sensor', params: { id: sensor.id, tab: 'backups' } }"
             >v{{ m.latestBackup.number }}</RouterLink
           >
+          <i v-if="m.encryptBackups" v-tooltip.top="'Encrypted with the backup key'" class="pi pi-lock lock" />
           <span v-else>–</span>
           <div class="muted small" :class="{ bad: m.backupFailures > 0 }">
             <template v-if="m.backupFailures > 0">export failed</template>
@@ -195,5 +196,11 @@ const uptime = computed(() => (r.value?.uptimeSeconds != null ? formatDuration(r
   .stats {
     gap: var(--pnmt-space-2) var(--pnmt-space-4);
   }
+}
+
+.lock {
+  margin-left: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--pnmt-muted);
 }
 </style>

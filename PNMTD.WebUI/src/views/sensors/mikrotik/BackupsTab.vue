@@ -14,13 +14,17 @@ import { useActions } from '@/composables/useActions'
 import { useServerTable } from '@/composables/useServerTable'
 import { formatAbsolute } from '@/format'
 import { formatBytes } from '@/format/bytes'
+import { clearBackupKey, useBackupKey } from '@/composables/useBackupKey'
 import DiffView from './DiffView.vue'
+import LoadKeyDialog from './LoadKeyDialog.vue'
+import { backupDiff, decryptedFile, exportText, needsKey, saveFile } from './backupReading'
 import { scheduleLabel } from './backupSchedule'
 
 /**
  * A router's configuration backups (docs/mikrotik-plan.md §6, §11.1): every stored version, newest first,
  * with what changed against the one before. A version opens as text or as the diff with the version
- * before; two selected versions compare with each other. Exports with secrets are an Admin's.
+ * before; two selected versions compare with each other. Exports with secrets are an Admin's. Encrypted versions
+ * (docs/mikrotik-backup-plan.md §3.6) open with the backup key loaded in this tab, and are compared here.
  */
 const props = defineProps<{ sensor: S['SensorDetail']; canWrite: boolean; isAdmin: boolean }>()
 const queryClient = useQueryClient()
@@ -47,19 +51,57 @@ const shown = ref<Shown | null>(null)
 const readable = (b: S['MikrotikBackupItem']) =>
   props.canWrite && (props.isAdmin || (!b.includesSecrets && b.kind === 'Export'))
 
+// The backup key, for encrypted versions: asked for when one is opened, then what was asked for goes on.
+const backupKey = useBackupKey()
+const loadingKey = ref(false)
+const neededKey = ref<string | null>(null)
+let pending: (() => Promise<void>) | null = null
+const anyEncrypted = computed(() => m.value.encryptBackups || table.items.value.some((i) => !!i.encryptedWith))
+async function withKey(items: (S['MikrotikBackupItem'] | undefined)[], action: () => Promise<void>) {
+  if (needsKey(...items) && !backupKey.loaded.value) {
+    neededKey.value = items.find((i) => i?.encryptedWith)?.encryptedWith ?? null
+    pending = action
+    loadingKey.value = true
+    return
+  }
+  await action()
+}
+function openKeyDialog() {
+  neededKey.value = null
+  pending = null
+  loadingKey.value = true
+}
+async function keyLoaded() {
+  const action = pending
+  pending = null
+  if (action) await action()
+}
+const exportBefore = (b: S['MikrotikBackupItem']) =>
+  table.items.value.filter((i) => i.kind === 'Export' && i.number < b.number).sort((x, y) => y.number - x.number)[0]
+
 async function view(b: S['MikrotikBackupItem']) {
-  const content = await run(() => api.mikrotik.backup(props.sensor.id, b.id), { failure: 'Not shown' })
-  if (content) shown.value = { kind: 'content', content }
+  await withKey([b], async () => {
+    const read = await run(() => exportText(props.sensor.id, b.id), { failure: 'Not shown' })
+    if (read) shown.value = { kind: 'content', content: { backup: read.item, content: read.text } }
+  })
 }
 
-async function changes(b: S['MikrotikBackupItem'], against?: string) {
-  const diff = await run(() => api.mikrotik.diff(props.sensor.id, b.id, against), { failure: 'Not compared' })
-  if (diff) shown.value = { kind: 'diff', diff }
+async function changes(b: S['MikrotikBackupItem'], against?: S['MikrotikBackupItem']) {
+  await withKey([b, against ?? exportBefore(b)], async () => {
+    const diff = await run(() => backupDiff(props.sensor.id, b.id, against?.id), { failure: 'Not compared' })
+    if (diff) shown.value = { kind: 'diff', diff }
+  })
 }
 
 async function compareSelected() {
   const items = table.items.value.filter((i) => selected.value.includes(i.id)).sort((a, b) => a.number - b.number)
-  if (items.length === 2) await changes(items[1]!, items[0]!.id)
+  if (items.length === 2) await changes(items[1]!, items[0]!)
+}
+
+/** An encrypted version, decrypted here: the .rsc or .backup as the router wrote it. */
+async function downloadDecrypted(b: S['MikrotikBackupItem']) {
+  const blob = await run(() => decryptedFile(props.sensor.id, b), { failure: 'Not decrypted' })
+  if (blob) saveFile(blob, `${m.value.identity ?? 'router'}-v${b.number}.${b.kind === 'Binary' ? 'backup' : 'rsc'}`)
 }
 
 async function backUp() {
@@ -114,6 +156,13 @@ const title = computed(() => {
         >
         <template v-if="m.lastExportAt"> Last export <RelativeTime :value="m.lastExportAt" />.</template>
       </span>
+      <template v-if="canWrite && anyEncrypted">
+        <template v-if="backupKey.loaded.value">
+          <Tag value="key loaded" severity="success" icon="pi pi-key" />
+          <Button label="Forget key" size="small" text severity="secondary" @click="clearBackupKey" />
+        </template>
+        <Button v-else label="Load key…" icon="pi pi-key" size="small" severity="secondary" @click="openKeyDialog" />
+      </template>
       <Button
         v-if="canWrite && selected.length === 2"
         label="Compare the two"
@@ -137,7 +186,15 @@ const title = computed(() => {
       {{ m.lastBackupError }}
     </Message>
 
-    <ListTable :table="table" what="backups" empty-text="No backup yet: the first is taken at the first login.">
+    <ListTable
+      :table="table"
+      what="backups"
+      :empty-text="
+        m.backupIntervalHours === null
+          ? 'No backup yet: scheduled backups are off; Back up now takes one.'
+          : 'No backup yet: the first is taken at the first login.'
+      "
+    >
       <Column v-if="canWrite" header="" style="width: 2.5rem">
         <template #body="{ data }">
           <Checkbox
@@ -177,6 +234,14 @@ const title = computed(() => {
           >
           <span class="muted small"> · {{ data.lineCount }} lines, {{ formatBytes(data.size) }}</span>
           <Tag v-if="data.includesSecrets" value="secrets" severity="warn" class="badge" />
+          <Tag
+            v-if="data.encryptedWith"
+            v-tooltip.top="`Encrypted with the backup key ${data.encryptedWith}`"
+            value="encrypted"
+            icon="pi pi-lock"
+            severity="info"
+            class="badge"
+          />
           <Tag v-if="data.kind === 'Binary'" value="binary" severity="secondary" class="badge" />
         </template>
       </Column>
@@ -205,8 +270,20 @@ const title = computed(() => {
               :aria-label="`Changes of version ${data.number}`"
               @click="changes(data)"
             />
+            <Button
+              v-if="data.encryptedWith && backupKey.loaded.value"
+              v-tooltip.top="'Download, decrypted'"
+              icon="pi pi-download"
+              text
+              rounded
+              size="small"
+              severity="secondary"
+              :aria-label="`Download version ${data.number}, decrypted`"
+              @click="downloadDecrypted(data)"
+            />
             <a
-              v-tooltip.top="'Download'"
+              v-else
+              v-tooltip.top="data.encryptedWith ? 'Download (encrypted, .age)' : 'Download'"
               class="p-button p-button-text p-button-rounded p-button-sm p-button-secondary p-button-icon-only"
               :href="api.mikrotik.downloadUrl(sensor.id, data.id)"
               :aria-label="`Download version ${data.number}`"
@@ -266,6 +343,7 @@ const title = computed(() => {
         <pre v-else class="export" aria-label="Export">{{ shown.content.content }}</pre>
       </div>
     </section>
+    <LoadKeyDialog v-model:visible="loadingKey" :needs="neededKey" @loaded="keyLoaded" />
   </div>
 </template>
 

@@ -4,7 +4,9 @@ import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import Select from 'primevue/select'
 import ToggleSwitch from 'primevue/toggleswitch'
+import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
+import { api, keys } from '@/api/resources'
 import BackupScheduleField from './BackupScheduleField.vue'
 import { MODES, type MikrotikDraft } from './mikrotikDraft'
 
@@ -25,6 +27,13 @@ const props = withDefaults(
 )
 
 const set = (patch: Partial<MikrotikDraft>) => (draft.value = { ...draft.value, ...patch })
+// The backup key's fingerprint, for the encryption switch (docs/mikrotik-backup-plan.md §3.3).
+const backupSettings = useQuery({
+  queryKey: [...keys.mikrotik, 'backup-settings'],
+  queryFn: api.mikrotik.backupSettings,
+  enabled: computed(() => props.isAdmin),
+})
+const backupKey = computed(() => backupSettings.data.value?.key?.fingerprint ?? null)
 const direct = computed(() => draft.value.mode === 'DirectSsh')
 const modeOptions = computed(() => MODES.map((m) => ({ ...m, disabled: m.needsGateway && !props.wireGuard })))
 const modeHint = computed(() => MODES.find((m) => m.value === draft.value.mode)?.hint ?? '')
@@ -125,6 +134,22 @@ const modeHint = computed(() => MODES.find((m) => m.value === draft.value.mode)?
         >
       </div>
       <template v-if="isAdmin">
+        <div class="switch-row wide">
+          <ToggleSwitch
+            :model-value="draft.encryptBackups ?? false"
+            input-id="mikrotik-encrypt"
+            :disabled="!backupKey && !draft.encryptBackups"
+            @update:model-value="(v: boolean) => set({ encryptBackups: v })"
+          />
+          <label for="mikrotik-encrypt">Encrypt backups</label>
+        </div>
+        <small class="field-hint wide hint">
+          <template v-if="backupKey"
+            >One way, with the backup key {{ backupKey }}: PNMT stores what it cannot read. Load the key in the Backups
+            tab to read them.</template
+          >
+          <template v-else>Needs the backup key: Admin → MikroTik &amp; WireGuard → Backups.</template>
+        </small>
         <div class="switch-row wide">
           <ToggleSwitch
             :model-value="draft.diagnostics"

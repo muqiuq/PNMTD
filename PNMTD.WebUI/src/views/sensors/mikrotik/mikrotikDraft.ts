@@ -12,6 +12,8 @@ export interface MikrotikDraft {
   sourceAddress: string
   /** Null is off (docs/mikrotik-backup-plan.md §2). */
   backupIntervalHours: BackupSchedule
+  /** Null: as it is, or for a new router the installation's default (docs/mikrotik-backup-plan.md §3.3). */
+  encryptBackups: boolean | null
   managementAccess: boolean
   includeSecrets: boolean
   diagnostics: boolean
@@ -62,6 +64,7 @@ export function newMikrotikDraft(wireGuard = false, backupIntervalHours: number 
     sshPort: 22,
     sourceAddress: '',
     backupIntervalHours,
+    encryptBackups: null,
     managementAccess: false,
     includeSecrets: false,
     diagnostics: false,
@@ -75,6 +78,7 @@ export function draftFromRouter(m: S['MikrotikRouterDetail']): MikrotikDraft {
     sshPort: m.sshPort,
     sourceAddress: m.sourceAddress ?? '',
     backupIntervalHours: m.backupIntervalHours,
+    encryptBackups: m.encryptBackups,
     managementAccess: m.managementAccess,
     includeSecrets: m.includeSecrets,
     diagnostics: m.diagnostics,
@@ -89,6 +93,7 @@ export function mikrotikRequestFromDraft(d: MikrotikDraft): S['MikrotikRouterReq
     sshPort: d.sshPort ?? 22,
     sourceAddress: direct ? d.sourceAddress.trim() || null : null,
     backupIntervalHours: d.backupIntervalHours ?? null,
+    encryptBackups: d.encryptBackups,
     managementAccess: direct ? false : d.managementAccess,
     includeSecrets: d.includeSecrets,
     diagnostics: d.diagnostics,

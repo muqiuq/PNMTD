@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 import { shot, signIn } from './support'
 
@@ -121,4 +122,46 @@ test('a new router through the form, with its join script', async ({ page }) => 
   await page.waitForURL(/\/sensors\/[^/]+\/setup$/)
   await page.getByRole('button', { name: 'Show join script' }).click()
   await expect(page.locator('pre[aria-label="Join script"]')).toContainText('core router')
+})
+
+// docs/mikrotik-backup-plan.md §3: st-gallen encrypts its backups since version 3, with the demo key, whose private
+// half is e2e/fixtures/backup-test.age-key. The browser decrypts it; then a new key is made in the browser.
+const demoKey = readFileSync(new URL('./fixtures/backup-test.age-key', import.meta.url))
+
+test('encrypted backups: read with the key in the tab, and a new key made in the browser', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await signIn(page)
+  await openRouter(page, 'office-st-gallen-gw')
+  await tab(page, 'Backups').click()
+  await expect(page.getByText('encrypted', { exact: true })).toHaveCount(1)
+
+  // Version 3 asks for the key, then shows; its change against the plaintext version 2 is made in the browser.
+  await page.getByRole('button', { name: 'View version 3' }).click()
+  await expect(page.getByRole('dialog', { name: 'Load the backup key' })).toBeVisible()
+  await page
+    .locator('#key-file')
+    .setInputFiles({ name: 'backup-test.age-key', mimeType: 'text/plain', buffer: demoKey })
+  await page.getByRole('button', { name: 'Load', exact: true }).click()
+  await expect(page.locator('pre[aria-label="Export"]')).toContainText('1.1.1.1,8.8.8.8')
+  await page.getByRole('button', { name: 'Changes of version 3' }).click()
+  await expect(page.getByRole('table', { name: 'Changes' })).toContainText('8.8.8.8')
+  await expect(page.getByText('key loaded')).toBeVisible()
+  await shot(page, 'mikrotik-backups-encrypted')
+
+  // A new key: generated here, the file downloaded and loaded back, then activated; PNMT gets the public key only.
+  await page.goto('/pnmt-admin/admin/mikrotik?tab=backups')
+  const before = await page.locator('dd.mono').first().textContent()
+  await page.getByRole('button', { name: 'Replace…' }).click()
+  await page.getByRole('button', { name: 'Generate a key', exact: true }).click()
+  const downloading = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download the key file' }).click()
+  const file = readFileSync((await (await downloading).path())!)
+  expect(file.toString()).toMatch(/^AGE-SECRET-KEY-1/m)
+  await page.locator('#confirm-file').setInputFiles({ name: 'key.age-key', mimeType: 'text/plain', buffer: file })
+  await expect(page.getByText('The key file matches.')).toBeVisible()
+  await page.getByRole('button', { name: 'Replace', exact: true }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByText('Earlier keys')).toBeVisible()
+  await expect(page.locator('dd.mono').first()).not.toHaveText(before ?? '')
+  await shot(page, 'mikrotik-backup-key')
 })

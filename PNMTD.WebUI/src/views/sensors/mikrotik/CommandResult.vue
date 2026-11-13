@@ -10,6 +10,9 @@ import { formatAbsolute, formatDuration } from '@/format'
 import { useSession } from '@/stores/session'
 import DiffView from './DiffView.vue'
 import JobLog from './JobLog.vue'
+import { NoBackupKeyError } from '@/composables/useBackupKey'
+import LoadKeyDialog from './LoadKeyDialog.vue'
+import { backupDiff } from './backupReading'
 
 /**
  * A command on one router (docs/mikrotik-plan.md §8.3): the outcome, the output with Copy and Download, what it
@@ -19,7 +22,7 @@ import JobLog from './JobLog.vue'
 const props = defineProps<{ jobId: string; isAdmin: boolean; showText?: boolean }>()
 const emit = defineEmits<{ again: [text: string] }>()
 const session = useSession()
-const { run, done, ask, notify } = useActions()
+const { done, ask, notify } = useActions()
 
 const running = (c?: S['MikrotikCommandItem']) => c?.state === 'Queued' || c?.state === 'Running'
 const q = useQuery({
@@ -47,6 +50,8 @@ const canCancel = computed(
 const diff = ref<S['MikrotikBackupDiff'] | null>(null)
 const showLog = ref(false)
 
+// An encrypted version (docs/mikrotik-backup-plan.md §3.6): the backup key is asked for, then the diff made here.
+const loadingKey = ref(false)
 async function toggleDiff() {
   if (diff.value) {
     diff.value = null
@@ -54,10 +59,12 @@ async function toggleDiff() {
   }
   const x = c.value
   if (!x?.sensorId || !x.backupAfterId) return
-  diff.value =
-    (await run(() => api.mikrotik.diff(x.sensorId!, x.backupAfterId!, x.backupBeforeId ?? undefined), {
-      failure: 'No diff',
-    })) ?? null
+  try {
+    diff.value = await backupDiff(x.sensorId, x.backupAfterId, x.backupBeforeId ?? undefined)
+  } catch (e) {
+    if (e instanceof NoBackupKeyError) loadingKey.value = true
+    else notify.error(e, 'No diff')
+  }
 }
 
 async function copy() {
@@ -184,6 +191,7 @@ const stateLabel = (s: S['MikrotikJobState']) => (s === 'TimedOut' ? 'Timed out'
       />
     </div>
     <DiffView v-if="diff" :diff="diff" />
+    <LoadKeyDialog v-model:visible="loadingKey" @loaded="toggleDiff" />
     <div>
       <Button
         :label="showLog ? 'Hide the log' : 'Log'"

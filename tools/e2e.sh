@@ -63,8 +63,11 @@ echo "$viewer_password" | "$ENGINE" exec -i "$NAME" pnmtd users add e2e-viewer -
 tools/npm.sh exec -- playwright --version >/dev/null
 
 rm -rf PNMTD.WebUI/test-results
-"$ENGINE" run --rm --network "$NETWORK" --ipc=host \
+# In the app container's network: PNMT is http://localhost:8080 for the browser, a secure context as HTTPS is in
+# production, which WebCrypto (the backups' decryption, docs/mikrotik-backup-plan.md §3.6) needs. UDP goes to the
+# port the app listens on inside its container.
+"$ENGINE" run --rm --network "container:${NAME}" --ipc=host \
   -v "$PWD/PNMTD.WebUI:/web" -v "${WEB_MODULES_VOLUME}:/web/node_modules" -w /web \
-  -e "E2E_BASE_URL=http://${NAME}:8080" -e "E2E_USER=${user}" -e "E2E_PASSWORD=${password}" \
+  -e "E2E_BASE_URL=http://localhost:8080" -e E2E_UDP_PORT=5028 -e "E2E_USER=${user}" -e "E2E_PASSWORD=${password}" \
   -e "E2E_ADMIN_PASSWORD=${admin_password}" -e "E2E_VIEWER_PASSWORD=${viewer_password}" -e CI=1 \
   "$PLAYWRIGHT_IMAGE" node_modules/.bin/playwright test "$@"

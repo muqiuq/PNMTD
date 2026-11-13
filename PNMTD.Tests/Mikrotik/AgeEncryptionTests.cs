@@ -56,6 +56,20 @@ public sealed class AgeEncryptionTests
         }
     }
 
+    /// <summary>The browser's check of this encryption (useBackupKey.test.ts) decrypts a file written here.</summary>
+    [TestMethod]
+    public void An_export_for_the_browsers_test()
+    {
+        var file = AgeEncryption.Encrypt(BackupStore.Gzip(BrowserExport), AgeEncryption.ParseRecipient(TestRecipient)!);
+        Assert.AreEqual(BrowserExport, BackupStore.Gunzip(Decrypt(file, TestIdentity)));
+        if (Environment.GetEnvironmentVariable("PNMTD_AGE_OUT") is { Length: > 0 } dir)
+        {
+            File.WriteAllText(Path.Combine(dir, "export.rsc.gz.age.b64"), Convert.ToBase64String(file));
+        }
+    }
+
+    public const string BrowserExport = "/ip dns set servers=1.1.1.1,8.8.8.8\n/system identity set name=st-gallen-gw\n";
+
     /// <summary>age v1 decryption of a file with one X25519 stanza, from the spec.</summary>
     public static byte[] Decrypt(byte[] file, string identity)
     {

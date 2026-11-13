@@ -74,7 +74,12 @@ watch(
   (settings) => {
     if (settings && !scheduleFromDefaults) {
       scheduleFromDefaults = true
-      mikrotik.value = { ...mikrotik.value, backupIntervalHours: settings.defaultBackupIntervalHours ?? null }
+      mikrotik.value = {
+        ...mikrotik.value,
+        backupIntervalHours: settings.defaultBackupIntervalHours ?? null,
+        // An Admin sees the default as the switch; for a User the server applies it.
+        encryptBackups: session.can('Admin') ? settings.defaultEncryptBackups : null,
+      }
     }
   },
   { immediate: true },

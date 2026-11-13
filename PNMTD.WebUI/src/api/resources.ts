@@ -141,7 +141,7 @@ export const api = {
     acceptHostKey: (id: Id) =>
       call(client.POST('/api/v1/sensors/{id}/mikrotik/host-key/accept', { params: { path: { id } } })),
     // --- its backups (docs/mikrotik-plan.md §6): the list CanRead, contents CanWrite, secrets Admin ---------
-    backups: (id: Id, query: ListQuery = {}) =>
+    backups: (id: Id, query: ListQuery & { kind?: S['MikrotikBackupKind'] } = {}) =>
       call(client.GET('/api/v1/sensors/{id}/mikrotik/backups', { params: { path: { id }, query } })),
     backUp: (id: Id) => call(client.POST('/api/v1/sensors/{id}/mikrotik/backups', { params: { path: { id } } })),
     backup: (id: Id, backupId: Id) =>
@@ -200,6 +200,8 @@ export const api = {
       call(client.PUT('/api/v1/mikrotik/backup-settings', { body })),
     applyBackupSettings: (body: S['MikrotikRouterBackupRequest']) =>
       call(client.POST('/api/v1/mikrotik/routers/backup-settings', { body })),
+    setBackupKey: (recipient: string) => call(client.POST('/api/v1/mikrotik/backup-keys', { body: { recipient } })),
+    retireBackupKey: () => call(client.POST('/api/v1/mikrotik/backup-keys/retire')),
   },
 
   wireGuard: {
@@ -345,6 +347,7 @@ export function mikrotikRequest(
     sshPort: m.sshPort,
     sourceAddress: m.sourceAddress,
     backupIntervalHours: m.backupIntervalHours,
+    encryptBackups: m.encryptBackups,
     managementAccess: m.managementAccess,
     includeSecrets: m.includeSecrets,
     diagnostics: m.diagnostics,
