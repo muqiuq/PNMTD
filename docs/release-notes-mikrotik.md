@@ -1,6 +1,6 @@
-# PNMT 1.0: MikroTik routers and WireGuard
+# PNMT 1.1: MikroTik routers and WireGuard
 
-PNMT 1.0 monitors MikroTik routers, keeps their configuration history, updates them and runs commands on them. Routers behind NAT reach PNMT through a WireGuard tunnel of its own. All of it is off until you add a router: an installation without MikroTik routers runs exactly as before.
+PNMT 1.1 monitors MikroTik routers, keeps their configuration history, updates them and runs commands on them. Routers behind NAT reach PNMT through a WireGuard tunnel of its own. All of it is off until you add a router: an installation without MikroTik routers runs exactly as before.
 
 ## What you get
 
@@ -26,6 +26,12 @@ PNMT 1.0 monitors MikroTik routers, keeps their configuration history, updates t
 ## Security in one paragraph
 
 PNMT logs in to a router as `pnmt`, a user that the join script creates and that may read but not change anything. **A router's admin password is never stored.** It is typed for one update or one command run, held in memory while that run lasts, accepted over HTTPS only, and sent only to a router whose host key PNMT knows. So a compromised PNMT can read routers' configurations (without secrets), but cannot change a router. Tunnel keys and PNMT's SSH key are encrypted with the key ring on the `pnmtd-keys` volume. The SSH key can be rotated on the admin page: routers keep working until their new join script is pasted, and then the old key is retired.
+
+## Updating from 1.0
+
+In the `deploy/` folder: `git pull` for the new `docker-compose.yml` (the WireGuard gateway, which stays off until enabled), then `./update.sh --tag v1.1.0`. It takes a backup first. `.env` pins the image tag, so the update needs `--tag`. The database migrations run when the new image starts; nothing else changes until you add a router.
+
+From v0.12, [deploy/UPGRADING-1.0.md](../deploy/UPGRADING-1.0.md) applies as it is and lands on 1.1.
 
 ## Getting started
 

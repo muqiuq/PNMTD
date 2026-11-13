@@ -475,7 +475,7 @@
           "Microsoft.Data.Sqlite": "[10.0.15, )",
           "Microsoft.EntityFrameworkCore": "[10.0.15, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
-          "PNMTD.Lib": "[1.0.0, )",
+          "PNMTD.Lib": "[1.1.0, )",
           "SSH.NET": "[2026.0.0, )"
         }
       },

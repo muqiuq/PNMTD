@@ -91,7 +91,7 @@ volume_name() { echo "$(project_name)_$1"; }
 app_image() {
   local image tag
   image="$(env_value PNMTD_IMAGE)"; tag="$(env_value PNMTD_IMAGE_TAG)"
-  echo "${image:-uisach/pnmtd}:${tag:-v1.0.0}"
+  echo "${image:-uisach/pnmtd}:${tag:-v1.1.0}"
 }
 
 backup_dir() {
