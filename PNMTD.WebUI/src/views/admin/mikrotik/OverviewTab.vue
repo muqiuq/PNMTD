@@ -7,7 +7,7 @@ import { api, keys } from '@/api/resources'
 import CopyField from '@/components/CopyField.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
-import { formatAbsolute } from '@/format'
+import SshKeys from './SshKeys.vue'
 
 /**
  * The overview (§11.2): whether the gateway runs, the endpoint in effect and where each part comes from,
@@ -106,12 +106,7 @@ const states = computed(() => Object.fromEntries((mt.data.value?.bySetupState ??
             <div v-if="mt.data.value.versionCheckError" class="bad small">{{ mt.data.value.versionCheckError }}</div>
           </dd>
           <dt>PNMTD's SSH key</dt>
-          <dd>
-            <div v-for="k in mt.data.value.sshKeys" :key="k.fingerprint" class="key">
-              <span class="mono">{{ k.fingerprint }}</span>
-              <span class="muted small"> {{ k.comment }} · {{ formatAbsolute(k.createdAt) }}</span>
-            </div>
-          </dd>
+          <dd><SshKeys /></dd>
           <dt>Tag</dt>
           <dd class="mono">
             pnmt:{{ mt.data.value.tag }} <span class="muted small">(the comment on what join scripts create)</span>

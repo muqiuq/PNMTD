@@ -2360,6 +2360,119 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/mikrotik/ssh-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikSshKeyStatus"];
+                        "text/json": components["schemas"]["MikrotikSshKeyStatus"];
+                        "text/plain": components["schemas"]["MikrotikSshKeyStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mikrotik/ssh-keys/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikSshKeyStatus"];
+                        "text/json": components["schemas"]["MikrotikSshKeyStatus"];
+                        "text/plain": components["schemas"]["MikrotikSshKeyStatus"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mikrotik/ssh-keys/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: {
+                    force?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikSshKeyStatus"];
+                        "text/json": components["schemas"]["MikrotikSshKeyStatus"];
+                        "text/plain": components["schemas"]["MikrotikSshKeyStatus"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/mikrotik/routers": {
         parameters: {
             query?: never;
@@ -5560,6 +5673,12 @@ export interface components {
         MikrotikJobState: "Queued" | "Running" | "Succeeded" | "Skipped" | "Failed" | "Cancelled" | "TimedOut";
         /** @enum {unknown} */
         MikrotikJobStep: "Check" | "Export" | "BinaryBackup" | "Download" | "Reboot" | "Wait" | "Verify" | "Firmware" | "Done" | "Run" | "ExportAfter";
+        MikrotikKeyWaiting: {
+            /** Format: uuid */
+            sensorId: string;
+            name: string;
+            reason: string;
+        };
         /** @enum {unknown} */
         MikrotikMode: "WireGuardSsh" | "WireGuardOnly" | "DirectSsh";
         MikrotikResources: {
@@ -5662,6 +5781,11 @@ export interface components {
         };
         /** @enum {unknown} */
         MikrotikSetupState: "AwaitingRouter" | "TunnelUp" | "Ready" | "NeedsAttention";
+        MikrotikSshKeyStatus: {
+            keys: components["schemas"]["MikrotikSshPublicKey"][];
+            currentComment: string;
+            waiting: components["schemas"]["MikrotikKeyWaiting"][];
+        };
         MikrotikSshPublicKey: {
             publicKey: string;
             comment: string;

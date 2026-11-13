@@ -15,6 +15,7 @@ PNMT 1.0 replaces the two containers of v0.12 (the `pnmtd` backend with SQLite, 
 - **Settings in `deploy/.env`** instead of `docker-compose.yml`. The WebApp's `externalApiurl` becomes `PublicBaseUrl`.
 - **Two-factor authentication** is offered at the first sign-in. The default user `pnmt` with the password `pnmt` must choose a new password.
 - **Removed:** the JWT settings (`Jwt__*`), `token.txt` and `create-web-app-token.txt`.
+- **New, and off until used:** MikroTik routers and a WireGuard gateway for routers behind NAT ([docs/release-notes-mikrotik.md](../docs/release-notes-mikrotik.md)). The upgrade changes nothing for them; the gateway starts only with `./init.sh --wireguard`.
 
 **Downtime** runs from stopping the old containers until 1.0 answers: usually a minute or two plus the import. Sensors that report during that time get a connection error. Heartbeat checks wait five minutes after the start, so heartbeats that missed the window don't all fail at once.
 

@@ -51,6 +51,8 @@ public static class AuthEvents
     public const string MikrotikCommandStarted = "MikrotikCommandStarted";
     public const string MikrotikCommandCancelled = "MikrotikCommandCancelled";
     public const string MikrotikCommandRedacted = "MikrotikCommandRedacted";
+    public const string MikrotikSshKeyRotated = "MikrotikSshKeyRotated";
+    public const string MikrotikSshKeyRetired = "MikrotikSshKeyRetired";
 
     // The WireGuard network (docs/mikrotik-plan.md §9.6).
     public const string WireGuardNetworkChanged = "WireGuardNetworkChanged";
@@ -67,7 +69,8 @@ public static class AuthEvents
         UdpKeyChanged, UdpCounterReset, UdpSessionReset, UdpFirmwareUploaded, UdpFirmwareDeleted, UdpUpdateStarted, UdpUpdateCancelled,
         MikrotikJoinScriptViewed, MikrotikHostKeyAccepted, MikrotikSecretsChanged, MikrotikManagementAccessChanged, MikrotikDiagnosticsChanged,
         MikrotikBackupDownloaded, MikrotikBackupDeleted, MikrotikUpdateStarted, MikrotikUpdateCancelled,
-        MikrotikCommandStarted, MikrotikCommandCancelled, MikrotikCommandRedacted, WireGuardNetworkChanged, WireGuardKeysRegenerated,
+        MikrotikCommandStarted, MikrotikCommandCancelled, MikrotikCommandRedacted, MikrotikSshKeyRotated, MikrotikSshKeyRetired,
+        WireGuardNetworkChanged, WireGuardKeysRegenerated,
         WireGuardTunnelCreated, WireGuardTunnelChanged, WireGuardTunnelDeleted, WireGuardTunnelDownloaded,
     ];
 }

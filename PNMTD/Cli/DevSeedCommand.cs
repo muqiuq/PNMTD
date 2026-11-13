@@ -15,7 +15,7 @@ namespace PNMTD.Cli;
 /// <summary>
 /// `pnmtd dev seed` (docs/webui-migration-plan.md §6.2): demo data for `SEED=1 ./start.sh` and the
 /// browser tests, at the dashboard's scale (§5.5): 50 hosts, 300 sensors, 90 days of events, and
-/// 6 sensors failing now in 3 hosts. Development only, and only into a database without hosts.
+/// 6 sensors failing now in 3 hosts. Five of the sensors are MikroTik routers (DevSeedMikrotik). Development only, and only into a database without hosts.
 /// <list type="bullet">
 /// <item>Stable while the stack runs: pings go to 127.0.0.1 (one to a TEST-NET address that never
 ///   answers, as a failure should), heartbeats are daily, DNS zones are due tomorrow.</item>
@@ -158,6 +158,11 @@ internal static class DevSeedCommand
             db.Hosts.Add(host);
             foreach (var sensorPlan in plan.Network ? NetworkSensors : ServerSensors)
             {
+                // The office gateways are MikroTik routers: their configuration backup is the router sensor's (DevSeedMikrotik).
+                if (sensorPlan.Name == "config backup" && plan.Name.StartsWith("office-", StringComparison.Ordinal))
+                {
+                    continue;
+                }
                 counter++;
                 var name = sensorPlan.Name;
                 // A few sensors that never reported (no data) and a few switched off.
@@ -187,6 +192,7 @@ internal static class DevSeedCommand
         SeedDns(db, hosts, now);
         SeedMail(db, hosts, sensors.Select(s => s.Sensor).ToList(), now);
         SeedUdp(db, sensors.Select(s => s.Sensor).ToList(), hosts, now);
+        counter += DevSeedMikrotik.Seed(db, hosts, now);
         foreach (var key in new[]
         {
             KeyValueKeyEnums.LAST_HEARTBEAT_TASK_RUN, KeyValueKeyEnums.LAST_NOTIFICATION_TASK_RUN, KeyValueKeyEnums.LAST_PING_TASK_RUN,

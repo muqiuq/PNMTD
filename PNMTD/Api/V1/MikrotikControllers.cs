@@ -132,6 +132,19 @@ public sealed class MikrotikController(MikrotikRouterService routers, MikrotikJo
     [HttpGet("status")]
     public async Task<ActionResult<MikrotikStatus>> Status(CancellationToken ct) => await routers.StatusAsync(ct);
 
+    /// <summary>PNMTD's SSH keys, and the routers that may still need an older one (§4.2).</summary>
+    [HttpGet("ssh-keys")]
+    public async Task<ActionResult<MikrotikSshKeyStatus>> SshKeys(CancellationToken ct) => await routers.SshKeysAsync(ct);
+
+    /// <summary>A new key pair for join scripts; the older keys stay offered until retired. Audit-logged.</summary>
+    [HttpPost("ssh-keys/rotate")]
+    public async Task<ActionResult<MikrotikSshKeyStatus>> RotateSshKey(CancellationToken ct) => await routers.RotateSshKeyAsync(ct);
+
+    /// <summary>Stops offering the older keys; refused while routers may need them, unless forced. Audit-logged.</summary>
+    [HttpPost("ssh-keys/retire")]
+    public async Task<ActionResult<MikrotikSshKeyStatus>> RetireSshKeys([FromQuery] bool force, CancellationToken ct) =>
+        await routers.RetireSshKeysAsync(force, ct);
+
     [HttpGet("routers")]
     public async Task<ActionResult<Paged<MikrotikFleetItem>>> Routers([FromQuery] MikrotikFleetQuery query, CancellationToken ct) =>
         await routers.FleetAsync(query, ct);

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Revision 3, in implementation**: M0 to M6 are built (§13.1). Details still marked *(M0)* belong to later phases and are verified there on a real RouterOS. The other RouterOS facts were checked against the manual and the per-version changelogs (§4.1) |
+| Status | **Revision 3, in implementation**: M0 to M7 are built (§13.1). Details still marked *(M0)* belong to later phases and are verified there on a real RouterOS. The other RouterOS facts were checked against the manual and the per-version changelogs (§4.1) |
 | Date | 2026-11-12 |
 | Revision | 3: **remote commands** (§8): a command or script, run on one router or several, as the read-only `pnmt` user, or as the router's admin with the password typed for that run. **The admin password is therefore needed for updates and for commands run as an admin** (decision 8, §16.1).<br><br>2: **the review decisions of revision 1 (§16.1)**:<ul><li>three connection modes: **WireGuard + SSH**, **WireGuard only**, and **Direct SSH**;</li><li>a router joins with **one script**, generated when it is added in the UI, that contains everything, **including the router's WireGuard private key**;</li><li>**the admin password is needed only for updates**;</li><li>**custom tunnels**: extra WireGuard peers with a downloadable configuration;</li><li>**the tunnel network is configured in the web UI**, on one admin page that also monitors it;</li><li>**the external address and port** of the WireGuard endpoint can also be set in environment variables, for a PNMTD behind NAT.</li></ul>Revision 1 had a copy-back of the router's public key and a second onboarding path that used the admin password |
 | Scope | PNMTD monitors and manages MikroTik routers running RouterOS 7.13 or later, and runs a WireGuard network for them.<ul><li>A router is added in the UI. PNMT then shows a **join script**, which the router's admin runs once on the router.</li><li>Through a **WireGuard tunnel that the router opens**, or directly over SSH, PNMTD logs in as a **read-only user, `pnmt`**.</li><li>It monitors the version, uptime and resources.</li><li>It **backs the configuration up** on a schedule and keeps each changed version with a diff.</li><li>It **installs RouterOS updates** when an Admin supplies the router's admin password for that one job.</li><li>It **runs commands** on routers: read-only as `pnmt`, or as the router's admin with the password typed for that run.</li></ul>**Custom tunnels** give people (or other devices) a WireGuard configuration of their own, for management access to the routers through PNMT |
@@ -1208,6 +1208,37 @@ Effort is a rough estimate for one developer. Each phase ends green in `./run-te
 - **Also fixed:** jobs of a batch got creation times 100 ns apart, which PostgreSQL's microseconds collapse, so a batch could run out of order; they are 1 µs apart now.
 - **Tests** against the simulated router, which now unwraps `:parse`: a print as `pnmt`, a change refused by the router, `:error`, a failed script with exit status 0; an admin run with the diff, the group in the log, 243 without the text, the audit entry and the marker password nowhere; a batch grouped by output and an admin batch stopping at its canary; a timeout with its partial output; the output limit; cancelling a running command; the rights of Users and Viewers; redaction (the secret then nowhere in the database); the refusal during an update. `CommandOutput` and the editor's hints have unit tests.
 - **Lab, on real RouterOS** (7.13 over Direct SSH, two 7.25.1 over WireGuard + SSH): `/ip address print` as `pnmt` on all three; `/ip address add` as `pnmt` refused with "not enough permissions (9)"; as the admin it succeeded with a diff of +1 line and 243 naming who ran it; a wrong password refused before any job; an admin batch over the three stopped after the first router's error; `:put first; :delay 30s` with a 5 second timeout kept "first"; a cancelled `monitor-traffic`; `:execute {/system reboot}` ended at once with exit status 0, and the router rebooted after it (241); the CLI as `pnmt` and as the admin. The lab password was in neither a `pg_dump` nor the app's log. Error lines recorded: "bad command name nosuch (line 1 column 2)", "expected end of command (line 2 column 19)", "input does not match any value of interface (/ip/address/add (interface); line 1)"; `:error "boom"` gives "boom (:error; line 1)" on 7.25.1 and "boom" on 7.13.
+
+**M7 as built (hardening and release):**
+
+- **SSH key rotation** (§4.2): `GET /api/v1/mikrotik/ssh-keys`, `POST …/ssh-keys/rotate` and `POST …/ssh-keys/retire[?force=true]` (Admin, audit events `MikrotikSshKeyRotated` and `MikrotikSshKeyRetired`).
+  - A rotation creates a new pair. **Join scripts now install the newest key only**, so a script pasted after a rotation removes the router's old key; until M7 they installed every key in use.
+  - PNMTD offers every key not yet retired, so routers keep working until their new script is pasted.
+  - The list of routers that may still need an older key comes from each poll's key owners. Retiring is refused while that list is not empty, unless forced.
+  - The admin page's Overview shows the keys, *Rotate…*, the waiting routers and *Retire older keys…*.
+- **Re-addressing after a prefix change** was built in M3 (§13.1, M3), so nothing was added.
+- **`pnmtd dev seed`:** the five office gateways are MikroTik routers in Direct SSH mode, replacing their "config backup" heartbeats, so the seed keeps 300 sensors. Each router has:
+  - a reading parsed by `RouterPoll.Parse`;
+  - backup versions with real diffs, and events;
+  - an update with its log (geneva, 7.24.2 → 7.25.1, with a binary backup) for one router, and an update available for another (lugano);
+  - a `pnmt` batch over all five; a refused change; an admin change with its diff and 243.
+
+  They are polled daily, so the demo stays as seeded. The WireGuard modes are not seeded: the seed has no key ring.
+- **Playwright** (`e2e/mikrotik.spec.ts`, on the seed):
+  - a router's status strip, Setup with the join script, a backup diff, a command with its output and change, and an update's log;
+  - the admin page's rotation and retirement, the *Behind on updates* filter, and a batch grouped by output;
+  - a Viewer without Commands or the script;
+  - a new router through the form.
+- **Load** (`MikrotikLoadTests`, opt-in `PNMTD_PERF=1`), against §14's targets:
+  - 500 routers at a 5-minute interval, behind a connector with 150 ms to connect and 250 ms a command, through the real poller with 8 sessions;
+  - the first round, with every first export, took 42 s, and a steady round 26 s; at most 8 sessions were open;
+  - a steady round added no event rows and no backups.
+  - The gateway's files for 1,000 peers are built in milliseconds. In the gateway container, `wg syncconf` took 111 ms for 1,000 new peers and 20 ms when nothing changed, and `nft -f` 17–21 ms for 50 tunnels that each reach 200 routers.
+- **The password never persists:** the command tests now also capture every log line (PNMTD and ASP.NET Core at Trace) and find no marker password in them.
+- **Fixed:** `start.sh` and `stop.sh` named the gateway and Vite containers `pnmtd-wg` and `pnmtd-web` whatever the stack's `NAME`. So the e2e stack removed the debugging stack's gateway. Both names now derive from `NAME`.
+- **Job names** are "host/router" (as `office-bern-gw/router`): routers are often all named "router", one per host.
+- **Docs:** the README (features, a section, the seed), `deploy/README.md` (updates and commands, the password, `pnmtd mikrotik run`), `deploy/UPGRADING-1.0.md` (new and off until used), and the release notes in [docs/release-notes-mikrotik.md](release-notes-mikrotik.md).
+- **Not done:** §14's OpenSSH container test. The opt-in CHR lab tests (`PNMTD_CHR_LAB`) cover real SSH, key login, host key pinning and the SOCKS5 path against RouterOS itself.
 
 ---
 

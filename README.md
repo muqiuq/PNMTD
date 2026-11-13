@@ -18,6 +18,7 @@ A monitoring application to keep an eye on hosts, e-mails and DNS zones. Useful 
   - several values in one JSON report;
   - timespan conditions such as "one success daily at 8".
 - **IoT nodes over UDP** (PNMT-UDP, port 5028/udp): a signed heartbeat in 9 bytes, signatures from a static token to HMAC (SHA-256, SHA-1, MD5) and AES-CMAC, AES-CCM encryption, commands delivered with the node's next packet, firmware updates from an uploaded `.bin`, and the protocol documented with live examples in the UI.
+- **MikroTik routers** (RouterOS 7.13 or later): status and events from a read-only user that one pasted script creates, configuration backups with diffs, updates, and remote commands, over SSH or through PNMT's own WireGuard tunnel for routers behind NAT. The router admin's password is typed only for an update or a command run as the admin, and never stored. Custom WireGuard tunnels give technicians WinBox and SSH to the routers.
 - **E-mail input:** reports from other tools (Synology HyperBackup, Veeam, Zabbix, …) become sensor events, matched by sender, subject and body.
 - **DNS zone monitoring:** a zone file is the reference, and every record is compared with what the resolvers answer.
 - **Notifications** by e-mail, Pushover or webhook: always, on a change, on failures, or on failures and the way back to OK.
@@ -71,6 +72,8 @@ docker compose exec pnmtd pnmtd udp node --server 127.0.0.1:5028 --id 1 --key <t
 echo 41 01 00 01 00 01 <token> | xxd -r -p | nc -u -w1 pnmt.example.com 5028   # a TOKEN32 heartbeat, no crypto
 ```
 
+A MikroTik router is a sensor of type *MikroTik router*. Its *Setup* tab shows a join script, which the router's admin pastes into the terminal once; PNMT then logs in as `pnmt`, which may read but not change anything. Routers behind NAT dial PNMT through WireGuard (`./init.sh --wireguard`). Operation, the gateway and its port: [deploy/README.md](deploy/README.md#mikrotik-routers-and-wireguard); the design: [docs/mikrotik-plan.md](docs/mikrotik-plan.md).
+
 The UplinkCheck setting needs a remote endpoint. [examples/digitalocean_function.py](examples/digitalocean_function.py) is one, for a [DigitalOcean Function](https://www.digitalocean.com/products/functions).
 
 # 🛠 Development
@@ -80,7 +83,8 @@ The UplinkCheck setting needs a remote endpoint. [examples/digitalocean_function
 
 ```sh
 ./start.sh                  # build and run on http://localhost:7327/pnmt-admin/ (dev.env holds the admin password)
-SEED=1 ./start.sh           # …with demo data: 50 hosts, 300 sensors
+SEED=1 ./start.sh           # …with demo data: 50 hosts, 300 sensors, 5 of them MikroTik routers
+WIREGUARD=1 ./start.sh      # …with the WireGuard gateway; tools/chr-lab.sh runs MikroTik CHR routers to join
 WEB=dev ./start.sh          # …plus Vite with live reload on http://localhost:5173/pnmt-admin/
 ./run-tests.sh              # everything: .NET, web, the sensor contract, deploy/, the v0.12 upgrade, browser tests
 ./stop.sh                   # stop it all (--data also offers to delete the volumes)

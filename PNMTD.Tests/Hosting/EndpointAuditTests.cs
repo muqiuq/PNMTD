@@ -160,6 +160,9 @@ public sealed class EndpointAuditTests
         ["DELETE /api/v1/mikrotik/jobs/{id:guid}"] = Roles.Admin,
         ["GET /api/v1/mikrotik/status"] = Roles.Admin,
         ["GET /api/v1/mikrotik/routers"] = Roles.Admin,
+        ["GET /api/v1/mikrotik/ssh-keys"] = Roles.Admin,
+        ["POST /api/v1/mikrotik/ssh-keys/rotate"] = Roles.Admin,
+        ["POST /api/v1/mikrotik/ssh-keys/retire"] = Roles.Admin,
         // Remote commands (§8): as pnmt for Users; as an admin for Admins, checked in the service.
         ["POST /api/v1/mikrotik/commands"] = Roles.User,
         ["GET /api/v1/mikrotik/commands"] = Roles.User,

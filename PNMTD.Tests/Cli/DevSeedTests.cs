@@ -29,6 +29,13 @@ public sealed class DevSeedTests
         Assert.AreEqual(8, await db.UdpLastPackets.CountAsync());
         Assert.IsGreaterThanOrEqualTo(16, await db.UdpCommandLog.CountAsync());
         Assert.AreEqual(1, await db.UdpFirmware.CountAsync());
+        // MikroTik routers (docs/mikrotik-plan.md M7): the office gateways, with backups that differ, an update and commands.
+        Assert.AreEqual(5, await db.MikrotikRouters.CountAsync());
+        Assert.IsTrue(await db.MikrotikRouters.AllAsync(r => r.Reading != null && r.SetupState == Models.Enums.MikrotikSetupState.Ready));
+        Assert.IsGreaterThanOrEqualTo(11, await db.MikrotikBackups.CountAsync());
+        Assert.IsTrue(await db.MikrotikBackups.AnyAsync(b => b.LinesAdded == 1 && b.LinesRemoved == 1), "the admin command's change");
+        Assert.AreEqual(1, await db.MikrotikJobs.CountAsync(j => j.Kind == Models.Enums.MikrotikJobKind.Update));
+        Assert.AreEqual(7, await db.MikrotikJobs.CountAsync(j => j.Kind == Models.Enums.MikrotikJobKind.Command));
         foreach (var packet in await db.UdpLastPackets.ToListAsync())
         {
             Assert.IsTrue(Lib.Udp.PacketCodec.TryParse(packet.Datagram, out _, out _));

@@ -163,6 +163,14 @@ public sealed record MikrotikStatus(
 
 public sealed record MikrotikSshPublicKey(string PublicKey, string Comment, string Fingerprint, DateTime CreatedAt, DateTime? RetiredAt);
 
+/// <summary>
+/// PNMTD's SSH keys, newest first (§4.2), the comment of the current one, and the routers that may still need
+/// an older key: retiring the older keys would cut them off until their new join script is pasted.
+/// </summary>
+public sealed record MikrotikSshKeyStatus(IReadOnlyList<MikrotikSshPublicKey> Keys, string CurrentComment, IReadOnlyList<MikrotikKeyWaiting> Waiting);
+
+public sealed record MikrotikKeyWaiting(Guid SensorId, string Name, string Reason);
+
 public sealed record MikrotikChannelVersion(string Channel, string Version, DateTime? ReleasedAt);
 
 public sealed record MikrotikCount(string Key, int Count);

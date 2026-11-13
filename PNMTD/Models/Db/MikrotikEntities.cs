@@ -173,7 +173,10 @@ public class MikrotikSshKeyEntity
 
     public Guid? CreatedBy { get; set; }
 
-    /// <summary>Set when a newer key replaced it; it is still offered until no router needs it.</summary>
+    /// <summary>
+    /// Set when an Admin retired it after a rotation: no longer offered. Until then an older key is offered next to
+    /// the newest, so routers keep working until their new join script is pasted.
+    /// </summary>
     public DateTime? RetiredAt { get; set; }
 }
 

@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
 using PNMTD.Lib.Mikrotik;
@@ -28,6 +29,9 @@ public sealed class MikrotikCommandTests
     private static Guid hostId;
     private static int next = 10;
 
+    /// <summary>Every log line of the app, down to Trace for PNMTD and ASP.NET Core (§14: the password never in a log).</summary>
+    private static readonly CapturedLogs logs = new();
+
     [ClassInitialize]
     public static async Task Start(TestContext _)
     {
@@ -36,7 +40,13 @@ public sealed class MikrotikCommandTests
         {
             ["Mikrotik:AllowPasswordsOverHttp"] = "true",
             ["Mikrotik:Commands:MaxStoredOutputBytes"] = "2048",
-        }, services: s => s.Replace(ServiceDescriptor.Singleton<IRouterConnector>(routers)));
+            ["Logging:LogLevel:PNMTD"] = "Trace",
+            ["Logging:LogLevel:Microsoft.AspNetCore"] = "Trace",
+        }, services: s =>
+        {
+            s.Replace(ServiceDescriptor.Singleton<IRouterConnector>(routers));
+            s.AddSingleton<ILoggerProvider>(logs);
+        });
         admin = app.Client(Roles.Admin);
         user = app.Client(Roles.User);
         var host = await (await admin.PostJsonAsync("/api/v1/hosts", new HostRequest { Name = $"command-tests-{Guid.NewGuid():N}" })).ReadAsync<HostDetail>();
@@ -151,6 +161,8 @@ public sealed class MikrotikCommandTests
         Assert.IsFalse(events.Any(e => e.Message.Contains("192.0.2.1", StringComparison.Ordinal)), "events never carry the text: Viewers see them");
         Assert.IsTrue(await db.AuthLog.AnyAsync(a => a.EventType == AuthEvents.MikrotikCommandStarted && a.Detail!.Contains(created.BatchId.ToString())));
         Assert.AreEqual(0, await CountMarkerAsync(app, MikrotikJobTests.AdminPassword), "the admin password must never be stored");
+        Assert.IsGreaterThan(0, logs.Count, "the capture works");
+        Assert.IsFalse(logs.Contains(MikrotikJobTests.AdminPassword), "nor logged");
     }
 
     [TestMethod]
@@ -292,5 +304,31 @@ public sealed class MikrotikCommandTests
             await db.MikrotikJobs.Where(j => j.SensorId == id && j.Kind == MikrotikJobKind.Update).ExecuteUpdateAsync(j => j.SetProperty(x => x.State, MikrotikJobState.Failed));
         }
         Assert.AreEqual(0, router.Scripts.Count);
+    }
+}
+
+/// <summary>A logger provider that keeps every formatted message and exception text.</summary>
+internal sealed class CapturedLogs : ILoggerProvider
+{
+    private readonly System.Collections.Concurrent.ConcurrentQueue<string> lines = new();
+
+    public int Count => lines.Count;
+
+    public bool Contains(string text) => lines.Any(l => l.Contains(text, StringComparison.Ordinal));
+
+    public ILogger CreateLogger(string categoryName) => new Logger(this, categoryName);
+
+    public void Dispose()
+    {
+    }
+
+    private sealed class Logger(CapturedLogs owner, string category) : ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            owner.lines.Enqueue($"{category}: {formatter(state, exception)} {exception}");
     }
 }

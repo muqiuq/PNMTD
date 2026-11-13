@@ -244,6 +244,11 @@ public sealed class MikrotikJobTests
 
         public int LogBytes { get; set; } = 100;
 
+        /// <summary>For the key rotation: the owner (comment) of pnmt's key on the router, and the keys PNMTD offered last.</summary>
+        public string? KeyOwner { get; set; }
+
+        public int OfferedKeys { get; set; }
+
         /// <summary>The scripts run through <c>:parse</c> (§8.2), unwrapped.</summary>
         public List<string> Scripts { get; } = [];
 
@@ -338,6 +343,10 @@ public sealed class MikrotikJobTests
                 json["version"] = "v" + Version;
                 json["resource"]!["version"] = Version;
                 json["resource"]!["uptime"] = Uptime;
+                if (KeyOwner is not null)
+                {
+                    json["keys"] = new JsonArray(new JsonObject { ["info"] = KeyOwner, ["user"] = "pnmt", ["key-type"] = "ed25519" });
+                }
                 return Ok(json.ToJsonString());
             }
             if (command.StartsWith("{ :local g [/user/get", StringComparison.Ordinal))
@@ -393,6 +402,10 @@ public sealed class MikrotikJobTests
                 throw new RouterSessionException(RouterFailureKind.HostKeyChanged, "Host key changed", router.HostKey);
             }
             var admin = target.Credentials.Password is not null;
+            if (!admin)
+            {
+                router.OfferedKeys = target.Credentials.PrivateKeysPem.Count;
+            }
             if (admin && (target.Username != "admin" || target.Credentials.Password != router.AdminPassword))
             {
                 throw new RouterSessionException(RouterFailureKind.AuthenticationFailed, "SSH: login refused");

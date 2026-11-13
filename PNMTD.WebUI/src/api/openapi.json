@@ -3055,6 +3055,102 @@
         }
       }
     },
+    "/api/v1/mikrotik/ssh-keys": {
+      "get": {
+        "tags": [
+          "Mikrotik"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikSshKeyStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikSshKeyStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikSshKeyStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mikrotik/ssh-keys/rotate": {
+      "post": {
+        "tags": [
+          "Mikrotik"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikSshKeyStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikSshKeyStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikSshKeyStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mikrotik/ssh-keys/retire": {
+      "post": {
+        "tags": [
+          "Mikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "force",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikSshKeyStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikSshKeyStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikSshKeyStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/mikrotik/routers": {
       "get": {
         "tags": [
@@ -8890,6 +8986,26 @@
           "ExportAfter"
         ]
       },
+      "MikrotikKeyWaiting": {
+        "required": [
+          "sensorId",
+          "name",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "sensorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
       "MikrotikMode": {
         "enum": [
           "WireGuardSsh",
@@ -9329,6 +9445,31 @@
           "Ready",
           "NeedsAttention"
         ]
+      },
+      "MikrotikSshKeyStatus": {
+        "required": [
+          "keys",
+          "currentComment",
+          "waiting"
+        ],
+        "type": "object",
+        "properties": {
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikSshPublicKey"
+            }
+          },
+          "currentComment": {
+            "type": "string"
+          },
+          "waiting": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikKeyWaiting"
+            }
+          }
+        }
       },
       "MikrotikSshPublicKey": {
         "required": [

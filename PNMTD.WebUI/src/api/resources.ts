@@ -180,6 +180,10 @@ export const api = {
       call(client.DELETE('/api/v1/sensors/{id}/mikrotik/backups/{backupId}', { params: { path: { id, backupId } } })),
     // --- the admin page: Admin ------------------------------------------------------------------
     status: () => call(client.GET('/api/v1/mikrotik/status')),
+    sshKeys: () => call(client.GET('/api/v1/mikrotik/ssh-keys')),
+    rotateSshKey: () => call(client.POST('/api/v1/mikrotik/ssh-keys/rotate')),
+    retireSshKeys: (force: boolean) =>
+      call(client.POST('/api/v1/mikrotik/ssh-keys/retire', { params: { query: { force } } })),
     routers: (
       query: ListQuery & {
         mode?: S['MikrotikMode']

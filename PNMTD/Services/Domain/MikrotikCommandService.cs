@@ -68,7 +68,7 @@ public sealed class MikrotikCommandService(
         v.ThrowIfInvalid();
 
         var ids = request.SensorIds.Distinct().ToList();
-        var routers = (await db.MikrotikRouters.Include(r => r.Sensor).Where(r => ids.Contains(r.SensorId)).ToListAsync(ct))
+        var routers = (await db.MikrotikRouters.Include(r => r.Sensor).ThenInclude(s => s.Parent).Where(r => ids.Contains(r.SensorId)).ToListAsync(ct))
             .OrderBy(r => ids.IndexOf(r.SensorId)).ToList();
         var updating = await db.MikrotikJobs
             .Where(j => j.Kind == MikrotikJobKind.Update && j.SensorId != null && ids.Contains(j.SensorId.Value)
@@ -105,7 +105,7 @@ public sealed class MikrotikCommandService(
         var jobOptions = JsonSerializer.Serialize(new CommandJobOptions(request.BackupBeforeAndAfter ?? asAdmin, request.OneAtATime ?? asAdmin), VersionCatalog.Json);
         var created = accepted.Select((a, i) => new MikrotikJobEntity
         {
-            Id = Guid.NewGuid(), BatchId = batchId, Kind = MikrotikJobKind.Command, SensorId = a.Router.SensorId, RouterName = a.Router.Sensor.Name,
+            Id = Guid.NewGuid(), BatchId = batchId, Kind = MikrotikJobKind.Command, SensorId = a.Router.SensorId, RouterName = MikrotikJobService.DisplayName(a.Router),
             State = claim ? MikrotikJobState.Running : MikrotikJobState.Queued, StartedAt = claim ? now : null, Step = MikrotikJobStep.Check,
             RequestedBy = userId, RequestedByName = userName ?? "cli", AdminUsername = asAdmin ? username : null, CreatedAt = now.AddMicroseconds(i),
             Command = text, RunAs = runAs, TimeoutSeconds = timeout, Options = jobOptions,

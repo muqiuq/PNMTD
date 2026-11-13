@@ -15,7 +15,8 @@ public sealed record MikrotikInstallation(string Tag, string Instance, IReadOnly
     /// <summary>The comment on everything a join script creates (§4.3).</summary>
     public string Comment => $"pnmt:{Tag}";
 
-    public IReadOnlyList<string> PublicKeys => Keys.Select(k => k.PublicKey).ToList();
+    /// <summary>The key join scripts install: the newest. The older ones are only offered until they are retired.</summary>
+    public MikrotikSshKeyEntity Current => Keys[0];
 }
 
 /// <summary>
@@ -87,6 +88,50 @@ public sealed partial class MikrotikKeyStore(IDbContextFactory<PnmtdDbContext> d
             }
         }
         return cachedPrivateKeys = list;
+    }
+
+    /// <summary>
+    /// A new key pair (§4.2): join scripts carry only it from now on. PNMTD still offers the older keys, because
+    /// pnmt cannot add a key for itself: each router gets the new one with its script, then the old are retired.
+    /// </summary>
+    public async Task<MikrotikSshKeyEntity> RotateAsync(Guid? createdBy, CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            await using var db = await dbs.CreateDbContextAsync(ct);
+            var key = NewKey(db, createdBy);
+            await db.SaveChangesAsync(ct);
+            Invalidate();
+            return key;
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    /// <summary>Stops offering every key but the newest. Returns how many were retired.</summary>
+    public async Task<int> RetireOlderAsync(CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            await using var db = await dbs.CreateDbContextAsync(ct);
+            var active = await db.MikrotikSshKeys.Where(k => k.RetiredAt == null).OrderByDescending(k => k.CreatedAt).ToListAsync(ct);
+            var now = Clock.UtcNow;
+            foreach (var key in active.Skip(1))
+            {
+                key.RetiredAt = now;
+            }
+            await db.SaveChangesAsync(ct);
+            Invalidate();
+            return Math.Max(0, active.Count - 1);
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     public void Invalidate()

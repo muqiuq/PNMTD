@@ -335,8 +335,8 @@ public sealed class MikrotikRouterService(
         {
             list.Add(r.Diagnostics ? "Diagnostics are on, but the group pnmt-read lacks the policy test." : "The group pnmt-read still has the policy test.");
         }
-        var current = installation.Keys.FirstOrDefault();
-        if (current is not null && reading.SshKeyOwners.Count > 0 && !reading.SshKeyOwners.Contains(current.Comment))
+        var current = installation.Current;
+        if (reading.SshKeyOwners.Count > 0 && !reading.SshKeyOwners.Contains(current.Comment))
         {
             list.Add("The router does not have PNMTD's current SSH key.");
         }
@@ -402,7 +402,8 @@ public sealed class MikrotikRouterService(
             Tag = installation.Comment,
             Mode = router.Mode,
             GeneratedAt = now,
-            SshPublicKeys = installation.PublicKeys,
+            // The newest key only: a script pasted after a rotation removes the router's old key (§4.2).
+            SshPublicKeys = [installation.Current.PublicKey],
             Tunnel = tunnel,
             // Through the tunnel PNMTD's connections come from the server address only (§4.2).
             UserAddress = tunnel is not null ? $"{tunnel.ServerAddress}/32" : SourceNetwork(router.PnmtSourceAddress),
@@ -552,6 +553,67 @@ public sealed class MikrotikRouterService(
                 .OrderByDescending(g => RouterOsVersion.TryParse(g.Key, out var v) ? v : null).Select(g => new MikrotikCount(g.Key, g.Count())).ToList(),
             routers.Count(r => r.Channel is { } ch && latest.TryGetValue(ch, out var l) && UpdateAvailable(r.Version, l.Version)),
             routers.Count(r => Differences(r, Reading(r), installation).Count > 0));
+    }
+
+    // --- PNMTD's SSH key (§4.2) ---------------------------------------------------------------------
+
+    /// <summary>The keys, newest first, and the routers that would be cut off if the older keys were retired now.</summary>
+    public async Task<MikrotikSshKeyStatus> SshKeysAsync(CancellationToken ct)
+    {
+        var installation = await keys.GetAsync(ct);
+        var all = await db.MikrotikSshKeys.AsNoTracking().OrderByDescending(k => k.CreatedAt).ToListAsync(ct);
+        var waiting = new List<MikrotikKeyWaiting>();
+        if (installation.Keys.Count > 1)
+        {
+            var current = installation.Current.Comment;
+            var routers = await db.MikrotikRouters.AsNoTracking().Include(r => r.Sensor)
+                .Where(r => r.Mode != MikrotikMode.WireGuardOnly).ToListAsync(ct);
+            foreach (var r in routers.OrderBy(r => r.Sensor.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                var reading = Reading(r);
+                if (reading is null)
+                {
+                    waiting.Add(new MikrotikKeyWaiting(r.SensorId, r.Sensor.Name, "PNMTD has not read its keys yet."));
+                }
+                else if (!reading.SshKeyOwners.Contains(current))
+                {
+                    waiting.Add(new MikrotikKeyWaiting(r.SensorId, r.Sensor.Name, "It accepts only an older key: paste its new join script."));
+                }
+            }
+        }
+        return new MikrotikSshKeyStatus(all.Select(k => new MikrotikSshPublicKey(k.PublicKey, k.Comment, SshKeys.Fingerprint(k.PublicKey),
+            Instants.Utc(k.CreatedAt), UdpViews.NullableUtc(k.RetiredAt))).ToList(), installation.Current.Comment, waiting);
+    }
+
+    /// <summary>A new key pair; the older keys stay offered until they are retired. Audit-logged.</summary>
+    public async Task<MikrotikSshKeyStatus> RotateSshKeyAsync(CancellationToken ct)
+    {
+        var key = await keys.RotateAsync(UdpViews.User(accessor).Id, ct);
+        UdpViews.Audit(db, accessor, AuthEvents.MikrotikSshKeyRotated, $"new SSH key {SshKeys.Fingerprint(key.PublicKey)} ({key.Comment})");
+        await db.SaveChangesAsync(ct);
+        return await SshKeysAsync(ct);
+    }
+
+    /// <summary>
+    /// Stops offering the older keys. Refused while a router accepts only an older one, unless
+    /// <paramref name="force"/>: such a router then fails with 441 until its new script is pasted. Audit-logged.
+    /// </summary>
+    public async Task<MikrotikSshKeyStatus> RetireSshKeysAsync(bool force, CancellationToken ct)
+    {
+        var status = await SshKeysAsync(ct);
+        if (status.Waiting.Count > 0 && !force)
+        {
+            throw ApiException.Conflict("routers_waiting",
+                $"{status.Waiting.Count} router(s) may still need an older key: {string.Join(", ", status.Waiting.Take(10).Select(w => w.Name))}.");
+        }
+        var retired = await keys.RetireOlderAsync(ct);
+        if (retired > 0)
+        {
+            UdpViews.Audit(db, accessor, AuthEvents.MikrotikSshKeyRetired,
+                $"{retired} older SSH key(s) retired{(status.Waiting.Count > 0 ? $", {status.Waiting.Count} router(s) still waiting" : "")}");
+            await db.SaveChangesAsync(ct);
+        }
+        return await SshKeysAsync(ct);
     }
 
     // --- helpers ------------------------------------------------------------------------------------

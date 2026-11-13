@@ -55,7 +55,7 @@ public sealed class MikrotikJobService(
         v.ThrowIfInvalid();
 
         var ids = request.SensorIds.Distinct().ToList();
-        var routers = await db.MikrotikRouters.Include(r => r.Sensor).Where(r => ids.Contains(r.SensorId)).ToListAsync(ct);
+        var routers = await db.MikrotikRouters.Include(r => r.Sensor).ThenInclude(s => s.Parent).Where(r => ids.Contains(r.SensorId)).ToListAsync(ct);
         var settings = await db.MikrotikSettings.AsNoTracking().SingleOrDefaultAsync(s => s.Id == MikrotikSettingsEntity.SingletonId, ct);
         var latest = VersionCatalog.Read(settings?.LatestVersions);
         var needed = request.BinaryBackup ? UpdatePolicies.Concat(BackupPolicies).ToArray() : UpdatePolicies;
@@ -93,7 +93,7 @@ public sealed class MikrotikJobService(
         var jobOptions = JsonSerializer.Serialize(new UpdateJobOptions(request.BinaryBackup, request.Firmware, request.StopAtFirstFailure), VersionCatalog.Json);
         var jobs = accepted.Select((a, i) => new MikrotikJobEntity
         {
-            Id = Guid.NewGuid(), BatchId = batchId, Kind = MikrotikJobKind.Update, SensorId = a.Router.SensorId, RouterName = a.Router.Sensor.Name,
+            Id = Guid.NewGuid(), BatchId = batchId, Kind = MikrotikJobKind.Update, SensorId = a.Router.SensorId, RouterName = MikrotikJobService.DisplayName(a.Router),
             State = MikrotikJobState.Queued, Step = MikrotikJobStep.Check, RequestedBy = userId, RequestedByName = userName ?? "cli",
             AdminUsername = username, CreatedAt = now.AddMicroseconds(i), FromVersion = a.Router.Version, ToVersion = a.Target, Channel = a.Channel,
             Options = jobOptions,
@@ -233,6 +233,10 @@ public sealed class MikrotikJobService(
         }
         return new MikrotikChangelog(key, Changelogs[key]);
     }
+
+    /// <summary>A job's router as "host/sensor": routers are often all named "router", one per host.</summary>
+    public static string DisplayName(MikrotikRouterEntity router) =>
+        router.Sensor.Parent is { } host ? $"{host.Name}/{router.Sensor.Name}" : router.Sensor.Name;
 
     public static MikrotikJobItem Item(MikrotikJobEntity j) => new(j.Id, j.BatchId, j.Kind, j.SensorId, j.RouterName, j.State, j.Step, j.RequestedByName,
         j.AdminUsername, Instants.Utc(j.CreatedAt), UdpViews.NullableUtc(j.StartedAt), UdpViews.NullableUtc(j.FinishedAt), j.FromVersion, j.ToVersion,

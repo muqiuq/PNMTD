@@ -152,7 +152,7 @@ public sealed class MikrotikRouterTests
         var sensor = await CreateAsync("192.0.2.3");
         var script = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/join-script")).ReadAsync<MikrotikScript>();
         var installation = await app.Services.GetRequiredService<MikrotikKeyStore>().GetAsync(CancellationToken.None);
-        StringAssert.Contains(script.Script, installation.PublicKeys[0]);
+        StringAssert.Contains(script.Script, installation.Current.PublicKey);
         StringAssert.Contains(script.Script, $"comment=\"{installation.Comment}\"");
         StringAssert.Contains(script.Script, "address=192.0.2.10/32");
         Assert.AreEqual("pnmt-join.rsc", script.FileName);
