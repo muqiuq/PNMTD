@@ -106,7 +106,23 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
     public async Task<SensorDetail> UpdateAsync(Guid id, SensorRequest request, bool withSecrets, CancellationToken ct)
     {
         var sensor = await db.Sensors.SingleOrDefaultAsync(s => s.Id == id, ct) ?? throw ApiException.NotFound("Sensor");
-        if (sensor.Type == SensorType.DNS)
+        if (sensor.Type == SensorType.SYSTEM)
+        {
+            // PNMT owns its system sensors (docs/ai-operations-plan.md §4): a new name, host, notes, Enabled and Ignore only.
+            var name = request.Name?.Trim();
+            var v = new ApiValidator()
+                .Check(request.Type == SensorType.SYSTEM, "type", "A system sensor keeps its type.")
+                .Check(name is { Length: >= 1 and <= 200 }, "name", "The name must have 1 to 200 characters.")
+                .Check(request.Notes is null || request.Notes.Length <= UdpNodeService.MaxNotes, "notes", $"At most {UdpNodeService.MaxNotes} characters.");
+            v.Check(await db.Hosts.AnyAsync(h => h.Id == request.HostId, ct), "hostId", "No such host.");
+            v.ThrowIfInvalid();
+            sensor.Name = name!;
+            sensor.ParentId = request.HostId;
+            sensor.Enabled = request.Enabled;
+            sensor.Ignore = request.Ignore;
+            sensor.Notes = Text.Trimmed(request.Notes) is null ? null : request.Notes;
+        }
+        else if (sensor.Type == SensorType.DNS)
         {
             // DnsCheckTask owns DNS sensors and finds them by host and zone name.
             new ApiValidator()
@@ -151,9 +167,11 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
     /// <summary>The sensor, its ENCAPSULADED children, and their events and rule links.</summary>
     public async Task DeleteAsync(Guid id, CancellationToken ct)
     {
-        if (!await db.Sensors.AnyAsync(s => s.Id == id, ct))
+        var type = await db.Sensors.Where(s => s.Id == id).Select(s => (SensorType?)s.Type).SingleOrDefaultAsync(ct)
+            ?? throw ApiException.NotFound("Sensor");
+        if (type == SensorType.SYSTEM)
         {
-            throw ApiException.NotFound("Sensor");
+            throw ApiException.Conflict("system_sensor", "A system sensor cannot be deleted (PNMT would create it again): disable it instead.");
         }
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var ids = await db.Sensors.Where(s => s.Id == id || s.OlderSiblingId == id).Select(s => s.Id).ToListAsync(ct);
@@ -232,6 +250,7 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         v.Check(name is { Length: >= 1 and <= 200 }, "name", "The name must have 1 to 200 characters.");
         v.Check(Enum.IsDefined(request.Type), "type", "Unknown sensor type.");
         v.Check(request.Type != SensorType.DNS, "type", "DNS sensors are created by their DNS zone.");
+        v.Check(request.Type != SensorType.SYSTEM, "type", "System sensors are PNMT's own; it creates them.");
         v.Check(request.Interval is >= 0 and <= 31_536_000, "interval", "Between 0 and 31536000 seconds.");
         v.Check(request.GracePeriod is >= 0 and <= 31_536_000, "gracePeriod", "Between 0 and 31536000 seconds.");
         v.Check(request.TextId is null || request.TextId.Length <= 200, "textId", "At most 200 characters.");

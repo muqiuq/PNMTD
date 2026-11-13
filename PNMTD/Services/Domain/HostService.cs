@@ -1,3 +1,4 @@
+using PNMTD.Lib.Models.Enum;
 using Microsoft.EntityFrameworkCore;
 using PNMTD.Api;
 using PNMTD.Api.V1.Contracts;
@@ -115,6 +116,10 @@ public sealed class HostService(PnmtdDbContext db, MonitoringReader reader)
         if (!await db.Hosts.AnyAsync(h => h.Id == id, ct))
         {
             throw ApiException.NotFound("Host");
+        }
+        if (await db.Sensors.AnyAsync(s => s.ParentId == id && s.Type == SensorType.SYSTEM, ct))
+        {
+            throw ApiException.Conflict("system_sensors", "This host holds PNMT's system sensors: move them to another host first.");
         }
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var sensorIds = await db.Sensors

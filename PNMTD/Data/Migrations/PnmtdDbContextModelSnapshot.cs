@@ -219,6 +219,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("boolean");
 
+                    b.Property<short>("Importance")
+                        .HasColumnType("smallint");
+
                     b.Property<string>("Location")
                         .HasColumnType("text");
 
@@ -927,6 +930,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<bool>("Ignore")
                         .HasColumnType("boolean");
 
+                    b.Property<short?>("Importance")
+                        .HasColumnType("smallint");
+
                     b.Property<int>("Interval")
                         .HasColumnType("integer");
 
@@ -974,6 +980,10 @@ namespace PNMTD.Data.Migrations
                     b.HasIndex("SecretReadToken");
 
                     b.HasIndex("SecretWriteToken");
+
+                    b.HasIndex("Type", "Parameters")
+                        .IsUnique()
+                        .HasFilter("\"Type\" = 90");
 
                     b.ToTable("sensors");
                 });
@@ -1428,6 +1438,45 @@ namespace PNMTD.Data.Migrations
                     b.HasIndex("SensorId", "State", "Created");
 
                     b.ToTable("udp_ota_jobs");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.UplinkCheckEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short>("Endpoint")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("EndpointHost")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("HttpStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("LatencyMs")
+                        .HasColumnType("integer");
+
+                    b.Property<short>("Outcome")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.ToTable("uplink_checks");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.UserEntity", b =>

@@ -223,6 +223,15 @@ export const api = {
     myTunnelConfig: (id: Id) => call(client.GET('/api/v1/account/tunnels/{id}/config', { params: { path: { id } } })),
   },
 
+  /** The uplink page (docs/ai-operations-plan.md §7.3): every role reads, an Admin checks now. */
+  uplink: {
+    get: () => call(client.GET('/api/v1/uplink')),
+    checks: (query: ListQuery & { failuresOnly?: boolean; endpoint?: number }) =>
+      call(client.GET('/api/v1/uplink/checks', { params: { query } })),
+    outages: (days = 7) => call(client.GET('/api/v1/uplink/outages', { params: { query: { days } } })),
+    check: () => call(client.POST('/api/v1/uplink/check')),
+  },
+
   /** Admin → Debug (docs/ai-operations-plan.md §8): test sends, 10 a minute. */
   debug: {
     status: () => call(client.GET('/api/v1/debug')),
@@ -315,6 +324,8 @@ export const keys = {
   udpNode: (id: Id) => ['udp', 'node', id] as const,
   /** MikroTik routers: the admin page's status and fleet (docs/mikrotik-plan.md §11.2). */
   mikrotik: ['mikrotik'] as const,
+  /** The uplink page and its checks (docs/ai-operations-plan.md §7.3). */
+  uplink: ['uplink'] as const,
 }
 
 /** The request of a resource as it is, with some fields changed: v1's PUT takes every writable field. */

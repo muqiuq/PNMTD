@@ -16,6 +16,9 @@
         LAST_UPLINK_CHECKED_LINK = 211,
         LAST_UPLINK_CHECK_SUCCESSFULL = 212,
         UPLINK_OK = 213,
+        // The uplink's state across restarts (docs/ai-operations-plan.md §7.2).
+        UPLINK_FAILURES_IN_A_ROW = 214,
+        UPLINK_DOWN_SINCE = 215,
 
         MAILBOX_DEFAULT_DELETE_ARCHIVED_MESSAGES_OLDER_THEN_DAYS = 230,
         MAILBOX_DEFAULT_MARGIN_IN_DAYS = 231,

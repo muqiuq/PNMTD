@@ -145,6 +145,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'Mail log', role: 'User' },
   },
   {
+    path: '/uplink',
+    name: 'uplink',
+    component: () => import('@/views/uplink/UplinkView.vue'),
+    meta: { title: 'Uplink' },
+  },
+  {
     path: '/admin/key-values',
     name: 'key-values',
     component: () => import('@/views/admin/KeyValuesView.vue'),

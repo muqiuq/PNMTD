@@ -257,14 +257,20 @@ const mikrotikItems = computed(() =>
     : [],
 )
 
-const more = computed(() => [
-  ...udpItems.value,
-  ...mikrotikItems.value,
-  ...(sensor.value?.integration
-    ? [{ label: 'New tokens…', icon: 'pi pi-key', command: () => (rotating.value = true) }]
-    : []),
-  { label: 'Delete sensor…', icon: 'pi pi-trash', command: remove },
-])
+/** PNMT's own conditions (docs/ai-operations-plan.md §4): renamed, moved or disabled, never deleted. */
+const isSystem = computed(() => sensor.value?.type === 'SYSTEM')
+const more = computed(() =>
+  isSystem.value
+    ? []
+    : [
+        ...udpItems.value,
+        ...mikrotikItems.value,
+        ...(sensor.value?.integration
+          ? [{ label: 'New tokens…', icon: 'pi pi-key', command: () => (rotating.value = true) }]
+          : []),
+        { label: 'Delete sensor…', icon: 'pi pi-trash', command: remove },
+      ],
+)
 </script>
 
 <template>
@@ -291,7 +297,7 @@ const more = computed(() => [
           <span v-if="sensor.state === 'Failing'" class="muted">since <SinceText :since="sensor.failingSince" /></span>
         </template>
         <template #actions>
-          <MoreMenu v-if="canWrite" :items="more" label="More actions for the sensor" />
+          <MoreMenu v-if="canWrite && more.length" :items="more" label="More actions for the sensor" />
         </template>
       </PageHeader>
 
@@ -404,8 +410,13 @@ const more = computed(() => [
               </template>
               <dt>Type</dt>
               <dd>
+                <span v-if="isSystem"
+                  >PNMT's own condition<template v-if="sensor.parameters === 'uplink'">
+                    · <RouterLink :to="{ name: 'uplink' }">the uplink page</RouterLink></template
+                  ></span
+                >
                 <InlineField
-                  v-if="sensor.type !== 'DNS'"
+                  v-else-if="sensor.type !== 'DNS'"
                   :value="sensor.type"
                   type="enum"
                   :options="typeOptions"
@@ -464,7 +475,11 @@ const more = computed(() => [
               />
             </div>
           </section>
-          <section v-else-if="sensor.integration && !isMikrotik" class="panel" aria-labelledby="integration-title">
+          <section
+            v-else-if="sensor.integration && !isMikrotik && !isSystem"
+            class="panel"
+            aria-labelledby="integration-title"
+          >
             <div id="integration-title" class="panel-header">Integration</div>
             <div class="panel-body">
               <SensorUrlPanel :integration="sensor.integration" :type="sensor.type" />

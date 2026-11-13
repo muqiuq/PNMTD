@@ -4937,6 +4937,163 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/uplink": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UplinkOverview"];
+                        "text/json": components["schemas"]["UplinkOverview"];
+                        "text/plain": components["schemas"]["UplinkOverview"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/uplink/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    failuresOnly?: boolean;
+                    endpoint?: number;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfUplinkCheckItem"];
+                        "text/json": components["schemas"]["PagedOfUplinkCheckItem"];
+                        "text/plain": components["schemas"]["PagedOfUplinkCheckItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/uplink/outages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    days?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UplinkOutage"][];
+                        "text/json": components["schemas"]["UplinkOutage"][];
+                        "text/plain": components["schemas"]["UplinkOutage"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/uplink/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UplinkCheckItem"];
+                        "text/json": components["schemas"]["UplinkCheckItem"];
+                        "text/plain": components["schemas"]["UplinkCheckItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/wireguard/status": {
         parameters: {
             query?: never;
@@ -6465,6 +6622,15 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
+        PagedOfUplinkCheckItem: {
+            items: components["schemas"]["UplinkCheckItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfUserItem: {
             items: components["schemas"]["UserItem"][];
             /** Format: int32 */
@@ -6649,7 +6815,7 @@ export interface components {
             childCount: number;
         };
         /** @enum {unknown} */
-        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN" | "UDP_NODE" | "MIKROTIK";
+        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN" | "UDP_NODE" | "MIKROTIK" | "SYSTEM";
         SensorTypeInfo: {
             type: components["schemas"]["SensorType"];
             description: string;
@@ -7252,6 +7418,92 @@ export interface components {
             displayName?: null | string;
             role?: null | string;
             isActive?: boolean;
+        };
+        UplinkBucket: {
+            /** Format: date-time */
+            start: string;
+            /** Format: int32 */
+            ok: number;
+            /** Format: int32 */
+            failed: number;
+            /** Format: int32 */
+            medianLatencyMs: null | number;
+        };
+        UplinkCheckItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            at: string;
+            /** Format: int16 */
+            endpoint: number;
+            host: string;
+            outcome: components["schemas"]["UplinkOutcome"];
+            /** Format: int32 */
+            httpStatus: null | number;
+            /** Format: int32 */
+            latencyMs: null | number;
+            error: null | string;
+        };
+        UplinkEndpointStats: {
+            /** Format: int16 */
+            number: number;
+            address: string;
+            lastOutcome: null | components["schemas"]["UplinkOutcome"];
+            /** Format: date-time */
+            lastAt: null | string;
+            /** Format: int32 */
+            lastLatencyMs: null | number;
+            /** Format: double */
+            successRate24h: null | number;
+            /** Format: double */
+            successRate7d: null | number;
+            /** Format: int32 */
+            medianLatency24h: null | number;
+            /** Format: int32 */
+            p95Latency24h: null | number;
+            /** Format: int32 */
+            checks24h: number;
+        };
+        UplinkOutage: {
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: null | string;
+            /** Format: int32 */
+            durationSeconds: number;
+            firstError: null | string;
+            endpoints: number[];
+        };
+        /** @enum {unknown} */
+        UplinkOutcome: "Ok" | "HttpStatus" | "Timeout" | "ConnectError" | "Dns" | "Tls" | "BadAnswer" | "BadSignature" | null;
+        UplinkOverview: {
+            configured: boolean;
+            up: boolean;
+            /** Format: int32 */
+            failuresInARow: number;
+            /** Format: int32 */
+            failuresForDown: number;
+            /** Format: date-time */
+            downSince: null | string;
+            /** Format: date-time */
+            lastCheck: null | string;
+            /** Format: date-time */
+            lastSuccess: null | string;
+            /** Format: date-time */
+            nextCheck: null | string;
+            /** Format: int32 */
+            intervalSeconds: number;
+            /** Format: int32 */
+            timeoutSeconds: number;
+            sharedKeySet: boolean;
+            endpoints: components["schemas"]["UplinkEndpointStats"][];
+            pausedTasks: string[];
+            /** Format: int32 */
+            recoveryWaitMinutes: number;
+            /** Format: uuid */
+            sensorId: null | string;
+            day: components["schemas"]["UplinkBucket"][];
+            week: components["schemas"]["UplinkBucket"][];
         };
         UplinkStatus: {
             configured: boolean;

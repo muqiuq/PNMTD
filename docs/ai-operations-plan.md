@@ -992,6 +992,33 @@ Where the implementation differs from the sections above, or settles what they l
   - **Cancelling stops being possible at *Install*,** because the API compares steps by number and `Install = 11` is above `Reboot`. A restart of PNMTD during *Install* is reported like one during the reboot.
 - **A0** runs alongside: the results are in the A0 entry.
 
+### A0: verification (2026-11-13)
+
+- **RouterOS's `install` over a non-interactive SSH session**, on a throwaway CHR 7.24.5 (x86_64, `CHR_ARCH=x86_64 tools/chr-lab.sh start a0 7.24.5`):
+  - **it asks nothing**, and prints the update's status as it changes (`calculating download size…`, `Downloaded 8% (1.6MiB)`, `Downloaded 62% (12.4MiB)`);
+  - **it returns when RouterOS reboots**, here after 4 s, with exit status 0, while the download was still printing;
+  - the router came back on 7.25.1 a minute later, its log saying `installed system-7.25.1` and `router rebooted by ssh-cmd:admin@…/upgrade`.
+  - So *Install* (§12.2) needs no confirmation, and the next command on the same session fails: that is the reboot.
+- **`check-for-updates` is asynchronous:** right after it, the status is `finding out latest version...`. The existing steps already read `latest-version` afterwards.
+- **The ARM64 CHR image without KVM** (macOS) did not reach its login prompt in time; the x86_64 one did. The lab routers already run x86_64.
+- **Not verified here:** everything that needs an OpenRouter key (the models' structured outputs, `usage`, zero data retention, Jev's exact JSON). That is checked when a key is configured, with *Test the AI* (A4) and the opt-in live test.
+
+### A2: system sensors and the uplink page (2026-11-13)
+
+- **The importance columns came forward from A3** (`hosts.Importance`, default Normal; `sensors.Importance`, nullable), into the migration `SystemSensorsAndUplinkChecks`, because the system sensors are created with an importance.
+- **The v0.12 importer** treats a target column with a default as fillable, so `hosts.Importance` doesn't stop an import.
+- **System sensors** (`SystemSensors`, a singleton):
+  - created at start by `SystemSensorStartup`, with the monitoring tasks (`BackgroundTasks:Enabled`), and in any case on their first event;
+  - **their host** is the one that already holds a system sensor, else a host named "PNMT", created when missing;
+  - **a PUT** changes only their name, host, notes, Enabled and Ignore;
+  - **deleting** a system sensor, or the host that holds one, answers 409;
+  - **the sensor page** shows them as "PNMT's own condition", without tokens, the type field or a delete action.
+- **The uplink** (`PNMTD/UplinkCheck/UplinkMonitor.cs`; `PNMTD.Uplink` would have clashed with a UDP type):
+  - **events:** a success writes 220 "Uplink OK." (collapsed by the dedupe), the third failure in a row writes 420 with the outcomes, and the next success writes 220 "Uplink up again after …";
+  - **without the settings**, the uplink counts as up and the persisted state is cleared, so monitoring never stays paused by a check that no longer runs (`/api/v1/system/uplink` says so too);
+  - **the latency line** is an inline SVG, without a chart library.
+- **Kept the endpoint `GET /api/v1/system/uplink`** for the dashboard and System health.
+
 ---
 
 ## Appendix: configuration and file changes

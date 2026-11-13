@@ -25,6 +25,7 @@ export const navigation: NavGroup[] = [
       { label: 'Mail inputs', icon: 'pi pi-envelope', to: '/mail-inputs', name: 'mail-inputs' },
       { label: 'Mail log', icon: 'pi pi-inbox', to: '/mail-log', name: 'mail-log', role: 'User' },
       { label: 'Notification rules', icon: 'pi pi-bell', to: '/notification-rules', name: 'notification-rules' },
+      { label: 'Uplink', icon: 'pi pi-cloud', to: '/uplink', name: 'uplink' },
     ],
   },
   {

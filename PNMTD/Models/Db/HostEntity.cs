@@ -20,6 +20,9 @@ namespace PNMTD.Models.Db
 
         public bool Enabled { get; set; }
 
+        /// <summary>Low, Normal or High (docs/ai-operations-plan.md §11.1); a sensor without its own takes this.</summary>
+        public Lib.Models.Enum.Importance Importance { get; set; } = Lib.Models.Enum.Importance.Normal;
+
         public virtual List<SensorEntity> Sensors { get; set; } = new List<SensorEntity>();
     }
 }

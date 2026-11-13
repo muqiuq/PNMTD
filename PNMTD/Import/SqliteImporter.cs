@@ -88,7 +88,8 @@ namespace PNMTD.Import
             ("dnszonelogentries", "dnszonelogentries"),
         ];
 
-        private sealed record Column(string Name, string PgType, bool Nullable);
+        /// <summary><c>HasDefault</c>: a column 1.x added with a default (hosts.Importance) needs no source column.</summary>
+        private sealed record Column(string Name, string PgType, bool Nullable, bool HasDefault = false);
 
         public ImportReport Import(SqliteImportOptions options)
         {
@@ -286,14 +287,14 @@ namespace PNMTD.Import
         private static List<Column> TargetColumns(NpgsqlConnection connection, NpgsqlTransaction transaction, string table)
         {
             using var command = new NpgsqlCommand(
-                "SELECT column_name, data_type, is_nullable = 'YES' FROM information_schema.columns " +
+                "SELECT column_name, data_type, is_nullable = 'YES', column_default IS NOT NULL FROM information_schema.columns " +
                 "WHERE table_schema = current_schema() AND table_name = @t ORDER BY ordinal_position", connection, transaction);
             command.Parameters.AddWithValue("t", table);
             using var reader = command.ExecuteReader();
             var columns = new List<Column>();
             while (reader.Read())
             {
-                columns.Add(new Column(reader.GetString(0), reader.GetString(1), reader.GetBoolean(2)));
+                columns.Add(new Column(reader.GetString(0), reader.GetString(1), reader.GetBoolean(2), reader.GetBoolean(3)));
             }
             if (columns.Count == 0)
             {
@@ -311,7 +312,7 @@ namespace PNMTD.Import
             {
                 throw new ImportException($"{sourceTable} has column(s) PostgreSQL does not: {string.Join(", ", missing)}.");
             }
-            var unfillable = target.Where(t => !t.Nullable && !sourceColumns.Contains(t.Name)).ToList();
+            var unfillable = target.Where(t => !t.Nullable && !t.HasDefault && !sourceColumns.Contains(t.Name)).ToList();
             if (unfillable.Count > 0)
             {
                 throw new ImportException($"{targetTable} requires column(s) the v0.12 database does not have: {string.Join(", ", unfillable.Select(c => c.Name))}.");

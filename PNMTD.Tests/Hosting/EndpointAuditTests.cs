@@ -194,6 +194,11 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/debug"] = Roles.Admin,
         ["POST /api/v1/debug/pushover"] = Roles.Admin,
         ["POST /api/v1/debug/mail"] = Roles.Admin,
+        // The uplink page (docs/ai-operations-plan.md §7.3).
+        ["GET /api/v1/uplink"] = Roles.Viewer,
+        ["GET /api/v1/uplink/checks"] = Roles.Viewer,
+        ["GET /api/v1/uplink/outages"] = Roles.Viewer,
+        ["POST /api/v1/uplink/check"] = Roles.Admin,
     };
 
     private sealed record EndpointInfo(string Key, string Method, string Pattern, RouteEndpoint Endpoint);

@@ -48,6 +48,9 @@ namespace PNMTD.Models.Db
         /// <summary>Free text for every sensor type, as on hosts (docs/udp-iot-plan.md §4.1). The sensor API never reads it.</summary>
         public string? Notes { get; set; }
 
+        /// <summary>Null: the host's (docs/ai-operations-plan.md §11.1).</summary>
+        public Lib.Models.Enum.Importance? Importance { get; set; }
+
         public virtual List<NotificationRuleSensorEntity> SubscribedByNotifications { get; set; } = new List<NotificationRuleSensorEntity>();
     }
 }

@@ -6360,6 +6360,189 @@
         }
       }
     },
+    "/api/v1/uplink": {
+      "get": {
+        "tags": [
+          "Uplink"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UplinkOverview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UplinkOverview"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UplinkOverview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/uplink/checks": {
+      "get": {
+        "tags": [
+          "Uplink"
+        ],
+        "parameters": [
+          {
+            "name": "failuresOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "endpoint",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int16"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfUplinkCheckItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfUplinkCheckItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfUplinkCheckItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/uplink/outages": {
+      "get": {
+        "tags": [
+          "Uplink"
+        ],
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 7
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UplinkOutage"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UplinkOutage"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UplinkOutage"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/uplink/check": {
+      "post": {
+        "tags": [
+          "Uplink"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UplinkCheckItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UplinkCheckItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UplinkCheckItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/wireguard/status": {
       "get": {
         "tags": [
@@ -11075,6 +11258,35 @@
           }
         }
       },
+      "PagedOfUplinkCheckItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UplinkCheckItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "PagedOfUserItem": {
         "required": [
           "items",
@@ -11818,7 +12030,8 @@
           "ONE_WITHIN_TIMESPAN",
           "ALL_WITHIN_TIMESPAN",
           "UDP_NODE",
-          "MIKROTIK"
+          "MIKROTIK",
+          "SYSTEM"
         ]
       },
       "SensorTypeInfo": {
@@ -14180,6 +14393,334 @@
           }
         }
       },
+      "UplinkBucket": {
+        "required": [
+          "start",
+          "ok",
+          "failed",
+          "medianLatencyMs"
+        ],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ok": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "medianLatencyMs": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "UplinkCheckItem": {
+        "required": [
+          "id",
+          "at",
+          "endpoint",
+          "host",
+          "outcome",
+          "httpStatus",
+          "latencyMs",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endpoint": {
+            "type": "integer",
+            "format": "int16"
+          },
+          "host": {
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/UplinkOutcome"
+          },
+          "httpStatus": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "latencyMs": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "UplinkEndpointStats": {
+        "required": [
+          "number",
+          "address",
+          "lastOutcome",
+          "lastAt",
+          "lastLatencyMs",
+          "successRate24h",
+          "successRate7d",
+          "medianLatency24h",
+          "p95Latency24h",
+          "checks24h"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "format": "int16"
+          },
+          "address": {
+            "type": "string"
+          },
+          "lastOutcome": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/UplinkOutcome"
+              }
+            ]
+          },
+          "lastAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastLatencyMs": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "successRate24h": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "successRate7d": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "medianLatency24h": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "p95Latency24h": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "checks24h": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "UplinkOutage": {
+        "required": [
+          "start",
+          "end",
+          "durationSeconds",
+          "firstError",
+          "endpoints"
+        ],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int16"
+            }
+          }
+        }
+      },
+      "UplinkOutcome": {
+        "enum": [
+          "Ok",
+          "HttpStatus",
+          "Timeout",
+          "ConnectError",
+          "Dns",
+          "Tls",
+          "BadAnswer",
+          "BadSignature",
+          null
+        ]
+      },
+      "UplinkOverview": {
+        "required": [
+          "configured",
+          "up",
+          "failuresInARow",
+          "failuresForDown",
+          "downSince",
+          "lastCheck",
+          "lastSuccess",
+          "nextCheck",
+          "intervalSeconds",
+          "timeoutSeconds",
+          "sharedKeySet",
+          "endpoints",
+          "pausedTasks",
+          "recoveryWaitMinutes",
+          "sensorId",
+          "day",
+          "week"
+        ],
+        "type": "object",
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "up": {
+            "type": "boolean"
+          },
+          "failuresInARow": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failuresForDown": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "downSince": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastCheck": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastSuccess": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "nextCheck": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "intervalSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "timeoutSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sharedKeySet": {
+            "type": "boolean"
+          },
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UplinkEndpointStats"
+            }
+          },
+          "pausedTasks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recoveryWaitMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "day": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UplinkBucket"
+            }
+          },
+          "week": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UplinkBucket"
+            }
+          }
+        }
+      },
       "UplinkStatus": {
         "required": [
           "configured",
@@ -14938,6 +15479,9 @@
     },
     {
       "name": "UdpProtocol"
+    },
+    {
+      "name": "Uplink"
     },
     {
       "name": "WireGuard"

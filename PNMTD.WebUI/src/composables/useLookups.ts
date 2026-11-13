@@ -55,7 +55,9 @@ export const typeLabel = (type: string) =>
       ? 'UDP node'
       : type === 'MIKROTIK'
         ? 'MikroTik router'
-        : humanize(type)
+        : type === 'SYSTEM'
+          ? 'PNMT system'
+          : humanize(type)
 
 /**
  * Types that report themselves and turn 460 after Interval + GracePeriod without a report, and MikroTik
@@ -81,6 +83,8 @@ export function typeIcon(type: string): string {
       return 'pi pi-sitemap'
     case 'MIKROTIK':
       return 'pi pi-server'
+    case 'SYSTEM':
+      return 'pi pi-cog'
     case 'ONE_WITHIN_TIMESPAN':
     case 'ALL_WITHIN_TIMESPAN':
       return 'pi pi-clock'

@@ -63,6 +63,9 @@ namespace PNMTD.Data
         public DbSet<WgPeerStatusEntity> WgPeerStatus { get; set; }
         public DbSet<WgPeerAccessEntity> WgPeerAccess { get; set; }
 
+        // The uplink's history (docs/ai-operations-plan.md §7.2).
+        public DbSet<UplinkCheckEntity> UplinkChecks { get; set; }
+
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
         }
@@ -187,6 +190,10 @@ namespace PNMTD.Data
                 e.HasIndex(b => new { b.SensorId, b.Number });
                 e.HasIndex(b => b.CreatedAt);
             });
+
+            // One system sensor per key (docs/ai-operations-plan.md §4).
+            modelBuilder.Entity<SensorEntity>().HasIndex(s => new { s.Type, s.Parameters }).IsUnique().HasFilter("\"Type\" = 90");
+            modelBuilder.Entity<UplinkCheckEntity>().HasIndex(c => c.At);
 
             base.OnModelCreating(modelBuilder);
         }

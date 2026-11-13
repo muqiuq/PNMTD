@@ -16,7 +16,9 @@ namespace PNMTD.Lib.Models.Enum
         /// <summary>A device reporting over PNMT-UDP (docs/udp-iot-plan.md §4.1), with heartbeat semantics.</summary>
         UDP_NODE = 70,
         /// <summary>A MikroTik router that PNMTD polls over SSH, or watches through its tunnel (docs/mikrotik-plan.md §9.1).</summary>
-        MIKROTIK = 80
+        MIKROTIK = 80,
+        /// <summary>One of PNMT's own conditions (docs/ai-operations-plan.md §4): the uplink, the AI, the RouterOS advisories. PNMT writes its events.</summary>
+        SYSTEM = 90
     }
 }
 

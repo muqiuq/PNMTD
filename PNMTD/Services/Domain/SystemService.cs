@@ -54,7 +54,7 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         var values = await KeyValuesAsync(ct);
         var configured = UplinkConfigured(configuration);
         // UPLINK_OK starts true: without the settings the task never checks, and the uplink counts as up.
-        var isUp = !values.TryGetValue(Key(KeyValueKeyEnums.UPLINK_OK), out var ok) || !bool.TryParse(ok, out var parsed) || parsed;
+        var isUp = !configured || !values.TryGetValue(Key(KeyValueKeyEnums.UPLINK_OK), out var ok) || !bool.TryParse(ok, out var parsed) || parsed;
         return new UplinkStatus(configured, isUp, Timestamp(values, KeyValueKeyEnums.LAST_UPLINK_CHECK),
             Timestamp(values, KeyValueKeyEnums.LAST_UPLINK_CHECK_SUCCESSFULL));
     }
@@ -103,6 +103,8 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.MIKROTIK_UPDATED, "MIKROTIK_UPDATED", true, "A MikroTik router runs another RouterOS version than at the last poll."),
         new(PNMTStatusCodes.MIKROTIK_CONFIG_CHANGED, "MIKROTIK_CONFIG_CHANGED", true, "A MikroTik router's configuration changed: a backup found a new version."),
         new(PNMTStatusCodes.MIKROTIK_UPDATE_AVAILABLE, "MIKROTIK_UPDATE_AVAILABLE", true, "A newer RouterOS version is available on the router's channel (once per version)."),
+        new(PNMTStatusCodes.SYSTEM_OK, "SYSTEM_OK", true, "A system sensor's condition is fine: the uplink answers, the AI is available, no critical RouterOS fix is pending."),
+        new(PNMTStatusCodes.AI_FINDING_INFO, "AI_FINDING_INFO", true, "The AI analysis found something worth knowing, but no problem."),
         new(PNMTStatusCodes.DNS_FAILED, "DNS_FAILED", false, "At least one record of the DNS zone differs from what the resolvers answer."),
         new(PNMTStatusCodes.HEARTBEAT_MISSING, "HEARTBEAT_MISSING", false, "No report within the interval and the grace period."),
         new(PNMTStatusCodes.PING_FAILED, "PING_FAILED", false, "The ping target did not answer."),
@@ -113,6 +115,14 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.MIKROTIK_ACCESS_DENIED, "MIKROTIK_ACCESS_DENIED", false, "PNMTD reached a MikroTik router but cannot use it: login refused, host key changed, a missing policy, or RouterOS below 7.13."),
         new(PNMTStatusCodes.MIKROTIK_BACKUP_FAILED, "MIKROTIK_BACKUP_FAILED", false, "The last two configuration backups of a MikroTik router failed."),
         new(PNMTStatusCodes.MIKROTIK_UPDATE_FAILED, "MIKROTIK_UPDATE_FAILED", false, "An update job of a MikroTik router failed; the message names the step and the reason."),
+        new(PNMTStatusCodes.UPLINK_DOWN, "UPLINK_DOWN", false, "PNMTD's uplink check failed three times in a row; monitoring that needs the uplink pauses."),
+        new(PNMTStatusCodes.AI_FAILING, "AI_FAILING", false, "AI requests keep failing (five retries a minute apart), or the key was refused."),
+        new(PNMTStatusCodes.ROUTEROS_SECURITY_UPDATE, "ROUTEROS_SECURITY_UPDATE", false, "A RouterOS release fixes a very bad issue, and at least one router is behind it."),
+        new(PNMTStatusCodes.AI_FINDING_CRITICAL, "AI_FINDING_CRITICAL", false, "The AI analysis found a critical problem, and the verification model confirmed it."),
+        new(PNMTStatusCodes.AI_FINDING_WARNING, "AI_FINDING_WARNING", false, "The AI analysis found a problem or pattern worth a look."),
+        new(PNMTStatusCodes.AI_BUDGET_80, "AI_BUDGET_80", false, "AI spending reached 80 % of the budget."),
+        new(PNMTStatusCodes.AI_BUDGET_90, "AI_BUDGET_90", false, "AI spending reached 90 % of the budget."),
+        new(PNMTStatusCodes.AI_BUDGET_REACHED, "AI_BUDGET_REACHED", false, "AI spending reached the budget: AI work waits until the next period."),
         new(PNMTStatusCodes.ERROR, "ERROR", false, "The default failure code. Any code above 399 counts as a failure."),
     ];
 
@@ -128,6 +138,7 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(SensorType.ALL_WITHIN_TIMESPAN, "Like ONE_WITHIN_TIMESPAN, but every report must have succeeded (281 or 481).", "An interval descriptor.", true, false),
         new(SensorType.DNS, "Created by a DNS zone with a host: 211 while its records match, 411 when not.", null, false, false),
         new(SensorType.UDP_NODE, "A device reporting over PNMT-UDP (port 5028/udp): 230 when alive, 231 after a restart, 232 for data; 460 after Interval + GracePeriod without a packet.", null, true, true),
+        new(SensorType.SYSTEM, "One of PNMT's own conditions, written by PNMT: the uplink (220, 420), the AI (220, 421), the AI budget (220, 425–427), the AI analysis (220, 221, 423, 424), the RouterOS advisories (220, 422).", null, false, false),
         new(SensorType.MIKROTIK, "A MikroTik router (RouterOS 7.13 or later) that PNMTD polls every Interval seconds over SSH, as the read-only user pnmt: 240 when it answers, 241 after a restart, 242 after an update, 244 when an update is available; 440 when unreachable for longer than the GracePeriod, 441 when access is refused.", null, true, true),
     ];
 

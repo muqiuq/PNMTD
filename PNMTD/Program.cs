@@ -83,6 +83,10 @@ public partial class Program
         });
         builder.Services.AddHttpClient();
         builder.Services.AddNotifications();
+        // PNMT's own conditions as sensors, and the uplink (docs/ai-operations-plan.md §4, §7).
+        builder.Services.AddSingleton<PNMTD.Services.Events.SystemSensors>();
+        builder.Services.AddHttpClient(PNMTD.UplinkCheck.UplinkMonitor.HttpClientName);
+        builder.Services.AddSingleton<PNMTD.UplinkCheck.UplinkMonitor>();
         builder.Services.AddUdpNodes(builder.Configuration);
         builder.Services.AddMikrotik(builder.Configuration);
         builder.Services.AddWireGuard(builder.Configuration);
@@ -99,6 +103,7 @@ public partial class Program
         // BackgroundTasks:Enabled=false: none of the monitoring tasks (the integration tests).
         if (!documentBuild && builder.Configuration.GetValue("BackgroundTasks:Enabled", true))
         {
+            builder.Services.AddHostedService<PNMTD.Services.Events.SystemSensorStartup>();
             builder.Services.AddHostedService<NotificationTask>();
             builder.Services.AddHostedService<HeartbeatCheckTask>();
             builder.Services.AddHostedService<PingCheckTask>();
