@@ -71,6 +71,10 @@ public sealed class MikrotikRouterService(
             throw new ApiException(StatusCodes.Status403Forbidden, ApiErrorCodes.ForbiddenRole,
                 "Only an Admin can change management access, secrets in exports or diagnostics.");
         }
+        if (request.EncryptBackups is { } encrypt && encrypt != (existing?.EncryptBackups ?? false) && !IsAdmin())
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, ApiErrorCodes.ForbiddenRole, "Only an Admin can change whether backups are encrypted.");
+        }
     }
 
     /// <summary>Creates the router of a new MIKROTIK sensor, or updates it (a missing request keeps an existing router as it is).</summary>
@@ -81,11 +85,18 @@ public sealed class MikrotikRouterService(
         {
             return;
         }
+        var defaults = await db.MikrotikSettings.AsNoTracking().SingleOrDefaultAsync(s => s.Id == MikrotikSettingsEntity.SingletonId, ct);
         if (request is null)
         {
             // A router created without settings starts with the installation's backup schedule (docs/mikrotik-backup-plan.md §2.2).
-            var defaults = await db.MikrotikSettings.AsNoTracking().SingleOrDefaultAsync(s => s.Id == MikrotikSettingsEntity.SingletonId, ct);
             request = new MikrotikRouterRequest { BackupIntervalHours = defaults is null ? 24 : defaults.DefaultBackupIntervalHours };
+        }
+        // Encryption (docs/mikrotik-backup-plan.md §3.3): left out, as it is, or for a new router the installation's default.
+        var hasKey = defaults?.BackupKeyId is not null;
+        var encrypt = request.EncryptBackups ?? (router is null ? hasKey && defaults!.DefaultEncryptBackups : router.EncryptBackups);
+        if (encrypt && !hasKey)
+        {
+            throw ApiException.Invalid("mikrotik.encryptBackups", "Set up the backup key first (Admin → MikroTik & WireGuard → Backups).");
         }
         var now = Clock.UtcNow;
         if (router is null)
@@ -106,6 +117,10 @@ public sealed class MikrotikRouterService(
             if (router.Diagnostics != request.Diagnostics)
             {
                 UdpViews.Audit(db, accessor, AuthEvents.MikrotikDiagnosticsChanged, $"router {sensor.Name}: diagnostics {(request.Diagnostics ? "on" : "off")}");
+            }
+            if (router.EncryptBackups != encrypt)
+            {
+                UdpViews.Audit(db, accessor, AuthEvents.MikrotikBackupEncryptionChanged, $"router {sensor.Name}: backups encrypted {(encrypt ? "on" : "off")}");
             }
         }
         var address = Text.Trimmed(request.Address);
@@ -133,6 +148,7 @@ public sealed class MikrotikRouterService(
         router.SshPort = request.SshPort;
         router.PnmtSourceAddress = request.Mode == MikrotikMode.DirectSsh ? source : null;
         router.BackupIntervalHours = request.BackupIntervalHours;
+        router.EncryptBackups = encrypt;
         router.ManagementAccess = request.ManagementAccess;
         router.IncludeSecrets = request.IncludeSecrets;
         router.Diagnostics = request.Diagnostics;
@@ -201,7 +217,7 @@ public sealed class MikrotikRouterService(
         {
             Id = b.Id, Number = b.Number, Kind = b.Kind, Trigger = b.Trigger, CreatedAt = b.CreatedAt, CreatedByName = b.CreatedByName,
             RouterOsVersion = b.RouterOsVersion, Size = b.Size, LineCount = b.LineCount, LinesAdded = b.LinesAdded, LinesRemoved = b.LinesRemoved,
-            IncludesSecrets = b.IncludesSecrets, Encrypted = b.Encrypted,
+            IncludesSecrets = b.IncludesSecrets, Encrypted = b.Encrypted, EncryptedWith = b.EncryptedWith,
         }).FirstOrDefaultAsync(ct);
         return Detail(router, installation, latest, wg) with
         {
@@ -210,6 +226,7 @@ public sealed class MikrotikRouterService(
             LastBackupError = router.LastBackupError,
             BackupCount = count,
             LatestBackup = newest is null ? null : MikrotikBackupService.Item(newest),
+            EncryptBackups = router.EncryptBackups,
             Tunnel = wg is { Peer: { } peer } ? new MikrotikTunnel(peer.Address, peer.PublicKey, Instants.Utc(peer.KeysCreatedAt),
                 wg.Status?.LatestHandshake is { } h && Clock.UtcNow - h <= TimeSpan.FromSeconds(wg.Settings.StaleHandshakeSeconds),
                 UdpViews.NullableUtc(wg.Status?.LatestHandshake), wg.Status?.Endpoint, wg.Status?.RxBytes ?? 0, wg.Status?.TxBytes ?? 0,
@@ -518,7 +535,8 @@ public sealed class MikrotikRouterService(
                 return new MikrotikFleetItem(r.SensorId, s.Info.Name, new Ref(s.Info.HostId, s.Info.HostName), s.Info.Enabled, r.Mode, r.SetupState,
                     s.State, s.LastCode, s.LastMessage, r.Address, r.Identity, r.Model ?? r.BoardName, r.SerialNumber, r.Version, r.Channel, latestVersion,
                     UpdateAvailable(r.Version, latestVersion), r.FirmwareCurrent, r.FirmwareUpgrade, UdpViews.NullableUtc(r.BootedAt),
-                    UdpViews.NullableUtc(r.LastSuccessAt), r.LastError, Differences(r, Reading(r), installation).Count > 0, r.BackupIntervalHours);
+                    UdpViews.NullableUtc(r.LastSuccessAt), r.LastError, Differences(r, Reading(r), installation).Count > 0, r.BackupIntervalHours,
+                    r.EncryptBackups);
             })
             .Where(i => query.Mode is not { } m || i.Mode == m)
             .Where(i => query.SetupState is not { } st || i.SetupState == st)

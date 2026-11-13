@@ -250,7 +250,7 @@ const title = computed(() => {
           label="Diff"
           display="Copy as diff -u"
         />
-        <CopyField v-if="shown.kind === 'content'" :value="shown.content.content" label="Export" display="Copy" />
+        <CopyField v-if="shown.kind === 'content'" :value="shown.content.content ?? ''" label="Export" display="Copy" />
         <Button
           icon="pi pi-times"
           text

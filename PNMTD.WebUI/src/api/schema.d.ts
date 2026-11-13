@@ -2628,6 +2628,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/mikrotik/backup-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MikrotikBackupKeyRequest"];
+                    "text/json": components["schemas"]["MikrotikBackupKeyRequest"];
+                    "application/*+json": components["schemas"]["MikrotikBackupKeyRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikBackupSettings"];
+                        "text/json": components["schemas"]["MikrotikBackupSettings"];
+                        "text/plain": components["schemas"]["MikrotikBackupSettings"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mikrotik/backup-keys/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikBackupSettings"];
+                        "text/json": components["schemas"]["MikrotikBackupSettings"];
+                        "text/plain": components["schemas"]["MikrotikBackupSettings"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/mikrotik/commands": {
         parameters: {
             query?: never;
@@ -5521,7 +5601,8 @@ export interface components {
         };
         MikrotikBackupContent: {
             backup: components["schemas"]["MikrotikBackupItem"];
-            content: string;
+            content: null | string;
+            ciphertext?: null | string;
         };
         MikrotikBackupDiff: {
             from: null | components["schemas"]["MikrotikBackupItem"];
@@ -5554,6 +5635,22 @@ export interface components {
             linesRemoved: null | number;
             includesSecrets: boolean;
             encrypted: boolean;
+            encryptedWith?: null | string;
+        };
+        MikrotikBackupKeyItem: {
+            fingerprint: string;
+            recipient: string;
+            kind: string;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: null | string;
+            /** Format: date-time */
+            retiredAt: null | string;
+            /** Format: int32 */
+            backups: number;
+        };
+        MikrotikBackupKeyRequest: {
+            recipient?: string;
         };
         /** @enum {unknown} */
         MikrotikBackupKind: "Export" | "Binary";
@@ -5565,10 +5662,20 @@ export interface components {
         MikrotikBackupSettings: {
             /** Format: int32 */
             defaultBackupIntervalHours: null | number;
+            /** @default false */
+            defaultEncryptBackups: boolean;
+            key?: null | components["schemas"]["MikrotikBackupKeyItem"];
+            /**
+             * Format: int32
+             * @default 0
+             */
+            routersEncrypted: number;
+            keys?: null | components["schemas"]["MikrotikBackupKeyItem"][];
         };
         MikrotikBackupSettingsRequest: {
             /** Format: int32 */
             defaultBackupIntervalHours?: null | number;
+            defaultEncryptBackups?: boolean;
         };
         /** @enum {unknown} */
         MikrotikBackupTrigger: "FirstLogin" | "Schedule" | "Manual" | "BeforeUpdate" | "BeforeCommand" | "AfterCommand" | "AfterUpdate";
@@ -5716,6 +5823,8 @@ export interface components {
              * @default 24
              */
             backupIntervalHours: null | number;
+            /** @default false */
+            encryptBackups: boolean;
         };
         MikrotikHostKey: {
             type: string;
@@ -5826,6 +5935,7 @@ export interface components {
             setSchedule?: boolean;
             /** Format: int32 */
             backupIntervalHours?: null | number;
+            encryptBackups?: null | boolean;
         };
         MikrotikRouterBackupResult: {
             /** Format: int32 */
@@ -5886,6 +5996,8 @@ export interface components {
             backupCount: number;
             latestBackup?: null | components["schemas"]["MikrotikBackupItem"];
             tunnel?: null | components["schemas"]["MikrotikTunnel"];
+            /** @default false */
+            encryptBackups: boolean;
         };
         MikrotikRouterRequest: {
             mode?: components["schemas"]["MikrotikMode"];
@@ -5895,6 +6007,7 @@ export interface components {
             sourceAddress?: null | string;
             /** Format: int32 */
             backupIntervalHours?: null | number;
+            encryptBackups?: null | boolean;
             managementAccess?: boolean;
             includeSecrets?: boolean;
             diagnostics?: boolean;

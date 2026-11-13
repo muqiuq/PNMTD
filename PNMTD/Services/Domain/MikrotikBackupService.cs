@@ -42,7 +42,9 @@ public sealed partial class MikrotikBackupService(PnmtdDbContext db, RouterPollS
         }
         AuditSecrets(backup, "viewed");
         await db.SaveChangesAsync(ct);
-        return new MikrotikBackupContent(Item(backup), BackupStore.Gunzip(backup.Content));
+        return backup.EncryptedWith is null
+            ? new MikrotikBackupContent(Item(backup), BackupStore.Gunzip(backup.Content))
+            : new MikrotikBackupContent(Item(backup), null, Convert.ToBase64String(backup.Content));
     }
 
     /// <summary>The changes from <paramref name="against"/> (by default the version before) to this one.</summary>
@@ -62,6 +64,10 @@ public sealed partial class MikrotikBackupService(PnmtdDbContext db, RouterPollS
         {
             throw SecretsForbidden();
         }
+        if (to.EncryptedWith is not null || from?.EncryptedWith is not null)
+        {
+            throw ApiException.Conflict(ApiErrorCodes.BackupEncrypted, "An encrypted version: load the backup key to compare it in the browser.");
+        }
         AuditSecrets(to, "compared");
         await db.SaveChangesAsync(ct);
         var diff = LineDiff.Compare(from is null ? "" : BackupStore.Gunzip(from.Content), BackupStore.Gunzip(to.Content));
@@ -77,6 +83,11 @@ public sealed partial class MikrotikBackupService(PnmtdDbContext db, RouterPollS
         var backup = await ReadableAsync(sensorId, backupId, ct);
         AuditSecrets(backup, "downloaded");
         await db.SaveChangesAsync(ct);
+        if (backup.EncryptedWith is not null)
+        {
+            // As stored: age, of the gzip of an export or of the binary file (docs/mikrotik-backup-plan.md §3.4).
+            return (backup.Content, FileName(backup), "application/octet-stream");
+        }
         return backup.Kind == MikrotikBackupKind.Export
             ? (Encoding.UTF8.GetBytes(BackupStore.Gunzip(backup.Content)), FileName(backup), "text/plain; charset=utf-8")
             : (backup.Content, FileName(backup), "application/octet-stream");
@@ -106,7 +117,7 @@ public sealed partial class MikrotikBackupService(PnmtdDbContext db, RouterPollS
         }
         return stored.Backup is { } backup
             ? new MikrotikBackupResult(true, Item(backup), stored.First ? $"Version {backup.Number} stored." :
-                $"Version {backup.Number} stored: +{stored.Added} −{stored.Removed} lines.")
+                stored.Counted ? $"Version {backup.Number} stored: +{stored.Added} −{stored.Removed} lines." : $"Version {backup.Number} stored.")
             : new MikrotikBackupResult(false, null, "The configuration is unchanged: nothing new to store.");
     }
 
@@ -180,10 +191,11 @@ public sealed partial class MikrotikBackupService(PnmtdDbContext db, RouterPollS
         LinesAdded = b.LinesAdded,
         LinesRemoved = b.LinesRemoved,
         Encrypted = b.Encrypted,
+        EncryptedWith = b.EncryptedWith,
     };
 
     public static MikrotikBackupItem Item(MikrotikBackupEntity b) => new(b.Id, b.Number, b.Kind, b.Trigger, Instants.Utc(b.CreatedAt),
-        b.CreatedByName, b.RouterOsVersion, b.Size, b.LineCount, b.LinesAdded, b.LinesRemoved, b.IncludesSecrets, b.Encrypted);
+        b.CreatedByName, b.RouterOsVersion, b.Size, b.LineCount, b.LinesAdded, b.LinesRemoved, b.IncludesSecrets, b.Encrypted, b.EncryptedWith);
 
     [GeneratedRegex("[^A-Za-z0-9._-]+")]
     private static partial Regex Unsafe();
@@ -192,6 +204,9 @@ public sealed partial class MikrotikBackupService(PnmtdDbContext db, RouterPollS
     {
         var name = Unsafe().Replace(b.RouterName, "-").Trim('-');
         var when = Clock.ToLocal(Instants.Utc(b.CreatedAt)).ToString("yyyyMMdd-HHmm", CultureInfo.InvariantCulture);
-        return $"{(name.Length == 0 ? "router" : name)}-{when}-v{b.Number}.{(b.Kind == MikrotikBackupKind.Binary ? "backup" : "rsc")}";
+        var extension = b.Kind == MikrotikBackupKind.Binary ? "backup" : "rsc";
+        // Encrypted: the age file, of the gzip for an export (age -d … | gunzip).
+        var encrypted = b.EncryptedWith is null ? "" : b.Kind == MikrotikBackupKind.Binary ? ".age" : ".gz.age";
+        return $"{(name.Length == 0 ? "router" : name)}-{when}-v{b.Number}.{extension}{encrypted}";
     }
 }

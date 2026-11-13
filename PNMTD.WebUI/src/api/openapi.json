@@ -3379,6 +3379,84 @@
         }
       }
     },
+    "/api/v1/mikrotik/backup-keys": {
+      "post": {
+        "tags": [
+          "MikrotikBackupSettings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikBackupKeyRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikBackupKeyRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikBackupKeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupSettings"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupSettings"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupSettings"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mikrotik/backup-keys/retire": {
+      "post": {
+        "tags": [
+          "MikrotikBackupSettings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupSettings"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupSettings"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupSettings"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/mikrotik/commands": {
       "post": {
         "tags": [
@@ -8030,7 +8108,16 @@
             "$ref": "#/components/schemas/MikrotikBackupItem"
           },
           "content": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ciphertext": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -8152,6 +8239,64 @@
           },
           "encrypted": {
             "type": "boolean"
+          },
+          "encryptedWith": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MikrotikBackupKeyItem": {
+        "required": [
+          "fingerprint",
+          "recipient",
+          "kind",
+          "createdAt",
+          "createdBy",
+          "retiredAt",
+          "backups"
+        ],
+        "type": "object",
+        "properties": {
+          "fingerprint": {
+            "type": "string"
+          },
+          "recipient": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "retiredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "backups": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "MikrotikBackupKeyRequest": {
+        "type": "object",
+        "properties": {
+          "recipient": {
+            "type": "string"
           }
         }
       },
@@ -8199,6 +8344,34 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "defaultEncryptBackups": {
+            "type": "boolean",
+            "default": false
+          },
+          "key": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MikrotikBackupKeyItem"
+              }
+            ]
+          },
+          "routersEncrypted": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "keys": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/MikrotikBackupKeyItem"
+            }
           }
         }
       },
@@ -8211,6 +8384,9 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "defaultEncryptBackups": {
+            "type": "boolean"
           }
         }
       },
@@ -8820,6 +8996,10 @@
             ],
             "format": "int32",
             "default": 24
+          },
+          "encryptBackups": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -9277,6 +9457,12 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "encryptBackups": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -9558,6 +9744,10 @@
                 "$ref": "#/components/schemas/MikrotikTunnel"
               }
             ]
+          },
+          "encryptBackups": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -9589,6 +9779,12 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "encryptBackups": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           },
           "managementAccess": {
             "type": "boolean"

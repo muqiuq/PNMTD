@@ -430,10 +430,19 @@ public sealed class RouterPollService(
                 if (result.ExportError is null && result.ExportOutput is { } output)
                 {
                     var trigger = request.Trigger ?? (router.LastExportHash is null ? MikrotikBackupTrigger.FirstLogin : MikrotikBackupTrigger.Schedule);
-                    stored = await BackupStore.SaveExportAsync(db, router, sensor.Name, output, result.ExportWithSecrets, trigger,
-                        request.UserId, request.UserName, now, await digestKey.GetAsync(ct), ct);
-                    router.BackupFailures = 0;
-                    router.LastBackupError = null;
+                    try
+                    {
+                        stored = await BackupStore.SaveExportAsync(db, router, sensor.Name, output, result.ExportWithSecrets, trigger,
+                            request.UserId, request.UserName, now, await digestKey.GetAsync(ct), ct);
+                        router.BackupFailures = 0;
+                        router.LastBackupError = null;
+                    }
+                    catch (BackupKeyMissingException ex)
+                    {
+                        router.BackupFailures++;
+                        router.LastBackupError = ex.Message;
+                        result = result with { ExportError = ex.Message };
+                    }
                 }
                 else
                 {

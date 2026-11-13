@@ -28,6 +28,9 @@ public static class ApiErrorCodes
 {
     public const string NotFound = "not_found";
     public const string ValidationFailed = "validation_failed";
+
+    /// <summary>An encrypted backup PNMTD cannot read: the browser decrypts and compares it (docs/mikrotik-backup-plan.md §3.6).</summary>
+    public const string BackupEncrypted = "backup_encrypted";
     public const string DuplicateKey = "duplicate_key";
     public const string ReadOnly = "read_only";
     public const string Unauthorized = "unauthorized";

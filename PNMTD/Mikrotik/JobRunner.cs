@@ -405,17 +405,22 @@ public sealed class JobRunner(
             {
                 throw new StepFailed($"The binary backup has only {content.Length} bytes.");
             }
+            // With the router's encryption on, age on top of RouterOS's own (docs/mikrotik-backup-plan.md §3.4).
+            var key = await BackupStore.KeyForAsync(db, router, ct);
+            var hash = ExportDigest.Hash(await polls.DigestKey.GetAsync(ct), content);
+            var kept = key is null ? content : AgeEncryption.Encrypt(content, AgeEncryption.ParseRecipient(key.Recipient)!);
             var number = await db.MikrotikBackups.Where(x => x.SensorId == sensorId).Select(x => (int?)x.Number).MaxAsync(ct) ?? 0;
             db.MikrotikBackups.Add(new MikrotikBackupEntity
             {
                 Id = Guid.NewGuid(), SensorId = sensorId, RouterName = router.Sensor.Name, Number = number + 1, Kind = MikrotikBackupKind.Binary,
                 Trigger = MikrotikBackupTrigger.BeforeUpdate, JobId = job.Id, CreatedAt = Clock.UtcNow, CreatedBy = job.RequestedBy,
-                CreatedByName = job.RequestedByName, RouterOsVersion = reading.VersionText, Content = content, Size = content.Length,
-                ContentHash = ExportDigest.Hash(await polls.DigestKey.GetAsync(ct), content), Encrypted = true,
+                CreatedByName = job.RequestedByName, RouterOsVersion = reading.VersionText, Content = kept, Size = content.Length,
+                ContentHash = hash, Encrypted = true, EncryptedWith = key?.Fingerprint,
             });
             await db.SaveChangesAsync(ct);
             await LogAsync(db, job, MikrotikJobStep.BinaryBackup, MikrotikJobOutcome.Ok,
-                $"Stored as version {number + 1} ({content.Length / 1024} KiB), encrypted with {username}'s password.", null, ct);
+                $"Stored as version {number + 1} ({content.Length / 1024} KiB), encrypted with {username}'s password" +
+                (key is null ? "." : $" and the backup key {key.Fingerprint}."), null, ct);
             await CheckCancelledAsync(db, job, ct);
         }
 

@@ -171,6 +171,17 @@ public sealed class MikrotikBackupSettingsController(MikrotikBackupSettingsServi
     [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<MikrotikRouterBackupResult>> ApplyBackupSettings(MikrotikRouterBackupRequest request, CancellationToken ct) =>
         await settings.ApplyAsync(request, ct);
+
+    /// <summary>The public key new backups are encrypted with (docs/mikrotik-backup-plan.md §3.5). HTTPS only; audit-logged.</summary>
+    [HttpPost("backup-keys")]
+    [Authorize(Policy = Policies.Admin)]
+    public async Task<ActionResult<MikrotikBackupSettings>> SetBackupKey(MikrotikBackupKeyRequest request, CancellationToken ct) =>
+        await settings.SetKeyAsync(request, ct);
+
+    /// <summary>Encryption off: the key is retired, and every router's backups are plaintext again. Audit-logged.</summary>
+    [HttpPost("backup-keys/retire")]
+    [Authorize(Policy = Policies.Admin)]
+    public async Task<ActionResult<MikrotikBackupSettings>> RetireBackupKey(CancellationToken ct) => await settings.RetireKeyAsync(ct);
 }
 
 /// <summary>

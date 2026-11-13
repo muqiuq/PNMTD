@@ -25,6 +25,12 @@ public sealed class MikrotikRouterRequest
     /// </summary>
     public int? BackupIntervalHours { get; init; } = 24;
 
+    /// <summary>
+    /// The router's backups encrypted with the installation's backup key, one way (docs/mikrotik-backup-plan.md §3.3).
+    /// Admin, and only while there is a key. Null leaves it as it is; a new router starts with the installation's default.
+    /// </summary>
+    public bool? EncryptBackups { get; init; }
+
     public bool ManagementAccess { get; init; }
 
     public bool IncludeSecrets { get; init; }
@@ -71,7 +77,8 @@ public sealed record MikrotikRouterDetail(
     string? LastBackupError = null,
     int BackupCount = 0,
     MikrotikBackupItem? LatestBackup = null,
-    MikrotikTunnel? Tunnel = null);
+    MikrotikTunnel? Tunnel = null,
+    bool EncryptBackups = false);
 
 /// <summary>A router's tunnel as the gateway sees it (§3.2): its address and key, the last handshake, where it comes from.</summary>
 public sealed record MikrotikTunnel(
@@ -129,7 +136,8 @@ public sealed record MikrotikFleetItem(
     DateTime? LastSuccessAt,
     string? LastError,
     bool ScriptOutdated,
-    int? BackupIntervalHours = 24);
+    int? BackupIntervalHours = 24,
+    bool EncryptBackups = false);
 
 /// <summary>
 /// <c>GET /mikrotik/routers</c>. Search: name, host, identity, serial number, address. Sort: name
@@ -194,10 +202,14 @@ public sealed record MikrotikBackupItem(
     int? LinesAdded,
     int? LinesRemoved,
     bool IncludesSecrets,
-    bool Encrypted);
+    bool Encrypted,
+    string? EncryptedWith = null);
 
-/// <summary>An export's text, normalised (§6.2).</summary>
-public sealed record MikrotikBackupContent(MikrotikBackupItem Backup, string Content);
+/// <summary>
+/// An export's text, normalised (§6.2); or, encrypted (<see cref="MikrotikBackupItem.EncryptedWith"/>), the age file as
+/// base64 for the browser to decrypt with the backup key (docs/mikrotik-backup-plan.md §3.6).
+/// </summary>
+public sealed record MikrotikBackupContent(MikrotikBackupItem Backup, string? Content, string? Ciphertext = null);
 
 /// <summary>Two versions compared (§6.4): the hunks to show, and the same as <c>diff -u</c> text.</summary>
 public sealed record MikrotikBackupDiff(
@@ -375,15 +387,41 @@ public sealed class MikrotikCommandQuery : PageQuery
 public sealed record MikrotikChangelog(string Version, string Text);
 
 /// <summary>
-/// <c>GET /mikrotik/backup-settings</c> (docs/mikrotik-backup-plan.md §2.2): what new routers start with.
+/// <c>GET /mikrotik/backup-settings</c> (docs/mikrotik-backup-plan.md §2.2, §3.5): what new routers start with, the
+/// active backup key (null: encryption is off), how many routers use it, and every key, newest first.
 /// </summary>
-public sealed record MikrotikBackupSettings(int? DefaultBackupIntervalHours);
+public sealed record MikrotikBackupSettings(
+    int? DefaultBackupIntervalHours,
+    bool DefaultEncryptBackups = false,
+    MikrotikBackupKeyItem? Key = null,
+    int RoutersEncrypted = 0,
+    IReadOnlyList<MikrotikBackupKeyItem>? Keys = null);
+
+/// <summary>A backup key: an age recipient. PNMT holds no private key.</summary>
+public sealed record MikrotikBackupKeyItem(
+    string Fingerprint,
+    string Recipient,
+    string Kind,
+    DateTime CreatedAt,
+    string? CreatedBy,
+    DateTime? RetiredAt,
+    int Backups);
 
 /// <summary><c>PUT /mikrotik/backup-settings</c> (Admin).</summary>
 public sealed class MikrotikBackupSettingsRequest
 {
     /// <summary>1 to 8760 hours, or null for off.</summary>
     public int? DefaultBackupIntervalHours { get; init; } = 24;
+
+    /// <summary>New routers start with their backups encrypted; only while there is a key.</summary>
+    public bool DefaultEncryptBackups { get; init; }
+}
+
+/// <summary><c>POST /mikrotik/backup-keys</c> (Admin, HTTPS): the public key new backups are encrypted with.</summary>
+public sealed class MikrotikBackupKeyRequest
+{
+    /// <summary>An age X25519 recipient, <c>age1…</c>.</summary>
+    public string Recipient { get; init; } = "";
 }
 
 /// <summary>
@@ -400,6 +438,9 @@ public sealed class MikrotikRouterBackupRequest
 
     /// <summary>1 to 8760 hours, or null for off.</summary>
     public int? BackupIntervalHours { get; init; }
+
+    /// <summary>Encrypt their backups (on only while there is a key); null leaves it as it is.</summary>
+    public bool? EncryptBackups { get; init; }
 }
 
 /// <summary>How many routers the change touched.</summary>

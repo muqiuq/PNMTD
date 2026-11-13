@@ -31,12 +31,25 @@ internal static class DevSeedMikrotik
         new("office-st-gallen-gw", "st-gallen-gw", "CCR2004-1G-12S+2XS", "HD20C3D4E5F", "7.25.1", "192.0.2.25", 27),
     ];
 
+    /// <summary>
+    /// The demo's backup key (docs/mikrotik-backup-plan.md §3.5): an age recipient whose private key is in
+    /// PNMTD.WebUI/e2e/fixtures/backup-test.age-key, for the demo and the tests only.
+    /// </summary>
+    public const string DemoBackupRecipient = "age1d35svtrde4pf0x47gje95qx9yzzm6cqm8jtr8f95ye4xzye2n3nqglc96t";
+
     public static int Seed(PnmtdDbContext db, IReadOnlyDictionary<string, HostEntity> hosts, DateTime now)
     {
         var random = new Random(7);
+        var backupKey = new MikrotikBackupKeyEntity
+        {
+            Id = Guid.NewGuid(), Recipient = DemoBackupRecipient, Fingerprint = AgeEncryption.Fingerprint(AgeEncryption.ParseRecipient(DemoBackupRecipient)!),
+            CreatedAt = now.AddDays(-10), CreatedByName = "admin",
+        };
+        db.MikrotikBackupKeys.Add(backupKey);
         db.MikrotikSettings.Add(new MikrotikSettingsEntity
         {
             Tag = "d3m0",
+            BackupKeyId = backupKey.Id,
             LatestVersions = """{"stable":{"version":"7.25.1","releasedAt":null},"long-term":{"version":"7.20.8","releasedAt":null}}""",
             VersionsCheckedAt = now.AddHours(-2),
         });
@@ -87,6 +100,14 @@ internal static class DevSeedMikrotik
                 Event(db, router, now.AddDays(-6), PNMTStatusCodes.MIKROTIK_UPDATE_AVAILABLE, $"7.25.1 available on stable ({plan.Version} installed)");
             }
         }
+
+        // st-gallen encrypts its backups since ten days (docs/mikrotik-backup-plan.md §3.3): versions 1 and 2 stay
+        // as they were, version 3 is readable only with the demo key.
+        var (stGallenPlan, stGallen) = routers.Single(r => r.Plan.Host == "office-st-gallen-gw");
+        stGallen.EncryptBackups = true;
+        db.SaveChanges();
+        Export(db, stGallen, stGallenPlan, now.AddDays(-5), MikrotikBackupTrigger.Schedule, Config(stGallenPlan, winbox: true, dns: "1.1.1.1,8.8.8.8"));
+        Event(db, stGallen, now.AddDays(-5), PNMTStatusCodes.MIKROTIK_CONFIG_CHANGED, "Configuration changed: +1 −1 lines (version 3)");
 
         SeedUpdate(db, routers.Single(r => r.Plan.Host == "office-geneva-gw"), now, random);
         SeedCommands(db, routers, now);

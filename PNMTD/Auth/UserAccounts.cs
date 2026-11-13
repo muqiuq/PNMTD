@@ -54,6 +54,11 @@ public static class AuthEvents
     public const string MikrotikSshKeyRotated = "MikrotikSshKeyRotated";
     public const string MikrotikSshKeyRetired = "MikrotikSshKeyRetired";
 
+    // The backups' one-way encryption (docs/mikrotik-backup-plan.md §3.3, §3.5).
+    public const string MikrotikBackupKeySet = "MikrotikBackupKeySet";
+    public const string MikrotikBackupKeyRetired = "MikrotikBackupKeyRetired";
+    public const string MikrotikBackupEncryptionChanged = "MikrotikBackupEncryptionChanged";
+
     // The WireGuard network (docs/mikrotik-plan.md §9.6).
     public const string WireGuardNetworkChanged = "WireGuardNetworkChanged";
     public const string WireGuardKeysRegenerated = "WireGuardKeysRegenerated";
@@ -70,6 +75,7 @@ public static class AuthEvents
         MikrotikJoinScriptViewed, MikrotikHostKeyAccepted, MikrotikSecretsChanged, MikrotikManagementAccessChanged, MikrotikDiagnosticsChanged,
         MikrotikBackupDownloaded, MikrotikBackupDeleted, MikrotikUpdateStarted, MikrotikUpdateCancelled,
         MikrotikCommandStarted, MikrotikCommandCancelled, MikrotikCommandRedacted, MikrotikSshKeyRotated, MikrotikSshKeyRetired,
+        MikrotikBackupKeySet, MikrotikBackupKeyRetired, MikrotikBackupEncryptionChanged,
         WireGuardNetworkChanged, WireGuardKeysRegenerated,
         WireGuardTunnelCreated, WireGuardTunnelChanged, WireGuardTunnelDeleted, WireGuardTunnelDownloaded,
     ];

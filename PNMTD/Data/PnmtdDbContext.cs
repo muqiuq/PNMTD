@@ -51,6 +51,8 @@ namespace PNMTD.Data
         public DbSet<MikrotikRouterEntity> MikrotikRouters { get; set; }
         public DbSet<MikrotikSettingsEntity> MikrotikSettings { get; set; }
         public DbSet<MikrotikSshKeyEntity> MikrotikSshKeys { get; set; }
+
+        public DbSet<MikrotikBackupKeyEntity> MikrotikBackupKeys { get; set; }
         public DbSet<MikrotikBackupEntity> MikrotikBackups { get; set; }
         public DbSet<MikrotikJobEntity> MikrotikJobs { get; set; }
         public DbSet<MikrotikJobLogEntity> MikrotikJobLog { get; set; }

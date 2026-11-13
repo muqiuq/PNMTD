@@ -43,6 +43,12 @@ public class MikrotikRouterEntity
     /// <summary>The scheduled export's interval (§6.1, docs/mikrotik-backup-plan.md §2): 1 to 8760 hours; null is off.</summary>
     public int? BackupIntervalHours { get; set; } = 24;
 
+    /// <summary>
+    /// The router's backups are encrypted with the installation's backup key, one way (docs/mikrotik-backup-plan.md
+    /// §3.3). Admin. Only while there is a key: retiring it without a successor turns this off everywhere.
+    /// </summary>
+    public bool EncryptBackups { get; set; }
+
     public MikrotikSetupState SetupState { get; set; }
 
     /// <summary>When the settings that the join script carries last changed: "script outdated" (§3.3).</summary>
@@ -169,6 +175,44 @@ public class MikrotikSettingsEntity
     /// Protection. Made on first use.
     /// </summary>
     public string? BackupDigestKeyProtected { get; set; }
+
+    /// <summary>The active backup key (docs/mikrotik-backup-plan.md §3.5); null while encryption is off.</summary>
+    public Guid? BackupKeyId { get; set; }
+
+    /// <summary>New routers start with their backups encrypted (only while there is a key).</summary>
+    public bool DefaultEncryptBackups { get; set; }
+}
+
+/// <summary>
+/// A public key the routers' backups are encrypted with, one way (docs/mikrotik-backup-plan.md §3.2, §3.5): an age
+/// recipient. PNMT never holds the private key. Keys are retired, never deleted, so every backup can say which key it
+/// needs.
+/// </summary>
+[Table("mikrotik_backup_keys")]
+[Microsoft.EntityFrameworkCore.Index(nameof(Fingerprint), IsUnique = true)]
+public class MikrotikBackupKeyEntity
+{
+    public const string X25519 = "x25519";
+
+    [Key]
+    public Guid Id { get; set; }
+
+    /// <summary><c>x25519</c>; the post-quantum hybrid (<c>mlkem768x25519</c>) later.</summary>
+    public string Kind { get; set; } = X25519;
+
+    /// <summary>The age recipient, <c>age1…</c>.</summary>
+    public string Recipient { get; set; } = "";
+
+    /// <summary>12 hex digits of the key's SHA-256: what a backup names as its key.</summary>
+    public string Fingerprint { get; set; } = "";
+
+    public DateTime CreatedAt { get; set; }
+
+    public Guid? CreatedBy { get; set; }
+
+    public string? CreatedByName { get; set; }
+
+    public DateTime? RetiredAt { get; set; }
 }
 
 /// <summary>
@@ -257,6 +301,12 @@ public class MikrotikBackupEntity
 
     /// <summary>A binary backup encrypted with the job's admin password (§6.5).</summary>
     public bool Encrypted { get; set; }
+
+    /// <summary>
+    /// The fingerprint of the backup key the content is encrypted with, in the age format (docs/mikrotik-backup-plan.md
+    /// §3.4): the gzip of the export, or the binary file. PNMT cannot read it. Null: as stored before.
+    /// </summary>
+    public string? EncryptedWith { get; set; }
 }
 
 /// <summary>

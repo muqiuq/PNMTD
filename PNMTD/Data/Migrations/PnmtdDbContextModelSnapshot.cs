@@ -391,6 +391,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<bool>("Encrypted")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("EncryptedWith")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IncludesSecrets")
                         .HasColumnType("boolean");
 
@@ -437,6 +440,44 @@ namespace PNMTD.Data.Migrations
                     b.HasIndex("SensorId", "Number");
 
                     b.ToTable("mikrotik_backups");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.MikrotikBackupKeyEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatedByName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Recipient")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("RetiredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Fingerprint")
+                        .IsUnique();
+
+                    b.ToTable("mikrotik_backup_keys");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.MikrotikJobEntity", b =>
@@ -604,6 +645,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<bool>("Diagnostics")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("EncryptBackups")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("FailingSince")
                         .HasColumnType("timestamp with time zone");
 
@@ -718,8 +762,14 @@ namespace PNMTD.Data.Migrations
                     b.Property<string>("BackupDigestKeyProtected")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("BackupKeyId")
+                        .HasColumnType("uuid");
+
                     b.Property<int?>("DefaultBackupIntervalHours")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("DefaultEncryptBackups")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("LatestVersions")
                         .HasColumnType("jsonb");
