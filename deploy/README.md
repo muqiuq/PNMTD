@@ -192,6 +192,16 @@ PNMTD monitors MikroTik routers (RouterOS 7.13 or later) and backs up their conf
 - **Updates and commands that change a router** take the router admin's password, typed for each run: PNMTD keeps it in memory while the run lasts and never stores it, so it can change no router on its own. The password is accepted over HTTPS only (`Proxy` in `.env` when a reverse proxy terminates TLS). Commands as `pnmt` (read-only) need no password; their text and output are kept as the router's history. From the server: `docker compose exec -T pnmtd pnmtd mikrotik run <router> --command '/ip address print'` (add `--admin admin --password-stdin` and the password on standard input to run as the admin).
 - `./info.sh` shows the gateway's state and the endpoint; `docker compose exec pnmtd pnmtd wireguard status` the tunnels, `pnmtd mikrotik list` the routers.
 
+## AI (optional)
+
+PNMT can use AI models through [OpenRouter](https://openrouter.ai): to propose rules for mails no rule handles, to rate RouterOS releases, and to look over the monitoring state for problems and patterns (docs/ai-operations-plan.md). It is off until `.env` has `Ai__Enabled=true` and `Ai__ApiKey`.
+
+- **The models:** a main model and a verification model from another vendor (by default `deepseek/deepseek-v4.1-flash-1017` and `z-ai/glm-5.3-flashx`), and TypeSafe's Jev (`typesafe/jev-1.14`), which screens outside text for prompt injection before any other model sees it. All three come through OpenRouter, with one key.
+- **What is sent:** for mail analysis, the mail and the names of the sensors a rule could feed. The situation analysis is anonymised: no names, addresses or notes leave PNMT. OpenRouter is asked to use only providers that neither store nor train on prompts (`data_collection: deny`).
+- **What it costs:** every request is in *Admin → AI*, with its tokens and cost. `Ai__Budget__Usd` (30 by default) limits each month; at 80 % and 90 % the *AI budget* sensor warns, and at 100 % AI work waits for the next month.
+- **When it fails:** a request is retried every minute 5 times, then after 1 hour, 3 hours and every 24 hours. The *AI* sensor turns red (421) while requests keep failing; a notification rule on it tells you.
+- **Turning it off:** `Ai__Enabled=false`, or one use at a time (`Ai__Mail__Enabled`, `Ai__Analysis__Enabled`). *Admin → Debug → Test the AI* checks the key and every model.
+
 ## What lives where
 
 | Where | Holds | Backed up by |

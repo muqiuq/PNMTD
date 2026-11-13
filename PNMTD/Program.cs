@@ -2,6 +2,7 @@ using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.HttpOverrides;
+using PNMTD.Ai;
 using PNMTD.Api;
 using PNMTD.Auth;
 using PNMTD.Data;
@@ -87,6 +88,7 @@ public partial class Program
         builder.Services.AddSingleton<PNMTD.Services.Events.SystemSensors>();
         builder.Services.AddHttpClient(PNMTD.UplinkCheck.UplinkMonitor.HttpClientName);
         builder.Services.AddSingleton<PNMTD.UplinkCheck.UplinkMonitor>();
+        builder.Services.AddAi(builder.Configuration);
         builder.Services.AddUdpNodes(builder.Configuration);
         builder.Services.AddMikrotik(builder.Configuration);
         builder.Services.AddWireGuard(builder.Configuration);
@@ -104,6 +106,7 @@ public partial class Program
         if (!documentBuild && builder.Configuration.GetValue("BackgroundTasks:Enabled", true))
         {
             builder.Services.AddHostedService<PNMTD.Services.Events.SystemSensorStartup>();
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Ai.AiWorker>());
             builder.Services.AddHostedService<NotificationTask>();
             builder.Services.AddHostedService<HeartbeatCheckTask>();
             builder.Services.AddHostedService<PingCheckTask>();

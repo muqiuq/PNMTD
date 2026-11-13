@@ -1031,6 +1031,18 @@ Where the implementation differs from the sections above, or settles what they l
 - **The dashboard's problems** list the most important sensors and hosts first, then the longest-failing.
 - **Tests that create scopes delete their rules at the end:** a scope reaches every sensor of the run's database, other classes' too.
 
+### A4: the AI foundation (2026-11-13)
+
+- **Where:** `PNMTD/Ai/`: `AiOptions`, `AiJson` (camelCase, kebab-case enums, strict schemas from `JsonSchemaExporter`), `ChatClient`, `DecisionClient`, `InputSanitizer` and `InjectionScanner` (`Untrusted.cs`), `AiTask`/`VerifyTask`/`AiPipeline`, `AiWorkQueue`/`AiWorker`, `AiRequestLog`, `AiBudget`. Migration `AiFoundation` (`ai_work`, `ai_requests`, `ai_spending`, `ai_budget_state`).
+- **The verification model** is one generic task (`VerifyTask`): the original input, the proposal and the task's question, answered with `agree`, `disagree` or `unsure` and issues. Each use only says whether it wants a verdict.
+- **Jev's answers** are read under `answers` (TypeSafe's format) or at the top level (the Decisions API); a noul's probability as `noul` or `probability`. Which of them OpenRouter returns is checked with the first real key (*Test the AI*).
+- **The work queue:** one open item per purpose and subject; `AiWorker` runs with the monitoring tasks; items left *Running* by a restart run again; work for a purpose without a handler fails for good.
+- **421 is written once per outage** under a lock, so that two items reaching their sixth failure at once write it once.
+- **`invalid-output`:** an answer the task's checks refuse marks its log row too, so the log says why.
+- **The budget** counts every request's cost (`usage.cost`, Jev's included) per day, purpose and model, independent of the request log.
+- **The admin page** is *Admin → AI* (`/admin/ai/requests|queue|settings`); the *Analysis* tab comes with A7. *Admin → Debug* has *Test the AI*.
+- **`deploy/upgrade-1.0.sh` is unchanged:** it copies v0.12's settings, which never had `Ai__*`.
+
 ---
 
 ## Appendix: configuration and file changes

@@ -22,6 +22,199 @@ namespace PNMTD.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("PNMTD.Models.Db.AiBudgetStateEntity", b =>
+                {
+                    b.Property<string>("Period")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<bool>("Notified100")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Notified80")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Notified90")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Period");
+
+                    b.ToTable("ai_budget_state");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AiRequestEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Attempt")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CachedTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CompletionTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("Cost")
+                        .HasColumnType("numeric(12,6)");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("GenerationId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<int?>("HttpStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ModelAsked")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ModelServed")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<short>("Outcome")
+                        .HasColumnType("smallint");
+
+                    b.Property<int?>("PromptTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PromptVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Provider")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int?>("ReasoningTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<byte[]>("Request")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("Response")
+                        .HasColumnType("bytea");
+
+                    b.Property<short>("Role")
+                        .HasColumnType("smallint");
+
+                    b.Property<bool>("Truncated")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("WorkId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.HasIndex("WorkId");
+
+                    b.ToTable("ai_requests");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AiSpendingEntity", b =>
+                {
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Purpose")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<decimal>("Cost")
+                        .HasColumnType("numeric(12,6)");
+
+                    b.Property<int>("Requests")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Day", "Purpose", "Model");
+
+                    b.ToTable("ai_spending");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AiWorkEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InputHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Notified")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Result")
+                        .HasColumnType("jsonb");
+
+                    b.Property<short>("State")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid?>("SubjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SubjectType")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("State", "NextAttemptAt");
+
+                    b.HasIndex("SubjectType", "SubjectId");
+
+                    b.ToTable("ai_work");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.AuthLogEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1778,6 +1971,14 @@ namespace PNMTD.Data.Migrations
                     b.HasKey("PeerId");
 
                     b.ToTable("wg_peer_status");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AiRequestEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.AiWorkEntity", null)
+                        .WithMany()
+                        .HasForeignKey("WorkId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.DnsZoneEntity", b =>

@@ -71,6 +71,13 @@ async function sendMail() {
       { failure: 'Not sent' },
     )) ?? null
 }
+
+// Test the AI (docs/ai-operations-plan.md §8.4): a fixed prompt to each configured model.
+const aiResults = ref<S['DebugAiResult'][] | null>(null)
+const aiRun = useActions()
+async function testAi() {
+  aiResults.value = (await aiRun.run(() => api.debug.ai(), { failure: 'Not tested' })) ?? null
+}
 </script>
 
 <template>
@@ -204,10 +211,36 @@ async function sendMail() {
         </form>
       </section>
     </div>
+    <section class="panel ai-panel" aria-labelledby="ai-title">
+      <div id="ai-title" class="panel-header">Test the AI</div>
+      <div class="panel-body form">
+        <p class="muted small">
+          A fixed prompt to the main and the verification model, and a harmless text to the guard. Each answer is in the
+          AI request log, with its time and cost.
+        </p>
+        <div class="form-actions">
+          <Button label="Test" icon="pi pi-sparkles" :loading="aiRun.busy.value" @click="testAi" />
+        </div>
+        <Message
+          v-for="r in aiResults ?? []"
+          :key="r.role"
+          :severity="r.ok ? 'success' : 'error'"
+          :closable="false"
+          size="small"
+        >
+          <strong>{{ r.role }}</strong> <span class="mono">{{ r.modelServed ?? r.model }}</span> in
+          {{ r.durationMs }} ms: {{ r.detail
+          }}<template v-if="r.cost !== null && r.cost !== undefined"> (${{ r.cost }})</template>
+        </Message>
+      </div>
+    </section>
   </div>
 </template>
 
 <style scoped>
+.ai-panel {
+  margin-top: var(--pnmt-space-3);
+}
 .intro {
   margin: 0 0 var(--pnmt-space-3);
 }

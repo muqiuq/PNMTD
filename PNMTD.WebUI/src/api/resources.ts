@@ -259,11 +259,31 @@ export const api = {
     check: () => call(client.POST('/api/v1/uplink/check')),
   },
 
+  /** Admin → AI (docs/ai-operations-plan.md §3.6, §15): Admin only. */
+  ai: {
+    status: () => call(client.GET('/api/v1/ai/status')),
+    requests: (
+      query: ListQuery & {
+        purpose?: string
+        role?: S['AiRole']
+        model?: string
+        outcome?: S['AiOutcome']
+        workId?: Id
+      },
+    ) => call(client.GET('/api/v1/ai/requests', { params: { query } })),
+    request: (id: number) => call(client.GET('/api/v1/ai/requests/{id}', { params: { path: { id } } })),
+    work: (query: ListQuery & { state?: S['AiWorkState']; purpose?: string }) =>
+      call(client.GET('/api/v1/ai/work', { params: { query } })),
+    retry: (id: Id) => call(client.POST('/api/v1/ai/work/{id}/retry', { params: { path: { id } } })),
+    cancel: (id: Id) => call(client.POST('/api/v1/ai/work/{id}/cancel', { params: { path: { id } } })),
+  },
+
   /** Admin → Debug (docs/ai-operations-plan.md §8): test sends, 10 a minute. */
   debug: {
     status: () => call(client.GET('/api/v1/debug')),
     pushover: (body: S['DebugPushoverRequest']) => call(client.POST('/api/v1/debug/pushover', { body })),
     mail: (body: S['DebugMailRequest']) => call(client.POST('/api/v1/debug/mail', { body })),
+    ai: () => call(client.POST('/api/v1/debug/ai')),
   },
 
   udp: {
@@ -355,6 +375,8 @@ export const keys = {
   uplink: ['uplink'] as const,
   /** The Notification Manager's matrix and coverage (docs/ai-operations-plan.md §11.3). */
   notifications: ['notifications'] as const,
+  /** The AI's status, requests and queue (docs/ai-operations-plan.md §15). */
+  ai: ['ai'] as const,
 }
 
 /** The request of a resource as it is, with some fields changed: v1's PUT takes every writable field. */

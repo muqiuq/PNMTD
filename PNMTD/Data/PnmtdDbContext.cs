@@ -70,6 +70,12 @@ namespace PNMTD.Data
         // The uplink's history (docs/ai-operations-plan.md §7.2).
         public DbSet<UplinkCheckEntity> UplinkChecks { get; set; }
 
+        // The AI (docs/ai-operations-plan.md §3.5–§3.7).
+        public DbSet<AiWorkEntity> AiWork { get; set; }
+        public DbSet<AiRequestEntity> AiRequests { get; set; }
+        public DbSet<AiSpendingEntity> AiSpending { get; set; }
+        public DbSet<AiBudgetStateEntity> AiBudgetState { get; set; }
+
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
         }
@@ -198,6 +204,19 @@ namespace PNMTD.Data
             // One system sensor per key (docs/ai-operations-plan.md §4).
             modelBuilder.Entity<SensorEntity>().HasIndex(s => new { s.Type, s.Parameters }).IsUnique().HasFilter("\"Type\" = 90");
             modelBuilder.Entity<UplinkCheckEntity>().HasIndex(c => c.At);
+
+            modelBuilder.Entity<AiWorkEntity>(e =>
+            {
+                e.HasIndex(w => new { w.State, w.NextAttemptAt });
+                e.HasIndex(w => new { w.SubjectType, w.SubjectId });
+            });
+            modelBuilder.Entity<AiRequestEntity>(e =>
+            {
+                e.HasIndex(r => r.At);
+                e.HasIndex(r => r.WorkId);
+                e.HasOne<AiWorkEntity>().WithMany().HasForeignKey(r => r.WorkId).OnDelete(DeleteBehavior.SetNull);
+            });
+            modelBuilder.Entity<AiSpendingEntity>().HasKey(s => new { s.Day, s.Purpose, s.Model });
 
             modelBuilder.Entity<NotificationRuleScopeEntity>(e =>
             {

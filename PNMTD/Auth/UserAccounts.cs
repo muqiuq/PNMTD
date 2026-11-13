@@ -69,6 +69,12 @@ public static class AuthEvents
 
     // The debug page's test sends (docs/ai-operations-plan.md §8).
     public const string DebugNotificationSent = "DebugNotificationSent";
+    public const string DebugAiTested = "DebugAiTested";
+
+    // The AI's work (docs/ai-operations-plan.md §14).
+    public const string AiWorkRetried = "AiWorkRetried";
+    public const string AiWorkCancelled = "AiWorkCancelled";
+    public const string AiBackfillStarted = "AiBackfillStarted";
 
     public static readonly string[] All =
     [
@@ -81,7 +87,7 @@ public static class AuthEvents
         MikrotikBackupKeySet, MikrotikBackupKeyRetired, MikrotikBackupEncryptionChanged,
         WireGuardNetworkChanged, WireGuardKeysRegenerated,
         WireGuardTunnelCreated, WireGuardTunnelChanged, WireGuardTunnelDeleted, WireGuardTunnelDownloaded,
-        DebugNotificationSent,
+        DebugNotificationSent, DebugAiTested, AiWorkRetried, AiWorkCancelled, AiBackfillStarted,
     ];
 }
 

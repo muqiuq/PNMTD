@@ -209,6 +209,14 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/notification-rules/{id:guid}/scopes/preview"] = Roles.User,
         ["PUT /api/v1/notification-rules/{id:guid}/exclusions/{sensorId:guid}"] = Roles.User,
         ["DELETE /api/v1/notification-rules/{id:guid}/exclusions/{sensorId:guid}"] = Roles.User,
+        // The AI (docs/ai-operations-plan.md §14): Admin, because requests hold mail contents.
+        ["GET /api/v1/ai/status"] = Roles.Admin,
+        ["GET /api/v1/ai/requests"] = Roles.Admin,
+        ["GET /api/v1/ai/requests/{id:long}"] = Roles.Admin,
+        ["GET /api/v1/ai/work"] = Roles.Admin,
+        ["POST /api/v1/ai/work/{id:guid}/retry"] = Roles.Admin,
+        ["POST /api/v1/ai/work/{id:guid}/cancel"] = Roles.Admin,
+        ["POST /api/v1/debug/ai"] = Roles.Admin,
     };
 
     private sealed record EndpointInfo(string Key, string Method, string Pattern, RouteEndpoint Endpoint);
@@ -283,7 +291,9 @@ public sealed class EndpointAuditTests
         foreach (var (key, minimum) in Matrix)
         {
             var method = key[..key.IndexOf(' ')];
-            var path = System.Text.RegularExpressions.Regex.Replace(key[(key.IndexOf(' ') + 1)..], @"\{[^}]+\}", _ => Guid.NewGuid().ToString());
+            // A long id (an AI request's) needs a number to match its route.
+            var path = System.Text.RegularExpressions.Regex.Replace(key[(key.IndexOf(' ') + 1)..], @"\{[^}]+\}",
+                m => m.Value.EndsWith(":long}", StringComparison.Ordinal) ? Random.Shared.NextInt64(1L << 40, 1L << 50).ToString() : Guid.NewGuid().ToString());
             foreach (var role in new string?[] { null, Roles.Viewer, Roles.User, Roles.Admin })
             {
                 using var request = new HttpRequestMessage(new HttpMethod(method), path);

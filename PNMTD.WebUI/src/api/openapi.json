@@ -5,6 +5,331 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/v1/ai/status": {
+      "get": {
+        "tags": [
+          "Ai"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/requests": {
+      "get": {
+        "tags": [
+          "Ai"
+        ],
+        "parameters": [
+          {
+            "name": "purpose",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AiRole"
+            }
+          },
+          {
+            "name": "model",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AiOutcome"
+            }
+          },
+          {
+            "name": "workId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAiRequestItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAiRequestItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAiRequestItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/requests/{id}": {
+      "get": {
+        "tags": [
+          "Ai"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiRequestDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiRequestDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiRequestDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/work": {
+      "get": {
+        "tags": [
+          "Ai"
+        ],
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AiWorkState"
+            }
+          },
+          {
+            "name": "purpose",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAiWorkItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAiWorkItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAiWorkItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/work/{id}/retry": {
+      "post": {
+        "tags": [
+          "Ai"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/ai/work/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Ai"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/debug/ai": {
+      "post": {
+        "tags": [
+          "DebugAi"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DebugAiResult"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DebugAiResult"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DebugAiResult"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "tags": [
@@ -7489,6 +7814,470 @@
   },
   "components": {
     "schemas": {
+      "AiBudgetStatus": {
+        "required": [
+          "usd",
+          "period",
+          "periodKey",
+          "spent",
+          "share",
+          "periodEndsAt"
+        ],
+        "type": "object",
+        "properties": {
+          "usd": {
+            "type": "number",
+            "format": "double"
+          },
+          "period": {
+            "type": "string"
+          },
+          "periodKey": {
+            "type": "string"
+          },
+          "spent": {
+            "type": "number",
+            "format": "double"
+          },
+          "share": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "periodEndsAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AiOutcome": {
+        "enum": [
+          "Ok",
+          "HttpError",
+          "Timeout",
+          "ConnectError",
+          "InvalidOutput",
+          "BlockedByGuard"
+        ]
+      },
+      "AiQueueStatus": {
+        "required": [
+          "queued",
+          "running",
+          "waitingRetry",
+          "waitingBudget",
+          "failed24Hours"
+        ],
+        "type": "object",
+        "properties": {
+          "queued": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "running": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "waitingRetry": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "waitingBudget": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failed24Hours": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AiRequestDetail": {
+        "required": [
+          "item",
+          "request",
+          "response",
+          "truncated",
+          "promptVersion",
+          "generationId",
+          "reasoningTokens",
+          "cachedTokens",
+          "sameWork"
+        ],
+        "type": "object",
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/AiRequestItem"
+          },
+          "request": {
+            "type": "string"
+          },
+          "response": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "promptVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "generationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reasoningTokens": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "cachedTokens": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "sameWork": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiRequestItem"
+            }
+          }
+        }
+      },
+      "AiRequestItem": {
+        "required": [
+          "id",
+          "at",
+          "purpose",
+          "role",
+          "attempt",
+          "modelAsked",
+          "modelServed",
+          "provider",
+          "outcome",
+          "httpStatus",
+          "durationMs",
+          "promptTokens",
+          "completionTokens",
+          "cost",
+          "workId",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/AiRole"
+          },
+          "attempt": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modelAsked": {
+            "type": "string"
+          },
+          "modelServed": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "provider": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/AiOutcome"
+          },
+          "httpStatus": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "durationMs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "promptTokens": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "completionTokens": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "cost": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "workId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AiRole": {
+        "enum": [
+          "Main",
+          "Verify",
+          "Guard"
+        ]
+      },
+      "AiSpendingRow": {
+        "required": [
+          "name",
+          "requests",
+          "cost"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "requests": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cost": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "AiSpendingSummary": {
+        "required": [
+          "today",
+          "requestsToday",
+          "last30Days",
+          "requests30Days",
+          "byPurpose",
+          "byModel"
+        ],
+        "type": "object",
+        "properties": {
+          "today": {
+            "type": "number",
+            "format": "double"
+          },
+          "requestsToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "last30Days": {
+            "type": "number",
+            "format": "double"
+          },
+          "requests30Days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "byPurpose": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiSpendingRow"
+            }
+          },
+          "byModel": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiSpendingRow"
+            }
+          }
+        }
+      },
+      "AiStatus": {
+        "required": [
+          "enabled",
+          "keySet",
+          "baseUrl",
+          "mainModel",
+          "verifyModel",
+          "guardModel",
+          "guardUrl",
+          "guardRequired",
+          "guardThreshold",
+          "dataCollection",
+          "logEntries",
+          "warnings",
+          "budget",
+          "spending",
+          "queue"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "keySet": {
+            "type": "boolean"
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "mainModel": {
+            "type": "string"
+          },
+          "verifyModel": {
+            "type": "string"
+          },
+          "guardModel": {
+            "type": "string"
+          },
+          "guardUrl": {
+            "type": "string"
+          },
+          "guardRequired": {
+            "type": "boolean"
+          },
+          "guardThreshold": {
+            "type": "number",
+            "format": "double"
+          },
+          "dataCollection": {
+            "type": "string"
+          },
+          "logEntries": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "budget": {
+            "$ref": "#/components/schemas/AiBudgetStatus"
+          },
+          "spending": {
+            "$ref": "#/components/schemas/AiSpendingSummary"
+          },
+          "queue": {
+            "$ref": "#/components/schemas/AiQueueStatus"
+          }
+        }
+      },
+      "AiWorkItem": {
+        "required": [
+          "id",
+          "purpose",
+          "subjectType",
+          "subjectId",
+          "state",
+          "attempts",
+          "nextAttemptAt",
+          "lastError",
+          "createdAt",
+          "finishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "subjectType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "subjectId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/AiWorkState"
+          },
+          "attempts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextAttemptAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "AiWorkState": {
+        "enum": [
+          "Queued",
+          "Running",
+          "WaitingRetry",
+          "WaitingBudget",
+          "Succeeded",
+          "Failed",
+          "Cancelled"
+        ]
+      },
       "AssignMode": {
         "enum": [
           "Add",
@@ -7749,6 +8538,49 @@
           },
           "mail": {
             "$ref": "#/components/schemas/MailSummary"
+          }
+        }
+      },
+      "DebugAiResult": {
+        "required": [
+          "role",
+          "model",
+          "ok",
+          "detail",
+          "durationMs",
+          "cost",
+          "modelServed"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/AiRole"
+          },
+          "model": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "durationMs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cost": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "modelServed": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -11564,6 +12396,64 @@
           "OtaOffer",
           "OtaChunk"
         ]
+      },
+      "PagedOfAiRequestItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiRequestItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfAiWorkItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiWorkItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       },
       "PagedOfAuthLogItem": {
         "required": [
@@ -16276,6 +17166,12 @@
     }
   },
   "tags": [
+    {
+      "name": "Ai"
+    },
+    {
+      "name": "DebugAi"
+    },
     {
       "name": "Auth"
     },

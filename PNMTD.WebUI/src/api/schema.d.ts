@@ -4,6 +4,280 @@
  */
 
 export interface paths {
+    "/api/v1/ai/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AiStatus"];
+                        "text/json": components["schemas"]["AiStatus"];
+                        "text/plain": components["schemas"]["AiStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    purpose?: string;
+                    role?: components["schemas"]["AiRole"];
+                    model?: string;
+                    outcome?: components["schemas"]["AiOutcome"];
+                    workId?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfAiRequestItem"];
+                        "text/json": components["schemas"]["PagedOfAiRequestItem"];
+                        "text/plain": components["schemas"]["PagedOfAiRequestItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AiRequestDetail"];
+                        "text/json": components["schemas"]["AiRequestDetail"];
+                        "text/plain": components["schemas"]["AiRequestDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/work": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    state?: components["schemas"]["AiWorkState"];
+                    purpose?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfAiWorkItem"];
+                        "text/json": components["schemas"]["PagedOfAiWorkItem"];
+                        "text/plain": components["schemas"]["PagedOfAiWorkItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/work/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/work/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/debug/ai": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DebugAiResult"][];
+                        "text/json": components["schemas"]["DebugAiResult"][];
+                        "text/plain": components["schemas"]["DebugAiResult"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -5875,6 +6149,132 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AiBudgetStatus: {
+            /** Format: double */
+            usd: number;
+            period: string;
+            periodKey: string;
+            /** Format: double */
+            spent: number;
+            /** Format: double */
+            share: null | number;
+            /** Format: date-time */
+            periodEndsAt: string;
+        };
+        /** @enum {unknown} */
+        AiOutcome: "Ok" | "HttpError" | "Timeout" | "ConnectError" | "InvalidOutput" | "BlockedByGuard";
+        AiQueueStatus: {
+            /** Format: int32 */
+            queued: number;
+            /** Format: int32 */
+            running: number;
+            /** Format: int32 */
+            waitingRetry: number;
+            /** Format: int32 */
+            waitingBudget: number;
+            /** Format: int32 */
+            failed24Hours: number;
+        };
+        AiRequestDetail: {
+            item: components["schemas"]["AiRequestItem"];
+            request: string;
+            response: null | string;
+            truncated: boolean;
+            promptVersion: null | string;
+            generationId: null | string;
+            /** Format: int32 */
+            reasoningTokens: null | number;
+            /** Format: int32 */
+            cachedTokens: null | number;
+            sameWork: components["schemas"]["AiRequestItem"][];
+        };
+        AiRequestItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            at: string;
+            purpose: string;
+            role: components["schemas"]["AiRole"];
+            /** Format: int32 */
+            attempt: number;
+            modelAsked: string;
+            modelServed: null | string;
+            provider: null | string;
+            outcome: components["schemas"]["AiOutcome"];
+            /** Format: int32 */
+            httpStatus: null | number;
+            /** Format: int32 */
+            durationMs: number;
+            /** Format: int32 */
+            promptTokens: null | number;
+            /** Format: int32 */
+            completionTokens: null | number;
+            /** Format: double */
+            cost: null | number;
+            /** Format: uuid */
+            workId: null | string;
+            error: null | string;
+        };
+        /** @enum {unknown} */
+        AiRole: "Main" | "Verify" | "Guard";
+        AiSpendingRow: {
+            name: string;
+            /** Format: int32 */
+            requests: number;
+            /** Format: double */
+            cost: number;
+        };
+        AiSpendingSummary: {
+            /** Format: double */
+            today: number;
+            /** Format: int32 */
+            requestsToday: number;
+            /** Format: double */
+            last30Days: number;
+            /** Format: int32 */
+            requests30Days: number;
+            byPurpose: components["schemas"]["AiSpendingRow"][];
+            byModel: components["schemas"]["AiSpendingRow"][];
+        };
+        AiStatus: {
+            enabled: boolean;
+            keySet: boolean;
+            baseUrl: string;
+            mainModel: string;
+            verifyModel: string;
+            guardModel: string;
+            guardUrl: string;
+            guardRequired: boolean;
+            /** Format: double */
+            guardThreshold: number;
+            dataCollection: string;
+            /** Format: int32 */
+            logEntries: number;
+            warnings: string[];
+            budget: components["schemas"]["AiBudgetStatus"];
+            spending: components["schemas"]["AiSpendingSummary"];
+            queue: components["schemas"]["AiQueueStatus"];
+        };
+        AiWorkItem: {
+            /** Format: uuid */
+            id: string;
+            purpose: string;
+            subjectType: null | string;
+            /** Format: uuid */
+            subjectId: null | string;
+            state: components["schemas"]["AiWorkState"];
+            /** Format: int32 */
+            attempts: number;
+            /** Format: date-time */
+            nextAttemptAt: string;
+            lastError: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            finishedAt: null | string;
+        };
+        /** @enum {unknown} */
+        AiWorkState: "Queued" | "Running" | "WaitingRetry" | "WaitingBudget" | "Succeeded" | "Failed" | "Cancelled";
         /** @enum {unknown} */
         AssignMode: "Add" | "Remove";
         AuthLogItem: {
@@ -5940,6 +6340,17 @@ export interface components {
             tasks: components["schemas"]["TaskSummary"];
             dns: components["schemas"]["DnsSummary"];
             mail: components["schemas"]["MailSummary"];
+        };
+        DebugAiResult: {
+            role: components["schemas"]["AiRole"];
+            model: string;
+            ok: boolean;
+            detail: string;
+            /** Format: int32 */
+            durationMs: number;
+            /** Format: double */
+            cost: null | number;
+            modelServed: null | string;
         };
         DebugMailRequest: {
             recipient?: null | string;
@@ -6913,6 +7324,24 @@ export interface components {
         };
         /** @enum {unknown} */
         PacketType: "Heartbeat" | "Data" | "Event" | "CmdResult" | "Boot" | "Join" | "Ota" | "Ack" | "Command" | "JoinAccept" | "OtaOffer" | "OtaChunk";
+        PagedOfAiRequestItem: {
+            items: components["schemas"]["AiRequestItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfAiWorkItem: {
+            items: components["schemas"]["AiWorkItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfAuthLogItem: {
             items: components["schemas"]["AuthLogItem"][];
             /** Format: int32 */
