@@ -177,6 +177,18 @@ PNMTD monitors MikroTik routers (RouterOS 7.13 or later) and backs up their conf
 - **Firewalls:** the external port must be reachable from the routers. Docker's published ports bypass `ufw`; a cloud security group needs a rule.
 - **The tunnel network** (default 10.253.0.0/16), the keepalive, the MTU and the management ports are set on the admin page. A change applies to new join scripts; the page lists the routers that need theirs pasted again.
 - **Backups are credentials.** The database holds the routers' configurations (without secrets unless a router opts in) and the tunnel keys, encrypted with the key ring on `pnmtd-keys`. `./backup.sh` covers both, so a restored installation works with every router's old script.
+- **The routers' configuration backups** ([docs/mikrotik-backup-plan.md](../docs/mikrotik-backup-plan.md)):
+  - **Schedule:** each router exports on a schedule of its own: off, every few hours, daily (the default), weekly, monthly, or up to once a year. *Admin → MikroTik & WireGuard → Backups* sets what new routers start with, and *Routers → Backup settings…* changes many at once. With the schedule off, *Back up now* and the exports of updates and commands still take one.
+  - **Encryption, one way, per router:** with a backup key set up once on the *Backups* tab, a router's backups are stored in the [age](https://age-encryption.org) format, which PNMT can write but not read. Only the public key (`age1…`) is on the server, so a copy of the database, or of a `./backup.sh` folder, reveals no encrypted configuration. A PNMT that is taken over can still read the routers' current configuration live; only their history is protected.
+  - **The private key is yours alone:** keep two copies. Losing it loses every backup encrypted with it, and PNMT cannot help. Setting the key needs HTTPS.
+  - **Reading encrypted backups:** in a router's *Backups* tab with *Load key…* (the key stays in that browser tab, for 15 minutes without use, and is never sent), or offline with the age tool (`apt install age`, Homebrew, or Windows builds from its site):
+
+    ```sh
+    age -d -i pnmt-backups.age-key router-20261113-0300-v12.rsc.gz.age | gunzip > router.rsc
+    age -d -i pnmt-backups.age-key router-20261113-0300-v13.backup.age > router.backup
+    ```
+
+  - **Change detection** compares keyed digests, under a key in the key ring on `pnmtd-keys`. Restored without that volume, each router's next export counts as a change once.
 - **Updates and commands that change a router** take the router admin's password, typed for each run: PNMTD keeps it in memory while the run lasts and never stores it, so it can change no router on its own. The password is accepted over HTTPS only (`Proxy` in `.env` when a reverse proxy terminates TLS). Commands as `pnmt` (read-only) need no password; their text and output are kept as the router's history. From the server: `docker compose exec -T pnmtd pnmtd mikrotik run <router> --command '/ip address print'` (add `--admin admin --password-stdin` and the password on standard input to run as the admin).
 - `./info.sh` shows the gateway's state and the endpoint; `docker compose exec pnmtd pnmtd wireguard status` the tunnels, `pnmtd mikrotik list` the routers.
 

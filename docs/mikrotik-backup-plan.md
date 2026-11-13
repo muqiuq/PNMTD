@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Revision 2: the review's answers applied (§6).** Ready to build. |
+| Status | **Built: B1 to B4, and the docs of B5** (§7, as built). Revision 2: the review's answers applied (§6). |
 | Date | 2026-11-13 |
 | Scope | The MikroTik routers' configuration backups (docs/mikrotik-plan.md §6): the scheduled `/export`, and every export and binary backup PNMT stores. |
 | Goals | <ol><li>Turn the scheduled backup **off**, per router.</li><li>Choose **longer intervals**, up to a year.</li><li>**Encrypt one way, optionally, per router:** PNMT holds only a public key, and the private key never reaches PNMT's server. The key is set up once, in the GUI. Backups are read offline with `age`, or in the GUI with the key loaded into the browser.</li></ol> |
@@ -141,9 +141,9 @@ PNMT can no longer read an encrypted router's previous export. So **every export
 - **The digest key:** a key under Data Protection, on the `pnmtd-keys` volume.
 - **Whether it changed:** an HMAC-SHA256 of the normalised export takes the place of the plain SHA-256. A copy of the database alone therefore cannot confirm a guessed configuration.
 - **The counts for 243** (`+3 −1 lines`):
-  - PNMT keeps the HMACs of each router's newest export, one per line: only the newest, about 32 bytes a line, also keyed;
+  - PNMT keeps the HMACs of each router's newest export, one per line: only the newest, 16 bytes a line, also keyed;
   - the next export is counted against them, without the old text.
-- **The switch, once, after the upgrade:** a background step reads the stored exports, which are all plaintext at that point. It replaces their SHA-256 with the HMAC, and writes each router's line digests from its newest export. The first export after the upgrade therefore isn't counted as a change. The content isn't touched.
+- **The switch after the upgrade, per router at its next export:** a router without line digests is compared with its newest stored export, which is plaintext at that point. An unchanged export gives that version its keyed hash, so the first export after the upgrade isn't counted as a change. Older versions keep their SHA-256; they are plaintext anyway. The content isn't touched.
 - **If the key ring is lost** (`pnmtd-keys` not restored), each router's next export counts as a change once. That means one extra version, and a 243 that counts every line as changed.
 
 ### 3.8 API changes
@@ -161,7 +161,7 @@ PNMT can no longer read an encrypted router's previous export. So **every export
 
 `pnmtd mikrotik backup-key set age1…` does the same from the server's command line. This is optional.
 
-## 4. Data model (one migration)
+## 4. Data model
 
 | Table | Change |
 |---|---|
@@ -171,7 +171,7 @@ PNMT can no longer read an encrypted router's previous export. So **every export
 | `mikrotik_backups` | new `encrypted_with` (key, nullable); `sha256` becomes `content_hash`, an HMAC (§3.7) |
 
 - **The existing `encrypted` column** keeps its meaning: a binary backup encrypted by RouterOS with the admin's password.
-- **The switch in §3.7** runs once after the migration, in the background, and is marked done in `mikrotik_settings`.
+- **The switch in §3.7** happens per router at its next export: no background step.
 
 ## 5. Phases
 
@@ -203,3 +203,20 @@ PNMT can no longer read an encrypted router's previous export. So **every export
 | 7 | Line counts in 243? | **Yes,** through keyed line digests, for every router (§3.7). |
 | 8 | What happens to backups stored before encryption? | **They stay as they are** (§3.1). |
 | 9 | Longest interval? | **A year** (8760 hours, §2.1). |
+
+## 7. As built
+
+- **Three migrations,** one per phase: `MikrotikBackupSchedule`, `MikrotikBackupDigests`, `MikrotikBackupEncryption`.
+- **The switch to keyed digests** happens per router at its next export (§3.7), not as a background step.
+- **Who may do what:** reading the backup settings needs CanWrite (the new-router form starts with them). The defaults, the bulk change and the key need Admin.
+- **HTTPS for the key:** `Mikrotik__AllowPasswordsOverHttp=true` lifts the rule for development, as it does for routers' admin passwords.
+- **The browser's cryptography exists only in a secure context:** HTTPS, or localhost. On plain HTTP the dialogs say so, and the age tool reads the downloaded files. `tools/e2e.sh` therefore runs Playwright in the app container's network, on localhost.
+- **No key, encryption on:** if a router's *Encrypt backups* is on and there is no active key, nothing is stored, and the export counts as failed. Retiring the key turns encryption off everywhere, so this happens only through a database edit.
+- **Not built:** `pnmtd mikrotik backup-key set` (optional). Version 1.2.0 comes with the release, so the compose defaults never name an image that isn't published yet. The release notes are in docs/release-notes-1.2.md.
+- **Tests:**
+  - the schedule (off, monthly, the limits, the default, the bulk change);
+  - keyed counts against the text-based counts, and the switch from SHA-256;
+  - the C# encryptor, checked once against the age CLI 1.2.1 (0, 1, 65536, 65537 and 200000 bytes) and in the suite against the tests' own reading of the spec;
+  - Vitest decrypting a file the C# code wrote;
+  - two API tests for encrypted backups and for retiring the key;
+  - one browser test: the seed's encrypted version and its change, then a new key made, saved, loaded back and activated.

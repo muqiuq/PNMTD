@@ -495,7 +495,7 @@ Backups exist in the SSH modes only. A router in WireGuard only mode has no logi
 
 - **`/export terse`**, as `pnmt`. Terse output has one line per item with its full menu path (`/ip firewall filter add chain=input …`), so a diff names its own context.
 - **When:**
-  - every `backup_interval_hours` (default 24, from 1 to 168);
+  - every `backup_interval_hours` (default 24, from 1 to 8760), or never: the schedule may be off (docs/mikrotik-backup-plan.md §2);
   - before every update, as step 2 of §7.3;
   - before and after a command run as an admin, if chosen (§8.2);
   - on demand (CanWrite);
@@ -508,7 +508,7 @@ Backups exist in the SSH modes only. A router in WireGuard only mode has no logi
   - CRLF becomes LF;
   - the first line, `# 2026-11-12 03:00:01 by RouterOS 7.16.1`, is dropped, as is its older form with another date format;
   - the `# software id`, `# model` and `# serial number` lines stay.
-- **The SHA-256 of the normalised text** is compared with the last stored export:
+- **A keyed hash (HMAC-SHA256) of the normalised text** is compared with the last stored export (docs/mikrotik-backup-plan.md §3.7; built as a plain SHA-256 first):
   - **Equal:** nothing is stored, and only `last_export_at` moves.
   - **Different:** a new version is stored, with the line counts against the previous one, and **243** is written. Version 1 gives no 243.
 - **The join script's own objects** are in the export too. Pasting the script again with a change therefore shows up as a configuration change, which is correct.
@@ -516,13 +516,13 @@ Backups exist in the SSH modes only. A router in WireGuard only mode has no logi
 
 ### 6.3 Storage and retention
 
-- Stored in **PostgreSQL**, as gzip (`mikrotik_backups.content`), so `backup.sh` includes them. About 20 KB per version and router.
+- Stored in **PostgreSQL**, as gzip (`mikrotik_backups.content`), so `backup.sh` includes them. About 20 KB per version and router. A router may have them encrypted one way, as age of the gzip (docs/mikrotik-backup-plan.md §3).
 - **Retention:** every version younger than `KeepDays` (default 365), and at least the last `KeepVersions` (default 50) for each router, whatever their age. An hourly task deletes the rest.
 - **Backups outlive the sensor** (`ON DELETE SET NULL`, with the router's name kept), as the UDP command log does. An Admin can delete them explicitly.
 
 ### 6.4 Diffs and downloads
 
-- **A unified diff between any two versions**, by default the newest and the one before it. It is computed on the server (DiffPlex, Apache-2.0, or a small Myers diff in `PNMTD.Lib`) and colour-coded in the UI.
+- **A unified diff between any two versions**, by default the newest and the one before it. It is computed on the server (a small Myers diff in `PNMTD.Lib`) and colour-coded in the UI; for encrypted versions in the browser, with the same diff (docs/mikrotik-backup-plan.md §3.6).
 - **Download** as `<identity>-<date>-v<version>.rsc`. Restoring is the admin's job: `/import` on the router, or copying single lines.
 - **Who** may see them: §10 and §16.2 question 5.
 
