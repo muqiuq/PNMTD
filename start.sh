@@ -24,6 +24,7 @@
 #   VERBOSE=1 ./start.sh           show the build log, which is otherwise only printed on failure
 #   ENGINE=docker ./start.sh       Docker instead of Podman
 #
+# MikroTik updates take a router admin's password over plain HTTP here (localhost); deploy/ refuses that.
 # Settings come from dev.env (gitignored, 0600, deploy/.env format: Smtp__Host=…, Identity=…, TZ=…),
 # or the file ENV_FILE names (tools/e2e.sh).
 # The first run creates it with a generated database password and a password for the first admin
@@ -204,6 +205,7 @@ fi
   --env-file "$ENV_FILE" \
   -e ASPNETCORE_ENVIRONMENT=Development \
   -e "Database__Host=${DB_NAME}" -e "Database__Password=${db_password}" \
+  -e Mikrotik__AllowPasswordsOverHttp=true \
   ${wireguard[@]+"${wireguard[@]}"} \
   --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
   --sysctl "net.ipv4.ping_group_range=0 2147483647" \

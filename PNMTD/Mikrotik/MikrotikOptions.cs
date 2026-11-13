@@ -14,6 +14,8 @@ public sealed class MikrotikOptions
 
     public BackupOptions Backups { get; set; } = new();
 
+    public UpdateOptions Updates { get; set; } = new();
+
     /// <summary>Admin passwords only over HTTPS (§7.2), unless this is set: development only.</summary>
     public bool AllowPasswordsOverHttp { get; set; }
 
@@ -44,6 +46,25 @@ public sealed class MikrotikOptions
 
         /// <summary>After a failed export, the next try waits this long (the poll in between goes on).</summary>
         public int RetryMinutes { get; set; } = 30;
+    }
+
+    public sealed class UpdateOptions
+    {
+        /// <summary>A router that does not answer again this long after its reboot fails the job (§7.5).</summary>
+        public int RebootTimeoutMinutes { get; set; } = 15;
+
+        public int DownloadTimeoutMinutes { get; set; } = 10;
+
+        /// <summary>How long the admin password stays in memory for a batch (§7.2).</summary>
+        public int CredentialLifetimeMinutes { get; set; } = 60;
+
+        /// <summary>How long a step waits between its checks of the router (the download, the return after a reboot).</summary>
+        public int PollSeconds { get; set; } = 10;
+
+        /// <summary>Less free storage refuses the update at its check (a package is 10–20 MB).</summary>
+        public long MinimumFreeStorageBytes { get; set; } = 24L * 1024 * 1024;
+
+        public long MaxBinaryBackupBytes { get; set; } = 64L * 1024 * 1024;
     }
 
     public sealed class VersionCheckOptions

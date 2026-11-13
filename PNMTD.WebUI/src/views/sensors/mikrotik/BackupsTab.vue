@@ -92,6 +92,7 @@ const triggers: Record<S['MikrotikBackupTrigger'], string> = {
   BeforeUpdate: 'before an update',
   BeforeCommand: 'before a command',
   AfterCommand: 'after a command',
+  AfterUpdate: 'after an update',
 }
 const title = computed(() => {
   const s = shown.value

@@ -155,6 +155,18 @@ export const api = {
     /** A plain link: the browser downloads the file with the session cookie. */
     downloadUrl: (id: Id, backupId: Id) =>
       `${typeof location !== 'undefined' ? location.origin : ''}/api/v1/sensors/${encodeURIComponent(id)}/mikrotik/backups/${encodeURIComponent(backupId)}/download`,
+    jobs: (id: Id, query: ListQuery = {}) =>
+      call(client.GET('/api/v1/sensors/{id}/mikrotik/jobs', { params: { path: { id }, query } })),
+    job: (id: Id, jobId: Id) =>
+      call(client.GET('/api/v1/sensors/{id}/mikrotik/jobs/{jobId}', { params: { path: { id, jobId } } })),
+    changelog: (id: Id, version: string) =>
+      call(client.GET('/api/v1/sensors/{id}/mikrotik/changelog', { params: { path: { id }, query: { version } } })),
+    // --- update jobs: Admin ------------------------------------------------------------------------------
+    startJobs: (body: S['MikrotikJobRequest']) => call(client.POST('/api/v1/mikrotik/jobs', { body })),
+    allJobs: (query: ListQuery & { kind?: S['MikrotikJobKind']; state?: S['MikrotikJobState'] } = {}) =>
+      call(client.GET('/api/v1/mikrotik/jobs', { params: { query } })),
+    anyJob: (jobId: Id) => call(client.GET('/api/v1/mikrotik/jobs/{id}', { params: { path: { id: jobId } } })),
+    cancelJob: (jobId: Id) => call(client.DELETE('/api/v1/mikrotik/jobs/{id}', { params: { path: { id: jobId } } })),
     removeBackup: (id: Id, backupId: Id) =>
       call(client.DELETE('/api/v1/sensors/{id}/mikrotik/backups/{backupId}', { params: { path: { id, backupId } } })),
     // --- the admin page: Admin ------------------------------------------------------------------

@@ -74,6 +74,9 @@ public interface IRouterSession : IAsyncDisposable
     RouterHostKey HostKey { get; }
 
     Task<RouterExecResult> ExecAsync(string command, TimeSpan timeout, int maxOutputBytes, CancellationToken ct);
+
+    /// <summary>A file from the router over SFTP (a binary backup, §6.5); refused above <paramref name="maxBytes"/>.</summary>
+    Task<byte[]> DownloadAsync(string path, long maxBytes, CancellationToken ct);
 }
 
 public interface IRouterConnector
@@ -130,7 +133,7 @@ public sealed class SshRouterConnector : IRouterConnector
                 client.Dispose();
                 throw Map(ex, refused, presented);
             }
-            return new SshRouterSession(client, presented ?? throw new RouterSessionException(RouterFailureKind.Protocol, "SSH: no host key"));
+            return new SshRouterSession(client, info, presented ?? throw new RouterSessionException(RouterFailureKind.Protocol, "SSH: no host key"));
         }
         finally
         {
@@ -163,9 +166,42 @@ public sealed class SshRouterConnector : IRouterConnector
         };
     }
 
-    private sealed class SshRouterSession(SshClient client, RouterHostKey hostKey) : IRouterSession
+    private sealed class SshRouterSession(SshClient client, ConnectionInfo info, RouterHostKey hostKey) : IRouterSession
     {
         public RouterHostKey HostKey { get; } = hostKey;
+
+        /// <summary>A second connection for SFTP, with the same login, checked against the same host key.</summary>
+        public async Task<byte[]> DownloadAsync(string path, long maxBytes, CancellationToken ct)
+        {
+            using var sftp = new SftpClient(info);
+            sftp.HostKeyReceived += (_, e) => e.CanTrust = e.HostKeyName == HostKey.Type && e.FingerPrintSHA256 == HostKey.Fingerprint;
+            try
+            {
+                await sftp.ConnectAsync(ct);
+                var attributes = await sftp.GetAttributesAsync(path, ct);
+                if (attributes.Size > maxBytes)
+                {
+                    throw new RouterSessionException(RouterFailureKind.Protocol, $"{path} is {attributes.Size} bytes, more than {maxBytes}");
+                }
+                using var buffer = new MemoryStream();
+                await using (var remote = await sftp.OpenAsync(path, FileMode.Open, FileAccess.Read, ct))
+                {
+                    await remote.CopyToAsync(buffer, ct);
+                }
+                return buffer.ToArray();
+            }
+            catch (Exception ex) when (ex is SshException or SocketException or IOException)
+            {
+                throw new RouterSessionException(RouterFailureKind.Protocol, $"SFTP: {ex.Message}", inner: ex);
+            }
+            finally
+            {
+                if (sftp.IsConnected)
+                {
+                    sftp.Disconnect();
+                }
+            }
+        }
 
         public async Task<RouterExecResult> ExecAsync(string command, TimeSpan timeout, int maxOutputBytes, CancellationToken ct)
         {

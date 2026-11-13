@@ -232,3 +232,100 @@ public class MikrotikBackupEntity
     /// <summary>A binary backup encrypted with the job's admin password (§6.5).</summary>
     public bool Encrypted { get; set; }
 }
+
+/// <summary>
+/// An update or a command on one router (docs/mikrotik-plan.md §7, §8), in a batch with the others started
+/// together. Permanent; only a redaction (§8.3) changes a finished one. Never holds a password.
+/// </summary>
+[Table("mikrotik_jobs")]
+public class MikrotikJobEntity
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    public Guid BatchId { get; set; }
+
+    public MikrotikJobKind Kind { get; set; }
+
+    /// <summary>Null once the router is deleted; <see cref="RouterName"/> keeps it readable.</summary>
+    public Guid? SensorId { get; set; }
+
+    public string RouterName { get; set; } = "";
+
+    public MikrotikJobState State { get; set; }
+
+    public MikrotikJobStep Step { get; set; }
+
+    public Guid? RequestedBy { get; set; }
+
+    public string? RequestedByName { get; set; }
+
+    /// <summary>The router's admin whose password the job used (§7.2): the name only.</summary>
+    public string? AdminUsername { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime? StartedAt { get; set; }
+
+    public DateTime? FinishedAt { get; set; }
+
+    // --- updates (§7) ---------------------------------------------------------------------------------------
+
+    public string? FromVersion { get; set; }
+
+    public string? ToVersion { get; set; }
+
+    public string? Channel { get; set; }
+
+    /// <summary>The options as chosen: a binary backup first, the firmware after, one router at a time.</summary>
+    [Column(TypeName = "jsonb")]
+    public string? Options { get; set; }
+
+    public string? Error { get; set; }
+
+    // --- commands (§8) --------------------------------------------------------------------------------------
+
+    /// <summary>At most 16 KiB; null after a redaction.</summary>
+    public string? Command { get; set; }
+
+    /// <summary>"pnmt", or the admin's username.</summary>
+    public string? RunAs { get; set; }
+
+    public int? TimeoutSeconds { get; set; }
+
+    public int? ExitStatus { get; set; }
+
+    /// <summary>At most <c>Commands:MaxStoredOutputBytes</c>; null after a redaction.</summary>
+    public string? Output { get; set; }
+
+    public bool OutputTruncated { get; set; }
+
+    public Guid? BackupBeforeId { get; set; }
+
+    public Guid? BackupAfterId { get; set; }
+
+    public DateTime? RedactedAt { get; set; }
+
+    public string? RedactedBy { get; set; }
+}
+
+/// <summary>A job's steps as they happened, with the router's answers (at most 64 KiB each). Permanent.</summary>
+[Table("mikrotik_job_log")]
+public class MikrotikJobLogEntity
+{
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public long Id { get; set; }
+
+    public Guid JobId { get; set; }
+
+    public DateTime At { get; set; }
+
+    public MikrotikJobStep Step { get; set; }
+
+    public MikrotikJobOutcome Outcome { get; set; }
+
+    public string Message { get; set; } = "";
+
+    public string? Output { get; set; }
+}

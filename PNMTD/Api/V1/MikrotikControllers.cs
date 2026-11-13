@@ -9,8 +9,25 @@ namespace PNMTD.Api.V1;
 /// <summary>A router's own endpoints (docs/mikrotik-plan.md §10): its scripts, the host key, poll now, its backups.</summary>
 [Route("api/v1/sensors/{id:guid}/mikrotik")]
 [Authorize(Policy = Policies.CanRead)]
-public sealed class SensorMikrotikController(MikrotikRouterService routers, MikrotikBackupService backups) : V1ControllerBase
+public sealed class SensorMikrotikController(MikrotikRouterService routers, MikrotikBackupService backups, MikrotikJobService jobs) : V1ControllerBase
 {
+    /// <summary>The router's update jobs, newest first (§7).</summary>
+    [HttpGet("jobs")]
+    public async Task<ActionResult<Paged<MikrotikJobItem>>> Jobs(Guid id, [FromQuery] MikrotikJobQuery query, CancellationToken ct)
+    {
+        await routers.EnsureRouterAsync(id, ct);
+        return await jobs.ListAsync(new MikrotikJobQuery { SensorId = id, Kind = query.Kind, State = query.State, Page = query.Page, PageSize = query.PageSize }, ct);
+    }
+
+    /// <summary>A job of the router, with its log.</summary>
+    [HttpGet("jobs/{jobId:guid}")]
+    public async Task<ActionResult<MikrotikJobDetail>> Job(Guid id, Guid jobId, CancellationToken ct) => await jobs.GetAsync(jobId, id, ct);
+
+    /// <summary>The changelog of a release (by default the newest of the router's channel), from MikroTik's update server.</summary>
+    [HttpGet("changelog")]
+    public async Task<ActionResult<MikrotikChangelog>> Changelog(Guid id, [FromQuery] string version, CancellationToken ct) =>
+        await jobs.ChangelogAsync(version, ct);
+
     /// <summary>
     /// The join script (§4.3): pasted into the router's terminal, or imported as a .rsc file. In the
     /// WireGuard modes it holds the router's private key; every view is audit-logged.
@@ -87,8 +104,29 @@ public sealed class SensorMikrotikController(MikrotikRouterService routers, Mikr
 /// <summary>The admin page's endpoints (§11.2): the overview and the fleet.</summary>
 [Route("api/v1/mikrotik")]
 [Authorize(Policy = Policies.Admin)]
-public sealed class MikrotikController(MikrotikRouterService routers) : V1ControllerBase
+public sealed class MikrotikController(MikrotikRouterService routers, MikrotikJobService jobs) : V1ControllerBase
 {
+    /// <summary>
+    /// Updates one router or several (§7): the credentials are checked on every router first, and the answer
+    /// lists the routers refused. HTTPS only: the password never travels in plain text. Audit-logged.
+    /// </summary>
+    [HttpPost("jobs")]
+    public async Task<ActionResult<MikrotikJobsCreated>> StartJobs(MikrotikJobRequest request, CancellationToken ct) => await jobs.CreateAsync(request, ct);
+
+    [HttpGet("jobs")]
+    public async Task<ActionResult<Paged<MikrotikJobItem>>> Jobs([FromQuery] MikrotikJobQuery query, CancellationToken ct) => await jobs.ListAsync(query, ct);
+
+    [HttpGet("jobs/{id:guid}")]
+    public async Task<ActionResult<MikrotikJobDetail>> Job(Guid id, CancellationToken ct) => await jobs.GetAsync(id, null, ct);
+
+    /// <summary>Cancels a job until its reboot. Audit-logged.</summary>
+    [HttpDelete("jobs/{id:guid}")]
+    public async Task<IActionResult> CancelJob(Guid id, CancellationToken ct)
+    {
+        await jobs.CancelAsync(id, ct);
+        return NoContent();
+    }
+
     [HttpGet("status")]
     public async Task<ActionResult<MikrotikStatus>> Status(CancellationToken ct) => await routers.StatusAsync(ct);
 

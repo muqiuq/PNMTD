@@ -36,6 +36,7 @@ import { useServerTable } from '@/composables/useServerTable'
 import { formatAbsolute, formatPercent } from '@/format'
 import { useSession } from '@/stores/session'
 import BackupsTab from './mikrotik/BackupsTab.vue'
+import UpdatesTab from './mikrotik/UpdatesTab.vue'
 import MikrotikSettingsDialog from './mikrotik/MikrotikSettingsDialog.vue'
 import MikrotikStatusStrip from './mikrotik/MikrotikStatusStrip.vue'
 import SetupTab from './mikrotik/SetupTab.vue'
@@ -102,6 +103,13 @@ const mikrotikTabs = computed(() => {
             icon: 'pi pi-history',
             to: to('backups'),
             badge: sensor.value?.mikrotik?.backupCount || null,
+          },
+          {
+            key: 'updates',
+            label: 'Updates',
+            icon: 'pi pi-upload',
+            to: to('updates'),
+            badge: sensor.value?.mikrotik?.updateAvailable ? '1' : null,
           },
         ]
       : []),
@@ -300,6 +308,7 @@ const more = computed(() => [
         :is-admin="isAdmin"
         @edit="routerSettingsOpen = true"
       />
+      <UpdatesTab v-else-if="isMikrotik && tab === 'updates'" :sensor="sensor" :is-admin="isAdmin" />
       <BackupsTab
         v-else-if="isMikrotik && tab === 'backups'"
         :sensor="sensor"

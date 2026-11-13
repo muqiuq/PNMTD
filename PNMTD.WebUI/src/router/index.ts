@@ -67,7 +67,7 @@ export const routes: RouteRecordRaw[] = [
   {
     // A UDP node's subpages are tabs of the same page, each with its route (docs/udp-iot-plan.md §6.2).
     // A MikroTik router's too (docs/mikrotik-plan.md §11.1).
-    path: '/sensors/:id/:tab(last-packets|commands|firmware|protocol|setup|backups)?',
+    path: '/sensors/:id/:tab(last-packets|commands|firmware|protocol|setup|backups|updates)?',
     name: 'sensor',
     component: () => import('@/views/sensors/SensorView.vue'),
     meta: { title: 'Sensor' },

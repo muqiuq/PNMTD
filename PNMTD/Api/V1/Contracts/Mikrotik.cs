@@ -207,3 +207,72 @@ public sealed class MikrotikBackupQuery : PageQuery
 {
     public MikrotikBackupKind? Kind { get; set; }
 }
+
+/// <summary>
+/// <c>POST /mikrotik/jobs</c> (§7.1): an update of one router or several, with the router admin's username
+/// and password for this one batch. The password is held in memory only, and never stored or logged.
+/// </summary>
+public sealed class MikrotikJobRequest
+{
+    public IReadOnlyList<Guid> SensorIds { get; init; } = [];
+
+    public MikrotikJobKind Kind { get; init; } = MikrotikJobKind.Update;
+
+    /// <summary>stable, long-term, testing or development; empty: each router's own.</summary>
+    public string? Channel { get; init; }
+
+    public string? Username { get; init; }
+
+    public string? Password { get; init; }
+
+    public bool BinaryBackup { get; init; } = true;
+
+    public bool Firmware { get; init; } = true;
+
+    public bool StopAtFirstFailure { get; init; } = true;
+
+    /// <summary>Never the password.</summary>
+    public override string ToString() => $"{Kind} of {SensorIds.Count} router(s) as {Username}";
+}
+
+/// <summary>The jobs created, and the routers refused before anything ran, with the reason.</summary>
+public sealed record MikrotikJobsCreated(Guid BatchId, IReadOnlyList<MikrotikJobItem> Jobs, IReadOnlyList<MikrotikJobRefusal> Refused);
+
+public sealed record MikrotikJobRefusal(Guid SensorId, string Name, string Reason);
+
+public sealed record MikrotikJobItem(
+    Guid Id,
+    Guid BatchId,
+    MikrotikJobKind Kind,
+    Guid? SensorId,
+    string RouterName,
+    MikrotikJobState State,
+    MikrotikJobStep Step,
+    string? RequestedBy,
+    string? AdminUsername,
+    DateTime CreatedAt,
+    DateTime? StartedAt,
+    DateTime? FinishedAt,
+    string? FromVersion,
+    string? ToVersion,
+    string? Channel,
+    string? Error);
+
+public sealed record MikrotikJobLogItem(long Id, DateTime At, MikrotikJobStep Step, MikrotikJobOutcome Outcome, string Message, string? Output);
+
+public sealed record MikrotikJobDetail(MikrotikJobItem Job, IReadOnlyList<MikrotikJobLogItem> Log);
+
+/// <summary><c>GET /mikrotik/jobs</c>: newest first.</summary>
+public sealed class MikrotikJobQuery : PageQuery
+{
+    public MikrotikJobKind? Kind { get; set; }
+
+    public MikrotikJobState? State { get; set; }
+
+    public Guid? BatchId { get; set; }
+
+    public Guid? SensorId { get; set; }
+}
+
+/// <summary>A RouterOS release's changelog, from MikroTik's update server (§5.4).</summary>
+public sealed record MikrotikChangelog(string Version, string Text);

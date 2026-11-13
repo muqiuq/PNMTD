@@ -439,6 +439,139 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("mikrotik_backups");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.MikrotikJobEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdminUsername")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("BackupAfterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BackupBeforeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Channel")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Command")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ExitStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FromVersion")
+                        .HasColumnType("text");
+
+                    b.Property<short>("Kind")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Options")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Output")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("OutputTruncated")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("RedactedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RedactedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("RequestedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RequestedByName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RouterName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RunAs")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short>("State")
+                        .HasColumnType("smallint");
+
+                    b.Property<short>("Step")
+                        .HasColumnType("smallint");
+
+                    b.Property<int?>("TimeoutSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ToVersion")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("SensorId", "CreatedAt");
+
+                    b.HasIndex("State", "CreatedAt");
+
+                    b.ToTable("mikrotik_jobs");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.MikrotikJobLogEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<short>("Outcome")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Output")
+                        .HasColumnType("text");
+
+                    b.Property<short>("Step")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobId", "At");
+
+                    b.ToTable("mikrotik_job_log");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.MikrotikRouterEntity", b =>
                 {
                     b.Property<Guid>("SensorId")
@@ -1555,6 +1688,23 @@ namespace PNMTD.Data.Migrations
                         .WithMany()
                         .HasForeignKey("SensorId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.MikrotikJobEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.MikrotikJobLogEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.MikrotikJobEntity", null)
+                        .WithMany()
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.MikrotikRouterEntity", b =>

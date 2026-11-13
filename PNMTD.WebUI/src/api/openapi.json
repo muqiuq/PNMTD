@@ -2136,6 +2136,202 @@
         }
       }
     },
+    "/api/v1/sensors/{id}/mikrotik/jobs": {
+      "get": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/MikrotikJobKind"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/MikrotikJobState"
+            }
+          },
+          {
+            "name": "batchId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sensorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfMikrotikJobItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfMikrotikJobItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfMikrotikJobItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/mikrotik/jobs/{jobId}": {
+      "get": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikJobDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikJobDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikJobDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/mikrotik/changelog": {
+      "get": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikChangelog"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikChangelog"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikChangelog"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/sensors/{id}/mikrotik/join-script": {
       "get": {
         "tags": [
@@ -2627,6 +2823,205 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/mikrotik/jobs": {
+      "post": {
+        "tags": [
+          "Mikrotik"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikJobRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikJobRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikJobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikJobsCreated"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikJobsCreated"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikJobsCreated"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Mikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/MikrotikJobKind"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/MikrotikJobState"
+            }
+          },
+          {
+            "name": "batchId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sensorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfMikrotikJobItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfMikrotikJobItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfMikrotikJobItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mikrotik/jobs/{id}": {
+      "get": {
+        "tags": [
+          "Mikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikJobDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikJobDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikJobDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Mikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -7306,8 +7701,24 @@
           "Manual",
           "BeforeUpdate",
           "BeforeCommand",
-          "AfterCommand"
+          "AfterCommand",
+          "AfterUpdate"
         ]
+      },
+      "MikrotikChangelog": {
+        "required": [
+          "version",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
       },
       "MikrotikChannelVersion": {
         "required": [
@@ -7580,6 +7991,291 @@
             "format": "date-time"
           }
         }
+      },
+      "MikrotikJobDetail": {
+        "required": [
+          "job",
+          "log"
+        ],
+        "type": "object",
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/MikrotikJobItem"
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikJobLogItem"
+            }
+          }
+        }
+      },
+      "MikrotikJobItem": {
+        "required": [
+          "id",
+          "batchId",
+          "kind",
+          "sensorId",
+          "routerName",
+          "state",
+          "step",
+          "requestedBy",
+          "adminUsername",
+          "createdAt",
+          "startedAt",
+          "finishedAt",
+          "fromVersion",
+          "toVersion",
+          "channel",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/MikrotikJobKind"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "routerName": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/MikrotikJobState"
+          },
+          "step": {
+            "$ref": "#/components/schemas/MikrotikJobStep"
+          },
+          "requestedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "adminUsername": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "fromVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "toVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "channel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MikrotikJobKind": {
+        "enum": [
+          "Update",
+          "Command"
+        ]
+      },
+      "MikrotikJobLogItem": {
+        "required": [
+          "id",
+          "at",
+          "step",
+          "outcome",
+          "message",
+          "output"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "step": {
+            "$ref": "#/components/schemas/MikrotikJobStep"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/MikrotikJobOutcome"
+          },
+          "message": {
+            "type": "string"
+          },
+          "output": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MikrotikJobOutcome": {
+        "enum": [
+          "Started",
+          "Ok",
+          "Failed",
+          "Info"
+        ]
+      },
+      "MikrotikJobRefusal": {
+        "required": [
+          "sensorId",
+          "name",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "sensorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "MikrotikJobRequest": {
+        "type": "object",
+        "properties": {
+          "sensorIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "kind": {
+            "$ref": "#/components/schemas/MikrotikJobKind"
+          },
+          "channel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "username": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "password": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "binaryBackup": {
+            "type": "boolean"
+          },
+          "firmware": {
+            "type": "boolean"
+          },
+          "stopAtFirstFailure": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MikrotikJobsCreated": {
+        "required": [
+          "batchId",
+          "jobs",
+          "refused"
+        ],
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikJobItem"
+            }
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikJobRefusal"
+            }
+          }
+        }
+      },
+      "MikrotikJobState": {
+        "enum": [
+          "Queued",
+          "Running",
+          "Succeeded",
+          "Skipped",
+          "Failed",
+          "Cancelled"
+        ]
+      },
+      "MikrotikJobStep": {
+        "enum": [
+          "Check",
+          "Export",
+          "BinaryBackup",
+          "Download",
+          "Reboot",
+          "Wait",
+          "Verify",
+          "Firmware",
+          "Done",
+          "Run",
+          "ExportAfter"
+        ]
       },
       "MikrotikMode": {
         "enum": [
@@ -8624,6 +9320,35 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MikrotikFleetItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfMikrotikJobItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikJobItem"
             }
           },
           "page": {

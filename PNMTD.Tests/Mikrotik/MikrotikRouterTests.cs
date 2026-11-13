@@ -39,6 +39,8 @@ public sealed class MikrotikRouterTests
         user = app.Client(Roles.User);
         var host = await (await admin.PostJsonAsync("/api/v1/hosts", new HostRequest { Name = $"mikrotik-tests-{Guid.NewGuid():N}" })).ReadAsync<HostDetail>();
         hostId = host.Id;
+        // Nothing newer than the fixtures' 7.25.1, whatever another class left in the catalog.
+        await SetLatestAsync("stable", "7.25.1");
     }
 
     [ClassCleanup]
@@ -418,6 +420,9 @@ public sealed class MikrotikRouterTests
         /// <summary>Every command PNMTD ran, in order.</summary>
         public List<string> Commands { get; } = [];
 
+        /// <summary>Files on the router, for SFTP.</summary>
+        public Dictionary<string, byte[]> Files { get; } = [];
+
         public static FakeRouter From(string version) => new()
         {
             Output = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Mikrotik", version, "poll.json")),
@@ -490,6 +495,11 @@ public sealed class MikrotikRouterTests
                 }
                 return Task.FromResult(new RouterExecResult(router.Output, "", 0, false, false, TimeSpan.FromMilliseconds(5)));
             }
+
+            public Task<byte[]> DownloadAsync(string path, long maxBytes, CancellationToken ct) =>
+                router.Files.TryGetValue(path.TrimStart('/'), out var file)
+                    ? Task.FromResult(file)
+                    : throw new RouterSessionException(RouterFailureKind.Protocol, $"SFTP: {path}: no such file");
 
             public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         }

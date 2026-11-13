@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Revision 3, in implementation**: M0 to M4 are built (§13.1). Details still marked *(M0)* belong to later phases and are verified there on a real RouterOS. The other RouterOS facts were checked against the manual and the per-version changelogs (§4.1) |
+| Status | **Revision 3, in implementation**: M0 to M5 are built (§13.1). Details still marked *(M0)* belong to later phases and are verified there on a real RouterOS. The other RouterOS facts were checked against the manual and the per-version changelogs (§4.1) |
 | Date | 2026-11-12 |
 | Revision | 3: **remote commands** (§8): a command or script, run on one router or several, as the read-only `pnmt` user, or as the router's admin with the password typed for that run. **The admin password is therefore needed for updates and for commands run as an admin** (decision 8, §16.1).<br><br>2: **the review decisions of revision 1 (§16.1)**:<ul><li>three connection modes: **WireGuard + SSH**, **WireGuard only**, and **Direct SSH**;</li><li>a router joins with **one script**, generated when it is added in the UI, that contains everything, **including the router's WireGuard private key**;</li><li>**the admin password is needed only for updates**;</li><li>**custom tunnels**: extra WireGuard peers with a downloadable configuration;</li><li>**the tunnel network is configured in the web UI**, on one admin page that also monitors it;</li><li>**the external address and port** of the WireGuard endpoint can also be set in environment variables, for a PNMTD behind NAT.</li></ul>Revision 1 had a copy-back of the router's public key and a second onboarding path that used the admin password |
 | Scope | PNMTD monitors and manages MikroTik routers running RouterOS 7.13 or later, and runs a WireGuard network for them.<ul><li>A router is added in the UI. PNMT then shows a **join script**, which the router's admin runs once on the router.</li><li>Through a **WireGuard tunnel that the router opens**, or directly over SSH, PNMTD logs in as a **read-only user, `pnmt`**.</li><li>It monitors the version, uptime and resources.</li><li>It **backs the configuration up** on a schedule and keeps each changed version with a diff.</li><li>It **installs RouterOS updates** when an Admin supplies the router's admin password for that one job.</li><li>It **runs commands** on routers: read-only as `pnmt`, or as the router's admin with the password typed for that run.</li></ul>**Custom tunnels** give people (or other devices) a WireGuard configuration of their own, for management access to the routers through PNMT |
@@ -309,9 +309,9 @@ A custom tunnel is a WireGuard peer that is not a router. It is typically a tech
 | Poll the status | `/system resource`, `/system routerboard`, `/system package update`, `/system identity`, `/system health`, the `pnmt` WireGuard peer, the `pnmt-read` group, each as `:serialize to=json` of `print as-value` | `ssh`, `read` | `pnmt` |
 | **Export the configuration, without secrets** | `/export terse`. RouterOS 7 hides sensitive values by default | `ssh`, `read`. 7.13 may also need `sniff` (§4.1, *M0*) | **`pnmt`: no extra rights** |
 | Export with secrets | `/export terse show-sensitive`. Without the `sensitive` policy, the values come out as `*****` | `+ sensitive` | `pnmt`, only if the router opts in (§6.6) |
-| **Binary backup** (`.backup`) | `/system backup save`, SFTP download, `/file remove` | No official list. Community sources use `read`, `write`, `policy`, `test`, `sensitive` and `ftp`, and `ftp` covers file transfer *(M0)* | **The router's admin, inside an update job** (§6.5) |
-| Check for updates on the router | `/system package update check-for-updates` | Not documented *(M0)* | Not needed: PNMTD checks centrally (§5.4) |
-| Install an update | `set channel`, `check-for-updates`, `download` (download only), then a reboot | `reboot` for the reboot; the rest is not documented *(M0)* | The router's admin (§7) |
+| **Binary backup** (`.backup`) | `/system backup save … password=…`, SFTP download, `/file remove` | **M5 on 7.25.1: `write`, `policy`, `sensitive` and `test` for the save, `ftp` for SFTP** (not `reboot`) | **The router's admin, inside an update job** (§6.5) |
+| Check for updates on the router | `/system package update check-for-updates` | **M5 on 7.25.1: `policy`** (refused to `pnmt`) | Not needed: PNMTD checks centrally (§5.4) |
+| Install an update | `set channel` (`write`), `check-for-updates` (`policy`), `download`, then `/system reboot` (`reboot`; over exec it asks nothing and reboots at once) | **`ssh`, `read`, `write`, `policy`, `reboot`**; PNMTD checks them before a job exists (§7.2) | The router's admin (§7) |
 | RouterBOARD firmware | `/system routerboard upgrade`, then a reboot | `write`, `reboot` *(M0)* | The router's admin, inside the update job |
 | **Run a command** (§8) | The text, as typed | Those of the user it runs as. `pnmt`: `ssh`, `read` | `pnmt`, or the router's admin with the password typed for the run |
 | Ping, traceroute | `/ping`, `/tool traceroute` | `test` | `pnmt` with *Diagnostics* (§8.4), or the router's admin |
@@ -577,7 +577,7 @@ Updates exist in the SSH modes only.
 | 2 | **Export** | `pnmt` | §6.1, trigger *BeforeUpdate* | The export fails |
 | 3 | **Binary backup** (option) | admin | §6.5 | Save or download fails |
 | 4 | **Download** | admin | `/system package update set channel=…`, `check-for-updates`, `download`. Then `status` is polled until the package is downloaded | An error status (for example storage), or 10 minutes |
-| 5 | **Reboot** | admin | `/system reboot` over a non-interactive exec: M0 found that it asks nothing and reboots at once (7.25.1, as admin; as `pnmt` it does nothing and exits 0). 7.13 is checked in M5 | – |
+| 5 | **Reboot** | admin | `/system reboot` over a non-interactive exec: M0 found that it asks nothing and reboots at once (7.25.1, as admin; as `pnmt` it does nothing and exits 0). M5 found the same on 7.13 | – |
 | 6 | **Wait** | `pnmt` | A fresh handshake (WireGuard + SSH), then a login | No return within `RebootTimeoutMinutes` (default 15) |
 | 7 | **Verify** | `pnmt` | The installed version equals the target | Still the old version: "the package was not applied", with a pointer to `/log` |
 | 8 | **Firmware** (option, RouterBOARD only) | admin | If `current-firmware ≠ upgrade-firmware`: `/system routerboard upgrade` (which asks for confirmation interactively *(M0)*), a reboot, a wait, and a check. **The new firmware always needs this second reboot**, even with `auto-upgrade=yes`, which only saves the `upgrade` command | As in steps 5–7 |
@@ -603,7 +603,7 @@ Updates exist in the SSH modes only.
 | **A failure after step 4** (a download) | **The downloaded package installs at the router's next reboot**, whoever causes it. The job log and the 443 message say so, with how to remove it (`/file remove` of the `.npk`) |
 | The router does not return | 443 after the timeout. Shortly after, the poller gives 440 |
 | The router returns on the old version | 443 "not applied". The `pnmt` user reads `/log` and the job log keeps the relevant lines |
-| PNMTD restarts during a job | The job continues where it can without the password: steps 6 and 7 work as `pnmt`. A step that needs the password fails with "the admin password is gone after a restart: start the update again" |
+| PNMTD restarts during a job | **As built (M5): the job fails at the restart**, because the password is gone with it. Before the reboot: "start the update again". From the reboot on, the message says that the update goes on without PNMTD, and the next poll shows the version (242). No 443 is written, because PNMTD does not know the outcome |
 | A downgrade or a channel change | A downgrade is not offered. A channel change is offered, with a warning for testing |
 
 ---
@@ -1175,6 +1175,24 @@ Effort is a rough estimate for one developer. Each phase ends green in `./run-te
 - **Downloads:** Admins under *Admin → MikroTik & WireGuard → Custom tunnels*; an owner under *Account → Tunnels* (the user menu), only while the tunnel is enabled and not expired. Every download is audit-logged.
 - **`pnmtd wireguard tunnel add <name> [--owner …] [--routers all|…] [--expires …] [--out …]`.**
 - **Lab, on real RouterOS:** a laptop container brought up the file the CLI wrote with `wg-quick` and reached WinBox (8291) and SSH (22) on the 7.25.1 router with management access, but not port 23, not the 7.13 router without management access, and not the gateway's SOCKS port. The router accepted it only through PNMT's rule for the access address, which shows the source rewriting; its login as `pnmt` was refused.
+
+**M5 as built (updates):**
+
+- **Jobs** (`mikrotik_jobs`, `mikrotik_job_log`; migration `AddMikrotikJobs`, which already has M6's command columns). `POST /api/v1/mikrotik/jobs` (Admin) takes routers (up to 500), a channel or each router's own, the admin's username and password, and the options *binary backup*, *firmware* and *stop at the first failure* (all on by default).
+- **Checked before a job exists**, per router, with the reason in the answer: HTTPS (§7.2), an SSH mode, enabled, no job queued or running, the target known and newer, a pinned host key, and then **a login with the password that reads the user's group and its policies** (`ssh read write policy reboot`, with the binary backup also `test sensitive ftp`). The version comes first, so an up-to-date router is not logged in to. Accepted routers form a batch, refused ones are listed, and the password goes into the `CredentialVault` for the batch only.
+- **`JobRunner`** is a hosted service outside `BackgroundTasks`, so the tests run real jobs. It runs one job at a time and holds the router's lock (the poller skips the router meanwhile). A failure cancels the batch's later jobs. The vault forgets the batch when its last job ends, or after `CredentialLifetimeMinutes`.
+- **The steps of §7.3, as built:**
+  - *Check* and *Export* as `pnmt`; an unchanged export stores no new version.
+  - *Binary backup:* `/system backup save name=pnmt-<8 hex> password=<admin's>`, SFTP with the pinned host key, a size cap (`MaxBinaryBackupBytes`, 64 MiB), `/file remove`. It is stored as a backup of kind *Binary*, marked as encrypted with the admin's password.
+  - *Download:* `set channel`, `check-for-updates`, `get latest-version` must be the target, the free storage against `MinimumFreeStorageBytes`, `download`, then the status every `PollSeconds` until "Downloaded" (`DownloadTimeoutMinutes`).
+  - *Reboot:* `/system reboot` over exec; the session ending with it is expected.
+  - *Wait:* as `pnmt` until the router answers with a boot time after the reboot (`RebootTimeoutMinutes`).
+  - *Verify*, then *Firmware* on a RouterBOARD only, with its own reboot and wait.
+  - *Done:* before the job counts as done, a poll with a forced export (trigger **AfterUpdate**, new), which writes 241 and 242.
+- **Cancelling** (`DELETE …/jobs/{id}`, audit-logged) works until the reboot. **443** names the step, and after a download it says that the package installs at the next reboot and how to remove it. A restart of PNMTD fails running jobs (§7.5, as built).
+- **The UI:** the router's **Updates** tab shows the installed version against the newest of its channel, the release's changelog (fetched from MikroTik and cached in memory), *Update…* for Admins, and the router's jobs, each with its log as a timeline. The dialog takes the channel, credentials and options, and shows each router's refusal. *Admin → MikroTik & WireGuard → Jobs* lists all jobs, with *Cancel*. **Not yet:** choosing several routers in the Routers list for one batch (the API takes them), and parallel jobs.
+- **Tests** against a simulated router that answers like 7.25.1 in the lab: every step, 242, the binary backup (Admin only, removed from the router), the fresh export after the update; a wrong password and missing policies refused with no job; an unapplied package as 443; HTTP and non-Admins refused; an up-to-date router refused. **The marker password is searched for in every text column of the database.**
+- **Lab, on real RouterOS:** r13, a CHR on 7.13 behind QEMU's NAT, joined as WireGuard + SSH, was updated to 7.25.1 from the API in 41 seconds. The steps were check, an unchanged export, a binary backup (27 KiB), the download (3 s), the reboot, and back after 35 s on 7.25.1, with "no RouterBOARD" for the firmware. Events 241 and 242 followed. **On 7.13, `/system reboot` over exec also reboots at once, without its question.** The policies measured on 7.25.1 are those of §4.2's table.
 
 ---
 

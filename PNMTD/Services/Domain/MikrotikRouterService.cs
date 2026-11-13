@@ -474,6 +474,14 @@ public sealed class MikrotikRouterService(
         return (await DetailAsync(sensorId, ct))!;
     }
 
+    public async Task EnsureRouterAsync(Guid sensorId, CancellationToken ct)
+    {
+        if (!await db.MikrotikRouters.AnyAsync(r => r.SensorId == sensorId, ct))
+        {
+            throw ApiException.NotFound("MikroTik router");
+        }
+    }
+
     /// <summary>Polls now and waits for it (§10: "poll now").</summary>
     public async Task<MikrotikRouterDetail> PollNowAsync(Guid sensorId, CancellationToken ct)
     {

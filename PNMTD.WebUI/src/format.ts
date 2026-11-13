@@ -14,6 +14,8 @@ const absolute = new Intl.DateTimeFormat(undefined, {
 
 const dateOnly = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 
+const timeOnly = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+
 export function toDate(value: string | number | Date | null | undefined): Date | null {
   if (value === null || value === undefined || value === '') {
     return null
@@ -25,6 +27,12 @@ export function toDate(value: string | number | Date | null | undefined): Date |
 export function formatAbsolute(value: string | number | Date | null | undefined): string {
   const date = toDate(value)
   return date ? absolute.format(date) : '–'
+}
+
+/** The time of day with seconds, for logs whose date is shown once above them. */
+export function formatTime(value: string | number | Date | null | undefined): string {
+  const date = toDate(value)
+  return date ? timeOnly.format(date) : '–'
 }
 
 export function formatDay(value: string | Date): string {

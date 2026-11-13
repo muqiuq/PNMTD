@@ -6,6 +6,7 @@ import TabNav from '@/components/TabNav.vue'
 import NetworkTab from './mikrotik/NetworkTab.vue'
 import OverviewTab from './mikrotik/OverviewTab.vue'
 import RoutersTab from './mikrotik/RoutersTab.vue'
+import JobsTab from './mikrotik/JobsTab.vue'
 import TunnelsTab from './mikrotik/TunnelsTab.vue'
 
 /**
@@ -22,6 +23,7 @@ const tabs = computed(() => {
     { key: 'network', label: 'Network', icon: 'pi pi-sitemap', to: to('network') },
     { key: 'routers', label: 'Routers', icon: 'pi pi-server', to: to('routers') },
     { key: 'tunnels', label: 'Custom tunnels', icon: 'pi pi-lock', to: to('tunnels') },
+    { key: 'jobs', label: 'Jobs', icon: 'pi pi-upload', to: to('jobs') },
   ]
 })
 </script>
@@ -33,6 +35,7 @@ const tabs = computed(() => {
     <NetworkTab v-if="tab === 'network'" />
     <RoutersTab v-else-if="tab === 'routers'" />
     <TunnelsTab v-else-if="tab === 'tunnels'" />
+    <JobsTab v-else-if="tab === 'jobs'" />
     <OverviewTab v-else />
   </div>
 </template>

@@ -1659,6 +1659,135 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sensors/{id}/mikrotik/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    kind?: components["schemas"]["MikrotikJobKind"];
+                    state?: components["schemas"]["MikrotikJobState"];
+                    batchId?: string;
+                    sensorId?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfMikrotikJobItem"];
+                        "text/json": components["schemas"]["PagedOfMikrotikJobItem"];
+                        "text/plain": components["schemas"]["PagedOfMikrotikJobItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/mikrotik/jobs/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    jobId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikJobDetail"];
+                        "text/json": components["schemas"]["MikrotikJobDetail"];
+                        "text/plain": components["schemas"]["MikrotikJobDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/mikrotik/changelog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    version?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikChangelog"];
+                        "text/json": components["schemas"]["MikrotikChangelog"];
+                        "text/plain": components["schemas"]["MikrotikChangelog"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sensors/{id}/mikrotik/join-script": {
         parameters: {
             query?: never;
@@ -2058,6 +2187,137 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mikrotik/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    kind?: components["schemas"]["MikrotikJobKind"];
+                    state?: components["schemas"]["MikrotikJobState"];
+                    batchId?: string;
+                    sensorId?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfMikrotikJobItem"];
+                        "text/json": components["schemas"]["PagedOfMikrotikJobItem"];
+                        "text/plain": components["schemas"]["PagedOfMikrotikJobItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MikrotikJobRequest"];
+                    "text/json": components["schemas"]["MikrotikJobRequest"];
+                    "application/*+json": components["schemas"]["MikrotikJobRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikJobsCreated"];
+                        "text/json": components["schemas"]["MikrotikJobsCreated"];
+                        "text/plain": components["schemas"]["MikrotikJobsCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mikrotik/jobs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikJobDetail"];
+                        "text/json": components["schemas"]["MikrotikJobDetail"];
+                        "text/plain": components["schemas"]["MikrotikJobDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -4875,7 +5135,11 @@ export interface components {
             message: string;
         };
         /** @enum {unknown} */
-        MikrotikBackupTrigger: "FirstLogin" | "Schedule" | "Manual" | "BeforeUpdate" | "BeforeCommand" | "AfterCommand";
+        MikrotikBackupTrigger: "FirstLogin" | "Schedule" | "Manual" | "BeforeUpdate" | "BeforeCommand" | "AfterCommand" | "AfterUpdate";
+        MikrotikChangelog: {
+            version: string;
+            text: string;
+        };
         MikrotikChannelVersion: {
             channel: string;
             version: string;
@@ -4941,6 +5205,74 @@ export interface components {
             /** Format: date-time */
             at: null | string;
         };
+        MikrotikJobDetail: {
+            job: components["schemas"]["MikrotikJobItem"];
+            log: components["schemas"]["MikrotikJobLogItem"][];
+        };
+        MikrotikJobItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            batchId: string;
+            kind: components["schemas"]["MikrotikJobKind"];
+            /** Format: uuid */
+            sensorId: null | string;
+            routerName: string;
+            state: components["schemas"]["MikrotikJobState"];
+            step: components["schemas"]["MikrotikJobStep"];
+            requestedBy: null | string;
+            adminUsername: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            startedAt: null | string;
+            /** Format: date-time */
+            finishedAt: null | string;
+            fromVersion: null | string;
+            toVersion: null | string;
+            channel: null | string;
+            error: null | string;
+        };
+        /** @enum {unknown} */
+        MikrotikJobKind: "Update" | "Command";
+        MikrotikJobLogItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            at: string;
+            step: components["schemas"]["MikrotikJobStep"];
+            outcome: components["schemas"]["MikrotikJobOutcome"];
+            message: string;
+            output: null | string;
+        };
+        /** @enum {unknown} */
+        MikrotikJobOutcome: "Started" | "Ok" | "Failed" | "Info";
+        MikrotikJobRefusal: {
+            /** Format: uuid */
+            sensorId: string;
+            name: string;
+            reason: string;
+        };
+        MikrotikJobRequest: {
+            sensorIds?: string[];
+            kind?: components["schemas"]["MikrotikJobKind"];
+            channel?: null | string;
+            username?: null | string;
+            password?: null | string;
+            binaryBackup?: boolean;
+            firmware?: boolean;
+            stopAtFirstFailure?: boolean;
+        };
+        MikrotikJobsCreated: {
+            /** Format: uuid */
+            batchId: string;
+            jobs: components["schemas"]["MikrotikJobItem"][];
+            refused: components["schemas"]["MikrotikJobRefusal"][];
+        };
+        /** @enum {unknown} */
+        MikrotikJobState: "Queued" | "Running" | "Succeeded" | "Skipped" | "Failed" | "Cancelled";
+        /** @enum {unknown} */
+        MikrotikJobStep: "Check" | "Export" | "BinaryBackup" | "Download" | "Reboot" | "Wait" | "Verify" | "Firmware" | "Done" | "Run" | "ExportAfter";
         /** @enum {unknown} */
         MikrotikMode: "WireGuardSsh" | "WireGuardOnly" | "DirectSsh";
         MikrotikResources: {
@@ -5212,6 +5544,15 @@ export interface components {
         };
         PagedOfMikrotikFleetItem: {
             items: components["schemas"]["MikrotikFleetItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfMikrotikJobItem: {
+            items: components["schemas"]["MikrotikJobItem"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */

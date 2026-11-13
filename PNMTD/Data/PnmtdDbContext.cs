@@ -52,6 +52,8 @@ namespace PNMTD.Data
         public DbSet<MikrotikSettingsEntity> MikrotikSettings { get; set; }
         public DbSet<MikrotikSshKeyEntity> MikrotikSshKeys { get; set; }
         public DbSet<MikrotikBackupEntity> MikrotikBackups { get; set; }
+        public DbSet<MikrotikJobEntity> MikrotikJobs { get; set; }
+        public DbSet<MikrotikJobLogEntity> MikrotikJobLog { get; set; }
 
         // The WireGuard network (docs/mikrotik-plan.md §3, §9.2).
         public DbSet<WgNetworkEntity> WgNetwork { get; set; }
@@ -164,6 +166,18 @@ namespace PNMTD.Data
             });
             modelBuilder.Entity<MikrotikRouterEntity>()
                 .HasOne<WgPeerEntity>().WithMany().HasForeignKey(r => r.WgPeerId).OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<MikrotikJobEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(j => j.SensorId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(j => new { j.SensorId, j.CreatedAt });
+                e.HasIndex(j => new { j.State, j.CreatedAt });
+                e.HasIndex(j => j.BatchId);
+            });
+            modelBuilder.Entity<MikrotikJobLogEntity>(e =>
+            {
+                e.HasOne<MikrotikJobEntity>().WithMany().HasForeignKey(l => l.JobId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(l => new { l.JobId, l.At });
+            });
             modelBuilder.Entity<MikrotikBackupEntity>(e =>
             {
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(b => b.SensorId).OnDelete(DeleteBehavior.SetNull);

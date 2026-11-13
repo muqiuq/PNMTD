@@ -115,10 +115,12 @@ public partial class Program
         }
 
         // UDP nodes (docs/udp-iot-plan.md §4.4): on unless Udp:Enabled=false, not tied to the
-        // monitoring tasks, so the integration tests can run it on a port of their own.
+        // monitoring tasks, so the integration tests can run it on a port of their own. The same for
+        // MikroTik jobs (docs/mikrotik-plan.md §9.3): an update an Admin started runs in any case.
         if (!documentBuild)
         {
             builder.Services.AddHostedService<UdpListener>();
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<JobRunner>());
         }
 
         if (!string.IsNullOrWhiteSpace(builder.Configuration["Proxy"]))

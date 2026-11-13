@@ -16,6 +16,8 @@ public static class MikrotikSetup
         services.AddSingleton<RouterPoller>();
         services.AddSingleton<VersionCatalog>();
         services.AddSingleton<BackupRetentionTask>();
+        services.AddSingleton<CredentialVault>();
+        services.AddSingleton<JobRunner>();
         return services;
     }
 }

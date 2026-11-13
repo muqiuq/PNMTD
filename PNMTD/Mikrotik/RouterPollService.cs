@@ -185,6 +185,70 @@ public sealed class RouterPollService(
         return await RecordAsync(db, router, result, request, ct, tunnelAddress);
     }
 
+    // --- for jobs (§7, §8): the same ways in, without the poll's bookkeeping ---------------------------------
+
+    public IRouterConnector Connector => connector;
+
+    /// <summary>
+    /// How to reach <paramref name="router"/> as <paramref name="username"/>: its address, or its tunnel address
+    /// through the gateway's SOCKS. Null with the reason when there is no way in now.
+    /// </summary>
+    public async Task<(RouterTarget? Target, string? Error)> TargetAsync(PnmtdDbContext db, MikrotikRouterEntity router, string username,
+        RouterCredentials credentials, CancellationToken ct)
+    {
+        var pinned = router.HostKeyFingerprint is { } fp && router.HostKeyType is { } type ? new RouterHostKey(type, fp) : null;
+        var timeout = TimeSpan.FromSeconds(options.CurrentValue.Ssh.ConnectTimeoutSeconds);
+        if (router.Mode == MikrotikMode.WireGuardOnly)
+        {
+            return (null, "WireGuard only: there is no login.");
+        }
+        if (router.Mode == MikrotikMode.WireGuardSsh)
+        {
+            if (!wireGuard.Enabled)
+            {
+                return (null, "The WireGuard gateway is off (WireGuard__Enabled).");
+            }
+            var network = await wireGuard.EnsureAsync(db, ct);
+            var peer = router.WgPeerId is { } peerId ? await db.WgPeers.AsNoTracking().SingleOrDefaultAsync(p => p.Id == peerId, ct) : null;
+            var socks = wireGuard.Unprotect(network.SocksSecretProtected);
+            if (peer is null || socks is null || !TryEndpoint(wireGuard.Options.Gateway, out var gatewayHost, out var gatewayPort))
+            {
+                return (null, "The router's tunnel or the gateway's SOCKS endpoint is not usable.");
+            }
+            return (new RouterTarget(router.SensorId, peer.Address, router.SshPort, username, credentials, pinned, timeout,
+                new RouterProxy(gatewayHost, gatewayPort, PNMTD.WireGuard.Gateway.WireGuardGateway.SocksUser, socks)), null);
+        }
+        return string.IsNullOrWhiteSpace(router.Address)
+            ? (null, "No address to connect to.")
+            : (new RouterTarget(router.SensorId, router.Address!, router.SshPort, username, credentials, pinned, timeout), null);
+    }
+
+    /// <summary>PNMTD's own keys, for the <c>pnmt</c> user.</summary>
+    public async Task<RouterCredentials> PnmtCredentialsAsync(CancellationToken ct) => RouterCredentials.Keys(await keys.PrivateKeysAsync(ct));
+
+    /// <summary>The poll script in an open session; throws <see cref="FormatException"/> on unexpected output.</summary>
+    public async Task<RouterReading> ReadAsync(IRouterSession session, CancellationToken ct)
+    {
+        var o = options.CurrentValue.Ssh;
+        var installation = await keys.GetAsync(ct);
+        var exec = await session.ExecAsync(RouterPoll.Script(installation.Comment), TimeSpan.FromSeconds(o.CommandTimeoutSeconds), o.MaxOutputBytes, ct);
+        return RouterPoll.Parse(exec.Output);
+    }
+
+    /// <summary><c>/export terse</c> in an open session: the text, or why there is none.</summary>
+    public async Task<(string? Output, string? Error)> ExportAsync(IRouterSession session, bool withSecrets, CancellationToken ct)
+    {
+        var o = options.CurrentValue.Ssh;
+        var max = options.CurrentValue.Backups.MaxExportBytes;
+        var export = await session.ExecAsync(withSecrets ? "/export terse show-sensitive" : "/export terse", TimeSpan.FromSeconds(o.ExportTimeoutSeconds), max, ct);
+        var error = export.TimedOut ? $"The export timed out after {o.ExportTimeoutSeconds} s"
+            : export.Truncated ? $"The export is larger than {max / 1024 / 1024} MiB"
+            : ExportText.Problem(export.Output) is { } problem ? problem
+            : export.ExitStatus is { } status and not 0 ? $"The export failed with exit status {status}"
+            : null;
+        return (error is null ? export.Output : null, error);
+    }
+
     private static string NoHandshake(DateTime? handshake, DateTime now) =>
         handshake is { } h ? $"No WireGuard handshake since {Time(h, now)}" : "No WireGuard handshake yet";
 
@@ -309,17 +373,10 @@ public sealed class RouterPollService(
         PollResult result, CancellationToken ct)
     {
         var withSecrets = plan.IncludeSecrets && reading.GroupPolicies.Contains("sensitive");
-        var max = options.CurrentValue.Backups.MaxExportBytes;
         try
         {
-            var export = await session.ExecAsync(withSecrets ? "/export terse show-sensitive" : "/export terse",
-                TimeSpan.FromSeconds(o.ExportTimeoutSeconds), max, ct);
-            var error = export.TimedOut ? $"The export timed out after {o.ExportTimeoutSeconds} s"
-                : export.Truncated ? $"The export is larger than {max / 1024 / 1024} MiB"
-                : ExportText.Problem(export.Output) is { } problem ? problem
-                : export.ExitStatus is { } status and not 0 ? $"The export failed with exit status {status}"
-                : null;
-            return result with { ExportAttempted = true, ExportOutput = error is null ? export.Output : null, ExportError = error, ExportWithSecrets = withSecrets };
+            var (output, error) = await ExportAsync(session, withSecrets, ct);
+            return result with { ExportAttempted = true, ExportOutput = output, ExportError = error, ExportWithSecrets = withSecrets };
         }
         catch (RouterSessionException ex)
         {
