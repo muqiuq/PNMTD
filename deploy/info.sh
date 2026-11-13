@@ -40,6 +40,15 @@ case "$(env_value Udp__Enabled | tr '[:upper:]' '[:lower:]')" in
      udp_host="${url#*://}"; udp_host="${udp_host%%/*}"; udp_host="${udp_host%%:*}"
      echo "  UDP nodes:  ${udp_bind:-0.0.0.0}:${udp_port}/udp (devices send to ${udp_host:-<this host>}:${udp_port})" ;;
 esac
+case "$(env_value WireGuard__Enabled | tr '[:upper:]' '[:lower:]')" in
+  true|1)
+    wg_port="$(env_value PNMTD_WG_PORT)"; wg_port="${wg_port:-51820}"
+    wg_host="$(env_value PNMTD_WG_EXTERNAL_HOST)"; wg_ext_port="$(env_value PNMTD_WG_EXTERNAL_PORT)"
+    wg_url_host="${url#*://}"; wg_url_host="${wg_url_host%%/*}"; wg_url_host="${wg_url_host%%:*}"
+    wg_state="$(is_running pnmtd-wg && echo running || echo 'not running (COMPOSE_PROFILES=wireguard?)')"
+    echo "  WireGuard:  gateway ${wg_state}, ${wg_port}/udp; routers dial ${wg_host:-${wg_url_host:-<set PNMTD_WG_EXTERNAL_HOST>}}:${wg_ext_port:-$wg_port}" ;;
+  *) echo "  WireGuard:  off (MikroTik routers by Direct SSH only)" ;;
+esac
 echo "  Backups:    $(ls -1d "$(env_value PNMTD_BACKUP_DIR || echo backups)"/pnmtd-* 2>/dev/null | wc -l | tr -d ' ') in $(env_value PNMTD_BACKUP_DIR)"
 
 warnings=()

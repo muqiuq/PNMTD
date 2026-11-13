@@ -136,6 +136,8 @@ export const api = {
     removalScript: (id: Id) =>
       call(client.GET('/api/v1/sensors/{id}/mikrotik/removal-script', { params: { path: { id } } })),
     poll: (id: Id) => call(client.POST('/api/v1/sensors/{id}/mikrotik/poll', { params: { path: { id } } })),
+    regenerateKeys: (id: Id) =>
+      call(client.POST('/api/v1/sensors/{id}/mikrotik/regenerate-keys', { params: { path: { id } } })),
     acceptHostKey: (id: Id) =>
       call(client.POST('/api/v1/sensors/{id}/mikrotik/host-key/accept', { params: { path: { id } } })),
     // --- its backups (docs/mikrotik-plan.md §6): the list CanRead, contents CanWrite, secrets Admin ---------
@@ -167,6 +169,14 @@ export const api = {
         channel?: string
       } = {},
     ) => call(client.GET('/api/v1/mikrotik/routers', { params: { query } })),
+  },
+
+  wireGuard: {
+    // --- the tunnel network (docs/mikrotik-plan.md §10, §11.2): Admin ------------------------------
+    status: () => call(client.GET('/api/v1/wireguard/status')),
+    network: () => call(client.GET('/api/v1/wireguard/network')),
+    saveNetwork: (body: S['WireGuardNetworkRequest']) => call(client.PUT('/api/v1/wireguard/network', { body })),
+    peers: () => call(client.GET('/api/v1/wireguard/peers')),
   },
 
   udp: {

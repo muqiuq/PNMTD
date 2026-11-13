@@ -32,6 +32,7 @@ docker compose up -d
 | `db` | PostgreSQL 18 | nothing |
 | `pnmtd` | the sensor API, the monitoring tasks and the admin UI | `PNMTD_PORT` (5001) → 8080, on `PNMTD_BIND_ADDRESS` (0.0.0.0) |
 | | the UDP listener for IoT nodes | `PNMTD_UDP_PORT` (5028/udp), on `PNMTD_UDP_BIND_ADDRESS` (0.0.0.0) |
+| `pnmtd-wg` | the WireGuard gateway for MikroTik routers, only with `COMPOSE_PROFILES=wireguard` | `PNMTD_WG_PORT` (51820/udp), on `PNMTD_WG_BIND_ADDRESS` (0.0.0.0) |
 
 `pnmtd` runs hardened:
 
@@ -163,12 +164,27 @@ Small devices report over PNMT-UDP, a very low-data protocol on 5028/udp ([docs/
 - **Rootless Podman** with slirp4netns hides the devices' addresses (answers still arrive); pasta keeps them.
 - `./info.sh` shows the listener's port; `docker compose exec pnmtd pnmtd udp node --server 127.0.0.1:5028 --id <id> --key <key>` runs a simulated device next to the server.
 
+## MikroTik routers and WireGuard
+
+PNMTD monitors MikroTik routers (RouterOS 7.13 or later) and backs up their configuration ([docs/mikrotik-plan.md](../docs/mikrotik-plan.md)). A router is added as a sensor of the type *MikroTik router*; its *Setup* tab shows a join script, which the router's admin pastes once. PNMTD then logs in as `pnmt`, a user that may read but not change anything.
+
+- **Direct SSH works without any change here**: PNMTD connects to an address it can reach, as the read-only user. Enter PNMTD's address as the router sees it, so `pnmt` may log in from nowhere else.
+- **WireGuard** lets routers behind NAT dial PNMTD; nothing has to be opened on them. It is off by default, because it needs a second service, a capability and an open port:
+  - `./init.sh --wireguard` (or in `.env`: `COMPOSE_PROFILES=wireguard` and `WireGuard__Enabled=true`), then `docker compose up -d`.
+  - The service `pnmtd-wg` is the same image, run as root with `NET_ADMIN` and `DAC_READ_SEARCH` only: it owns the interface `wg0` and its firewall, and reads the key ring (mounted read-only) to decrypt the tunnel keys. The app stays non-root, read-only and without capabilities.
+  - It needs the WireGuard kernel module, built into Linux from 5.6 (`modprobe wireguard` on older kernels; rootless Podman needs it loaded on the host). Hosts without it (Synology DSM, some NAS) use Direct SSH.
+- **Behind NAT or a router:** forward the external UDP port on the upstream router to `PNMTD_WG_PORT` on this host, and set `PNMTD_WG_EXTERNAL_HOST` (a DNS name is best) and `PNMTD_WG_EXTERNAL_PORT` in `.env`. Set there, they win over the admin page; *Admin → MikroTik & WireGuard* shows the endpoint in effect and where each part came from.
+- **Firewalls:** the external port must be reachable from the routers. Docker's published ports bypass `ufw`; a cloud security group needs a rule.
+- **The tunnel network** (default 10.253.0.0/16), the keepalive, the MTU and the management ports are set on the admin page. A change applies to new join scripts; the page lists the routers that need theirs pasted again.
+- **Backups are credentials.** The database holds the routers' configurations (without secrets unless a router opts in) and the tunnel keys, encrypted with the key ring on `pnmtd-keys`. `./backup.sh` covers both, so a restored installation works with every router's old script.
+- `./info.sh` shows the gateway's state and the endpoint; `docker compose exec pnmtd pnmtd wireguard status` the tunnels, `pnmtd mikrotik list` the routers.
+
 ## What lives where
 
 | Where | Holds | Backed up by |
 |---|---|---|
-| volume `pnmtd_pnmtd-pgdata` | the database, with the UDP nodes' keys, their command log and firmware images | `./backup.sh` (`pg_dump`) |
-| volume `pnmtd_pnmtd-keys` | Data Protection keys (sessions, 2FA secrets) | `./backup.sh` |
+| volume `pnmtd_pnmtd-pgdata` | the database, with the UDP nodes' keys, their command log and firmware images, and the MikroTik routers' configurations and (encrypted) tunnel keys | `./backup.sh` (`pg_dump`) |
+| volume `pnmtd_pnmtd-keys` | Data Protection keys (sessions, 2FA secrets, PNMTD's SSH key and the tunnel keys) | `./backup.sh` |
 | `deploy/.env` | database password, first admin password, settings | you. It is not in any backup |
 | `deploy/backups/` | backup folders | you |
 

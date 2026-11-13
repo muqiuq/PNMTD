@@ -7,6 +7,7 @@ import { computed, ref, watch } from 'vue'
 import { ApiError } from '@/api/client'
 import { api, keys, sensorRequest, type S } from '@/api/resources'
 import { useActions } from '@/composables/useActions'
+import { useSession } from '@/stores/session'
 import MikrotikFields from './MikrotikFields.vue'
 import {
   changeHints,
@@ -26,6 +27,7 @@ const visible = defineModel<boolean>('visible', { required: true })
 const props = defineProps<{ sensor: S['SensorDetail']; isAdmin: boolean }>()
 
 const queryClient = useQueryClient()
+const session = useSession()
 const { invalidate, notify } = useActions()
 const draft = ref<MikrotikDraft>(newMikrotikDraft())
 const busy = ref(false)
@@ -87,7 +89,7 @@ async function save() {
     :breakpoints="{ '760px': '95vw' }"
   >
     <form id="mikrotik-settings-form" class="body" novalidate @submit.prevent="save">
-      <MikrotikFields v-model="draft" :errors="errors" :is-admin="isAdmin" />
+      <MikrotikFields v-model="draft" :errors="errors" :is-admin="isAdmin" :wire-guard="!!session.info?.wireGuard" />
     </form>
     <template #footer>
       <div class="footer">

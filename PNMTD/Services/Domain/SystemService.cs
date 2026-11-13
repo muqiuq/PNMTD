@@ -46,7 +46,7 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
             return new SystemInfo(ServerInfo.Identity);
         }
         return new SystemInfo(ServerInfo.Identity, ServerInfo.Version, urls.Configured, Clock.TimeZone.Id,
-            configuration["Auth:TotpPolicy"] ?? "Optional", role);
+            configuration["Auth:TotpPolicy"] ?? "Optional", role, configuration.GetValue("WireGuard:Enabled", false));
     }
 
     public async Task<UplinkStatus> UplinkAsync(CancellationToken ct)

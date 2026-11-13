@@ -43,9 +43,11 @@ LABEL org.opencontainers.image.title="PNMTD" \
 # the system's ping, which uses an unprivileged ICMP socket where net.ipv4.ping_group_range allows
 # it (the compose file sets it; Docker's default allows it too). /var/lib/pnmtd belongs to the
 # image's non-root user, who runs the app. `pnmtd …` is the app's command line. libgssapi-krb5-2:
-# Npgsql probes for it at every start and complains loudly when it is missing.
+# Npgsql probes for it at every start and complains loudly when it is missing. wireguard-tools,
+# iproute2 and nftables: the WireGuard gateway, the same image as the service pnmtd-wg, run as root
+# with NET_ADMIN only (docs/mikrotik-plan.md §3.4); the app itself never uses them.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends wget iputils-ping libgssapi-krb5-2 \
+ && apt-get install -y --no-install-recommends wget iputils-ping libgssapi-krb5-2 wireguard-tools iproute2 nftables \
  && rm -rf /var/lib/apt/lists/* \
  # ping's file capability (cap_net_raw) makes exec fail outright under cap_drop ALL and
  # no-new-privileges; a plain copy of the binary drops it and leaves the ICMP socket path.
@@ -62,6 +64,8 @@ ENV DOTNET_NOLOGO=1 \
 EXPOSE 8080
 # UDP nodes (Udp__Port, default 5028): heartbeats, data, commands and firmware updates.
 EXPOSE 5028/udp
+# The WireGuard gateway (pnmtd-wg): routers and custom tunnels.
+EXPOSE 51820/udp
 # 200 while the database answers. The compose file repeats it: Podman's OCI images drop HEALTHCHECK.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD wget -q -O /dev/null "http://127.0.0.1:${ASPNETCORE_HTTP_PORTS:-8080}/healthz" || exit 1

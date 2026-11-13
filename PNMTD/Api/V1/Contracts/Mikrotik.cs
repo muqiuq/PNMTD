@@ -66,7 +66,21 @@ public sealed record MikrotikRouterDetail(
     int BackupFailures = 0,
     string? LastBackupError = null,
     int BackupCount = 0,
-    MikrotikBackupItem? LatestBackup = null);
+    MikrotikBackupItem? LatestBackup = null,
+    MikrotikTunnel? Tunnel = null);
+
+/// <summary>A router's tunnel as the gateway sees it (§3.2): its address and key, the last handshake, where it comes from.</summary>
+public sealed record MikrotikTunnel(
+    string Address,
+    string PublicKey,
+    DateTime KeysCreatedAt,
+    bool Up,
+    DateTime? LatestHandshake,
+    string? Endpoint,
+    long RxBytes,
+    long TxBytes,
+    int EndpointChanges24h,
+    bool GatewayUp);
 
 /// <summary>A host key: its type and SHA-256 fingerprint (unpadded Base64), pinned or seen at <see cref="At"/>.</summary>
 public sealed record MikrotikHostKey(string Type, string Fingerprint, DateTime? At);

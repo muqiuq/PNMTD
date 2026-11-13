@@ -49,10 +49,10 @@ export const MIKROTIK_FIELDS = [
   'mikrotik.managementAccess',
 ] as const
 
-/** Direct SSH by default until this installation has the WireGuard gateway (phase M3). */
-export function newMikrotikDraft(): MikrotikDraft {
+/** WireGuard + SSH by default where the gateway runs (§3.1), Direct SSH without it. */
+export function newMikrotikDraft(wireGuard = false): MikrotikDraft {
   return {
-    mode: 'DirectSsh',
+    mode: wireGuard ? 'WireGuardSsh' : 'DirectSsh',
     address: '',
     sshPort: 22,
     sourceAddress: '',

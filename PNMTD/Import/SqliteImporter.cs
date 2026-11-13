@@ -210,7 +210,9 @@ namespace PNMTD.Import
         {
             if (reset)
             {
-                Execute(connection, transaction, "TRUNCATE users");
+                // DELETE, not TRUNCATE: a custom tunnel's owner refers to users (ON DELETE SET NULL), and
+                // PostgreSQL refuses to truncate a referenced table (docs/mikrotik-plan.md §9.2).
+                Execute(connection, transaction, "DELETE FROM users");
                 return;
             }
             var existing = Scalar<long>(connection, transaction, "SELECT COUNT(*) FROM users");

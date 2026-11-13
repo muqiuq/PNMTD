@@ -82,6 +82,19 @@ const uptime = computed(() => (r.value?.uptimeSeconds != null ? formatDuration(r
           </div>
         </dd>
       </div>
+      <div v-if="m.tunnel">
+        <dt>Tunnel</dt>
+        <dd>
+          <span class="mono">{{ m.tunnel.address }}</span>
+          <div class="muted small" :class="{ bad: !m.tunnel.up }">
+            <template v-if="!m.tunnel.gatewayUp">the gateway is down</template>
+            <template v-else-if="m.tunnel.latestHandshake"
+              >handshake <RelativeTime :value="m.tunnel.latestHandshake"
+            /></template>
+            <template v-else>no handshake yet</template>
+          </div>
+        </dd>
+      </div>
       <div v-if="m.mode !== 'WireGuardOnly'">
         <dt>Last backup</dt>
         <dd>

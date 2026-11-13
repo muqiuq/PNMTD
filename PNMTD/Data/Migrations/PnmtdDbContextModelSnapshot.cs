@@ -549,6 +549,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<DateTime>("ScriptChangedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("ScriptGeneratedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("SerialNumber")
                         .HasColumnType("text");
 
@@ -561,7 +564,12 @@ namespace PNMTD.Data.Migrations
                     b.Property<string>("Version")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("WgPeerId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("SensorId");
+
+                    b.HasIndex("WgPeerId");
 
                     b.ToTable("mikrotik_routers");
                 });
@@ -1304,6 +1312,170 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("users");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.WgNetworkEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ChangedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ExternalHost")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ExternalPort")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("GatewayError")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("GatewaySeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("GatewayStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GatewayVersion")
+                        .HasColumnType("text");
+
+                    b.Property<int>("KeepaliveSeconds")
+                        .HasColumnType("integer");
+
+                    b.PrimitiveCollection<int[]>("ManagementPorts")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
+                    b.Property<int>("Mtu")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Prefix")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PrivateKeyProtected")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PublicKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ScriptSettingsChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SocksSecretProtected")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("StaleHandshakeSeconds")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("wg_network");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.WgPeerEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("AccessAllRouters")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("KeysCreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("KeysCreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Kind")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("OwnerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PrivateKeyProtected")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PublicKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Address")
+                        .IsUnique();
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("PublicKey")
+                        .IsUnique();
+
+                    b.HasIndex("SensorId");
+
+                    b.ToTable("wg_peers");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.WgPeerStatusEntity", b =>
+                {
+                    b.Property<Guid>("PeerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Endpoint")
+                        .HasColumnType("text");
+
+                    b.Property<int>("EndpointChanges24h")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LatestHandshake")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("RxBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("TxBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("PeerId");
+
+                    b.ToTable("wg_peer_status");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.DnsZoneEntity", b =>
                 {
                     b.HasOne("PNMTD.Models.Db.HostEntity", "Host")
@@ -1377,6 +1549,11 @@ namespace PNMTD.Data.Migrations
                         .HasForeignKey("PNMTD.Models.Db.MikrotikRouterEntity", "SensorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("PNMTD.Models.Db.WgPeerEntity", null)
+                        .WithMany()
+                        .HasForeignKey("WgPeerId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Sensor");
                 });
@@ -1493,6 +1670,28 @@ namespace PNMTD.Data.Migrations
                         .WithMany()
                         .HasForeignKey("SensorId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.WgPeerEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.WgPeerStatusEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.WgPeerEntity", null)
+                        .WithOne()
+                        .HasForeignKey("PNMTD.Models.Db.WgPeerStatusEntity", "PeerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.DnsZoneEntity", b =>

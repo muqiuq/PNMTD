@@ -1776,6 +1776,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sensors/{id}/mikrotik/regenerate-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikRouterDetail"];
+                        "text/json": components["schemas"]["MikrotikRouterDetail"];
+                        "text/plain": components["schemas"]["MikrotikRouterDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sensors/{id}/mikrotik/host-key/accept": {
         parameters: {
             query?: never;
@@ -4007,6 +4046,144 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/wireguard/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WireGuardStatus"];
+                        "text/json": components["schemas"]["WireGuardStatus"];
+                        "text/plain": components["schemas"]["WireGuardStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wireguard/network": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WireGuardNetworkView"];
+                        "text/json": components["schemas"]["WireGuardNetworkView"];
+                        "text/plain": components["schemas"]["WireGuardNetworkView"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WireGuardNetworkRequest"];
+                    "text/json": components["schemas"]["WireGuardNetworkRequest"];
+                    "application/*+json": components["schemas"]["WireGuardNetworkRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WireGuardNetworkSaved"];
+                        "text/json": components["schemas"]["WireGuardNetworkSaved"];
+                        "text/plain": components["schemas"]["WireGuardNetworkSaved"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wireguard/peers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WireGuardPeerItem"][];
+                        "text/json": components["schemas"]["WireGuardPeerItem"][];
+                        "text/plain": components["schemas"]["WireGuardPeerItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4558,6 +4735,7 @@ export interface components {
              */
             backupCount: number;
             latestBackup?: null | components["schemas"]["MikrotikBackupItem"];
+            tunnel?: null | components["schemas"]["MikrotikTunnel"];
         };
         MikrotikRouterRequest: {
             mode?: components["schemas"]["MikrotikMode"];
@@ -4608,6 +4786,23 @@ export interface components {
             updatesAvailable: number;
             /** Format: int32 */
             scriptsOutdated: number;
+        };
+        MikrotikTunnel: {
+            address: string;
+            publicKey: string;
+            /** Format: date-time */
+            keysCreatedAt: string;
+            up: boolean;
+            /** Format: date-time */
+            latestHandshake: null | string;
+            endpoint: null | string;
+            /** Format: int64 */
+            rxBytes: number;
+            /** Format: int64 */
+            txBytes: number;
+            /** Format: int32 */
+            endpointChanges24h: number;
+            gatewayUp: boolean;
         };
         NotificationRuleDetail: {
             /** Format: uuid */
@@ -5036,6 +5231,7 @@ export interface components {
             timeZone?: null | string;
             totpPolicy?: null | string;
             role?: null | string;
+            wireGuard?: null | boolean;
         };
         TaskStatus: {
             name: string;
@@ -5617,6 +5813,102 @@ export interface components {
             lastLoginAt: null | string;
             /** Format: date-time */
             passwordChangedAt: null | string;
+        };
+        /** @enum {unknown} */
+        WgPeerKind: "Router" | "Custom";
+        /** @enum {unknown} */
+        WgSettingSource: "Default" | "Ui" | "Environment";
+        WireGuardNetworkRequest: {
+            prefix?: string;
+            confirmPrefix?: null | string;
+            externalHost?: null | string;
+            /** Format: int32 */
+            externalPort?: null | number;
+            /** Format: int32 */
+            keepaliveSeconds?: number;
+            /** Format: int32 */
+            mtu?: number;
+            /** Format: int32 */
+            staleHandshakeSeconds?: number;
+            managementPorts?: number[];
+        };
+        WireGuardNetworkSaved: {
+            network: components["schemas"]["WireGuardNetworkView"];
+            needNewScripts: string[];
+        };
+        WireGuardNetworkView: {
+            prefix: string;
+            externalHost: null | string;
+            externalHostInEffect: null | string;
+            externalHostSource: components["schemas"]["WgSettingSource"];
+            externalHostLocked: boolean;
+            /** Format: int32 */
+            externalPort: null | number;
+            /** Format: int32 */
+            externalPortInEffect: number;
+            externalPortSource: components["schemas"]["WgSettingSource"];
+            externalPortLocked: boolean;
+            /** Format: int32 */
+            publishedPort: number;
+            /** Format: int32 */
+            listenPort: number;
+            /** Format: int32 */
+            keepaliveSeconds: number;
+            /** Format: int32 */
+            mtu: number;
+            /** Format: int32 */
+            staleHandshakeSeconds: number;
+            managementPorts: number[];
+            /** Format: date-time */
+            changedAt: string;
+        };
+        WireGuardPeerItem: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["WgPeerKind"];
+            name: string;
+            /** Format: uuid */
+            sensorId: null | string;
+            address: string;
+            publicKey: string;
+            enabled: boolean;
+            up: boolean;
+            /** Format: date-time */
+            latestHandshake: null | string;
+            endpoint: null | string;
+            /** Format: int64 */
+            rxBytes: number;
+            /** Format: int64 */
+            txBytes: number;
+            /** Format: int32 */
+            endpointChanges24h: number;
+            /** Format: date-time */
+            expiresAt: null | string;
+        };
+        WireGuardStatus: {
+            enabled: boolean;
+            gatewayUp: boolean;
+            /** Format: date-time */
+            gatewaySeenAt: null | string;
+            gatewayVersion: null | string;
+            gatewayError: null | string;
+            endpoint: null | string;
+            externalHost: null | string;
+            externalHostSource: components["schemas"]["WgSettingSource"];
+            /** Format: int32 */
+            externalPort: number;
+            externalPortSource: components["schemas"]["WgSettingSource"];
+            /** Format: int32 */
+            publishedPort: number;
+            network: string;
+            serverAddress: string;
+            accessAddress: string;
+            gatewayPublicKey: string;
+            /** Format: int32 */
+            peers: number;
+            /** Format: int32 */
+            peersUp: number;
+            warnings: string[];
         };
     };
     responses: never;

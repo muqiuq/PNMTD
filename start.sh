@@ -17,6 +17,10 @@
 #   SOURCE_TZ=Europe/Zurich        the zone the v0.12 data was written in (default UTC)
 #   PORT=7400 WEB_PORT=5174        other host ports
 #   UDP_PORT=5029                  another host port for UDP nodes (default 5028/udp)
+#   WIREGUARD=1 ./start.sh         also the WireGuard gateway (pnmtd-wg: root, NET_ADMIN only), and the
+#                                  WireGuard modes for MikroTik routers (docs/mikrotik-plan.md §3).
+#                                  WG_PORT=51820 is its host port (UDP); WG_EXTERNAL_HOST names what
+#                                  routers dial (default: this machine's name)
 #   VERBOSE=1 ./start.sh           show the build log, which is otherwise only printed on failure
 #   ENGINE=docker ./start.sh       Docker instead of Podman
 #
@@ -47,6 +51,10 @@ VERBOSE="${VERBOSE:-0}"
 ENV_FILE="${ENV_FILE:-dev.env}"
 WEB="${WEB:-}"
 WEB_NAME="${WEB_NAME:-pnmtd-web}"
+WIREGUARD="${WIREGUARD:-0}"
+WG_NAME="${WG_NAME:-pnmtd-wg}"
+WG_PORT="${WG_PORT:-51820}"
+WG_EXTERNAL_HOST="${WG_EXTERNAL_HOST:-$(hostname)}"
 WEB_PORT="${WEB_PORT:-5173}"
 WEB_MODULES_VOLUME="${WEB_MODULES_VOLUME:-pnmtd-web-node-modules}"
 NPM_CACHE="${NPM_CACHE:-pnmtd-npm-cache}"
@@ -183,6 +191,11 @@ if [[ "$SEED" != "0" && "$imported" == "0" ]]; then
   fi
 fi
 
+wireguard=()
+if [[ "$WIREGUARD" != "0" ]]; then
+  wireguard=(-e WireGuard__Enabled=true -e "WireGuard__Gateway=${WG_NAME}:1080" -e "WireGuard__PublishedPort=${WG_PORT}"
+    -e "WireGuard__ExternalHost=${WG_EXTERNAL_HOST}")
+fi
 "$ENGINE" rm -f "$NAME" >/dev/null 2>&1 || true
 # As hardened as in deploy/docker-compose.yml, so what fails there fails here first.
 "$ENGINE" run -d --name "$NAME" --hostname "$NAME" --network "$NETWORK" \
@@ -191,6 +204,7 @@ fi
   --env-file "$ENV_FILE" \
   -e ASPNETCORE_ENVIRONMENT=Development \
   -e "Database__Host=${DB_NAME}" -e "Database__Password=${db_password}" \
+  ${wireguard[@]+"${wireguard[@]}"} \
   --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
   --sysctl "net.ipv4.ping_group_range=0 2147483647" \
   -v "${KEYS_VOLUME}:/var/lib/pnmtd/keys" \
@@ -205,6 +219,28 @@ for _ in $(seq 1 120); do
   sleep 0.25
 done
 curl -fsS -o /dev/null "http://localhost:${PORT}/healthz" || { "$ENGINE" logs --tail 40 "$NAME" >&2; die "${NAME} is up but /healthz did not answer."; }
+
+# The WireGuard gateway (WIREGUARD=1), as in deploy/docker-compose.yml: the same image as root with
+# NET_ADMIN only, the keys volume read-only. It waits for the app's migrations by itself.
+"$ENGINE" rm -f "$WG_NAME" >/dev/null 2>&1 || true
+if [[ "$WIREGUARD" != "0" ]]; then
+  echo "Starting ${WG_NAME} (the WireGuard gateway)…"
+  "$ENGINE" run -d --name "$WG_NAME" --hostname "$WG_NAME" --network "$NETWORK" \
+    -p "${WG_PORT}:51820/udp" \
+    -e "Database__Host=${DB_NAME}" -e "Database__Password=${db_password}" -e WireGuard__Enabled=true \
+    --user 0:0 --read-only --tmpfs /tmp --cap-drop ALL --cap-add NET_ADMIN --cap-add DAC_READ_SEARCH --security-opt no-new-privileges \
+    --sysctl net.ipv4.ip_forward=1 \
+    -v "${KEYS_VOLUME}:/var/lib/pnmtd/keys:ro" \
+    "$IMAGE" wireguard gateway >/dev/null
+  for _ in $(seq 1 60); do
+    if "$ENGINE" logs "$WG_NAME" 2>&1 | grep -q "Synced "; then break; fi
+    if [[ -z "$("$ENGINE" ps -q --filter "name=^${WG_NAME}$")" ]]; then
+      "$ENGINE" logs --tail 30 "$WG_NAME" >&2 || true
+      die "${WG_NAME} exited during startup: the WireGuard kernel module, NET_ADMIN?"
+    fi
+    sleep 0.5
+  done
+fi
 
 # Vite with HMR (WEB=dev), its node_modules in a volume of their own (Linux binaries, not the
 # Mac's). npm ci runs whenever package-lock.json changed since the volume was filled. Vite proxies
@@ -253,6 +289,10 @@ echo "             http://localhost:${PORT}/read/<read token>/json"
 echo "API:         http://localhost:${PORT}/api/v1/  (document: PNMTD.WebUI/src/api/openapi.json)"
 echo "UDP nodes:   127.0.0.1:${UDP_PORT}/udp; a simulated device:"
 echo "             ${ENGINE} exec ${NAME} pnmtd udp node --server 127.0.0.1:5028 --id <device id> --key <key>"
+if [[ "$WIREGUARD" != "0" ]]; then
+  echo "WireGuard:   ${WG_NAME} on ${WG_PORT}/udp; routers dial ${WG_EXTERNAL_HOST}:${WG_PORT}"
+  echo "             ${ENGINE} exec ${NAME} pnmtd wireguard status"
+fi
 echo "Sign-in:     admin, with Auth__InitialAdmin__Password from ${ENV_FILE} until you change it"
 echo "             (only while the database had no users: imported users keep their passwords)"
 if (( seeded )); then

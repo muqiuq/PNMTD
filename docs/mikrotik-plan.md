@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Revision 3, in implementation**: M0, M1 and M2 are built (§13.1). Details still marked *(M0)* belong to later phases and are verified there on a real RouterOS. The other RouterOS facts were checked against the manual and the per-version changelogs (§4.1) |
+| Status | **Revision 3, in implementation**: M0 to M3 are built (§13.1). Details still marked *(M0)* belong to later phases and are verified there on a real RouterOS. The other RouterOS facts were checked against the manual and the per-version changelogs (§4.1) |
 | Date | 2026-11-12 |
 | Revision | 3: **remote commands** (§8): a command or script, run on one router or several, as the read-only `pnmt` user, or as the router's admin with the password typed for that run. **The admin password is therefore needed for updates and for commands run as an admin** (decision 8, §16.1).<br><br>2: **the review decisions of revision 1 (§16.1)**:<ul><li>three connection modes: **WireGuard + SSH**, **WireGuard only**, and **Direct SSH**;</li><li>a router joins with **one script**, generated when it is added in the UI, that contains everything, **including the router's WireGuard private key**;</li><li>**the admin password is needed only for updates**;</li><li>**custom tunnels**: extra WireGuard peers with a downloadable configuration;</li><li>**the tunnel network is configured in the web UI**, on one admin page that also monitors it;</li><li>**the external address and port** of the WireGuard endpoint can also be set in environment variables, for a PNMTD behind NAT.</li></ul>Revision 1 had a copy-back of the router's public key and a second onboarding path that used the admin password |
 | Scope | PNMTD monitors and manages MikroTik routers running RouterOS 7.13 or later, and runs a WireGuard network for them.<ul><li>A router is added in the UI. PNMT then shows a **join script**, which the router's admin runs once on the router.</li><li>Through a **WireGuard tunnel that the router opens**, or directly over SSH, PNMTD logs in as a **read-only user, `pnmt`**.</li><li>It monitors the version, uptime and resources.</li><li>It **backs the configuration up** on a schedule and keeps each changed version with a diff.</li><li>It **installs RouterOS updates** when an Admin supplies the router's admin password for that one job.</li><li>It **runs commands** on routers: read-only as `pnmt`, or as the router's admin with the password typed for that run.</li></ul>**Custom tunnels** give people (or other devices) a WireGuard configuration of their own, for management access to the routers through PNMT |
@@ -190,12 +190,12 @@ technician's laptop (custom tunnel) 10.253.0.40 ──► gateway: allowed? → 
 | Aspect | Design |
 |---|---|
 | Image | **The same image**, started as `pnmtd wireguard gateway` (a CLI command, like `pnmtd udp node`). The runtime stage of the Dockerfile adds `wireguard-tools`, `iproute2` and `nftables`, a few MB |
-| Privileges | Root inside its own container, with `cap_drop: [ALL]`, `cap_add: [NET_ADMIN]`, `read_only` and `no-new-privileges`. It needs the kernel's WireGuard module, which has been in Linux since 5.6 |
+| Privileges | Root inside its own container, with `cap_drop: [ALL]`, `cap_add: [NET_ADMIN, DAC_READ_SEARCH]`, `read_only` and `no-new-privileges`. `DAC_READ_SEARCH` because root without capabilities cannot read the key ring, which the app's non-root user owns (0600); found in M3, see §13.1. It needs the kernel's WireGuard module, which has been in Linux since 5.6 |
 | Configuration | **Read from PostgreSQL**, with the app's database settings:<ul><li>the network (`wg_network`) and the gateway's private key, decrypted with the key ring, which is mounted read-only from `pnmtd-keys`;</li><li>the peers (`wg_peers`: enabled, not expired, and for routers an enabled sensor in a WireGuard mode);</li><li>the custom tunnels' access rules.</li></ul>It applies peers with `wg syncconf`, which changes only what differs and keeps live sessions, and the firewall with one atomic `nft -f`. It reacts to `LISTEN wireguard_changed` (the app sends a `NOTIFY` after every change) and resyncs fully every 30 seconds |
 | Start order | The **nftables ruleset with a drop policy is loaded before `wg0` exists**, so there is never a moment in which forwarding is open |
 | Data path for PNMTD | **A SOCKS5 server** on the compose network, with CONNECT only (RFC 1928) and a username and password (RFC 1929). The password is a random secret in `wg_network`. It connects only to the tunnel address of a router in WireGuard + SSH mode, and only to that router's SSH port. SSH.NET and .NET's `HttpClient` both speak SOCKS5. About 200 lines |
 | Status | Every 15 seconds it writes the peers' handshakes, endpoints, counters and endpoint changes to `wg_peer_status`, and its own heartbeat (version, errors) to `wg_network.gateway_seen_at` |
-| When it is down | No heartbeat for 60 seconds means the gateway is down. **The poller then writes no events for tunnel routers**, just as the uplink guard does while PNMTD's own link is down (`TaskRunDecisionMaker`). The admin page's overview and System health show the gateway as down (§16.2 question 6) |
+| When it is down | No heartbeat for 60 seconds means the gateway is down. **After a restart**, tunnels without a fresh handshake get one stale-handshake period to reconnect before any event (M3: a router behind NAT took minutes). **The poller then writes no events for tunnel routers**, just as the uplink guard does while PNMTD's own link is down (`TaskRunDecisionMaker`). The admin page's overview and System health show the gateway as down (§16.2 question 6) |
 
 **Considered and rejected:**
 
@@ -914,7 +914,7 @@ PNMTD_WG_EXTERNAL_PORT=
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]
-    cap_add: [NET_ADMIN]
+    cap_add: [NET_ADMIN, DAC_READ_SEARCH]       # DAC_READ_SEARCH: the key ring belongs to the app's user
     security_opt: [no-new-privileges:true]
     sysctls: { net.ipv4.ip_forward: "1" }      # custom tunnels only; nftables drops everything else (§3.5)
     volumes:
@@ -1153,6 +1153,19 @@ Effort is a rough estimate for one developer. Each phase ends green in `./run-te
 - **The API** of §10 for backups, plus that delete; content, diffs and downloads of exports with secrets (and of binary backups, M5) need Admin and are audit-logged as `MikrotikBackupDownloaded`.
 - **The UI:** the Backups tab (the versions with trigger, author, RouterOS version and +/− lines; view, the changes against the version before, two selected versions compared, download, *Back up now*, delete for Admins) and *Last backup* in the status strip.
 - **Lab:** the lab test now also checks version 1 at the first login, nothing stored for an unchanged export, and a change on the router (`/system note`) as version 2 with 243 and a diff that shows it, on 7.13 and 7.25.1.
+
+**M3 as built (WireGuard + SSH, WireGuard only):**
+
+- **The gateway** (`pnmtd wireguard gateway`, `PNMTD/WireGuard/Gateway/`): the drop ruleset before wg0, `wg syncconf`, `nft -f` with one atomic table replace, `LISTEN wireguard_changed` plus a resync every 30 seconds, `wg show dump` into `wg_peer_status` with the endpoint changes, the heartbeat, and the SOCKS5 server (CONNECT, username and password, IPv4 router addresses and their SSH port only, nothing from the tunnel). It waits for the app's migrations.
+- **Two findings of the first real run:**
+  - *The key ring.* Root with every capability dropped cannot read files the app's non-root user owns with 0600. The gateway gets `DAC_READ_SEARCH` besides `NET_ADMIN`; the keys volume stays read-only and is its only mount. The alternatives were worse: a non-root gateway gets no `NET_ADMIN` under Docker, and plaintext keys in the database would let a dump impersonate the gateway.
+  - *Restarts.* After the gateway was recreated, a router behind NAT needed a few minutes for its next handshake (WireGuard backs off). The gateway records when it started (`gateway_started_at`), and for one stale-handshake period the poller writes no event for a tunnel without a fresh handshake.
+- **The routers:** a WireGuard mode gets a peer (the next free address after the server block, X25519 keys from BouncyCastle, checked against RFC 7748 and `wg pubkey`); the join script carries its private key, the gateway's key, the endpoint in effect, and `address=<server address>/32` for `pnmt`; *Regenerate keys*; "script outdated" compares the router's tunnel (its key, the gateway's key, endpoint, port, keepalive, MTU, the management rule) with the settings; in WireGuard only mode, the settings' and keys' changes against when the script was last shown. The endpoint warning appears from 6 changes in 24 hours.
+- **The poll:** WireGuard + SSH through the gateway's SOCKS5 to the tunnel address (the router's own SSH port); WireGuard only from the handshake (240 "Tunnel up (WireGuard only)", 440 after the GracePeriod); nothing while the gateway is down or settling.
+- **The network** on the admin page, with the environment winning (`WireGuard__ExternalHost`, `WireGuard__ExternalPort`; an empty value from compose counts as unset), a new prefix with typed confirmation that keeps every peer's offset, and the list of routers that need their new script.
+- **Deployment:** the compose service behind the profile, `./init.sh --wireguard [--wg-external-host … --wg-external-port …]`, `info.sh`'s WireGuard line, `deploy/README.md`, `WIREGUARD=1 ./start.sh`, and `wireguard-tools`, `iproute2` and `nftables` in the image. The importer's reset deletes users instead of truncating them, because a custom tunnel's owner refers to them.
+- **The admin page** *Admin → MikroTik & WireGuard* (`/admin/mikrotik?tab=…`, as the UDP page does it): Overview, Network and Routers. Custom tunnels (M4) and Jobs (M5) follow.
+- **Lab, on real RouterOS:** CHR 7.25.1 behind QEMU's NAT joined as WireGuard + SSH with one paste and dialled the gateway by name; PNMTD logged in through SOCKS (240, host key pinned, a backup over the tunnel, no script differences). CHR 7.13 joined as WireGuard only (240 "Tunnel up"). With its route and allowed addresses widened to the whole prefix, the 7.13 router still reached neither the other router nor the gateway's SOCKS port.
 
 ---
 

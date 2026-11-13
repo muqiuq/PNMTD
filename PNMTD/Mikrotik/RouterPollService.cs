@@ -10,6 +10,7 @@ using PNMTD.Lib.Models;
 using PNMTD.Models.Db;
 using PNMTD.Models.Enums;
 using PNMTD.Services.Events;
+using PNMTD.WireGuard;
 
 namespace PNMTD.Mikrotik;
 
@@ -48,6 +49,7 @@ public sealed class RouterPollService(
     IRouterConnector connector,
     MikrotikKeyStore keys,
     IOptionsMonitor<MikrotikOptions> options,
+    WireGuardNetwork wireGuard,
     ILogger<RouterPollService> logger)
 {
     /// <summary>A boot time that moved by more than this is a restart (§5.3); less is the clock's jitter.</summary>
@@ -98,18 +100,63 @@ public sealed class RouterPollService(
         {
             return new RouterPollOutcome(false, null, "Not a MikroTik router.", null, null, [], Skipped: true);
         }
-        if (!router.Mode.UsesSsh())
+        string host;
+        RouterProxy? proxy = null;
+        string? tunnelAddress = null;
+        if (router.Mode.UsesWireGuard())
         {
-            // WireGuard only: the tunnel's state, from the gateway (§5.2, phase M3).
-            return new RouterPollOutcome(false, null, "WireGuard only: there is nothing to log in to.", null, null, [], Skipped: true);
+            if (!wireGuard.Enabled)
+            {
+                return new RouterPollOutcome(false, null, "The WireGuard gateway is off (WireGuard__Enabled).", null, null, [], Skipped: true);
+            }
+            var network = await wireGuard.EnsureAsync(db, ct);
+            var settings = wireGuard.Settings(network);
+            var now = Clock.UtcNow;
+            if (!settings.GatewayUp(now, wireGuard.Options.GatewayDownSeconds))
+            {
+                // As the uplink guard does: a gateway restart must not make every tunnel router fail (§3.4).
+                return new RouterPollOutcome(false, null, "The WireGuard gateway is down: tunnel routers write no events.", null, null, [], Skipped: true);
+            }
+            var peer = router.WgPeerId is { } peerId ? await db.WgPeers.AsNoTracking().SingleOrDefaultAsync(p => p.Id == peerId, ct) : null;
+            if (peer is null)
+            {
+                return await RecordAsync(db, router, Failure(RouterFailureKind.Unreachable, "The router has no tunnel: save its settings again."), request, ct);
+            }
+            tunnelAddress = peer.Address;
+            var handshake = (await db.WgPeerStatus.AsNoTracking().SingleOrDefaultAsync(s => s.PeerId == peer.Id, ct))?.LatestHandshake;
+            var fresh = handshake is { } h && now - h <= TimeSpan.FromSeconds(settings.StaleHandshakeSeconds);
+            if (!fresh && settings.Settling(now))
+            {
+                return new RouterPollOutcome(false, null, "The WireGuard gateway restarted: the tunnel is reconnecting.", null, null, [], Skipped: true);
+            }
+            if (router.Mode == MikrotikMode.WireGuardOnly)
+            {
+                return await RecordTunnelAsync(db, router, fresh, handshake, tunnelAddress, now, ct);
+            }
+            if (!fresh)
+            {
+                return await RecordAsync(db, router, Failure(RouterFailureKind.Unreachable, NoHandshake(handshake, now)), request, ct, tunnelAddress);
+            }
+            if (router.SetupState == MikrotikSetupState.AwaitingRouter)
+            {
+                router.SetupState = MikrotikSetupState.TunnelUp;
+            }
+            var socks = wireGuard.Unprotect(network.SocksSecretProtected);
+            if (socks is null || !TryEndpoint(wireGuard.Options.Gateway, out var gatewayHost, out var gatewayPort))
+            {
+                return await RecordAsync(db, router, Failure(RouterFailureKind.Unreachable,
+                    "The gateway's SOCKS endpoint or secret is not usable (WireGuard__Gateway, the keys volume)."), request, ct, tunnelAddress);
+            }
+            host = peer.Address;
+            proxy = new RouterProxy(gatewayHost, gatewayPort, PNMTD.WireGuard.Gateway.WireGuardGateway.SocksUser, socks);
         }
-        if (router.Mode == MikrotikMode.WireGuardSsh)
-        {
-            return await RecordAsync(db, router, Failure(RouterFailureKind.Unreachable, "The WireGuard gateway is not available yet."), request, ct);
-        }
-        if (string.IsNullOrWhiteSpace(router.Address))
+        else if (string.IsNullOrWhiteSpace(router.Address))
         {
             return await RecordAsync(db, router, Failure(RouterFailureKind.Unreachable, "No address to connect to."), request, ct);
+        }
+        else
+        {
+            host = router.Address!;
         }
 
         var o = options.CurrentValue.Ssh;
@@ -121,8 +168,8 @@ public sealed class RouterPollService(
                 "PNMTD's SSH key cannot be decrypted (the key ring is gone): rotate the key and paste the join scripts again."), request, ct);
         }
         var pinned = router.HostKeyFingerprint is { } fp && router.HostKeyType is { } type ? new RouterHostKey(type, fp) : null;
-        var target = new RouterTarget(sensorId, router.Address!, router.SshPort, RouterPoll.UserName, RouterCredentials.Keys(privateKeys),
-            pinned, TimeSpan.FromSeconds(o.ConnectTimeoutSeconds));
+        var target = new RouterTarget(sensorId, host, router.SshPort, RouterPoll.UserName, RouterCredentials.Keys(privateKeys),
+            pinned, TimeSpan.FromSeconds(o.ConnectTimeoutSeconds), proxy);
 
         var export = new ExportPlan(request.ForceExport || ExportDue(router, Clock.UtcNow), router.IncludeSecrets);
         PollResult result;
@@ -135,7 +182,63 @@ public sealed class RouterPollService(
         {
             sessions.Release();
         }
-        return await RecordAsync(db, router, result, request, ct);
+        return await RecordAsync(db, router, result, request, ct, tunnelAddress);
+    }
+
+    private static string NoHandshake(DateTime? handshake, DateTime now) =>
+        handshake is { } h ? $"No WireGuard handshake since {Time(h, now)}" : "No WireGuard handshake yet";
+
+    private static bool TryEndpoint(string text, out string host, out int port)
+    {
+        var i = text.LastIndexOf(':');
+        host = i > 0 ? text[..i].Trim('[', ']') : text;
+        port = 0;
+        return i > 0 && int.TryParse(text[(i + 1)..], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out port)
+            && port is > 0 and <= 65535;
+    }
+
+    /// <summary>
+    /// WireGuard only (§5.2): no login, the handshake is the state. 240 while it is fresh; after the GracePeriod
+    /// without one, 440. Before the first handshake, no events: the router waits for its join script.
+    /// </summary>
+    private async Task<RouterPollOutcome> RecordTunnelAsync(PnmtdDbContext db, MikrotikRouterEntity router, bool fresh, DateTime? handshake,
+        string tunnelAddress, DateTime now, CancellationToken ct)
+    {
+        var events = new List<RouterEvent>();
+        router.LastPollAt = now;
+        if (fresh)
+        {
+            router.SetupState = MikrotikSetupState.Ready;
+            router.LastSuccessAt = now;
+            router.FailingSince = null;
+            router.LastError = null;
+            router.LastErrorCode = null;
+            events.Add(new RouterEvent(PNMTStatusCodes.MIKROTIK_OK, "Tunnel up (WireGuard only)"));
+        }
+        else
+        {
+            var error = NoHandshake(handshake, now);
+            router.LastError = error;
+            router.LastErrorCode = PNMTStatusCodes.MIKROTIK_UNREACHABLE;
+            if (router.LastSuccessAt is not null)
+            {
+                router.FailingSince ??= now;
+                var grace = TimeSpan.FromSeconds(router.Sensor.GracePeriod > 0 ? router.Sensor.GracePeriod : DefaultGracePeriodSeconds);
+                if (now - router.FailingSince.Value >= grace)
+                {
+                    events.Add(new RouterEvent(PNMTStatusCodes.MIKROTIK_UNREACHABLE, $"Unreachable: {error}"));
+                }
+            }
+        }
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        foreach (var e in events)
+        {
+            await SensorEventWriter.WriteAsync(db, router.SensorId, e.Code, e.Message, $"mikrotik:{tunnelAddress}", ct);
+        }
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+        var last = events.LastOrDefault();
+        return new RouterPollOutcome(fresh, last?.Code ?? router.LastErrorCode, last?.Message ?? router.LastError ?? "", null, null, events);
     }
 
     /// <summary>
@@ -232,7 +335,7 @@ public sealed class RouterPollService(
     }
 
     private async Task<RouterPollOutcome> RecordAsync(PnmtdDbContext db, MikrotikRouterEntity router, PollResult result, PollRequest request,
-        CancellationToken ct)
+        CancellationToken ct, string? tunnelAddress = null)
     {
         var now = Clock.UtcNow;
         var sensor = router.Sensor;
@@ -298,7 +401,7 @@ public sealed class RouterPollService(
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         foreach (var e in events)
         {
-            await SensorEventWriter.WriteAsync(db, sensor.Id, e.Code, e.Message, Source(router), ct);
+            await SensorEventWriter.WriteAsync(db, sensor.Id, e.Code, e.Message, Source(router, tunnelAddress), ct);
         }
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
@@ -411,7 +514,8 @@ public sealed class RouterPollService(
     }
 
     /// <summary>"mikrotik:&lt;address&gt;": the dedupe compares like with like (§5.3).</summary>
-    public static string Source(MikrotikRouterEntity router) => $"mikrotik:{router.Address ?? router.SensorId.ToString()}";
+    public static string Source(MikrotikRouterEntity router, string? tunnelAddress = null) =>
+        $"mikrotik:{tunnelAddress ?? router.Address ?? router.SensorId.ToString()}";
 
     /// <summary>A time in the configured zone: "10:42" today, "2026-11-12 10:42" before.</summary>
     internal static string Time(DateTime utc, DateTime now)

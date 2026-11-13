@@ -83,7 +83,7 @@ public sealed class RouterPoller(
             }
             var now = Clock.UtcNow;
             var candidates = await db.MikrotikRouters.AsNoTracking()
-                .Where(r => r.Sensor.Enabled && (r.Mode == MikrotikMode.DirectSsh || r.Mode == MikrotikMode.WireGuardSsh))
+                .Where(r => r.Sensor.Enabled)
                 .Select(r => new { r.SensorId, r.LastPollAt, r.Sensor.Interval })
                 .ToListAsync(ct);
             due = candidates

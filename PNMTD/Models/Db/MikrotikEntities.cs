@@ -19,6 +19,9 @@ public class MikrotikRouterEntity
 
     public MikrotikMode Mode { get; set; }
 
+    /// <summary>The router's tunnel in the WireGuard modes (§3.2).</summary>
+    public Guid? WgPeerId { get; set; }
+
     /// <summary>Direct SSH (§3.6): a host name or address PNMTD can reach.</summary>
     public string? Address { get; set; }
 
@@ -43,6 +46,9 @@ public class MikrotikRouterEntity
 
     /// <summary>When the settings that the join script carries last changed: "script outdated" (§3.3).</summary>
     public DateTime ScriptChangedAt { get; set; }
+
+    /// <summary>When the join script was last shown: in WireGuard only mode, the only clue to what the router has (§3.3).</summary>
+    public DateTime? ScriptGeneratedAt { get; set; }
 
     // --- the host key (§4.4) -------------------------------------------------------------------------
 

@@ -32,6 +32,12 @@ public sealed class SensorMikrotikController(MikrotikRouterService routers, Mikr
     public async Task<ActionResult<MikrotikRouterDetail>> Poll(Guid id, CancellationToken ct) =>
         await routers.PollNowAsync(id, ct);
 
+    /// <summary>New tunnel keys (§3.2): every copy of the join script stops working, and so does the router until it gets the new one. Audit-logged.</summary>
+    [HttpPost("regenerate-keys")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<ActionResult<MikrotikRouterDetail>> RegenerateKeys(Guid id, CancellationToken ct) =>
+        await routers.RegenerateKeysAsync(id, ct);
+
     /// <summary>Accepts the host key the router presented instead of the pinned one (§4.4). Audit-logged.</summary>
     [HttpPost("host-key/accept")]
     [Authorize(Policy = Policies.Admin)]

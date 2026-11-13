@@ -5,8 +5,8 @@ namespace PNMTD.Api.V1.Contracts;
 
 /// <summary>
 /// <c>GET /system/info</c>. Signed out, only <see cref="Identity"/> (for the login screen); signed in,
-/// also the version, the public address, the time zone of per-day values, the 2FA policy and the
-/// caller's role.
+/// also the version, the public address, the time zone of per-day values, the 2FA policy, the
+/// caller's role, and whether the WireGuard gateway is on (docs/mikrotik-plan.md §3.1).
 /// </summary>
 public sealed record SystemInfo(
     string Identity,
@@ -14,7 +14,8 @@ public sealed record SystemInfo(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? PublicBaseUrl = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? TimeZone = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? TotpPolicy = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Role = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Role = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? WireGuard = null);
 
 /// <summary>
 /// <c>GET /system/uplink</c>: UplinkCheckTask's view of the internet connection. Without the

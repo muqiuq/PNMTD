@@ -53,6 +53,11 @@ namespace PNMTD.Data
         public DbSet<MikrotikSshKeyEntity> MikrotikSshKeys { get; set; }
         public DbSet<MikrotikBackupEntity> MikrotikBackups { get; set; }
 
+        // The WireGuard network (docs/mikrotik-plan.md §3, §9.2).
+        public DbSet<WgNetworkEntity> WgNetwork { get; set; }
+        public DbSet<WgPeerEntity> WgPeers { get; set; }
+        public DbSet<WgPeerStatusEntity> WgPeerStatus { get; set; }
+
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
         }
@@ -138,6 +143,20 @@ namespace PNMTD.Data
             {
                 e.HasOne(r => r.Sensor).WithOne().HasForeignKey<MikrotikRouterEntity>(r => r.SensorId).OnDelete(DeleteBehavior.Cascade);
             });
+            modelBuilder.Entity<WgPeerEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(p => p.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(p => p.OwnerUserId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(p => p.Address).IsUnique();
+                e.HasIndex(p => p.PublicKey).IsUnique();
+                e.HasIndex(p => p.SensorId);
+            });
+            modelBuilder.Entity<WgPeerStatusEntity>(e =>
+            {
+                e.HasOne<WgPeerEntity>().WithOne().HasForeignKey<WgPeerStatusEntity>(s => s.PeerId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<MikrotikRouterEntity>()
+                .HasOne<WgPeerEntity>().WithMany().HasForeignKey(r => r.WgPeerId).OnDelete(DeleteBehavior.SetNull);
             modelBuilder.Entity<MikrotikBackupEntity>(e =>
             {
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(b => b.SensorId).OnDelete(DeleteBehavior.SetNull);

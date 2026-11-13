@@ -47,13 +47,17 @@ public static class AuthEvents
     public const string MikrotikBackupDownloaded = "MikrotikBackupDownloaded";
     public const string MikrotikBackupDeleted = "MikrotikBackupDeleted";
 
+    // The WireGuard network (docs/mikrotik-plan.md §9.6).
+    public const string WireGuardNetworkChanged = "WireGuardNetworkChanged";
+    public const string WireGuardKeysRegenerated = "WireGuardKeysRegenerated";
+
     public static readonly string[] All =
     [
         LoginSucceeded, LoginFailed, LockedOut, TotpFailed, Logout, TotpEnabled, TotpDisabled, TotpReset, PasswordChanged,
         PasswordReset, SessionsRevoked, UserCreated, UserUpdated, UserUnlocked, RoleChanged, UserDeleted,
         UdpKeyChanged, UdpCounterReset, UdpSessionReset, UdpFirmwareUploaded, UdpFirmwareDeleted, UdpUpdateStarted, UdpUpdateCancelled,
         MikrotikJoinScriptViewed, MikrotikHostKeyAccepted, MikrotikSecretsChanged, MikrotikManagementAccessChanged, MikrotikDiagnosticsChanged,
-        MikrotikBackupDownloaded, MikrotikBackupDeleted,
+        MikrotikBackupDownloaded, MikrotikBackupDeleted, WireGuardNetworkChanged, WireGuardKeysRegenerated,
     ];
 }
 

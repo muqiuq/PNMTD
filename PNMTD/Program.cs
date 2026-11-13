@@ -13,6 +13,7 @@ using PNMTD.SensorApi;
 using PNMTD.Services.Domain;
 using PNMTD.Tasks;
 using PNMTD.Udp;
+using PNMTD.WireGuard;
 
 namespace PNMTD;
 
@@ -84,6 +85,7 @@ public partial class Program
         builder.Services.AddSingleton<NotificationService>();
         builder.Services.AddUdpNodes(builder.Configuration);
         builder.Services.AddMikrotik(builder.Configuration);
+        builder.Services.AddWireGuard(builder.Configuration);
 
         // The build writes the OpenAPI document by starting the host without a database (GetDocument.Insider).
         var documentBuild = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";

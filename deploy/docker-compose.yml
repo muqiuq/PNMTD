@@ -50,6 +50,11 @@ services:
       Database__Username: pnmtd
       Database__Password: ${PNMTD_DB_PASSWORD}
       Udp__Port: ${PNMTD_UDP_PORT:-5028}
+      # MikroTik routers and custom tunnels (docs/mikrotik-plan.md §3.3): what routers dial. Set in
+      # .env, the external host and port win over the admin page.
+      WireGuard__PublishedPort: ${PNMTD_WG_PORT:-51820}
+      WireGuard__ExternalHost: ${PNMTD_WG_EXTERNAL_HOST:-}
+      WireGuard__ExternalPort: ${PNMTD_WG_EXTERNAL_PORT:-}
     read_only: true
     tmpfs:
       - /tmp
@@ -67,6 +72,44 @@ services:
       start_period: 60s                            # a new release applies its migrations first
       retries: 3
     stop_grace_period: 40s                         # .NET's shutdown timeout is 30 s; Docker's default grace 10 s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  # The WireGuard gateway (docs/mikrotik-plan.md §3.4), only with COMPOSE_PROFILES=wireguard in .env.
+  # The same image as root with two capabilities: it owns wg0 and its firewall, takes its peers from the
+  # database, and passes the app's SSH connections into the tunnel over SOCKS5 on this network. The
+  # app stays non-root, read-only and without capabilities. Needs the WireGuard kernel module (Linux 5.6+).
+  pnmtd-wg:
+    image: ${PNMTD_IMAGE:-uisach/pnmtd}:${PNMTD_IMAGE_TAG:-v1.0.0}
+    profiles: [wireguard]
+    command: ["wireguard", "gateway"]
+    user: "0:0"
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${PNMTD_WG_BIND_ADDRESS:-0.0.0.0}:${PNMTD_WG_PORT:-51820}:51820/udp"
+    environment:
+      Database__Host: db
+      Database__Name: pnmtd
+      Database__Username: pnmtd
+      Database__Password: ${PNMTD_DB_PASSWORD}
+      WireGuard__Enabled: "true"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    # NET_ADMIN: wg0 and nftables. DAC_READ_SEARCH: reading the key ring, which the app's non-root user
+    # owns (0600), to decrypt the tunnel keys; nothing else is mounted.
+    cap_add: [NET_ADMIN, DAC_READ_SEARCH]
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      net.ipv4.ip_forward: "1"                     # custom tunnels only; nftables drops everything else
+    volumes:
+      - pnmtd-keys:/var/lib/pnmtd/keys:ro          # decrypts the tunnel keys; never writes the key ring
     logging:
       driver: json-file
       options: { max-size: "10m", max-file: "3" }

@@ -9,6 +9,7 @@ ENGINE="${ENGINE:-podman}"
 NAME="${NAME:-pnmtd}"
 DB_NAME="${DB_NAME:-pnmtd-db}"
 WEB_NAME="${WEB_NAME:-pnmtd-web}"
+WG_NAME="${WG_NAME:-pnmtd-wg}"
 NETWORK="${NETWORK:-pnmtd-dev}"
 PG_VOLUME="${PG_VOLUME:-pnmtd-pgdata}"
 KEYS_VOLUME="${KEYS_VOLUME:-pnmtd-keys-dev}"
@@ -56,6 +57,7 @@ offer_volume() {
 
 # The app before its database, so it does not log a lost connection on the way out.
 remove_container "$WEB_NAME" quiet
+remove_container "$WG_NAME" quiet
 remove_container "$NAME"
 remove_container "$DB_NAME"
 "$ENGINE" network rm "$NETWORK" >/dev/null 2>&1 || true

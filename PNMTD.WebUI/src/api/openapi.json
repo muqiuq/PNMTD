@@ -2256,6 +2256,46 @@
         }
       }
     },
+    "/api/v1/sensors/{id}/mikrotik/regenerate-keys": {
+      "post": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/sensors/{id}/mikrotik/host-key/accept": {
       "post": {
         "tags": [
@@ -5226,6 +5266,149 @@
           }
         }
       }
+    },
+    "/api/v1/wireguard/status": {
+      "get": {
+        "tags": [
+          "WireGuard"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WireGuardStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WireGuardStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WireGuardStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/wireguard/network": {
+      "get": {
+        "tags": [
+          "WireGuard"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WireGuardNetworkView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WireGuardNetworkView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WireGuardNetworkView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "WireGuard"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WireGuardNetworkRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WireGuardNetworkRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/WireGuardNetworkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WireGuardNetworkSaved"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WireGuardNetworkSaved"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WireGuardNetworkSaved"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/wireguard/peers": {
+      "get": {
+        "tags": [
+          "WireGuard"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WireGuardPeerItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WireGuardPeerItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WireGuardPeerItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7419,6 +7602,16 @@
                 "$ref": "#/components/schemas/MikrotikBackupItem"
               }
             ]
+          },
+          "tunnel": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MikrotikTunnel"
+              }
+            ]
           }
         }
       },
@@ -7608,6 +7801,64 @@
           "scriptsOutdated": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "MikrotikTunnel": {
+        "required": [
+          "address",
+          "publicKey",
+          "keysCreatedAt",
+          "up",
+          "latestHandshake",
+          "endpoint",
+          "rxBytes",
+          "txBytes",
+          "endpointChanges24h",
+          "gatewayUp"
+        ],
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "publicKey": {
+            "type": "string"
+          },
+          "keysCreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "up": {
+            "type": "boolean"
+          },
+          "latestHandshake": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "endpoint": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rxBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "txBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "endpointChanges24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gatewayUp": {
+            "type": "boolean"
           }
         }
       },
@@ -9190,6 +9441,12 @@
             "type": [
               "null",
               "string"
+            ]
+          },
+          "wireGuard": {
+            "type": [
+              "null",
+              "boolean"
             ]
           }
         }
@@ -11469,6 +11726,359 @@
             "format": "date-time"
           }
         }
+      },
+      "WgPeerKind": {
+        "enum": [
+          "Router",
+          "Custom"
+        ]
+      },
+      "WgSettingSource": {
+        "enum": [
+          "Default",
+          "Ui",
+          "Environment"
+        ]
+      },
+      "WireGuardNetworkRequest": {
+        "type": "object",
+        "properties": {
+          "prefix": {
+            "type": "string"
+          },
+          "confirmPrefix": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "externalHost": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "externalPort": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "keepaliveSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mtu": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "staleHandshakeSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "managementPorts": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "WireGuardNetworkSaved": {
+        "required": [
+          "network",
+          "needNewScripts"
+        ],
+        "type": "object",
+        "properties": {
+          "network": {
+            "$ref": "#/components/schemas/WireGuardNetworkView"
+          },
+          "needNewScripts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "WireGuardNetworkView": {
+        "required": [
+          "prefix",
+          "externalHost",
+          "externalHostInEffect",
+          "externalHostSource",
+          "externalHostLocked",
+          "externalPort",
+          "externalPortInEffect",
+          "externalPortSource",
+          "externalPortLocked",
+          "publishedPort",
+          "listenPort",
+          "keepaliveSeconds",
+          "mtu",
+          "staleHandshakeSeconds",
+          "managementPorts",
+          "changedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "prefix": {
+            "type": "string"
+          },
+          "externalHost": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "externalHostInEffect": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "externalHostSource": {
+            "$ref": "#/components/schemas/WgSettingSource"
+          },
+          "externalHostLocked": {
+            "type": "boolean"
+          },
+          "externalPort": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "externalPortInEffect": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "externalPortSource": {
+            "$ref": "#/components/schemas/WgSettingSource"
+          },
+          "externalPortLocked": {
+            "type": "boolean"
+          },
+          "publishedPort": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "listenPort": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "keepaliveSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mtu": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "staleHandshakeSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "managementPorts": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WireGuardPeerItem": {
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "sensorId",
+          "address",
+          "publicKey",
+          "enabled",
+          "up",
+          "latestHandshake",
+          "endpoint",
+          "rxBytes",
+          "txBytes",
+          "endpointChanges24h",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/WgPeerKind"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "address": {
+            "type": "string"
+          },
+          "publicKey": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "up": {
+            "type": "boolean"
+          },
+          "latestHandshake": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "endpoint": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rxBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "txBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "endpointChanges24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "WireGuardStatus": {
+        "required": [
+          "enabled",
+          "gatewayUp",
+          "gatewaySeenAt",
+          "gatewayVersion",
+          "gatewayError",
+          "endpoint",
+          "externalHost",
+          "externalHostSource",
+          "externalPort",
+          "externalPortSource",
+          "publishedPort",
+          "network",
+          "serverAddress",
+          "accessAddress",
+          "gatewayPublicKey",
+          "peers",
+          "peersUp",
+          "warnings"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "gatewayUp": {
+            "type": "boolean"
+          },
+          "gatewaySeenAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "gatewayVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "gatewayError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "endpoint": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "externalHost": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "externalHostSource": {
+            "$ref": "#/components/schemas/WgSettingSource"
+          },
+          "externalPort": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "externalPortSource": {
+            "$ref": "#/components/schemas/WgSettingSource"
+          },
+          "publishedPort": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "network": {
+            "type": "string"
+          },
+          "serverAddress": {
+            "type": "string"
+          },
+          "accessAddress": {
+            "type": "string"
+          },
+          "gatewayPublicKey": {
+            "type": "string"
+          },
+          "peers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "peersUp": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
       }
     }
   },
@@ -11532,6 +12142,9 @@
     },
     {
       "name": "UdpProtocol"
+    },
+    {
+      "name": "WireGuard"
     }
   ]
 }

@@ -98,6 +98,7 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         }
         await db.SaveChangesAsync(ct);
         udp.Changed();
+        await mikrotik.NotifyGatewayAsync(ct);
         return await GetAsync(sensor.Id, withSecrets: true, ct);
     }
 
@@ -142,6 +143,8 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         }
         await db.SaveChangesAsync(ct);
         udp.Changed();
+        // A router's tunnel follows its sensor's Enabled and its mode.
+        await mikrotik.NotifyGatewayAsync(ct, always: sensor.Type == SensorType.MIKROTIK);
         return await GetAsync(id, withSecrets, ct);
     }
 
@@ -161,6 +164,8 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         await transaction.CommitAsync(ct);
         // A UDP node goes with its sensor (cascade); its commands, updates and log stay (§4.3).
         udp.Changed();
+        // So does a router's tunnel: the gateway drops the peer (docs/mikrotik-plan.md §4.6).
+        await mikrotik.NotifyGatewayAsync(ct, always: true);
     }
 
     public async Task<SensorIntegration> RotateTokensAsync(Guid id, RotateTokensRequest request, CancellationToken ct)

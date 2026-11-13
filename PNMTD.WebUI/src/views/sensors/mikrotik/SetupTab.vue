@@ -17,7 +17,7 @@ import { modeLabel } from './mikrotikDraft'
 const props = defineProps<{ sensor: S['SensorDetail']; canWrite: boolean; isAdmin: boolean }>()
 const emit = defineEmits<{ edit: [] }>()
 const queryClient = useQueryClient()
-const { run, busy } = useActions()
+const { run, busy, ask } = useActions()
 
 const m = computed(() => props.sensor.mikrotik!)
 const script = ref<S['MikrotikScript'] | null>(null)
@@ -44,7 +44,17 @@ const steps = computed<Step[]>(() => {
     },
   ]
   if (wireGuard) {
-    list.push({ key: 'tunnel', label: 'Tunnel up', state: s === 'AwaitingRouter' ? 'todo' : 'done' })
+    const t = m.value.tunnel
+    list.push({
+      key: 'tunnel',
+      label: 'Tunnel up',
+      state: t?.up ? 'done' : s === 'AwaitingRouter' ? 'todo' : 'failed',
+      detail: !t?.gatewayUp
+        ? 'The WireGuard gateway is down.'
+        : t?.up || !t?.latestHandshake
+          ? undefined
+          : 'No handshake lately.',
+    })
   }
   if (ssh) {
     list.push({
@@ -82,6 +92,20 @@ async function poll() {
     queryClient.setQueryData(keys.sensor(props.sensor.id), { ...props.sensor, mikrotik: detail })
     await queryClient.invalidateQueries({ queryKey: [...keys.sensor(props.sensor.id)] })
   }
+}
+
+async function regenerate() {
+  const ok = await ask(
+    'Regenerate the tunnel keys?',
+    'Every copy of the join script stops working, and so does the router, until the new script is pasted on it. Use it when a script may have been copied.',
+    'Regenerate',
+  )
+  if (!ok) return
+  const detail = await run(() => api.mikrotik.regenerateKeys(props.sensor.id), {
+    success: 'New tunnel keys: paste the new join script on the router',
+    invalidate: [keys.sensor(props.sensor.id)],
+  })
+  if (detail) script.value = null
 }
 
 async function accept() {
@@ -160,6 +184,38 @@ async function accept() {
           <small class="muted">Every view of a join script is recorded in the audit log.</small>
         </template>
       </div>
+    </section>
+
+    <section v-if="m.tunnel" class="panel" aria-labelledby="tunnel-title">
+      <div id="tunnel-title" class="panel-header">
+        Tunnel
+        <span class="spacer" />
+        <Button
+          v-if="canWrite"
+          label="Regenerate keys…"
+          icon="pi pi-refresh"
+          size="small"
+          text
+          severity="danger"
+          @click="regenerate"
+        />
+      </div>
+      <dl class="panel-body facts">
+        <dt>Address</dt>
+        <dd class="mono">{{ m.tunnel.address }}</dd>
+        <dt>Handshake</dt>
+        <dd>
+          <RelativeTime v-if="m.tunnel.latestHandshake" :value="m.tunnel.latestHandshake" />
+          <span v-else class="muted">none yet</span>
+          <span v-if="!m.tunnel.gatewayUp" class="bad"> · the gateway is down</span>
+        </dd>
+        <dt>From</dt>
+        <dd class="mono">{{ m.tunnel.endpoint ?? '–' }}</dd>
+        <dt>Public key</dt>
+        <dd class="mono">{{ m.tunnel.publicKey }}</dd>
+        <dt>Keys made</dt>
+        <dd><RelativeTime :value="m.tunnel.keysCreatedAt" /></dd>
+      </dl>
     </section>
 
     <section class="panel" aria-labelledby="hostkey-title">

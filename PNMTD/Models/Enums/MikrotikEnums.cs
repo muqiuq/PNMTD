@@ -26,3 +26,10 @@ public enum MikrotikBackupTrigger : short
     BeforeCommand = 4,
     AfterCommand = 5,
 }
+
+/// <summary>Whose tunnel a WireGuard peer is (docs/mikrotik-plan.md §9.2).</summary>
+public enum WgPeerKind : short
+{
+    Router = 0,
+    Custom = 1,
+}

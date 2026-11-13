@@ -61,7 +61,7 @@ const enabled = ref(true)
 const textId = ref('')
 const notes = ref('')
 const udp = ref(newUdpDraft(Number.isInteger(presetDevice) && presetDevice > 0 ? presetDevice : null))
-const mikrotik = ref(newMikrotikDraft())
+const mikrotik = ref(newMikrotikDraft(!!session.info?.wireGuard))
 const errors = ref<Record<string, string | undefined>>({})
 const busy = ref(false)
 
@@ -288,7 +288,13 @@ async function submit() {
         }}</small>
       </div>
       <UdpNodeFields v-if="isUdp" v-model="udp" :errors="errors" :listener-off="listenerOff" />
-      <MikrotikFields v-if="isMikrotik" v-model="mikrotik" :errors="errors" :is-admin="session.can('Admin')" />
+      <MikrotikFields
+        v-if="isMikrotik"
+        v-model="mikrotik"
+        :errors="errors"
+        :is-admin="session.can('Admin')"
+        :wire-guard="!!session.info?.wireGuard"
+      />
       <div class="field">
         <label for="sensor-textid">Text id <span class="muted">(optional)</span></label>
         <InputText id="sensor-textid" v-model="textId" class="mono" :invalid="!!errors.textId" />

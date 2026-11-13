@@ -176,6 +176,13 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'UDP protocol' },
   },
   {
+    // docs/mikrotik-plan.md §11.2: the routers and the tunnel network, ?tab=network|routers.
+    path: '/admin/mikrotik',
+    name: 'mikrotik',
+    component: () => import('@/views/admin/MikrotikView.vue'),
+    meta: { title: 'MikroTik & WireGuard', role: 'Admin' },
+  },
+  {
     path: '/admin/system',
     name: 'system',
     component: () => import('@/views/admin/SystemView.vue'),

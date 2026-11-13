@@ -8,6 +8,7 @@ using PNMTD.Lib.Models.Enum;
 using PNMTD.Mikrotik;
 using PNMTD.Services.Domain;
 using PNMTD.Udp;
+using PNMTD.WireGuard;
 
 namespace PNMTD.Cli;
 
@@ -57,6 +58,7 @@ internal static class MikrotikCommand
         services.AddDomainServices();
         services.AddUdpNodes(configuration);
         services.AddMikrotik(configuration);
+        services.AddWireGuard(configuration);
         return services.BuildServiceProvider();
     }
 

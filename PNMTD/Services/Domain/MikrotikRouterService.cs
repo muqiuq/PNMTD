@@ -12,6 +12,7 @@ using PNMTD.Lib.Models.Enum;
 using PNMTD.Mikrotik;
 using PNMTD.Models.Db;
 using PNMTD.Models.Enums;
+using PNMTD.WireGuard;
 
 namespace PNMTD.Services.Domain;
 
@@ -25,9 +26,11 @@ public sealed class MikrotikRouterService(
     RouterPollService polls,
     MonitoringReader reader,
     IOptionsMonitor<MikrotikOptions> options,
-    IConfiguration configuration,
+    WireGuardNetwork wireGuard,
     IHttpContextAccessor accessor)
 {
+    /// <summary>Set when a change concerns the gateway's peers: <see cref="NotifyGatewayAsync"/> after saving.</summary>
+    private bool peersChanged;
     public const int MaxBackupIntervalHours = 168;
 
     private static readonly string[] SortFields = ["name", "host", "state", "version", "lastsuccess"];
@@ -45,7 +48,7 @@ public sealed class MikrotikRouterService(
         v.Check(Enum.IsDefined(request.Mode), "mikrotik.mode", "WireGuardSsh, WireGuardOnly or DirectSsh.");
         if (request.Mode.UsesWireGuard())
         {
-            v.Check(configuration.GetValue("WireGuard:Enabled", false), "mikrotik.mode",
+            v.Check(wireGuard.Enabled, "mikrotik.mode",
                 "The WireGuard modes need the WireGuard gateway (the compose profile wireguard, WireGuard__Enabled=true). Use Direct SSH without it.");
         }
         if (request.Mode == MikrotikMode.DirectSsh)
@@ -119,6 +122,7 @@ public sealed class MikrotikRouterService(
             }
         }
         router.Mode = request.Mode;
+        await PeerAsync(sensor, router, ct);
         router.Address = request.Mode == MikrotikMode.DirectSsh ? address : null;
         router.SshPort = request.SshPort;
         router.PnmtSourceAddress = request.Mode == MikrotikMode.DirectSsh ? source : null;
@@ -132,9 +136,48 @@ public sealed class MikrotikRouterService(
         }
     }
 
-    /// <summary>The type changed away from MIKROTIK: the router row goes.</summary>
-    public Task RemoveAsync(Guid sensorId, CancellationToken ct) =>
-        db.MikrotikRouters.Where(r => r.SensorId == sensorId).ExecuteDeleteAsync(ct);
+    /// <summary>
+    /// The router's tunnel follows its mode (§3.2): a WireGuard mode gets a peer, with the next free address
+    /// and new keys; Direct SSH has none. The peer carries the sensor's name.
+    /// </summary>
+    private async Task PeerAsync(SensorEntity sensor, MikrotikRouterEntity router, CancellationToken ct)
+    {
+        peersChanged = true;
+        var peer = router.WgPeerId is { } id ? await db.WgPeers.SingleOrDefaultAsync(p => p.Id == id, ct) : null;
+        if (router.Mode.UsesWireGuard())
+        {
+            if (peer is null)
+            {
+                peer = await wireGuard.NewPeerAsync(db, WgPeerKind.Router, sensor.Name, UdpViews.User(accessor).Id, ct);
+                peer.SensorId = sensor.Id;
+                router.WgPeerId = peer.Id;
+            }
+            peer.Name = sensor.Name;
+        }
+        else if (peer is not null)
+        {
+            db.WgPeers.Remove(peer);
+            router.WgPeerId = null;
+        }
+    }
+
+    /// <summary>The type changed away from MIKROTIK: the router row and its tunnel go.</summary>
+    public async Task RemoveAsync(Guid sensorId, CancellationToken ct)
+    {
+        await db.MikrotikRouters.Where(r => r.SensorId == sensorId).ExecuteDeleteAsync(ct);
+        await db.WgPeers.Where(p => p.SensorId == sensorId).ExecuteDeleteAsync(ct);
+        peersChanged = true;
+    }
+
+    /// <summary>After a router was saved or deleted: the gateway resyncs at once (§3.4).</summary>
+    public async Task NotifyGatewayAsync(CancellationToken ct, bool always = false)
+    {
+        if (wireGuard.Enabled && (peersChanged || always))
+        {
+            await WireGuardNetwork.NotifyAsync(db, ct);
+        }
+        peersChanged = false;
+    }
 
     public async Task<MikrotikRouterDetail?> DetailAsync(Guid sensorId, CancellationToken ct)
     {
@@ -145,6 +188,7 @@ public sealed class MikrotikRouterService(
         }
         var installation = await keys.GetAsync(ct);
         var latest = await LatestAsync(ct);
+        var wg = await WireGuardAsync(router, ct);
         var backups = db.MikrotikBackups.AsNoTracking().Where(b => b.SensorId == sensorId);
         var count = await backups.CountAsync(ct);
         var newest = await backups.OrderByDescending(b => b.Number).Select(b => new MikrotikBackupEntity
@@ -153,21 +197,41 @@ public sealed class MikrotikRouterService(
             RouterOsVersion = b.RouterOsVersion, Size = b.Size, LineCount = b.LineCount, LinesAdded = b.LinesAdded, LinesRemoved = b.LinesRemoved,
             IncludesSecrets = b.IncludesSecrets, Encrypted = b.Encrypted,
         }).FirstOrDefaultAsync(ct);
-        return Detail(router, installation, latest) with
+        return Detail(router, installation, latest, wg) with
         {
             LastExportAt = UdpViews.NullableUtc(router.LastExportAt),
             BackupFailures = router.BackupFailures,
             LastBackupError = router.LastBackupError,
             BackupCount = count,
             LatestBackup = newest is null ? null : MikrotikBackupService.Item(newest),
+            Tunnel = wg is { Peer: { } peer } ? new MikrotikTunnel(peer.Address, peer.PublicKey, Instants.Utc(peer.KeysCreatedAt),
+                wg.Status?.LatestHandshake is { } h && Clock.UtcNow - h <= TimeSpan.FromSeconds(wg.Settings.StaleHandshakeSeconds),
+                UdpViews.NullableUtc(wg.Status?.LatestHandshake), wg.Status?.Endpoint, wg.Status?.RxBytes ?? 0, wg.Status?.TxBytes ?? 0,
+                wg.Status?.EndpointChanges24h ?? 0, wg.Settings.GatewayUp(Clock.UtcNow, wireGuard.Options.GatewayDownSeconds)) : null,
         };
     }
 
-    private MikrotikRouterDetail Detail(MikrotikRouterEntity r, MikrotikInstallation installation, IReadOnlyDictionary<string, LatestVersion> latest)
+    /// <summary>What a router in a WireGuard mode is compared with: the network in effect, its peer and the peer's status.</summary>
+    internal sealed record WgContext(WgNetworkSettings Settings, WgPeerEntity? Peer, WgPeerStatusEntity? Status);
+
+    private async Task<WgContext?> WireGuardAsync(MikrotikRouterEntity router, CancellationToken ct)
+    {
+        if (!router.Mode.UsesWireGuard() || !wireGuard.Enabled)
+        {
+            return null;
+        }
+        var settings = await wireGuard.SettingsAsync(db, ct);
+        var peer = router.WgPeerId is { } id ? await db.WgPeers.AsNoTracking().SingleOrDefaultAsync(p => p.Id == id, ct) : null;
+        var status = peer is null ? null : await db.WgPeerStatus.AsNoTracking().SingleOrDefaultAsync(s => s.PeerId == peer.Id, ct);
+        return new WgContext(settings, peer, status);
+    }
+
+    private MikrotikRouterDetail Detail(MikrotikRouterEntity r, MikrotikInstallation installation, IReadOnlyDictionary<string, LatestVersion> latest,
+        WgContext? wg = null)
     {
         var reading = Reading(r);
         var latestVersion = r.Channel is { } ch && latest.TryGetValue(ch, out var l) ? l.Version : null;
-        var differences = Differences(r, reading, installation);
+        var differences = Differences(r, reading, installation, wg);
         var warnings = new List<string>();
         if (r.Mode == MikrotikMode.DirectSsh && r.PnmtSourceAddress is null)
         {
@@ -176,6 +240,15 @@ public sealed class MikrotikRouterService(
         if (r.PendingHostKeyFingerprint is not null)
         {
             warnings.Add("The router presented another host key. If the router was replaced or reinstalled, an Admin can accept the new one.");
+        }
+        if (wg?.Status is { EndpointChanges24h: >= 6 } flapping)
+        {
+            warnings.Add($"The tunnel's endpoint changed {flapping.EndpointChanges24h} times in 24 hours: two devices may share this router's key " +
+                "(a copied join script). If so, regenerate the keys.");
+        }
+        if (wg is not null && wg.Settings.Endpoint is null)
+        {
+            warnings.Add("No external address is known for the WireGuard endpoint: set PNMTD_WG_EXTERNAL_HOST, PublicBaseUrl, or the admin page's network settings.");
         }
         return new MikrotikRouterDetail(r.Mode, r.SetupState, r.Address, r.SshPort, r.PnmtSourceAddress, r.BackupIntervalHours,
             r.ManagementAccess, r.IncludeSecrets, r.Diagnostics,
@@ -208,15 +281,51 @@ public sealed class MikrotikRouterService(
 
     /// <summary>
     /// What the router has that its current join script would change (§3.3): the group's policies, PNMTD's
-    /// current key. The tunnel's settings follow with the WireGuard modes (phase M3). Empty until the first poll.
+    /// current key, and in the WireGuard modes the tunnel's settings, as the poll read them. A router in
+    /// WireGuard only mode has no login: its script is outdated when the settings changed after it was
+    /// last shown. Empty until there is something to compare.
     /// </summary>
-    internal static IReadOnlyList<string> Differences(MikrotikRouterEntity r, RouterReading? reading, MikrotikInstallation installation)
+    internal static IReadOnlyList<string> Differences(MikrotikRouterEntity r, RouterReading? reading, MikrotikInstallation installation,
+        WgContext? wg = null)
     {
+        var list = new List<string>();
+        if (r.Mode == MikrotikMode.WireGuardOnly && wg?.Peer is { } onlyPeer && r.ScriptGeneratedAt is { } shown)
+        {
+            var changed = new[] { wg.Settings.ScriptSettingsChangedAt, r.ScriptChangedAt, onlyPeer.KeysCreatedAt }.Max();
+            if (changed > shown)
+            {
+                list.Add("The settings or keys changed after the join script was last shown: paste the new one.");
+            }
+            return list;
+        }
         if (reading is null || !r.Mode.UsesSsh())
         {
             return [];
         }
-        var list = new List<string>();
+        if (wg?.Peer is { } peer)
+        {
+            var t = reading.WireGuard;
+            var s = wg.Settings;
+            if (t is null)
+            {
+                list.Add("The router has no PNMT tunnel interface.");
+            }
+            else
+            {
+                if (t.PublicKey != peer.PublicKey) list.Add("The router's tunnel key is not its current one: the keys were regenerated.");
+                if (t.PeerPublicKey != s.GatewayPublicKey) list.Add("The router's peer is not this gateway.");
+                if (s.ExternalHost is not null && !string.Equals(t.EndpointAddress, s.ExternalHost, StringComparison.OrdinalIgnoreCase))
+                    list.Add($"The router dials {t.EndpointAddress}; the endpoint is now {s.ExternalHost}.");
+                if (t.EndpointPort != s.ExternalPort) list.Add($"The router dials port {t.EndpointPort}; the endpoint's port is now {s.ExternalPort}.");
+                if (t.Keepalive is { } k && (int)k.TotalSeconds != s.KeepaliveSeconds) list.Add($"The keepalive is {(int)k.TotalSeconds} s; it is now {s.KeepaliveSeconds} s.");
+                if (t.Mtu != s.Mtu) list.Add($"The tunnel's MTU is {t.Mtu}; it is now {s.Mtu}.");
+            }
+            var management = reading.FirewallRules.Any(f => f.SourceAddress == s.Plan.AccessAddress.ToString());
+            if (management != r.ManagementAccess)
+            {
+                list.Add(r.ManagementAccess ? "Management access is on, but the router lacks its firewall rule." : "The router still accepts custom tunnels on its management ports.");
+            }
+        }
         var policies = reading.GroupPolicies;
         if (r.IncludeSecrets != policies.Contains("sensitive"))
         {
@@ -258,9 +367,33 @@ public sealed class MikrotikRouterService(
             return new MikrotikScript(JoinScript.Removal(name, installation.Instance, installation.Comment, now),
                 "pnmt-remove.rsc", router.Mode, now, []);
         }
+        JoinScriptTunnel? tunnel = null;
+        var notes = new List<string>();
         if (router.Mode.UsesWireGuard())
         {
-            throw ApiException.Conflict("wireguard_unavailable", "The WireGuard modes need the WireGuard gateway, which this installation does not have yet.");
+            if (!wireGuard.Enabled)
+            {
+                throw ApiException.Conflict("wireguard_unavailable", "The WireGuard gateway is off (WireGuard__Enabled): use Direct SSH, or turn it on.");
+            }
+            var network = await wireGuard.SettingsAsync(db, ct);
+            var peer = router.WgPeerId is { } peerId ? await db.WgPeers.SingleOrDefaultAsync(p => p.Id == peerId, ct) : null;
+            if (peer is null)
+            {
+                throw ApiException.Conflict("no_tunnel", "The router has no tunnel yet: save its settings again.");
+            }
+            if (network.ExternalHost is null)
+            {
+                throw ApiException.Conflict("no_endpoint",
+                    "No external address is known for the WireGuard endpoint: set PNMTD_WG_EXTERNAL_HOST (or PublicBaseUrl), or the admin page's network settings.");
+            }
+            var privateKey = wireGuard.Unprotect(peer.PrivateKeyProtected) ?? throw ApiException.Conflict("key_lost",
+                "The router's tunnel key cannot be decrypted (the key ring is gone): regenerate the keys.");
+            tunnel = new JoinScriptTunnel(privateKey, network.GatewayPublicKey, network.ExternalHost, network.ExternalPort, peer.Address,
+                network.Plan.ServerBlock, network.Plan.ServerAddress.ToString(), network.Plan.AccessAddress.ToString(), network.KeepaliveSeconds, network.Mtu);
+            if (!network.GatewayUp(now, wireGuard.Options.GatewayDownSeconds))
+            {
+                notes.Add("The WireGuard gateway is down: the router can join, but its tunnel comes up only when the gateway runs.");
+            }
         }
         var settings = new JoinScriptSettings
         {
@@ -270,18 +403,20 @@ public sealed class MikrotikRouterService(
             Mode = router.Mode,
             GeneratedAt = now,
             SshPublicKeys = installation.PublicKeys,
-            UserAddress = SourceNetwork(router.PnmtSourceAddress),
+            Tunnel = tunnel,
+            // Through the tunnel PNMTD's connections come from the server address only (§4.2).
+            UserAddress = tunnel is not null ? $"{tunnel.ServerAddress}/32" : SourceNetwork(router.PnmtSourceAddress),
             SshPort = router.SshPort,
             IncludeSecrets = router.IncludeSecrets,
             Diagnostics = router.Diagnostics,
             ManagementAccess = router.ManagementAccess,
         };
-        var notes = new List<string>();
         if (settings.UserAddress is null)
         {
             notes.Add("Without PNMTD's source address the user pnmt may log in from anywhere, with PNMTD's key only.");
         }
         UdpViews.Audit(db, accessor, AuthEvents.MikrotikJoinScriptViewed, $"router {name}: join script ({router.Mode.Label()})");
+        router.ScriptGeneratedAt = now;
         await db.SaveChangesAsync(ct);
         return new MikrotikScript(JoinScript.Build(settings), "pnmt-join.rsc", router.Mode, now, notes);
     }
@@ -319,6 +454,23 @@ public sealed class MikrotikRouterService(
         router.PendingHostKeySeenAt = null;
         router.LastPollAt = null;
         await db.SaveChangesAsync(ct);
+        return (await DetailAsync(sensorId, ct))!;
+    }
+
+    /// <summary>New tunnel keys for the router (§3.2): every copy of its join script stops working, and so does the router until it gets the new one.</summary>
+    public async Task<MikrotikRouterDetail> RegenerateKeysAsync(Guid sensorId, CancellationToken ct)
+    {
+        var router = await db.MikrotikRouters.Include(r => r.Sensor).SingleOrDefaultAsync(r => r.SensorId == sensorId, ct)
+            ?? throw ApiException.NotFound("MikroTik router");
+        var peer = router.WgPeerId is { } id ? await db.WgPeers.SingleOrDefaultAsync(p => p.Id == id, ct) : null;
+        if (peer is null)
+        {
+            throw ApiException.Conflict("no_tunnel", "Only a router in a WireGuard mode has tunnel keys.");
+        }
+        wireGuard.Regenerate(peer, UdpViews.User(accessor).Id);
+        UdpViews.Audit(db, accessor, AuthEvents.WireGuardKeysRegenerated, $"router {router.Sensor.Name}: tunnel keys regenerated");
+        await db.SaveChangesAsync(ct);
+        await WireGuardNetwork.NotifyAsync(db, ct);
         return (await DetailAsync(sensorId, ct))!;
     }
 

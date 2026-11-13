@@ -34,6 +34,7 @@ export const navigation: NavGroup[] = [
       { label: 'Users', icon: 'pi pi-users', to: '/admin/users', name: 'users', role: 'Admin' },
       { label: 'Auth log', icon: 'pi pi-history', to: '/admin/auth-log', name: 'auth-log', role: 'Admin' },
       { label: 'UDP nodes', icon: 'pi pi-wifi', to: '/admin/udp-nodes', name: 'udp-nodes', role: 'Admin' },
+      { label: 'MikroTik & WireGuard', icon: 'pi pi-server', to: '/admin/mikrotik', name: 'mikrotik', role: 'Admin' },
       { label: 'System health', icon: 'pi pi-heart', to: '/admin/system', name: 'system', role: 'Admin' },
     ],
   },
