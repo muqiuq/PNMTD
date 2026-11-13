@@ -21,7 +21,24 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- WinForms cannot be trimmed (§3.1). -->
     <PublishTrimmed>false</PublishTrimmed>
+    <!-- Single-file publishing would turn this analyzer on, and with it an implicit ILLink package that the
+         normal build doesn't restore: the lock file would differ between build and publish. -->
+    <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>
     <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+
+  <!--
+    The published executable (tools/agent.sh: -p:AgentRuntime=win-x64): single-file, self-contained, compressed. Set here,
+    not with -r and -p on the command line, which would reach PNMTD.Lib's restore too and break its lock file.
+  -->
+  <PropertyGroup Condition="'$(AgentRuntime)' != ''">
+    <RuntimeIdentifier>$(AgentRuntime)</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

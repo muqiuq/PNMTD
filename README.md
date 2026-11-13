@@ -81,7 +81,7 @@ The UplinkCheck setting needs a remote endpoint. [examples/digitalocean_function
 
 # 🛠 Development
 
-- **Stack:** .NET 10 (`PNMTD`, `PNMTD.Lib`, and the Windows agent `PNMTD.Sensor.Windows`, which builds on macOS and Linux too), PostgreSQL, and Vue 3 with PrimeVue (`PNMTD.WebUI`). `tools/agent.sh` publishes the agent's two executables.
+- **Stack:** .NET 10 (`PNMTD`, `PNMTD.Lib`, and the Windows agent `PNMTD.Sensor.Windows`, which builds on macOS and Linux too), PostgreSQL, and Vue 3 with PrimeVue (`PNMTD.WebUI`). `./build-sensor-windows.sh` builds the agent's two executables into `dist/` (`x64` or `arm64` for one).
 - **Node runs only in containers:** `tools/npm.sh` and `start.sh` use Podman by default (`ENGINE=docker` works too). Never on the host.
 
 ```sh

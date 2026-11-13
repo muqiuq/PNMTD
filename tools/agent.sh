@@ -2,8 +2,7 @@
 # Publishes the PNMT sensor service (docs/windows-sensor-plan.md §11): pnmt-sensor-x64.exe and
 # pnmt-sensor-arm64.exe, single-file, self-contained, compressed, each with its SHA-256, into
 # artifacts/agent/ (or $OUT). Runs on macOS and Linux (EnableWindowsTargeting); for a manual test on
-# a Windows machine, and for the release job on version tags. The publish leaves the lock file alone:
-# single-file publishing adds an implicit package (ILLink) that the normal build doesn't have.
+# a Windows machine, for ./build-sensor-windows.sh (into dist/), and for the release job on version tags.
 #
 #   tools/agent.sh                both architectures
 #   ARCH=x64 tools/agent.sh       one
@@ -21,10 +20,10 @@ sha256() {
 for arch in $ARCHS; do
   work="$(mktemp -d)"
   echo "Publishing win-${arch}…"
-  dotnet publish PNMTD.Sensor.Windows/PNMTD.Sensor.Windows.csproj -c Release -r "win-${arch}" -o "$work" \
-    -p:SelfContained=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
-    -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:GenerateDocumentationFile=false \
-    -p:RestorePackagesWithLockFile=false -v q -nologo
+  # The single-file settings are in the project (AgentRuntime). Locked: the executables are built from
+  # exactly the packages the repository pins.
+  dotnet publish PNMTD.Sensor.Windows/PNMTD.Sensor.Windows.csproj -c Release -p:AgentRuntime="win-${arch}" -o "$work" \
+    -p:RestoreLockedMode=true -v q -nologo
   file="pnmt-sensor-${arch}.exe"
   cp "$work/pnmt-sensor.exe" "$OUT/$file"
   rm -rf "$work"
