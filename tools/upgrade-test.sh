@@ -11,6 +11,8 @@
 #      containers are stopped but kept, and the archive exists.
 #
 #   tools/upgrade-test.sh          KEEP=1 leaves both stacks running
+#   UPGRADE_TEST_LAYOUT=split      the backend and the WebApp in folders of their own, each with data/
+#                                  and other service names (--legacy-backend, --legacy-webapp)
 #
 # Needs docker and compose (on a Mac the docker CLI may talk to Podman), pnmtd:dev (tools/contract.sh
 # build) and pnmtd-contract:v0.12.1 (tools/contract.sh baseline).
@@ -19,6 +21,7 @@ cd "$(dirname "$0")/.."
 
 PORT="${UPGRADE_TEST_PORT:-5094}"
 KEEP="${KEEP:-0}"
+LAYOUT="${UPGRADE_TEST_LAYOUT:-single}"
 PROJECT="pnmtd-upgradetest"
 
 image_ref() {  # Podman names local images localhost/…, Docker docker.io/library/….
@@ -30,22 +33,36 @@ docker image inspect "$legacy_image" >/dev/null 2>&1 || { echo "$legacy_image is
 
 mkdir -p .tmpcheck
 dir=$(mktemp -d "$PWD/.tmpcheck/upgrade-test.XXXXXX")
-# The old project is named after its folder, as on a real host.
-legacy="$dir/pnmt-legacytest"
-mkdir -p "$legacy/pnmtd-data" "$legacy/pnmtwebapp-data"
-cp PNMTD.Tests/Fixtures/v0.12-sample.db "$legacy/pnmtd-data/pnmtd.db"
+# The old projects are named after their folders, as on a real host.
+if [[ "$LAYOUT" == split ]]; then
+  backend_dir="$dir/pnmtd-old" webapp_dir="$dir/pnmt.webapp" backend_svc=api webapp_svc=web
+  backend_data="$backend_dir/data" webapp_data="$webapp_dir/data"
+  legacy_args=(--legacy-backend "$backend_dir" --legacy-webapp "$webapp_dir")
+else
+  backend_dir="$dir/pnmt-legacytest" webapp_dir="$dir/pnmt-legacytest" backend_svc=pnmtd webapp_svc=pnmtwebapp
+  backend_data="$backend_dir/pnmtd-data" webapp_data="$backend_dir/pnmtwebapp-data"
+  legacy_args=(--legacy "$backend_dir")
+fi
+mkdir -p "$backend_data" "$webapp_data"
+cp PNMTD.Tests/Fixtures/v0.12-sample.db "$backend_data/pnmtd.db"
 cp -R deploy/. "$dir/deploy/"
 
 # `docker compose` (the plugin), or the standalone docker-compose, as deploy/lib.sh does.
 dc() { if docker compose version >/dev/null 2>&1; then docker compose "$@"; else docker-compose "$@"; fi; }
-lc() { (unset COMPOSE_PROJECT_NAME; dc -f "$legacy/docker-compose.yml" --project-directory "$legacy" "$@"); }
+# The old project(s): one folder, or the backend's and the WebApp's.
+lc() {
+  local d
+  for d in $(printf '%s\n' "$backend_dir" "$webapp_dir" | sort -u); do
+    (unset COMPOSE_PROJECT_NAME; dc -f "$d/docker-compose.yml" --project-directory "$d" "$@")
+  done
+}
 nc() { (cd "$dir/deploy" && COMPOSE_PROJECT_NAME="$PROJECT" dc "$@"); }
 cleanup() {
   if [[ "$KEEP" != "1" ]]; then
     nc down -v >/dev/null 2>&1 || true
     lc down >/dev/null 2>&1 || true
     # The v0.12 containers wrote as root into the bind mounts.
-    docker run --rm --user 0 -v "$dir:/d" --entrypoint rm "$dev_image" -rf /d/pnmt-legacytest >/dev/null 2>&1 || true
+    docker run --rm --user 0 -v "$dir:/d" --entrypoint rm "$dev_image" -rf /d/pnmt-legacytest /d/pnmtd-old /d/pnmt.webapp >/dev/null 2>&1 || true
     rm -rf "$dir"
   fi
 }
@@ -60,9 +77,8 @@ fail() {
 
 # --- 1. the v0.12 installation -------------------------------------------------------------------
 # $$ is a literal $ for compose. The stand-in WebApp only carries the WebApp's settings.
-cat >"$legacy/docker-compose.yml" <<EOF
-services:
-  pnmtd:
+backend_yaml() { cat <<EOF
+  ${backend_svc}:
     image: ${legacy_image}
     environment:
       - Jwt__Issuer=legacy
@@ -75,18 +91,28 @@ services:
     ports:
       - "${PORT}:80"
     volumes:
-      - ./pnmtd-data:/var/lib/pnmtd/
-  pnmtwebapp:
+      - ./$(basename "$backend_data"):/var/lib/pnmtd/
+EOF
+}
+webapp_yaml() { cat <<EOF
+  ${webapp_svc}:
     image: ${dev_image}
     entrypoint: ["sleep", "infinity"]
     environment:
       - apiurl=http://pnmtd
       - externalApiurl=http://localhost:${PORT}/
     volumes:
-      - ./pnmtwebapp-data:/var/lib/pnmt/
+      - ./$(basename "$webapp_data"):/var/lib/pnmt/
 EOF
+}
+if [[ "$LAYOUT" == split ]]; then
+  { echo services:; backend_yaml; } >"$backend_dir/docker-compose.yml"
+  { echo services:; webapp_yaml; } >"$webapp_dir/docker-compose.yml"
+else
+  { echo services:; backend_yaml; webapp_yaml; } >"$backend_dir/docker-compose.yml"
+fi
 # users.json as WebAppUser.SetPassword writes it: PBKDF2-HMAC-SHA256, 10,000 iterations, 32 bytes.
-python3 - "$legacy/pnmtwebapp-data/users.json" <<'PY'
+python3 - "$webapp_data/users.json" <<'PY'
 import base64, hashlib, json, os, sys, uuid
 salt = os.urandom(16)
 key = hashlib.pbkdf2_hmac('sha256', b'legacy-password-1', salt, 10000, 32)
@@ -121,7 +147,7 @@ env_set COMPOSE_PROJECT_NAME "$PROJECT"
 export COMPOSE_PROJECT_NAME="$PROJECT"
 
 # --- 3. an upgrade that stops: the old stack must run again -------------------------------------------
-if ./upgrade-1.0.sh --legacy "$legacy" --source-time-zone Nowhere/Atlantis --yes >"$dir/failed.out" 2>&1; then
+if ./upgrade-1.0.sh "${legacy_args[@]}" --source-time-zone Nowhere/Atlantis --yes >"$dir/failed.out" 2>&1; then
   fail "an upgrade with an unknown time zone succeeded: $(cat "$dir/failed.out")"
 fi
 grep -q 'The old stack runs again' "$dir/failed.out" || fail "no rollback message: $(tail -20 "$dir/failed.out")"
@@ -132,7 +158,7 @@ done
 [[ "$(curl -s "$base/read/$read/raw" || true)" == "True;before-upgrade" ]] || fail "v0.12 does not answer again after the failed upgrade"
 
 # --- 4. the upgrade ---------------------------------------------------------------------------------
-./upgrade-1.0.sh --legacy "$legacy" --source-time-zone Europe/Zurich --copy-settings --yes >"$dir/upgrade.out" 2>&1 \
+./upgrade-1.0.sh "${legacy_args[@]}" --source-time-zone Europe/Zurich --copy-settings --yes >"$dir/upgrade.out" 2>&1 \
   || fail "the upgrade: $(tail -40 "$dir/upgrade.out")"
 grep -q 'The upgrade is done' "$dir/upgrade.out" || fail "$(tail -20 "$dir/upgrade.out")"
 
@@ -154,7 +180,8 @@ docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$(nc ps -q pnmtd)
   || fail "the SMTP password did not arrive unchanged"
 curl -fsS "$base/api/v1/system/info" | grep -q '"identity":"Legacy Lab"' || fail "1.0 does not run with the copied Identity"
 
-[[ "$(docker inspect -f '{{.State.Status}}' "$(lc ps -aq pnmtd)")" == "exited" ]] || fail "the old backend is not stopped and kept"
+old_backend="$(unset COMPOSE_PROJECT_NAME; dc -f "$backend_dir/docker-compose.yml" --project-directory "$backend_dir" ps -aq "$backend_svc")"
+[[ "$(docker inspect -f '{{.State.Status}}' "$old_backend")" == "exited" ]] || fail "the old backend is not stopped and kept"
 ls backups/upgrade-1.0-*.tar.gz >/dev/null 2>&1 || fail "no archive of the old data"
 [[ -s "$(ls -1 backups/upgrade-1.0-*.tar.gz | tail -1)" ]] || fail "the archive is empty"
 

@@ -4,29 +4,36 @@
 #
 #   ./upgrade-1.0.sh --legacy /srv/pnmt
 #   ./upgrade-1.0.sh --legacy /srv/pnmt --source-time-zone Europe/Zurich --copy-settings
+#   ./upgrade-1.0.sh --legacy-backend /opt/pnmtd-old --legacy-webapp /opt/pnmt.webapp
 #
 #   --legacy DIR              the old installation: its docker-compose.yml, pnmtd-data/ (pnmtd.db)
 #                             and pnmtwebapp-data/ (users.json)
+#   --legacy-backend DIR, --legacy-webapp DIR
+#                             instead, a backend and a WebApp in folders of their own: each with its
+#                             docker-compose.yml and data/ (pnmtd.db, users.json)
 #   --source-time-zone ZONE   the zone v0.12 wrote its timestamps in (its host's, default UTC)
 #   --copy-settings           copy the old containers' settings (Smtp__*, Mailbox__*, Identity, …)
 #                             into .env, and the WebApp's externalApiurl as PublicBaseUrl
 #   --backend NAME, --webapp NAME
-#                             the old containers, when DIR has no docker-compose.yml
+#                             the old containers, when they are found neither by their compose
+#                             service (pnmtd, pnmtwebapp) nor by the data folder they mount
 #   --yes                     do not ask before stopping the old stack
 #
 # Run ./init.sh first, and this before `docker compose up` (or on a 1.0 database without hosts).
 # It stops the old containers without removing them, archives the old data to backups/, imports it
 # (all or nothing), and starts 1.0 on the published port. If the import stops, the old containers are
-# started again: nothing in DIR is ever changed. The way back: UPGRADING-1.0.md, "Rollback".
+# started again: nothing in the old folders is ever changed. The way back: UPGRADING-1.0.md, "Rollback".
 set -euo pipefail
 cd "$(dirname "$0")"
 # shellcheck source=deploy/lib.sh
 . ./lib.sh
 
-LEGACY="" ZONE="UTC" COPY=0 YES=0 BACKEND="" WEBAPP=""
+LEGACY="" BACKEND_DIR="" WEBAPP_DIR="" ZONE="UTC" COPY=0 YES=0 BACKEND="" WEBAPP=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --legacy) LEGACY="${2:?--legacy needs the folder of the old installation}"; shift 2 ;;
+    --legacy-backend) BACKEND_DIR="${2:?--legacy-backend needs the folder of the old backend}"; shift 2 ;;
+    --legacy-webapp) WEBAPP_DIR="${2:?--legacy-webapp needs the folder of the old WebApp}"; shift 2 ;;
     --source-time-zone) ZONE="${2:?--source-time-zone needs an IANA zone}"; shift 2 ;;
     --copy-settings) COPY=1; shift ;;
     --backend) BACKEND="${2:?--backend needs a container}"; shift 2 ;;
@@ -36,15 +43,25 @@ while [[ $# -gt 0 ]]; do
     *) die "unknown option: $1 (try --help)" ;;
   esac
 done
-[[ -n "$LEGACY" ]] || die "--legacy: the folder of the v0.12 installation (try --help)."
+if [[ -n "$LEGACY" ]]; then
+  [[ -z "$BACKEND_DIR$WEBAPP_DIR" ]] || die "--legacy, or --legacy-backend and --legacy-webapp: not both."
+  BACKEND_DIR="$LEGACY" WEBAPP_DIR="$LEGACY"
+fi
+[[ -n "$BACKEND_DIR" ]] || die "--legacy: the folder of the v0.12 installation (try --help)."
 
 require_env
 require_compose
-LEGACY="$(cd "$LEGACY" 2>/dev/null && pwd)" || die "--legacy: no such folder."
-db_file="$LEGACY/pnmtd-data/pnmtd.db"
-users_file="$LEGACY/pnmtwebapp-data/users.json"
-[[ -f "$db_file" ]] || die "$db_file is missing: --legacy names the folder with pnmtd-data/ and pnmtwebapp-data/."
-[[ -f "$users_file" ]] || echo "No $users_file: only the monitoring data is imported; ./add-user.sh adds users."
+BACKEND_DIR="$(cd "$BACKEND_DIR" 2>/dev/null && pwd)" || die "No such folder: $BACKEND_DIR"
+[[ -z "$WEBAPP_DIR" ]] || WEBAPP_DIR="$(cd "$WEBAPP_DIR" 2>/dev/null && pwd)" || die "No such folder: $WEBAPP_DIR"
+# The data folder: v0.12's own layout (pnmtd-data/, pnmtwebapp-data/), else data/.
+data_dir() { if [[ -d "$1/$2" ]]; then (cd "$1/$2" && pwd); elif [[ -d "$1/data" ]]; then (cd "$1/data" && pwd); fi; }
+backend_data="$(data_dir "$BACKEND_DIR" pnmtd-data)"
+webapp_data=""
+[[ -z "$WEBAPP_DIR" ]] || webapp_data="$(data_dir "$WEBAPP_DIR" pnmtwebapp-data)"
+db_file="${backend_data}/pnmtd.db"
+users_file="${webapp_data:-/nonexistent}/users.json"
+[[ -n "$backend_data" && -f "$db_file" ]] || die "No pnmtd.db in ${BACKEND_DIR}/pnmtd-data/ or ${BACKEND_DIR}/data/."
+[[ -f "$users_file" ]] || echo "No users.json in the WebApp's data: only the monitoring data is imported; ./add-user.sh adds users."
 
 stamp="$(date +%Y%m%d-%H%M%S)"
 mkdir -p logs "$(backup_dir)"
@@ -53,11 +70,28 @@ step() { echo; echo "== $*"; }
 
 # --- 1. checks, before anything changes ------------------------------------------------------------
 step "Checks"
-if [[ -f "$LEGACY/docker-compose.yml" ]]; then
-  # The old project is named after its folder: this stack's COMPOSE_PROJECT_NAME must not apply.
-  legacy_ps() { (unset COMPOSE_PROJECT_NAME; compose -f "$LEGACY/docker-compose.yml" --project-directory "$LEGACY" ps -aq "$1" 2>/dev/null | head -1); }
-  [[ -n "$BACKEND" ]] || BACKEND="$(legacy_ps pnmtd)"
-  [[ -n "$WEBAPP" ]] || WEBAPP="$(legacy_ps pnmtwebapp)"
+# legacy_ps DIR SERVICE: the container of SERVICE in the compose project in DIR. The old project is
+# named after its folder: this stack's COMPOSE_PROJECT_NAME must not apply. Nothing, not a failure,
+# when the project has no such service.
+legacy_ps() {
+  [[ -f "$1/docker-compose.yml" ]] || return 0
+  (unset COMPOSE_PROJECT_NAME; compose -f "$1/docker-compose.yml" --project-directory "$1" ps -aq "$2" 2>/dev/null | head -1) || true
+}
+# by_mount DIR TARGET: else the container, running or not, that mounts DIR at TARGET (another service
+# name, or a project docker-compose v1 named).
+by_mount() {
+  local id src real
+  real="$(cd "$1" && pwd -P)"
+  for id in $(docker ps -aq); do
+    src="$(docker inspect -f "{{range .Mounts}}{{if or (eq .Destination \"$2\") (eq .Destination \"$2/\")}}{{.Source}}{{end}}{{end}}" "$id" 2>/dev/null)" || continue
+    if [[ -n "$src" && ( "${src%/}" == "$1" || "${src%/}" == "$real" ) ]]; then echo "$id"; return 0; fi
+  done
+}
+[[ -n "$BACKEND" ]] || BACKEND="$(legacy_ps "$BACKEND_DIR" pnmtd)"
+[[ -n "$BACKEND" ]] || BACKEND="$(by_mount "$backend_data" /var/lib/pnmtd)"
+if [[ -n "$webapp_data" ]]; then
+  [[ -n "$WEBAPP" ]] || WEBAPP="$(legacy_ps "$WEBAPP_DIR" pnmtwebapp)"
+  [[ -n "$WEBAPP" ]] || WEBAPP="$(by_mount "$webapp_data" /var/lib/pnmt)"
 fi
 [[ -n "$BACKEND" ]] || die "The old backend container was not found: start the old stack, or name it with --backend."
 docker inspect "$BACKEND" >/dev/null 2>&1 || die "No container $BACKEND."
@@ -68,6 +102,11 @@ case "$old_image" in
   *:v0.12*|*:0.12*) ;;
   *) echo "Note: $old_image is not tagged v0.12.x; the import checks the database's version itself." ;;
 esac
+# v0.12 also read settings from config.json in its data folder; --copy-settings reads only the
+# containers' environment.
+for f in "$backend_data/config.json" ${webapp_data:+"$webapp_data/config.json"}; do
+  [[ ! -s "$f" ]] || echo "Note: settings in $f are not copied: put those 1.0 uses into .env by hand (Smtp:Host as Smtp__Host=…)."
+done
 
 # Space: the archive and PostgreSQL together take about three times the SQLite file.
 need_kb=$(( $(du -k "$db_file" | cut -f1) * 3 + 102400 ))
@@ -138,18 +177,19 @@ trap 'restart_old' ERR
 
 archive="$(backup_dir)/upgrade-1.0-${stamp}.tar.gz"
 step "Archiving the old data to ${archive}"
+# The data folders, wherever they are, as pnmtd-data/ and pnmtwebapp-data/ in the archive and the import.
+mounts=(-v "$backend_data:/legacy/pnmtd-data:ro")
 parts=(pnmtd-data)
-[[ -d "$LEGACY/pnmtwebapp-data" ]] && parts+=(pnmtwebapp-data)
-(umask 077 && docker run --rm --user 0:0 -v "$LEGACY:/legacy:ro" --entrypoint tar "$(app_image)" -czf - -C /legacy "${parts[@]}" >"$archive")
+if [[ -n "$webapp_data" && "$webapp_data" != "$backend_data" ]]; then
+  mounts+=(-v "$webapp_data:/legacy/pnmtwebapp-data:ro")
+  parts+=(pnmtwebapp-data)
+fi
+(umask 077 && docker run --rm --user 0:0 "${mounts[@]}" --entrypoint tar "$(app_image)" -czf - -C /legacy "${parts[@]}" >"$archive")
 
 # --- 4. import ------------------------------------------------------------------------------------
 step "Importing (one transaction: all of it, or nothing)"
-mounts=(-v "$LEGACY/pnmtd-data:/legacy/pnmtd-data:ro")
 args=(import-sqlite --from /legacy/pnmtd-data/pnmtd.db --source-time-zone "$ZONE" ${reset[@]+"${reset[@]}"})
-if [[ -f "$users_file" ]]; then
-  mounts+=(-v "$LEGACY/pnmtwebapp-data:/legacy/pnmtwebapp-data:ro")
-  args+=(--users /legacy/pnmtwebapp-data/users.json)
-fi
+[[ ! -f "$users_file" ]] || args+=(--users /legacy/pnmtwebapp-data/users.json)
 # As root inside the container (still without any capability): the old files belong to root.
 if ! compose run --rm --no-deps -T --user 0:0 "${mounts[@]}" pnmtd "${args[@]}" >"$log" 2>&1; then
   grep -v '^info: \|^ *Executed DbCommand' "$log" >&2 || true
@@ -167,12 +207,14 @@ trap - ERR
 
 port="$(env_value PNMTD_PORT)"
 url="$(env_value PublicBaseUrl)"
+old_dirs="$BACKEND_DIR"
+[[ -z "$WEBAPP_DIR" || "$WEBAPP_DIR" == "$BACKEND_DIR" ]] || old_dirs+=" and $WEBAPP_DIR"
 cat <<EOF
 
 The upgrade is done. Next (UPGRADING-1.0.md):
   - The sensors keep their URLs: 1.0 answers on port ${port:-5001} as v0.12 did.
   - Sign in at ${url:-http://<this host>:${port:-5001}}/pnmt-admin/ with your old password; 2FA is offered.
   - Redirect the old UI's address to /pnmt-admin/ on the backend's.
-  - Rollback: docker compose down here, then docker compose up -d in ${LEGACY}.
+  - Rollback: docker compose down here, then docker compose up -d in ${old_dirs}.
   - The old containers are stopped, not removed; the old data is in ${archive}.
 EOF
