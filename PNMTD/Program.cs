@@ -120,6 +120,7 @@ public partial class Program
             // MikroTik routers (docs/mikrotik-plan.md §5.2, §5.4, §6.3); Mikrotik:Enabled=false pauses the poller and the version check.
             builder.Services.AddHostedService(sp => sp.GetRequiredService<RouterPoller>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<VersionCatalog>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<AdvisoryFeed>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<BackupRetentionTask>());
         }
 

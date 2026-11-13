@@ -79,6 +79,9 @@ namespace PNMTD.Data
         // Decisions (docs/ai-operations-plan.md §5).
         public DbSet<DecisionEntity> Decisions { get; set; }
 
+        // RouterOS releases and their assessment (docs/ai-operations-plan.md §10).
+        public DbSet<MikrotikReleaseEntity> MikrotikReleases { get; set; }
+
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
         }
@@ -227,6 +230,7 @@ namespace PNMTD.Data
                 // One open decision per key (§5.1).
                 e.HasIndex(d => d.DedupeKey).IsUnique().HasFilter("\"State\" = 0");
             });
+            modelBuilder.Entity<MikrotikReleaseEntity>().HasIndex(r => new { r.Version, r.Channel }).IsUnique();
 
             modelBuilder.Entity<NotificationRuleScopeEntity>(e =>
             {

@@ -1055,6 +1055,17 @@ Where the implementation differs from the sections above, or settles what they l
 - **Mail events are still written directly**, as `MailProcessTask` always did, not through `SensorEventWriter`.
 - **Where:** `PNMTD/Decisions/` (`DecisionBook`, the kinds, `DecisionMaintenanceTask`), `PNMTD/Mails/` (`RuleTemplate`, `MailAiTasks`, `MailAiHandlers`), Monitoring → Decisions (`/decisions/:id?`, with a count in the menu), the mail rule form's *Action*, the mail log's *AI* column, and the AI page's backfill. Migration `DecisionsAndMailAi`.
 
+
+### A6: RouterOS advisories (2026-11-13)
+
+- **Where:** `PNMTD/Mikrotik/AdvisoryFeed.cs` (the hosted `AdvisoryFeed`, `RouterOsRateTask`, `RouterOsRateHandler` for `routeros.rate`), the table `mikrotik_releases` (migration `MikrotikReleases`), `GET /api/v1/mikrotik/releases` (Admin), and `Mikrotik:Advisories` (`Enabled`, `FeedUrl`, `IntervalMinutes`, at least 5).
+- **The feed** is read with DTDs prohibited and at most 2 MiB; a release is stored once per version and channel, and kept 2 years. The test fixture is the feed of 2026-11-13.
+- **`AssessedBy`** says who decided: `code`, `ai`, `verified` (critical, the check model agreed) or `disputed` (critical, it did not; stored as important).
+- **The code's critical waits for the AI:** while a release's rating is queued it does not alert, for at most 6 hours (`AdvisoryFeed.AiGrace`); then the code's assessment alerts on its own, so a stuck queue or a spent budget hides nothing.
+- **A router without a channel counts as *stable*.** Disabled sensors are not counted as behind.
+- **Important releases** show the routers behind them too, on the Overview's *Advisories* card and as an amber badge; only critical ones write 422.
+- **The changelog's security lines** are found by the same words in the UI (`views/sensors/mikrotik/security.ts`) as in the code's assessment, so a router's *Updates* tab highlights them without an Admin-only request.
+- **The rate handler resolves the feed when it runs:** the feed enqueues through the queue, whose worker holds the handlers.
 ---
 
 ## Appendix: configuration and file changes

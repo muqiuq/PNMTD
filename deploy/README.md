@@ -190,6 +190,7 @@ PNMTD monitors MikroTik routers (RouterOS 7.13 or later) and backs up their conf
 
   - **Change detection** compares keyed digests, under a key in the key ring on `pnmtd-keys`. Restored without that volume, each router's next export counts as a change once.
 - **Updates and commands that change a router** take the router admin's password, typed for each run: PNMTD keeps it in memory while the run lasts and never stores it, so it can change no router on its own. The password is accepted over HTTPS only (`Proxy` in `.env` when a reverse proxy terminates TLS). Commands as `pnmt` (read-only) need no password; their text and output are kept as the router's history. From the server: `docker compose exec -T pnmtd pnmtd mikrotik run <router> --command '/ip address print'` (add `--admin admin --password-stdin` and the password on standard input to run as the admin).
+- **Security advisories:** PNMTD reads MikroTik's release feed every hour (`Mikrotik__Advisories__*` in `.env`). A release whose changelog mentions a CVE or an exploit is assessed, by the AI too when it is on; when one rated critical is newer than a router's version on the same channel, the *RouterOS advisories* sensor reports 422 with the routers behind. *Admin → MikroTik & WireGuard* lists the releases, the *Routers* tab marks the routers, and a router's *Updates* tab highlights the security lines in the changelog.
 - `./info.sh` shows the gateway's state and the endpoint; `docker compose exec pnmtd pnmtd wireguard status` the tunnels, `pnmtd mikrotik list` the routers.
 
 ## AI (optional)

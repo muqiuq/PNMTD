@@ -1,4 +1,5 @@
 using PNMTD.Lib.Mikrotik;
+using PNMTD.Models.Db;
 using PNMTD.Models.Enums;
 
 namespace PNMTD.Api.V1.Contracts;
@@ -81,7 +82,8 @@ public sealed record MikrotikRouterDetail(
     bool EncryptBackups = false,
     MikrotikUpdateMethod UpdateMethod = MikrotikUpdateMethod.Download,
     bool UpdateCheckStorage = true,
-    bool LowStorage = false);
+    bool LowStorage = false,
+    ReleaseSeverity? SecurityFix = null);
 
 /// <summary>A router's tunnel as the gateway sees it (§3.2): its address and key, the last handshake, where it comes from.</summary>
 public sealed record MikrotikTunnel(
@@ -144,7 +146,26 @@ public sealed record MikrotikFleetItem(
     long? FreeStorage = null,
     MikrotikUpdateMethod UpdateMethod = MikrotikUpdateMethod.Download,
     bool UpdateCheckStorage = true,
-    bool LowStorage = false);
+    bool LowStorage = false,
+    ReleaseSeverity? SecurityFix = null);
+
+/// <summary>
+/// A RouterOS release from MikroTik's feed with its assessment (docs/ai-operations-plan.md §10): Critical alerts when
+/// <c>RoutersBehind</c> is not empty; Important is only shown.
+/// </summary>
+public sealed record MikrotikReleaseItem(
+    string Version,
+    string Channel,
+    DateTime? PublishedAt,
+    ReleaseSeverity Severity,
+    bool ZeroDay,
+    bool Exploited,
+    bool RemoteWithoutCredentials,
+    IReadOnlyList<string> Cves,
+    string? Summary,
+    string AssessedBy,
+    IReadOnlyList<Ref> RoutersBehind,
+    IReadOnlyList<string> SecurityLines);
 
 /// <summary>
 /// <c>GET /mikrotik/routers</c>. Search: name, host, identity, serial number, address. Sort: name

@@ -3598,6 +3598,44 @@
         }
       }
     },
+    "/api/v1/mikrotik/releases": {
+      "get": {
+        "tags": [
+          "Mikrotik"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MikrotikReleaseItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MikrotikReleaseItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MikrotikReleaseItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/mikrotik/jobs": {
       "post": {
         "tags": [
@@ -11723,6 +11761,16 @@
           "lowStorage": {
             "type": "boolean",
             "default": false
+          },
+          "securityFix": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ReleaseSeverity"
+              }
+            ]
           }
         }
       },
@@ -12082,6 +12130,77 @@
           "WireGuardOnly",
           "DirectSsh"
         ]
+      },
+      "MikrotikReleaseItem": {
+        "required": [
+          "version",
+          "channel",
+          "publishedAt",
+          "severity",
+          "zeroDay",
+          "exploited",
+          "remoteWithoutCredentials",
+          "cves",
+          "summary",
+          "assessedBy",
+          "routersBehind",
+          "securityLines"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/ReleaseSeverity"
+          },
+          "zeroDay": {
+            "type": "boolean"
+          },
+          "exploited": {
+            "type": "boolean"
+          },
+          "remoteWithoutCredentials": {
+            "type": "boolean"
+          },
+          "cves": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "assessedBy": {
+            "type": "string"
+          },
+          "routersBehind": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ref"
+            }
+          },
+          "securityLines": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
       },
       "MikrotikResources": {
         "required": [
@@ -12489,6 +12608,16 @@
           "lowStorage": {
             "type": "boolean",
             "default": false
+          },
+          "securityFix": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ReleaseSeverity"
+              }
+            ]
           }
         }
       },
@@ -14025,6 +14154,14 @@
             "type": "string"
           }
         }
+      },
+      "ReleaseSeverity": {
+        "enum": [
+          "Normal",
+          "Important",
+          "Critical",
+          null
+        ]
       },
       "RotateTokensRequest": {
         "type": "object",

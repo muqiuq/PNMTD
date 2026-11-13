@@ -7,11 +7,13 @@ import { api, keys } from '@/api/resources'
 import CopyField from '@/components/CopyField.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
+import { fixLabel, fixSeverity } from '@/views/sensors/mikrotik/security'
 import SshKeys from './SshKeys.vue'
 
 /**
  * The overview (§11.2): whether the gateway runs, the endpoint in effect and where each part comes from,
- * peers up out of all, the routers by state and version, the latest RouterOS versions, PNMTD's SSH key.
+ * peers up out of all, the routers by state and version, the latest RouterOS versions, PNMTD's SSH key, and the
+ * advisories: releases with a security fix from MikroTik's feed and the routers behind them (docs/ai-operations-plan.md §10).
  */
 const wg = useQuery({
   queryKey: [...keys.mikrotik, 'wireguard'],
@@ -19,6 +21,19 @@ const wg = useQuery({
   refetchInterval: 15_000,
 })
 const mt = useQuery({ queryKey: [...keys.mikrotik, 'status'], queryFn: api.mikrotik.status, refetchInterval: 60_000 })
+const releases = useQuery({
+  queryKey: [...keys.mikrotik, 'releases'],
+  queryFn: api.mikrotik.releases,
+  refetchInterval: 300_000,
+})
+const assessed = (by: string) =>
+  by === 'verified'
+    ? 'rated critical by the AI, confirmed by the check model'
+    : by === 'disputed'
+      ? 'rated critical by the AI, not confirmed by the check model'
+      : by === 'ai'
+        ? 'rated by the AI'
+        : 'assessed from the changelog'
 const source = (s: string) => (s === 'Environment' ? '.env' : s === 'Ui' ? 'set below' : 'default')
 const states = computed(() => Object.fromEntries((mt.data.value?.bySetupState ?? []).map((c) => [c.key, c.count])))
 </script>
@@ -114,6 +129,49 @@ const states = computed(() => Object.fromEntries((mt.data.value?.bySetupState ??
         </dl>
       </div>
     </section>
+    <section class="panel" aria-labelledby="advisories-title">
+      <div id="advisories-title" class="panel-header">Advisories</div>
+      <div class="panel-body">
+        <ErrorState
+          v-if="releases.isError.value"
+          :error="releases.error.value"
+          what="the advisories"
+          @retry="releases.refetch()"
+        />
+        <p v-else-if="!releases.data.value?.length" class="muted none">
+          No RouterOS release with a security fix seen in MikroTik's feed.
+        </p>
+        <ul v-else class="releases">
+          <li v-for="r in releases.data.value" :key="`${r.version}-${r.channel}`">
+            <div class="line">
+              <Tag :value="fixLabel(r.severity)" :severity="fixSeverity(r.severity)" icon="pi pi-shield" />
+              <span class="mono">{{ r.version }}</span> <span class="muted">{{ r.channel }}</span>
+              <span v-if="r.publishedAt" class="muted small"><RelativeTime :value="r.publishedAt" /></span>
+              <Tag v-if="r.zeroDay" value="zero-day" severity="danger" />
+              <Tag v-if="r.exploited" value="exploited" severity="danger" />
+              <Tag v-if="r.remoteWithoutCredentials" value="remote, no login" severity="danger" />
+            </div>
+            <div v-if="r.cves.length" class="small mono">{{ r.cves.join(', ') }}</div>
+            <div v-if="r.summary" class="small">{{ r.summary }}</div>
+            <ul v-if="r.securityLines.length" class="small lines">
+              <li v-for="l in r.securityLines" :key="l" class="mono">{{ l }}</li>
+            </ul>
+            <div class="small">
+              <template v-if="r.routersBehind.length">
+                <span :class="r.severity === 'Critical' ? 'bad' : ''">{{ r.routersBehind.length }} behind:</span>
+                <template v-for="(b, i) in r.routersBehind" :key="b.id">
+                  <RouterLink :to="{ name: 'sensor', params: { id: b.id } }">{{ b.name }}</RouterLink>{{
+                    i < r.routersBehind.length - 1 ? ', ' : ''
+                  }}
+                </template>
+              </template>
+              <span v-else class="muted">every router on {{ r.channel }} has it</span>
+              <span class="muted"> · {{ assessed(r.assessedBy) }}</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -147,6 +205,32 @@ const states = computed(() => Object.fromEntries((mt.data.value?.bySetupState ??
 
 .bad {
   color: var(--pnmt-fail);
+}
+
+.releases {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-3);
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pnmt-space-2);
+}
+
+.lines {
+  margin: var(--pnmt-space-1) 0;
+  padding-left: var(--pnmt-space-4);
+  color: var(--pnmt-fail);
+}
+
+.none {
+  margin: 0;
 }
 
 .chip {

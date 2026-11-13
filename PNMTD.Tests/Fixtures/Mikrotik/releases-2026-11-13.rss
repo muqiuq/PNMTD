@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>MikroTik RouterOS Stable and Long-Term releases</title>
+    <link>https://mikrotik.com/download</link>
+    <description>The newest MikroTik RouterOS releases.</description>
+    <item>
+      <title>RouterOS 7.24.6 [long-term]</title>
+      <link>https://mikrotik.com/download?v=7.24.6</link>
+      <description></description>
+      <content:encoded><![CDATA[What's new in 7.24.6 (2026-10-30):<br><br>*) bridge - fix BPDUs leaking to the wrong dual-connected bond in MLAG (introduced in v7.24);<br>*) bridge - fix VLAN-tagged traffic being looped back in MLAG setups on CRS8xx series switches;<br>*) dude - fix the server not starting at boot when data-directory is on a USB disk;<br>*) ethernet - fix occasional packet loss on hAP be3 Media;<br>*) fetch - fix HTTP fetch getting stuck in a "bad HTTP response" state;<br>*) ipsec - fix IKEv2 EAP-TTLS client failing with invalid trust store (introduced in v7.21);<br>*) ipsec - fix IPsec tunnels failing after migration from the old QKD settings;<br>*) ipsec - fix IPsec tunnels not establishing when an address my-id is configured on the responder;<br>*) ptp - fix PTP support on CRS804-4DDQ;<br>*) quickset - fix the WAN interface being selected incorrectly;<br>*) route - improve static route handling performance;<br>*) routing-filter - fix any-regexp community matcher matching an empty community attribute;<br>*) routing-filter - fix community delete, filter and modify with regexp-only community lists;<br>*) routing-filter - fix host matching in address lists with more than 64 ranges;<br>*) sfp - fix DAC EEPROM corruption when disabling 400G ports on CRS804 and CRS812 switches;<br>*) system - improve stability (includes CVE-2026-98432);<br>*) system - stop the flash configuration store from growing on dynamic configuration changes;<br>*) wifi - reuse freed station association IDs;<br>*) wifi-mediatek - fix roaming between APs belonging to the same MLO group;<br>*) winbox - fix bridge filter window disabling valid fields for IPv6 rules;]]></content:encoded>
+      <guid isPermaLink="false">RouterOS 7.24.6 [long-term]</guid>
+      <pubDate>Mon, 02 Nov 2026 11:44:38 +0000</pubDate>
+    </item>
+    <item>
+      <title>RouterOS 7.25.1 [stable]</title>
+      <link>https://mikrotik.com/download?v=7.25.1</link>
+      <description></description>
+      <content:encoded><![CDATA[What's new in 7.25.1 (2026-11-02):<br><br>*) bridge - fix BPDUs leaking to the wrong dual-connected bond in MLAG (introduced in v7.24);<br>*) bridge - improve FDB synchronization between MLAG peers when VLANs are added;<br>*) console - fix custom SSH client login parameters being ignored (introduced in v7.25);<br>*) dhcpv4-client - fix packet length calculation (introduced in v7.25);<br>*) dude - fix missing outage times and graph background scaling (introduced in v7.25);<br>*) fetch - fix HTTP fetch getting stuck in a "bad HTTP response" state;<br>*) ipsec - fix XFRM interfaces staying down until a reboot;<br>*) ipv6 - fix from-pool address lifetimes not updating after a prefix renewal (introduced in v7.25);<br>*) pim - fix IGMP/MLD querier being disabled after upgrade (introduced in v7.25);<br>*) ptp - fix PTP support on CRS804-4DDQ;<br>*) routing-filter - fix host matching in address lists with more than 64 ranges;<br>*) sfp - fix DAC EEPROM corruption when disabling 400G ports on CRS804 and CRS812 switches;<br>*) ssh - fix packet alignment when SHA-1 is used (introduced in v7.25);<br>*) system - improve stability (includes CVE-2026-98432);<br>*) webfig - fix multi-value fields being displayed as empty (introduced in v7.25);<br>*) wifi - fix virtual interface restart loop when reselect-interval and reselect-time are configured (introduced in v7.25);]]></content:encoded>
+      <guid isPermaLink="false">RouterOS 7.25.1 [stable]</guid>
+      <pubDate>Tue, 03 Nov 2026 10:22:54 +0000</pubDate>
+    </item>
+  </channel>
+</rss>

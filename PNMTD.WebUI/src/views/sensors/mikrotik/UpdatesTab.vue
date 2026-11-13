@@ -7,11 +7,13 @@ import { api, keys, type S } from '@/api/resources'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { useActions } from '@/composables/useActions'
 import JobLog from './JobLog.vue'
+import { fixLabel, fixSeverity, isSecurityLine } from './security'
 import UpdateDialog from './UpdateDialog.vue'
 
 /**
  * A router's updates (docs/mikrotik-plan.md §7, §11.1): installed against the newest of its channel, the
- * release's changelog, the firmware, Update… for Admins, and the router's jobs with their logs.
+ * release's changelog, the firmware, Update… for Admins, and the router's jobs with their logs. A pending security fix
+ * (docs/ai-operations-plan.md §10.4) is marked, and the changelog's security lines are highlighted.
  */
 const props = defineProps<{ sensor: S['SensorDetail']; isAdmin: boolean }>()
 const { run } = useActions()
@@ -29,6 +31,9 @@ async function showChangelog() {
   })
   if (c) changelog.value = c.text
 }
+const changelogLines = computed(() =>
+  (changelog.value ?? '').split('\n').map((text) => ({ text, security: isSecurityLine(text) })),
+)
 const open = ref<Record<string, S['MikrotikJobDetail'] | null>>({})
 async function toggle(job: S['MikrotikJobItem']) {
   if (open.value[job.id]) {
@@ -67,6 +72,13 @@ const severity = (s: S['MikrotikJobState']) =>
         <dd>
           <span class="mono">{{ m.latestVersion ?? '–' }}</span>
           <Tag v-if="m.updateAvailable" value="update available" severity="warn" class="tag" />
+          <Tag
+            v-if="m.securityFix"
+            :value="fixLabel(m.securityFix)"
+            :severity="fixSeverity(m.securityFix)"
+            icon="pi pi-shield"
+            class="tag"
+          />
           <Button v-if="m.latestVersion" label="Changelog" size="small" text @click="showChangelog" />
         </dd>
         <template v-if="m.firmwareCurrent">
@@ -79,7 +91,10 @@ const severity = (s: S['MikrotikJobState']) =>
           </dd>
         </template>
       </dl>
-      <pre v-if="changelog" class="changelog">{{ changelog }}</pre>
+      <pre
+        v-if="changelog"
+        class="changelog"
+      ><span v-for="(l, i) in changelogLines" :key="i" :class="{ security: l.security }">{{ l.text }}{{ '\n' }}</span></pre>
     </section>
 
     <section class="panel" aria-labelledby="jobs-title">
@@ -158,6 +173,11 @@ const severity = (s: S['MikrotikJobState']) =>
   border: 1px solid var(--pnmt-border);
   border-radius: var(--p-border-radius-md);
   white-space: pre-wrap;
+}
+
+.changelog .security {
+  color: var(--pnmt-fail);
+  font-weight: 600;
 }
 
 .none {

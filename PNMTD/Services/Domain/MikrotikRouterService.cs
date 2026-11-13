@@ -27,7 +27,8 @@ public sealed class MikrotikRouterService(
     MonitoringReader reader,
     IOptionsMonitor<MikrotikOptions> options,
     WireGuardNetwork wireGuard,
-    IHttpContextAccessor accessor)
+    IHttpContextAccessor accessor,
+    AdvisoryFeed advisories)
 {
     /// <summary>Set when a change concerns the gateway's peers: <see cref="NotifyGatewayAsync"/> after saving.</summary>
     private bool peersChanged;
@@ -230,6 +231,7 @@ public sealed class MikrotikRouterService(
             UpdateMethod = router.UpdateMethod,
             UpdateCheckStorage = router.UpdateCheckStorage,
             LowStorage = LowStorage(Reading(router)),
+            SecurityFix = (await SecurityFixesAsync(ct)).GetValueOrDefault(sensorId),
             Tunnel = wg is { Peer: { } peer } ? new MikrotikTunnel(peer.Address, peer.PublicKey, Instants.Utc(peer.KeysCreatedAt),
                 wg.Status?.LatestHandshake is { } h && Clock.UtcNow - h <= TimeSpan.FromSeconds(wg.Settings.StaleHandshakeSeconds),
                 UdpViews.NullableUtc(wg.Status?.LatestHandshake), wg.Status?.Endpoint, wg.Status?.RxBytes ?? 0, wg.Status?.TxBytes ?? 0,
@@ -288,6 +290,30 @@ public sealed class MikrotikRouterService(
             UdpViews.NullableUtc(r.LastPollAt), UdpViews.NullableUtc(r.LastSuccessAt), UdpViews.NullableUtc(r.FailingSince), r.LastError, r.LastErrorCode,
             differences.Count > 0, differences, warnings);
     }
+
+    /// <summary>The worst security fix each router is behind (docs/ai-operations-plan.md §10.4).</summary>
+    private async Task<Dictionary<Guid, ReleaseSeverity?>> SecurityFixesAsync(CancellationToken ct)
+    {
+        var worst = new Dictionary<Guid, ReleaseSeverity?>();
+        foreach (var behind in await advisories.BehindAsync(ct))
+        {
+            foreach (var (id, _) in behind.Routers)
+            {
+                if (worst.GetValueOrDefault(id) is not { } current || behind.Release.Severity > current)
+                {
+                    worst[id] = behind.Release.Severity;
+                }
+            }
+        }
+        return worst;
+    }
+
+    /// <summary>The releases with a security fix, newest first, and the routers behind each (§10.4).</summary>
+    public async Task<IReadOnlyList<MikrotikReleaseItem>> ReleasesAsync(CancellationToken ct) =>
+        (await advisories.BehindAsync(ct)).Take(20).Select(b => new MikrotikReleaseItem(b.Release.Version, b.Release.Channel,
+            b.Release.PublishedAt is { } p ? Instants.Utc(p) : null, b.Release.Severity, b.Release.ZeroDay, b.Release.Exploited,
+            b.Release.RemoteWithoutCredentials, b.Release.Cves, b.Release.Summary, b.Release.AssessedBy,
+            b.Routers.Select(r => new Ref(r.SensorId, r.Name)).ToList(), AdvisoryFeed.Assess(b.Release.Changelog).Hits)).ToList();
 
     /// <summary>Below the update's storage check (docs/ai-operations-plan.md §12.2): the dialog suggests turning it off.</summary>
     private bool LowStorage(RouterReading? reading) =>
@@ -533,6 +559,7 @@ public sealed class MikrotikRouterService(
         var snapshot = await reader.SnapshotAsync(s => s.Type == SensorType.MIKROTIK, ct);
         var installation = await keys.GetAsync(ct);
         var latest = await LatestAsync(ct);
+        var fixes = await SecurityFixesAsync(ct);
         var items = routers
             .Where(r => snapshot.Sensors.ContainsKey(r.SensorId))
             .Select(r =>
@@ -543,7 +570,7 @@ public sealed class MikrotikRouterService(
                     s.State, s.LastCode, s.LastMessage, r.Address, r.Identity, r.Model ?? r.BoardName, r.SerialNumber, r.Version, r.Channel, latestVersion,
                     UpdateAvailable(r.Version, latestVersion), r.FirmwareCurrent, r.FirmwareUpgrade, UdpViews.NullableUtc(r.BootedAt),
                     UdpViews.NullableUtc(r.LastSuccessAt), r.LastError, Differences(r, Reading(r), installation).Count > 0, r.BackupIntervalHours,
-                    r.EncryptBackups, Reading(r)?.FreeStorage, r.UpdateMethod, r.UpdateCheckStorage, LowStorage(Reading(r)));
+                    r.EncryptBackups, Reading(r)?.FreeStorage, r.UpdateMethod, r.UpdateCheckStorage, LowStorage(Reading(r)), fixes.GetValueOrDefault(r.SensorId));
             })
             .Where(i => query.Mode is not { } m || i.Mode == m)
             .Where(i => query.SetupState is not { } st || i.SetupState == st)

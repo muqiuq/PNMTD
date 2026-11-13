@@ -15,6 +15,7 @@ import { useServerTable } from '@/composables/useServerTable'
 import { modeLabel } from '@/views/sensors/mikrotik/mikrotikDraft'
 import UpdateDialog from '@/views/sensors/mikrotik/UpdateDialog.vue'
 import { scheduleLabel } from '@/views/sensors/mikrotik/backupSchedule'
+import { fixLabel, fixSeverity } from '@/views/sensors/mikrotik/security'
 import CommandDialog from './CommandDialog.vue'
 import RouterBackupDialog from './RouterBackupDialog.vue'
 
@@ -157,6 +158,13 @@ const choices = [
         <template #body="{ data }">
           <span class="mono">{{ data.version ?? '–' }}</span> <span class="muted small">{{ data.channel ?? '' }}</span>
           <div v-if="data.updateAvailable" class="small update">{{ data.latestVersion }} available</div>
+          <Tag
+            v-if="data.securityFix"
+            :value="fixLabel(data.securityFix)"
+            :severity="fixSeverity(data.securityFix)"
+            icon="pi pi-shield"
+            class="small"
+          />
         </template>
       </Column>
       <Column header="State">

@@ -181,6 +181,7 @@ export const api = {
     // --- the admin page: Admin ------------------------------------------------------------------
     status: () => call(client.GET('/api/v1/mikrotik/status')),
     sshKeys: () => call(client.GET('/api/v1/mikrotik/ssh-keys')),
+    releases: () => call(client.GET('/api/v1/mikrotik/releases')),
     rotateSshKey: () => call(client.POST('/api/v1/mikrotik/ssh-keys/rotate')),
     retireSshKeys: (force: boolean) =>
       call(client.POST('/api/v1/mikrotik/ssh-keys/retire', { params: { query: { force } } })),

@@ -935,6 +935,71 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("mikrotik_job_log");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.MikrotikReleaseEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AssessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AssessedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Changelog")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.PrimitiveCollection<List<string>>("Cves")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<bool>("Exploited")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("RemoteWithoutCredentials")
+                        .HasColumnType("boolean");
+
+                    b.Property<short>("Severity")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid?>("WorkId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("ZeroDay")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Version", "Channel")
+                        .IsUnique();
+
+                    b.ToTable("mikrotik_releases");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.MikrotikRouterEntity", b =>
                 {
                     b.Property<Guid>("SensorId")

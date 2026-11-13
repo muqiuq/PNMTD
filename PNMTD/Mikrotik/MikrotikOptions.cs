@@ -12,6 +12,9 @@ public sealed class MikrotikOptions
 
     public VersionCheckOptions VersionCheck { get; set; } = new();
 
+    /// <summary>MikroTik's release feed and the alerts for very bad fixes (docs/ai-operations-plan.md §10).</summary>
+    public AdvisoryOptions Advisories { get; set; } = new();
+
     public BackupOptions Backups { get; set; } = new();
 
     public UpdateOptions Updates { get; set; } = new();
@@ -86,6 +89,16 @@ public sealed class MikrotikOptions
 
         /// <summary>Jobs that run at once, over all batches; a batch run one at a time takes one of them.</summary>
         public int Parallelism { get; set; } = 4;
+    }
+
+    public sealed class AdvisoryOptions
+    {
+        public bool Enabled { get; set; } = true;
+
+        /// <summary>The stable and long-term releases, with their changelogs (RSS 2.0). Set in .env as Mikrotik__Advisories__FeedUrl.</summary>
+        public string FeedUrl { get; set; } = "https://cdn.mikrotik.com/routeros/latest-stable-and-long-term.rss";
+
+        public int IntervalMinutes { get; set; } = 60;
     }
 
     public sealed class VersionCheckOptions

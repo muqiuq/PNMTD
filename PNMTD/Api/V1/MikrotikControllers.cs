@@ -108,6 +108,10 @@ public sealed class SensorMikrotikController(MikrotikRouterService routers, Mikr
 [Authorize(Policy = Policies.Admin)]
 public sealed class MikrotikController(MikrotikRouterService routers, MikrotikJobService jobs) : V1ControllerBase
 {
+    /// <summary>The releases with a security fix and the routers behind each (docs/ai-operations-plan.md §10.4).</summary>
+    [HttpGet("releases")]
+    public async Task<ActionResult<IReadOnlyList<MikrotikReleaseItem>>> Releases(CancellationToken ct) => Ok(await routers.ReleasesAsync(ct));
+
     /// <summary>
     /// Updates one router or several (§7): the credentials are checked on every router first, and the answer
     /// lists the routers refused. HTTPS only: the password never travels in plain text. Audit-logged.

@@ -2842,6 +2842,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/mikrotik/releases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikReleaseItem"][];
+                        "text/json": components["schemas"]["MikrotikReleaseItem"][];
+                        "text/plain": components["schemas"]["MikrotikReleaseItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/mikrotik/jobs": {
         parameters: {
             query?: never;
@@ -7294,6 +7331,7 @@ export interface components {
             updateCheckStorage: boolean;
             /** @default false */
             lowStorage: boolean;
+            securityFix?: null | components["schemas"]["ReleaseSeverity"];
         };
         MikrotikHostKey: {
             type: string;
@@ -7381,6 +7419,21 @@ export interface components {
         };
         /** @enum {unknown} */
         MikrotikMode: "WireGuardSsh" | "WireGuardOnly" | "DirectSsh";
+        MikrotikReleaseItem: {
+            version: string;
+            channel: string;
+            /** Format: date-time */
+            publishedAt: null | string;
+            severity: components["schemas"]["ReleaseSeverity"];
+            zeroDay: boolean;
+            exploited: boolean;
+            remoteWithoutCredentials: boolean;
+            cves: string[];
+            summary: null | string;
+            assessedBy: string;
+            routersBehind: components["schemas"]["Ref"][];
+            securityLines: string[];
+        };
         MikrotikResources: {
             cpu: null | string;
             /** Format: int32 */
@@ -7474,6 +7527,7 @@ export interface components {
             updateCheckStorage: boolean;
             /** @default false */
             lowStorage: boolean;
+            securityFix?: null | components["schemas"]["ReleaseSeverity"];
         };
         MikrotikRouterRequest: {
             mode?: components["schemas"]["MikrotikMode"];
@@ -7912,6 +7966,8 @@ export interface components {
             id: string;
             name: string;
         };
+        /** @enum {unknown} */
+        ReleaseSeverity: "Normal" | "Important" | "Critical" | null;
         RotateTokensRequest: {
             write?: boolean;
             read?: boolean;

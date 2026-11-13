@@ -16,6 +16,8 @@ public static class MikrotikSetup
         services.AddSingleton<RouterPollService>();
         services.AddSingleton<RouterPoller>();
         services.AddSingleton<VersionCatalog>();
+        services.AddSingleton<AdvisoryFeed>();
+        services.AddSingleton<PNMTD.Ai.IAiWorkHandler, RouterOsRateHandler>();
         services.AddSingleton<BackupRetentionTask>();
         services.AddSingleton<CredentialVault>();
         services.AddSingleton<JobRunner>();
