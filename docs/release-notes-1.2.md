@@ -1,6 +1,6 @@
 # PNMT 1.2: router backups off, rarer, or encrypted one way
 
-Not released yet. The release sets the version to 1.2.0.
+Version 1.2.0.
 
 ## What changes
 

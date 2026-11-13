@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Built: B1 to B4, and the docs of B5** (§7, as built). Revision 2: the review's answers applied (§6). |
+| Status | **Built: B1 to B5, version 1.2.0** (§7, as built). Revision 2: the review's answers applied (§6). |
 | Date | 2026-11-13 |
 | Scope | The MikroTik routers' configuration backups (docs/mikrotik-plan.md §6): the scheduled `/export`, and every export and binary backup PNMT stores. |
 | Goals | <ol><li>Turn the scheduled backup **off**, per router.</li><li>Choose **longer intervals**, up to a year.</li><li>**Encrypt one way, optionally, per router:** PNMT holds only a public key, and the private key never reaches PNMT's server. The key is set up once, in the GUI. Backups are read offline with `age`, or in the GUI with the key loaded into the browser.</li></ol> |
@@ -212,7 +212,7 @@ PNMT can no longer read an encrypted router's previous export. So **every export
 - **HTTPS for the key:** `Mikrotik__AllowPasswordsOverHttp=true` lifts the rule for development, as it does for routers' admin passwords.
 - **The browser's cryptography exists only in a secure context:** HTTPS, or localhost. On plain HTTP the dialogs say so, and the age tool reads the downloaded files. `tools/e2e.sh` therefore runs Playwright in the app container's network, on localhost.
 - **No key, encryption on:** if a router's *Encrypt backups* is on and there is no active key, nothing is stored, and the export counts as failed. Retiring the key turns encryption off everywhere, so this happens only through a database edit.
-- **Not built:** `pnmtd mikrotik backup-key set` (optional). Version 1.2.0 comes with the release, so the compose defaults never name an image that isn't published yet. The release notes are in docs/release-notes-1.2.md.
+- **Not built:** `pnmtd mikrotik backup-key set` (optional). The release notes are in docs/release-notes-1.2.md.
 - **Tests:**
   - the schedule (off, monthly, the limits, the default, the bulk change);
   - keyed counts against the text-based counts, and the switch from SHA-256;
