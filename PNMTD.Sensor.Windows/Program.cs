@@ -23,8 +23,9 @@ internal static partial class Program
 {
     private const string Usage = """
         pnmt-sensor.exe                       the window: join, the service's status, uninstall
-        pnmt-sensor.exe join --url <PNMT URL> --token <xxxx-xxxx> [--name <name>] [--quiet]
-                                              joins, installs and starts the service; exit 0 when connected
+        pnmt-sensor.exe join --url <PNMT URL> --token <xxxx-xxxx> [--name <name>] [--allow-http] [--quiet]
+                                              joins, installs and starts the service; exit 0 when connected.
+                                              An http:// URL needs --allow-http: unencrypted, compare PNMT's key
         pnmt-sensor.exe status                the service and the connection, as status.json says
         pnmt-sensor.exe uninstall [--delete-logs]
                                               stops and deletes the service, the key and the data; PNMT keeps the server
@@ -155,6 +156,7 @@ internal static partial class Program
     {
         string? url = null, token = null, name = null;
         var quiet = false;
+        var allowHttp = false;
         for (var i = 0; i < args.Length; i++)
         {
             switch (args[i])
@@ -171,6 +173,9 @@ internal static partial class Program
                 case "--quiet":
                     quiet = true;
                     break;
+                case "--allow-http":
+                    allowHttp = true;
+                    break;
                 default:
                     return Print(Usage, 2);
             }
@@ -186,7 +191,17 @@ internal static partial class Program
                 Console.WriteLine($"… {s}");
             }
         });
-        var result = Joiner.JoinAsync(url, token, name, steps, CancellationToken.None).GetAwaiter().GetResult();
+        Task<bool> ConfirmHttp(Uri address, string fingerprint)
+        {
+            if (!allowHttp)
+            {
+                throw new AgentJoinException("https_required",
+                    $"{address} is plain http://, not encrypted. Add --allow-http to join anyway; PNMT's key, as this URL answers, is {fingerprint}: compare it with PNMT's Add server dialog.");
+            }
+            Console.WriteLine($"Plain http://, confirmed with --allow-http. PNMT's key, as this URL answers: {fingerprint}");
+            return Task.FromResult(true);
+        }
+        var result = Joiner.JoinAsync(url, token, name, steps, ConfirmHttp, CancellationToken.None).GetAwaiter().GetResult();
         if (!quiet)
         {
             Console.WriteLine($"Joined as {result.Grant.HostName} / {result.Grant.SensorName}.");
@@ -236,14 +251,7 @@ internal static partial class Program
     private static int Update()
     {
         var installed = ServiceControl.InstalledVersion();
-        if (!ServiceControl.IsInstalled)
-        {
-            return Print("The service is not installed: join first.", 1);
-        }
-        ServiceControl.Stop();
-        ServiceControl.InstallProgram();
-        ServiceControl.Install(AgentInfo.InstalledExecutable);
-        ServiceControl.Start();
+        ServiceControl.Update();
         WriteEventLog($"PNMT Sensor updated from {installed} to {AgentInfo.Version}.", EventLogEntryType.Information);
         return Print($"Updated from {installed?.ToString() ?? "?"} to {AgentInfo.Version}; the service runs again.", 0);
     }

@@ -121,7 +121,10 @@ internal sealed class DailyFileLoggerProvider : ILoggerProvider
     }
 
     /// <summary>The last lines of today's file and the days before, for PNMT's Send log.</summary>
-    public IReadOnlyList<string> Tail(int lines)
+    public IReadOnlyList<string> Tail(int lines) => TailOf(folder, prefix, lines);
+
+    /// <summary>The last lines of a prefix's files, newest file last: for the window's Log tab, which reads the service's log.</summary>
+    public static IReadOnlyList<string> TailOf(string folder, string prefix, int lines)
     {
         var result = new List<string>();
         try

@@ -166,7 +166,7 @@ The **PNMT sensor service** is one Windows executable, `pnmt-sensor.exe`, built 
    - **The token is shown once**, because only its hash is stored. Another one is a click away.
 2. **On the server**, the administrator double-clicks `pnmt-sensor-x64.exe` and confirms UAC. The window asks for the URL and the token, and optionally a name.
 3. **The service checks the URL:**
-   - `https` only (unless PNMTD's `Windows:AllowHttp` is set, for development);
+   - `https`, or plain `http` after a confirmation: the window shows PNMT's key as the URL answers, to compare with the *Add server* dialog, and needs a tick; the command line needs `--allow-http`. The join must then answer the same key;
    - the certificate is validated against Windows' trust store;
    - `GET /agent/v1/join` answers PNMTD's version and its signing key's fingerprint.
 4. **It creates the key pair** in the machine key store.
@@ -705,7 +705,7 @@ One EF migration per phase: `AddWindowsAgents` (W1), `AddWindowsSectionsAndAcces
 | Setting (`.env` name) | Default | Notes |
 |---|---|---|
 | `Windows__Enabled` | `true` | The agent endpoints answer 404 when off |
-| `Windows__AllowHttp` | `false` | Development only, as `Mikrotik:AllowPasswordsOverHttp` |
+| *(no setting)* | | Plain HTTP is the agent's choice, confirmed at the join (§3.3); PNMTD accepts both |
 | `Windows__HeartbeatSeconds`, `Windows__FullUpdateHours` | 60, 6 | Sent to the agents in their configuration |
 | `Windows__TokenHours` | 24 | The default validity; at most 168 |
 | `Windows__MaxClockSkewSeconds` | 120 | |
@@ -720,7 +720,7 @@ One EF migration per phase: `AddWindowsAgents` (W1), `AddWindowsSectionsAndAcces
   - **Caddy** and **Traefik** pass them by default.
   - **nginx** needs `proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection $connection_upgrade;` (with the usual `map`), and a `proxy_read_timeout` above the 30 s ping.
   - `deploy/README.md` adds these lines to its nginx example. W0 tests the proxy in use.
-- **Without a reverse proxy** (PNMTD's published port directly), nothing is needed. **The agents still require HTTPS**, unless `Windows:AllowHttp` is set for development.
+- **Without a reverse proxy** (PNMTD's published port directly), nothing is needed. The agents use HTTPS where PNMT has it; plain HTTP works after a confirmation at the join (§3.3), and is then not encrypted.
 - **The image doesn't grow:** the executables are release assets (§11).
 - **`backup.sh` needs no change:** the database and the key ring hold everything.
 
@@ -987,7 +987,7 @@ W0 needs real machines (one Windows Server 2019, one Windows 10 Pro or 11) and t
 - **The protocol** is in `PNMTD.Lib/Agent/`: the records of §3.6 (`AgentMessages.cs`, `AgentDiagnostics.cs`), the frames with their limits (`AgentFrames.cs`), the signatures and join tokens (`AgentSigning.cs`), and **the agent's side of a connection, `AgentSession`**, with the HTTP join (`AgentJoinClient`). The Windows agent and `pnmtd windows simulate` share that code, and the tests run it against the in-memory server, so the agent's protocol code is tested after all, without testing the agent.
 - **Signed messages** carry the signed JSON as text (`{ "p": text, "s": signature }`): the text is verified as it is, then parsed, so neither side needs canonical JSON. What is signed names its type, its agent, a request id and, for requests, an expiry; the agent checks the expiry against PNMTD's clock (the challenge's time gives the offset), so a server whose clock is off still accepts requests. The hello signs `pnmt-agent-v1`, the origin, the agent id, the nonce and its time.
 - **The origin check:** the origin an agent signs must name PNMT's host: `PublicBaseUrl`'s, the request's `Host`, or `X-Forwarded-Host`. `Windows:CheckOrigin=false` turns it off for proxies that rewrite the host.
-- **HTTPS is the agent's rule.** PNMTD can't tell behind a proxy that ends TLS without forwarded headers; its join check answers `allowHttp`, and the agent accepts a plain `http` URL only when that is true.
+- **Plain HTTP is the agent's choice, confirmed by a person** (revised after W6; first it was a server setting for development only): the window shows PNMT's key as the URL answers and needs a tick that it matches the one in PNMT's *Add server* dialog, which warns about plain HTTP and shows the key; the command line needs `--allow-http` and prints the key, and PNMT's command line includes the flag for an http:// PNMT. The join must answer the same key as the check, or the agent refuses it. `agent.json` notes `plainHttp`, and the window shows it.
 - **A re-join gives the agent a new id** as well as a new key, so each key has a name of its own on the server; the old id is refused (4401).
 - **Every new close code:** 4400 for a protocol error, 4404 when the agents are turned off, 4413 for a message above the limits, besides 4401, 4403, 4408 and 4409.
 - **`LastSeenAt` is written with each heartbeat**, in the transaction that writes its event, not in batches every 30 s: a heartbeat writes its event anyway.
@@ -1044,12 +1044,21 @@ W0 needs real machines (one Windows Server 2019, one Windows 10 Pro or 11) and t
 - **A browser test after all** (`e2e/windows.spec.ts`, two tests): the admin page and *Add server*, every tab of a seeded server, and *Admin → Diagnostics* with a run. Not the agent: only the pages, which nothing else could open (§13 asked for no e2e tests; these are the cheapest way to see the pages render).
 - **Not done: the limits tuned with W0's numbers** (W0 is still to do).
 
+### After W6: the window
+
+- **Redone** (`Ui/`): a header with the PNMT icon, the server, the agent's version and its state as a coloured pill; white cards on a light page as in the web UI; brand-coloured buttons; Segoe UI; sizes scaled to the screen's DPI. Joined, three tabs: *Status* (the connection and the service with Start, Stop and Restart, Update when the running executable is newer, problems, this server in PNMT with both keys to copy, diagnostics, the audit policy's gaps with *Copy* per command, the actions), *Scripts* (the local allowlists and the stored accounts) and *Log* (the service's log file, following).
+- **Resizing:** fields, keys and text stretch with the window and wrap; buttons and the token field keep their size; the join's log and the *Log* tab fill the height that is left. The window keeps a minimum size.
+- **Nothing is rebuilt while you type:** the views are built once and a timer every 2 s updates what changed (the first window rebuilt every control every 2 s, which also cleared half-typed allowlists). Slow service actions run off the UI thread; dialogs are task dialogs.
+- **The icon** (`Ui/pnmt-icon.svg`): the web UI's mark, white on the brand blue, rendered to `pnmt.ico` (16–256 px) and `logo.png`; the executable, the window and the taskbar use it.
+- **Debug logging** switched in the window takes effect in the service within 10 s, without a restart.
+- Not seen yet: the window was built and compiled on macOS; how it looks on Windows is part of the checklist below.
+
 ### The checklist per release (§13)
 
 On one Windows Server 2019 and one Windows 10 Pro or Windows 11 machine, with the release's executable:
 
 1. `Get-FileHash` matches the release's `.sha256`; SmartScreen's *Run anyway* works.
-2. Join from the window with a token from *Add Windows server…*: both fingerprints match the agent log; the server shows *connected*.
+2. Join from the window with a token from *Add Windows server…*: both fingerprints match the agent log; the server shows *connected*. The window looks right at 100 % and 150 % scaling, and resizes (fields stretch, the log fills). Over plain http://, the confirmation shows PNMT's key.
 3. Within a minute: 250; the overview, *Hardware*, *Network*, *Services*, *Remote access*, *Access*, *Event log* filled, without errors in the sections.
 4. A login over RDP as an admin: in *Access* within 15 seconds, 254. A wrong password three times: an aggregate with its count; ten from one address: 454.
 5. Stop a service set to automatic: *Services* flags it; add a local administrator: *Changes* has the line, 253.

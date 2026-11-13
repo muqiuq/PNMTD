@@ -22,7 +22,7 @@ internal sealed record AgentConfigFile(
     DateTimeOffset JoinedAt,
     AgentConfig? Config,
     string? LogLevel = null,
-    bool AllowHttp = false);
+    bool PlainHttp = false);
 
 /// <summary>What the service tells the window, every 10 s (§3.2): a file, not a pipe, so there is no second interface to secure.</summary>
 internal sealed record AgentStatusFile(

@@ -10,15 +10,17 @@ internal sealed record JoinResult(JoinGrant Grant, string AgentFingerprint, stri
 
 /// <summary>
 /// Joining (docs/windows-sensor-plan.md §3.3), for the window and the command line: check PNMT's URL, create the key, register,
-/// write agent.json, install and start the service, and wait until it is connected.
+/// write agent.json, install and start the service, and wait until it is connected. Plain http:// needs a confirmation
+/// (<paramref name="confirmHttp"/> gets the URL and PNMT's key as the URL answers), and the join must then answer that same key.
 /// </summary>
 internal static class Joiner
 {
-    public static async Task<JoinResult> JoinAsync(string url, string token, string? name, IProgress<string> steps, CancellationToken ct)
+    public static async Task<JoinResult> JoinAsync(string url, string token, string? name, IProgress<string> steps,
+        Func<Uri, string, Task<bool>> confirmHttp, CancellationToken ct)
     {
         if (!Uri.TryCreate(url.Trim().TrimEnd('/') + "/", UriKind.Absolute, out var baseUrl) || baseUrl.Scheme is not ("https" or "http"))
         {
-            throw new AgentJoinException("invalid_url", "PNMT's URL must start with https://.");
+            throw new AgentJoinException("invalid_url", "PNMT's URL starts with https:// (or http://, after a confirmation).");
         }
         if (JoinTokens.Normalize(token) is not { } normalized)
         {
@@ -29,9 +31,10 @@ internal static class Joiner
 
         steps.Report("Checking PNMT");
         var info = await AgentJoinClient.InfoAsync(http, baseUrl, ct);
-        if (baseUrl.Scheme == "http" && !info.AllowHttp)
+        var plainHttp = baseUrl.Scheme == "http";
+        if (plainHttp && !await confirmHttp(baseUrl, info.SigningKeyFingerprint))
         {
-            throw new AgentJoinException("https_required", "PNMT must be reached over https:// (Windows__AllowHttp is for development only).");
+            throw new AgentJoinException("http_declined", "Not joined: plain http:// was not confirmed.");
         }
 
         steps.Report("Creating the key");
@@ -48,11 +51,16 @@ internal static class Joiner
                 string.IsNullOrEmpty(properties.DomainName) ? Environment.UserDomainName : properties.DomainName, os, AgentInfo.Version, AgentInfo.Architecture,
                 WindowsVersion.MachineGuid(), string.IsNullOrWhiteSpace(name) ? null : name.Trim());
             var (response, grant) = await AgentJoinClient.JoinAsync(http, baseUrl, request, ct);
+            if (response.SigningKeyFingerprint != info.SigningKeyFingerprint)
+            {
+                // Over plain HTTP, the key confirmed is the one pinned; with HTTPS, a change between the two requests is odd enough too.
+                throw new AgentJoinException("key_changed", $"PNMT answered with another key at the join ({response.SigningKeyFingerprint}) than at the check: refused.");
+            }
 
             AgentFiles.Secure();
             AgentFiles.WriteConfig(new AgentConfigFile(baseUrl.ToString(), grant.AgentId, grant.SensorId, grant.SensorName, grant.HostName, keyName,
                 grant.AgentKeyFingerprint, response.SigningPublicKey, response.SigningKeyFingerprint, DateTimeOffset.UtcNow, grant.Config, previous?.LogLevel,
-                info.AllowHttp));
+                plainHttp));
             if (previous is not null && previous.KeyName != keyName)
             {
                 AgentKey.Delete(previous.KeyName);

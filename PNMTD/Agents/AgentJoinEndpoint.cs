@@ -101,7 +101,7 @@ public static class AgentJoinEndpoint
             return Results.NotFound();
         }
         var key = await keys.GetAsync(ct);
-        return Results.Json(new JoinInfo("pnmt", ServerInfo.Version, AgentProtocol.Version, key.Fingerprint, options.CurrentValue.AllowHttp), AgentJson.Options);
+        return Results.Json(new JoinInfo("pnmt", ServerInfo.Version, AgentProtocol.Version, key.Fingerprint), AgentJson.Options);
     }
 
     public static async Task<IResult> JoinAsync(HttpContext http, IDbContextFactory<PnmtdDbContext> dbs, AgentKeyStore keys, AgentHub hub,

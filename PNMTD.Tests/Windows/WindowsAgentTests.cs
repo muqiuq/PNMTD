@@ -65,6 +65,8 @@ public sealed class WindowsAgentTests
         StringAssert.Matches(created.Token, new System.Text.RegularExpressions.Regex("^[a-z2-9]{4}-[a-z2-9]{4}$"));
         Assert.AreEqual(WindowsJoinTokenState.Pending, created.Item.State);
         StringAssert.Contains(created.CommandLine, $"--token {created.Token}");
+        // The test server is plain http://: the agent's command line must confirm it.
+        StringAssert.EndsWith(created.CommandLine, " --allow-http");
 
         var joined = await WindowsHarness.JoinAsync(app, created.Token, "SRV-JOIN");
         Assert.AreEqual("file server", joined.Grant.SensorName);

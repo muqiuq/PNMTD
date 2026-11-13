@@ -14,6 +14,8 @@
     <AssemblyName>pnmt-sensor</AssemblyName>
     <RootNamespace>PNMTD.Sensor.Windows</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Ui/pnmt-icon.svg, rendered to pnmt.ico (16–256 px) and logo.png (96 px) with rsvg-convert and ImageMagick. -->
+    <ApplicationIcon>Ui\pnmt.ico</ApplicationIcon>
     <Product>PNMT Sensor</Product>
     <Company>PNMT</Company>
     <Description>PNMT sensor service for Windows</Description>
@@ -40,6 +42,12 @@
     <DebugType>none</DebugType>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Ui\pnmt.ico" LogicalName="pnmt.ico" />
+    <EmbeddedResource Include="Ui\logo.png" LogicalName="logo.png" />
+    <None Include="Ui\pnmt-icon.svg" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\PNMTD.Lib\PNMTD.Lib.csproj" />

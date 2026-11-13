@@ -126,8 +126,11 @@ public sealed record SendLogRequest(int Lines);
 
 // --- joining (§3.3) ------------------------------------------------------------------------------------------
 
-/// <summary><c>GET /agent/v1/join</c>: the URL check.</summary>
-public sealed record JoinInfo(string Product, string PnmtVersion, int Protocol, string SigningKeyFingerprint, bool AllowHttp);
+/// <summary>
+/// <c>GET /agent/v1/join</c>: the URL check. Over plain HTTP the agent shows the key's fingerprint for the administrator to compare
+/// with PNMT's Add server dialog, and the join must answer the same key.
+/// </summary>
+public sealed record JoinInfo(string Product, string PnmtVersion, int Protocol, string SigningKeyFingerprint);
 
 /// <summary><c>POST /agent/v1/join</c>.</summary>
 public sealed record JoinRequest(

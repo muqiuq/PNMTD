@@ -1,8 +1,6 @@
-using System.Diagnostics;
 using System.ServiceProcess;
 using Microsoft.Extensions.Logging;
 using PNMTD.Lib.Agent;
-using PNMTD.Sensor.Windows.Join;
 using PNMTD.Sensor.Windows.Logging;
 using PNMTD.Sensor.Windows.Service;
 using PNMTD.Sensor.Windows.State;
@@ -25,357 +23,202 @@ internal static class WindowApp
             MessageBox.Show(e.Exception.Message, "PNMT Sensor", MessageBoxButtons.OK, MessageBoxIcon.Error);
         };
         logger.LogInformation("The window opened ({Version}).", AgentInfo.Version);
-        Application.Run(new MainForm(logs, logger));
+        Application.Run(new MainForm(logger));
         return 0;
     }
 }
 
 /// <summary>
-/// The service's window (docs/windows-sensor-plan.md §10.4). Not joined: the URL, the token and a name, Join, the steps
-/// and both fingerprints. Joined: the service with Start, Stop and Restart; the connection and the last problems; the
-/// agent and both keys; the diagnostics loaded; the audit policy's gaps; Collect now, Open log folder, Debug logging,
-/// Re-join… and Uninstall…; and Update when this executable is newer than the installed one.
+/// The service's window (docs/windows-sensor-plan.md §10.4): a header with the logo and the agent's state, and below it joining
+/// (not joined, or Re-join…) or the joined agent's tabs. One timer every 2 s; nothing is rebuilt while you type.
 /// </summary>
 internal sealed class MainForm : Form
 {
-    private readonly DailyFileLoggerProvider logs;
     private readonly ILogger logger;
-    private readonly System.Windows.Forms.Timer refresh = new() { Interval = 2000 };
-    private readonly Panel body = new() { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(16) };
-    private bool joining;
+    private readonly AgentOs os = WindowsVersion.Read();
+    private readonly Panel body = new() { Dock = DockStyle.Fill, BackColor = Theme.Page };
+    private readonly Label headerPill;
+    private readonly System.Windows.Forms.Timer timer = new() { Interval = 2000 };
+    private Control? view;
 
-    public MainForm(DailyFileLoggerProvider logs, ILogger logger)
+    public MainForm(ILogger logger)
     {
-        this.logs = logs;
         this.logger = logger;
-        Text = $"PNMT Sensor {AgentInfo.Version}";
-        Width = 760;
-        Height = 720;
-        MinimumSize = new Size(560, 480);
-        Font = new Font("Segoe UI", 9.5f);
+        Theme.Scale = DeviceDpi / 96f;
+        Text = "PNMT Sensor";
+        Icon = Assets.Icon;
+        Font = Theme.Body;
+        BackColor = Theme.Page;
         StartPosition = FormStartPosition.CenterScreen;
+        ClientSize = new Size(Theme.S(880), Theme.S(720));
+        MinimumSize = new Size(Theme.S(640), Theme.S(520));
+
+        headerPill = Kit.Pill();
+        headerPill.Anchor = AnchorStyles.Right;
+        // Docked from the last added: the header on top, the brand stripe under it, the view filling the rest.
         Controls.Add(body);
-        refresh.Tick += (_, _) => Render();
-        refresh.Start();
-        Render();
+        Controls.Add(new Panel { Dock = DockStyle.Top, Height = Math.Max(2, Theme.S(3)), BackColor = Theme.Brand });
+        Controls.Add(Header());
+
+        timer.Tick += (_, _) => Tick();
+        timer.Start();
+        Show(AgentFiles.ReadConfig());
+        Tick();
     }
 
-    private void Render()
+    private Control Header()
     {
-        if (joining)
+        var header = new TableLayoutPanel
         {
-            return;
-        }
-        var config = AgentFiles.ReadConfig();
-        var key = config is null ? "join" : "status";
-        var scroll = body.AutoScrollPosition;
-        body.SuspendLayout();
-        body.Controls.Clear();
-        var stack = Stack();
-        stack.Controls.Add(Title($"PNMT Sensor {AgentInfo.Version} ({AgentInfo.Architecture})"));
-        var os = WindowsVersion.Read();
-        stack.Controls.Add(Line($"{os.Caption} {os.DisplayVersion} ({os.Build})"));
-        if (!os.Supported)
-        {
-            stack.Controls.Add(Line("This Windows version is not on the supported list: the agent runs anyway, and PNMT shows it.", Color.DarkOrange));
-        }
-        if (key == "join")
-        {
-            JoinView(stack, null);
-        }
-        else
-        {
-            StatusView(stack, config!);
-        }
-        body.Controls.Add(stack);
-        body.ResumeLayout();
-        body.AutoScrollPosition = new Point(-scroll.X, -scroll.Y);
-    }
-
-    // --- not joined -------------------------------------------------------------------------------------------
-
-    private void JoinView(FlowLayoutPanel stack, AgentConfigFile? rejoin)
-    {
-        refresh.Stop();
-        stack.Controls.Add(Heading(rejoin is null ? "Join PNMT" : "Re-join PNMT"));
-        stack.Controls.Add(Line("In PNMT, an Admin chooses Add Windows server on the host and gets a token. Enter PNMT's URL and the token here."));
-        var url = Input("PNMT's URL", rejoin?.Url ?? "https://", stack);
-        var token = Input("Token (xxxx-xxxx)", "", stack);
-        var name = Input("Name (optional)", "", stack);
-        var steps = new ListBox { Width = 640, Height = 120 };
-        var fingerprints = Line("");
-        var join = new Button { Text = "Join", AutoSize = true };
-        join.Click += async (_, _) =>
-        {
-            joining = true;
-            join.Enabled = false;
-            steps.Items.Clear();
-            var progress = new Progress<string>(s => steps.Items.Add($"✓ {s}"));
-            try
-            {
-                var result = await Task.Run(() => Joiner.JoinAsync(url.Text, token.Text, name.Text, progress, CancellationToken.None));
-                fingerprints.Text = $"Joined as {result.Grant.HostName} / {result.Grant.SensorName}.\r\nThis server's key: {result.AgentFingerprint}\r\nPNMT's key: {result.PnmtdFingerprint}\r\nCompare them with PNMT's agent log.";
-                logger.LogInformation("Joined as {Host} / {Sensor}; key {Key}", result.Grant.HostName, result.Grant.SensorName, result.AgentFingerprint);
-                Program.WriteEventLog($"Joined PNMT as {result.Grant.HostName} / {result.Grant.SensorName}.", System.Diagnostics.EventLogEntryType.Information);
-                MessageBox.Show(this, fingerprints.Text, "Joined", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                joining = false;
-                refresh.Start();
-                Render();
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Join failed: {Message}", e.Message);
-                steps.Items.Add($"✗ {e.Message}");
-                join.Enabled = true;
-                joining = false;
-            }
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            BackColor = Theme.Surface,
+            Padding = Theme.P(18, 12, 18, 12),
+            ColumnCount = 3,
+            RowCount = 1,
         };
-        stack.Controls.Add(join);
-        stack.Controls.Add(steps);
-        stack.Controls.Add(fingerprints);
-        if (rejoin is not null)
+        header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        var logo = new PictureBox
         {
-            var cancel = new Button { Text = "Cancel", AutoSize = true };
-            cancel.Click += (_, _) =>
-            {
-                refresh.Start();
-                Render();
-            };
-            stack.Controls.Add(cancel);
-        }
+            Image = Assets.Logo,
+            SizeMode = PictureBoxSizeMode.Zoom,
+            Size = new Size(Theme.S(42), Theme.S(42)),
+            Margin = Theme.P(0, 0, 14, 0),
+            Anchor = AnchorStyles.Left,
+        };
+        var titles = new TableLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, ColumnCount = 1, Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = Padding.Empty };
+        titles.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        var title = Kit.Label("PNMT Sensor", Theme.Title);
+        title.Margin = Padding.Empty;
+        var subtitle = Kit.Label($"{AgentInfo.Version} ({AgentInfo.Architecture}) · {Environment.MachineName} · {os.Caption} {os.DisplayVersion}", Theme.Small, Theme.Muted);
+        subtitle.Margin = Padding.Empty;
+        titles.Controls.Add(title, 0, 0);
+        titles.Controls.Add(subtitle, 0, 1);
+        header.Controls.Add(logo, 0, 0);
+        header.Controls.Add(titles, 1, 0);
+        header.Controls.Add(headerPill, 2, 0);
+        return header;
     }
 
-    // --- joined -------------------------------------------------------------------------------------------------
-
-    private void StatusView(FlowLayoutPanel stack, AgentConfigFile config)
+    private void Show(AgentConfigFile? config, bool rejoin = false)
     {
-        var status = AgentFiles.ReadStatus();
-        var service = ServiceControl.Status();
-
-        stack.Controls.Add(Heading("The service"));
-        stack.Controls.Add(Line($"{AgentInfo.DisplayName}: {service?.ToString() ?? "not installed"}", service == ServiceControllerStatus.Running ? Color.DarkGreen : Color.DarkRed));
-        stack.Controls.Add(Buttons(
-            ("Start", () => Do(() => ServiceControl.Start())),
-            ("Stop", () => Do(ServiceControl.Stop)),
-            ("Restart", () => Do(ServiceControl.Restart))));
-        if (ServiceControl.InstalledVersion() is { } installed && Version.TryParse(AgentInfo.Version.Split('-')[0], out var mine) && mine > installed)
+        Control next;
+        if (config is null || rejoin)
         {
-            stack.Controls.Add(Line($"The installed agent is {installed}; this one is {mine}.", Color.DarkOrange));
-            stack.Controls.Add(Buttons(("Update", () => Do(UpdateInstalled))));
-        }
-
-        stack.Controls.Add(Heading("The connection"));
-        if (status is null || DateTimeOffset.UtcNow - status.UpdatedAt > TimeSpan.FromMinutes(1))
-        {
-            stack.Controls.Add(Line("The service has not written its status for a minute: is it running?", Color.DarkOrange));
+            var join = new JoinView(rejoin ? config : null, os, logger);
+            join.Joined += () => Show(AgentFiles.ReadConfig());
+            join.Cancelled += () => Show(AgentFiles.ReadConfig());
+            next = join;
         }
         else
         {
-            stack.Controls.Add(Line(status.Connected
-                ? $"Connected to {config.Url} since {status.ConnectedSince?.ToLocalTime():g}; last heartbeat {status.LastHeartbeatAt?.ToLocalTime():T}."
-                : $"Not connected: {status.State}", status.Connected ? Color.DarkGreen : Color.DarkRed));
-            foreach (var p in status.Problems.Take(5))
-            {
-                stack.Controls.Add(Line($"Problem: {p.Component}, {p.Operation}: {p.Message} ({p.Count}×, last {p.LastAt.ToLocalTime():g})", Color.DarkOrange));
-            }
+            var status = new StatusView(config, os, logger);
+            status.RejoinRequested += () => Show(AgentFiles.ReadConfig(), rejoin: true);
+            status.Uninstalled += Close;
+            next = status;
         }
-
-        stack.Controls.Add(Heading("The agent"));
-        stack.Controls.Add(Line($"PNMT: {config.HostName} / {config.SensorName}\r\nAgent id: {config.AgentId}\r\nThis server's key: {config.AgentKeyFingerprint}\r\nPNMT's key: {config.PnmtdFingerprint}"));
-
-        if (status is { Diagnostics.Count: > 0 })
+        body.SuspendLayout();
+        var old = view;
+        body.Controls.Add(next);
+        if (old is not null)
         {
-            stack.Controls.Add(Heading("Diagnostics loaded"));
-            foreach (var d in status.Diagnostics)
-            {
-                var schedule = d.Mode == "Scheduled" ? $"every {d.IntervalMinutes} min" : "by hand";
-                stack.Controls.Add(Line($"{d.SetName}: {schedule}{(d.Enabled ? "" : " (off)")}; last run {d.LastRunAt?.ToLocalTime():g}: {d.LastOutcome ?? "–"} {d.LastMessage}"));
-            }
+            body.Controls.Remove(old);
+            old.Dispose();
         }
-        if (status is { AuditGaps.Count: > 0 })
+        view = next;
+        body.ResumeLayout();
+        if (next is not JoinView)
         {
-            stack.Controls.Add(Heading("The audit policy's gaps"));
-            stack.Controls.Add(Line("Logins can't be seen completely. The agent changes nothing; run these as an administrator:"));
-            foreach (var gap in status.AuditGaps)
-            {
-                var box = new TextBox { Text = gap, ReadOnly = true, Width = 680, Font = new Font("Consolas", 9f) };
-                stack.Controls.Add(box);
-            }
-        }
-
-        ScriptsView(stack);
-
-        stack.Controls.Add(Heading("Actions"));
-        var debug = new CheckBox { Text = "Debug logging", AutoSize = true, Checked = config.LogLevel == "Debug" };
-        debug.CheckedChanged += (_, _) => Do(() => AgentFiles.WriteConfig(config with { LogLevel = debug.Checked ? "Debug" : null }));
-        stack.Controls.Add(Buttons(
-            ("Collect now", () => Do(() => File.WriteAllText(AgentInfo.CollectNowFile, DateTimeOffset.UtcNow.ToString("O")))),
-            ("Open log folder", () => Process.Start(new ProcessStartInfo("explorer.exe", $"\"{AgentInfo.LogFolder}\"") { UseShellExecute = true })),
-            ("Re-join…", () => RejoinView(config)),
-            ("Uninstall…", Uninstall)));
-        stack.Controls.Add(debug);
-        stack.Controls.Add(Line($"Log: {logs.CurrentFile.Replace("pnmt-sensor-ui", "pnmt-sensor")}", Color.Gray));
-    }
-
-    /// <summary>
-    /// Scripts from PNMT (§7.2, §7.4): off by default; only here can they be turned on, optionally for named scripts (their hashes)
-    /// and named accounts ("service" for the agent itself). Stored accounts keep their password on this server only.
-    /// </summary>
-    private void ScriptsView(FlowLayoutPanel stack)
-    {
-        var policy = Scripts.ScriptPolicy.Read();
-        stack.Controls.Add(Heading("Scripts from PNMT"));
-        var allow = new CheckBox { Text = "Allow scripts from PNMT on this server", AutoSize = true, Checked = policy.Enabled };
-        stack.Controls.Add(allow);
-        stack.Controls.Add(Line("Only these scripts (their SHA-256, one per line; empty: any script PNMT sends):"));
-        var hashes = new TextBox { Multiline = true, Width = 680, Height = 60, Text = string.Join("\r\n", policy.ScriptHashes), Font = new Font("Consolas", 9f) };
-        stack.Controls.Add(hashes);
-        stack.Controls.Add(Line("Only as these accounts (one per line; \"service\" for the agent itself, which must be named; empty: any but the service):"));
-        var accounts = new TextBox { Multiline = true, Width = 680, Height = 60, Text = string.Join("\r\n", policy.RunAs) };
-        stack.Controls.Add(accounts);
-        stack.Controls.Add(Buttons(("Save and restart the service", () => Do(() =>
-        {
-            static List<string> Lines(TextBox box) => box.Text.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
-            new Scripts.ScriptPolicy(allow.Checked, Lines(hashes), Lines(accounts)).Save();
-            logger.LogInformation("Scripts from PNMT {State}", allow.Checked ? "allowed" : "not allowed");
-            ServiceControl.Restart();
-        }))));
-
-        stack.Controls.Add(Heading("Stored accounts"));
-        stack.Controls.Add(Line("Passwords kept on this server only, encrypted (DPAPI): scripts run as these accounts without anyone typing them. They never reach PNMT."));
-        foreach (var name in Scripts.StoredAccounts.Names())
-        {
-            var account = name;
-            stack.Controls.Add(Buttons(($"Remove {account}", () => Do(() => Scripts.StoredAccounts.Remove(account)))));
-        }
-        stack.Controls.Add(Buttons(("Add or replace an account…", AddAccount)));
-    }
-
-    private void AddAccount()
-    {
-        using var dialog = new Form { Text = "Stored account", Width = 420, Height = 220, FormBorderStyle = FormBorderStyle.FixedDialog, StartPosition = FormStartPosition.CenterParent, MinimizeBox = false, MaximizeBox = false };
-        var panel = Stack();
-        panel.Padding = new Padding(12);
-        var account = Input("Account (DOMAIN\\user)", "", panel);
-        var password = Input("Password", "", panel);
-        password.UseSystemPasswordChar = true;
-        var ok = new Button { Text = "Store", AutoSize = true, DialogResult = DialogResult.OK };
-        panel.Controls.Add(ok);
-        dialog.Controls.Add(panel);
-        dialog.AcceptButton = ok;
-        if (dialog.ShowDialog(this) == DialogResult.OK && account.Text.Trim().Length > 0 && password.Text.Length > 0)
-        {
-            Do(() => Scripts.StoredAccounts.Set(account.Text.Trim(), password.Text));
-            logger.LogInformation("Stored the password of {Account}", account.Text.Trim());
-        }
-        password.Clear();
-    }
-
-    private void RejoinView(AgentConfigFile config)
-    {
-        body.Controls.Clear();
-        var stack = Stack();
-        stack.Controls.Add(Title("PNMT Sensor"));
-        stack.Controls.Add(Line("A re-join token (from the server's Agent tab in PNMT) replaces this server's key and keeps its history; a new token creates a new server."));
-        JoinView(stack, config);
-        body.Controls.Add(stack);
-    }
-
-    private void UpdateInstalled()
-    {
-        ServiceControl.Stop();
-        ServiceControl.InstallProgram();
-        ServiceControl.Start();
-        logger.LogInformation("Updated the installed agent to {Version}.", AgentInfo.Version);
-    }
-
-    private void Uninstall()
-    {
-        var answer = MessageBox.Show(this,
-            "Stop and delete the service, delete this server's key and the agent's data?\r\nPNMT keeps the server and its history.\r\n\r\nYes: keep the logs. No: delete the logs too.",
-            "Uninstall PNMT Sensor", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
-        if (answer == DialogResult.Cancel)
-        {
-            return;
-        }
-        try
-        {
-            var done = Uninstaller.UninstallAsync(answer == DialogResult.No, CancellationToken.None).GetAwaiter().GetResult();
-            Program.WriteEventLog("PNMT Sensor uninstalled.", System.Diagnostics.EventLogEntryType.Information);
-            MessageBox.Show(this, string.Join("\r\n", done), "Uninstalled", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            Close();
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Uninstall failed");
-            MessageBox.Show(this, e.Message, "Uninstall failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            AcceptButton = null;
         }
     }
 
-    private void Do(Action action)
+    private void Tick()
     {
         try
         {
-            action();
+            var config = AgentFiles.ReadConfig();
+            switch (view)
+            {
+                case JoinView { Busy: true }:
+                    break;
+                case JoinView { IsRejoin: false } when config is not null:
+                    Show(config);
+                    break;
+                case StatusView when config is null:
+                    Show(null);
+                    break;
+                case StatusView status when config!.JoinedAt != status.Config.JoinedAt:
+                    Show(config);
+                    break;
+                case StatusView status:
+                    status.Tick(config!);
+                    break;
+            }
+            var (text, tone, _) = AgentState.Of(config, AgentFiles.ReadStatus(), config is null ? null : ServiceControl.Status());
+            Kit.SetPill(headerPill, text, tone);
         }
         catch (Exception e)
         {
-            logger.LogError(e, "{Message}", e.Message);
-            MessageBox.Show(this, e.Message, "PNMT Sensor", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            logger.LogWarning(e, "Refreshing the window failed");
         }
-        Render();
-    }
-
-    // --- layout helpers ------------------------------------------------------------------------------------------
-
-    private static FlowLayoutPanel Stack() => new()
-    {
-        FlowDirection = FlowDirection.TopDown,
-        WrapContents = false,
-        AutoSize = true,
-        AutoSizeMode = AutoSizeMode.GrowAndShrink,
-        Dock = DockStyle.Top,
-    };
-
-    private static Label Title(string text) => new() { Text = text, AutoSize = true, Font = new Font("Segoe UI Semibold", 14f), Margin = new Padding(0, 0, 0, 8) };
-
-    private static Label Heading(string text) => new() { Text = text, AutoSize = true, Font = new Font("Segoe UI Semibold", 11f), Margin = new Padding(0, 14, 0, 4) };
-
-    private static Label Line(string text, Color? color = null) => new()
-    {
-        Text = text,
-        AutoSize = true,
-        MaximumSize = new Size(680, 0),
-        ForeColor = color ?? SystemColors.ControlText,
-        Margin = new Padding(0, 2, 0, 2),
-    };
-
-    private static TextBox Input(string label, string value, FlowLayoutPanel stack)
-    {
-        stack.Controls.Add(new Label { Text = label, AutoSize = true, Margin = new Padding(0, 8, 0, 2) });
-        var box = new TextBox { Text = value, Width = 480 };
-        stack.Controls.Add(box);
-        return box;
-    }
-
-    private static FlowLayoutPanel Buttons(params (string Text, Action Click)[] buttons)
-    {
-        var row = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = true, MaximumSize = new Size(700, 0) };
-        foreach (var (text, click) in buttons)
-        {
-            var button = new Button { Text = text, AutoSize = true };
-            button.Click += (_, _) => click();
-            row.Controls.Add(button);
-        }
-        return row;
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            refresh.Dispose();
+            timer.Dispose();
         }
         base.Dispose(disposing);
     }
+}
+
+/// <summary>The agent's state in a word, a colour and a sentence: the header's pill and the Connection card.</summary>
+internal static class AgentState
+{
+    public static (string Text, Tone Tone, string Detail) Of(AgentConfigFile? config, AgentStatusFile? status, ServiceControllerStatus? service)
+    {
+        if (config is null)
+        {
+            return ("Not joined", Tone.Neutral, "Join PNMT with a token from Add Windows server.");
+        }
+        if (service is null)
+        {
+            return ("Not installed", Tone.Fail, "The service is not installed: re-join to install it.");
+        }
+        if (service != ServiceControllerStatus.Running)
+        {
+            return ($"Service {Words(service)}", Tone.Fail, "The service doesn't run: start it.");
+        }
+        if (status is null || DateTimeOffset.UtcNow - status.UpdatedAt > TimeSpan.FromMinutes(1))
+        {
+            return ("No status", Tone.Warn, "The service has not written its status for a minute; its log may tell why.");
+        }
+        if (status.Connected)
+        {
+            return ("Connected", Tone.Ok, $"Connected to PNMT since {status.ConnectedSince?.ToLocalTime():g}; heartbeats every minute.");
+        }
+        if (status.State?.StartsWith("revoked", StringComparison.Ordinal) == true)
+        {
+            return ("Revoked", Tone.Fail, $"PNMT {status.State}. Re-join with a new token to report again.");
+        }
+        return ("Offline", Tone.Warn, $"{Capital(status.State ?? "not connected")}. The service retries by itself.");
+    }
+
+    public static string Words(ServiceControllerStatus? service) => service switch
+    {
+        null => "not installed",
+        ServiceControllerStatus.Running => "running",
+        ServiceControllerStatus.Stopped => "stopped",
+        ServiceControllerStatus.StartPending => "starting",
+        ServiceControllerStatus.StopPending => "stopping",
+        ServiceControllerStatus.Paused => "paused",
+        var other => other.ToString()!.ToLowerInvariant(),
+    };
+
+    private static string Capital(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
 }

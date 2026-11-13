@@ -8,9 +8,6 @@ public sealed class WindowsOptions
     /// <summary>Off: the agent endpoints answer 404, and connected agents are closed.</summary>
     public bool Enabled { get; set; } = true;
 
-    /// <summary>Agents may join over plain HTTP. Development only, as Mikrotik:AllowPasswordsOverHttp.</summary>
-    public bool AllowHttp { get; set; }
-
     /// <summary>Sent to the agents in their configuration; also a new server's Interval.</summary>
     public int HeartbeatSeconds { get; set; } = 60;
 

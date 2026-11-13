@@ -384,7 +384,9 @@ public sealed class WindowsServerService(
         var key = await keys.GetAsync(ct);
         var url = urls.Base;
         var downloadInfo = await downloads.GetAsync(ct, wait: false);
-        var command = $"pnmt-sensor-x64.exe join --url {url} --token {token}{(entity.Name is { } n ? $" --name \"{n.Replace("\"", "")}\"" : "")}";
+        // Plain http:// works after a confirmation: on the command line, --allow-http.
+        var plainHttp = url.StartsWith("http://", StringComparison.OrdinalIgnoreCase);
+        var command = $"pnmt-sensor-x64.exe join --url {url} --token {token}{(entity.Name is { } n ? $" --name \"{n.Replace("\"", "")}\"" : "")}{(plainHttp ? " --allow-http" : "")}";
         var sensors = rejoin is { } r ? new Dictionary<Guid, string> { [r] = $"{host.Name} / {name}" } : new Dictionary<Guid, string>();
         return new WindowsJoinTokenCreated(ToItem(entity, new Dictionary<Guid, string> { [host.Id] = host.Name }, sensors, Clock.UtcNow),
             token, url, key.Fingerprint, command, downloadInfo);

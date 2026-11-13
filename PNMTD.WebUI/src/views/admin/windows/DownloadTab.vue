@@ -11,6 +11,8 @@ import CopyField from '@/components/CopyField.vue'
  */
 const agent = useQuery({ queryKey: [...keys.windows, 'agent'], queryFn: api.windows.agent, staleTime: 600_000 })
 const url = computed(() => (typeof location !== 'undefined' ? location.origin : 'https://pnmt.example.com'))
+// Plain http:// works after a confirmation: on the command line, --allow-http.
+const allowHttp = computed(() => (url.value.startsWith('http://') ? ' --allow-http' : ''))
 </script>
 
 <template>
@@ -44,7 +46,10 @@ const url = computed(() => (typeof location !== 'undefined' ? location.origin : 
         <CopyField value="Get-FileHash .\pnmt-sensor-x64.exe -Algorithm SHA256" label="PowerShell" />
         <h3>Unattended (GPO, Intune, RMM)</h3>
         <p class="small">With a token from <em>Add server</em>; exit code 0 once connected.</p>
-        <CopyField :value="`pnmt-sensor-x64.exe join --url ${url} --token xxxx-xxxx --quiet`" label="Command line" />
+        <CopyField
+          :value="`pnmt-sensor-x64.exe join --url ${url} --token xxxx-xxxx${allowHttp} --quiet`"
+          label="Command line"
+        />
         <h3>Updating</h3>
         <p class="small">
           Run the newer executable on the server: its window offers <em>Update</em>, or

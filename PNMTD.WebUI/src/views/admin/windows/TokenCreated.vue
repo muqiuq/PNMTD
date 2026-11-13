@@ -16,6 +16,10 @@ defineProps<{ created: S['WindowsJoinTokenCreated'] }>()
       The token is shown only now: PNMT keeps its hash. It is valid once, until
       {{ new Date(created.item.expiresAt).toLocaleString() }}.
     </Message>
+    <Message v-if="created.url.startsWith('http://')" severity="warn" :closable="false" size="small">
+      PNMT is reached over plain HTTP: not encrypted. The agent asks to confirm it, and shows PNMT's key: it must be
+      <strong class="mono">{{ created.pnmtdFingerprint }}</strong>.
+    </Message>
     <div class="token mono" aria-label="Join token">{{ created.token }}</div>
     <CopyField :value="created.token" label="Join token" />
     <dl class="facts">

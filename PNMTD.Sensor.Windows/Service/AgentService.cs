@@ -344,6 +344,11 @@ internal sealed class AgentService(
         {
             try
             {
+                // Debug logging switched in the window takes effect here, without a restart.
+                if (AgentFiles.ReadConfig() is { } current)
+                {
+                    logs.MinimumLevel = current.LogLevel?.Equals("Debug", StringComparison.OrdinalIgnoreCase) == true ? LogLevel.Debug : LogLevel.Information;
+                }
                 AgentFiles.WriteStatus(new AgentStatusFile(DateTimeOffset.UtcNow, AgentInfo.Version, session?.IsOpen == true, connectedSince, config?.Url,
                     lastHeartbeatAt, state, problems.Recent, extras.SelectMany(f => f.Diagnostics).ToList(), AuditGaps(), startedAt));
             }
