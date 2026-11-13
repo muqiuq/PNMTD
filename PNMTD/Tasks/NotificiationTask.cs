@@ -154,13 +154,13 @@ namespace PNMTD.Tasks
                         var emailSubject = pnm.EventEntity.IsSuccess ? "Resolved" : "Alert";
                         pnm.NoAction = false;
                         var messageShort = $"Host {pnm.EventEntity.Sensor.Parent.Name}, Sensor {pnm.EventEntity.Sensor.Name} is now State {pnm.EventEntity.Code}";
-                        notificationService.SendNotification(
+                        var message = new NotificationMessage(
                             pnm.NotitificationRule.Recipient,
                             $"{emailSubject} ({pnm.EventEntity.Sensor.Name})",
                             messageShort,
-                            $"{messageShort}\n\n--- DATA ---\n{JsonSerializer.Serialize(eventEntityPoco)}",
-                            configuration["Development:DoNotSendNotifications"] != null && bool.Parse(configuration["Development:DoNotSendNotifications"])
-                        );
+                            $"{messageShort}\n\n--- DATA ---\n{JsonSerializer.Serialize(eventEntityPoco)}");
+                        notificationService.SendAsync(message, $"rule {pnm.NotitificationRule.Name}",
+                            configuration.GetValue("Development:DoNotSendNotifications", false), CancellationToken.None).GetAwaiter().GetResult();
                     }
                     else
                     {

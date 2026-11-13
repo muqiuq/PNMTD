@@ -670,6 +670,133 @@
         }
       }
     },
+    "/api/v1/debug": {
+      "get": {
+        "tags": [
+          "Debug"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DebugStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DebugStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DebugStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/debug/pushover": {
+      "post": {
+        "tags": [
+          "Debug"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DebugPushoverRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DebugPushoverRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DebugPushoverRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DebugResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DebugResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DebugResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/debug/mail": {
+      "post": {
+        "tags": [
+          "Debug"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DebugMailRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DebugMailRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DebugMailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DebugResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DebugResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DebugResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/dns-zones": {
       "get": {
         "tags": [
@@ -6960,6 +7087,187 @@
           }
         }
       },
+      "DebugMailRequest": {
+        "type": "object",
+        "properties": {
+          "recipient": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "subject": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "body": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DebugMailStatus": {
+        "required": [
+          "configured",
+          "host",
+          "port",
+          "sender",
+          "username",
+          "passwordSet"
+        ],
+        "type": "object",
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "host": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "port": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sender": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "username": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "passwordSet": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DebugPushoverRequest": {
+        "type": "object",
+        "properties": {
+          "ruleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "userKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "device": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "priority": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DebugPushoverStatus": {
+        "required": [
+          "configured",
+          "apiKeyEnd",
+          "endpoint"
+        ],
+        "type": "object",
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "apiKeyEnd": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "endpoint": {
+            "type": "string"
+          }
+        }
+      },
+      "DebugResult": {
+        "required": [
+          "ok",
+          "provider",
+          "target",
+          "detail",
+          "durationMs",
+          "at"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "durationMs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DebugStatus": {
+        "required": [
+          "pushover",
+          "mail",
+          "pushoverRules"
+        ],
+        "type": "object",
+        "properties": {
+          "pushover": {
+            "$ref": "#/components/schemas/DebugPushoverStatus"
+          },
+          "mail": {
+            "$ref": "#/components/schemas/DebugMailStatus"
+          },
+          "pushoverRules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ref"
+            }
+          }
+        }
+      },
       "DiffLineKind": {
         "enum": [
           "Context",
@@ -9000,6 +9308,24 @@
           "encryptBackups": {
             "type": "boolean",
             "default": false
+          },
+          "freeStorage": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "updateMethod": {
+            "$ref": "#/components/schemas/MikrotikUpdateMethod"
+          },
+          "updateCheckStorage": {
+            "type": "boolean",
+            "default": true
+          },
+          "lowStorage": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -9271,6 +9597,12 @@
           },
           "stopAtFirstFailure": {
             "type": "boolean"
+          },
+          "method": {
+            "$ref": "#/components/schemas/MikrotikUpdateMethod"
+          },
+          "checkStorage": {
+            "type": "boolean"
           }
         }
       },
@@ -9323,7 +9655,8 @@
           "Firmware",
           "Done",
           "Run",
-          "ExportAfter"
+          "ExportAfter",
+          "Install"
         ]
       },
       "MikrotikKeyWaiting": {
@@ -9748,6 +10081,17 @@
           "encryptBackups": {
             "type": "boolean",
             "default": false
+          },
+          "updateMethod": {
+            "$ref": "#/components/schemas/MikrotikUpdateMethod"
+          },
+          "updateCheckStorage": {
+            "type": "boolean",
+            "default": true
+          },
+          "lowStorage": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -10037,6 +10381,13 @@
             "type": "boolean"
           }
         }
+      },
+      "MikrotikUpdateMethod": {
+        "enum": [
+          "Download",
+          "Install"
+        ],
+        "default": "Download"
       },
       "NotificationRuleDetail": {
         "required": [
@@ -14530,6 +14881,9 @@
     },
     {
       "name": "AuthLog"
+    },
+    {
+      "name": "Debug"
     },
     {
       "name": "DnsZones"

@@ -13,7 +13,9 @@ using PNMTD.Services.Events;
 namespace PNMTD.Mikrotik;
 
 /// <summary>An update's options (docs/mikrotik-plan.md §7.1).</summary>
-public sealed record UpdateJobOptions(bool BinaryBackup = true, bool Firmware = true, bool StopAtFirstFailure = true);
+/// <summary>An update's options (docs/mikrotik-plan.md §7.1), with the method and the storage check of docs/ai-operations-plan.md §12.2.</summary>
+public sealed record UpdateJobOptions(bool BinaryBackup = true, bool Firmware = true, bool StopAtFirstFailure = true,
+    MikrotikUpdateMethod Method = MikrotikUpdateMethod.Download, bool CheckStorage = true);
 
 /// <summary>A remote command's options (§8.2): exports before and after, and one router at a time with a stop at the first failure.</summary>
 public sealed record CommandJobOptions(bool BackupBeforeAndAfter = false, bool OneAtATime = false);
@@ -81,7 +83,7 @@ public sealed class JobRunner(
             Finish(db, job, MikrotikJobState.Failed, job.Kind switch
             {
                 // After the reboot began, the router carries on without PNMTD: the next poll shows the version (242).
-                MikrotikJobKind.Update when job.Step is >= MikrotikJobStep.Reboot and <= MikrotikJobStep.Done =>
+                MikrotikJobKind.Update when job.Step is >= MikrotikJobStep.Reboot and <= MikrotikJobStep.Done or MikrotikJobStep.Install =>
                     "PNMTD restarted while the router was rebooting for the update: the update goes on without PNMTD, and the next poll shows the version.",
                 MikrotikJobKind.Update => "PNMTD restarted during the job, and the admin password is gone with it: start the update again.",
                 _ when job.Step >= MikrotikJobStep.Run => "PNMTD restarted while the command ran: the router may have run it, but its output is lost.",
@@ -368,7 +370,13 @@ public sealed class JobRunner(
         }
         if (reading.FreeStorage is { } free && free < o.MinimumFreeStorageBytes)
         {
-            throw new StepFailed($"Only {free / 1024 / 1024} MiB free storage; an update needs about {o.MinimumFreeStorageBytes / 1024 / 1024} MiB.");
+            if (opts.CheckStorage)
+            {
+                throw new StepFailed($"Only {free / 1024 / 1024} MiB free storage; an update needs about {o.MinimumFreeStorageBytes / 1024 / 1024} MiB. " +
+                    "On a 16 MB-flash router RouterOS keeps the package in RAM: start the update again without the storage check, with Download and install.");
+            }
+            await LogAsync(db, job, MikrotikJobStep.Check, MikrotikJobOutcome.Info,
+                $"Storage check skipped by {job.RequestedByName}: {free / 1024 / 1024} MiB free, below {o.MinimumFreeStorageBytes / 1024 / 1024} MiB. RouterOS decides.", null, ct);
         }
         await LogAsync(db, job, MikrotikJobStep.Check, MikrotikJobOutcome.Ok,
             $"{reading.Identity} ({reading.DisplayModel}{(reading.SerialNumber is { } sn ? $", {sn}" : "")}): RouterOS {reading.VersionText} → {target}", null, ct);
@@ -424,6 +432,14 @@ public sealed class JobRunner(
             await CheckCancelledAsync(db, job, ct);
         }
 
+        // 4. Download and install (docs/ai-operations-plan.md §12.2): RouterOS downloads, then reboots by itself.
+        if (opts.Method == MikrotikUpdateMethod.Install)
+        {
+            var after = await InstallAsync(db, job, router, username, password, target, downloaded, ct);
+            await VerifyAndFinishAsync(db, job, router, username, password, target, opts, after, ct);
+            return;
+        }
+
         // 4. Download, as the admin: set the channel, check, download, and wait for it.
         await StepAsync(db, job, MikrotikJobStep.Download, $"Downloading RouterOS {target} ({job.Channel})", ct);
         await AsAdminAsync(db, router, username, password, ct, async (session, token) =>
@@ -461,7 +477,14 @@ public sealed class JobRunner(
         await CheckCancelledAsync(db, job, ct);
 
         // 5.–7. Reboot, wait, verify.
-        var after = await RebootAndWaitAsync(db, job, router, username, password, "the update", ct);
+        var rebooted = await RebootAndWaitAsync(db, job, router, username, password, "the update", ct);
+        await VerifyAndFinishAsync(db, job, router, username, password, target, opts, rebooted, ct);
+    }
+
+    /// <summary>7.–9. The version, the RouterBOARD firmware, done: the same after either method.</summary>
+    private async Task VerifyAndFinishAsync(PnmtdDbContext db, MikrotikJobEntity job, MikrotikRouterEntity router, string username, string password,
+        RouterOsVersion target, UpdateJobOptions opts, RouterReading after, CancellationToken ct)
+    {
         await StepAsync(db, job, MikrotikJobStep.Verify, "Checking the version", ct);
         if (after.Version != target)
         {
@@ -511,17 +534,25 @@ public sealed class JobRunner(
         {
             // The session ends with the reboot.
         }
+        return await WaitBackAsync(db, job, router, rebootAt, rebootAt.AddMinutes(Math.Max(1, o.RebootTimeoutMinutes)),
+            $"within {o.RebootTimeoutMinutes} minutes of its reboot", ct);
+    }
+
+    /// <summary>6. Waits until the router answers as pnmt with a boot time after <paramref name="since"/>.</summary>
+    private async Task<RouterReading> WaitBackAsync(PnmtdDbContext db, MikrotikJobEntity job, MikrotikRouterEntity router, DateTime since,
+        DateTime deadline, string within, CancellationToken ct)
+    {
+        var o = options.CurrentValue.Updates;
         await StepAsync(db, job, MikrotikJobStep.Wait, "Waiting for the router", ct);
-        var deadline = rebootAt.AddMinutes(Math.Max(1, o.RebootTimeoutMinutes));
         await Task.Delay(TimeSpan.FromSeconds(Math.Max(1, o.PollSeconds)), ct);
         while (true)
         {
             try
             {
                 var reading = await AsPnmtAsync(db, router, ct, (session, token) => polls.ReadAsync(session, token));
-                if (reading.Uptime is { } up && Clock.UtcNow - up >= rebootAt.AddSeconds(-30))
+                if (reading.Uptime is { } up && Clock.UtcNow - up >= since.AddSeconds(-30))
                 {
-                    await LogAsync(db, job, MikrotikJobStep.Wait, MikrotikJobOutcome.Ok, $"Back after {(int)(Clock.UtcNow - rebootAt).TotalSeconds} s", null, ct);
+                    await LogAsync(db, job, MikrotikJobStep.Wait, MikrotikJobOutcome.Ok, $"Back after {(int)(Clock.UtcNow - since).TotalSeconds} s", null, ct);
                     return reading;
                 }
             }
@@ -530,10 +561,83 @@ public sealed class JobRunner(
             }
             if (Clock.UtcNow > deadline)
             {
-                throw new StepFailed($"The router did not answer within {o.RebootTimeoutMinutes} minutes of its reboot.");
+                throw new StepFailed($"The router did not answer {within}.");
             }
             await Task.Delay(TimeSpan.FromSeconds(Math.Max(1, o.PollSeconds)), ct);
         }
+    }
+
+    /// <summary>
+    /// 4. Download and install (docs/ai-operations-plan.md §12.2), as WinBox's Download &amp; Install:
+    /// <c>/system package update install</c> downloads the package and reboots by itself. PNMTD watches the status while
+    /// the session lasts: an error before the reboot fails the step with RouterOS's text, and the session's end means the
+    /// reboot began. Then 6. Wait, with the download's time added to the reboot's. No cancel once this starts.
+    /// </summary>
+    private async Task<RouterReading> InstallAsync(PnmtdDbContext db, MikrotikJobEntity job, MikrotikRouterEntity router, string username, string password,
+        RouterOsVersion target, Action downloaded, CancellationToken ct)
+    {
+        var o = options.CurrentValue.Updates;
+        await StepAsync(db, job, MikrotikJobStep.Install, $"Downloading and installing RouterOS {target} ({job.Channel}): RouterOS reboots by itself", ct);
+        var startedAt = Clock.UtcNow;
+        var downloadDeadline = startedAt.AddMinutes(Math.Max(1, o.DownloadTimeoutMinutes));
+        string? lastStatus = null;
+        var installSent = false;
+        try
+        {
+            await AsAdminAsync(db, router, username, password, ct, async (session, token) =>
+            {
+                await MustAsync(session, $"/system package update set channel={job.Channel}", token);
+                await MustAsync(session, "/system package update check-for-updates once", token, TimeSpan.FromMinutes(2));
+                var latest = (await session.ExecAsync(":put [/system package update get latest-version]", TimeSpan.FromSeconds(30), 4096, token)).Output.Trim();
+                if (RouterOsVersion.TryParse(latest, out var l) && l != target)
+                {
+                    await LogAsync(db, job, MikrotikJobStep.Install, MikrotikJobOutcome.Info, $"The router sees {latest} on {job.Channel}; PNMT expected {target}.", null, token);
+                }
+                downloaded();
+                installSent = true;
+                var install = await session.ExecAsync("/system package update install", TimeSpan.FromMinutes(Math.Max(1, o.DownloadTimeoutMinutes)), 64 * 1024, token);
+                if (InstallError(install.Output) is { } failure)
+                {
+                    throw new StepFailed($"The install failed: {failure}");
+                }
+                while (true)
+                {
+                    var status = await session.ExecAsync(":put [/system package update get status]", TimeSpan.FromSeconds(30), 4096, token);
+                    if (status.TimedOut)
+                    {
+                        return 0;
+                    }
+                    lastStatus = status.Output.Trim();
+                    if (InstallError(lastStatus) is { } error)
+                    {
+                        throw new StepFailed($"The install failed: {error}");
+                    }
+                    if (Clock.UtcNow > downloadDeadline)
+                    {
+                        throw new StepFailed($"The download did not finish within {o.DownloadTimeoutMinutes} minutes: {lastStatus}");
+                    }
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Max(1, o.PollSeconds)), token);
+                }
+            });
+        }
+        catch (RouterSessionException) when (installSent)
+        {
+            // The session ends with the reboot RouterOS started.
+        }
+        await LogAsync(db, job, MikrotikJobStep.Install, MikrotikJobOutcome.Ok,
+            $"RouterOS is rebooting to install the update{(lastStatus is { Length: > 0 } ? $" (last status: {lastStatus})" : "")}.", null, ct);
+        return await WaitBackAsync(db, job, router, startedAt, startedAt.AddMinutes(Math.Max(1, o.DownloadTimeoutMinutes) + Math.Max(1, o.RebootTimeoutMinutes)),
+            $"within {o.DownloadTimeoutMinutes} + {o.RebootTimeoutMinutes} minutes of the install", ct);
+    }
+
+    /// <summary>RouterOS's words for a failed download or install, or null.</summary>
+    internal static string? InstallError(string output)
+    {
+        var text = output.Trim();
+        return text.Contains("ERROR", StringComparison.OrdinalIgnoreCase) || text.Contains("failed", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("not enough", StringComparison.OrdinalIgnoreCase)
+            ? First(text)
+            : null;
     }
 
     // --- a remote command (§8.2) ----------------------------------------------------------------------------

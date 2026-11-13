@@ -227,6 +227,9 @@ public sealed class MikrotikRouterService(
             BackupCount = count,
             LatestBackup = newest is null ? null : MikrotikBackupService.Item(newest),
             EncryptBackups = router.EncryptBackups,
+            UpdateMethod = router.UpdateMethod,
+            UpdateCheckStorage = router.UpdateCheckStorage,
+            LowStorage = LowStorage(Reading(router)),
             Tunnel = wg is { Peer: { } peer } ? new MikrotikTunnel(peer.Address, peer.PublicKey, Instants.Utc(peer.KeysCreatedAt),
                 wg.Status?.LatestHandshake is { } h && Clock.UtcNow - h <= TimeSpan.FromSeconds(wg.Settings.StaleHandshakeSeconds),
                 UdpViews.NullableUtc(wg.Status?.LatestHandshake), wg.Status?.Endpoint, wg.Status?.RxBytes ?? 0, wg.Status?.TxBytes ?? 0,
@@ -285,6 +288,10 @@ public sealed class MikrotikRouterService(
             UdpViews.NullableUtc(r.LastPollAt), UdpViews.NullableUtc(r.LastSuccessAt), UdpViews.NullableUtc(r.FailingSince), r.LastError, r.LastErrorCode,
             differences.Count > 0, differences, warnings);
     }
+
+    /// <summary>Below the update's storage check (docs/ai-operations-plan.md §12.2): the dialog suggests turning it off.</summary>
+    private bool LowStorage(RouterReading? reading) =>
+        reading?.FreeStorage is { } free && free < options.CurrentValue.Updates.MinimumFreeStorageBytes;
 
     private static RouterReading? Reading(MikrotikRouterEntity r)
     {
@@ -536,7 +543,7 @@ public sealed class MikrotikRouterService(
                     s.State, s.LastCode, s.LastMessage, r.Address, r.Identity, r.Model ?? r.BoardName, r.SerialNumber, r.Version, r.Channel, latestVersion,
                     UpdateAvailable(r.Version, latestVersion), r.FirmwareCurrent, r.FirmwareUpgrade, UdpViews.NullableUtc(r.BootedAt),
                     UdpViews.NullableUtc(r.LastSuccessAt), r.LastError, Differences(r, Reading(r), installation).Count > 0, r.BackupIntervalHours,
-                    r.EncryptBackups);
+                    r.EncryptBackups, Reading(r)?.FreeStorage, r.UpdateMethod, r.UpdateCheckStorage, LowStorage(Reading(r)));
             })
             .Where(i => query.Mode is not { } m || i.Mode == m)
             .Where(i => query.SetupState is not { } st || i.SetupState == st)

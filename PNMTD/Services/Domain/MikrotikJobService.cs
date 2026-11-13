@@ -51,6 +51,7 @@ public sealed class MikrotikJobService(
         v.Check(request.SensorIds.Count is >= 1 and <= 500, "sensorIds", "Between 1 and 500 routers.");
         v.Check(username is { Length: > 0 and <= 100 }, "username", "The router admin's username.");
         v.Check(!string.IsNullOrEmpty(request.Password), "password", "The router admin's password, for this update only.");
+        v.Check(Enum.IsDefined(request.Method), "method", "Download or Install.");
         v.Check(request.Channel is null || Channels.Contains(request.Channel), "channel", string.Join(", ", Channels) + ", or empty for each router's own.");
         v.ThrowIfInvalid();
 
@@ -90,7 +91,7 @@ public sealed class MikrotikJobService(
         var batchId = Guid.NewGuid();
         var (userId, userName) = UdpViews.User(accessor);
         var now = Clock.UtcNow;
-        var jobOptions = JsonSerializer.Serialize(new UpdateJobOptions(request.BinaryBackup, request.Firmware, request.StopAtFirstFailure), VersionCatalog.Json);
+        var jobOptions = JsonSerializer.Serialize(new UpdateJobOptions(request.BinaryBackup, request.Firmware, request.StopAtFirstFailure, request.Method, request.CheckStorage), VersionCatalog.Json);
         var jobs = accepted.Select((a, i) => new MikrotikJobEntity
         {
             Id = Guid.NewGuid(), BatchId = batchId, Kind = MikrotikJobKind.Update, SensorId = a.Router.SensorId, RouterName = MikrotikJobService.DisplayName(a.Router),
@@ -102,6 +103,12 @@ public sealed class MikrotikJobService(
         {
             vault.Put(batchId, username!, request.Password!);
             db.MikrotikJobs.AddRange(jobs);
+            // The dialog starts with these next time (docs/ai-operations-plan.md §12.2).
+            foreach (var (router, _, _) in accepted)
+            {
+                router.UpdateMethod = request.Method;
+                router.UpdateCheckStorage = request.CheckStorage;
+            }
             UdpViews.Audit(db, accessor, AuthEvents.MikrotikUpdateStarted,
                 $"update of {jobs.Count} router(s) as {username}: {string.Join(", ", jobs.Select(j => $"{j.RouterName} → {j.ToVersion}"))}");
             await db.SaveChangesAsync(ct);

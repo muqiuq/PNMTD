@@ -1,36 +1,31 @@
-﻿
-using PNMTD.Helper;
+﻿using System.Diagnostics;
 
 namespace PNMTD.Notifications
 {
-    public class HttpNotification : INotificationProvider
+    /// <summary>An http(s) URL: the subject and the long text, as a plain-text POST.</summary>
+    public sealed class HttpNotification(IHttpClientFactory http) : INotificationProvider
     {
-        private static readonly ILogger _logger = LogManager.CreateLogger<HttpNotification>();
-        public bool IsMatch(string recipient)
-        {
-            return recipient.StartsWith("http://") || recipient.StartsWith("https://");
-        }
+        public string Name => "http";
 
-        public void Configure(IConfiguration configuration)
-        {
-            
-        }
+        public static bool Matches(string recipient) =>
+            recipient.StartsWith("http://", StringComparison.Ordinal) || recipient.StartsWith("https://", StringComparison.Ordinal);
 
-        public void SendNotification(string recipient, string subject, string messageShort, string messageLong)
+        public bool IsMatch(string recipient) => Matches(recipient);
+
+        public async Task<DeliveryResult> SendAsync(NotificationMessage message, CancellationToken ct)
         {
-            using(var client = new HttpClient())
+            var watch = Stopwatch.StartNew();
+            try
             {
-                var content = new StringContent($"{subject}\n{messageLong}");
-                var postTask = client.PostAsync(recipient, content);
-                postTask.Wait();
-                if(!postTask.IsCompletedSuccessfully || postTask.Result == null)
-                {
-                    _logger.LogError($"Failed to Post to {recipient}");
-                }
-                if(!postTask.Result.IsSuccessStatusCode)
-                {
-                    _logger.LogError($"Failed to Post to {recipient} with status code {postTask.Result.StatusCode} reason '{postTask.Result.ReasonPhrase}'");
-                }
+                using var response = await http.CreateClient(NotificationService.HttpClientName)
+                    .PostAsync(message.Recipient, new StringContent($"{message.Subject}\n{message.Long}"), ct);
+                return response.IsSuccessStatusCode
+                    ? new DeliveryResult(true, $"HTTP {(int)response.StatusCode}", watch.Elapsed)
+                    : DeliveryResult.Failed($"HTTP {(int)response.StatusCode} {response.ReasonPhrase}", watch.Elapsed);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+            {
+                return DeliveryResult.Failed(ex.Message, watch.Elapsed);
             }
         }
     }

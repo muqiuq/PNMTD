@@ -223,6 +223,13 @@ export const api = {
     myTunnelConfig: (id: Id) => call(client.GET('/api/v1/account/tunnels/{id}/config', { params: { path: { id } } })),
   },
 
+  /** Admin → Debug (docs/ai-operations-plan.md §8): test sends, 10 a minute. */
+  debug: {
+    status: () => call(client.GET('/api/v1/debug')),
+    pushover: (body: S['DebugPushoverRequest']) => call(client.POST('/api/v1/debug/pushover', { body })),
+    mail: (body: S['DebugMailRequest']) => call(client.POST('/api/v1/debug/mail', { body })),
+  },
+
   udp: {
     // --- a node (docs/udp-iot-plan.md §5): CanRead, the writes CanWrite --------------------
     setSecrets: (id: Id, body: S['UdpKeyRequest']) =>

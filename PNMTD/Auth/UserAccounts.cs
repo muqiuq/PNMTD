@@ -67,6 +67,9 @@ public static class AuthEvents
     public const string WireGuardTunnelDeleted = "WireGuardTunnelDeleted";
     public const string WireGuardTunnelDownloaded = "WireGuardTunnelDownloaded";
 
+    // The debug page's test sends (docs/ai-operations-plan.md §8).
+    public const string DebugNotificationSent = "DebugNotificationSent";
+
     public static readonly string[] All =
     [
         LoginSucceeded, LoginFailed, LockedOut, TotpFailed, Logout, TotpEnabled, TotpDisabled, TotpReset, PasswordChanged,
@@ -78,6 +81,7 @@ public static class AuthEvents
         MikrotikBackupKeySet, MikrotikBackupKeyRetired, MikrotikBackupEncryptionChanged,
         WireGuardNetworkChanged, WireGuardKeysRegenerated,
         WireGuardTunnelCreated, WireGuardTunnelChanged, WireGuardTunnelDeleted, WireGuardTunnelDownloaded,
+        DebugNotificationSent,
     ];
 }
 

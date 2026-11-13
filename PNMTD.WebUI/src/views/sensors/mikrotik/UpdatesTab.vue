@@ -113,6 +113,10 @@ const severity = (s: S['MikrotikJobState']) =>
           serial: m.serialNumber,
           from: m.version,
           to: m.latestVersion,
+          method: m.updateMethod,
+          checkStorage: m.updateCheckStorage,
+          lowStorage: m.lowStorage,
+          freeStorage: m.resources?.freeStorage,
         },
       ]"
       :channel="m.channel"

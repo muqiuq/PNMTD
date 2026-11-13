@@ -78,7 +78,10 @@ public sealed record MikrotikRouterDetail(
     int BackupCount = 0,
     MikrotikBackupItem? LatestBackup = null,
     MikrotikTunnel? Tunnel = null,
-    bool EncryptBackups = false);
+    bool EncryptBackups = false,
+    MikrotikUpdateMethod UpdateMethod = MikrotikUpdateMethod.Download,
+    bool UpdateCheckStorage = true,
+    bool LowStorage = false);
 
 /// <summary>A router's tunnel as the gateway sees it (§3.2): its address and key, the last handshake, where it comes from.</summary>
 public sealed record MikrotikTunnel(
@@ -137,7 +140,11 @@ public sealed record MikrotikFleetItem(
     string? LastError,
     bool ScriptOutdated,
     int? BackupIntervalHours = 24,
-    bool EncryptBackups = false);
+    bool EncryptBackups = false,
+    long? FreeStorage = null,
+    MikrotikUpdateMethod UpdateMethod = MikrotikUpdateMethod.Download,
+    bool UpdateCheckStorage = true,
+    bool LowStorage = false);
 
 /// <summary>
 /// <c>GET /mikrotik/routers</c>. Search: name, host, identity, serial number, address. Sort: name
@@ -255,6 +262,12 @@ public sealed class MikrotikJobRequest
     public bool Firmware { get; init; } = true;
 
     public bool StopAtFirstFailure { get; init; } = true;
+
+    /// <summary>Download, then reboot (today's), or Download and install (docs/ai-operations-plan.md §12.2).</summary>
+    public MikrotikUpdateMethod Method { get; init; } = MikrotikUpdateMethod.Download;
+
+    /// <summary>Refuse below <c>Mikrotik:Updates:MinimumFreeStorageBytes</c>; off lets RouterOS decide (16 MB-flash routers update from RAM).</summary>
+    public bool CheckStorage { get; init; } = true;
 
     /// <summary>Never the password.</summary>
     public override string ToString() => $"{Kind} of {SensorIds.Count} router(s) as {Username}";

@@ -656,6 +656,129 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/debug": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DebugStatus"];
+                        "text/json": components["schemas"]["DebugStatus"];
+                        "text/plain": components["schemas"]["DebugStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/debug/pushover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DebugPushoverRequest"];
+                    "text/json": components["schemas"]["DebugPushoverRequest"];
+                    "application/*+json": components["schemas"]["DebugPushoverRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DebugResult"];
+                        "text/json": components["schemas"]["DebugResult"];
+                        "text/plain": components["schemas"]["DebugResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/debug/mail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DebugMailRequest"];
+                    "text/json": components["schemas"]["DebugMailRequest"];
+                    "application/*+json": components["schemas"]["DebugMailRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DebugResult"];
+                        "text/json": components["schemas"]["DebugResult"];
+                        "text/plain": components["schemas"]["DebugResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dns-zones": {
         parameters: {
             query?: never;
@@ -5302,6 +5425,50 @@ export interface components {
             dns: components["schemas"]["DnsSummary"];
             mail: components["schemas"]["MailSummary"];
         };
+        DebugMailRequest: {
+            recipient?: null | string;
+            subject?: null | string;
+            body?: null | string;
+        };
+        DebugMailStatus: {
+            configured: boolean;
+            host: null | string;
+            /** Format: int32 */
+            port: number;
+            sender: null | string;
+            username: null | string;
+            passwordSet: boolean;
+        };
+        DebugPushoverRequest: {
+            /** Format: uuid */
+            ruleId?: null | string;
+            userKey?: null | string;
+            device?: null | string;
+            /** Format: int32 */
+            priority?: number;
+            title?: null | string;
+            message?: null | string;
+        };
+        DebugPushoverStatus: {
+            configured: boolean;
+            apiKeyEnd: null | string;
+            endpoint: string;
+        };
+        DebugResult: {
+            ok: boolean;
+            provider: string;
+            target: string;
+            detail: string;
+            /** Format: int32 */
+            durationMs: number;
+            /** Format: date-time */
+            at: string;
+        };
+        DebugStatus: {
+            pushover: components["schemas"]["DebugPushoverStatus"];
+            mail: components["schemas"]["DebugMailStatus"];
+            pushoverRules: components["schemas"]["Ref"][];
+        };
         /** @enum {unknown} */
         DiffLineKind: "Context" | "Added" | "Removed";
         DnsLogEntry: {
@@ -5825,6 +5992,13 @@ export interface components {
             backupIntervalHours: null | number;
             /** @default false */
             encryptBackups: boolean;
+            /** Format: int64 */
+            freeStorage?: null | number;
+            updateMethod?: components["schemas"]["MikrotikUpdateMethod"];
+            /** @default true */
+            updateCheckStorage: boolean;
+            /** @default false */
+            lowStorage: boolean;
         };
         MikrotikHostKey: {
             type: string;
@@ -5891,6 +6065,8 @@ export interface components {
             binaryBackup?: boolean;
             firmware?: boolean;
             stopAtFirstFailure?: boolean;
+            method?: components["schemas"]["MikrotikUpdateMethod"];
+            checkStorage?: boolean;
         };
         MikrotikJobsCreated: {
             /** Format: uuid */
@@ -5901,7 +6077,7 @@ export interface components {
         /** @enum {unknown} */
         MikrotikJobState: "Queued" | "Running" | "Succeeded" | "Skipped" | "Failed" | "Cancelled" | "TimedOut";
         /** @enum {unknown} */
-        MikrotikJobStep: "Check" | "Export" | "BinaryBackup" | "Download" | "Reboot" | "Wait" | "Verify" | "Firmware" | "Done" | "Run" | "ExportAfter";
+        MikrotikJobStep: "Check" | "Export" | "BinaryBackup" | "Download" | "Reboot" | "Wait" | "Verify" | "Firmware" | "Done" | "Run" | "ExportAfter" | "Install";
         MikrotikKeyWaiting: {
             /** Format: uuid */
             sensorId: string;
@@ -5998,6 +6174,11 @@ export interface components {
             tunnel?: null | components["schemas"]["MikrotikTunnel"];
             /** @default false */
             encryptBackups: boolean;
+            updateMethod?: components["schemas"]["MikrotikUpdateMethod"];
+            /** @default true */
+            updateCheckStorage: boolean;
+            /** @default false */
+            lowStorage: boolean;
         };
         MikrotikRouterRequest: {
             mode?: components["schemas"]["MikrotikMode"];
@@ -6074,6 +6255,11 @@ export interface components {
             endpointChanges24h: number;
             gatewayUp: boolean;
         };
+        /**
+         * @default Download
+         * @enum {unknown}
+         */
+        MikrotikUpdateMethod: "Download" | "Install";
         NotificationRuleDetail: {
             /** Format: uuid */
             id: string;

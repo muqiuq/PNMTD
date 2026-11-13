@@ -1,81 +1,76 @@
-﻿using PNMTD.Helper;
-using System.Net.Mail;
+﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using MimeKit;
 
 namespace PNMTD.Notifications
 {
-    public class EMailNotification : INotificationProvider 
+    /// <summary>
+    /// A mail address, sent with <c>Smtp:*</c>. MailKit with <see cref="SecureSocketOptions.Auto"/>
+    /// (docs/ai-operations-plan.md §8.3): implicit TLS on 465, STARTTLS where the server offers it.
+    /// System.Net.Mail, before, could not do 465 at all.
+    /// </summary>
+    public sealed partial class EMailNotification(IConfiguration configuration) : INotificationProvider
     {
-        private static readonly ILogger _logger = LogManager.CreateLogger<EMailNotification>();
-        private string? smtpHost;
-        private string? smtpSender;
-        private string? smtpUsername;
-        private string? smtpPassword;
-        private int smtpPort;
+        public string Name => "email";
 
-        public bool IsMatch(string recipient)
+        [GeneratedRegex(@"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$")]
+        private static partial Regex Address();
+
+        public static bool Matches(string recipient) => Address().IsMatch(recipient);
+
+        public bool IsMatch(string recipient) => Matches(recipient);
+
+        public string? Host => configuration["Smtp:Host"];
+
+        public string? Sender => configuration["Smtp:Sender"];
+
+        public string? Username => configuration["Smtp:Username"];
+
+        /// <summary>25 when not set, as before.</summary>
+        public int Port => configuration.GetValue("Smtp:Port", 0) is > 0 and var port ? port : 25;
+
+        public async Task<DeliveryResult> SendAsync(NotificationMessage message, CancellationToken ct)
         {
-            Regex regexIsEMail = new Regex(@"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
-
-            return regexIsEMail.IsMatch(recipient);
-        }
-
-        public void Configure(IConfiguration configuration)
-        {
-            if (string.IsNullOrWhiteSpace(configuration["Smtp:Host"])
-                || string.IsNullOrWhiteSpace(configuration["Smtp:Sender"])
-               )
+            var watch = Stopwatch.StartNew();
+            if (string.IsNullOrWhiteSpace(Host) || string.IsNullOrWhiteSpace(Sender))
             {
-                _logger.LogWarning("Smtp:Host or sender is empty. E-Mail sending not possible.");
-                return;
+                return DeliveryResult.Failed("Smtp:Host or Smtp:Sender is not set.", watch.Elapsed);
             }
-            smtpHost = configuration["Smtp:Host"];
-            smtpSender = configuration["Smtp:Sender"];
-            smtpUsername = configuration["Smtp:Username"];
-            smtpPassword = configuration["Smtp:Password"];
-            if (!string.IsNullOrEmpty(configuration["Smtp:Port"]) && Int32.TryParse(configuration["Smtp:Port"], out int port))
-            {
-                smtpPort = port;
-            }
-        }
-
-        public void SendNotification(string recipient, string subject, string messageShort, string messageLong)
-        {
-            if (string.IsNullOrEmpty(smtpHost) || string.IsNullOrEmpty(smtpSender))
-            {
-                _logger.LogError($"Smtp:Host or Smtp:sender is empty. Cannot send E-Mail to {recipient}");
-                return;
-            }
-            SmtpClient client = new SmtpClient(smtpHost, smtpPort);
-
-            if(smtpPort != 25)
-            {
-                client.EnableSsl = true;
-            }
-            
-            if(!string.IsNullOrWhiteSpace(smtpUsername) 
-                && !string.IsNullOrWhiteSpace(smtpPassword))
-            {
-                client.Credentials = new System.Net.NetworkCredential(smtpUsername, smtpPassword);
-            }
-
-            MailAddress from = new MailAddress(smtpSender);
-            MailAddress to = new MailAddress(recipient);
-            MailMessage message = new MailMessage(from, to);
-            message.Body = messageLong;
-            message.BodyEncoding = System.Text.Encoding.UTF8;
-            message.Subject = subject;
-            message.SubjectEncoding = System.Text.Encoding.UTF8;
-
+            var mail = new MimeMessage();
             try
             {
-                client.Send(message);
-            }catch(SmtpException ex)
-            {
-                _logger.LogWarning($"Failed to Send E-Mail to {recipient}", ex);
+                mail.From.Add(MailboxAddress.Parse(Sender));
+                mail.To.Add(MailboxAddress.Parse(message.Recipient));
             }
-
-            message.Dispose();
+            catch (ParseException ex)
+            {
+                return DeliveryResult.Failed($"Not a mail address: {ex.Message}", watch.Elapsed);
+            }
+            mail.Subject = message.Subject;
+            mail.Body = new TextPart("plain") { Text = message.Long };
+            var where = $"{Host}:{Port}";
+            using var client = new SmtpClient { Timeout = 30_000 };
+            try
+            {
+                await client.ConnectAsync(Host, Port, SecureSocketOptions.Auto, ct);
+                var tls = client.IsEncrypted ? $"TLS ({client.SslProtocol})" : "no TLS";
+                var password = configuration["Smtp:Password"];
+                var login = "no login";
+                if (!string.IsNullOrWhiteSpace(Username) && !string.IsNullOrWhiteSpace(password))
+                {
+                    await client.AuthenticateAsync(Username, password, ct);
+                    login = $"signed in as {Username}";
+                }
+                var answer = await client.SendAsync(mail, ct);
+                await client.DisconnectAsync(true, ct);
+                return new DeliveryResult(true, $"{where}, {tls}, {login}: {answer.Trim()}", watch.Elapsed);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+            {
+                return DeliveryResult.Failed($"{where}: {ex.GetType().Name}: {ex.Message}", watch.Elapsed);
+            }
         }
     }
 }

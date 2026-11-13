@@ -61,6 +61,16 @@ public enum MikrotikJobState : short
     TimedOut = 6,
 }
 
+/// <summary>How an update gets the package onto the router (docs/ai-operations-plan.md §12.2).</summary>
+public enum MikrotikUpdateMethod : short
+{
+    /// <summary><c>/system package update download</c>, then PNMTD reboots the router.</summary>
+    Download = 0,
+
+    /// <summary><c>/system package update install</c>: RouterOS downloads and reboots by itself, as WinBox's Download &amp; Install.</summary>
+    Install = 1,
+}
+
 /// <summary>An update's steps (docs/mikrotik-plan.md §7.3), and a command's (§8.2).</summary>
 public enum MikrotikJobStep : short
 {
@@ -75,6 +85,8 @@ public enum MikrotikJobStep : short
     Done = 8,
     Run = 9,
     ExportAfter = 10,
+    /// <summary>The <i>Download and install</i> method (docs/ai-operations-plan.md §12.2): RouterOS downloads, then reboots by itself.</summary>
+    Install = 11,
 }
 
 public enum MikrotikJobOutcome : short

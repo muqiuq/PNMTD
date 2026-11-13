@@ -183,6 +183,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'MikroTik & WireGuard', role: 'Admin' },
   },
   {
+    path: '/admin/debug',
+    name: 'debug',
+    component: () => import('@/views/admin/DebugView.vue'),
+    meta: { title: 'Debug', role: 'Admin' },
+  },
+  {
     path: '/admin/system',
     name: 'system',
     component: () => import('@/views/admin/SystemView.vue'),

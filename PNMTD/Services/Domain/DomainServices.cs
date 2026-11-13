@@ -23,6 +23,7 @@ public static class DomainServicesSetup
         services.AddScoped<KeyValueService>();
         services.AddScoped<SystemService>();
         services.AddScoped<SearchService>();
+        services.AddScoped<DebugService>();
         // UDP nodes (docs/udp-iot-plan.md §5).
         services.AddScoped<UdpEndpoint>();
         services.AddScoped<UdpNodeService>();

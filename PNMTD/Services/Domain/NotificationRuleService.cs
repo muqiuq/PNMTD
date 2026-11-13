@@ -17,15 +17,15 @@ public static class NotificationProviders
         {
             return null;
         }
-        if (new PushoverNotification().IsMatch(recipient))
+        if (PushoverNotification.Matches(recipient))
         {
             return "pushover";
         }
-        if (new HttpNotification().IsMatch(recipient))
+        if (HttpNotification.Matches(recipient))
         {
             return "http";
         }
-        return new EMailNotification().IsMatch(recipient) ? "email" : null;
+        return EMailNotification.Matches(recipient) ? "email" : null;
     }
 
     /// <summary>For a Viewer: a pushover user key or a webhook URL can carry secrets.</summary>

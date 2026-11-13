@@ -190,6 +190,10 @@ public sealed class EndpointAuditTests
         ["DELETE /api/v1/udp/ota-jobs/{id:guid}"] = Roles.Admin,
         ["GET /api/v1/udp/protocol/examples"] = Roles.Viewer,
         ["GET /api/v1/udp/protocol/build"] = Roles.Viewer,
+        // The debug page (docs/ai-operations-plan.md §8).
+        ["GET /api/v1/debug"] = Roles.Admin,
+        ["POST /api/v1/debug/pushover"] = Roles.Admin,
+        ["POST /api/v1/debug/mail"] = Roles.Admin,
     };
 
     private sealed record EndpointInfo(string Key, string Method, string Pattern, RouteEndpoint Endpoint);

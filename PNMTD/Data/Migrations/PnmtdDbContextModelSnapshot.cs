@@ -741,6 +741,12 @@ namespace PNMTD.Data.Migrations
                     b.Property<int>("SshPort")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("UpdateCheckStorage")
+                        .HasColumnType("boolean");
+
+                    b.Property<short>("UpdateMethod")
+                        .HasColumnType("smallint");
+
                     b.Property<string>("Version")
                         .HasColumnType("text");
 

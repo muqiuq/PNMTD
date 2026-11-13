@@ -140,8 +140,10 @@ const choices = [
       </Column>
       <Column header="Router">
         <template #body="{ data }">
-          <StatusBadge :status="data.state" icon-only />
-          <RouterLink :to="{ name: 'sensor', params: { id: data.sensorId } }">{{ data.name }}</RouterLink>
+          <span class="line">
+            <StatusBadge :status="data.state" icon-only />
+            <RouterLink :to="{ name: 'sensor', params: { id: data.sensorId } }">{{ data.name }}</RouterLink>
+          </span>
           <div class="muted small">{{ data.host.name }} · {{ data.identity ?? '–' }} · {{ data.model ?? '' }}</div>
         </template>
       </Column>
@@ -206,6 +208,10 @@ const choices = [
           identity: r.identity,
           from: r.version,
           to: r.latestVersion,
+          method: r.updateMethod,
+          checkStorage: r.updateCheckStorage,
+          lowStorage: r.lowStorage,
+          freeStorage: r.freeStorage,
         }))
       "
     />

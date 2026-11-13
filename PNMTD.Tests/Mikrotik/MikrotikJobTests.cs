@@ -93,11 +93,65 @@ public sealed class MikrotikJobTests
         return null!;
     }
 
-    private static Task<HttpResponseMessage> UpdateAsync(Guid sensorId, string password = AdminPassword, bool backup = true) =>
+    private static Task<HttpResponseMessage> UpdateAsync(Guid sensorId, string password = AdminPassword, bool backup = true,
+        MikrotikUpdateMethod method = MikrotikUpdateMethod.Download, bool checkStorage = true) =>
         admin.PostJsonAsync("/api/v1/mikrotik/jobs", new MikrotikJobRequest
         {
-            SensorIds = [sensorId], Username = "admin", Password = password, BinaryBackup = backup,
+            SensorIds = [sensorId], Username = "admin", Password = password, BinaryBackup = backup, Method = method, CheckStorage = checkStorage,
         });
+
+    [TestMethod]
+    public async Task Download_and_install_lets_RouterOS_reboot_by_itself()
+    {
+        var (id, router) = await RouterAsync();
+        var created = await (await UpdateAsync(id, backup: false, method: MikrotikUpdateMethod.Install)).ReadAsync<MikrotikJobsCreated>();
+        var job = await FinishedAsync(created.Jobs[0].Id);
+        Assert.AreEqual(MikrotikJobState.Succeeded, job.Job.State, job.Job.Error);
+        var steps = job.Log.Select(l => l.Step).Distinct().ToArray();
+        CollectionAssert.IsSubsetOf(new[] { MikrotikJobStep.Check, MikrotikJobStep.Export, MikrotikJobStep.Install, MikrotikJobStep.Wait,
+            MikrotikJobStep.Verify, MikrotikJobStep.Done }, steps);
+        CollectionAssert.DoesNotContain(steps, MikrotikJobStep.Download);
+        CollectionAssert.DoesNotContain(steps, MikrotikJobStep.Reboot);
+        Assert.IsFalse(router.Commands.Contains("/system reboot"), "RouterOS reboots by itself");
+        Assert.AreEqual(1, router.Reboots);
+        Assert.AreEqual("7.25.2", router.Version);
+
+        // The router remembers the method for the next dialog.
+        var detail = (await (await admin.GetAsync($"/api/v1/sensors/{id}")).ReadAsync<SensorDetail>()).Mikrotik!;
+        Assert.AreEqual(MikrotikUpdateMethod.Install, detail.UpdateMethod);
+        Assert.IsTrue(detail.UpdateCheckStorage);
+    }
+
+    [TestMethod]
+    public async Task An_install_error_fails_before_any_reboot()
+    {
+        var (id, router) = await RouterAsync();
+        router.InstallError = "ERROR: not enough disk space";
+        var created = await (await UpdateAsync(id, backup: false, method: MikrotikUpdateMethod.Install)).ReadAsync<MikrotikJobsCreated>();
+        var job = await FinishedAsync(created.Jobs[0].Id);
+        Assert.AreEqual(MikrotikJobState.Failed, job.Job.State);
+        StringAssert.Contains(job.Job.Error, "The install failed: ERROR: not enough disk space");
+        Assert.AreEqual(0, router.Reboots);
+        Assert.AreEqual("7.25.1", router.Version);
+    }
+
+    [TestMethod]
+    public async Task The_storage_check_is_an_option()
+    {
+        var (id, router) = await RouterAsync();
+        router.FreeStorage = 3L * 1024 * 1024;
+        var refused = await FinishedAsync((await (await UpdateAsync(id, backup: false)).ReadAsync<MikrotikJobsCreated>()).Jobs[0].Id);
+        Assert.AreEqual(MikrotikJobState.Failed, refused.Job.State);
+        StringAssert.Contains(refused.Job.Error, "Only 3 MiB free storage");
+        Assert.AreEqual(0, router.Reboots);
+
+        var skipped = await FinishedAsync((await (await UpdateAsync(id, backup: false, method: MikrotikUpdateMethod.Install, checkStorage: false))
+            .ReadAsync<MikrotikJobsCreated>()).Jobs[0].Id);
+        Assert.AreEqual(MikrotikJobState.Succeeded, skipped.Job.State, skipped.Job.Error);
+        Assert.IsTrue(skipped.Log.Any(l => l.Step == MikrotikJobStep.Check && l.Message.StartsWith("Storage check skipped by", StringComparison.Ordinal)));
+        var detail = (await (await admin.GetAsync($"/api/v1/sensors/{id}")).ReadAsync<SensorDetail>()).Mikrotik!;
+        Assert.IsFalse(detail.UpdateCheckStorage);
+    }
 
     [TestMethod]
     public async Task An_update_runs_every_step_and_writes_242()
@@ -231,6 +285,15 @@ public sealed class MikrotikJobTests
 
         public int Reboots { get; set; }
 
+        /// <summary>What <c>/system package update install</c> answers instead of rebooting (docs/ai-operations-plan.md §12.2).</summary>
+        public string? InstallError { get; set; }
+
+        /// <summary>The poll's free-hdd-space, when set: a 16 MB-flash router has a few MiB.</summary>
+        public long? FreeStorage { get; set; }
+
+        /// <summary>After <c>install</c>, the session ends with the reboot: the next command fails.</summary>
+        private bool dropSession;
+
         public List<string> Commands { get; } = [];
 
         public Dictionary<string, byte[]> Files { get; } = [];
@@ -343,6 +406,10 @@ public sealed class MikrotikJobTests
                 json["version"] = "v" + Version;
                 json["resource"]!["version"] = Version;
                 json["resource"]!["uptime"] = Uptime;
+                if (FreeStorage is { } free)
+                {
+                    json["resource"]!["free-hdd-space"] = free;
+                }
                 if (KeyOwner is not null)
                 {
                     json["keys"] = new JsonArray(new JsonObject { ["info"] = KeyOwner, ["user"] = "pnmt", ["key-type"] = "ed25519" });
@@ -372,6 +439,22 @@ public sealed class MikrotikJobTests
             {
                 Downloaded = "7.25.2";
                 return Ok("status: Downloaded, please reboot router to upgrade it");
+            }
+            if (command == "/system package update install")
+            {
+                if (InstallError is { } error) return Ok(error);
+                // RouterOS downloads, then reboots by itself: the session ends.
+                Downloaded = "7.25.2";
+                Reboots++;
+                if (ApplyOnReboot) Version = Downloaded;
+                Uptime = "00:00:05";
+                dropSession = true;
+                return Ok("status: Downloaded, rebooting");
+            }
+            if (dropSession)
+            {
+                dropSession = false;
+                throw new RouterSessionException(RouterFailureKind.Protocol, "SSH: the connection was reset");
             }
             if (command.Contains("get status", StringComparison.Ordinal)) return Ok(Downloaded is null ? "New version is available" : "Downloaded, please reboot router to upgrade it");
             if (command == "/system reboot")

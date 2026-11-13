@@ -49,6 +49,11 @@ public class MikrotikRouterEntity
     /// </summary>
     public bool EncryptBackups { get; set; }
 
+    /// <summary>The update method and storage check this router was last updated with: the update dialog's defaults (docs/ai-operations-plan.md §12.2).</summary>
+    public MikrotikUpdateMethod UpdateMethod { get; set; }
+
+    public bool UpdateCheckStorage { get; set; } = true;
+
     public MikrotikSetupState SetupState { get; set; }
 
     /// <summary>When the settings that the join script carries last changed: "script outdated" (§3.3).</summary>

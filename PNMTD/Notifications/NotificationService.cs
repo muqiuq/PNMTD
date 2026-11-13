@@ -1,47 +1,54 @@
-﻿using PNMTD.Helper;
-using PNMTD.Tasks;
-using System.Diagnostics;
-
-namespace PNMTD.Notifications
+﻿namespace PNMTD.Notifications
 {
-    public class NotificationService
+    /// <summary>
+    /// Picks the provider by the recipient's form and sends (docs/ai-operations-plan.md §8.3). It logs the
+    /// provider and the result, never the recipient: a Pushover key or a webhook URL can carry secrets.
+    /// </summary>
+    public sealed class NotificationService(IEnumerable<INotificationProvider> providers, ILogger<NotificationService> logger)
     {
-        private readonly ILogger _logger;
-        private readonly IServiceProvider services;
-        private readonly IConfiguration configuration;
+        public const string HttpClientName = "notifications";
 
-        public NotificationService(ILogger<NotificationTask> _logger, IServiceProvider services, IConfiguration configuration)
+        public INotificationProvider? ProviderFor(string recipient) => providers.FirstOrDefault(p => p.IsMatch(recipient));
+
+        /// <summary>Null when no provider takes the recipient. <paramref name="simulate"/>: logged, not sent (Development).</summary>
+        public async Task<DeliveryResult?> SendAsync(NotificationMessage message, string context, bool simulate, CancellationToken ct)
         {
-            this._logger = _logger;
-            this.services = services;
-            this.configuration = configuration;
-        }
-
-        public void SendNotification(string recipient, string subject, string messageShort, string messageLong, bool onlySimulate = false)
-        {
-            var type = typeof(INotificationProvider);
-
-            var types = AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(s => s.GetTypes())
-                .Where(p => type.IsAssignableFrom(p));
-
-            var notificationTypes = types.Where(t => t.IsClass && t.Namespace == "PNMTD.Notifications" && t.GetInterfaces().Contains(typeof(INotificationProvider))).ToList();
-
-            foreach(var notificationType in notificationTypes)
+            if (ProviderFor(message.Recipient) is not { } provider)
             {
-                var notificationProvider = (INotificationProvider) Activator.CreateInstance(notificationType);
-
-                notificationProvider.Configure(configuration);
-
-                if(notificationProvider.IsMatch(recipient))
-                {
-                    _logger.LogInformation($"Sending notification ({notificationProvider.GetType().Name}) to {recipient} subject '{subject}' content '{messageShort}' ");
-                    if (!onlySimulate)
-                    {
-                        notificationProvider.SendNotification(recipient, subject, messageShort, messageLong);
-                    }
-                }
+                logger.LogWarning("No notification provider for the recipient of {Context}", context);
+                return null;
             }
+            if (simulate)
+            {
+                logger.LogInformation("Simulated {Provider} notification for {Context}: {Subject}", provider.Name, context, message.Subject);
+                return new DeliveryResult(true, "Simulated (Development:DoNotSendNotifications).", TimeSpan.Zero);
+            }
+            var result = await provider.SendAsync(message, ct);
+            if (result.Ok)
+            {
+                logger.LogInformation("{Provider} notification for {Context}: {Detail}", provider.Name, context, result.Detail);
+            }
+            else
+            {
+                logger.LogWarning("{Provider} notification for {Context} failed: {Detail}", provider.Name, context, result.Detail);
+            }
+            return result;
+        }
+    }
+
+    public static class NotificationSetup
+    {
+        public static IServiceCollection AddNotifications(this IServiceCollection services)
+        {
+            services.AddHttpClient(NotificationService.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(30));
+            services.AddSingleton<PushoverNotification>();
+            services.AddSingleton<EMailNotification>();
+            services.AddSingleton<HttpNotification>();
+            services.AddSingleton<INotificationProvider>(sp => sp.GetRequiredService<PushoverNotification>());
+            services.AddSingleton<INotificationProvider>(sp => sp.GetRequiredService<HttpNotification>());
+            services.AddSingleton<INotificationProvider>(sp => sp.GetRequiredService<EMailNotification>());
+            services.AddSingleton<NotificationService>();
+            return services;
         }
     }
 }

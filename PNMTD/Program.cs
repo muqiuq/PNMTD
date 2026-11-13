@@ -82,7 +82,7 @@ public partial class Program
             });
         });
         builder.Services.AddHttpClient();
-        builder.Services.AddSingleton<NotificationService>();
+        builder.Services.AddNotifications();
         builder.Services.AddUdpNodes(builder.Configuration);
         builder.Services.AddMikrotik(builder.Configuration);
         builder.Services.AddWireGuard(builder.Configuration);

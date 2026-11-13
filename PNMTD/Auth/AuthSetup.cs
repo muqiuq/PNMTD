@@ -57,6 +57,9 @@ public static class AuthSetup
     /// <summary>The rate limiter policy of the login endpoints (§4.7).</summary>
     public const string LoginRateLimit = "login";
 
+    /// <summary>The debug page's test sends (docs/ai-operations-plan.md §8.1): 10 a minute per user.</summary>
+    public const string DebugRateLimit = "debug";
+
     /// <summary>Where the Data Protection key ring lives: the pnmtd-keys volume in the image.</summary>
     public const string DefaultKeysPath = "/var/lib/pnmtd/keys";
 
@@ -141,11 +144,15 @@ public static class AuthSetup
                     Window = TimeSpan.FromMinutes(1),
                     QueueLimit = 0,
                 }));
+            options.AddPolicy(DebugRateLimit, context => RateLimitPartition.GetFixedWindowLimiter(
+                context.User.Identity?.Name ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
             options.OnRejected = async (context, ct) =>
             {
                 var retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var after) ? after : TimeSpan.FromMinutes(1);
                 context.HttpContext.Response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
-                await Results.Problem(statusCode: StatusCodes.Status429TooManyRequests, detail: "Too many sign-in attempts. Try again later.",
+                await Results.Problem(statusCode: StatusCodes.Status429TooManyRequests, detail: context.HttpContext.Request.Path.StartsWithSegments("/api/v1/debug")
+                        ? "Too many test sends: at most 10 a minute. Try again later." : "Too many sign-in attempts. Try again later.",
                     extensions: new Dictionary<string, object?> { ["code"] = "rate_limited" }).ExecuteAsync(context.HttpContext);
             };
         });
