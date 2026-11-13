@@ -64,6 +64,16 @@ public static class LineDiff
         return new LineDiffResult(added, removed, Hunks(edits, context));
     }
 
+    /// <summary>
+    /// Only the counts, for sequences compared by value: the keyed line digests of an export
+    /// (docs/mikrotik-backup-plan.md §3.7), counted as the text would be.
+    /// </summary>
+    public static (int Added, int Removed) Count(string[] oldLines, string[] newLines)
+    {
+        var edits = Edits(oldLines, newLines);
+        return (edits.Count(e => e.Kind == DiffLineKind.Added), edits.Count(e => e.Kind == DiffLineKind.Removed));
+    }
+
     /// <summary>The lines of a text; a final line end does not make an empty last line.</summary>
     public static string[] Lines(string text)
     {

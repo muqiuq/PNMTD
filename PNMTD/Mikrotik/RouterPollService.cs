@@ -50,8 +50,12 @@ public sealed class RouterPollService(
     MikrotikKeyStore keys,
     IOptionsMonitor<MikrotikOptions> options,
     WireGuardNetwork wireGuard,
+    BackupDigestKey digestKey,
     ILogger<RouterPollService> logger)
 {
+    /// <summary>The key of the exports' keyed digests (docs/mikrotik-backup-plan.md §3.7), for the jobs' exports too.</summary>
+    public BackupDigestKey DigestKey => digestKey;
+
     /// <summary>A boot time that moved by more than this is a restart (§5.3); less is the clock's jitter.</summary>
     public static readonly TimeSpan RestartThreshold = TimeSpan.FromMinutes(2);
 
@@ -427,7 +431,7 @@ public sealed class RouterPollService(
                 {
                     var trigger = request.Trigger ?? (router.LastExportHash is null ? MikrotikBackupTrigger.FirstLogin : MikrotikBackupTrigger.Schedule);
                     stored = await BackupStore.SaveExportAsync(db, router, sensor.Name, output, result.ExportWithSecrets, trigger,
-                        request.UserId, request.UserName, now, ct);
+                        request.UserId, request.UserName, now, await digestKey.GetAsync(ct), ct);
                     router.BackupFailures = 0;
                     router.LastBackupError = null;
                 }
@@ -549,10 +553,9 @@ public sealed class RouterPollService(
         }
         router.SetupState = MikrotikSetupState.Ready;
 
-        if (stored is { Changed: true, First: false, Backup: { } backup })
+        if (stored is { Changed: true, First: false, Backup: not null })
         {
-            events.Add(new RouterEvent(PNMTStatusCodes.MIKROTIK_CONFIG_CHANGED,
-                $"Configuration changed: +{stored.Added} −{stored.Removed} lines (version {backup.Number})"));
+            events.Add(new RouterEvent(PNMTStatusCodes.MIKROTIK_CONFIG_CHANGED, stored.Message()));
         }
         var available = Available(db, r);
         if (available is not null && router.NotifiedUpdateVersion != available)

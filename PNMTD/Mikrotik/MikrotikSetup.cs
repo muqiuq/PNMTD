@@ -12,6 +12,7 @@ public static class MikrotikSetup
         services.Configure<MikrotikOptions>(configuration.GetSection(MikrotikOptions.Section));
         services.AddSingleton<IRouterConnector, SshRouterConnector>();
         services.AddSingleton<MikrotikKeyStore>();
+        services.AddSingleton<BackupDigestKey>();
         services.AddSingleton<RouterPollService>();
         services.AddSingleton<RouterPoller>();
         services.AddSingleton<VersionCatalog>();

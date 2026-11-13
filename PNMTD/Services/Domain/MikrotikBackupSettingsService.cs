@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PNMTD.Api;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Data;
+using PNMTD.Mikrotik;
 using PNMTD.Models.Db;
 
 namespace PNMTD.Services.Domain;
@@ -25,12 +26,7 @@ public sealed class MikrotikBackupSettingsService(PnmtdDbContext db)
         var v = new ApiValidator();
         CheckInterval(v, request.DefaultBackupIntervalHours, "defaultBackupIntervalHours");
         v.ThrowIfInvalid();
-        var settings = await db.MikrotikSettings.SingleOrDefaultAsync(s => s.Id == MikrotikSettingsEntity.SingletonId, ct);
-        if (settings is null)
-        {
-            settings = new MikrotikSettingsEntity();
-            db.MikrotikSettings.Add(settings);
-        }
+        var settings = await MikrotikKeyStore.SettingsAsync(db, ct);
         settings.DefaultBackupIntervalHours = request.DefaultBackupIntervalHours;
         await db.SaveChangesAsync(ct);
         return await GetAsync(ct);

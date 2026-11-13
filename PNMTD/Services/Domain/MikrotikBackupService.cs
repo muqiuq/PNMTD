@@ -116,11 +116,14 @@ public sealed partial class MikrotikBackupService(PnmtdDbContext db, RouterPollS
             ?? throw ApiException.NotFound("Backup");
         UdpViews.Audit(db, accessor, AuthEvents.MikrotikBackupDeleted, $"router {backup.RouterName}: version {backup.Number} of {Instants.Utc(backup.CreatedAt):yyyy-MM-dd HH:mm} UTC deleted");
         db.MikrotikBackups.Remove(backup);
-        // The next export is compared with what is left, not with the deleted version.
+        // The next export is compared with what is left, not with the deleted version: the newest export's digests go.
         var router = await db.MikrotikRouters.SingleOrDefaultAsync(r => r.SensorId == sensorId, ct);
-        if (router is not null && router.LastExportHash == backup.Sha256)
+        var newest = backup.Kind == MikrotikBackupKind.Export && !await db.MikrotikBackups.AnyAsync(
+            b => b.SensorId == sensorId && b.Kind == MikrotikBackupKind.Export && b.Number > backup.Number, ct);
+        if (router is not null && newest)
         {
             router.LastExportHash = null;
+            router.LastExportLineDigests = null;
         }
         await db.SaveChangesAsync(ct);
     }
@@ -172,7 +175,7 @@ public sealed partial class MikrotikBackupService(PnmtdDbContext db, RouterPollS
         RouterOsVersion = b.RouterOsVersion,
         Size = b.Size,
         LineCount = b.LineCount,
-        Sha256 = b.Sha256,
+        ContentHash = b.ContentHash,
         IncludesSecrets = b.IncludesSecrets,
         LinesAdded = b.LinesAdded,
         LinesRemoved = b.LinesRemoved,

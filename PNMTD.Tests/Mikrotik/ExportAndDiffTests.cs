@@ -115,4 +115,21 @@ public sealed class ExportAndDiffTests
         }
         return t[0, 0];
     }
+
+    [TestMethod]
+    public void Keyed_line_digests_count_as_the_text_does()
+    {
+        // docs/mikrotik-backup-plan.md §3.7: the counts of 243 without the previous text.
+        var key = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
+        var a = ExportText.Normalise(Fixture("7.25.1"));
+        var b = a.Replace("/system identity set name=r25", "/system identity set name=office-gw") + "/ip dns set servers=192.0.2.53\n";
+        var text = LineDiff.Compare(a, b);
+        var keyed = ExportDigest.Count(ExportDigest.Lines(key, a), ExportDigest.Lines(key, b));
+        Assert.AreEqual((text.Added, text.Removed), keyed);
+        Assert.AreEqual((2, 1), keyed);
+        Assert.AreEqual(ExportDigest.Hash(key, a), ExportDigest.Hash(key, a));
+        Assert.AreNotEqual(ExportDigest.Hash(key, a), ExportDigest.Hash(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32), a), "keyed");
+        Assert.AreNotEqual(ExportText.Hash(a), ExportDigest.Hash(key, a));
+    }
+
 }

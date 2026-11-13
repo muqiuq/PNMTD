@@ -220,14 +220,14 @@ public sealed class MikrotikBackupTests
                 db.MikrotikBackups.Add(new MikrotikBackupEntity
                 {
                     Id = Guid.NewGuid(), SensorId = id, RouterName = "old", Number = n, Kind = MikrotikBackupKind.Export,
-                    Trigger = MikrotikBackupTrigger.Schedule, CreatedAt = now.AddDays(-500 + n), Content = BackupStore.Gzip($"v{n}\n"), Sha256 = $"{n}",
+                    Trigger = MikrotikBackupTrigger.Schedule, CreatedAt = now.AddDays(-500 + n), Content = BackupStore.Gzip($"v{n}\n"), ContentHash = $"{n}",
                 });
             }
             // Two young ones: kept whatever the count.
             db.MikrotikBackups.Add(new MikrotikBackupEntity
             {
                 Id = Guid.NewGuid(), SensorId = id, RouterName = "old", Number = 61, Kind = MikrotikBackupKind.Export,
-                Trigger = MikrotikBackupTrigger.Schedule, CreatedAt = now.AddDays(-10), Content = BackupStore.Gzip("v61\n"), Sha256 = "61",
+                Trigger = MikrotikBackupTrigger.Schedule, CreatedAt = now.AddDays(-10), Content = BackupStore.Gzip("v61\n"), ContentHash = "61",
             });
             await db.SaveChangesAsync();
         }
@@ -321,6 +321,38 @@ public sealed class MikrotikBackupTests
         await using var db = app.NewDb();
         Assert.IsTrue(await db.MikrotikRouters.Where(r => r.SensorId == a || r.SensorId == b).AllAsync(r => r.BackupIntervalHours == null));
         await admin.PutJsonAsync("/api/v1/mikrotik/backup-settings", new MikrotikBackupSettingsRequest { DefaultBackupIntervalHours = 24 });
+    }
+
+
+    [TestMethod]
+    public async Task A_router_from_before_the_keyed_digests_is_compared_with_its_newest_stored_export()
+    {
+        // docs/mikrotik-backup-plan.md §3.7: after the upgrade, the router has a plain SHA-256 and no line digests.
+        var (id, fake) = await RouterAsync();
+        await PollAsync(id);
+        await using (var db = app.NewDb())
+        {
+            var router = await db.MikrotikRouters.SingleAsync(r => r.SensorId == id);
+            var backup = await db.MikrotikBackups.SingleAsync(b => b.SensorId == id);
+            var plain = ExportText.Hash(BackupStore.Gunzip(backup.Content));
+            router.LastExportHash = plain;
+            router.LastExportLineDigests = null;
+            backup.ContentHash = plain;
+            await db.SaveChangesAsync();
+        }
+        var unchanged = await (await user.PostAsync($"/api/v1/sensors/{id}/mikrotik/backups", null)).ReadAsync<MikrotikBackupResult>();
+        Assert.IsFalse(unchanged.Changed, "the same configuration is no change");
+        await using (var db = app.NewDb())
+        {
+            var router = await db.MikrotikRouters.SingleAsync(r => r.SensorId == id);
+            Assert.IsNotNull(router.LastExportLineDigests);
+            Assert.AreEqual(router.LastExportHash, (await db.MikrotikBackups.SingleAsync(b => b.SensorId == id)).ContentHash, "the version got its keyed hash");
+        }
+        fake.Export += "/ip dns set servers=192.0.2.53\n";
+        var changed = await (await user.PostAsync($"/api/v1/sensors/{id}/mikrotik/backups", null)).ReadAsync<MikrotikBackupResult>();
+        Assert.IsTrue(changed.Changed);
+        Assert.AreEqual(1, changed.Backup!.LinesAdded);
+        Assert.AreEqual(0, changed.Backup.LinesRemoved);
     }
 
 }

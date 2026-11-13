@@ -411,7 +411,7 @@ public sealed class JobRunner(
                 Id = Guid.NewGuid(), SensorId = sensorId, RouterName = router.Sensor.Name, Number = number + 1, Kind = MikrotikBackupKind.Binary,
                 Trigger = MikrotikBackupTrigger.BeforeUpdate, JobId = job.Id, CreatedAt = Clock.UtcNow, CreatedBy = job.RequestedBy,
                 CreatedByName = job.RequestedByName, RouterOsVersion = reading.VersionText, Content = content, Size = content.Length,
-                Sha256 = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(content)), Encrypted = true,
+                ContentHash = ExportDigest.Hash(await polls.DigestKey.GetAsync(ct), content), Encrypted = true,
             });
             await db.SaveChangesAsync(ct);
             await LogAsync(db, job, MikrotikJobStep.BinaryBackup, MikrotikJobOutcome.Ok,
@@ -676,16 +676,15 @@ public sealed class JobRunner(
             throw new StepFailed(error);
         }
         var stored = await BackupStore.SaveExportAsync(db, router, router.Sensor.Name, output!, withSecrets, trigger,
-            job.RequestedBy, job.RequestedByName, Clock.UtcNow, ct);
+            job.RequestedBy, job.RequestedByName, Clock.UtcNow, await polls.DigestKey.GetAsync(ct), ct);
         if (stored.Backup is { } b)
         {
             b.JobId = job.Id;
         }
         await db.SaveChangesAsync(ct);
-        if (stored is { Changed: true, First: false, Backup: { } backup })
+        if (stored is { Changed: true, First: false, Backup: not null })
         {
-            await WriteEventAsync(db, router.SensorId, PNMTStatusCodes.MIKROTIK_CONFIG_CHANGED,
-                $"Configuration changed{cause}: +{stored.Added} −{stored.Removed} lines (version {backup.Number})", job, ct);
+            await WriteEventAsync(db, router.SensorId, PNMTStatusCodes.MIKROTIK_CONFIG_CHANGED, stored.Message(cause), job, ct);
         }
         var current = stored.Backup?.Id ?? await db.MikrotikBackups.AsNoTracking()
             .Where(x => x.SensorId == router.SensorId && x.Kind == MikrotikBackupKind.Export)

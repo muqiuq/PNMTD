@@ -375,6 +375,10 @@ namespace PNMTD.Data.Migrations
                         .IsRequired()
                         .HasColumnType("bytea");
 
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -417,10 +421,6 @@ namespace PNMTD.Data.Migrations
 
                     b.Property<Guid?>("SensorId")
                         .HasColumnType("uuid");
-
-                    b.Property<string>("Sha256")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<long>("Size")
                         .HasColumnType("bigint");
@@ -646,6 +646,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<string>("LastExportHash")
                         .HasColumnType("text");
 
+                    b.Property<byte[]>("LastExportLineDigests")
+                        .HasColumnType("bytea");
+
                     b.Property<DateTime?>("LastPollAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -711,6 +714,9 @@ namespace PNMTD.Data.Migrations
                 {
                     b.Property<int>("Id")
                         .HasColumnType("integer");
+
+                    b.Property<string>("BackupDigestKeyProtected")
+                        .HasColumnType("text");
 
                     b.Property<int?>("DefaultBackupIntervalHours")
                         .HasColumnType("integer");

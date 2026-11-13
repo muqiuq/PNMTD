@@ -140,6 +140,30 @@ public sealed partial class MikrotikKeyStore(IDbContextFactory<PnmtdDbContext> d
         cachedPrivateKeys = null;
     }
 
+    /// <summary>
+    /// The installation's settings row, created with its tag if there is none yet, under the same lock as the
+    /// keys: for writers that are not in a transaction (the backup settings, the digest key).
+    /// </summary>
+    public static async Task<MikrotikSettingsEntity> SettingsAsync(PnmtdDbContext db, CancellationToken ct)
+    {
+        var settings = await db.MikrotikSettings.SingleOrDefaultAsync(s => s.Id == MikrotikSettingsEntity.SingletonId, ct);
+        if (settings is not null)
+        {
+            return settings;
+        }
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock({0})", [CreationLock], ct);
+        settings = await db.MikrotikSettings.SingleOrDefaultAsync(s => s.Id == MikrotikSettingsEntity.SingletonId, ct);
+        if (settings is null)
+        {
+            settings = MikrotikSettingsEntity.Create();
+            db.MikrotikSettings.Add(settings);
+            await db.SaveChangesAsync(ct);
+        }
+        await transaction.CommitAsync(ct);
+        return settings;
+    }
+
     private async Task<MikrotikInstallation> LoadOrCreateAsync(CancellationToken ct)
     {
         await using var db = await dbs.CreateDbContextAsync(ct);
@@ -148,7 +172,7 @@ public sealed partial class MikrotikKeyStore(IDbContextFactory<PnmtdDbContext> d
         var settings = await db.MikrotikSettings.SingleOrDefaultAsync(s => s.Id == MikrotikSettingsEntity.SingletonId, ct);
         if (settings is null)
         {
-            settings = new MikrotikSettingsEntity { Tag = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(2)) };
+            settings = MikrotikSettingsEntity.Create();
             db.MikrotikSettings.Add(settings);
         }
         var keys = await db.MikrotikSshKeys.Where(k => k.RetiredAt == null).OrderByDescending(k => k.CreatedAt).ToListAsync(ct);

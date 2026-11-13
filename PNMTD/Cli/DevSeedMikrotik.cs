@@ -114,7 +114,7 @@ internal static class DevSeedMikrotik
         {
             Id = Guid.NewGuid(), SensorId = router.SensorId, RouterName = router.Sensor.Name, Number = 3, Kind = MikrotikBackupKind.Binary,
             Trigger = MikrotikBackupTrigger.BeforeUpdate, JobId = job.Id, CreatedAt = at.AddSeconds(4), CreatedByName = "admin", RouterOsVersion = "7.24.2",
-            Content = content, Size = content.Length, Sha256 = Convert.ToHexStringLower(SHA256.HashData(content)), Encrypted = true,
+            Content = content, Size = content.Length, ContentHash = ExportDigest.Hash(SeedDigestKey, content), Encrypted = true,
         });
         var steps = new (int Seconds, MikrotikJobStep Step, MikrotikJobOutcome Outcome, string Message)[]
         {
@@ -194,12 +194,16 @@ internal static class DevSeedMikrotik
         Output = output, Error = error, Options = """{"backupBeforeAndAfter":false,"oneAtATime":false}""",
     };
 
+    private static readonly byte[] SeedDigestKey = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
+
     private static Guid? Export(PnmtdDbContext db, MikrotikRouterEntity router, RouterPlan plan, DateTime at, MikrotikBackupTrigger trigger, string config,
         Guid? jobId = null)
     {
         var raw = $"# {Clock.ToLocal(at):yyyy-MM-dd HH:mm:ss} by RouterOS {plan.Version}\n# software id = DEMO-{plan.Serial[^4..]}\n#\n" +
                   $"# model = {plan.Model}\n# serial number = {plan.Serial}\n" + config;
-        var stored = BackupStore.SaveExportAsync(db, router, router.Sensor.Name, raw, false, trigger, null, "admin", at, CancellationToken.None)
+        // The seed has no Data Protection: its digests use a key of its own. A seeded router that ever answered would
+        // count its first real export as a change once.
+        var stored = BackupStore.SaveExportAsync(db, router, router.Sensor.Name, raw, false, trigger, null, "admin", at, SeedDigestKey, CancellationToken.None)
             .GetAwaiter().GetResult();
         if (stored.Backup is { } b)
         {

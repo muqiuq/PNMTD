@@ -119,6 +119,12 @@ public class MikrotikRouterEntity
     /// <summary>SHA-256 of the newest stored export, normalised: an equal export stores nothing (§6.2).</summary>
     public string? LastExportHash { get; set; }
 
+    /// <summary>
+    /// The keyed digests of the newest export's lines, 16 bytes each (docs/mikrotik-backup-plan.md §3.7): what the
+    /// next export is counted against, without its text. <see cref="LastExportHash"/> is then the keyed hash too.
+    /// </summary>
+    public byte[]? LastExportLineDigests { get; set; }
+
     /// <summary>Exports that failed in a row: 442 from two on (§5.3).</summary>
     public int BackupFailures { get; set; }
 
@@ -143,6 +149,10 @@ public class MikrotikSettingsEntity
     /// <summary>Four hex digits, random per installation.</summary>
     public string Tag { get; set; } = "";
 
+    /// <summary>The row as a new installation gets it: with its random tag.</summary>
+    public static MikrotikSettingsEntity Create() =>
+        new() { Tag = Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(2)) };
+
     /// <summary>The newest version of each channel: <c>{"stable":{"version":"7.25.1","releasedAt":"…"}, …}</c>.</summary>
     [Column(TypeName = "jsonb")]
     public string? LatestVersions { get; set; }
@@ -153,6 +163,12 @@ public class MikrotikSettingsEntity
 
     /// <summary>The schedule new routers start with (docs/mikrotik-backup-plan.md §2.2); null is off.</summary>
     public int? DefaultBackupIntervalHours { get; set; } = 24;
+
+    /// <summary>
+    /// The key of the exports' keyed digests (docs/mikrotik-backup-plan.md §3.7), 32 random bytes, base64, under Data
+    /// Protection. Made on first use.
+    /// </summary>
+    public string? BackupDigestKeyProtected { get; set; }
 }
 
 /// <summary>
@@ -225,8 +241,11 @@ public class MikrotikBackupEntity
 
     public int LineCount { get; set; }
 
-    /// <summary>Of the normalised export.</summary>
-    public string Sha256 { get; set; } = "";
+    /// <summary>
+    /// The keyed hash (HMAC-SHA256) of the normalised export, or of a binary backup's file (docs/mikrotik-backup-plan.md
+    /// §3.7). Versions stored before the keyed digests have their SHA-256 here, until an unchanged export replaces it.
+    /// </summary>
+    public string ContentHash { get; set; } = "";
 
     /// <summary>Exported with <c>show-sensitive</c> by a group that has <c>sensitive</c>: only Admins see it (§6.6).</summary>
     public bool IncludesSecrets { get; set; }
