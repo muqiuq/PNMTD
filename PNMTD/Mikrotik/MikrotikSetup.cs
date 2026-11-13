@@ -3,7 +3,7 @@ namespace PNMTD.Mikrotik;
 public static class MikrotikSetup
 {
     /// <summary>
-    /// MikroTik routers (docs/mikrotik-plan.md §9.3). The poller and the version check are hosted services,
+    /// MikroTik routers (docs/mikrotik-plan.md §9.3). The poller, the version check and backup retention are hosted services,
     /// added in Program under BackgroundTasks:Enabled; everything else is here, so the API and the CLI can
     /// poll a router without them.
     /// </summary>
@@ -15,6 +15,7 @@ public static class MikrotikSetup
         services.AddSingleton<RouterPollService>();
         services.AddSingleton<RouterPoller>();
         services.AddSingleton<VersionCatalog>();
+        services.AddSingleton<BackupRetentionTask>();
         return services;
     }
 }

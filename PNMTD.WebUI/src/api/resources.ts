@@ -138,6 +138,23 @@ export const api = {
     poll: (id: Id) => call(client.POST('/api/v1/sensors/{id}/mikrotik/poll', { params: { path: { id } } })),
     acceptHostKey: (id: Id) =>
       call(client.POST('/api/v1/sensors/{id}/mikrotik/host-key/accept', { params: { path: { id } } })),
+    // --- its backups (docs/mikrotik-plan.md §6): the list CanRead, contents CanWrite, secrets Admin ---------
+    backups: (id: Id, query: ListQuery = {}) =>
+      call(client.GET('/api/v1/sensors/{id}/mikrotik/backups', { params: { path: { id }, query } })),
+    backUp: (id: Id) => call(client.POST('/api/v1/sensors/{id}/mikrotik/backups', { params: { path: { id } } })),
+    backup: (id: Id, backupId: Id) =>
+      call(client.GET('/api/v1/sensors/{id}/mikrotik/backups/{backupId}', { params: { path: { id, backupId } } })),
+    diff: (id: Id, backupId: Id, against?: Id) =>
+      call(
+        client.GET('/api/v1/sensors/{id}/mikrotik/backups/{backupId}/diff', {
+          params: { path: { id, backupId }, query: { against } },
+        }),
+      ),
+    /** A plain link: the browser downloads the file with the session cookie. */
+    downloadUrl: (id: Id, backupId: Id) =>
+      `${typeof location !== 'undefined' ? location.origin : ''}/api/v1/sensors/${encodeURIComponent(id)}/mikrotik/backups/${encodeURIComponent(backupId)}/download`,
+    removeBackup: (id: Id, backupId: Id) =>
+      call(client.DELETE('/api/v1/sensors/{id}/mikrotik/backups/{backupId}', { params: { path: { id, backupId } } })),
     // --- the admin page: Admin ------------------------------------------------------------------
     status: () => call(client.GET('/api/v1/mikrotik/status')),
     routers: (

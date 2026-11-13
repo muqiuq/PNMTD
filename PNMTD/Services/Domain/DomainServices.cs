@@ -31,6 +31,7 @@ public static class DomainServicesSetup
         services.AddScoped<UdpProtocolDocs>();
         // MikroTik routers (docs/mikrotik-plan.md §10).
         services.AddScoped<MikrotikRouterService>();
+        services.AddScoped<MikrotikBackupService>();
         return services;
     }
 }

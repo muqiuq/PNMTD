@@ -365,6 +365,80 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("maillogs");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.MikrotikBackupEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatedByName")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Encrypted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IncludesSecrets")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("JobId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Kind")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("LineCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("LinesAdded")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("LinesRemoved")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RouterName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RouterOsVersion")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
+
+                    b.Property<short>("Trigger")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("SensorId", "CreatedAt");
+
+                    b.HasIndex("SensorId", "Number");
+
+                    b.ToTable("mikrotik_backups");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.MikrotikRouterEntity", b =>
                 {
                     b.Property<Guid>("SensorId")
@@ -375,6 +449,9 @@ namespace PNMTD.Data.Migrations
 
                     b.Property<string>("Architecture")
                         .HasColumnType("text");
+
+                    b.Property<int>("BackupFailures")
+                        .HasColumnType("integer");
 
                     b.Property<int>("BackupIntervalHours")
                         .HasColumnType("integer");
@@ -418,11 +495,23 @@ namespace PNMTD.Data.Migrations
                     b.Property<bool>("IncludeSecrets")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("LastBackupError")
+                        .HasColumnType("text");
+
                     b.Property<string>("LastError")
                         .HasColumnType("text");
 
                     b.Property<int?>("LastErrorCode")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastExportAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastExportAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastExportHash")
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("LastPollAt")
                         .HasColumnType("timestamp with time zone");
@@ -1271,6 +1360,14 @@ namespace PNMTD.Data.Migrations
                         .HasForeignKey("ProcessedById");
 
                     b.Navigation("ProcessedBy");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.MikrotikBackupEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.MikrotikRouterEntity", b =>

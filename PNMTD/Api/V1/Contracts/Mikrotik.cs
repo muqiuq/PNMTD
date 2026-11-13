@@ -61,7 +61,12 @@ public sealed record MikrotikRouterDetail(
     int? LastErrorCode,
     bool ScriptOutdated,
     IReadOnlyList<string> ScriptDifferences,
-    IReadOnlyList<string> Warnings);
+    IReadOnlyList<string> Warnings,
+    DateTime? LastExportAt = null,
+    int BackupFailures = 0,
+    string? LastBackupError = null,
+    int BackupCount = 0,
+    MikrotikBackupItem? LatestBackup = null);
 
 /// <summary>A host key: its type and SHA-256 fingerprint (unpadded Base64), pinned or seen at <see cref="At"/>.</summary>
 public sealed record MikrotikHostKey(string Type, string Fingerprint, DateTime? At);
@@ -147,3 +152,44 @@ public sealed record MikrotikSshPublicKey(string PublicKey, string Comment, stri
 public sealed record MikrotikChannelVersion(string Channel, string Version, DateTime? ReleasedAt);
 
 public sealed record MikrotikCount(string Key, int Count);
+
+/// <summary>A stored backup without its content (§6.3): the list of the Backups tab.</summary>
+public sealed record MikrotikBackupItem(
+    Guid Id,
+    int Number,
+    MikrotikBackupKind Kind,
+    MikrotikBackupTrigger Trigger,
+    DateTime CreatedAt,
+    string? CreatedBy,
+    string? RouterOsVersion,
+    long Size,
+    int LineCount,
+    int? LinesAdded,
+    int? LinesRemoved,
+    bool IncludesSecrets,
+    bool Encrypted);
+
+/// <summary>An export's text, normalised (§6.2).</summary>
+public sealed record MikrotikBackupContent(MikrotikBackupItem Backup, string Content);
+
+/// <summary>Two versions compared (§6.4): the hunks to show, and the same as <c>diff -u</c> text.</summary>
+public sealed record MikrotikBackupDiff(
+    MikrotikBackupItem? From,
+    MikrotikBackupItem To,
+    int Added,
+    int Removed,
+    IReadOnlyList<MikrotikDiffHunk> Hunks,
+    string Unified);
+
+public sealed record MikrotikDiffHunk(int OldStart, int OldCount, int NewStart, int NewCount, IReadOnlyList<MikrotikDiffLine> Lines);
+
+public sealed record MikrotikDiffLine(DiffLineKind Kind, string Text, int? OldNumber, int? NewNumber);
+
+/// <summary>"Back up now": a new version, or none because the configuration is unchanged.</summary>
+public sealed record MikrotikBackupResult(bool Changed, MikrotikBackupItem? Backup, string Message);
+
+/// <summary><c>GET /sensors/{id}/mikrotik/backups</c>: newest first.</summary>
+public sealed class MikrotikBackupQuery : PageQuery
+{
+    public MikrotikBackupKind? Kind { get; set; }
+}

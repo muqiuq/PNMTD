@@ -51,6 +51,7 @@ namespace PNMTD.Data
         public DbSet<MikrotikRouterEntity> MikrotikRouters { get; set; }
         public DbSet<MikrotikSettingsEntity> MikrotikSettings { get; set; }
         public DbSet<MikrotikSshKeyEntity> MikrotikSshKeys { get; set; }
+        public DbSet<MikrotikBackupEntity> MikrotikBackups { get; set; }
 
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
@@ -132,10 +133,17 @@ namespace PNMTD.Data
                 e.HasIndex(j => j.Created);
             });
 
-            // MikroTik routers: the router goes with its sensor (§9.2).
+            // MikroTik routers: the router goes with its sensor, its backups stay (§9.2).
             modelBuilder.Entity<MikrotikRouterEntity>(e =>
             {
                 e.HasOne(r => r.Sensor).WithOne().HasForeignKey<MikrotikRouterEntity>(r => r.SensorId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<MikrotikBackupEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(b => b.SensorId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(b => new { b.SensorId, b.CreatedAt });
+                e.HasIndex(b => new { b.SensorId, b.Number });
+                e.HasIndex(b => b.CreatedAt);
             });
 
             base.OnModelCreating(modelBuilder);

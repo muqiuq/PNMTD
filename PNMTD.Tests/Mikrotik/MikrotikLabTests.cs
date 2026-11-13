@@ -65,6 +65,27 @@ public sealed class MikrotikLabTests
             var detail = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}")).ReadAsync<SensorDetail>();
             Assert.IsFalse(detail.Mikrotik!.ScriptOutdated, $"{name}: {string.Join("; ", detail.Mikrotik.ScriptDifferences)}");
 
+            // Backups (§6): the first login stored version 1; an unchanged export stores nothing; a change
+            // gives version 2, 243, and a diff that shows it.
+            Assert.IsNull(outcome.ExportError, $"{name}: {outcome.ExportError}");
+            Assert.AreEqual(1, detail.Mikrotik.BackupCount, name);
+            var first = detail.Mikrotik.LatestBackup!;
+            var text = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/backups/{first.Id}")).ReadAsync<MikrotikBackupContent>();
+            StringAssert.Contains(text.Content, $"/system identity set name={name}");
+            Assert.IsFalse(text.Content.Contains("private-key=\"", StringComparison.Ordinal), $"{name}: no secret without the policy");
+            var unchanged = await (await user.PostAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/backups", null)).ReadAsync<MikrotikBackupResult>();
+            Assert.IsFalse(unchanged.Changed, $"{name}: {unchanged.Message}");
+            var note = $"pnmt lab {Guid.NewGuid():N}";
+            Lab("ssh", name, $"/system note set note=\"{note}\"");
+            var changed = await (await user.PostAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/backups", null)).ReadAsync<MikrotikBackupResult>();
+            Assert.IsTrue(changed.Changed, $"{name}: {changed.Message}");
+            var diff = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/backups/{changed.Backup!.Id}/diff")).ReadAsync<MikrotikBackupDiff>();
+            StringAssert.Contains(diff.Unified, note, name);
+            await using (var events = app.NewDb())
+            {
+                Assert.IsTrue(await events.Events.AnyAsync(e => e.SensorId == sensor.Id && e.Code == PNMTStatusCodes.MIKROTIK_CONFIG_CHANGED), name);
+            }
+
             // The removal script leaves nothing behind, and PNMT's login is gone.
             var removal = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/removal-script")).ReadAsync<MikrotikScript>();
             await File.WriteAllTextAsync(file, removal.Script);

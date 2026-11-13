@@ -44,6 +44,8 @@ public static class AuthEvents
     public const string MikrotikSecretsChanged = "MikrotikSecretsChanged";
     public const string MikrotikManagementAccessChanged = "MikrotikManagementAccessChanged";
     public const string MikrotikDiagnosticsChanged = "MikrotikDiagnosticsChanged";
+    public const string MikrotikBackupDownloaded = "MikrotikBackupDownloaded";
+    public const string MikrotikBackupDeleted = "MikrotikBackupDeleted";
 
     public static readonly string[] All =
     [
@@ -51,6 +53,7 @@ public static class AuthEvents
         PasswordReset, SessionsRevoked, UserCreated, UserUpdated, UserUnlocked, RoleChanged, UserDeleted,
         UdpKeyChanged, UdpCounterReset, UdpSessionReset, UdpFirmwareUploaded, UdpFirmwareDeleted, UdpUpdateStarted, UdpUpdateCancelled,
         MikrotikJoinScriptViewed, MikrotikHostKeyAccepted, MikrotikSecretsChanged, MikrotikManagementAccessChanged, MikrotikDiagnosticsChanged,
+        MikrotikBackupDownloaded, MikrotikBackupDeleted,
     ];
 }
 

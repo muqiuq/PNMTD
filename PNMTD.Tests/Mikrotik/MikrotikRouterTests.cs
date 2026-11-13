@@ -409,10 +409,28 @@ public sealed class MikrotikRouterTests
 
         public (RouterFailureKind Kind, string Message)? Failure { get; set; }
 
+        /// <summary>What <c>/export</c> answers: the recorded export, until a test changes it.</summary>
+        public string Export { get; set; } = "";
+
+        /// <summary>RouterOS's answer instead of an export, with exit status 1.</summary>
+        public string? ExportError { get; set; }
+
+        /// <summary>Every command PNMTD ran, in order.</summary>
+        public List<string> Commands { get; } = [];
+
         public static FakeRouter From(string version) => new()
         {
             Output = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Mikrotik", version, "poll.json")),
+            Export = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Mikrotik", version, "export.rsc")),
         };
+
+        /// <summary>The group pnmt-read with these policies, as the poll reads it.</summary>
+        public void Policies(params string[] policies)
+        {
+            var json = JsonNode.Parse(Output)!;
+            json["group"]![0]!["policy"] = new JsonArray(policies.Select(p => (JsonNode)JsonValue.Create(p)!).ToArray());
+            Output = json.ToJsonString();
+        }
 
         /// <summary>Changes the recorded reading as a router would: a new uptime (a restart), another version.</summary>
         public void Set(string? uptime = null, string? version = null)
@@ -461,8 +479,17 @@ public sealed class MikrotikRouterTests
         {
             public RouterHostKey HostKey => router.HostKey;
 
-            public Task<RouterExecResult> ExecAsync(string command, TimeSpan timeout, int maxOutputBytes, CancellationToken ct) =>
-                Task.FromResult(new RouterExecResult(router.Output, "", 0, false, false, TimeSpan.FromMilliseconds(5)));
+            public Task<RouterExecResult> ExecAsync(string command, TimeSpan timeout, int maxOutputBytes, CancellationToken ct)
+            {
+                router.Commands.Add(command);
+                if (command.StartsWith("/export", StringComparison.Ordinal))
+                {
+                    return Task.FromResult(router.ExportError is { } error
+                        ? new RouterExecResult(error, "", 1, false, false, TimeSpan.FromMilliseconds(5))
+                        : new RouterExecResult(router.Export, "", 0, false, false, TimeSpan.FromMilliseconds(5)));
+                }
+                return Task.FromResult(new RouterExecResult(router.Output, "", 0, false, false, TimeSpan.FromMilliseconds(5)));
+            }
 
             public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         }

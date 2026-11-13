@@ -21,7 +21,12 @@ public sealed record RouterPollOutcome(
     RouterReading? Reading,
     string? RawOutput,
     IReadOnlyList<RouterEvent> Events,
-    bool Skipped = false);
+    bool Skipped = false,
+    StoredExport? Export = null,
+    string? ExportError = null);
+
+/// <summary>What a poll does besides reading: an export now (§6.1, "Back up now"), and on whose behalf.</summary>
+public sealed record PollRequest(bool ForceExport = false, MikrotikBackupTrigger? Trigger = null, Guid? UserId = null, string? UserName = null);
 
 public sealed record RouterEvent(int Code, string Message);
 
@@ -58,7 +63,7 @@ public sealed class RouterPollService(
     /// Polls now. With <paramref name="wait"/> false (the poller) a router that is busy (another poll, a
     /// job) is skipped; otherwise this waits for it.
     /// </summary>
-    public async Task<RouterPollOutcome> PollAsync(Guid sensorId, bool wait, CancellationToken ct)
+    public async Task<RouterPollOutcome> PollAsync(Guid sensorId, bool wait, CancellationToken ct, PollRequest? request = null)
     {
         var routerLock = routerLocks.GetOrAdd(sensorId, _ => new SemaphoreSlim(1, 1));
         if (!await routerLock.WaitAsync(wait ? TimeSpan.FromMinutes(2) : TimeSpan.Zero, ct))
@@ -67,7 +72,7 @@ public sealed class RouterPollService(
         }
         try
         {
-            return await PollLockedAsync(sensorId, ct);
+            return await PollLockedAsync(sensorId, request ?? new PollRequest(), ct);
         }
         finally
         {
@@ -85,7 +90,7 @@ public sealed class RouterPollService(
 
     public bool IsBusy(Guid sensorId) => routerLocks.TryGetValue(sensorId, out var l) && l.CurrentCount == 0;
 
-    private async Task<RouterPollOutcome> PollLockedAsync(Guid sensorId, CancellationToken ct)
+    private async Task<RouterPollOutcome> PollLockedAsync(Guid sensorId, PollRequest request, CancellationToken ct)
     {
         await using var db = await dbs.CreateDbContextAsync(ct);
         var router = await db.MikrotikRouters.Include(r => r.Sensor).SingleOrDefaultAsync(r => r.SensorId == sensorId, ct);
@@ -100,11 +105,11 @@ public sealed class RouterPollService(
         }
         if (router.Mode == MikrotikMode.WireGuardSsh)
         {
-            return await RecordAsync(db, router, Failure(RouterFailureKind.Unreachable, "The WireGuard gateway is not available yet."), ct);
+            return await RecordAsync(db, router, Failure(RouterFailureKind.Unreachable, "The WireGuard gateway is not available yet."), request, ct);
         }
         if (string.IsNullOrWhiteSpace(router.Address))
         {
-            return await RecordAsync(db, router, Failure(RouterFailureKind.Unreachable, "No address to connect to."), ct);
+            return await RecordAsync(db, router, Failure(RouterFailureKind.Unreachable, "No address to connect to."), request, ct);
         }
 
         var o = options.CurrentValue.Ssh;
@@ -113,32 +118,59 @@ public sealed class RouterPollService(
         if (privateKeys.Count == 0)
         {
             return await RecordAsync(db, router, Failure(RouterFailureKind.AuthenticationFailed,
-                "PNMTD's SSH key cannot be decrypted (the key ring is gone): rotate the key and paste the join scripts again."), ct);
+                "PNMTD's SSH key cannot be decrypted (the key ring is gone): rotate the key and paste the join scripts again."), request, ct);
         }
         var pinned = router.HostKeyFingerprint is { } fp && router.HostKeyType is { } type ? new RouterHostKey(type, fp) : null;
         var target = new RouterTarget(sensorId, router.Address!, router.SshPort, RouterPoll.UserName, RouterCredentials.Keys(privateKeys),
             pinned, TimeSpan.FromSeconds(o.ConnectTimeoutSeconds));
 
+        var export = new ExportPlan(request.ForceExport || ExportDue(router, Clock.UtcNow), router.IncludeSecrets);
         PollResult result;
         await sessions.WaitAsync(ct);
         try
         {
-            result = await ReadAsync(target, installation, o, ct);
+            result = await ReadAsync(target, installation, o, export, ct);
         }
         finally
         {
             sessions.Release();
         }
-        return await RecordAsync(db, router, result, ct);
+        return await RecordAsync(db, router, result, request, ct);
     }
 
+    /// <summary>
+    /// Due when the backup interval has passed since the last successful export (§6.1), or there was none;
+    /// after a failed export, not before <c>Backups:RetryMinutes</c>.
+    /// </summary>
+    private bool ExportDue(MikrotikRouterEntity router, DateTime now)
+    {
+        var b = options.CurrentValue.Backups;
+        if (router.BackupFailures > 0 && router.LastExportAttemptAt is { } attempt && now - attempt < TimeSpan.FromMinutes(b.RetryMinutes))
+        {
+            return false;
+        }
+        return router.LastExportAt is null || now - router.LastExportAt.Value >= TimeSpan.FromHours(Math.Max(1, router.BackupIntervalHours));
+    }
+
+    private sealed record ExportPlan(bool Due, bool IncludeSecrets);
+
     private sealed record PollResult(RouterReading? Reading, string? Raw, RouterHostKey? HostKey, RouterFailureKind? Failure, string? Error,
-        RouterHostKey? PresentedHostKey = null);
+        RouterHostKey? PresentedHostKey = null)
+    {
+        public bool ExportAttempted { get; init; }
+
+        public string? ExportOutput { get; init; }
+
+        public string? ExportError { get; init; }
+
+        public bool ExportWithSecrets { get; init; }
+    }
 
     private static PollResult Failure(RouterFailureKind kind, string error, RouterHostKey? presented = null) =>
         new(null, null, null, kind, error, presented);
 
-    private async Task<PollResult> ReadAsync(RouterTarget target, MikrotikInstallation installation, MikrotikOptions.SshOptions o, CancellationToken ct)
+    private async Task<PollResult> ReadAsync(RouterTarget target, MikrotikInstallation installation, MikrotikOptions.SshOptions o, ExportPlan plan,
+        CancellationToken ct)
     {
         try
         {
@@ -151,7 +183,8 @@ public sealed class RouterPollService(
             try
             {
                 var reading = RouterPoll.Parse(exec.Output);
-                return new PollResult(reading, exec.Output, session.HostKey, null, null);
+                var result = new PollResult(reading, exec.Output, session.HostKey, null, null);
+                return plan.Due && reading.Version is not { IsBelowFloor: true } ? await ExportAsync(session, reading, plan, o, result, ct) : result;
             }
             catch (FormatException ex)
             {
@@ -165,6 +198,32 @@ public sealed class RouterPollService(
         }
     }
 
+    /// <summary>
+    /// <c>/export terse</c> in the poll's session (§6.1), with <c>show-sensitive</c> only when the router opted in
+    /// and its group has <c>sensitive</c>: without it RouterOS writes <c>*****</c> (M2, 7.13 and 7.25.1).
+    /// </summary>
+    private async Task<PollResult> ExportAsync(IRouterSession session, RouterReading reading, ExportPlan plan, MikrotikOptions.SshOptions o,
+        PollResult result, CancellationToken ct)
+    {
+        var withSecrets = plan.IncludeSecrets && reading.GroupPolicies.Contains("sensitive");
+        var max = options.CurrentValue.Backups.MaxExportBytes;
+        try
+        {
+            var export = await session.ExecAsync(withSecrets ? "/export terse show-sensitive" : "/export terse",
+                TimeSpan.FromSeconds(o.ExportTimeoutSeconds), max, ct);
+            var error = export.TimedOut ? $"The export timed out after {o.ExportTimeoutSeconds} s"
+                : export.Truncated ? $"The export is larger than {max / 1024 / 1024} MiB"
+                : ExportText.Problem(export.Output) is { } problem ? problem
+                : export.ExitStatus is { } status and not 0 ? $"The export failed with exit status {status}"
+                : null;
+            return result with { ExportAttempted = true, ExportOutput = error is null ? export.Output : null, ExportError = error, ExportWithSecrets = withSecrets };
+        }
+        catch (RouterSessionException ex)
+        {
+            return result with { ExportAttempted = true, ExportError = $"The export broke off: {ex.Message}" };
+        }
+    }
+
     /// <summary>RouterOS's own error text where there is one ("not enough permissions (9)"), else "unexpected output".</summary>
     private static string Unexpected(string output, string fallback)
     {
@@ -172,7 +231,8 @@ public sealed class RouterPollService(
         return first is { Length: > 0 and < 300 } && !first.StartsWith('{') ? $"The router answered: {first}" : fallback;
     }
 
-    private async Task<RouterPollOutcome> RecordAsync(PnmtdDbContext db, MikrotikRouterEntity router, PollResult result, CancellationToken ct)
+    private async Task<RouterPollOutcome> RecordAsync(PnmtdDbContext db, MikrotikRouterEntity router, PollResult result, PollRequest request,
+        CancellationToken ct)
     {
         var now = Clock.UtcNow;
         var sensor = router.Sensor;
@@ -180,9 +240,27 @@ public sealed class RouterPollService(
         router.LastPollAt = now;
         var everLoggedIn = router.LastSuccessAt is not null || router.HostKeyPinnedAt is not null;
 
+        StoredExport? stored = null;
         if (result.Reading is { } r)
         {
-            events.AddRange(Success(db, router, r, result, now));
+            if (result.ExportAttempted)
+            {
+                router.LastExportAttemptAt = now;
+                if (result.ExportError is null && result.ExportOutput is { } output)
+                {
+                    var trigger = request.Trigger ?? (router.LastExportHash is null ? MikrotikBackupTrigger.FirstLogin : MikrotikBackupTrigger.Schedule);
+                    stored = await BackupStore.SaveExportAsync(db, router, sensor.Name, output, result.ExportWithSecrets, trigger,
+                        request.UserId, request.UserName, now, ct);
+                    router.BackupFailures = 0;
+                    router.LastBackupError = null;
+                }
+                else
+                {
+                    router.BackupFailures++;
+                    router.LastBackupError = result.ExportError;
+                }
+            }
+            events.AddRange(Success(db, router, r, result, now, stored));
         }
         else
         {
@@ -230,10 +308,12 @@ public sealed class RouterPollService(
         }
         var last = events.LastOrDefault();
         return new RouterPollOutcome(result.Reading is not null && last?.Code is not PNMTStatusCodes.MIKROTIK_ACCESS_DENIED,
-            last?.Code ?? router.LastErrorCode, last?.Message ?? result.Error ?? "", result.Reading, result.Raw, events);
+            last?.Code ?? router.LastErrorCode, last?.Message ?? result.Error ?? "", result.Reading, result.Raw, events,
+            Export: stored, ExportError: result.ExportAttempted ? result.ExportError : null);
     }
 
-    private static IEnumerable<RouterEvent> Success(PnmtdDbContext db, MikrotikRouterEntity router, RouterReading r, PollResult result, DateTime now)
+    private static IEnumerable<RouterEvent> Success(PnmtdDbContext db, MikrotikRouterEntity router, RouterReading r, PollResult result, DateTime now,
+        StoredExport? stored)
     {
         var events = new List<RouterEvent>();
         if (router.HostKeyFingerprint is null && result.HostKey is { } key)
@@ -292,11 +372,22 @@ public sealed class RouterPollService(
         }
         router.SetupState = MikrotikSetupState.Ready;
 
+        if (stored is { Changed: true, First: false, Backup: { } backup })
+        {
+            events.Add(new RouterEvent(PNMTStatusCodes.MIKROTIK_CONFIG_CHANGED,
+                $"Configuration changed: +{stored.Added} −{stored.Removed} lines (version {backup.Number})"));
+        }
         var available = Available(db, r);
         if (available is not null && router.NotifiedUpdateVersion != available)
         {
             events.Add(new RouterEvent(PNMTStatusCodes.MIKROTIK_UPDATE_AVAILABLE, $"{available} available on {r.Channel} ({version} installed)"));
             router.NotifiedUpdateVersion = available;
+        }
+        if (router.BackupFailures >= 2)
+        {
+            // The current condition after 440 and 441 (§5.3): it stays until a backup succeeds.
+            events.Add(new RouterEvent(PNMTStatusCodes.MIKROTIK_BACKUP_FAILED, $"Backups failing: {router.LastBackupError}"));
+            return events;
         }
         var model = r.DisplayModel is { Length: > 0 } m ? $" · {m}" : "";
         var channel = r.Channel is { Length: > 0 } ch ? $" ({ch})" : "";

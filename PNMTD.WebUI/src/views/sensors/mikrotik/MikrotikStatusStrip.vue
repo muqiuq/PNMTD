@@ -82,6 +82,19 @@ const uptime = computed(() => (r.value?.uptimeSeconds != null ? formatDuration(r
           </div>
         </dd>
       </div>
+      <div v-if="m.mode !== 'WireGuardOnly'">
+        <dt>Last backup</dt>
+        <dd>
+          <RouterLink v-if="m.latestBackup" :to="{ name: 'sensor', params: { id: sensor.id, tab: 'backups' } }"
+            >v{{ m.latestBackup.number }}</RouterLink
+          >
+          <span v-else>–</span>
+          <div class="muted small" :class="{ bad: m.backupFailures > 0 }">
+            <template v-if="m.backupFailures > 0">export failed</template>
+            <template v-else-if="m.lastExportAt">checked <RelativeTime :value="m.lastExportAt" /></template>
+          </div>
+        </dd>
+      </div>
       <div>
         <dt>Last poll</dt>
         <dd>
@@ -143,6 +156,10 @@ const uptime = computed(() => (r.value?.uptimeSeconds != null ? formatDuration(r
 
 .update {
   color: var(--pnmt-warn);
+}
+
+.bad {
+  color: var(--pnmt-fail);
 }
 
 .warnings {

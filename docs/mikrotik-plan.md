@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Revision 3, in implementation**: M0 and M1 are built (§13.1). Details still marked *(M0)* belong to later phases and are verified there on a real RouterOS. The other RouterOS facts were checked against the manual and the per-version changelogs (§4.1) |
+| Status | **Revision 3, in implementation**: M0, M1 and M2 are built (§13.1). Details still marked *(M0)* belong to later phases and are verified there on a real RouterOS. The other RouterOS facts were checked against the manual and the per-version changelogs (§4.1) |
 | Date | 2026-11-12 |
 | Revision | 3: **remote commands** (§8): a command or script, run on one router or several, as the read-only `pnmt` user, or as the router's admin with the password typed for that run. **The admin password is therefore needed for updates and for commands run as an admin** (decision 8, §16.1).<br><br>2: **the review decisions of revision 1 (§16.1)**:<ul><li>three connection modes: **WireGuard + SSH**, **WireGuard only**, and **Direct SSH**;</li><li>a router joins with **one script**, generated when it is added in the UI, that contains everything, **including the router's WireGuard private key**;</li><li>**the admin password is needed only for updates**;</li><li>**custom tunnels**: extra WireGuard peers with a downloadable configuration;</li><li>**the tunnel network is configured in the web UI**, on one admin page that also monitors it;</li><li>**the external address and port** of the WireGuard endpoint can also be set in environment variables, for a PNMTD behind NAT.</li></ul>Revision 1 had a copy-back of the router's public key and a second onboarding path that used the admin password |
 | Scope | PNMTD monitors and manages MikroTik routers running RouterOS 7.13 or later, and runs a WireGuard network for them.<ul><li>A router is added in the UI. PNMT then shows a **join script**, which the router's admin runs once on the router.</li><li>Through a **WireGuard tunnel that the router opens**, or directly over SSH, PNMTD logs in as a **read-only user, `pnmt`**.</li><li>It monitors the version, uptime and resources.</li><li>It **backs the configuration up** on a schedule and keeps each changed version with a diff.</li><li>It **installs RouterOS updates** when an Admin supplies the router's admin password for that one job.</li><li>It **runs commands** on routers: read-only as `pnmt`, or as the router's admin with the password typed for that run.</li></ul>**Custom tunnels** give people (or other devices) a WireGuard configuration of their own, for management access to the routers through PNMT |
@@ -535,7 +535,7 @@ Backups exist in the SSH modes only. A router in WireGuard only mode has no logi
 
 ### 6.6 Secrets in exports
 
-- **Off by default.** Without `show-sensitive`, the export contains no secrets: no WireGuard private keys, PPP secrets, Wi-Fi passphrases or IPsec keys. User passwords are never exported in any case.
+- **Off by default.** Without `show-sensitive`, the export contains no secrets (confirmed in M2 on 7.13 and 7.25.1; with `show-sensitive` but without the policy `sensitive`, RouterOS writes `private-key=*****`, so PNMTD adds `show-sensitive` only when the poll sees `sensitive` in the group, and only then marks the backup as holding secrets): no WireGuard private keys, PPP secrets, Wi-Fi passphrases or IPsec keys. User passwords are never exported in any case.
 - **Per router, *Include secrets in exports*** (Admin, audit-logged) adds `sensitive` to the group in the join script, and `show-sensitive` to the export. **It takes effect when the admin pastes the new script.** Until then, the poll sees that the group lacks `sensitive`, and the Setup tab says so.
 - **The trade-off, shown next to the switch:** with secrets, an export restores the router completely, but every PNMT backup becomes as sensitive as the routers' own secrets. Exports with secrets are marked, and only Admins may see or download them (§10).
 
@@ -1079,7 +1079,7 @@ The SSH public key with *Rotate…*, and the version catalog with its last check
 - **`pnmtd wireguard tunnel add <name> [--owner <user>] [--routers all|<names>] [--expires <date>] [--out file.conf]`:** for the server.
 - **`pnmtd mikrotik list`:** every router with its mode, state, version and setup state.
 - **`pnmtd mikrotik poll <name|id> [--raw]`:** one poll, printing what was read, or the raw output with `--raw`. This is for debugging the parser against a real router.
-- **`pnmtd mikrotik export <name|id>`:** one export, printed. It stores nothing.
+- **`pnmtd mikrotik backup <name|id> [--print]`:** a backup now, as *Back up now* does (a version only if the configuration changed); `--print` writes the newest stored export to standard output.
 - **`pnmtd mikrotik run <name|id>… (--command <text> | --file <script.rsc>) [--admin <user> --password-stdin] [--timeout <seconds>]`:** a remote command from the server (§8), stored as a job like one from the UI. It prints the output, and exits with 0 when every router succeeded.
 - **`pnmtd mikrotik script <name|id> [--removal]`:** prints the join or the removal script. Logged.
 - **`pnmtd mikrotik accept-host-key <name|id>`:** for the server (Admin, logged).
@@ -1142,6 +1142,17 @@ Effort is a rough estimate for one developer. Each phase ends green in `./run-te
 - **Packages:** SSH.NET 2026.0.0, which brings BouncyCastle.Cryptography 2.7.0, used for the Ed25519 keys (and later X25519).
 
 **M1 as built:** the sensor type with its table and validation, PNMTD's SSH key (Data Protection, purpose `PNMTD.Mikrotik.SshKey.v1`), the join and removal scripts for Direct SSH (the WireGuard parts are generated and lab-tested, but the modes stay refused until the gateway exists), host key pinning and acceptance, `RouterPollService` and `RouterPoller` (events 240, 241, 242, 244, 440, 441), `VersionCatalog`, the API of §10 for a router plus `/mikrotik/status` and `/mikrotik/routers`, `pnmtd mikrotik list|poll|script|accept-host-key|versions`, and in the UI the sensor form's router section, the status strip, the Setup tab and the settings dialog. Not yet: the admin page (M3). M1 and M2 go first because they need no gateway, so SSH, parsing and backups can be built and tested against a CHR on the same network. The order of M3 and M1/M2 can be swapped if the tunnel matters more early on.
+
+**M2 as built (backups):**
+
+- **The export runs in the poll's session** when it is due (the backup interval since the last successful export, or none yet) or asked for (*Back up now*, `pnmtd mikrotik backup`). A failed export is retried after `Backups:RetryMinutes` (30), not at every poll.
+- **Stored normalised** (the time line dropped, LF), as gzip, with its SHA-256, line count, the RouterOS version from its first line, and the line counts against the version before; a new version only when the hash differs. Version 1 (trigger `FirstLogin`) gives no 243.
+- **442's message** is "Backups failing: <the error>", stable while the error is the same; it replaces 240 from the second failure in a row until an export succeeds.
+- **The diff is PNMT's own** (`LineDiff`, Myers with unified hunks, about 200 lines in `PNMTD.Lib`), so no package was added; a randomised test checks it against a longest-common-subsequence reference.
+- **Retention** (`BackupRetentionTask`, hourly) as §6.3. Backups of a deleted router keep only the age rule. An Admin can delete a version (`DELETE …/backups/{id}`, audit-logged); deleting the newest makes the next export a new version.
+- **The API** of §10 for backups, plus that delete; content, diffs and downloads of exports with secrets (and of binary backups, M5) need Admin and are audit-logged as `MikrotikBackupDownloaded`.
+- **The UI:** the Backups tab (the versions with trigger, author, RouterOS version and +/− lines; view, the changes against the version before, two selected versions compared, download, *Back up now*, delete for Admins) and *Last backup* in the status strip.
+- **Lab:** the lab test now also checks version 1 at the first login, nothing stored for an unchanged export, and a change on the router (`/system note`) as version 2 with 243 and a diff that shows it, on 7.13 and 7.25.1.
 
 ---
 

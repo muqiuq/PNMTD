@@ -9,3 +9,20 @@ public enum MikrotikSetupState : short
     /// <summary>Logged in once, now refused (441): a changed host key, the key or the group gone.</summary>
     NeedsAttention = 3,
 }
+
+public enum MikrotikBackupKind : short
+{
+    Export = 0,
+    Binary = 1,
+}
+
+/// <summary>Why a backup was taken (§6.1).</summary>
+public enum MikrotikBackupTrigger : short
+{
+    FirstLogin = 0,
+    Schedule = 1,
+    Manual = 2,
+    BeforeUpdate = 3,
+    BeforeCommand = 4,
+    AfterCommand = 5,
+}

@@ -12,6 +12,8 @@ public sealed class MikrotikOptions
 
     public VersionCheckOptions VersionCheck { get; set; } = new();
 
+    public BackupOptions Backups { get; set; } = new();
+
     /// <summary>Admin passwords only over HTTPS (§7.2), unless this is set: development only.</summary>
     public bool AllowPasswordsOverHttp { get; set; }
 
@@ -28,6 +30,20 @@ public sealed class MikrotikOptions
 
         /// <summary>The output of a poll or a command is cut here (§4.5).</summary>
         public int MaxOutputBytes { get; set; } = 1024 * 1024;
+    }
+
+    public sealed class BackupOptions
+    {
+        /// <summary>Every version younger than this is kept (§6.3)…</summary>
+        public int KeepDays { get; set; } = 365;
+
+        /// <summary>…and at least this many per router, whatever their age (at least 1).</summary>
+        public int KeepVersions { get; set; } = 50;
+
+        public int MaxExportBytes { get; set; } = 16 * 1024 * 1024;
+
+        /// <summary>After a failed export, the next try waits this long (the poll in between goes on).</summary>
+        public int RetryMinutes { get; set; } = 30;
     }
 
     public sealed class VersionCheckOptions

@@ -1815,6 +1815,215 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sensors/{id}/mikrotik/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    kind?: components["schemas"]["MikrotikBackupKind"];
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfMikrotikBackupItem"];
+                        "text/json": components["schemas"]["PagedOfMikrotikBackupItem"];
+                        "text/plain": components["schemas"]["PagedOfMikrotikBackupItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikBackupResult"];
+                        "text/json": components["schemas"]["MikrotikBackupResult"];
+                        "text/plain": components["schemas"]["MikrotikBackupResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/mikrotik/backups/{backupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    backupId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikBackupContent"];
+                        "text/json": components["schemas"]["MikrotikBackupContent"];
+                        "text/plain": components["schemas"]["MikrotikBackupContent"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    backupId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/mikrotik/backups/{backupId}/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    against?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                    backupId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikBackupDiff"];
+                        "text/json": components["schemas"]["MikrotikBackupDiff"];
+                        "text/plain": components["schemas"]["MikrotikBackupDiff"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/mikrotik/backups/{backupId}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    backupId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["FileContentResult"];
+                        "application/octet-stream": components["schemas"]["FileContentResult"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/mikrotik/status": {
         parameters: {
             query?: never;
@@ -3866,6 +4075,8 @@ export interface components {
             dns: components["schemas"]["DnsSummary"];
             mail: components["schemas"]["MailSummary"];
         };
+        /** @enum {unknown} */
+        DiffLineKind: "Context" | "Added" | "Removed";
         DnsLogEntry: {
             /** Format: uuid */
             id: string;
@@ -4161,6 +4372,51 @@ export interface components {
             user: components["schemas"]["CurrentUser"];
             flags: components["schemas"]["SessionFlags"];
         };
+        MikrotikBackupContent: {
+            backup: components["schemas"]["MikrotikBackupItem"];
+            content: string;
+        };
+        MikrotikBackupDiff: {
+            from: null | components["schemas"]["MikrotikBackupItem"];
+            to: components["schemas"]["MikrotikBackupItem"];
+            /** Format: int32 */
+            added: number;
+            /** Format: int32 */
+            removed: number;
+            hunks: components["schemas"]["MikrotikDiffHunk"][];
+            unified: string;
+        };
+        MikrotikBackupItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            kind: components["schemas"]["MikrotikBackupKind"];
+            trigger: components["schemas"]["MikrotikBackupTrigger"];
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: null | string;
+            routerOsVersion: null | string;
+            /** Format: int64 */
+            size: number;
+            /** Format: int32 */
+            lineCount: number;
+            /** Format: int32 */
+            linesAdded: null | number;
+            /** Format: int32 */
+            linesRemoved: null | number;
+            includesSecrets: boolean;
+            encrypted: boolean;
+        };
+        /** @enum {unknown} */
+        MikrotikBackupKind: "Export" | "Binary";
+        MikrotikBackupResult: {
+            changed: boolean;
+            backup: null | components["schemas"]["MikrotikBackupItem"];
+            message: string;
+        };
+        /** @enum {unknown} */
+        MikrotikBackupTrigger: "FirstLogin" | "Schedule" | "Manual" | "BeforeUpdate" | "BeforeCommand" | "AfterCommand";
         MikrotikChannelVersion: {
             channel: string;
             version: string;
@@ -4171,6 +4427,25 @@ export interface components {
             key: string;
             /** Format: int32 */
             count: number;
+        };
+        MikrotikDiffHunk: {
+            /** Format: int32 */
+            oldStart: number;
+            /** Format: int32 */
+            oldCount: number;
+            /** Format: int32 */
+            newStart: number;
+            /** Format: int32 */
+            newCount: number;
+            lines: components["schemas"]["MikrotikDiffLine"][];
+        };
+        MikrotikDiffLine: {
+            kind: components["schemas"]["DiffLineKind"];
+            text: string;
+            /** Format: int32 */
+            oldNumber: null | number;
+            /** Format: int32 */
+            newNumber: null | number;
         };
         MikrotikFleetItem: {
             /** Format: uuid */
@@ -4269,6 +4544,20 @@ export interface components {
             scriptOutdated: boolean;
             scriptDifferences: string[];
             warnings: string[];
+            /** Format: date-time */
+            lastExportAt?: null | string;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            backupFailures: number;
+            lastBackupError?: null | string;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            backupCount: number;
+            latestBackup?: null | components["schemas"]["MikrotikBackupItem"];
         };
         MikrotikRouterRequest: {
             mode?: components["schemas"]["MikrotikMode"];
@@ -4428,6 +4717,15 @@ export interface components {
         };
         PagedOfMailLogItem: {
             items: components["schemas"]["MailLogItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfMikrotikBackupItem: {
+            items: components["schemas"]["MikrotikBackupItem"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */

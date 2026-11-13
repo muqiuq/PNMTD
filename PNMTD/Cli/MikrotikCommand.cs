@@ -21,6 +21,8 @@ internal static class MikrotikCommand
     public const string Usage = """
           mikrotik list                         every MikroTik router: mode, setup state, version, last poll
           mikrotik poll <name|id> [--raw]       poll one router now; --raw prints the router's output as it came
+          mikrotik backup <name|id> [--print]   back the configuration up now (a version only if it changed);
+                                                --print writes the newest stored export to standard output
           mikrotik script <name|id> [--removal] print the join script (audit-logged), or the removal script
           mikrotik accept-host-key <name|id>    accept the host key the router presented instead of the pinned one
           mikrotik versions                     fetch the newest RouterOS version of each channel now
@@ -35,6 +37,7 @@ internal static class MikrotikCommand
         {
             ["list"] => List(sp),
             ["poll", var router, .. var rest] => Poll(sp, router, new CommandLine.Options(rest)),
+            ["backup", var router, .. var rest] => Backup(sp, router, new CommandLine.Options(rest)),
             ["script", var router, .. var rest] => Script(sp, router, new CommandLine.Options(rest)),
             ["accept-host-key", var router] => AcceptHostKey(sp, router),
             ["versions"] => Versions(sp),
@@ -114,6 +117,33 @@ internal static class MikrotikCommand
             Console.WriteLine(outcome.Message);
         }
         return outcome.Succeeded ? 0 : 1;
+    }
+
+    private static int Backup(IServiceProvider sp, string name, CommandLine.Options o)
+    {
+        var print = o.Flag("--print");
+        o.EnsureAllUsed();
+        var id = Resolve(sp, name);
+        var outcome = sp.GetRequiredService<RouterPollService>()
+            .PollAsync(id, wait: true, CancellationToken.None, new PollRequest(ForceExport: true, Models.Enums.MikrotikBackupTrigger.Manual, null, "cli"))
+            .GetAwaiter().GetResult();
+        if (outcome.Reading is null || outcome.ExportError is not null || outcome.Export is null)
+        {
+            Console.Error.WriteLine(outcome.ExportError ?? (outcome.Message.Length > 0 ? outcome.Message : "No export."));
+            return 1;
+        }
+        var stored = outcome.Export;
+        Console.Error.WriteLine(stored.Backup is { } b
+            ? $"Version {b.Number} stored{(stored.First ? "" : $": +{stored.Added} −{stored.Removed} lines")}."
+            : "The configuration is unchanged: nothing new to store.");
+        if (print)
+        {
+            using var db = sp.GetRequiredService<IDbContextFactory<PnmtdDbContext>>().CreateDbContext();
+            var newest = db.MikrotikBackups.AsNoTracking().Where(x => x.SensorId == id && x.Kind == Models.Enums.MikrotikBackupKind.Export)
+                .OrderByDescending(x => x.Number).First();
+            Console.Write(BackupStore.Gunzip(newest.Content));
+        }
+        return 0;
     }
 
     private static int Script(IServiceProvider sp, string name, CommandLine.Options o)

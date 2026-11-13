@@ -145,7 +145,22 @@ public sealed class MikrotikRouterService(
         }
         var installation = await keys.GetAsync(ct);
         var latest = await LatestAsync(ct);
-        return Detail(router, installation, latest);
+        var backups = db.MikrotikBackups.AsNoTracking().Where(b => b.SensorId == sensorId);
+        var count = await backups.CountAsync(ct);
+        var newest = await backups.OrderByDescending(b => b.Number).Select(b => new MikrotikBackupEntity
+        {
+            Id = b.Id, Number = b.Number, Kind = b.Kind, Trigger = b.Trigger, CreatedAt = b.CreatedAt, CreatedByName = b.CreatedByName,
+            RouterOsVersion = b.RouterOsVersion, Size = b.Size, LineCount = b.LineCount, LinesAdded = b.LinesAdded, LinesRemoved = b.LinesRemoved,
+            IncludesSecrets = b.IncludesSecrets, Encrypted = b.Encrypted,
+        }).FirstOrDefaultAsync(ct);
+        return Detail(router, installation, latest) with
+        {
+            LastExportAt = UdpViews.NullableUtc(router.LastExportAt),
+            BackupFailures = router.BackupFailures,
+            LastBackupError = router.LastBackupError,
+            BackupCount = count,
+            LatestBackup = newest is null ? null : MikrotikBackupService.Item(newest),
+        };
     }
 
     private MikrotikRouterDetail Detail(MikrotikRouterEntity r, MikrotikInstallation installation, IReadOnlyDictionary<string, LatestVersion> latest)

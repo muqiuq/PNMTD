@@ -127,11 +127,17 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/sensors/{id:guid}/udp/commands"] = Roles.User,
         ["DELETE /api/v1/sensors/{id:guid}/udp/commands/{commandId:guid}"] = Roles.User,
         ["GET /api/v1/sensors/{id:guid}/udp/ota-jobs"] = Roles.Viewer,
-        // MikroTik routers (docs/mikrotik-plan.md §10): the join script holds keys (CanWrite), the rest of a router's own as the sensor's.
+        // MikroTik routers (docs/mikrotik-plan.md §10): the join script holds keys and exports reveal the network (CanWrite); the backup list is the sensor's.
         ["GET /api/v1/sensors/{id:guid}/mikrotik/join-script"] = Roles.User,
         ["GET /api/v1/sensors/{id:guid}/mikrotik/removal-script"] = Roles.User,
         ["POST /api/v1/sensors/{id:guid}/mikrotik/poll"] = Roles.User,
         ["POST /api/v1/sensors/{id:guid}/mikrotik/host-key/accept"] = Roles.Admin,
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/backups"] = Roles.Viewer,
+        ["POST /api/v1/sensors/{id:guid}/mikrotik/backups"] = Roles.User,
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/backups/{backupId:guid}"] = Roles.User,
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/backups/{backupId:guid}/diff"] = Roles.User,
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/backups/{backupId:guid}/download"] = Roles.User,
+        ["DELETE /api/v1/sensors/{id:guid}/mikrotik/backups/{backupId:guid}"] = Roles.Admin,
         ["GET /api/v1/mikrotik/status"] = Roles.Admin,
         ["GET /api/v1/mikrotik/routers"] = Roles.Admin,
         ["GET /api/v1/udp/status"] = Roles.Admin,

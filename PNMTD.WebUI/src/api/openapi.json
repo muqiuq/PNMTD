@@ -2296,6 +2296,301 @@
         }
       }
     },
+    "/api/v1/sensors/{id}/mikrotik/backups": {
+      "get": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/MikrotikBackupKind"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfMikrotikBackupItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfMikrotikBackupItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfMikrotikBackupItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/mikrotik/backups/{backupId}": {
+      "get": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "backupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupContent"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupContent"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupContent"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "backupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/mikrotik/backups/{backupId}/diff": {
+      "get": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "backupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "against",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupDiff"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupDiff"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupDiff"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/mikrotik/backups/{backupId}/download": {
+      "get": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "backupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileContentResult"
+                }
+              },
+              "application/octet-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileContentResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/mikrotik/status": {
       "get": {
         "tags": [
@@ -5192,6 +5487,13 @@
           }
         }
       },
+      "DiffLineKind": {
+        "enum": [
+          "Context",
+          "Added",
+          "Removed"
+        ]
+      },
       "DnsLogEntry": {
         "required": [
           "id",
@@ -6322,6 +6624,184 @@
           }
         }
       },
+      "MikrotikBackupContent": {
+        "required": [
+          "backup",
+          "content"
+        ],
+        "type": "object",
+        "properties": {
+          "backup": {
+            "$ref": "#/components/schemas/MikrotikBackupItem"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "MikrotikBackupDiff": {
+        "required": [
+          "from",
+          "to",
+          "added",
+          "removed",
+          "hunks",
+          "unified"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MikrotikBackupItem"
+              }
+            ]
+          },
+          "to": {
+            "$ref": "#/components/schemas/MikrotikBackupItem"
+          },
+          "added": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "removed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hunks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikDiffHunk"
+            }
+          },
+          "unified": {
+            "type": "string"
+          }
+        }
+      },
+      "MikrotikBackupItem": {
+        "required": [
+          "id",
+          "number",
+          "kind",
+          "trigger",
+          "createdAt",
+          "createdBy",
+          "routerOsVersion",
+          "size",
+          "lineCount",
+          "linesAdded",
+          "linesRemoved",
+          "includesSecrets",
+          "encrypted"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/MikrotikBackupKind"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/MikrotikBackupTrigger"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "routerOsVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "lineCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "linesAdded": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "linesRemoved": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "includesSecrets": {
+            "type": "boolean"
+          },
+          "encrypted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MikrotikBackupKind": {
+        "enum": [
+          "Export",
+          "Binary"
+        ]
+      },
+      "MikrotikBackupResult": {
+        "required": [
+          "changed",
+          "backup",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "changed": {
+            "type": "boolean"
+          },
+          "backup": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MikrotikBackupItem"
+              }
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "MikrotikBackupTrigger": {
+        "enum": [
+          "FirstLogin",
+          "Schedule",
+          "Manual",
+          "BeforeUpdate",
+          "BeforeCommand",
+          "AfterCommand"
+        ]
+      },
       "MikrotikChannelVersion": {
         "required": [
           "channel",
@@ -6357,6 +6837,71 @@
           },
           "count": {
             "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "MikrotikDiffHunk": {
+        "required": [
+          "oldStart",
+          "oldCount",
+          "newStart",
+          "newCount",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "oldStart": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "oldCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "newStart": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "newCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikDiffLine"
+            }
+          }
+        }
+      },
+      "MikrotikDiffLine": {
+        "required": [
+          "kind",
+          "text",
+          "oldNumber",
+          "newNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/DiffLineKind"
+          },
+          "text": {
+            "type": "string"
+          },
+          "oldNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "newNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
             "format": "int32"
           }
         }
@@ -6841,6 +7386,39 @@
             "items": {
               "type": "string"
             }
+          },
+          "lastExportAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "backupFailures": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "lastBackupError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "backupCount": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "latestBackup": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MikrotikBackupItem"
+              }
+            ]
           }
         }
       },
@@ -7413,6 +7991,35 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MailLogItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfMikrotikBackupItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikBackupItem"
             }
           },
           "page": {

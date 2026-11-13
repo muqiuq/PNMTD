@@ -35,6 +35,7 @@ import {
 import { useServerTable } from '@/composables/useServerTable'
 import { formatAbsolute, formatPercent } from '@/format'
 import { useSession } from '@/stores/session'
+import BackupsTab from './mikrotik/BackupsTab.vue'
 import MikrotikSettingsDialog from './mikrotik/MikrotikSettingsDialog.vue'
 import MikrotikStatusStrip from './mikrotik/MikrotikStatusStrip.vue'
 import SetupTab from './mikrotik/SetupTab.vue'
@@ -54,7 +55,7 @@ import { useNodeActions } from './udp/useNodeActions'
  * Right: its state and uptime, and its events, paged, on the first screen. A UDP node
  * (docs/udp-iot-plan.md §6.2) adds a status strip and subpages with routes of their own: Last
  * packets, Commands, Firmware, Protocol; its integration panel shows the endpoint, key and token.
- * A MikroTik router (docs/mikrotik-plan.md §11.1) adds its status strip and the Setup tab.
+ * A MikroTik router (docs/mikrotik-plan.md §11.1) adds its status strip, Setup, and in the SSH modes Backups.
  */
 const route = useRoute()
 const router = useRouter()
@@ -93,6 +94,17 @@ const mikrotikTabs = computed(() => {
       to: to('setup'),
       badge: sensor.value?.mikrotik?.setupState !== 'Ready' || sensor.value?.mikrotik?.scriptOutdated ? '!' : null,
     },
+    ...(sensor.value?.mikrotik?.mode !== 'WireGuardOnly'
+      ? [
+          {
+            key: 'backups',
+            label: 'Backups',
+            icon: 'pi pi-history',
+            to: to('backups'),
+            badge: sensor.value?.mikrotik?.backupCount || null,
+          },
+        ]
+      : []),
   ]
 })
 const routerSettingsOpen = ref(false)
@@ -287,6 +299,12 @@ const more = computed(() => [
         :can-write="canWrite"
         :is-admin="isAdmin"
         @edit="routerSettingsOpen = true"
+      />
+      <BackupsTab
+        v-else-if="isMikrotik && tab === 'backups'"
+        :sensor="sensor"
+        :can-write="canWrite"
+        :is-admin="isAdmin"
       />
       <LastPacketsTab v-else-if="tab === 'last-packets'" :sensor="sensor" />
       <CommandsTab v-else-if="tab === 'commands'" :sensor="sensor" :can-write="canWrite" />

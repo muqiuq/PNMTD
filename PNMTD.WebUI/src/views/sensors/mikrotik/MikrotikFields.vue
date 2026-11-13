@@ -120,7 +120,7 @@ const modeHint = computed(() => MODES.find((m) => m.value === draft.value.mode)?
           errors['mikrotik.backupIntervalHours']
         }}</small>
         <small v-else class="field-hint"
-          >How often the configuration is exported (backups follow in a later release).</small
+          >How often the configuration is exported; a version is stored only when it changed.</small
         >
       </div>
       <template v-if="isAdmin">

@@ -106,9 +106,10 @@ public partial class Program
             builder.Services.AddHostedService<UplinkCheckTask>();
             builder.Services.AddHostedService<DnsCheckTask>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<UdpMaintenanceTask>());
-            // MikroTik routers (docs/mikrotik-plan.md §5.2, §5.4); Mikrotik:Enabled=false pauses both.
+            // MikroTik routers (docs/mikrotik-plan.md §5.2, §5.4, §6.3); Mikrotik:Enabled=false pauses the poller and the version check.
             builder.Services.AddHostedService(sp => sp.GetRequiredService<RouterPoller>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<VersionCatalog>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<BackupRetentionTask>());
         }
 
         // UDP nodes (docs/udp-iot-plan.md §4.4): on unless Udp:Enabled=false, not tied to the

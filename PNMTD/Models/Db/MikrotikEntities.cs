@@ -101,6 +101,22 @@ public class MikrotikRouterEntity
     /// <summary>244 is written once per version (§5.3).</summary>
     public string? NotifiedUpdateVersion { get; set; }
 
+    // --- backups (§6) -----------------------------------------------------------------------------------
+
+    /// <summary>The last successful export, whether it stored a new version or found the configuration unchanged.</summary>
+    public DateTime? LastExportAt { get; set; }
+
+    /// <summary>The last export tried; after a failure the next try waits <c>Backups:RetryMinutes</c>.</summary>
+    public DateTime? LastExportAttemptAt { get; set; }
+
+    /// <summary>SHA-256 of the newest stored export, normalised: an equal export stores nothing (§6.2).</summary>
+    public string? LastExportHash { get; set; }
+
+    /// <summary>Exports that failed in a row: 442 from two on (§5.3).</summary>
+    public int BackupFailures { get; set; }
+
+    public string? LastBackupError { get; set; }
+
     public DateTime Created { get; set; }
 }
 
@@ -153,4 +169,60 @@ public class MikrotikSshKeyEntity
 
     /// <summary>Set when a newer key replaced it; it is still offered until no router needs it.</summary>
     public DateTime? RetiredAt { get; set; }
+}
+
+/// <summary>
+/// A stored configuration (§6.3): an export as gzip, or a binary backup taken in an update (§6.5). It
+/// outlives the router (<c>ON DELETE SET NULL</c>, with the router's name kept); retention deletes old ones.
+/// </summary>
+[Table("mikrotik_backups")]
+public class MikrotikBackupEntity
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    public Guid? SensorId { get; set; }
+
+    /// <summary>The router's name when the backup was taken.</summary>
+    public string RouterName { get; set; } = "";
+
+    /// <summary>1, 2, 3, … per router: "version 42".</summary>
+    public int Number { get; set; }
+
+    public MikrotikBackupKind Kind { get; set; }
+
+    public MikrotikBackupTrigger Trigger { get; set; }
+
+    /// <summary>The update or command job that took it (§7.3, §8.2).</summary>
+    public Guid? JobId { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public Guid? CreatedBy { get; set; }
+
+    public string? CreatedByName { get; set; }
+
+    public string? RouterOsVersion { get; set; }
+
+    /// <summary>gzip of the normalised export (exports), or the file as the router wrote it (binary).</summary>
+    public byte[] Content { get; set; } = [];
+
+    /// <summary>The size before compression.</summary>
+    public long Size { get; set; }
+
+    public int LineCount { get; set; }
+
+    /// <summary>Of the normalised export.</summary>
+    public string Sha256 { get; set; } = "";
+
+    /// <summary>Exported with <c>show-sensitive</c> by a group that has <c>sensitive</c>: only Admins see it (§6.6).</summary>
+    public bool IncludesSecrets { get; set; }
+
+    /// <summary>Against the version before; null for the first.</summary>
+    public int? LinesAdded { get; set; }
+
+    public int? LinesRemoved { get; set; }
+
+    /// <summary>A binary backup encrypted with the job's admin password (§6.5).</summary>
+    public bool Encrypted { get; set; }
 }
