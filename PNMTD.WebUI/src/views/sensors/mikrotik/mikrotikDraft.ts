@@ -1,4 +1,5 @@
 import type { S } from '@/api/resources'
+import { scheduleError, type BackupSchedule } from './backupSchedule'
 
 /**
  * A router's settings as the sensor form and the settings dialog edit them (docs/mikrotik-plan.md
@@ -9,7 +10,8 @@ export interface MikrotikDraft {
   address: string
   sshPort: number | null
   sourceAddress: string
-  backupIntervalHours: number | null
+  /** Null is off (docs/mikrotik-backup-plan.md §2). */
+  backupIntervalHours: BackupSchedule
   managementAccess: boolean
   includeSecrets: boolean
   diagnostics: boolean
@@ -49,14 +51,17 @@ export const MIKROTIK_FIELDS = [
   'mikrotik.managementAccess',
 ] as const
 
-/** WireGuard + SSH by default where the gateway runs (§3.1), Direct SSH without it. */
-export function newMikrotikDraft(wireGuard = false): MikrotikDraft {
+/**
+ * WireGuard + SSH by default where the gateway runs (§3.1), Direct SSH without it; the backup schedule the
+ * installation gives new routers.
+ */
+export function newMikrotikDraft(wireGuard = false, backupIntervalHours: number | null = 24): MikrotikDraft {
   return {
     mode: wireGuard ? 'WireGuardSsh' : 'DirectSsh',
     address: '',
     sshPort: 22,
     sourceAddress: '',
-    backupIntervalHours: 24,
+    backupIntervalHours,
     managementAccess: false,
     includeSecrets: false,
     diagnostics: false,
@@ -83,7 +88,7 @@ export function mikrotikRequestFromDraft(d: MikrotikDraft): S['MikrotikRouterReq
     address: direct ? d.address.trim() || null : null,
     sshPort: d.sshPort ?? 22,
     sourceAddress: direct ? d.sourceAddress.trim() || null : null,
-    backupIntervalHours: d.backupIntervalHours ?? 24,
+    backupIntervalHours: d.backupIntervalHours ?? null,
     managementAccess: direct ? false : d.managementAccess,
     includeSecrets: d.includeSecrets,
     diagnostics: d.diagnostics,
@@ -101,10 +106,7 @@ export function draftErrors(d: MikrotikDraft): Record<string, string | undefined
           ? 'A host name or an address, without spaces.'
           : undefined,
     'mikrotik.sshPort': d.sshPort === null || d.sshPort < 1 || d.sshPort > 65535 ? 'Between 1 and 65535.' : undefined,
-    'mikrotik.backupIntervalHours':
-      d.backupIntervalHours === null || d.backupIntervalHours < 1 || d.backupIntervalHours > 168
-        ? 'Between 1 and 168 hours.'
-        : undefined,
+    'mikrotik.backupIntervalHours': scheduleError(d.backupIntervalHours),
   }
 }
 

@@ -40,7 +40,8 @@ public class MikrotikRouterEntity
     /// <summary><c>test</c> in the group: ping and traceroute as <c>pnmt</c> (§8.4). Admin.</summary>
     public bool Diagnostics { get; set; }
 
-    public int BackupIntervalHours { get; set; } = 24;
+    /// <summary>The scheduled export's interval (§6.1, docs/mikrotik-backup-plan.md §2): 1 to 8760 hours; null is off.</summary>
+    public int? BackupIntervalHours { get; set; } = 24;
 
     public MikrotikSetupState SetupState { get; set; }
 
@@ -149,6 +150,9 @@ public class MikrotikSettingsEntity
     public DateTime? VersionsCheckedAt { get; set; }
 
     public string? VersionCheckError { get; set; }
+
+    /// <summary>The schedule new routers start with (docs/mikrotik-backup-plan.md §2.2); null is off.</summary>
+    public int? DefaultBackupIntervalHours { get; set; } = 24;
 }
 
 /// <summary>

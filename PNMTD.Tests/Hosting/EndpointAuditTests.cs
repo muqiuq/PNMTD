@@ -163,6 +163,10 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/mikrotik/ssh-keys"] = Roles.Admin,
         ["POST /api/v1/mikrotik/ssh-keys/rotate"] = Roles.Admin,
         ["POST /api/v1/mikrotik/ssh-keys/retire"] = Roles.Admin,
+        // Backups (docs/mikrotik-backup-plan.md §2.2): the new-router form reads the default.
+        ["GET /api/v1/mikrotik/backup-settings"] = Roles.User,
+        ["PUT /api/v1/mikrotik/backup-settings"] = Roles.Admin,
+        ["POST /api/v1/mikrotik/routers/backup-settings"] = Roles.Admin,
         // Remote commands (§8): as pnmt for Users; as an admin for Admins, checked in the service.
         ["POST /api/v1/mikrotik/commands"] = Roles.User,
         ["GET /api/v1/mikrotik/commands"] = Roles.User,

@@ -194,6 +194,12 @@ export const api = {
         channel?: string
       } = {},
     ) => call(client.GET('/api/v1/mikrotik/routers', { params: { query } })),
+    // --- backups for the installation (docs/mikrotik-backup-plan.md §2.2): reading CanWrite, changing Admin ---
+    backupSettings: () => call(client.GET('/api/v1/mikrotik/backup-settings')),
+    updateBackupSettings: (body: S['MikrotikBackupSettingsRequest']) =>
+      call(client.PUT('/api/v1/mikrotik/backup-settings', { body })),
+    applyBackupSettings: (body: S['MikrotikRouterBackupRequest']) =>
+      call(client.POST('/api/v1/mikrotik/routers/backup-settings', { body })),
   },
 
   wireGuard: {

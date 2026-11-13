@@ -19,7 +19,11 @@ public sealed class MikrotikRouterRequest
     /// <summary>Direct SSH: PNMTD's address as the router sees it; the <c>pnmt</c> user may log in only from it. Empty: from anywhere.</summary>
     public string? SourceAddress { get; init; }
 
-    public int BackupIntervalHours { get; init; } = 24;
+    /// <summary>
+    /// The scheduled export: every 1 to 8760 hours, or null for off (docs/mikrotik-backup-plan.md §2). Left out, 24;
+    /// the UI starts a new router with the installation's default (<c>GET /mikrotik/backup-settings</c>).
+    /// </summary>
+    public int? BackupIntervalHours { get; init; } = 24;
 
     public bool ManagementAccess { get; init; }
 
@@ -35,7 +39,7 @@ public sealed record MikrotikRouterDetail(
     string? Address,
     int SshPort,
     string? SourceAddress,
-    int BackupIntervalHours,
+    int? BackupIntervalHours,
     bool ManagementAccess,
     bool IncludeSecrets,
     bool Diagnostics,
@@ -124,7 +128,8 @@ public sealed record MikrotikFleetItem(
     DateTime? BootedAt,
     DateTime? LastSuccessAt,
     string? LastError,
-    bool ScriptOutdated);
+    bool ScriptOutdated,
+    int? BackupIntervalHours = 24);
 
 /// <summary>
 /// <c>GET /mikrotik/routers</c>. Search: name, host, identity, serial number, address. Sort: name
@@ -368,3 +373,34 @@ public sealed class MikrotikCommandQuery : PageQuery
 
 /// <summary>A RouterOS release's changelog, from MikroTik's update server (§5.4).</summary>
 public sealed record MikrotikChangelog(string Version, string Text);
+
+/// <summary>
+/// <c>GET /mikrotik/backup-settings</c> (docs/mikrotik-backup-plan.md §2.2): what new routers start with.
+/// </summary>
+public sealed record MikrotikBackupSettings(int? DefaultBackupIntervalHours);
+
+/// <summary><c>PUT /mikrotik/backup-settings</c> (Admin).</summary>
+public sealed class MikrotikBackupSettingsRequest
+{
+    /// <summary>1 to 8760 hours, or null for off.</summary>
+    public int? DefaultBackupIntervalHours { get; init; } = 24;
+}
+
+/// <summary>
+/// <c>POST /mikrotik/routers/backup-settings</c> (Admin, docs/mikrotik-backup-plan.md §2.2): the backup schedule of
+/// many routers at once.
+/// </summary>
+public sealed class MikrotikRouterBackupRequest
+{
+    /// <summary>1 to 500 routers.</summary>
+    public IReadOnlyList<Guid> SensorIds { get; init; } = [];
+
+    /// <summary>Set the schedule to <see cref="BackupIntervalHours"/>; false leaves it as it is.</summary>
+    public bool SetSchedule { get; init; }
+
+    /// <summary>1 to 8760 hours, or null for off.</summary>
+    public int? BackupIntervalHours { get; init; }
+}
+
+/// <summary>How many routers the change touched.</summary>
+public sealed record MikrotikRouterBackupResult(int Changed);

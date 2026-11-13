@@ -62,6 +62,23 @@ const textId = ref('')
 const notes = ref('')
 const udp = ref(newUdpDraft(Number.isInteger(presetDevice) && presetDevice > 0 ? presetDevice : null))
 const mikrotik = ref(newMikrotikDraft(!!session.info?.wireGuard))
+// A new router starts with the installation's backup schedule (docs/mikrotik-backup-plan.md §2.2), once it is known.
+const backupDefaults = useQuery({
+  queryKey: [...keys.mikrotik, 'backup-settings'],
+  queryFn: api.mikrotik.backupSettings,
+  enabled: computed(() => type.value === 'MIKROTIK'),
+})
+let scheduleFromDefaults = false
+watch(
+  () => backupDefaults.data.value,
+  (settings) => {
+    if (settings && !scheduleFromDefaults) {
+      scheduleFromDefaults = true
+      mikrotik.value = { ...mikrotik.value, backupIntervalHours: settings.defaultBackupIntervalHours ?? null }
+    }
+  },
+  { immediate: true },
+)
 const errors = ref<Record<string, string | undefined>>({})
 const busy = ref(false)
 

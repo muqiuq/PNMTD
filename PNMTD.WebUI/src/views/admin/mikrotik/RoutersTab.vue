@@ -14,11 +14,14 @@ import StatusBadge from '@/components/StatusBadge.vue'
 import { useServerTable } from '@/composables/useServerTable'
 import { modeLabel } from '@/views/sensors/mikrotik/mikrotikDraft'
 import UpdateDialog from '@/views/sensors/mikrotik/UpdateDialog.vue'
+import { scheduleLabel } from '@/views/sensors/mikrotik/backupSchedule'
 import CommandDialog from './CommandDialog.vue'
+import RouterBackupDialog from './RouterBackupDialog.vue'
 
 /**
  * Every router (§11.2): its state, version against the latest of its channel, and whether its script is up to
- * date. Routers chosen here, across pages and filters, get one batch: Run command… (§8.2) or Update… (§7.4).
+ * date. Routers chosen here, across pages and filters, get one batch: Run command… (§8.2) or Update… (§7.4),
+ * or one backup schedule (Backup settings…, docs/mikrotik-backup-plan.md §2.2).
  */
 const filter = ref<'' | 'update' | 'outdated' | 'failing'>('')
 const filters = computed(() => ({
@@ -60,6 +63,7 @@ function toggleAll(on: boolean) {
 const chosen = computed(() => [...selected.value.values()])
 const commanding = ref(false)
 const updating = ref(false)
+const backingUp = ref(false)
 function commandStarted(created: S['MikrotikCommandsCreated']) {
   void router.push({ query: { tab: 'jobs', batch: created.batchId } })
 }
@@ -103,6 +107,14 @@ const choices = [
         severity="secondary"
         :disabled="!chosen.length"
         @click="updating = true"
+      />
+      <Button
+        label="Backup settings…"
+        icon="pi pi-history"
+        size="small"
+        severity="secondary"
+        :disabled="!chosen.length"
+        @click="backingUp = true"
       />
     </div>
     <ListTable :table="table" what="routers" empty-text="No MikroTik router yet: add one as a sensor of a host.">
@@ -155,6 +167,13 @@ const choices = [
           </div>
         </template>
       </Column>
+      <Column header="Backups" style="width: 8rem">
+        <template #body="{ data }">
+          <span v-if="loginModes(data)" :class="{ muted: data.backupIntervalHours === null }">{{
+            scheduleLabel(data.backupIntervalHours)
+          }}</span>
+        </template>
+      </Column>
       <Column header="Last poll" style="width: 8rem">
         <template #body="{ data }"><RelativeTime :value="data.lastSuccessAt" /></template>
       </Column>
@@ -171,6 +190,7 @@ const choices = [
       :routers="chosen.map((r) => ({ id: r.sensorId, name: r.name }))"
       @started="commandStarted"
     />
+    <RouterBackupDialog v-model:visible="backingUp" :routers="chosen.map((r) => ({ id: r.sensorId, name: r.name }))" />
     <UpdateDialog
       v-model:visible="updating"
       :routers="

@@ -2521,6 +2521,113 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/mikrotik/backup-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikBackupSettings"];
+                        "text/json": components["schemas"]["MikrotikBackupSettings"];
+                        "text/plain": components["schemas"]["MikrotikBackupSettings"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MikrotikBackupSettingsRequest"];
+                    "text/json": components["schemas"]["MikrotikBackupSettingsRequest"];
+                    "application/*+json": components["schemas"]["MikrotikBackupSettingsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikBackupSettings"];
+                        "text/json": components["schemas"]["MikrotikBackupSettings"];
+                        "text/plain": components["schemas"]["MikrotikBackupSettings"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mikrotik/routers/backup-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MikrotikRouterBackupRequest"];
+                    "text/json": components["schemas"]["MikrotikRouterBackupRequest"];
+                    "application/*+json": components["schemas"]["MikrotikRouterBackupRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikRouterBackupResult"];
+                        "text/json": components["schemas"]["MikrotikRouterBackupResult"];
+                        "text/plain": components["schemas"]["MikrotikRouterBackupResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/mikrotik/commands": {
         parameters: {
             query?: never;
@@ -5455,6 +5562,14 @@ export interface components {
             backup: null | components["schemas"]["MikrotikBackupItem"];
             message: string;
         };
+        MikrotikBackupSettings: {
+            /** Format: int32 */
+            defaultBackupIntervalHours: null | number;
+        };
+        MikrotikBackupSettingsRequest: {
+            /** Format: int32 */
+            defaultBackupIntervalHours?: null | number;
+        };
         /** @enum {unknown} */
         MikrotikBackupTrigger: "FirstLogin" | "Schedule" | "Manual" | "BeforeUpdate" | "BeforeCommand" | "AfterCommand" | "AfterUpdate";
         MikrotikChangelog: {
@@ -5596,6 +5711,11 @@ export interface components {
             lastSuccessAt: null | string;
             lastError: null | string;
             scriptOutdated: boolean;
+            /**
+             * Format: int32
+             * @default 24
+             */
+            backupIntervalHours: null | number;
         };
         MikrotikHostKey: {
             type: string;
@@ -5701,6 +5821,16 @@ export interface components {
             /** Format: int64 */
             uptimeSeconds: null | number;
         };
+        MikrotikRouterBackupRequest: {
+            sensorIds?: string[];
+            setSchedule?: boolean;
+            /** Format: int32 */
+            backupIntervalHours?: null | number;
+        };
+        MikrotikRouterBackupResult: {
+            /** Format: int32 */
+            changed: number;
+        };
         MikrotikRouterDetail: {
             mode: components["schemas"]["MikrotikMode"];
             setupState: components["schemas"]["MikrotikSetupState"];
@@ -5709,7 +5839,7 @@ export interface components {
             sshPort: number;
             sourceAddress: null | string;
             /** Format: int32 */
-            backupIntervalHours: number;
+            backupIntervalHours: null | number;
             managementAccess: boolean;
             includeSecrets: boolean;
             diagnostics: boolean;
@@ -5764,7 +5894,7 @@ export interface components {
             sshPort?: number;
             sourceAddress?: null | string;
             /** Format: int32 */
-            backupIntervalHours?: number;
+            backupIntervalHours?: null | number;
             managementAccess?: boolean;
             includeSecrets?: boolean;
             diagnostics?: boolean;

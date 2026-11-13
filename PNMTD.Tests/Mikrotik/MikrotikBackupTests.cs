@@ -47,7 +47,8 @@ public sealed class MikrotikBackupTests
     public void Thaw() => Clock.Provider = TimeProvider.System;
 
     /// <summary>A router with a simulated router behind it.</summary>
-    private static async Task<(Guid Id, FakeRouter Fake)> RouterAsync(string version = "7.25.1", HttpClient? client = null, bool secrets = false)
+    private static async Task<(Guid Id, FakeRouter Fake)> RouterAsync(string version = "7.25.1", HttpClient? client = null, bool secrets = false,
+        int? schedule = 24)
     {
         var address = $"198.51.100.{next++}";
         var fake = FakeRouter.From(version);
@@ -59,7 +60,7 @@ public sealed class MikrotikBackupTests
             Name = $"router {address}",
             Interval = 300,
             GracePeriod = 600,
-            Mikrotik = new MikrotikRouterRequest { Mode = MikrotikMode.DirectSsh, Address = address, IncludeSecrets = secrets },
+            Mikrotik = new MikrotikRouterRequest { Mode = MikrotikMode.DirectSsh, Address = address, IncludeSecrets = secrets, BackupIntervalHours = schedule },
         })).ReadAsync<SensorDetail>();
         return (sensor.Id, fake);
     }
@@ -253,4 +254,73 @@ public sealed class MikrotikBackupTests
         var orphan = await db.MikrotikBackups.SingleAsync(b => b.RouterName == $"router {routers.LastTarget!.Host}");
         Assert.IsNull(orphan.SensorId);
     }
+
+    // --- the schedule (docs/mikrotik-backup-plan.md §2) ------------------------------------------------
+
+    [TestMethod]
+    public async Task With_the_schedule_off_only_Back_up_now_exports()
+    {
+        var (id, fake) = await RouterAsync(schedule: null);
+        await PollAsync(id);
+        Assert.IsFalse(fake.Commands.Any(c => c.StartsWith("/export", StringComparison.Ordinal)), "no version 1 at the first login");
+        Assert.AreEqual(0, (await BackupsAsync(id)).Count);
+
+        var result = await (await user.PostAsync($"/api/v1/sensors/{id}/mikrotik/backups", null)).ReadAsync<MikrotikBackupResult>();
+        Assert.IsTrue(result.Changed, result.Message);
+        Assert.AreEqual(MikrotikBackupTrigger.Manual, result.Backup!.Trigger);
+        fake.Commands.Clear();
+        await PollAsync(id);
+        Assert.IsFalse(fake.Commands.Any(c => c.StartsWith("/export", StringComparison.Ordinal)));
+        var detail = await (await user.GetAsync($"/api/v1/sensors/{id}")).ReadAsync<SensorDetail>();
+        Assert.IsNull(detail.Mikrotik!.BackupIntervalHours);
+    }
+
+    [TestMethod]
+    public async Task A_monthly_schedule_exports_once_its_interval_has_passed()
+    {
+        var time = new FakeTimeProvider(DateTimeOffset.UtcNow);
+        Clock.Provider = time;
+        var (id, fake) = await RouterAsync(schedule: 720);
+        await PollAsync(id);
+        Assert.AreEqual(1, (await BackupsAsync(id)).Count);
+        time.Advance(TimeSpan.FromDays(29));
+        fake.Commands.Clear();
+        await PollAsync(id);
+        Assert.IsFalse(fake.Commands.Any(c => c.StartsWith("/export", StringComparison.Ordinal)), "not due after 29 days");
+        time.Advance(TimeSpan.FromDays(1.5));
+        await PollAsync(id);
+        CollectionAssert.Contains(fake.Commands, "/export terse");
+    }
+
+    [TestMethod]
+    public async Task The_schedule_is_off_or_up_to_a_year_and_Admins_change_it_for_many()
+    {
+        var response = await user.PostJsonAsync("/api/v1/sensors", new SensorRequest
+        {
+            HostId = hostId, Type = SensorType.MIKROTIK, Name = "too rare", Interval = 300, GracePeriod = 600,
+            Mikrotik = new MikrotikRouterRequest { Mode = MikrotikMode.DirectSsh, Address = "198.51.100.250", BackupIntervalHours = 8761 },
+        });
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+        var (a, _) = await RouterAsync(schedule: 8760);
+        var (b, _) = await RouterAsync();
+
+        // The default for new routers: readable for the form, changed by Admins.
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await user.PutJsonAsync("/api/v1/mikrotik/backup-settings",
+            new MikrotikBackupSettingsRequest { DefaultBackupIntervalHours = null })).StatusCode);
+        var settings = await (await admin.PutJsonAsync("/api/v1/mikrotik/backup-settings",
+            new MikrotikBackupSettingsRequest { DefaultBackupIntervalHours = 168 })).ReadAsync<MikrotikBackupSettings>();
+        Assert.AreEqual(168, settings.DefaultBackupIntervalHours);
+        Assert.AreEqual(168, (await (await user.GetAsync("/api/v1/mikrotik/backup-settings")).ReadAsync<MikrotikBackupSettings>()).DefaultBackupIntervalHours);
+
+        // Many routers at once: off for both.
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await user.PostJsonAsync("/api/v1/mikrotik/routers/backup-settings",
+            new MikrotikRouterBackupRequest { SensorIds = [a, b], SetSchedule = true })).StatusCode);
+        var applied = await (await admin.PostJsonAsync("/api/v1/mikrotik/routers/backup-settings",
+            new MikrotikRouterBackupRequest { SensorIds = [a, b], SetSchedule = true, BackupIntervalHours = null })).ReadAsync<MikrotikRouterBackupResult>();
+        Assert.AreEqual(2, applied.Changed);
+        await using var db = app.NewDb();
+        Assert.IsTrue(await db.MikrotikRouters.Where(r => r.SensorId == a || r.SensorId == b).AllAsync(r => r.BackupIntervalHours == null));
+        await admin.PutJsonAsync("/api/v1/mikrotik/backup-settings", new MikrotikBackupSettingsRequest { DefaultBackupIntervalHours = 24 });
+    }
+
 }

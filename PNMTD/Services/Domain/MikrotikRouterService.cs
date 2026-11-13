@@ -31,7 +31,7 @@ public sealed class MikrotikRouterService(
 {
     /// <summary>Set when a change concerns the gateway's peers: <see cref="NotifyGatewayAsync"/> after saving.</summary>
     private bool peersChanged;
-    public const int MaxBackupIntervalHours = 168;
+    public const int MaxBackupIntervalHours = 8760;
 
     private static readonly string[] SortFields = ["name", "host", "state", "version", "lastsuccess"];
 
@@ -61,7 +61,8 @@ public sealed class MikrotikRouterService(
             v.Check(!request.ManagementAccess, "mikrotik.managementAccess", "Management access needs a WireGuard mode: custom tunnels reach routers through the tunnel.");
         }
         v.Check(request.SshPort is >= 1 and <= 65535, "mikrotik.sshPort", "Between 1 and 65535.");
-        v.Check(request.BackupIntervalHours is >= 1 and <= MaxBackupIntervalHours, "mikrotik.backupIntervalHours", $"Between 1 and {MaxBackupIntervalHours} hours.");
+        v.Check(request.BackupIntervalHours is null or (>= 1 and <= MaxBackupIntervalHours), "mikrotik.backupIntervalHours",
+            $"Off, or between 1 and {MaxBackupIntervalHours} hours (a year).");
 
         // The settings that widen what PNMT may do on the router are an Admin's (§3.5, §6.6, §8.4).
         var before = (existing?.ManagementAccess ?? false, existing?.IncludeSecrets ?? false, existing?.Diagnostics ?? false);
@@ -80,7 +81,12 @@ public sealed class MikrotikRouterService(
         {
             return;
         }
-        request ??= new MikrotikRouterRequest();
+        if (request is null)
+        {
+            // A router created without settings starts with the installation's backup schedule (docs/mikrotik-backup-plan.md §2.2).
+            var defaults = await db.MikrotikSettings.AsNoTracking().SingleOrDefaultAsync(s => s.Id == MikrotikSettingsEntity.SingletonId, ct);
+            request = new MikrotikRouterRequest { BackupIntervalHours = defaults is null ? 24 : defaults.DefaultBackupIntervalHours };
+        }
         var now = Clock.UtcNow;
         if (router is null)
         {
@@ -512,7 +518,7 @@ public sealed class MikrotikRouterService(
                 return new MikrotikFleetItem(r.SensorId, s.Info.Name, new Ref(s.Info.HostId, s.Info.HostName), s.Info.Enabled, r.Mode, r.SetupState,
                     s.State, s.LastCode, s.LastMessage, r.Address, r.Identity, r.Model ?? r.BoardName, r.SerialNumber, r.Version, r.Channel, latestVersion,
                     UpdateAvailable(r.Version, latestVersion), r.FirmwareCurrent, r.FirmwareUpgrade, UdpViews.NullableUtc(r.BootedAt),
-                    UdpViews.NullableUtc(r.LastSuccessAt), r.LastError, Differences(r, Reading(r), installation).Count > 0);
+                    UdpViews.NullableUtc(r.LastSuccessAt), r.LastError, Differences(r, Reading(r), installation).Count > 0, r.BackupIntervalHours);
             })
             .Where(i => query.Mode is not { } m || i.Mode == m)
             .Where(i => query.SetupState is not { } st || i.SetupState == st)

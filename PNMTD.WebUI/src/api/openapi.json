@@ -3254,6 +3254,131 @@
         }
       }
     },
+    "/api/v1/mikrotik/backup-settings": {
+      "get": {
+        "tags": [
+          "MikrotikBackupSettings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupSettings"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupSettings"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "MikrotikBackupSettings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikBackupSettingsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikBackupSettingsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikBackupSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupSettings"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupSettings"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikBackupSettings"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mikrotik/routers/backup-settings": {
+      "post": {
+        "tags": [
+          "MikrotikBackupSettings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikRouterBackupRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikRouterBackupRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikRouterBackupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterBackupResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterBackupResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterBackupResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/mikrotik/commands": {
       "post": {
         "tags": [
@@ -8062,6 +8187,33 @@
           }
         }
       },
+      "MikrotikBackupSettings": {
+        "required": [
+          "defaultBackupIntervalHours"
+        ],
+        "type": "object",
+        "properties": {
+          "defaultBackupIntervalHours": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "MikrotikBackupSettingsRequest": {
+        "type": "object",
+        "properties": {
+          "defaultBackupIntervalHours": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "MikrotikBackupTrigger": {
         "enum": [
           "FirstLogin",
@@ -8660,6 +8812,14 @@
           },
           "scriptOutdated": {
             "type": "boolean"
+          },
+          "backupIntervalHours": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32",
+            "default": 24
           }
         }
       },
@@ -9098,6 +9258,40 @@
           }
         }
       },
+      "MikrotikRouterBackupRequest": {
+        "type": "object",
+        "properties": {
+          "sensorIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "setSchedule": {
+            "type": "boolean"
+          },
+          "backupIntervalHours": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "MikrotikRouterBackupResult": {
+        "required": [
+          "changed"
+        ],
+        "type": "object",
+        "properties": {
+          "changed": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "MikrotikRouterDetail": {
         "required": [
           "mode",
@@ -9158,7 +9352,10 @@
             ]
           },
           "backupIntervalHours": {
-            "type": "integer",
+            "type": [
+              "null",
+              "integer"
+            ],
             "format": "int32"
           },
           "managementAccess": {
@@ -9387,7 +9584,10 @@
             ]
           },
           "backupIntervalHours": {
-            "type": "integer",
+            "type": [
+              "null",
+              "integer"
+            ],
             "format": "int32"
           },
           "managementAccess": {
@@ -14158,6 +14358,9 @@
     },
     {
       "name": "Mikrotik"
+    },
+    {
+      "name": "MikrotikBackupSettings"
     },
     {
       "name": "MikrotikCommands"

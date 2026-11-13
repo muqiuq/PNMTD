@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import TabNav from '@/components/TabNav.vue'
 import NetworkTab from './mikrotik/NetworkTab.vue'
+import BackupsTab from './mikrotik/BackupsTab.vue'
 import OverviewTab from './mikrotik/OverviewTab.vue'
 import RoutersTab from './mikrotik/RoutersTab.vue'
 import JobsTab from './mikrotik/JobsTab.vue'
@@ -12,7 +13,7 @@ import TunnelsTab from './mikrotik/TunnelsTab.vue'
 /**
  * MikroTik & WireGuard (docs/mikrotik-plan.md §11.2), Admin only: one page that monitors and configures
  * the routers and the tunnel network. Tabs (?tab=…, so they can be linked): the overview, the network's
- * settings, and every router.
+ * settings, every router, and their backups.
  */
 const route = useRoute()
 const tab = computed(() => (typeof route.query.tab === 'string' ? route.query.tab : 'overview'))
@@ -24,6 +25,7 @@ const tabs = computed(() => {
     { key: 'routers', label: 'Routers', icon: 'pi pi-server', to: to('routers') },
     { key: 'tunnels', label: 'Custom tunnels', icon: 'pi pi-lock', to: to('tunnels') },
     { key: 'jobs', label: 'Jobs', icon: 'pi pi-upload', to: to('jobs') },
+    { key: 'backups', label: 'Backups', icon: 'pi pi-history', to: to('backups') },
   ]
 })
 </script>
@@ -36,6 +38,7 @@ const tabs = computed(() => {
     <RoutersTab v-else-if="tab === 'routers'" />
     <TunnelsTab v-else-if="tab === 'tunnels'" />
     <JobsTab v-else-if="tab === 'jobs'" />
+    <BackupsTab v-else-if="tab === 'backups'" />
     <OverviewTab v-else />
   </div>
 </template>

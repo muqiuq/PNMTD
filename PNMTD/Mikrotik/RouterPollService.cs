@@ -319,16 +319,21 @@ public sealed class RouterPollService(
 
     /// <summary>
     /// Due when the backup interval has passed since the last successful export (§6.1), or there was none;
-    /// after a failed export, not before <c>Backups:RetryMinutes</c>.
+    /// after a failed export, not before <c>Backups:RetryMinutes</c>. Never with the schedule off, not even
+    /// the first (docs/mikrotik-backup-plan.md §2.3).
     /// </summary>
     private bool ExportDue(MikrotikRouterEntity router, DateTime now)
     {
+        if (router.BackupIntervalHours is not { } hours)
+        {
+            return false;
+        }
         var b = options.CurrentValue.Backups;
         if (router.BackupFailures > 0 && router.LastExportAttemptAt is { } attempt && now - attempt < TimeSpan.FromMinutes(b.RetryMinutes))
         {
             return false;
         }
-        return router.LastExportAt is null || now - router.LastExportAt.Value >= TimeSpan.FromHours(Math.Max(1, router.BackupIntervalHours));
+        return router.LastExportAt is null || now - router.LastExportAt.Value >= TimeSpan.FromHours(Math.Max(1, hours));
     }
 
     private sealed record ExportPlan(bool Due, bool IncludeSecrets);
@@ -555,9 +560,10 @@ public sealed class RouterPollService(
             events.Add(new RouterEvent(PNMTStatusCodes.MIKROTIK_UPDATE_AVAILABLE, $"{available} available on {r.Channel} ({version} installed)"));
             router.NotifiedUpdateVersion = available;
         }
-        if (router.BackupFailures >= 2)
+        if (router.BackupFailures >= 2 && router.BackupIntervalHours is not null)
         {
-            // The current condition after 440 and 441 (§5.3): it stays until a backup succeeds.
+            // The current condition after 440 and 441 (§5.3): it stays until a backup succeeds. Not with the
+            // schedule off: a failed "Back up now" says so itself (docs/mikrotik-backup-plan.md §2.3).
             events.Add(new RouterEvent(PNMTStatusCodes.MIKROTIK_BACKUP_FAILED, $"Backups failing: {router.LastBackupError}"));
             return events;
         }

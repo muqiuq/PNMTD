@@ -151,6 +151,29 @@ public sealed class MikrotikController(MikrotikRouterService routers, MikrotikJo
 }
 
 /// <summary>
+/// The routers' backup settings for the installation (docs/mikrotik-backup-plan.md §2.2): reading the defaults
+/// needs CanWrite (the new-router form starts with them), changing them and many routers at once needs Admin.
+/// </summary>
+[Route("api/v1/mikrotik")]
+[Authorize(Policy = Policies.CanWrite)]
+public sealed class MikrotikBackupSettingsController(MikrotikBackupSettingsService settings) : V1ControllerBase
+{
+    [HttpGet("backup-settings")]
+    public async Task<ActionResult<MikrotikBackupSettings>> BackupSettings(CancellationToken ct) => await settings.GetAsync(ct);
+
+    [HttpPut("backup-settings")]
+    [Authorize(Policy = Policies.Admin)]
+    public async Task<ActionResult<MikrotikBackupSettings>> UpdateBackupSettings(MikrotikBackupSettingsRequest request, CancellationToken ct) =>
+        await settings.UpdateAsync(request, ct);
+
+    /// <summary>The backup schedule of many routers at once.</summary>
+    [HttpPost("routers/backup-settings")]
+    [Authorize(Policy = Policies.Admin)]
+    public async Task<ActionResult<MikrotikRouterBackupResult>> ApplyBackupSettings(MikrotikRouterBackupRequest request, CancellationToken ct) =>
+        await settings.ApplyAsync(request, ct);
+}
+
+/// <summary>
 /// Remote commands (§8, §10): as <c>pnmt</c> for CanWrite, as a router's admin for Admins (checked in the
 /// service). Admin runs are seen by Admins only. Starting, cancelling and redacting are audit-logged.
 /// </summary>

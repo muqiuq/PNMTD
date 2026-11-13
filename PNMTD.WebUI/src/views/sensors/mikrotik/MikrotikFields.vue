@@ -5,12 +5,13 @@ import Message from 'primevue/message'
 import Select from 'primevue/select'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { computed } from 'vue'
+import BackupScheduleField from './BackupScheduleField.vue'
 import { MODES, type MikrotikDraft } from './mikrotikDraft'
 
 /**
  * The router section of the sensor form (docs/mikrotik-plan.md §11.1), and of the dialog that edits
  * an existing router: the mode, Direct SSH's address, port and PNMTD's source address, the backup
- * interval, and for Admins the settings that widen what PNMT may do on the router.
+ * schedule, and for Admins the settings that widen what PNMT may do on the router.
  */
 const draft = defineModel<MikrotikDraft>({ required: true })
 const props = withDefaults(
@@ -106,19 +107,19 @@ const modeHint = computed(() => MODES.find((m) => m.value === draft.value.mode)?
         </div>
       </template>
       <div class="field">
-        <label for="mikrotik-backup">Backup every (hours)</label>
-        <InputNumber
+        <label for="mikrotik-backup">Scheduled backups</label>
+        <BackupScheduleField
           :model-value="draft.backupIntervalHours"
           input-id="mikrotik-backup"
-          :min="1"
-          :max="168"
-          :use-grouping="false"
           :invalid="!!errors['mikrotik.backupIntervalHours']"
-          @update:model-value="(v: number | null) => set({ backupIntervalHours: v })"
+          @update:model-value="(v) => set({ backupIntervalHours: v })"
         />
         <small v-if="errors['mikrotik.backupIntervalHours']" class="field-error">{{
           errors['mikrotik.backupIntervalHours']
         }}</small>
+        <small v-else-if="draft.backupIntervalHours === null" class="field-hint"
+          >No scheduled export. Back up now, updates and commands still take one.</small
+        >
         <small v-else class="field-hint"
           >How often the configuration is exported; a version is stored only when it changed.</small
         >

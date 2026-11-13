@@ -32,6 +32,7 @@ public static class DomainServicesSetup
         // MikroTik routers (docs/mikrotik-plan.md §10).
         services.AddScoped<MikrotikRouterService>();
         services.AddScoped<MikrotikBackupService>();
+        services.AddScoped<MikrotikBackupSettingsService>();
         services.AddScoped<MikrotikJobService>();
         services.AddScoped<MikrotikCommandService>();
         services.AddScoped<WireGuardService>();

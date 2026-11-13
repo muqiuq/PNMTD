@@ -6,6 +6,7 @@ import type { S } from '@/api/resources'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { formatDuration, formatPercent } from '@/format'
 import { formatBytes } from '@/format/bytes'
+import { nextBackupAt } from './backupSchedule'
 import { modeLabel } from './mikrotikDraft'
 
 /**
@@ -15,6 +16,7 @@ import { modeLabel } from './mikrotikDraft'
  */
 const props = defineProps<{ sensor: S['SensorDetail'] }>()
 const m = computed(() => props.sensor.mikrotik!)
+const nextBackup = computed(() => nextBackupAt(m.value.lastExportAt, m.value.backupIntervalHours))
 const r = computed(() => m.value.resources)
 const used = (free: number | null | undefined, total: number | null | undefined) =>
   free != null && total ? (total - free) / total : null
@@ -104,6 +106,10 @@ const uptime = computed(() => (r.value?.uptimeSeconds != null ? formatDuration(r
           <span v-else>–</span>
           <div class="muted small" :class="{ bad: m.backupFailures > 0 }">
             <template v-if="m.backupFailures > 0">export failed</template>
+            <template v-else-if="m.backupIntervalHours === null">scheduled backups off</template>
+            <template v-else-if="nextBackup && nextBackup.getTime() > Date.now()"
+              >next <RelativeTime :value="nextBackup.toISOString()"
+            /></template>
             <template v-else-if="m.lastExportAt">checked <RelativeTime :value="m.lastExportAt" /></template>
           </div>
         </dd>

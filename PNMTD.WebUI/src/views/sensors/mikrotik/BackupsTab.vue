@@ -15,6 +15,7 @@ import { useServerTable } from '@/composables/useServerTable'
 import { formatAbsolute } from '@/format'
 import { formatBytes } from '@/format/bytes'
 import DiffView from './DiffView.vue'
+import { scheduleLabel } from './backupSchedule'
 
 /**
  * A router's configuration backups (docs/mikrotik-plan.md §6, §11.1): every stored version, newest first,
@@ -106,7 +107,11 @@ const title = computed(() => {
   <div class="tab">
     <div class="toolbar">
       <span class="muted">
-        Exported as pnmt every {{ m.backupIntervalHours }} h; a version is stored only when the configuration changed.
+        <template v-if="m.backupIntervalHours === null">Scheduled backups are off; Back up now still exports.</template>
+        <template v-else
+          >Exported as pnmt {{ scheduleLabel(m.backupIntervalHours).toLowerCase() }}; a version is stored only when the
+          configuration changed.</template
+        >
         <template v-if="m.lastExportAt"> Last export <RelativeTime :value="m.lastExportAt" />.</template>
       </span>
       <Button

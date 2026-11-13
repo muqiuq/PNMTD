@@ -586,7 +586,7 @@ namespace PNMTD.Data.Migrations
                     b.Property<int>("BackupFailures")
                         .HasColumnType("integer");
 
-                    b.Property<int>("BackupIntervalHours")
+                    b.Property<int?>("BackupIntervalHours")
                         .HasColumnType("integer");
 
                     b.Property<string>("BoardName")
@@ -710,6 +710,9 @@ namespace PNMTD.Data.Migrations
             modelBuilder.Entity("PNMTD.Models.Db.MikrotikSettingsEntity", b =>
                 {
                     b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("DefaultBackupIntervalHours")
                         .HasColumnType("integer");
 
                     b.Property<string>("LatestVersions")
