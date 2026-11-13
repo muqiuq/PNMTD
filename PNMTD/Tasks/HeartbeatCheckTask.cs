@@ -89,7 +89,9 @@ namespace PNMTD.Tasks
                 // Windows servers too (docs/windows-sensor-plan.md §8.1), except those revoked or uninstalled on purpose.
                 var relevantSensors = dbContext.Sensors.Where(s =>
                 ((s.Type == SensorType.HEARTBEAT || s.Type == SensorType.HEARTBEAT_VALUECHECK || s.Type == SensorType.UDP_NODE)
-                 || (s.Type == SensorType.WINDOWS && !dbContext.WindowsAgents.Any(a => a.SensorId == s.Id && (a.RevokedAt != null || a.UninstalledAt != null))))
+                 || (s.Type == SensorType.WINDOWS && !dbContext.WindowsAgents.Any(a => a.SensorId == s.Id && (a.RevokedAt != null || a.UninstalledAt != null)))
+                 // Scheduled diagnostics: their interval is the schedule's (docs/windows-sensor-plan.md §5.4); manual ones have none.
+                 || (s.Type == SensorType.DIAGNOSTICS && s.Interval > 0))
                 && s.Enabled).ToList();
 
                 int counterCreatedEvents = 0;

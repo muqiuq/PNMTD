@@ -194,6 +194,12 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             throw ApiException.Conflict("diagnostics_sensor", "A diagnostics sensor goes with its assignment: delete the assignment on Admin → Diagnostics.");
         }
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        if (type == SensorType.WINDOWS)
+        {
+            // Its diagnostics assignments' sensors go with it (docs/windows-sensor-plan.md §5.2).
+            var assignments = await db.DiagnosticAssignments.AsNoTracking().Where(a => a.TargetSensorId == id).ToListAsync(ct);
+            await DiagnosticsSetService.DeleteAssignmentsAsync(db, assignments, ct);
+        }
         var ids = await db.Sensors.Where(s => s.Id == id || s.OlderSiblingId == id).Select(s => s.Id).ToListAsync(ct);
         await db.MailInputs.Where(m => m.SensorOutputId != null && ids.Contains(m.SensorOutputId.Value))
             .ExecuteUpdateAsync(u => u.SetProperty(m => m.SensorOutputId, (Guid?)null), ct);

@@ -15,6 +15,7 @@ public static class WindowsSetup
         services.AddSingleton<WindowsReportService>();
         services.AddSingleton<WindowsChanges>();
         services.AddSingleton<WindowsAccessService>();
+        services.AddSingleton<Diagnostics.DiagnosticsRunner>();
         services.AddSingleton<WindowsMaintenanceTask>();
         services.AddSingleton<WindowsDownloads>();
         return services;

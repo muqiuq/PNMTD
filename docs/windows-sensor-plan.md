@@ -1021,6 +1021,17 @@ W0 needs real machines (one Windows Server 2019, one Windows 10 Pro or 11) and t
 - **Web UI:** a server's *Services*, *Remote access*, *Access* and *Event log* (both User), and *Changes* tabs; the overview shows remote access, the last admin logins and failed logins (User), and the last changes.
 - **Tests:** logins stored once (a resend updates, a network logon writes no 254), 254's message, a burst and a lockout writing 454, a service added and RDP turned off writing changes and 253, a new Critical entry writing 453, and the differs' lines for addresses, DNS, the build, a new administrator and the audit policy.
 
+### W4: diagnostics
+
+- **PNMTD:** `diagnostic_sets`, `diagnostic_checks`, `diagnostic_assignments` and `diagnostic_runs` (migration `AddDiagnostics`), in `PNMTD/Diagnostics/` (the agent's configuration, the rules of §5.1, the results) and `Services/Domain/DiagnosticsSetService.cs`. An assignment creates its DIAGNOSTICS sensor "Diagnostics: {set}" on the server's host, with the schedule's interval and a grace of 2 minutes (manual ones have no interval, so no 460); deleting it deletes the sensor and its history; a set refuses to go while assigned; deleting a server deletes its assignments' sensors. Every change raises the installation's configuration version and pushes `config` to the agents concerned. The rules are checked again on the agent's side by the type of each check (§6).
+- **§5.5 in practice:** an assignment is refused for an agent that announced capabilities without the set's check types (an agent that never connected is accepted).
+- **Run now** creates the run's row first (manual, by whom), asks the agent (signed `run-diagnostics`), which answers at once and sends the result as soon as it has it; the row is completed then. A refusal completes it as an error.
+- **The agent:** `Diagnostics/DiagnosticsFeature.cs`: its own timer per scheduled assignment (with up to 15 s of spread), one run at a time, the checks in order, a thrown check an error; ping with `System.Net.NetworkInformation.Ping`, DNS through the system's resolver for A and AAAA without a server (hosts file and suffixes included) and through DnsClient otherwise; results buffered (1,000) and kept across restarts in `state/`.
+- **Events:** 252 "All 2 checks passed", 452 "1 of 2 failed: ping gw-zurich (100 % loss)". A run's outcome is Fail when a check failed, Error when one only errored.
+- **Retention:** runs older than 30 days go, except the last 100 of each assignment.
+- **Web UI:** *Admin → Diagnostics* (*Sets* with an editor of typed rows, *Assignments* with *Assign…*, the interval, *Pause*, *Run now* and delete, *Runs* with a drawer per run); a server's *Diagnostics* tab (its assignments and history) and the states on its overview; the fleet's *diagnostics failing* filter and badge.
+- **Tests** (`PNMTD.Tests/Diagnostics/DiagnosticsTests.cs`): the caps, an assignment with its sensor and the agent's new configuration, Run now through the simulator with 252 and 452, the fleet's count, and deleting.
+
 ---
 
 ## Appendix: configuration and file changes

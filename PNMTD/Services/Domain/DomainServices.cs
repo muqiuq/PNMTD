@@ -45,6 +45,7 @@ public static class DomainServicesSetup
         services.AddScoped<WireGuardTunnelService>();
         // Windows servers (docs/windows-sensor-plan.md §9.2).
         services.AddScoped<WindowsServerService>();
+        services.AddScoped<DiagnosticsSetService>();
         return services;
     }
 }

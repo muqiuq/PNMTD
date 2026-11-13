@@ -48,6 +48,11 @@ public sealed class WindowsMaintenanceTask(IDbContextFactory<PnmtdDbContext> dbs
     {
         var logins = await db.WindowsLogins.Where(l => l.At < now.AddDays(-Math.Max(7, settings.KeepLoginsDays))).ExecuteDeleteAsync(ct);
         var changes = await db.WindowsChanges.Where(c => c.At < now.AddDays(-Math.Max(7, settings.KeepChangesDays))).ExecuteDeleteAsync(ct);
-        return logins + changes;
+        // Runs: 30 days, and at least the last 100 per assignment (§5.4).
+        var runs = await db.Database.ExecuteSqlRawAsync(
+            "DELETE FROM diagnostic_runs WHERE \"StartedAt\" < {0} AND \"Id\" NOT IN (SELECT \"Id\" FROM (SELECT \"Id\", row_number() OVER " +
+            "(PARTITION BY \"AssignmentId\" ORDER BY \"StartedAt\" DESC) AS n FROM diagnostic_runs) recent WHERE recent.n <= 100)",
+            [now.AddDays(-30)], ct);
+        return logins + changes + runs;
     }
 }

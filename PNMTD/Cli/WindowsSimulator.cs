@@ -77,6 +77,7 @@ public sealed class WindowsSimulator(Uri baseUrl, HttpClient http, Func<Cancella
             await using (current)
             {
                 session = current;
+                LastConfig = current.Config;
                 Write($"Connected; configuration {current.Config.ConfigVersion}, heartbeat every {current.Config.HeartbeatSeconds} s, {current.Config.Diagnostics.Count} diagnostics assignments");
                 using var stop = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 var receiving = current.RunAsync(this, stop.Token);
@@ -140,8 +141,12 @@ public sealed class WindowsSimulator(Uri baseUrl, HttpClient http, Func<Cancella
     private Task SendSectionsAsync(AgentSession current, IReadOnlyList<string> names, CancellationToken ct) =>
         SimulatedSections.SendAsync(current, hostname, names, ct);
 
+    /// <summary>The last configuration received, for the tests.</summary>
+    public AgentConfig? LastConfig { get; private set; }
+
     public Task OnConfigAsync(AgentConfig config, CancellationToken ct)
     {
+        LastConfig = config;
         Write($"Configuration {config.ConfigVersion}: {config.Diagnostics.Count} diagnostics assignments");
         return Task.CompletedTask;
     }
@@ -360,5 +365,27 @@ public static class SimulatedSections
         ]);
     }
 
-    public static DiagnosticRunResult? Diagnostics(AgentConfig config, Guid assignmentId, Guid runId, string trigger) => null;
+    /// <summary>Checks whose names are in here fail: for the tests of 452.</summary>
+    public static HashSet<string> FailingChecks { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>A run of an assignment in the configuration: every check passes, unless it is named in <see cref="FailingChecks"/>.</summary>
+    public static DiagnosticRunResult? Diagnostics(AgentConfig config, Guid assignmentId, Guid runId, string trigger)
+    {
+        var assignment = config.Diagnostics.FirstOrDefault(a => a.AssignmentId == assignmentId);
+        if (assignment is null)
+        {
+            return null;
+        }
+        var started = DateTimeOffset.UtcNow;
+        var results = assignment.Checks.Select(c =>
+        {
+            var fails = FailingChecks.Contains(c.Name);
+            return c.Type == DiagnosticCheckType.Ping
+                ? new DiagnosticCheckResult(c.Id, c.Name, c.Type, fails ? DiagnosticOutcome.Fail : DiagnosticOutcome.Pass, fails ? "100 % loss" : "0 % loss, avg 1.2 ms",
+                    new PingValues(c.Ping?.Count ?? 4, fails ? 0 : c.Ping?.Count ?? 4, fails ? 100 : 0, fails ? null : 0.9, fails ? null : 1.2, fails ? null : 1.8, "10.0.1.1"), null, 4.2)
+                : new DiagnosticCheckResult(c.Id, c.Name, c.Type, fails ? DiagnosticOutcome.Fail : DiagnosticOutcome.Pass, fails ? "NXDOMAIN" : "10.0.1.10 in 3 ms",
+                    null, new DnsValues(fails ? [] : ["10.0.1.10"], "10.0.1.10", 3, fails ? "NXDOMAIN" : null), 3.1);
+        }).ToList();
+        return new DiagnosticRunResult(assignmentId, runId, trigger, started, DateTimeOffset.UtcNow, results);
+    }
 }

@@ -95,6 +95,12 @@ namespace PNMTD.Data
         public DbSet<WindowsLoginEntity> WindowsLogins { get; set; }
         public DbSet<WindowsChangeEntity> WindowsChanges { get; set; }
 
+        // Diagnostics (docs/windows-sensor-plan.md §5).
+        public DbSet<DiagnosticSetEntity> DiagnosticSets { get; set; }
+        public DbSet<DiagnosticCheckEntity> DiagnosticChecks { get; set; }
+        public DbSet<DiagnosticAssignmentEntity> DiagnosticAssignments { get; set; }
+        public DbSet<DiagnosticRunEntity> DiagnosticRuns { get; set; }
+
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
         }
@@ -287,6 +293,25 @@ namespace PNMTD.Data
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(c => c.SensorId).OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(c => new { c.SensorId, c.At });
                 e.HasIndex(c => c.At);
+            });
+            modelBuilder.Entity<DiagnosticSetEntity>(e =>
+            {
+                e.HasIndex(x => x.Name).IsUnique();
+                e.HasMany(x => x.Checks).WithOne().HasForeignKey(c => c.SetId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<DiagnosticAssignmentEntity>(e =>
+            {
+                e.HasOne<DiagnosticSetEntity>().WithMany().HasForeignKey(a => a.SetId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(a => a.TargetSensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(a => a.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(a => a.TargetSensorId);
+                e.HasIndex(a => a.SensorId).IsUnique();
+            });
+            modelBuilder.Entity<DiagnosticRunEntity>(e =>
+            {
+                e.HasOne<DiagnosticAssignmentEntity>().WithMany().HasForeignKey(r => r.AssignmentId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(r => new { r.AssignmentId, r.StartedAt });
+                e.HasIndex(r => r.StartedAt);
             });
             modelBuilder.Entity<WindowsAgentLogEntity>(e =>
             {

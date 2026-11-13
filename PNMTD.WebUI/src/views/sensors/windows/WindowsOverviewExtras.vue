@@ -4,6 +4,7 @@ import Tag from 'primevue/tag'
 import { computed, toRef } from 'vue'
 import { api, keys, type S } from '@/api/resources'
 import RelativeTime from '@/components/RelativeTime.vue'
+import StatusBadge from '@/components/StatusBadge.vue'
 import { useWindowsSection } from './useWindowsSection'
 
 /** The overview's remote access, recent logins (User role) and last changes (docs/windows-sensor-plan.md §10.2). */
@@ -31,6 +32,11 @@ const changes = useQuery({
   queryKey: computed(() => [...keys.windowsServer(id.value), 'changes', 'overview']),
   queryFn: () => api.windows.changes(id.value, { pageSize: 5 }),
   refetchInterval: 60_000,
+})
+const diagnostics = useQuery({
+  queryKey: computed(() => [...keys.diagnostics, 'assignments', id.value, 'overview']),
+  queryFn: () => api.diagnostics.assignments({ targetSensorId: id.value, pageSize: 50 }),
+  refetchInterval: 30_000,
 })
 const active = computed(() => (remote.data.value?.remoteAccess?.features ?? []).filter((f) => f.active))
 const who = (l: S['WindowsLoginItem']) => (l.domain ? `${l.domain}\\${l.user}` : l.user)
@@ -68,6 +74,16 @@ const who = (l: S['WindowsLoginItem']) => (l.domain ? `${l.domain}\\${l.user}` :
         (and more)</template
       >
     </div>
+  </section>
+  <section v-if="diagnostics.data.value?.items.length" class="panel">
+    <div class="panel-header">Diagnostics</div>
+    <ul class="panel-body plain">
+      <li v-for="a in diagnostics.data.value.items" :key="a.id">
+        <StatusBadge :status="a.state" icon-only />
+        <RouterLink :to="{ name: 'sensor', params: { id: a.sensor.id } }">{{ a.set.name }}</RouterLink>
+        <span class="muted small"> · {{ a.lastRun?.summary ?? 'no run yet' }}</span>
+      </li>
+    </ul>
   </section>
   <section class="panel">
     <div class="panel-header">Last changes</div>

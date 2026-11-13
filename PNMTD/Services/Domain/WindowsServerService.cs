@@ -422,10 +422,14 @@ public sealed record WindowsExtras(
     {
         var agents = await db.WindowsAgents.AsNoTracking().Where(a => sensorIds.Contains(a.SensorId))
             .Select(a => new { a.SensorId, a.RemoteAccessSummary, a.AuditGaps }).ToListAsync(ct);
+        // Diagnostics failing: assignments whose last finished run did not pass (§10.1).
+        var lastRuns = await db.DiagnosticRuns.AsNoTracking().Where(r => r.Outcome != null)
+            .Join(db.DiagnosticAssignments.Where(a => sensorIds.Contains(a.TargetSensorId)), r => r.AssignmentId, a => a.Id, (r, a) => new { r.AssignmentId, a.TargetSensorId, r.StartedAt, r.Outcome })
+            .GroupBy(x => x.AssignmentId).Select(g => g.OrderByDescending(x => x.StartedAt).First()).ToListAsync(ct);
         return new WindowsExtras(
             agents.Where(a => a.RemoteAccessSummary != null).ToDictionary(a => a.SensorId, a => a.RemoteAccessSummary!),
             agents.ToDictionary(a => a.SensorId, a => a.AuditGaps),
-            new Dictionary<Guid, int>());
+            lastRuns.Where(r => r.Outcome != Lib.Agent.DiagnosticOutcome.Pass).GroupBy(r => r.TargetSensorId).ToDictionary(g => g.Key, g => g.Count()));
     }
 
     public static async Task<IReadOnlyList<WindowsSectionInfo>> SectionsAsync(PnmtdDbContext db, Guid sensorId, CancellationToken ct) =>

@@ -109,6 +109,8 @@ internal static partial class Program
         // Logins and connections (§4.7): a stream of its own, and the source of the access section's numbers.
         services.AddSingleton<Access.LoginStream>();
         services.AddSingleton<IAgentFeature>(sp => sp.GetRequiredService<Access.LoginStream>());
+        // Diagnostics (§5.3): the agent's own schedule, and Run now.
+        services.AddSingleton<IAgentFeature, Diagnostics.DiagnosticsFeature>();
         services.AddSingleton<SectionScheduler>();
         services.AddSingleton<HeartbeatSampler>();
         services.AddSingleton<AgentService>();

@@ -348,6 +348,28 @@ export const api = {
     agent: () => call(client.GET('/api/v1/windows/agent')),
   },
 
+  /** Diagnostics (docs/windows-sensor-plan.md §5): reading CanRead, changing Admin, Run now CanWrite. */
+  diagnostics: {
+    sets: (query: ListQuery) => call(client.GET('/api/v1/diagnostics/sets', { params: { query } })),
+    set: (id: Id) => call(client.GET('/api/v1/diagnostics/sets/{id}', { params: { path: { id } } })),
+    createSet: (body: S['DiagnosticSetRequest']) => call(client.POST('/api/v1/diagnostics/sets', { body })),
+    updateSet: (id: Id, body: S['DiagnosticSetRequest']) =>
+      call(client.PUT('/api/v1/diagnostics/sets/{id}', { params: { path: { id } }, body })),
+    deleteSet: (id: Id) => call(client.DELETE('/api/v1/diagnostics/sets/{id}', { params: { path: { id } } })),
+    assignments: (query: ListQuery & { targetSensorId?: Id; setId?: Id }) =>
+      call(client.GET('/api/v1/diagnostics/assignments', { params: { query } })),
+    assign: (body: S['DiagnosticAssignmentRequest']) => call(client.POST('/api/v1/diagnostics/assignments', { body })),
+    updateAssignment: (id: Id, body: S['DiagnosticAssignmentUpdate']) =>
+      call(client.PUT('/api/v1/diagnostics/assignments/{id}', { params: { path: { id } }, body })),
+    deleteAssignment: (id: Id) =>
+      call(client.DELETE('/api/v1/diagnostics/assignments/{id}', { params: { path: { id } } })),
+    run: (id: Id) => call(client.POST('/api/v1/diagnostics/assignments/{id}/run', { params: { path: { id } } })),
+    runs: (
+      query: ListQuery & { assignmentId?: Id; setId?: Id; targetSensorId?: Id; outcome?: S['DiagnosticOutcome'] },
+    ) => call(client.GET('/api/v1/diagnostics/runs', { params: { query } })),
+    runDetail: (id: Id) => call(client.GET('/api/v1/diagnostics/runs/{id}', { params: { path: { id } } })),
+  },
+
   /** Admin → Debug (docs/ai-operations-plan.md §8): test sends, 10 a minute. */
   debug: {
     status: () => call(client.GET('/api/v1/debug')),
@@ -444,6 +466,8 @@ export const keys = {
   /** Windows servers and their agents (docs/windows-sensor-plan.md §10). */
   windows: ['windows'] as const,
   windowsServer: (id: Id) => ['windows', 'server', id] as const,
+  /** Diagnostics: sets, assignments and runs (docs/windows-sensor-plan.md §10.3). */
+  diagnostics: ['diagnostics'] as const,
   /** The uplink page and its checks (docs/ai-operations-plan.md §7.3). */
   uplink: ['uplink'] as const,
   /** The Notification Manager's matrix and coverage (docs/ai-operations-plan.md §11.3). */

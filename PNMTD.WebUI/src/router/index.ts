@@ -194,6 +194,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'UDP protocol' },
   },
   {
+    path: '/admin/diagnostics/:tab(sets|assignments|runs)?',
+    name: 'diagnostics',
+    component: () => import('@/views/admin/diagnostics/DiagnosticsView.vue'),
+    meta: { title: 'Diagnostics', role: 'Admin' },
+  },
+  {
     path: '/admin/windows/:tab(servers|tokens|download|log|scripts|run-as)?',
     name: 'windows',
     component: () => import('@/views/admin/windows/WindowsView.vue'),

@@ -1380,6 +1380,421 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/diagnostics/sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfDiagnosticSetItem"];
+                        "text/json": components["schemas"]["PagedOfDiagnosticSetItem"];
+                        "text/plain": components["schemas"]["PagedOfDiagnosticSetItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DiagnosticSetRequest"];
+                    "text/json": components["schemas"]["DiagnosticSetRequest"];
+                    "application/*+json": components["schemas"]["DiagnosticSetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiagnosticSetDetail"];
+                        "text/json": components["schemas"]["DiagnosticSetDetail"];
+                        "text/plain": components["schemas"]["DiagnosticSetDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/diagnostics/sets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiagnosticSetDetail"];
+                        "text/json": components["schemas"]["DiagnosticSetDetail"];
+                        "text/plain": components["schemas"]["DiagnosticSetDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DiagnosticSetRequest"];
+                    "text/json": components["schemas"]["DiagnosticSetRequest"];
+                    "application/*+json": components["schemas"]["DiagnosticSetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiagnosticSetDetail"];
+                        "text/json": components["schemas"]["DiagnosticSetDetail"];
+                        "text/plain": components["schemas"]["DiagnosticSetDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/diagnostics/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    targetSensorId?: string;
+                    setId?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfDiagnosticAssignmentItem"];
+                        "text/json": components["schemas"]["PagedOfDiagnosticAssignmentItem"];
+                        "text/plain": components["schemas"]["PagedOfDiagnosticAssignmentItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DiagnosticAssignmentRequest"];
+                    "text/json": components["schemas"]["DiagnosticAssignmentRequest"];
+                    "application/*+json": components["schemas"]["DiagnosticAssignmentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiagnosticAssignmentItem"][];
+                        "text/json": components["schemas"]["DiagnosticAssignmentItem"][];
+                        "text/plain": components["schemas"]["DiagnosticAssignmentItem"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/diagnostics/assignments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DiagnosticAssignmentUpdate"];
+                    "text/json": components["schemas"]["DiagnosticAssignmentUpdate"];
+                    "application/*+json": components["schemas"]["DiagnosticAssignmentUpdate"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiagnosticAssignmentItem"];
+                        "text/json": components["schemas"]["DiagnosticAssignmentItem"];
+                        "text/plain": components["schemas"]["DiagnosticAssignmentItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/diagnostics/assignments/{id}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiagnosticRunItem"];
+                        "text/json": components["schemas"]["DiagnosticRunItem"];
+                        "text/plain": components["schemas"]["DiagnosticRunItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/diagnostics/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    assignmentId?: string;
+                    setId?: string;
+                    targetSensorId?: string;
+                    outcome?: components["schemas"]["DiagnosticOutcome"];
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfDiagnosticRunItem"];
+                        "text/json": components["schemas"]["PagedOfDiagnosticRunItem"];
+                        "text/plain": components["schemas"]["PagedOfDiagnosticRunItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/diagnostics/runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiagnosticRunDetail"];
+                        "text/json": components["schemas"]["DiagnosticRunDetail"];
+                        "text/plain": components["schemas"]["DiagnosticRunDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dns-zones": {
         parameters: {
             query?: never;
@@ -7632,6 +8047,119 @@ export interface components {
             lastFullScan: null | string;
             productVersion: null | string;
         };
+        DiagnosticAssignmentItem: {
+            /** Format: uuid */
+            id: string;
+            set: components["schemas"]["Ref"];
+            target: components["schemas"]["Ref"];
+            sensor: components["schemas"]["Ref"];
+            mode: components["schemas"]["DiagnosticMode"];
+            /** Format: int32 */
+            intervalMinutes: number;
+            enabled: boolean;
+            state: components["schemas"]["SensorState"];
+            agentConnected: boolean;
+            lastRun: null | components["schemas"]["DiagnosticRunItem"];
+        };
+        DiagnosticAssignmentRequest: {
+            /** Format: uuid */
+            setId: string;
+            targetSensorIds: string[];
+            mode: components["schemas"]["DiagnosticMode"];
+            /** Format: int32 */
+            intervalMinutes: number;
+            enabled: boolean;
+        };
+        DiagnosticAssignmentUpdate: {
+            mode: components["schemas"]["DiagnosticMode"];
+            /** Format: int32 */
+            intervalMinutes: number;
+            enabled: boolean;
+        };
+        DiagnosticCheckItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            order: number;
+            name: string;
+            type: components["schemas"]["DiagnosticCheckType"];
+            ping: null | components["schemas"]["PingParameters"];
+            dns: null | components["schemas"]["DnsParameters"];
+        };
+        DiagnosticCheckRequest: {
+            name: string;
+            type: components["schemas"]["DiagnosticCheckType"];
+            ping: null | components["schemas"]["PingParameters"];
+            dns: null | components["schemas"]["DnsParameters"];
+        };
+        DiagnosticCheckResult: {
+            /** Format: uuid */
+            checkId: string;
+            name: string;
+            type: components["schemas"]["DiagnosticCheckType"];
+            outcome: components["schemas"]["DiagnosticOutcome"];
+            message: string;
+            ping?: null | components["schemas"]["PingValues"];
+            dns?: null | components["schemas"]["DnsValues"];
+            /** Format: double */
+            durationMs?: null | number;
+        };
+        /** @enum {unknown} */
+        DiagnosticCheckType: "Ping" | "Dns";
+        /** @enum {unknown} */
+        DiagnosticMode: "Scheduled" | "Manual";
+        /** @enum {unknown} */
+        DiagnosticOutcome: "Pass" | "Fail" | "Error" | null;
+        DiagnosticRunDetail: {
+            run: components["schemas"]["DiagnosticRunItem"];
+            results: components["schemas"]["DiagnosticCheckResult"][];
+        };
+        DiagnosticRunItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            assignmentId: string;
+            setName: string;
+            target: components["schemas"]["Ref"];
+            trigger: string;
+            requestedBy: null | string;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt: null | string;
+            outcome: null | components["schemas"]["DiagnosticOutcome"];
+            summary: null | string;
+        };
+        DiagnosticSetDetail: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            checks: components["schemas"]["DiagnosticCheckItem"][];
+            /** Format: int32 */
+            assignments: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        DiagnosticSetItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            /** Format: int32 */
+            checks: number;
+            /** Format: int32 */
+            assignments: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        DiagnosticSetRequest: {
+            name: string;
+            description: null | string;
+            checks: components["schemas"]["DiagnosticCheckRequest"][];
+        };
         /** @enum {unknown} */
         DiffLineKind: "Context" | "Added" | "Removed";
         DiskInfo: {
@@ -7657,6 +8185,14 @@ export interface components {
             entryType: components["schemas"]["DnsZoneLogEntryType"];
             message: string;
         };
+        DnsParameters: {
+            name: string;
+            recordType?: components["schemas"]["DnsRecordKind"];
+            server?: null | string;
+            expect?: null | string;
+            /** Format: int32 */
+            maxMs?: null | number;
+        };
         DnsRecord: {
             /** Format: uuid */
             id: string;
@@ -7673,6 +8209,11 @@ export interface components {
             /** Format: date-time */
             updated: null | string;
         };
+        /**
+         * @default A
+         * @enum {unknown}
+         */
+        DnsRecordKind: "A" | "AAAA" | "CNAME" | "MX" | "TXT" | "SRV" | "PTR" | "NS" | "SOA";
         DnsRecordRequest: {
             ignore?: boolean;
         };
@@ -7685,6 +8226,13 @@ export interface components {
             mismatch: number;
             /** Format: int32 */
             disabled: number;
+        };
+        DnsValues: {
+            answers: string[];
+            resolver: null | string;
+            /** Format: double */
+            ms: number;
+            responseCode: null | string;
         };
         DnsZoneDetail: {
             /** Format: uuid */
@@ -7939,6 +8487,11 @@ export interface components {
             ids?: string[];
             importance?: null | components["schemas"]["Importance"];
         };
+        /**
+         * @default Any
+         * @enum {unknown}
+         */
+        IpFamily: "Any" | "IPv4" | "IPv6";
         /** @enum {unknown} */
         KeyFamily: "HmacSha256" | "Aes" | "HmacSha1" | "HmacMd5";
         KeyValueItem: {
@@ -8884,6 +9437,33 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
+        PagedOfDiagnosticAssignmentItem: {
+            items: components["schemas"]["DiagnosticAssignmentItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfDiagnosticRunItem: {
+            items: components["schemas"]["DiagnosticRunItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfDiagnosticSetItem: {
+            items: components["schemas"]["DiagnosticSetItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfDnsLogEntry: {
             items: components["schemas"]["DnsLogEntry"][];
             /** Format: int32 */
@@ -9099,6 +9679,42 @@ export interface components {
             pageSize: number;
             /** Format: int32 */
             totalCount: number;
+        };
+        PingParameters: {
+            target: string;
+            /**
+             * Format: int32
+             * @default 4
+             */
+            count: number;
+            /**
+             * Format: int32
+             * @default 1000
+             */
+            timeoutMs: number;
+            family?: components["schemas"]["IpFamily"];
+            /**
+             * Format: int32
+             * @default 0
+             */
+            maxLossPercent: number;
+            /** Format: int32 */
+            maxAvgMs?: null | number;
+        };
+        PingValues: {
+            /** Format: int32 */
+            sent: number;
+            /** Format: int32 */
+            received: number;
+            /** Format: int32 */
+            lossPercent: number;
+            /** Format: double */
+            minMs: null | number;
+            /** Format: double */
+            avgMs: null | number;
+            /** Format: double */
+            maxMs: null | number;
+            address: null | string;
         };
         ProblemHost: {
             /** Format: uuid */

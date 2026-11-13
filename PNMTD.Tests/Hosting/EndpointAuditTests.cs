@@ -248,6 +248,19 @@ public sealed class EndpointAuditTests
         ["DELETE /api/v1/windows/join-tokens/{id:guid}"] = Roles.Admin,
         ["GET /api/v1/windows/agent-log"] = Roles.Admin,
         ["GET /api/v1/windows/agent"] = Roles.Admin,
+        // Diagnostics (docs/windows-sensor-plan.md §9.2): reading CanRead, changing Admin, Run now CanWrite.
+        ["GET /api/v1/diagnostics/sets"] = Roles.Viewer,
+        ["GET /api/v1/diagnostics/sets/{id:guid}"] = Roles.Viewer,
+        ["POST /api/v1/diagnostics/sets"] = Roles.Admin,
+        ["PUT /api/v1/diagnostics/sets/{id:guid}"] = Roles.Admin,
+        ["DELETE /api/v1/diagnostics/sets/{id:guid}"] = Roles.Admin,
+        ["GET /api/v1/diagnostics/assignments"] = Roles.Viewer,
+        ["POST /api/v1/diagnostics/assignments"] = Roles.Admin,
+        ["PUT /api/v1/diagnostics/assignments/{id:guid}"] = Roles.Admin,
+        ["DELETE /api/v1/diagnostics/assignments/{id:guid}"] = Roles.Admin,
+        ["POST /api/v1/diagnostics/assignments/{id:guid}/run"] = Roles.User,
+        ["GET /api/v1/diagnostics/runs"] = Roles.Viewer,
+        ["GET /api/v1/diagnostics/runs/{id:guid}"] = Roles.Viewer,
     };
 
     private sealed record EndpointInfo(string Key, string Method, string Pattern, RouteEndpoint Endpoint);

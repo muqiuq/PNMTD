@@ -14,7 +14,7 @@ public static class WindowsConfig
     public static async Task<AgentConfig> BuildAsync(PnmtdDbContext db, AgentKeyStore keys, WindowsOptions options, Guid sensorId, CancellationToken ct)
     {
         var settings = await keys.SettingsAsync(db, ct);
-        IReadOnlyList<DiagnosticsAssignment> diagnostics = [];
+        var diagnostics = await Diagnostics.DiagnosticsConfig.ForAgentAsync(db, sensorId, ct);
         return new AgentConfig(settings.ConfigVersion, Math.Clamp(options.HeartbeatSeconds, 15, 600), Math.Clamp(options.FullUpdateHours, 1, 48),
             new AccessConfig(options.FailedLoginWindowMinutes), diagnostics);
     }
