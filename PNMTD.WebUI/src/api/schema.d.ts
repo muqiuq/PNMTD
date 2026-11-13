@@ -4184,6 +4184,288 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/wireguard/tunnels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WireGuardTunnelItem"][];
+                        "text/json": components["schemas"]["WireGuardTunnelItem"][];
+                        "text/plain": components["schemas"]["WireGuardTunnelItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WireGuardTunnelRequest"];
+                    "text/json": components["schemas"]["WireGuardTunnelRequest"];
+                    "application/*+json": components["schemas"]["WireGuardTunnelRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WireGuardTunnelItem"];
+                        "text/json": components["schemas"]["WireGuardTunnelItem"];
+                        "text/plain": components["schemas"]["WireGuardTunnelItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wireguard/tunnels/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WireGuardTunnelRequest"];
+                    "text/json": components["schemas"]["WireGuardTunnelRequest"];
+                    "application/*+json": components["schemas"]["WireGuardTunnelRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WireGuardTunnelItem"];
+                        "text/json": components["schemas"]["WireGuardTunnelItem"];
+                        "text/plain": components["schemas"]["WireGuardTunnelItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wireguard/tunnels/{id}/regenerate-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WireGuardTunnelItem"];
+                        "text/json": components["schemas"]["WireGuardTunnelItem"];
+                        "text/plain": components["schemas"]["WireGuardTunnelItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wireguard/tunnels/{id}/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WireGuardTunnelConfig"];
+                        "text/json": components["schemas"]["WireGuardTunnelConfig"];
+                        "text/plain": components["schemas"]["WireGuardTunnelConfig"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/tunnels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WireGuardTunnelItem"][];
+                        "text/json": components["schemas"]["WireGuardTunnelItem"][];
+                        "text/plain": components["schemas"]["WireGuardTunnelItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/tunnels/{id}/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WireGuardTunnelConfig"];
+                        "text/json": components["schemas"]["WireGuardTunnelConfig"];
+                        "text/plain": components["schemas"]["WireGuardTunnelConfig"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -5909,6 +6191,56 @@ export interface components {
             /** Format: int32 */
             peersUp: number;
             warnings: string[];
+        };
+        WireGuardTunnelConfig: {
+            fileName: string;
+            content: string;
+            managementPorts: number[];
+        };
+        WireGuardTunnelItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            notes: null | string;
+            owner: null | components["schemas"]["Ref"];
+            address: string;
+            publicKey: string;
+            enabled: boolean;
+            expired: boolean;
+            /** Format: date-time */
+            expiresAt: null | string;
+            accessAllRouters: boolean;
+            routers: components["schemas"]["Ref"][];
+            reaches: components["schemas"]["WireGuardTunnelTarget"][];
+            up: boolean;
+            /** Format: date-time */
+            latestHandshake: null | string;
+            endpoint: null | string;
+            /** Format: int64 */
+            rxBytes: number;
+            /** Format: int64 */
+            txBytes: number;
+            /** Format: date-time */
+            keysCreatedAt: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        WireGuardTunnelRequest: {
+            name?: null | string;
+            notes?: null | string;
+            /** Format: uuid */
+            ownerUserId?: null | string;
+            accessAllRouters?: boolean;
+            routerIds?: string[];
+            /** Format: date-time */
+            expiresAt?: null | string;
+            enabled?: boolean;
+        };
+        WireGuardTunnelTarget: {
+            /** Format: uuid */
+            sensorId: string;
+            name: string;
+            address: string;
         };
     };
     responses: never;

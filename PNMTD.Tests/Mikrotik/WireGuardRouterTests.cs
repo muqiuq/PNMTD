@@ -222,6 +222,67 @@ public sealed class WireGuardRouterTests
     }
 
     [TestMethod]
+    public async Task Custom_tunnels_reach_only_routers_with_management_access()
+    {
+        // Two routers: one with management access (an Admin's setting), one without.
+        var open = await (await admin.PostJsonAsync("/api/v1/sensors", new SensorRequest
+        {
+            HostId = hostId, Type = SensorType.MIKROTIK, Name = "managed router", Interval = 300,
+            Mikrotik = new MikrotikRouterRequest { Mode = MikrotikMode.WireGuardOnly, ManagementAccess = true },
+        })).ReadAsync<SensorDetail>();
+        var closed = await CreateAsync(MikrotikMode.WireGuardOnly, "closed router");
+        var openPeer = await PeerAsync(open.Id);
+
+        var tunnel = await (await admin.PostJsonAsync("/api/v1/wireguard/tunnels", new WireGuardTunnelRequest
+        {
+            Name = "alice-laptop", OwnerUserId = TestUsers.User, AccessAllRouters = true,
+        })).ReadAsync<WireGuardTunnelItem>();
+        Assert.IsTrue(AddressPlan.Default.IsPeerAddress(IPAddress.Parse(tunnel.Address)));
+        CollectionAssert.Contains(tunnel.Reaches.Select(r => r.SensorId).ToList(), open.Id);
+        CollectionAssert.DoesNotContain(tunnel.Reaches.Select(r => r.SensorId).ToList(), closed.Id);
+        Assert.AreEqual(openPeer.Address, tunnel.Reaches.Single(r => r.SensorId == open.Id).Address);
+        Assert.AreEqual("test-user", tunnel.Owner!.Name);
+
+        // The management rule is in the router's join script.
+        var script = await (await admin.GetAsync($"/api/v1/sensors/{open.Id}/mikrotik/join-script")).ReadAsync<MikrotikScript>();
+        StringAssert.Contains(script.Script, "src-address=10.253.0.2 protocol=tcp dst-port=22,8291,80,443 action=accept");
+
+        // The file: wg-quick, only the tunnel network routed.
+        var config = await (await admin.GetAsync($"/api/v1/wireguard/tunnels/{tunnel.Id}/config")).ReadAsync<WireGuardTunnelConfig>();
+        Assert.AreEqual("alice-laptop.conf", config.FileName);
+        StringAssert.Contains(config.Content, $"Address = {tunnel.Address}/32");
+        StringAssert.Contains(config.Content, "Endpoint = vpn.example.com:51999");
+        StringAssert.Contains(config.Content, "AllowedIPs = 10.253.0.0/16");
+        var network = app.Services.GetRequiredService<WireGuardNetwork>();
+        var privateKey = config.Content.Split('\n').Single(l => l.StartsWith("PrivateKey = ", StringComparison.Ordinal))["PrivateKey = ".Length..];
+        Assert.AreEqual(tunnel.PublicKey, WireGuardKeys.PublicKey(privateKey));
+
+        // The owner downloads it under Account; others do not see it; Users cannot manage tunnels.
+        var mine = await (await user.GetAsync("/api/v1/account/tunnels")).ReadAsync<List<WireGuardTunnelItem>>();
+        Assert.IsTrue(mine.Any(t => t.Id == tunnel.Id));
+        Assert.AreEqual(HttpStatusCode.OK, (await user.GetAsync($"/api/v1/account/tunnels/{tunnel.Id}/config")).StatusCode);
+        var viewer = app.Client(Roles.Viewer);
+        Assert.IsFalse((await (await viewer.GetAsync("/api/v1/account/tunnels")).ReadAsync<List<WireGuardTunnelItem>>()).Any());
+        Assert.AreEqual(HttpStatusCode.NotFound, (await viewer.GetAsync($"/api/v1/account/tunnels/{tunnel.Id}/config")).StatusCode);
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await user.GetAsync("/api/v1/wireguard/tunnels")).StatusCode);
+        var log = await (await admin.GetAsync($"/api/v1/auth-log?type={AuthEvents.WireGuardTunnelDownloaded}")).ReadAsync<Paged<AuthLogItem>>();
+        Assert.IsTrue(log.Items.Count(i => i.Detail!.Contains("alice-laptop")) >= 2);
+
+        // Selected routers only, and an expired tunnel is not downloadable by its owner.
+        var updated = await (await admin.PutJsonAsync($"/api/v1/wireguard/tunnels/{tunnel.Id}", new WireGuardTunnelRequest
+        {
+            Name = "alice-laptop", OwnerUserId = TestUsers.User, RouterIds = [closed.Id], ExpiresAt = Clock.UtcNow.AddSeconds(-1),
+        })).ReadAsync<WireGuardTunnelItem>();
+        Assert.AreEqual(0, updated.Reaches.Count, "the selected router has no management access");
+        Assert.IsTrue(updated.Expired);
+        Assert.AreEqual(HttpStatusCode.Conflict, (await user.GetAsync($"/api/v1/account/tunnels/{tunnel.Id}/config")).StatusCode);
+
+        var regenerated = await (await admin.PostAsync($"/api/v1/wireguard/tunnels/{tunnel.Id}/regenerate-keys", null)).ReadAsync<WireGuardTunnelItem>();
+        Assert.AreNotEqual(tunnel.PublicKey, regenerated.PublicKey);
+        Assert.AreEqual(HttpStatusCode.NoContent, (await admin.DeleteAsync($"/api/v1/wireguard/tunnels/{tunnel.Id}")).StatusCode);
+    }
+
+    [TestMethod]
     public async Task Empty_variables_from_compose_are_not_set()
     {
         // docker-compose.yml passes ${PNMTD_WG_EXTERNAL_PORT:-} as an empty string when .env leaves it empty.

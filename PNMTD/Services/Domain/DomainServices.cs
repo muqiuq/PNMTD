@@ -33,6 +33,7 @@ public static class DomainServicesSetup
         services.AddScoped<MikrotikRouterService>();
         services.AddScoped<MikrotikBackupService>();
         services.AddScoped<WireGuardService>();
+        services.AddScoped<WireGuardTunnelService>();
         return services;
     }
 }

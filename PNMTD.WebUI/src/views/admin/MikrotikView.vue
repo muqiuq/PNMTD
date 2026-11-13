@@ -6,6 +6,7 @@ import TabNav from '@/components/TabNav.vue'
 import NetworkTab from './mikrotik/NetworkTab.vue'
 import OverviewTab from './mikrotik/OverviewTab.vue'
 import RoutersTab from './mikrotik/RoutersTab.vue'
+import TunnelsTab from './mikrotik/TunnelsTab.vue'
 
 /**
  * MikroTik & WireGuard (docs/mikrotik-plan.md §11.2), Admin only: one page that monitors and configures
@@ -20,6 +21,7 @@ const tabs = computed(() => {
     { key: 'overview', label: 'Overview', icon: 'pi pi-chart-bar', to: to('overview') },
     { key: 'network', label: 'Network', icon: 'pi pi-sitemap', to: to('network') },
     { key: 'routers', label: 'Routers', icon: 'pi pi-server', to: to('routers') },
+    { key: 'tunnels', label: 'Custom tunnels', icon: 'pi pi-lock', to: to('tunnels') },
   ]
 })
 </script>
@@ -30,6 +32,7 @@ const tabs = computed(() => {
     <TabNav :items="tabs" :active="tab" label="MikroTik sections" />
     <NetworkTab v-if="tab === 'network'" />
     <RoutersTab v-else-if="tab === 'routers'" />
+    <TunnelsTab v-else-if="tab === 'tunnels'" />
     <OverviewTab v-else />
   </div>
 </template>

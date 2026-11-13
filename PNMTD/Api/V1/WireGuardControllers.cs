@@ -9,7 +9,7 @@ namespace PNMTD.Api.V1;
 /// <summary>The tunnel network on the admin page (docs/mikrotik-plan.md §10, §11.2). Admin only.</summary>
 [Route("api/v1/wireguard")]
 [Authorize(Policy = Policies.Admin)]
-public sealed class WireGuardController(WireGuardService wireGuard) : V1ControllerBase
+public sealed class WireGuardController(WireGuardService wireGuard, WireGuardTunnelService tunnels) : V1ControllerBase
 {
     /// <summary>The gateway, the endpoint in effect with the source of each part, peers up out of all, and warnings.</summary>
     [HttpGet("status")]
@@ -26,4 +26,46 @@ public sealed class WireGuardController(WireGuardService wireGuard) : V1Controll
     /// <summary>Every peer, router or custom, with its tunnel as the gateway sees it.</summary>
     [HttpGet("peers")]
     public async Task<ActionResult<IReadOnlyList<WireGuardPeerItem>>> Peers(CancellationToken ct) => Ok(await wireGuard.PeersAsync(ct));
+
+    /// <summary>Custom tunnels (§3.5), each with the routers it actually reaches.</summary>
+    [HttpGet("tunnels")]
+    public async Task<ActionResult<IReadOnlyList<WireGuardTunnelItem>>> Tunnels(CancellationToken ct) => Ok(await tunnels.ListAsync(null, ct));
+
+    [HttpPost("tunnels")]
+    public async Task<ActionResult<WireGuardTunnelItem>> CreateTunnel(WireGuardTunnelRequest request, CancellationToken ct) =>
+        await tunnels.CreateAsync(request, ct);
+
+    [HttpPut("tunnels/{id:guid}")]
+    public async Task<ActionResult<WireGuardTunnelItem>> UpdateTunnel(Guid id, WireGuardTunnelRequest request, CancellationToken ct) =>
+        await tunnels.UpdateAsync(id, request, ct);
+
+    [HttpDelete("tunnels/{id:guid}")]
+    public async Task<IActionResult> DeleteTunnel(Guid id, CancellationToken ct)
+    {
+        await tunnels.DeleteAsync(id, ct);
+        return NoContent();
+    }
+
+    /// <summary>New keys: every downloaded file stops working. Audit-logged.</summary>
+    [HttpPost("tunnels/{id:guid}/regenerate-keys")]
+    public async Task<ActionResult<WireGuardTunnelItem>> RegenerateTunnel(Guid id, CancellationToken ct) => await tunnels.RegenerateAsync(id, ct);
+
+    /// <summary>The wg-quick file (the UI also shows it as a QR code). It holds a private key: audit-logged.</summary>
+    [HttpGet("tunnels/{id:guid}/config")]
+    public async Task<ActionResult<WireGuardTunnelConfig>> TunnelConfig(Guid id, CancellationToken ct) => await tunnels.ConfigAsync(id, null, ct);
+}
+
+/// <summary>A user's own custom tunnels (§3.5, §11.3): any role, only the tunnels an Admin gave them.</summary>
+[Route("api/v1/account/tunnels")]
+[Authorize(Policy = Policies.CanRead)]
+public sealed class AccountTunnelsController(WireGuardTunnelService tunnels) : V1ControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<WireGuardTunnelItem>>> Mine(CancellationToken ct) =>
+        Ok(await tunnels.ListAsync(User.UserId() ?? Guid.Empty, ct));
+
+    /// <summary>The user's own tunnel, while it is enabled and not expired. Audit-logged.</summary>
+    [HttpGet("{id:guid}/config")]
+    public async Task<ActionResult<WireGuardTunnelConfig>> Config(Guid id, CancellationToken ct) =>
+        await tunnels.ConfigAsync(id, User.UserId() ?? Guid.Empty, ct);
 }

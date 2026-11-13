@@ -201,6 +201,13 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'Account' },
   },
   {
+    // A user's own custom tunnels (docs/mikrotik-plan.md §11.3).
+    path: '/account/tunnels',
+    name: 'account-tunnels',
+    component: () => import('@/views/account/TunnelsView.vue'),
+    meta: { title: 'Tunnels' },
+  },
+  {
     path: '/account/security',
     name: 'account-security',
     component: () => import('@/views/account/SecurityView.vue'),

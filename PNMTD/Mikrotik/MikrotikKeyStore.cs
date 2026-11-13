@@ -43,7 +43,9 @@ public sealed partial class MikrotikKeyStore(IDbContextFactory<PnmtdDbContext> d
             {
                 return uri.Host;
             }
-            return string.IsNullOrWhiteSpace(ServerInfo.Identity) || ServerInfo.Identity == "no identity set" ? "pnmt" : ServerInfo.Identity;
+            // The Identity setting directly: the CLI never sets ServerInfo.Identity.
+            var identity = Text.Trimmed(configuration["Identity"]) ?? ServerInfo.Identity;
+            return string.IsNullOrWhiteSpace(identity) || identity == "no identity set" ? "pnmt" : identity;
         }
     }
 

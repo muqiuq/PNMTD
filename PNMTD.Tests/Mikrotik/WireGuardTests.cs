@@ -90,6 +90,18 @@ public sealed class WireGuardTests
         StringAssert.Contains(open, "snat ip to 10.253.0.2");
     }
 
+    [TestMethod]
+    public void A_tunnel_file_in_wg_quick_format()
+    {
+        var conf = WgQuickConfig.Build("alice \"laptop\"", "pnmt.example.com", "PRIV=", "10.253.0.40", 1420, "GW=", "vpn.example.com:51820", "10.253.0.0/16", 25);
+        Assert.AreEqual("# PNMT tunnel \"alice \"laptop\"\" (pnmt.example.com).\n# Contains a private key: keep it like a password.\n" +
+            "[Interface]\nPrivateKey = PRIV=\nAddress = 10.253.0.40/32\nMTU = 1420\n\n[Peer]\nPublicKey = GW=\nEndpoint = vpn.example.com:51820\n" +
+            "# Only the tunnel network: the device's other traffic is untouched.\nAllowedIPs = 10.253.0.0/16\nPersistentKeepalive = 25\n", conf);
+        Assert.AreEqual("alice--laptop.conf", WgQuickConfig.FileName("alice \"laptop\""));
+        Assert.AreEqual("a-very-long-tun.conf", WgQuickConfig.FileName("a very long tunnel name"));
+        Assert.AreEqual("pnmt.conf", WgQuickConfig.FileName("äöü"));
+    }
+
     // --- SOCKS5 ---------------------------------------------------------------------------------------
 
     [TestMethod]

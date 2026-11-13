@@ -122,3 +122,12 @@ public class WgPeerStatusEntity
 
     public DateTime UpdatedAt { get; set; }
 }
+
+/// <summary>The routers a custom tunnel may reach, when not all of them (§3.5); each only with its management access on.</summary>
+[Table("wg_peer_access")]
+public class WgPeerAccessEntity
+{
+    public Guid PeerId { get; set; }
+
+    public Guid RouterSensorId { get; set; }
+}

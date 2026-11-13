@@ -177,6 +177,17 @@ export const api = {
     network: () => call(client.GET('/api/v1/wireguard/network')),
     saveNetwork: (body: S['WireGuardNetworkRequest']) => call(client.PUT('/api/v1/wireguard/network', { body })),
     peers: () => call(client.GET('/api/v1/wireguard/peers')),
+    tunnels: () => call(client.GET('/api/v1/wireguard/tunnels')),
+    createTunnel: (body: S['WireGuardTunnelRequest']) => call(client.POST('/api/v1/wireguard/tunnels', { body })),
+    updateTunnel: (id: Id, body: S['WireGuardTunnelRequest']) =>
+      call(client.PUT('/api/v1/wireguard/tunnels/{id}', { params: { path: { id } }, body })),
+    deleteTunnel: (id: Id) => call(client.DELETE('/api/v1/wireguard/tunnels/{id}', { params: { path: { id } } })),
+    regenerateTunnel: (id: Id) =>
+      call(client.POST('/api/v1/wireguard/tunnels/{id}/regenerate-keys', { params: { path: { id } } })),
+    tunnelConfig: (id: Id) => call(client.GET('/api/v1/wireguard/tunnels/{id}/config', { params: { path: { id } } })),
+    // --- a user's own tunnels: any role ----------------------------------------------------------
+    myTunnels: () => call(client.GET('/api/v1/account/tunnels')),
+    myTunnelConfig: (id: Id) => call(client.GET('/api/v1/account/tunnels/{id}/config', { params: { path: { id } } })),
   },
 
   udp: {

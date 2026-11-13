@@ -153,8 +153,13 @@ public sealed class WireGuardGateway(IDbContextFactory<PnmtdDbContext> dbs, Wire
             File.Delete(conf);
         }
         await RunAsync("ip", ["link", "set", o.Interface, "mtu", settings.Mtu.ToString(System.Globalization.CultureInfo.InvariantCulture), "up"], null, ct);
-        // Custom tunnels' access arrives with phase M4; until then forwarding stays closed.
-        await RunAsync("nft", ["-f", "-"], NftRuleset.Build(o.Interface, settings.Plan.AccessAddress.ToString(), settings.ManagementPorts, []), ct);
+        // Custom tunnels: only to the management ports of the routers each may reach (§3.5).
+        var reach = await TunnelReach.TunnelsAsync(db, ct);
+        var customIds = await db.WgPeers.Where(p => p.Kind == WgPeerKind.Custom && p.Enabled && (p.ExpiresAt == null || p.ExpiresAt > now))
+            .Select(p => new { p.Id, p.Address }).ToListAsync(ct);
+        var access = customIds.Select(t => new TunnelAccess(t.Address, reach.TryGetValue(t.Id, out var r) ? r.Select(x => x.Address).ToList() : []))
+            .ToList();
+        await RunAsync("nft", ["-f", "-"], NftRuleset.Build(o.Interface, settings.Plan.AccessAddress.ToString(), settings.ManagementPorts, access), ct);
         logger.LogInformation("Synced {Peers} peers ({Routers} routers)", peers.Count, routerPeers.Count);
         return routerPeers.Where(p => p.Mode == MikrotikMode.WireGuardSsh).ToDictionary(p => p.Address, p => p.SshPort);
     }

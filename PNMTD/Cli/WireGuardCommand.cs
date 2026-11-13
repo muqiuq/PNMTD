@@ -5,6 +5,9 @@ using Npgsql;
 using PNMTD.Auth;
 using PNMTD.Data;
 using PNMTD.Lib.Helper;
+using PNMTD.Mikrotik;
+using PNMTD.Services.Domain;
+using PNMTD.Udp;
 using PNMTD.WireGuard;
 using PNMTD.WireGuard.Gateway;
 
@@ -19,16 +22,19 @@ internal static class WireGuardCommand
     public const string Usage = """
           wireguard gateway                     the WireGuard gateway (the service pnmtd-wg: root, NET_ADMIN only)
           wireguard status                      the network, the endpoint in effect and every peer with its handshake
+          wireguard tunnel add <name> [--owner <user>] [--routers all|<name>,<name>] [--expires <yyyy-mm-dd>]
+                   [--out <file.conf>]          a custom tunnel; its wg-quick file to standard output or --out
         """;
 
     public static int Run(string[] args, IConfiguration configuration) => args switch
     {
         ["gateway"] => Gateway(configuration),
         ["status"] => Status(configuration),
+        ["tunnel", "add", var name, .. var rest] => AddTunnel(configuration, name, new CommandLine.Options(rest)),
         _ => throw new CommandLineException($"Unknown wireguard command: {string.Join(' ', args)}"),
     };
 
-    private static ServiceProvider Services(IConfiguration configuration, bool readOnlyKeys)
+    private static ServiceProvider Services(IConfiguration configuration, bool readOnlyKeys, bool domain = false)
     {
         var services = new ServiceCollection();
         services.AddSingleton(configuration);
@@ -43,6 +49,15 @@ internal static class WireGuardCommand
             protection.DisableAutomaticKeyGeneration();
         }
         services.AddWireGuard(configuration);
+        if (domain)
+        {
+            // The tunnel service and what it needs: the domain services, the MikroTik key store (the instance's name).
+            services.AddDbContext<PnmtdDbContext>(o => PnmtdDbContext.Configure(o, connectionString));
+            services.AddDomainServices();
+            services.AddMikrotik(configuration);
+            services.AddUdpNodes(configuration);
+            services.AddHttpClient();
+        }
         return services.BuildServiceProvider();
     }
 
@@ -79,6 +94,58 @@ internal static class WireGuardCommand
                 await Task.Delay(TimeSpan.FromSeconds(5), ct);
             }
         }
+    }
+
+    private static int AddTunnel(IConfiguration configuration, string name, CommandLine.Options o)
+    {
+        var owner = o.Optional("--owner");
+        var routers = o.Optional("--routers") ?? "all";
+        var expires = o.Optional("--expires");
+        var output = o.Optional("--out");
+        o.EnsureAllUsed();
+        using var provider = Services(configuration, readOnlyKeys: false, domain: true);
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PnmtdDbContext>();
+        Guid? ownerId = null;
+        if (owner is not null)
+        {
+            var normalized = owner.Trim().ToLowerInvariant();
+            ownerId = db.Users.Where(u => u.NormalizedUsername == normalized).Select(u => (Guid?)u.Id).SingleOrDefault()
+                ?? throw new CommandLineException($"No user named {owner}.");
+        }
+        List<Guid> routerIds = [];
+        if (routers != "all")
+        {
+            foreach (var routerName in routers.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                routerIds.Add(db.Sensors.Where(s => s.Type == Lib.Models.Enum.SensorType.MIKROTIK && s.Name.ToLower() == routerName.ToLower())
+                    .Select(s => (Guid?)s.Id).SingleOrDefault() ?? throw new CommandLineException($"No MikroTik router named {routerName}."));
+            }
+        }
+        DateTime? expiresAt = expires is null ? null
+            : DateTime.TryParse(expires, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d)
+                ? Clock.ToUtc(d) : throw new CommandLineException("--expires: a date such as 2026-12-31.");
+        var tunnels = scope.ServiceProvider.GetRequiredService<Services.Domain.WireGuardTunnelService>();
+        var tunnel = tunnels.CreateAsync(new Api.V1.Contracts.WireGuardTunnelRequest
+        {
+            Name = name, OwnerUserId = ownerId, AccessAllRouters = routers == "all", RouterIds = routerIds, ExpiresAt = expiresAt,
+        }, CancellationToken.None).GetAwaiter().GetResult();
+        var config = tunnels.ConfigAsync(tunnel.Id, null, CancellationToken.None).GetAwaiter().GetResult();
+        if (output is null)
+        {
+            Console.Write(config.Content);
+        }
+        else
+        {
+            File.WriteAllText(output, "");
+            if (!OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(output, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            }
+            File.WriteAllText(output, config.Content);
+        }
+        Console.Error.WriteLine($"Tunnel {tunnel.Name}: {tunnel.Address}, reaching {tunnel.Reaches.Count} router(s) on ports {string.Join(",", config.ManagementPorts)}.");
+        return 0;
     }
 
     private static int Status(IConfiguration configuration)

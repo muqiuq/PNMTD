@@ -80,6 +80,7 @@ const userItems = computed(() => [
     items: [
       { label: 'Account', icon: 'pi pi-user', command: () => router.push({ name: 'account' }) },
       { label: 'Security', icon: 'pi pi-shield', command: () => router.push({ name: 'account-security' }) },
+      { label: 'Tunnels', icon: 'pi pi-lock', command: () => router.push({ name: 'account-tunnels' }) },
       { separator: true },
       { label: 'Sign out', icon: 'pi pi-sign-out', command: signOut },
     ],

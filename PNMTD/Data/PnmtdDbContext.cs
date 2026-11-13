@@ -57,6 +57,7 @@ namespace PNMTD.Data
         public DbSet<WgNetworkEntity> WgNetwork { get; set; }
         public DbSet<WgPeerEntity> WgPeers { get; set; }
         public DbSet<WgPeerStatusEntity> WgPeerStatus { get; set; }
+        public DbSet<WgPeerAccessEntity> WgPeerAccess { get; set; }
 
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
@@ -150,6 +151,12 @@ namespace PNMTD.Data
                 e.HasIndex(p => p.Address).IsUnique();
                 e.HasIndex(p => p.PublicKey).IsUnique();
                 e.HasIndex(p => p.SensorId);
+            });
+            modelBuilder.Entity<WgPeerAccessEntity>(e =>
+            {
+                e.HasKey(a => new { a.PeerId, a.RouterSensorId });
+                e.HasOne<WgPeerEntity>().WithMany().HasForeignKey(a => a.PeerId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(a => a.RouterSensorId).OnDelete(DeleteBehavior.Cascade);
             });
             modelBuilder.Entity<WgPeerStatusEntity>(e =>
             {

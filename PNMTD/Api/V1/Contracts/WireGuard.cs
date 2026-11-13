@@ -88,3 +88,52 @@ public sealed record WireGuardPeerItem(
     long TxBytes,
     int EndpointChanges24h,
     DateTime? ExpiresAt);
+
+/// <summary>
+/// <c>POST</c> and <c>PUT /wireguard/tunnels</c> (§3.5): a custom tunnel, optionally for a PNMT user who may then
+/// download it, reaching all routers or the selected ones (each only with its management access on).
+/// </summary>
+public sealed class WireGuardTunnelRequest
+{
+    public string? Name { get; init; }
+
+    public string? Notes { get; init; }
+
+    public Guid? OwnerUserId { get; init; }
+
+    public bool AccessAllRouters { get; init; }
+
+    public IReadOnlyList<Guid> RouterIds { get; init; } = [];
+
+    public DateTime? ExpiresAt { get; init; }
+
+    public bool Enabled { get; init; } = true;
+}
+
+/// <summary>A custom tunnel with its tunnel state and the routers it actually reaches.</summary>
+public sealed record WireGuardTunnelItem(
+    Guid Id,
+    string Name,
+    string? Notes,
+    Ref? Owner,
+    string Address,
+    string PublicKey,
+    bool Enabled,
+    bool Expired,
+    DateTime? ExpiresAt,
+    bool AccessAllRouters,
+    IReadOnlyList<Ref> Routers,
+    IReadOnlyList<WireGuardTunnelTarget> Reaches,
+    bool Up,
+    DateTime? LatestHandshake,
+    string? Endpoint,
+    long RxBytes,
+    long TxBytes,
+    DateTime KeysCreatedAt,
+    DateTime CreatedAt);
+
+/// <summary>A router a tunnel reaches: on its tunnel address, on the management ports.</summary>
+public sealed record WireGuardTunnelTarget(Guid SensorId, string Name, string Address);
+
+/// <summary>A tunnel's wg-quick file: for the WireGuard apps, or as a QR code for a phone.</summary>
+public sealed record WireGuardTunnelConfig(string FileName, string Content, IReadOnlyList<int> ManagementPorts);

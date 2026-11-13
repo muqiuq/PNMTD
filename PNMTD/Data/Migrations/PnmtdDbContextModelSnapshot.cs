@@ -1378,6 +1378,21 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("wg_network");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.WgPeerAccessEntity", b =>
+                {
+                    b.Property<Guid>("PeerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RouterSensorId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("PeerId", "RouterSensorId");
+
+                    b.HasIndex("RouterSensorId");
+
+                    b.ToTable("wg_peer_access");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.WgPeerEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1670,6 +1685,21 @@ namespace PNMTD.Data.Migrations
                         .WithMany()
                         .HasForeignKey("SensorId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.WgPeerAccessEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.WgPeerEntity", null)
+                        .WithMany()
+                        .HasForeignKey("PeerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("RouterSensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.WgPeerEntity", b =>
