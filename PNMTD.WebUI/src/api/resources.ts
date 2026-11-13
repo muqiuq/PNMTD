@@ -295,6 +295,43 @@ export const api = {
     runAnalysis: () => call(client.POST('/api/v1/ai/analysis/run')),
   },
 
+  /** Windows servers (docs/windows-sensor-plan.md §9.2): the fleet CanRead, requests CanWrite, tokens and the agent log Admin. */
+  windows: {
+    servers: (
+      query: ListQuery & {
+        state?: SensorState
+        unsupported?: boolean
+        outdated?: boolean
+        connected?: boolean
+        remoteAccess?: boolean
+        auditGaps?: boolean
+        diagnosticsFailing?: boolean
+        hostId?: Id
+      },
+    ) => call(client.GET('/api/v1/windows/servers', { params: { query } })),
+    server: (id: Id) => call(client.GET('/api/v1/windows/servers/{id}', { params: { path: { id } } })),
+    serverLog: (id: Id, query: ListQuery & { kind?: S['WindowsAgentLogKind'] }) =>
+      call(client.GET('/api/v1/windows/servers/{id}/log', { params: { path: { id }, query } })),
+    collect: (id: Id, sections: string[] = []) =>
+      call(client.POST('/api/v1/windows/servers/{id}/collect', { params: { path: { id } }, body: { sections } })),
+    sendLog: (id: Id) => call(client.POST('/api/v1/windows/servers/{id}/send-log', { params: { path: { id } } })),
+    settings: (id: Id, body: S['WindowsServerSettings']) =>
+      call(client.PUT('/api/v1/windows/servers/{id}/settings', { params: { path: { id } }, body })),
+    revoke: (id: Id, reason: string | null) =>
+      call(client.POST('/api/v1/windows/servers/{id}/revoke', { params: { path: { id } }, body: { reason } })),
+    rejoinToken: (id: Id, validHours: number | null = null) =>
+      call(
+        client.POST('/api/v1/windows/servers/{id}/rejoin-token', { params: { path: { id } }, body: { validHours } }),
+      ),
+    tokens: (query: ListQuery & { state?: S['WindowsJoinTokenState'] }) =>
+      call(client.GET('/api/v1/windows/join-tokens', { params: { query } })),
+    createToken: (body: S['WindowsJoinTokenRequest']) => call(client.POST('/api/v1/windows/join-tokens', { body })),
+    revokeToken: (id: Id) => call(client.DELETE('/api/v1/windows/join-tokens/{id}', { params: { path: { id } } })),
+    agentLog: (query: ListQuery & { kind?: S['WindowsAgentLogKind']; sensorId?: Id }) =>
+      call(client.GET('/api/v1/windows/agent-log', { params: { query } })),
+    agent: () => call(client.GET('/api/v1/windows/agent')),
+  },
+
   /** Admin → Debug (docs/ai-operations-plan.md §8): test sends, 10 a minute. */
   debug: {
     status: () => call(client.GET('/api/v1/debug')),
@@ -388,6 +425,9 @@ export const keys = {
   udpNode: (id: Id) => ['udp', 'node', id] as const,
   /** MikroTik routers: the admin page's status and fleet (docs/mikrotik-plan.md §11.2). */
   mikrotik: ['mikrotik'] as const,
+  /** Windows servers and their agents (docs/windows-sensor-plan.md §10). */
+  windows: ['windows'] as const,
+  windowsServer: (id: Id) => ['windows', 'server', id] as const,
   /** The uplink page and its checks (docs/ai-operations-plan.md §7.3). */
   uplink: ['uplink'] as const,
   /** The Notification Manager's matrix and coverage (docs/ai-operations-plan.md §11.3). */

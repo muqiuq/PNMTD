@@ -18,7 +18,11 @@ namespace PNMTD.Lib.Models.Enum
         /// <summary>A MikroTik router that PNMTD polls over SSH, or watches through its tunnel (docs/mikrotik-plan.md §9.1).</summary>
         MIKROTIK = 80,
         /// <summary>One of PNMT's own conditions (docs/ai-operations-plan.md §4): the uplink, the AI, the RouterOS advisories. PNMT writes its events.</summary>
-        SYSTEM = 90
+        SYSTEM = 90,
+        /// <summary>A Windows server or PC running the PNMT sensor service (docs/windows-sensor-plan.md §8.1); created by its join, with heartbeat semantics.</summary>
+        WINDOWS = 100,
+        /// <summary>A diagnostics set assigned to an agent (docs/windows-sensor-plan.md §5.2); created by the assignment.</summary>
+        DIAGNOSTICS = 101
     }
 }
 

@@ -55,6 +55,19 @@ namespace PNMTD.Lib.Models
         public const int AI_BUDGET_90 = 426;
         public const int AI_BUDGET_REACHED = 427;
 
+        /// <summary>Windows servers (docs/windows-sensor-plan.md §8.2): the heartbeat, a restart, a notable change, admin logins; the agent's problems, critical entries, login failures.</summary>
+        public const int WINDOWS_OK = 250;
+        public const int WINDOWS_RESTARTED = 251;
+        public const int WINDOWS_CHANGED = 253;
+        public const int WINDOWS_ADMIN_LOGIN = 254;
+        public const int WINDOWS_AGENT_PROBLEM = 451;
+        public const int WINDOWS_CRITICAL_EVENT = 453;
+        public const int WINDOWS_LOGIN_FAILURES = 454;
+
+        /// <summary>Diagnostics (docs/windows-sensor-plan.md §5.4): every check passed, or at least one failed.</summary>
+        public const int DIAGNOSTICS_OK = 252;
+        public const int DIAGNOSTICS_FAILED = 452;
+
         public static readonly int[] ONE_OR_ALL_WITHIN_CODES = new int[]{ ONE_WITHIN_TIMESPAN_FAILED, ONE_WITHIN_TIMESPAN_OK, ALL_WITHIN_TIMESPAN_OK, ALL_WITHIN_TIMESPAN_FAILED };
     }
 }

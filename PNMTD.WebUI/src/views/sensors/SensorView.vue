@@ -52,6 +52,10 @@ import UdpNodePanel from './udp/UdpNodePanel.vue'
 import UdpSettingsDialog from './udp/UdpSettingsDialog.vue'
 import UdpStatusStrip from './udp/UdpStatusStrip.vue'
 import { useNodeActions } from './udp/useNodeActions'
+import { useWindowsServer } from './windows/useWindowsServer'
+import WindowsAgentTab from './windows/WindowsAgentTab.vue'
+import WindowsOverviewTab from './windows/WindowsOverviewTab.vue'
+import WindowsStatusStrip from './windows/WindowsStatusStrip.vue'
 
 /**
  * A sensor (§5.6). Left: its configuration (by type), how to report to it, its notification rules.
@@ -83,9 +87,30 @@ const heartbeat = computed(() => usesGracePeriod(sensor.value?.type))
 // --- a UDP node's subpages ------------------------------------------------------------------
 const isUdp = computed(() => sensor.value?.type === 'UDP_NODE' && !!sensor.value.udp)
 const isMikrotik = computed(() => sensor.value?.type === 'MIKROTIK' && !!sensor.value.mikrotik)
+// A Windows server's pages (docs/windows-sensor-plan.md §10.2): the overview first.
+const isWindows = computed(() => sensor.value?.type === 'WINDOWS')
+const windows = useWindowsServer(id, isWindows)
 const tab = computed(
-  () => ((isUdp.value || isMikrotik.value) && typeof route.params.tab === 'string' && route.params.tab) || 'events',
+  () =>
+    ((isUdp.value || isMikrotik.value || isWindows.value) &&
+      typeof route.params.tab === 'string' &&
+      route.params.tab) ||
+    (isWindows.value ? 'overview' : 'events'),
 )
+const windowsTabs = computed(() => {
+  const to = (t?: string) => ({ name: 'sensor', params: { id: id.value, tab: t } })
+  return [
+    { key: 'overview', label: 'Overview', icon: 'pi pi-microsoft', to: to() },
+    { key: 'events', label: 'Events', icon: 'pi pi-list', to: to('events') },
+    {
+      key: 'agent',
+      label: 'Agent',
+      icon: 'pi pi-cog',
+      to: to('agent'),
+      badge: windows.server.value?.server.connected === false ? '!' : null,
+    },
+  ]
+})
 const mikrotikTabs = computed(() => {
   const to = (t?: string) => ({ name: 'sensor', params: { id: id.value, tab: t } })
   return [
@@ -274,7 +299,7 @@ const more = computed(() =>
     : [
         ...udpItems.value,
         ...mikrotikItems.value,
-        ...(sensor.value?.integration
+        ...(sensor.value?.integration && !isWindows.value
           ? [{ label: 'New tokens…', icon: 'pi pi-key', command: () => (rotating.value = true) }]
           : []),
         { label: 'Delete sensor…', icon: 'pi pi-trash', command: remove },
@@ -318,6 +343,10 @@ const more = computed(() =>
         <MikrotikStatusStrip :sensor="sensor" />
         <TabNav :items="mikrotikTabs" :active="tab" label="Router pages" />
       </template>
+      <template v-else-if="isWindows">
+        <WindowsStatusStrip :server="windows.server.value" />
+        <TabNav :items="windowsTabs" :active="tab" label="Server pages" />
+      </template>
 
       <SetupTab
         v-if="isMikrotik && tab === 'setup'"
@@ -338,6 +367,16 @@ const more = computed(() =>
       <CommandsTab v-else-if="tab === 'commands'" :sensor="sensor" :can-write="canWrite" />
       <FirmwareTab v-else-if="tab === 'firmware'" :sensor="sensor" :is-admin="isAdmin" @update="updating = true" />
       <ProtocolPage v-else-if="tab === 'protocol'" :sensor-id="sensor.id" :sensor-name="sensor.name" />
+      <template v-else-if="isWindows && tab !== 'events'">
+        <div v-if="!windows.server.value" class="center"><ProgressSpinner style="width: 32px; height: 32px" /></div>
+        <WindowsOverviewTab v-else-if="tab === 'overview'" :server="windows.server.value" />
+        <WindowsAgentTab
+          v-else-if="tab === 'agent'"
+          :server="windows.server.value"
+          :can-write="canWrite"
+          :is-admin="isAdmin"
+        />
+      </template>
 
       <div v-else class="two-columns">
         <div class="column">
@@ -496,7 +535,7 @@ const more = computed(() =>
             </div>
           </section>
           <section
-            v-else-if="sensor.integration && !isMikrotik && !isSystem"
+            v-else-if="sensor.integration && !isMikrotik && !isSystem && !isWindows"
             class="panel"
             aria-labelledby="integration-title"
           >

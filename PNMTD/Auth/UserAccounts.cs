@@ -77,6 +77,18 @@ public static class AuthEvents
     public const string AiBackfillStarted = "AiBackfillStarted";
     public const string AiAnalysisStarted = "AiAnalysisStarted";
 
+    // Windows servers and diagnostics (docs/windows-sensor-plan.md §9.2).
+    public const string WindowsJoinTokenCreated = "WindowsJoinTokenCreated";
+    public const string WindowsJoinTokenRevoked = "WindowsJoinTokenRevoked";
+    public const string WindowsJoined = "WindowsJoined";
+    public const string WindowsJoinFailed = "WindowsJoinFailed";
+    public const string WindowsAgentRevoked = "WindowsAgentRevoked";
+    public const string WindowsSettingsChanged = "WindowsSettingsChanged";
+    public const string DiagnosticsSetChanged = "DiagnosticsSetChanged";
+    public const string DiagnosticsAssignmentChanged = "DiagnosticsAssignmentChanged";
+    public const string WindowsScriptChanged = "WindowsScriptChanged";
+    public const string WindowsScriptRun = "WindowsScriptRun";
+
     public static readonly string[] All =
     [
         LoginSucceeded, LoginFailed, LockedOut, TotpFailed, Logout, TotpEnabled, TotpDisabled, TotpReset, PasswordChanged,
@@ -89,6 +101,8 @@ public static class AuthEvents
         WireGuardNetworkChanged, WireGuardKeysRegenerated,
         WireGuardTunnelCreated, WireGuardTunnelChanged, WireGuardTunnelDeleted, WireGuardTunnelDownloaded,
         DebugNotificationSent, DebugAiTested, AiWorkRetried, AiWorkCancelled, AiBackfillStarted, AiAnalysisStarted,
+        WindowsJoinTokenCreated, WindowsJoinTokenRevoked, WindowsJoined, WindowsJoinFailed, WindowsAgentRevoked, WindowsSettingsChanged,
+        DiagnosticsSetChanged, DiagnosticsAssignmentChanged, WindowsScriptChanged, WindowsScriptRun,
     ];
 }
 

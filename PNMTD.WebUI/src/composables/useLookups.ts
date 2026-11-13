@@ -57,14 +57,21 @@ export const typeLabel = (type: string) =>
         ? 'MikroTik router'
         : type === 'SYSTEM'
           ? 'PNMT system'
-          : humanize(type)
+          : type === 'WINDOWS'
+            ? 'Windows server'
+            : humanize(type)
 
 /**
  * Types that report themselves and turn 460 after Interval + GracePeriod without a report, and MikroTik
  * routers, which turn 440 after failing polls for the GracePeriod (docs/mikrotik-plan.md §5.2).
  */
 export const usesGracePeriod = (type: string | null | undefined) =>
-  type === 'HEARTBEAT' || type === 'HEARTBEAT_VALUECHECK' || type === 'UDP_NODE' || type === 'MIKROTIK'
+  type === 'HEARTBEAT' ||
+  type === 'HEARTBEAT_VALUECHECK' ||
+  type === 'UDP_NODE' ||
+  type === 'MIKROTIK' ||
+  type === 'WINDOWS' ||
+  type === 'DIAGNOSTICS'
 
 /** The PrimeIcon of a sensor type. */
 export function typeIcon(type: string): string {
@@ -85,6 +92,10 @@ export function typeIcon(type: string): string {
       return 'pi pi-server'
     case 'SYSTEM':
       return 'pi pi-cog'
+    case 'WINDOWS':
+      return 'pi pi-microsoft'
+    case 'DIAGNOSTICS':
+      return 'pi pi-check-circle'
     case 'ONE_WITHIN_TIMESPAN':
     case 'ALL_WITHIN_TIMESPAN':
       return 'pi pi-clock'

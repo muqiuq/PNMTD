@@ -4,7 +4,7 @@ import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import ProgressSpinner from 'primevue/progressspinner'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, hostRequest, keys, type S } from '@/api/resources'
 import CodeTag from '@/components/CodeTag.vue'
@@ -23,6 +23,7 @@ import { useMedia } from '@/composables/useMedia'
 import { formatAbsolute, formatPercent } from '@/format'
 import { useSession } from '@/stores/session'
 import { importanceOptions } from '@/views/notifications/importance'
+import AddServerDialog from '@/views/admin/windows/AddServerDialog.vue'
 
 /**
  * A host (§5.6): its state and 90 days, its properties edited in place, and every sensor with its
@@ -69,7 +70,14 @@ async function remove() {
   }
 }
 
-const more = computed(() => [{ label: 'Delete host…', icon: 'pi pi-trash', class: 'danger', command: remove }])
+// A Windows server joins with a token (docs/windows-sensor-plan.md §3.3): Admin, with this host preselected.
+const addingServer = ref(false)
+const more = computed(() => [
+  ...(session.can('Admin')
+    ? [{ label: 'Add Windows server…', icon: 'pi pi-microsoft', command: () => (addingServer.value = true) }]
+    : []),
+  { label: 'Delete host…', icon: 'pi pi-trash', class: 'danger', command: remove },
+])
 </script>
 
 <template>
@@ -257,6 +265,7 @@ const more = computed(() => [{ label: 'Delete host…', icon: 'pi pi-trash', cla
         </section>
       </div>
     </template>
+    <AddServerDialog v-if="host" v-model:visible="addingServer" :host-id="host.id" />
   </div>
 </template>
 

@@ -35,6 +35,10 @@ public sealed class EndpointAuditTests
         "GET /api/v1/auth/me",
         "GET /pnmt-admin/{**path:nonfile}",
         "HEAD /pnmt-admin/{**path:nonfile}",
+        // The Windows agents (docs/windows-sensor-plan.md §9.1): authenticated by the join token or the agent's key.
+        "GET /agent/v1/join",
+        "POST /agent/v1/join",
+        "GET /agent/v1/ws",
     ];
 
     /// <summary>
@@ -227,6 +231,20 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/decisions/count"] = Roles.User,
         ["GET /api/v1/decisions/{id:guid}"] = Roles.User,
         ["POST /api/v1/decisions/{id:guid}/decide"] = Roles.User,
+        // Windows servers (docs/windows-sensor-plan.md §9.2): the agent log, revoking and tokens are Admin, requests CanWrite.
+        ["GET /api/v1/windows/servers"] = Roles.Viewer,
+        ["GET /api/v1/windows/servers/{id:guid}"] = Roles.Viewer,
+        ["GET /api/v1/windows/servers/{id:guid}/log"] = Roles.Admin,
+        ["POST /api/v1/windows/servers/{id:guid}/collect"] = Roles.User,
+        ["POST /api/v1/windows/servers/{id:guid}/send-log"] = Roles.Admin,
+        ["PUT /api/v1/windows/servers/{id:guid}/settings"] = Roles.User,
+        ["POST /api/v1/windows/servers/{id:guid}/revoke"] = Roles.Admin,
+        ["POST /api/v1/windows/servers/{id:guid}/rejoin-token"] = Roles.Admin,
+        ["GET /api/v1/windows/join-tokens"] = Roles.Admin,
+        ["POST /api/v1/windows/join-tokens"] = Roles.Admin,
+        ["DELETE /api/v1/windows/join-tokens/{id:guid}"] = Roles.Admin,
+        ["GET /api/v1/windows/agent-log"] = Roles.Admin,
+        ["GET /api/v1/windows/agent"] = Roles.Admin,
     };
 
     private sealed record EndpointInfo(string Key, string Method, string Pattern, RouteEndpoint Endpoint);

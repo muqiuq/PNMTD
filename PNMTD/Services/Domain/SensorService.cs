@@ -11,7 +11,7 @@ using PNMTD.Models.Db;
 namespace PNMTD.Services.Domain;
 
 public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, PublicUrls urls, NotificationRuleService rules, UdpNodeService udp,
-    MikrotikRouterService mikrotik)
+    MikrotikRouterService mikrotik, Agents.AgentHub agents)
 {
     private static readonly string[] SortFields = ["name", "host", "state", "type", "lastevent"];
 
@@ -119,12 +119,13 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
     public async Task<SensorDetail> UpdateAsync(Guid id, SensorRequest request, bool withSecrets, CancellationToken ct)
     {
         var sensor = await db.Sensors.SingleOrDefaultAsync(s => s.Id == id, ct) ?? throw ApiException.NotFound("Sensor");
-        if (sensor.Type == SensorType.SYSTEM)
+        if (sensor.Type is SensorType.SYSTEM or SensorType.WINDOWS or SensorType.DIAGNOSTICS)
         {
-            // PNMT owns its system sensors (docs/ai-operations-plan.md §4): a new name, host, notes, Enabled and Ignore only.
+            // PNMT owns its system sensors (docs/ai-operations-plan.md §4), a Windows server is its agent's and a
+            // diagnostics sensor its assignment's (docs/windows-sensor-plan.md §8.1): a new name, host, notes, Enabled and Ignore only.
             var name = request.Name?.Trim();
             var v = new ApiValidator()
-                .Check(request.Type == SensorType.SYSTEM, "type", "A system sensor keeps its type.")
+                .Check(request.Type == sensor.Type, "type", $"A {sensor.Type} sensor keeps its type.")
                 .Check(name is { Length: >= 1 and <= 200 }, "name", "The name must have 1 to 200 characters.")
                 .Check(request.Notes is null || request.Notes.Length <= UdpNodeService.MaxNotes, "notes", $"At most {UdpNodeService.MaxNotes} characters.");
             v.Check(await db.Hosts.AnyAsync(h => h.Id == request.HostId, ct), "hostId", "No such host.");
@@ -188,6 +189,10 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         {
             throw ApiException.Conflict("system_sensor", "A system sensor cannot be deleted (PNMT would create it again): disable it instead.");
         }
+        if (type == SensorType.DIAGNOSTICS)
+        {
+            throw ApiException.Conflict("diagnostics_sensor", "A diagnostics sensor goes with its assignment: delete the assignment on Admin → Diagnostics.");
+        }
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var ids = await db.Sensors.Where(s => s.Id == id || s.OlderSiblingId == id).Select(s => s.Id).ToListAsync(ct);
         await db.MailInputs.Where(m => m.SensorOutputId != null && ids.Contains(m.SensorOutputId.Value))
@@ -199,6 +204,11 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         udp.Changed();
         // So does a router's tunnel: the gateway drops the peer (docs/mikrotik-plan.md §4.6).
         await mikrotik.NotifyGatewayAsync(ct, always: true);
+        // And a Windows server's agent: its connection ends (docs/windows-sensor-plan.md §8.1).
+        if (type == SensorType.WINDOWS)
+        {
+            await agents.DisconnectAsync(id, Lib.Agent.AgentCloseCodes.Revoked, "the server was deleted in PNMT");
+        }
     }
 
     public async Task<SensorIntegration> RotateTokensAsync(Guid id, RotateTokensRequest request, CancellationToken ct)
@@ -266,6 +276,8 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         v.Check(Enum.IsDefined(request.Type), "type", "Unknown sensor type.");
         v.Check(request.Type != SensorType.DNS, "type", "DNS sensors are created by their DNS zone.");
         v.Check(request.Type != SensorType.SYSTEM, "type", "System sensors are PNMT's own; it creates them.");
+        v.Check(request.Type != SensorType.WINDOWS || existing?.Type == SensorType.WINDOWS, "type", "A Windows server joins with a token: Add server.");
+        v.Check(request.Type != SensorType.DIAGNOSTICS || existing?.Type == SensorType.DIAGNOSTICS, "type", "A diagnostics sensor is created by assigning a set on Admin → Diagnostics.");
         v.Check(request.Interval is >= 0 and <= 31_536_000, "interval", "Between 0 and 31536000 seconds.");
         v.Check(request.GracePeriod is >= 0 and <= 31_536_000, "gracePeriod", "Between 0 and 31536000 seconds.");
         v.Check(request.TextId is null || request.TextId.Length <= 200, "textId", "At most 200 characters.");

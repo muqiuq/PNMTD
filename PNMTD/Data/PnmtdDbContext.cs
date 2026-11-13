@@ -86,6 +86,12 @@ namespace PNMTD.Data
         public DbSet<AiAnalysisRunEntity> AiAnalysisRuns { get; set; }
         public DbSet<AiFindingEntity> AiFindings { get; set; }
 
+        // Windows servers and their agents (docs/windows-sensor-plan.md §8.3).
+        public DbSet<WindowsSettingsEntity> WindowsSettings { get; set; }
+        public DbSet<WindowsJoinTokenEntity> WindowsJoinTokens { get; set; }
+        public DbSet<WindowsAgentEntity> WindowsAgents { get; set; }
+        public DbSet<WindowsAgentLogEntity> WindowsAgentLog { get; set; }
+
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
         }
@@ -245,6 +251,27 @@ namespace PNMTD.Data
             {
                 e.HasOne(f => f.Run).WithMany(r => r.Findings).HasForeignKey(f => f.RunId).OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(f => f.DedupeKey);
+            });
+
+            // Windows servers (docs/windows-sensor-plan.md §8.3): the agent goes with its sensor, its log stays.
+            modelBuilder.Entity<WindowsJoinTokenEntity>(e =>
+            {
+                e.HasIndex(t => t.TokenHash).IsUnique();
+                e.HasIndex(t => t.CreatedAt);
+                e.HasOne<HostEntity>().WithMany().HasForeignKey(t => t.HostId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(t => t.SensorId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<WindowsAgentEntity>(e =>
+            {
+                e.HasOne(a => a.Sensor).WithOne().HasForeignKey<WindowsAgentEntity>(a => a.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(a => a.AgentId).IsUnique();
+                e.HasIndex(a => a.MachineGuid);
+            });
+            modelBuilder.Entity<WindowsAgentLogEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(l => l.SensorId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(l => new { l.SensorId, l.At });
+                e.HasIndex(l => l.At);
             });
 
             modelBuilder.Entity<NotificationRuleScopeEntity>(e =>

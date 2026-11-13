@@ -86,8 +86,10 @@ namespace PNMTD.Tasks
             {
                 if (!decisionMaker.DetermineIfTaskShouldRun(dbContext)) return;
 
+                // Windows servers too (docs/windows-sensor-plan.md §8.1), except those revoked or uninstalled on purpose.
                 var relevantSensors = dbContext.Sensors.Where(s =>
-                (s.Type == SensorType.HEARTBEAT || s.Type == SensorType.HEARTBEAT_VALUECHECK || s.Type == SensorType.UDP_NODE)
+                ((s.Type == SensorType.HEARTBEAT || s.Type == SensorType.HEARTBEAT_VALUECHECK || s.Type == SensorType.UDP_NODE)
+                 || (s.Type == SensorType.WINDOWS && !dbContext.WindowsAgents.Any(a => a.SensorId == s.Id && (a.RevokedAt != null || a.UninstalledAt != null))))
                 && s.Enabled).ToList();
 
                 int counterCreatedEvents = 0;

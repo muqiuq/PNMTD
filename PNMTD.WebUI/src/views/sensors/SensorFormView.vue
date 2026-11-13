@@ -252,6 +252,9 @@ async function submit() {
           </template>
         </Select>
         <small class="field-hint">{{ info?.description }}</small>
+        <small class="field-hint"
+          >A Windows server joins with a token: <em>Add Windows server…</em> in the host's menu (Admin).</small
+        >
       </div>
       <div class="field">
         <label for="sensor-name">Name</label>

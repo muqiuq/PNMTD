@@ -15,6 +15,7 @@ using PNMTD.Services.Domain;
 using PNMTD.Tasks;
 using PNMTD.Udp;
 using PNMTD.WireGuard;
+using PNMTD.Windows;
 
 namespace PNMTD;
 
@@ -92,6 +93,7 @@ public partial class Program
         builder.Services.AddUdpNodes(builder.Configuration);
         builder.Services.AddMikrotik(builder.Configuration);
         builder.Services.AddWireGuard(builder.Configuration);
+        builder.Services.AddWindowsAgents(builder.Configuration);
 
         // The build writes the OpenAPI document by starting the host without a database (GetDocument.Insider).
         var documentBuild = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
@@ -123,6 +125,8 @@ public partial class Program
             builder.Services.AddHostedService(sp => sp.GetRequiredService<VersionCatalog>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<AdvisoryFeed>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<BackupRetentionTask>());
+            // Windows servers (docs/windows-sensor-plan.md §8.4): expired tokens and retention.
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<WindowsMaintenanceTask>());
         }
 
         // UDP nodes (docs/udp-iot-plan.md §4.4): on unless Udp:Enabled=false, not tied to the
@@ -170,6 +174,7 @@ public partial class Program
         // The order matters (§3.5). First the client's real address and scheme. There is no HTTPS
         // redirect anywhere: TLS ends at the reverse proxy, and sensor URLs must never be redirected.
         app.UseForwardedHeaders();
+        app.UseAgentWebSockets();          // /agent/v1/ws only (docs/windows-sensor-plan.md §3.5)
         app.UseSecurityHeaders();          // /pnmt-admin and /api only
         app.UseApiErrors();                // ProblemDetails, on /api only
         app.UseWebUiFiles();               // /pnmt-admin/** files, anonymous
@@ -178,7 +183,8 @@ public partial class Program
         app.UseRateLimiter();              // the login endpoints only
         // The sensor API is anonymous and must not see the session cookie (a sliding renewal would
         // add a Set-Cookie header v0.12 never sent).
-        app.UseWhen(c => !SensorPaths.IsSensorPath(c.Request.Path), b => b.UseAuthentication());
+        // Nor do the agents' paths, which authenticate by token or key (docs/windows-sensor-plan.md §9.1).
+        app.UseWhen(c => !SensorPaths.IsSensorPath(c.Request.Path) && !PNMTD.Agents.AgentPaths.IsAgentPath(c.Request.Path), b => b.UseAuthentication());
         app.UseAuthorization();            // deny by default (§3.6)
         app.UseSessionGates();   // a temporary password must be changed first
 
@@ -192,6 +198,7 @@ public partial class Program
             .ExcludeFromDescription();
 
         app.MapControllers();              // /api/v1/**, /event/**, /read/**
+        app.MapAgentEndpoints();           // /agent/v1/join, /agent/v1/ws
         app.MapWebUi();                    // SPA deep links, /api 404s
 
         appTask = app.RunAsync();

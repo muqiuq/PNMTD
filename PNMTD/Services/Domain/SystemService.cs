@@ -105,6 +105,11 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.MIKROTIK_UPDATE_AVAILABLE, "MIKROTIK_UPDATE_AVAILABLE", true, "A newer RouterOS version is available on the router's channel (once per version)."),
         new(PNMTStatusCodes.SYSTEM_OK, "SYSTEM_OK", true, "A system sensor's condition is fine: the uplink answers, the AI is available, no critical RouterOS fix is pending."),
         new(PNMTStatusCodes.AI_FINDING_INFO, "AI_FINDING_INFO", true, "The AI analysis found something worth knowing, but no problem."),
+        new(PNMTStatusCodes.WINDOWS_OK, "WINDOWS_OK", true, "A Windows server's heartbeat: the agent is connected and its clock is right. The message names the server, its Windows and the agent."),
+        new(PNMTStatusCodes.WINDOWS_RESTARTED, "WINDOWS_RESTARTED", true, "A Windows server restarted (its boot time moved); the message gives the last shutdown's reason."),
+        new(PNMTStatusCodes.WINDOWS_CHANGED, "WINDOWS_CHANGED", true, "Something notable changed on a Windows server: services, remote access, local administrators, addresses, the OS build, disks, the audit policy."),
+        new(PNMTStatusCodes.WINDOWS_ADMIN_LOGIN, "WINDOWS_ADMIN_LOGIN", true, "An admin logged in to a Windows server by console, RDP, SSH or WinRM (optional, on by default)."),
+        new(PNMTStatusCodes.DIAGNOSTICS_OK, "DIAGNOSTICS_OK", true, "Every check of a diagnostics set passed."),
         new(PNMTStatusCodes.DNS_FAILED, "DNS_FAILED", false, "At least one record of the DNS zone differs from what the resolvers answer."),
         new(PNMTStatusCodes.HEARTBEAT_MISSING, "HEARTBEAT_MISSING", false, "No report within the interval and the grace period."),
         new(PNMTStatusCodes.PING_FAILED, "PING_FAILED", false, "The ping target did not answer."),
@@ -123,6 +128,10 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.AI_BUDGET_80, "AI_BUDGET_80", false, "AI spending reached 80 % of the budget."),
         new(PNMTStatusCodes.AI_BUDGET_90, "AI_BUDGET_90", false, "AI spending reached 90 % of the budget."),
         new(PNMTStatusCodes.AI_BUDGET_REACHED, "AI_BUDGET_REACHED", false, "AI spending reached the budget: AI work waits until the next period."),
+        new(PNMTStatusCodes.WINDOWS_AGENT_PROBLEM, "WINDOWS_AGENT_PROBLEM", false, "A Windows server's agent has a problem: its clock is off, it reported failures in three heartbeats in a row, or its key or protocol is wrong."),
+        new(PNMTStatusCodes.WINDOWS_CRITICAL_EVENT, "WINDOWS_CRITICAL_EVENT", false, "A new Critical entry in a Windows server's System or Application log (optional, off by default)."),
+        new(PNMTStatusCodes.WINDOWS_LOGIN_FAILURES, "WINDOWS_LOGIN_FAILURES", false, "A burst of failed logins on a Windows server from one source or for one user, or an account locked out (optional, on by default)."),
+        new(PNMTStatusCodes.DIAGNOSTICS_FAILED, "DIAGNOSTICS_FAILED", false, "At least one check of a diagnostics set failed; the message names them."),
         new(PNMTStatusCodes.ERROR, "ERROR", false, "The default failure code. Any code above 399 counts as a failure."),
     ];
 
@@ -140,6 +149,8 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(SensorType.UDP_NODE, "A device reporting over PNMT-UDP (port 5028/udp): 230 when alive, 231 after a restart, 232 for data; 460 after Interval + GracePeriod without a packet.", null, true, true),
         new(SensorType.SYSTEM, "One of PNMT's own conditions, written by PNMT: the uplink (220, 420), the AI (220, 421), the AI budget (220, 425–427), the AI analysis (220, 221, 423, 424), the RouterOS advisories (220, 422).", null, false, false),
         new(SensorType.MIKROTIK, "A MikroTik router (RouterOS 7.13 or later) that PNMTD polls every Interval seconds over SSH, as the read-only user pnmt: 240 when it answers, 241 after a restart, 242 after an update, 244 when an update is available; 440 when unreachable for longer than the GracePeriod, 441 when access is refused.", null, true, true),
+        new(SensorType.WINDOWS, "A Windows server or PC running the PNMT sensor service, added with a join token (Add server): 250 with each heartbeat, 251 after a restart, 253 for a notable change, 254 for an admin login; 451 for an agent problem, 453 for a new Critical entry, 454 for failed-login bursts; 460 after Interval + GracePeriod without a heartbeat.", null, false, true),
+        new(SensorType.DIAGNOSTICS, "A diagnostics set assigned to a Windows server, created by the assignment: 252 when every check passed, 452 when one failed; scheduled ones get 460 without a result within their interval and 2 minutes.", null, false, true),
     ];
 
     public static IReadOnlyList<NotificationRuleTypeInfo> NotificationRuleTypes() =>
