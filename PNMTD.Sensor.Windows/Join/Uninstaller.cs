@@ -30,7 +30,8 @@ internal static class Uninstaller
                 done.Add("PNMT could not be reached: the server stays there and turns 460 without heartbeats.");
             }
             AgentKey.Delete(config.KeyName);
-            done.Add("The key is deleted.");
+            AgentKey.DeleteEncryptionKey(config.AgentId);
+            done.Add("The keys are deleted, and with the data folder the stored accounts.");
         }
         foreach (var entry in Directory.Exists(AgentInfo.DataFolder) ? Directory.GetFileSystemEntries(AgentInfo.DataFolder) : [])
         {

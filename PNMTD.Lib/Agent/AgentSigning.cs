@@ -51,18 +51,21 @@ public static class AgentSigning
 
     public static string PublicKey(ECDsa key) => Convert.ToBase64String(key.ExportSubjectPublicKeyInfo());
 
-    /// <summary>What the agent signs in its hello: the domain, PNMT's origin as the agent sees it, its id, the nonce, its time.</summary>
-    public static byte[] HelloPayload(string origin, Guid agentId, string nonce, DateTimeOffset agentTime) =>
-        Encoding.UTF8.GetBytes($"{HelloDomain}\n{origin}\n{agentId:D}\n{nonce}\n{agentTime.ToUniversalTime():O}");
+    /// <summary>
+    /// What the agent signs in its hello: the domain, PNMT's origin as the agent sees it, its id, the nonce, its time, and its
+    /// encryption key (W6), so the key PNMTD encrypts passwords to is the agent's own.
+    /// </summary>
+    public static byte[] HelloPayload(string origin, Guid agentId, string nonce, DateTimeOffset agentTime, string? encryptionKey = null) =>
+        Encoding.UTF8.GetBytes($"{HelloDomain}\n{origin}\n{agentId:D}\n{nonce}\n{agentTime.ToUniversalTime():O}\n{encryptionKey}");
 
-    public static string SignHello(ECDsa key, string origin, Guid agentId, string nonce, DateTimeOffset agentTime) =>
-        Convert.ToBase64String(key.SignData(HelloPayload(origin, agentId, nonce, agentTime), HashAlgorithmName.SHA256));
+    public static string SignHello(ECDsa key, string origin, Guid agentId, string nonce, DateTimeOffset agentTime, string? encryptionKey = null) =>
+        Convert.ToBase64String(key.SignData(HelloPayload(origin, agentId, nonce, agentTime, encryptionKey), HashAlgorithmName.SHA256));
 
     public static bool VerifyHello(ECDsa publicKey, Hello hello, string nonce)
     {
         try
         {
-            return publicKey.VerifyData(HelloPayload(hello.Origin, hello.AgentId, nonce, hello.AgentTime),
+            return publicKey.VerifyData(HelloPayload(hello.Origin, hello.AgentId, nonce, hello.AgentTime, hello.EncryptionKey),
                 Convert.FromBase64String(hello.Signature), HashAlgorithmName.SHA256);
         }
         catch (FormatException)

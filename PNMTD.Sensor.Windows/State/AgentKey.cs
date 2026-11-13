@@ -26,6 +26,32 @@ internal static class AgentKey
     public static ECDsa Open(string name) =>
         new ECDsaCng(CngKey.Open(name, CngProvider.MicrosoftSoftwareKeyStorageProvider, CngKeyOpenOptions.MachineKey));
 
+    /// <summary>
+    /// The agent's ECDH P-256 key (§3.4, W6), in the machine store and non-exportable like the signing key: passwords typed per run
+    /// and secure arguments are encrypted to it, so a TLS-inspecting proxy can't read them. Created on first use.
+    /// </summary>
+    public static ECDiffieHellman EncryptionKey(Guid agentId)
+    {
+        var name = $"PNMT Sensor encryption {agentId:N}";
+        try
+        {
+            return new ECDiffieHellmanCng(CngKey.Open(name, CngProvider.MicrosoftSoftwareKeyStorageProvider, CngKeyOpenOptions.MachineKey));
+        }
+        catch (CryptographicException)
+        {
+            var parameters = new CngKeyCreationParameters
+            {
+                Provider = CngProvider.MicrosoftSoftwareKeyStorageProvider,
+                KeyCreationOptions = CngKeyCreationOptions.MachineKey,
+                ExportPolicy = CngExportPolicies.None,
+                KeyUsage = CngKeyUsages.KeyAgreement,
+            };
+            return new ECDiffieHellmanCng(CngKey.Create(CngAlgorithm.ECDiffieHellmanP256, name, parameters));
+        }
+    }
+
+    public static void DeleteEncryptionKey(Guid agentId) => Delete($"PNMT Sensor encryption {agentId:N}");
+
     public static void Delete(string name)
     {
         try

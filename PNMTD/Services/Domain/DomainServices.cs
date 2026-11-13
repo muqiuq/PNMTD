@@ -46,6 +46,7 @@ public static class DomainServicesSetup
         // Windows servers (docs/windows-sensor-plan.md §9.2).
         services.AddScoped<WindowsServerService>();
         services.AddScoped<DiagnosticsSetService>();
+        services.AddScoped<WindowsScriptService>();
         return services;
     }
 }

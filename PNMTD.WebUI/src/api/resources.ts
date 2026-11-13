@@ -346,6 +346,25 @@ export const api = {
     agentLog: (query: ListQuery & { kind?: S['WindowsAgentLogKind']; sensorId?: Id }) =>
       call(client.GET('/api/v1/windows/agent-log', { params: { query } })),
     agent: () => call(client.GET('/api/v1/windows/agent')),
+    // --- PowerShell scripts (docs/windows-sensor-plan.md §7): Admin ---------------------------------------------
+    scripts: (query: ListQuery) => call(client.GET('/api/v1/windows/scripts', { params: { query } })),
+    script: (id: Id) => call(client.GET('/api/v1/windows/scripts/{id}', { params: { path: { id } } })),
+    createScript: (body: S['WindowsScriptRequest']) => call(client.POST('/api/v1/windows/scripts', { body })),
+    updateScript: (id: Id, body: S['WindowsScriptRequest']) =>
+      call(client.PUT('/api/v1/windows/scripts/{id}', { params: { path: { id } }, body })),
+    parseScript: (id: Id) => call(client.POST('/api/v1/windows/scripts/{id}/parse', { params: { path: { id } } })),
+    deleteScript: (id: Id) => call(client.DELETE('/api/v1/windows/scripts/{id}', { params: { path: { id } } })),
+    runScript: (id: Id, body: S['WindowsScriptRunRequest']) =>
+      call(client.POST('/api/v1/windows/scripts/{id}/run', { params: { path: { id } }, body })),
+    runAs: () => call(client.GET('/api/v1/windows/run-as')),
+    createRunAs: (body: S['WindowsRunAsRequest']) => call(client.POST('/api/v1/windows/run-as', { body })),
+    updateRunAs: (id: Id, body: S['WindowsRunAsRequest']) =>
+      call(client.PUT('/api/v1/windows/run-as/{id}', { params: { path: { id } }, body })),
+    deleteRunAs: (id: Id) => call(client.DELETE('/api/v1/windows/run-as/{id}', { params: { path: { id } } })),
+    scriptRuns: (query: ListQuery & { scriptId?: Id; sensorId?: Id; batchId?: Id; state?: S['ScriptRunState'] }) =>
+      call(client.GET('/api/v1/windows/script-runs', { params: { query } })),
+    scriptRun: (id: Id) => call(client.GET('/api/v1/windows/script-runs/{id}', { params: { path: { id } } })),
+    redactRun: (id: Id) => call(client.POST('/api/v1/windows/script-runs/{id}/redact', { params: { path: { id } } })),
   },
 
   /** Diagnostics (docs/windows-sensor-plan.md §5): reading CanRead, changing Admin, Run now CanWrite. */

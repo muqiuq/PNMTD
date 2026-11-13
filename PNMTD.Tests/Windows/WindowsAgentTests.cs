@@ -284,7 +284,9 @@ public sealed class WindowsAgentTests
         Assert.IsTrue(collected.Ok, collected.Error);
         var log = await (await admin.PostJsonAsync($"/api/v1/windows/servers/{state.SensorId}/send-log", new { })).ReadAsync<WindowsAgentLogFile>();
         Assert.IsTrue(log.Lines.Any(l => l.Contains("Connected")), string.Join("\n", log.Lines));
-        CollectionAssert.AreEqual(new[] { AgentMessageTypes.Collect, AgentMessageTypes.SendLog }, simulator.Requests);
+        // An agent that can parse also gets the script versions waiting for their parameters (W6): only these two are this test's.
+        CollectionAssert.AreEqual(new[] { AgentMessageTypes.Collect, AgentMessageTypes.SendLog },
+            simulator.Requests.Where(r => r is AgentMessageTypes.Collect or AgentMessageTypes.SendLog).ToList());
 
         // A viewer may not ask; an offline agent is a 409.
         Assert.AreEqual(HttpStatusCode.Forbidden, (await app.Client(Roles.Viewer).PostJsonAsync($"/api/v1/windows/servers/{state.SensorId}/collect",

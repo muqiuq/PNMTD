@@ -19,6 +19,7 @@ A monitoring application to keep an eye on hosts, e-mails and DNS zones. Useful 
   - timespan conditions such as "one success daily at 8".
 - **IoT nodes over UDP** (PNMT-UDP, port 5028/udp): a signed heartbeat in 9 bytes, signatures from a static token to HMAC (SHA-256, SHA-1, MD5) and AES-CMAC, AES-CCM encryption, commands delivered with the node's next packet, firmware updates from an uploaded `.bin`, and the protocol documented with live examples in the UI.
 - **MikroTik routers** (RouterOS 7.13 or later): status and events from a read-only user that one pasted script creates, configuration backups with diffs (on a schedule of their own or off, and optionally encrypted one way with an age key that never reaches PNMT), updates (download and reboot, or RouterOS's own install), and remote commands, over SSH or through PNMT's own WireGuard tunnel for routers behind NAT. MikroTik's release feed is read hourly: a router behind a release that fixes a critical security issue raises an alert. The router admin's password is typed only for an update or a command run as the admin, and never stored. Custom WireGuard tunnels give technicians WinBox and SSH to the routers.
+- **Windows servers and PCs** (Server 2016–2025, Windows 10 Pro and 11): one executable, joined with a token from the UI, reports over a WebSocket on PNMT's own port (nothing to open): the system, hardware and network in detail, services by who signed them, every way in (RDP, WinRM, SMB, SSH, remote tools …) with the firewall, every admin login and the failed ones, the event log's errors, and readable changes. **Diagnostics** (ping and DNS sets) run on the servers on a schedule or by hand, each assignment a sensor of its own. **PowerShell scripts** from PNMT run only where a local administrator allowed them, as accounts whose passwords never reach PNMT or are encrypted to the server.
 - **E-mail input:** reports from other tools (Synology HyperBackup, Veeam, Zabbix, …) become sensor events, matched by sender, subject and body; a rule can also ignore or delete mails.
 - **DNS zone monitoring:** a zone file is the reference, and every record is compared with what the resolvers answer.
 - **Notifications** by e-mail, Pushover or webhook: always, on a change, on failures, or on failures and the way back to OK. Hosts and sensors have an importance; a rule can cover everything of at least one importance, or a host, with exclusions, and the Notification Manager shows what nothing covers.
@@ -80,7 +81,7 @@ The UplinkCheck setting needs a remote endpoint. [examples/digitalocean_function
 
 # 🛠 Development
 
-- **Stack:** .NET 10 (`PNMTD`, `PNMTD.Lib`), PostgreSQL, and Vue 3 with PrimeVue (`PNMTD.WebUI`).
+- **Stack:** .NET 10 (`PNMTD`, `PNMTD.Lib`, and the Windows agent `PNMTD.Sensor.Windows`, which builds on macOS and Linux too), PostgreSQL, and Vue 3 with PrimeVue (`PNMTD.WebUI`). `tools/agent.sh` publishes the agent's two executables.
 - **Node runs only in containers:** `tools/npm.sh` and `start.sh` use Podman by default (`ENGINE=docker` works too). Never on the host.
 
 ```sh

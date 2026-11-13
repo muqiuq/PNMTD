@@ -4657,6 +4657,498 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/windows/scripts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfWindowsScriptItem"];
+                        "text/json": components["schemas"]["PagedOfWindowsScriptItem"];
+                        "text/plain": components["schemas"]["PagedOfWindowsScriptItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WindowsScriptRequest"];
+                    "text/json": components["schemas"]["WindowsScriptRequest"];
+                    "application/*+json": components["schemas"]["WindowsScriptRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsScriptDetail"];
+                        "text/json": components["schemas"]["WindowsScriptDetail"];
+                        "text/plain": components["schemas"]["WindowsScriptDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/windows/scripts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsScriptDetail"];
+                        "text/json": components["schemas"]["WindowsScriptDetail"];
+                        "text/plain": components["schemas"]["WindowsScriptDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WindowsScriptRequest"];
+                    "text/json": components["schemas"]["WindowsScriptRequest"];
+                    "application/*+json": components["schemas"]["WindowsScriptRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsScriptDetail"];
+                        "text/json": components["schemas"]["WindowsScriptDetail"];
+                        "text/plain": components["schemas"]["WindowsScriptDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/windows/scripts/{id}/parse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsScriptDetail"];
+                        "text/json": components["schemas"]["WindowsScriptDetail"];
+                        "text/plain": components["schemas"]["WindowsScriptDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/windows/scripts/{id}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WindowsScriptRunRequest"];
+                    "text/json": components["schemas"]["WindowsScriptRunRequest"];
+                    "application/*+json": components["schemas"]["WindowsScriptRunRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsScriptRunItem"][];
+                        "text/json": components["schemas"]["WindowsScriptRunItem"][];
+                        "text/plain": components["schemas"]["WindowsScriptRunItem"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/windows/run-as": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsRunAsItem"][];
+                        "text/json": components["schemas"]["WindowsRunAsItem"][];
+                        "text/plain": components["schemas"]["WindowsRunAsItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WindowsRunAsRequest"];
+                    "text/json": components["schemas"]["WindowsRunAsRequest"];
+                    "application/*+json": components["schemas"]["WindowsRunAsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsRunAsItem"];
+                        "text/json": components["schemas"]["WindowsRunAsItem"];
+                        "text/plain": components["schemas"]["WindowsRunAsItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/windows/run-as/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WindowsRunAsRequest"];
+                    "text/json": components["schemas"]["WindowsRunAsRequest"];
+                    "application/*+json": components["schemas"]["WindowsRunAsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsRunAsItem"];
+                        "text/json": components["schemas"]["WindowsRunAsItem"];
+                        "text/plain": components["schemas"]["WindowsRunAsItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/windows/script-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    scriptId?: string;
+                    sensorId?: string;
+                    batchId?: string;
+                    state?: components["schemas"]["ScriptRunState"];
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfWindowsScriptRunItem"];
+                        "text/json": components["schemas"]["PagedOfWindowsScriptRunItem"];
+                        "text/plain": components["schemas"]["PagedOfWindowsScriptRunItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/windows/script-runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsScriptRunDetail"];
+                        "text/json": components["schemas"]["WindowsScriptRunDetail"];
+                        "text/plain": components["schemas"]["WindowsScriptRunDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/windows/script-runs/{id}/redact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsScriptRunDetail"];
+                        "text/json": components["schemas"]["WindowsScriptRunDetail"];
+                        "text/plain": components["schemas"]["WindowsScriptRunDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sensors": {
         parameters: {
             query?: never;
@@ -9671,6 +10163,24 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
+        PagedOfWindowsScriptItem: {
+            items: components["schemas"]["WindowsScriptItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfWindowsScriptRunItem: {
+            items: components["schemas"]["WindowsScriptRunItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfWindowsServerItem: {
             items: components["schemas"]["WindowsServerItem"][];
             /** Format: int32 */
@@ -9679,6 +10189,12 @@ export interface components {
             pageSize: number;
             /** Format: int32 */
             totalCount: number;
+        };
+        ParsedScript: {
+            parameters: components["schemas"]["ScriptParameter"][];
+            help: null | components["schemas"]["ScriptHelp"];
+            errors: components["schemas"]["ScriptSyntaxError"][];
+            findings: components["schemas"]["ScriptFinding"][];
         };
         PingParameters: {
             target: string;
@@ -9788,6 +10304,48 @@ export interface components {
             otherSenders: number;
             tooBroad: boolean;
             examples: string[];
+        };
+        /** @enum {unknown} */
+        RunAsKind: "Service" | "Stored" | "TypedPerRun" | "Gmsa";
+        ScriptFinding: {
+            rule: string;
+            message: string;
+            /** Format: int32 */
+            line?: null | number;
+        };
+        ScriptHelp: {
+            synopsis: null | string;
+            description: null | string;
+            parameters: {
+                [key: string]: string;
+            };
+        };
+        ScriptParameter: {
+            name: string;
+            type: string;
+            mandatory: boolean;
+            default: null | string;
+            /** Format: int32 */
+            position: null | number;
+            validateSet: null | string[];
+            /** Format: double */
+            rangeMin: null | number;
+            /** Format: double */
+            rangeMax: null | number;
+            helpMessage: null | string;
+            isSwitch: boolean;
+            isSecure: boolean;
+        };
+        /** @enum {unknown} */
+        ScriptParseState: "Pending" | "Parsed" | "Failed";
+        /** @enum {unknown} */
+        ScriptRunState: "Sent" | "Running" | "Done" | "Failed" | "Refused" | "TimedOut" | "Offline";
+        ScriptSyntaxError: {
+            message: string;
+            /** Format: int32 */
+            line: number;
+            /** Format: int32 */
+            column: number;
         };
         SearchHost: {
             /** Format: uuid */
@@ -10889,6 +11447,121 @@ export interface components {
         };
         WindowsRevokeRequest: {
             reason: null | string;
+        };
+        WindowsRunAsItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            kind: components["schemas"]["RunAsKind"];
+            account: null | string;
+            description: null | string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        WindowsRunAsRequest: {
+            name: string;
+            kind: components["schemas"]["RunAsKind"];
+            account: null | string;
+            description: null | string;
+        };
+        WindowsScriptDetail: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            /** Format: int32 */
+            currentVersion: number;
+            text: string;
+            hash: string;
+            parseState: components["schemas"]["ScriptParseState"];
+            parsed: null | components["schemas"]["ParsedScript"];
+            parseError: null | string;
+            versions: components["schemas"]["WindowsScriptVersionItem"][];
+            parserAvailable: boolean;
+        };
+        WindowsScriptItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            /** Format: int32 */
+            currentVersion: number;
+            parseState: components["schemas"]["ScriptParseState"];
+            /** Format: int32 */
+            parameters: number;
+            /** Format: int32 */
+            findings: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        WindowsScriptRequest: {
+            name: string;
+            description: null | string;
+            text: string;
+        };
+        WindowsScriptRunDetail: {
+            run: components["schemas"]["WindowsScriptRunItem"];
+            arguments: null | string;
+            output: null | string;
+            hash: string;
+            /** Format: int32 */
+            timeoutSeconds: number;
+        };
+        WindowsScriptRunItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            batchId: string;
+            /** Format: uuid */
+            scriptId: null | string;
+            scriptName: string;
+            /** Format: int32 */
+            versionNumber: number;
+            server: null | components["schemas"]["Ref"];
+            serverName: string;
+            runAsName: string;
+            runAsKind: components["schemas"]["RunAsKind"];
+            account: null | string;
+            requestedBy: null | string;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt: null | string;
+            state: components["schemas"]["ScriptRunState"];
+            /** Format: int32 */
+            exitCode: null | number;
+            message: null | string;
+            /** Format: double */
+            durationMs: null | number;
+            redacted: boolean;
+        };
+        WindowsScriptRunRequest: {
+            sensorIds: string[];
+            /** Format: uuid */
+            runAsId: string;
+            arguments: null | Record<string, never>;
+            secureArguments: null | {
+                [key: string]: string;
+            };
+            password: null | string;
+            /** Format: int32 */
+            timeoutSeconds: null | number;
+            shell: null | string;
+        };
+        WindowsScriptVersionItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            hash: string;
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: null | string;
+            parseState: components["schemas"]["ScriptParseState"];
+            /** Format: date-time */
+            parsedAt: null | string;
+            parsedOn: null | string;
+            parseError: null | string;
         };
         WindowsSectionInfo: {
             name: string;

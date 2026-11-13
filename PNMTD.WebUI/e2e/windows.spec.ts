@@ -62,6 +62,25 @@ test('the admin page, Add server and every tab of a server', async ({ page }) =>
   }
 })
 
+test('scripts: a new one from the template, and the run-as accounts', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await signIn(page)
+  await page.goto('/pnmt-admin/admin/windows/scripts')
+  await page.getByRole('button', { name: 'New script' }).click()
+  await expect(page.getByLabel('PowerShell')).toHaveValue(/\[CmdletBinding\(\)\]/)
+  await page.getByLabel('Name', { exact: true }).fill('e2e greeting')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('link', { name: 'e2e greeting' })).toBeVisible()
+  await expect(page.getByRole('dialog')).toBeHidden()
+  await shot(page, 'windows-scripts')
+  await page.goto('/pnmt-admin/admin/windows/run-as')
+  await page.getByRole('button', { name: 'New account' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('deploy')
+  await page.getByRole('textbox', { name: 'Account' }).fill('CORP\\deploy')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('link', { name: 'deploy' })).toBeVisible()
+})
+
 test('diagnostics: the sets, the assignments and a run', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
   await signIn(page)

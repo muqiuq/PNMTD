@@ -203,6 +203,8 @@ internal sealed class MainForm : Form
             }
         }
 
+        ScriptsView(stack);
+
         stack.Controls.Add(Heading("Actions"));
         var debug = new CheckBox { Text = "Debug logging", AutoSize = true, Checked = config.LogLevel == "Debug" };
         debug.CheckedChanged += (_, _) => Do(() => AgentFiles.WriteConfig(config with { LogLevel = debug.Checked ? "Debug" : null }));
@@ -213,6 +215,60 @@ internal sealed class MainForm : Form
             ("Uninstall…", Uninstall)));
         stack.Controls.Add(debug);
         stack.Controls.Add(Line($"Log: {logs.CurrentFile.Replace("pnmt-sensor-ui", "pnmt-sensor")}", Color.Gray));
+    }
+
+    /// <summary>
+    /// Scripts from PNMT (§7.2, §7.4): off by default; only here can they be turned on, optionally for named scripts (their hashes)
+    /// and named accounts ("service" for the agent itself). Stored accounts keep their password on this server only.
+    /// </summary>
+    private void ScriptsView(FlowLayoutPanel stack)
+    {
+        var policy = Scripts.ScriptPolicy.Read();
+        stack.Controls.Add(Heading("Scripts from PNMT"));
+        var allow = new CheckBox { Text = "Allow scripts from PNMT on this server", AutoSize = true, Checked = policy.Enabled };
+        stack.Controls.Add(allow);
+        stack.Controls.Add(Line("Only these scripts (their SHA-256, one per line; empty: any script PNMT sends):"));
+        var hashes = new TextBox { Multiline = true, Width = 680, Height = 60, Text = string.Join("\r\n", policy.ScriptHashes), Font = new Font("Consolas", 9f) };
+        stack.Controls.Add(hashes);
+        stack.Controls.Add(Line("Only as these accounts (one per line; \"service\" for the agent itself, which must be named; empty: any but the service):"));
+        var accounts = new TextBox { Multiline = true, Width = 680, Height = 60, Text = string.Join("\r\n", policy.RunAs) };
+        stack.Controls.Add(accounts);
+        stack.Controls.Add(Buttons(("Save and restart the service", () => Do(() =>
+        {
+            static List<string> Lines(TextBox box) => box.Text.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
+            new Scripts.ScriptPolicy(allow.Checked, Lines(hashes), Lines(accounts)).Save();
+            logger.LogInformation("Scripts from PNMT {State}", allow.Checked ? "allowed" : "not allowed");
+            ServiceControl.Restart();
+        }))));
+
+        stack.Controls.Add(Heading("Stored accounts"));
+        stack.Controls.Add(Line("Passwords kept on this server only, encrypted (DPAPI): scripts run as these accounts without anyone typing them. They never reach PNMT."));
+        foreach (var name in Scripts.StoredAccounts.Names())
+        {
+            var account = name;
+            stack.Controls.Add(Buttons(($"Remove {account}", () => Do(() => Scripts.StoredAccounts.Remove(account)))));
+        }
+        stack.Controls.Add(Buttons(("Add or replace an account…", AddAccount)));
+    }
+
+    private void AddAccount()
+    {
+        using var dialog = new Form { Text = "Stored account", Width = 420, Height = 220, FormBorderStyle = FormBorderStyle.FixedDialog, StartPosition = FormStartPosition.CenterParent, MinimizeBox = false, MaximizeBox = false };
+        var panel = Stack();
+        panel.Padding = new Padding(12);
+        var account = Input("Account (DOMAIN\\user)", "", panel);
+        var password = Input("Password", "", panel);
+        password.UseSystemPasswordChar = true;
+        var ok = new Button { Text = "Store", AutoSize = true, DialogResult = DialogResult.OK };
+        panel.Controls.Add(ok);
+        dialog.Controls.Add(panel);
+        dialog.AcceptButton = ok;
+        if (dialog.ShowDialog(this) == DialogResult.OK && account.Text.Trim().Length > 0 && password.Text.Length > 0)
+        {
+            Do(() => Scripts.StoredAccounts.Set(account.Text.Trim(), password.Text));
+            logger.LogInformation("Stored the password of {Account}", account.Text.Trim());
+        }
+        password.Clear();
     }
 
     private void RejoinView(AgentConfigFile config)

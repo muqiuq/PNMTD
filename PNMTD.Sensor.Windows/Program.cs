@@ -114,6 +114,8 @@ internal static partial class Program
         services.AddSingleton<IAgentFeature>(sp => sp.GetRequiredService<Access.LoginStream>());
         // Diagnostics (§5.3): the agent's own schedule, and Run now.
         services.AddSingleton<IAgentFeature, Diagnostics.DiagnosticsFeature>();
+        // PowerShell scripts (§7): parsing always, running only where the window allowed it.
+        services.AddSingleton<IAgentFeature, Scripts.ScriptsFeature>();
         services.AddSingleton<SectionScheduler>();
         services.AddSingleton<HeartbeatSampler>();
         services.AddSingleton<AgentService>();

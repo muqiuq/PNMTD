@@ -43,7 +43,8 @@ public sealed record Hello(
     DateTimeOffset AgentTime,
     string Origin,
     string Signature,
-    bool RestartedAfterCrash = false);
+    bool RestartedAfterCrash = false,
+    string? EncryptionKey = null);
 
 /// <summary>
 /// The configuration (§3.6): sent signed in <c>welcome</c> after the hello, and as <c>config</c> when it changes. The agent

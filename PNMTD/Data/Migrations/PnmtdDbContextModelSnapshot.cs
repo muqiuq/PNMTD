@@ -2822,6 +2822,219 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("windows_logins");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.WindowsRunAsEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Account")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("windows_run_as");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.WindowsScriptEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CurrentVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("windows_scripts");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.WindowsScriptRunEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Account")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Arguments")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<double?>("DurationMs")
+                        .HasColumnType("double precision");
+
+                    b.Property<int?>("ExitCode")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Hash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Output")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Redacted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RequestedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("RunAsKind")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RunAsName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("ScriptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ScriptName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ServerName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TimeoutSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("ScriptId");
+
+                    b.HasIndex("StartedAt");
+
+                    b.HasIndex("SensorId", "StartedAt");
+
+                    b.ToTable("windows_script_runs");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.WindowsScriptVersionEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Hash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ParseError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("ParseState")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Parsed")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("ParsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ParsedOn")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("ScriptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParseState", "Hash");
+
+                    b.HasIndex("ScriptId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("windows_script_versions");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.WindowsSectionEntity", b =>
                 {
                     b.Property<Guid>("SensorId")
@@ -3289,6 +3502,28 @@ namespace PNMTD.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.WindowsScriptRunEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.WindowsScriptEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ScriptId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.WindowsScriptVersionEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.WindowsScriptEntity", null)
+                        .WithMany("Versions")
+                        .HasForeignKey("ScriptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.WindowsSectionEntity", b =>
                 {
                     b.HasOne("PNMTD.Models.Db.SensorEntity", null)
@@ -3335,6 +3570,11 @@ namespace PNMTD.Data.Migrations
             modelBuilder.Entity("PNMTD.Models.Db.SensorEntity", b =>
                 {
                     b.Navigation("SubscribedByNotifications");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.WindowsScriptEntity", b =>
+                {
+                    b.Navigation("Versions");
                 });
 #pragma warning restore 612, 618
         }

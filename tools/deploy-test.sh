@@ -118,6 +118,7 @@ curl -fsS -o /dev/null "http://localhost:${PORT}/event/wtok-deploy/500/after-bac
 ./restore.sh "$folder" --yes >"$dir/restore.out" 2>&1 || fail "restore.sh: $(tail -5 "$dir/restore.out")"
 up_wait || fail "not healthy after the restore: $(tail -3 "$dir/up.out")"
 [[ "$(read_raw)" == "True;before-backup" ]] || fail "read after the restore: $(read_raw)"
-[[ "$(sql 'SELECT count(*) FROM events')" == "1" ]] || fail "events after the restore"
+# The test sensor's events only: PNMT's own system sensors (the RouterOS advisories) write theirs at the start.
+[[ "$(sql "SELECT count(*) FROM events WHERE \"SensorId\" = '22222222-2222-2222-2222-222222222222'")" == "1" ]] || fail "events after the restore"
 
 echo "deploy/: init, up, backup, restore — all as expected."

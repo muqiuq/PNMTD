@@ -27,6 +27,11 @@ public sealed class WindowsSimulator(Uri baseUrl, HttpClient http, Func<Cancella
     public static IReadOnlyList<string> Capabilities { get; } =
         [AgentCapabilities.Collect, AgentCapabilities.Access, AgentCapabilities.DiagPing, AgentCapabilities.DiagDns];
 
+    private readonly System.Security.Cryptography.ECDiffieHellman encryption = System.Security.Cryptography.ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+
+    /// <summary>Whether an administrator allowed scripts on this (simulated) server (§7.2): off, as on a real one.</summary>
+    public bool AllowScripts { get; set; }
+
     /// <summary>Heartbeats sent, for the tests.</summary>
     public int Heartbeats { get; private set; }
 
@@ -54,7 +59,9 @@ public sealed class WindowsSimulator(Uri baseUrl, HttpClient http, Func<Cancella
         using var agentKey = ECDsa.Create();
         agentKey.ImportPkcs8PrivateKey(Convert.FromBase64String(state.PrivateKey), out _);
         using var pnmtdKey = AgentSigning.ImportPublicKey(state.PnmtdKey) ?? throw new InvalidOperationException("The state's PNMTD key is invalid.");
-        var identity = new AgentIdentity(state.AgentId, agentKey, pnmtdKey, AgentSigning.Origin(baseUrl), AgentVersion, "x64", Os, Capabilities);
+        var capabilities = Capabilities.Append(AgentCapabilities.Parse).Concat(AllowScripts ? [AgentCapabilities.Scripts] : Array.Empty<string>()).ToList();
+        var identity = new AgentIdentity(state.AgentId, agentKey, pnmtdKey, AgentSigning.Origin(baseUrl), AgentVersion, "x64", Os, capabilities,
+            Convert.ToBase64String(encryption.ExportSubjectPublicKeyInfo()));
         while (!ct.IsCancellationRequested)
         {
             var socket = await connect(ct);
@@ -173,6 +180,26 @@ public sealed class WindowsSimulator(Uri baseUrl, HttpClient http, Func<Cancella
                     return new Ack(request.RequestId, false, "No such assignment in this agent's configuration.");
                 }
                 await current.SendAsync(AgentMessageTypes.DiagResult, new DiagnosticResultBatch([result]), ct);
+                return new Ack(request.RequestId, true);
+            case AgentMessageTypes.ParseScript:
+                var parse = AgentJson.Deserialize<ParseScriptRequest>(request.Body)!;
+                await current.SendAsync(AgentMessageTypes.ParseResult, new ParseResultMessage(request.RequestId, parse.Hash, SimulatedParser.Parse(parse.Text), null), ct);
+                return new Ack(request.RequestId, true);
+            case AgentMessageTypes.RunScript:
+                if (!AllowScripts)
+                {
+                    return new Ack(request.RequestId, false, "Scripts are not allowed on this server.");
+                }
+                var script = AgentJson.Deserialize<RunScriptRequest>(request.Body)!;
+                var started = DateTimeOffset.UtcNow;
+                var password = script.RunAs.Password is { } secret ? AgentSecrets.Decrypt(encryption, secret, script.RunId) : null;
+                var secure = script.SecureArguments.ToDictionary(p => p.Key, p => AgentSecrets.Decrypt(encryption, p.Value, script.RunId));
+                var output = $"Hello from {hostname} as {script.RunAs.Account ?? "SYSTEM"}\n" +
+                    string.Join("\n", script.Arguments.Select(a => $"{a.Key}={a.Value.GetRawText()}")) +
+                    string.Join("", secure.Select(p => $"\n{p.Key} has {p.Value.Length} characters")) +
+                    (password is null ? "" : $"\nthe password has {password.Length} characters");
+                await current.SendAsync(AgentMessageTypes.ScriptResult, new ScriptResultMessage(script.RunId, ScriptRunState.Done, 0, output, null, 12,
+                    started, DateTimeOffset.UtcNow), ct);
                 return new Ack(request.RequestId, true);
             default:
                 return new Ack(request.RequestId, false, $"The simulator does not know \"{request.Type}\".");
@@ -387,5 +414,54 @@ public static class SimulatedSections
                     null, new DnsValues(fails ? [] : ["10.0.1.10"], "10.0.1.10", 3, fails ? "NXDOMAIN" : null), 3.1);
         }).ToList();
         return new DiagnosticRunResult(assignmentId, runId, trigger, started, DateTimeOffset.UtcNow, results);
+    }
+}
+
+/// <summary>
+/// The simulator's stand-in for PowerShell's parser: <c>[Parameter(Mandatory)] [type] $Name</c> lines in a <c>param()</c> block,
+/// <c>[CmdletBinding()]</c> and <c>Invoke-Expression</c>. Good enough for development and the tests; the agent uses the real one.
+/// </summary>
+public static partial class SimulatedParser
+{
+    [System.Text.RegularExpressions.GeneratedRegex(@"(?<attrs>(\[[^\]]*\]\s*)*)\[(?<type>[A-Za-z0-9.]+)\]\s*\$(?<name>[A-Za-z_][A-Za-z0-9_]*)(\s*=\s*(?<default>[^,\r\n)]+))?")]
+    private static partial System.Text.RegularExpressions.Regex Parameter();
+
+    public static ParsedScript Parse(string text)
+    {
+        var start = text.IndexOf("param(", StringComparison.OrdinalIgnoreCase);
+        var parameters = new List<ScriptParameter>();
+        if (start >= 0)
+        {
+            var depth = 0;
+            var end = start + 5;
+            for (; end < text.Length; end++)
+            {
+                depth += text[end] == '(' ? 1 : text[end] == ')' ? -1 : 0;
+                if (depth == 0)
+                {
+                    break;
+                }
+            }
+            foreach (System.Text.RegularExpressions.Match m in Parameter().Matches(text[start..Math.Min(end + 1, text.Length)]))
+            {
+                var type = m.Groups["type"].Value;
+                var attrs = m.Groups["attrs"].Value;
+                var set = System.Text.RegularExpressions.Regex.Match(attrs, @"ValidateSet\(([^)]*)\)");
+                parameters.Add(new ScriptParameter(m.Groups["name"].Value, type, attrs.Contains("Mandatory", StringComparison.OrdinalIgnoreCase),
+                    m.Groups["default"].Success ? m.Groups["default"].Value.Trim().Trim('\'', '"') : null, null,
+                    set.Success ? set.Groups[1].Value.Split(',').Select(v => v.Trim().Trim('\'', '"')).ToList() : null, null, null, null,
+                    type.Equals("switch", StringComparison.OrdinalIgnoreCase), type.Equals("securestring", StringComparison.OrdinalIgnoreCase)));
+            }
+        }
+        var findings = new List<ScriptFinding>();
+        if (!text.Contains("[CmdletBinding(", StringComparison.OrdinalIgnoreCase))
+        {
+            findings.Add(new ScriptFinding("CmdletBinding", "No [CmdletBinding()]: the script can't take -Verbose or -ErrorAction."));
+        }
+        if (text.Contains("Invoke-Expression", StringComparison.OrdinalIgnoreCase))
+        {
+            findings.Add(new ScriptFinding("InvokeExpression", "Invoke-Expression runs strings as code."));
+        }
+        return new ParsedScript(parameters, null, [], findings);
     }
 }

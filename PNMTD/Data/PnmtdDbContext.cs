@@ -101,6 +101,12 @@ namespace PNMTD.Data
         public DbSet<DiagnosticAssignmentEntity> DiagnosticAssignments { get; set; }
         public DbSet<DiagnosticRunEntity> DiagnosticRuns { get; set; }
 
+        // PowerShell scripts (docs/windows-sensor-plan.md §7, W6).
+        public DbSet<WindowsScriptEntity> WindowsScripts { get; set; }
+        public DbSet<WindowsScriptVersionEntity> WindowsScriptVersions { get; set; }
+        public DbSet<WindowsRunAsEntity> WindowsRunAs { get; set; }
+        public DbSet<WindowsScriptRunEntity> WindowsScriptRuns { get; set; }
+
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
         }
@@ -312,6 +318,26 @@ namespace PNMTD.Data
                 e.HasOne<DiagnosticAssignmentEntity>().WithMany().HasForeignKey(r => r.AssignmentId).OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(r => new { r.AssignmentId, r.StartedAt });
                 e.HasIndex(r => r.StartedAt);
+            });
+            modelBuilder.Entity<WindowsScriptEntity>(e =>
+            {
+                e.HasIndex(x => x.Name).IsUnique();
+                e.HasMany(x => x.Versions).WithOne().HasForeignKey(v => v.ScriptId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<WindowsScriptVersionEntity>(e =>
+            {
+                e.HasIndex(v => new { v.ScriptId, v.Number }).IsUnique();
+                e.HasIndex(v => new { v.ParseState, v.Hash });
+            });
+            modelBuilder.Entity<WindowsRunAsEntity>().HasIndex(x => x.Name).IsUnique();
+            modelBuilder.Entity<WindowsScriptRunEntity>(e =>
+            {
+                // The history outlives its script and its server.
+                e.HasOne<WindowsScriptEntity>().WithMany().HasForeignKey(r => r.ScriptId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(r => r.SensorId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(r => r.StartedAt);
+                e.HasIndex(r => new { r.SensorId, r.StartedAt });
+                e.HasIndex(r => r.BatchId);
             });
             modelBuilder.Entity<WindowsAgentLogEntity>(e =>
             {

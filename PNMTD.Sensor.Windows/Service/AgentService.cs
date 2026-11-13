@@ -145,7 +145,7 @@ internal sealed class AgentService(
         using var pnmtdKey = AgentSigning.ImportPublicKey(current.PnmtdKey) ?? throw new InvalidOperationException("agent.json holds no valid PNMTD key: re-join.");
         var url = new Uri(current.Url);
         var identity = new AgentIdentity(current.AgentId, agentKey, pnmtdKey, AgentSigning.Origin(url), AgentInfo.Version, AgentInfo.Architecture,
-            WindowsVersion.Read(), Capabilities());
+            WindowsVersion.Read(), Capabilities(), EncryptionKey(current.AgentId));
 
         var socket = new ClientWebSocket();
         socket.Options.AddSubProtocol(AgentProtocol.Subprotocol);
@@ -190,6 +190,21 @@ internal sealed class AgentService(
         {
         }
         return await receiving;
+    }
+
+    /// <summary>The agent's ECDH key's public half for the hello (§3.4, W6); null when the machine store refuses it.</summary>
+    private string? EncryptionKey(Guid agentId)
+    {
+        try
+        {
+            using var key = AgentKey.EncryptionKey(agentId);
+            return Convert.ToBase64String(key.ExportSubjectPublicKeyInfo());
+        }
+        catch (System.Security.Cryptography.CryptographicException e)
+        {
+            problems.Report("agent", "the encryption key", e);
+            return null;
+        }
     }
 
     private static Uri WebSocketUrl(Uri baseUrl) =>

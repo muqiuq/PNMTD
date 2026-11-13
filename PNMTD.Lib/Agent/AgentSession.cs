@@ -14,7 +14,8 @@ public sealed record AgentIdentity(
     string Version,
     string Architecture,
     AgentOs Os,
-    IReadOnlyList<string> Capabilities);
+    IReadOnlyList<string> Capabilities,
+    string? EncryptionKey = null);
 
 /// <summary>What the agent does with what PNMTD sends. Each call is isolated by the session: an exception is logged and answered, never fatal.</summary>
 public interface IAgentSessionHandler
@@ -93,8 +94,9 @@ public sealed class AgentSession : IAsyncDisposable
         var now = DateTimeOffset.UtcNow;
         var offset = challenge.ServerTime - now;
         var hello = new Hello(identity.AgentId, identity.Version, identity.Architecture, identity.Os, AgentProtocol.Version,
-            identity.Capabilities, now, identity.Origin, AgentSigning.SignHello(identity.AgentKey, identity.Origin, identity.AgentId, challenge.Nonce, now),
-            restartedAfterCrash);
+            identity.Capabilities, now, identity.Origin,
+            AgentSigning.SignHello(identity.AgentKey, identity.Origin, identity.AgentId, challenge.Nonce, now, identity.EncryptionKey),
+            restartedAfterCrash, identity.EncryptionKey);
         var gate = new SemaphoreSlim(1, 1);
         await AgentFrames.SendAsync(socket, AgentFrames.Envelope(AgentMessageTypes.Hello, hello), gate, timeout.Token, compress: false);
 

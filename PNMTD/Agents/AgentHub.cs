@@ -301,6 +301,11 @@ public sealed class AgentHub(
         agent.OsSupported = hello.Os.Supported;
         agent.Capabilities = connection.Capabilities.ToList();
         agent.UninstalledAt = null;
+        // W6 (§3.4): the agent's ECDH key, which the hello's signature covers; passwords typed per run are encrypted to it.
+        if (hello.EncryptionKey is { Length: > 0 and <= 1024 } encryptionKey)
+        {
+            agent.EncryptionKey = encryptionKey;
+        }
         WindowsAgentLog.Add(db, agent.SensorId, name, WindowsAgentLogKind.Connected,
             $"Connected: agent {agent.AgentVersion} ({agent.Architecture}) on {agent.OsCaption} {agent.OsBuild}{(hello.Os.Supported ? "" : ", not a supported version")}.",
             new { hello.Capabilities }, address);
@@ -313,6 +318,21 @@ public sealed class AgentHub(
         var config = await WindowsConfig.BuildAsync(db, keys, settings, agent.SensorId, ct);
         var welcome = await keys.SignAsync(AgentMessageTypes.Welcome, agent.AgentId, config, ct);
         await connection.SendAsync(AgentMessageTypes.Welcome, welcome, ct);
+        if (connection.Capabilities.Contains(AgentCapabilities.Parse))
+        {
+            // Script versions waiting for their parameters (§7.1) are parsed by the first agent that can.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await services.GetRequiredService<Windows.Scripts.ScriptResults>().ParsePendingAsync(connection, CancellationToken.None);
+                }
+                catch (Exception e)
+                {
+                    logger.LogWarning(e, "Parsing pending scripts on {Name} failed", name);
+                }
+            });
+        }
         return connection;
     }
 
@@ -403,6 +423,9 @@ public sealed class AgentHub(
             case AgentMessageTypes.Log:
                 var lines = Read<LogLines>(body);
                 connection.Complete(lines.RequestId, body);
+                break;
+            case AgentMessageTypes.ParseResult or AgentMessageTypes.ScriptResult:
+                await services.GetRequiredService<Windows.Scripts.ScriptResults>().ResultAsync(connection, envelope.T, body, ct);
                 break;
             case AgentMessageTypes.Bye:
                 await Report().ByeAsync(connection, Read<Bye>(body), ct);

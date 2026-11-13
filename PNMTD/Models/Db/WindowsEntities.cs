@@ -351,3 +351,149 @@ public class WindowsChangeEntity
     /// <summary>Notable changes write 253 (§4.9).</summary>
     public bool Notable { get; set; }
 }
+
+[JsonConverter(typeof(JsonStringEnumConverter<ScriptParseState>))]
+public enum ScriptParseState { Pending, Parsed, Failed }
+
+/// <summary>A PowerShell script in PNMT's library (docs/windows-sensor-plan.md §7.1), with a version for each change.</summary>
+[Table("windows_scripts")]
+public class WindowsScriptEntity
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    [MaxLength(200)]
+    public string Name { get; set; } = "";
+
+    [MaxLength(2000)]
+    public string? Description { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
+
+    public int CurrentVersion { get; set; }
+
+    public List<WindowsScriptVersionEntity> Versions { get; set; } = [];
+}
+
+/// <summary>A version of a script: its text and hash, and what an agent's parser found in it (§7.1).</summary>
+[Table("windows_script_versions")]
+public class WindowsScriptVersionEntity
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    public Guid ScriptId { get; set; }
+
+    public int Number { get; set; }
+
+    public string Text { get; set; } = "";
+
+    [MaxLength(64)]
+    public string Hash { get; set; } = "";
+
+    public DateTime CreatedAt { get; set; }
+
+    [MaxLength(200)]
+    public string? CreatedByName { get; set; }
+
+    public ScriptParseState ParseState { get; set; }
+
+    /// <summary>The parameters, help, syntax errors and findings (<see cref="Lib.Agent.ParsedScript"/>), as JSON.</summary>
+    [Column(TypeName = "jsonb")]
+    public string? Parsed { get; set; }
+
+    [MaxLength(1000)]
+    public string? ParseError { get; set; }
+
+    public DateTime? ParsedAt { get; set; }
+
+    [MaxLength(500)]
+    public string? ParsedOn { get; set; }
+}
+
+/// <summary>
+/// A run-as account (§7.4): the service itself, an account whose password is stored on the server (entered there; PNMT knows the
+/// name only), one whose password is typed per run, or a gMSA. No password is ever stored in PNMT.
+/// </summary>
+[Table("windows_run_as")]
+public class WindowsRunAsEntity
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    [MaxLength(200)]
+    public string Name { get; set; } = "";
+
+    public Lib.Agent.RunAsKind Kind { get; set; }
+
+    /// <summary>DOMAIN\user, or the gMSA with its $; null for the service.</summary>
+    [MaxLength(256)]
+    public string? Account { get; set; }
+
+    [MaxLength(1000)]
+    public string? Description { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>A script's run on one server (§7.3): what, as whom, by whom, the arguments (redactable), and the outcome. A history.</summary>
+[Table("windows_script_runs")]
+public class WindowsScriptRunEntity
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    public Guid BatchId { get; set; }
+
+    public Guid? ScriptId { get; set; }
+
+    [MaxLength(200)]
+    public string ScriptName { get; set; } = "";
+
+    public int VersionNumber { get; set; }
+
+    [MaxLength(64)]
+    public string Hash { get; set; } = "";
+
+    public Guid? SensorId { get; set; }
+
+    [MaxLength(500)]
+    public string ServerName { get; set; } = "";
+
+    [MaxLength(200)]
+    public string RunAsName { get; set; } = "";
+
+    public Lib.Agent.RunAsKind RunAsKind { get; set; }
+
+    [MaxLength(256)]
+    public string? Account { get; set; }
+
+    /// <summary>The plain arguments as JSON; secure ones are never stored. Null once redacted.</summary>
+    [Column(TypeName = "jsonb")]
+    public string? Arguments { get; set; }
+
+    public bool Redacted { get; set; }
+
+    [MaxLength(200)]
+    public string? RequestedBy { get; set; }
+
+    public DateTime StartedAt { get; set; }
+
+    public DateTime? FinishedAt { get; set; }
+
+    public Lib.Agent.ScriptRunState State { get; set; }
+
+    public int? ExitCode { get; set; }
+
+    /// <summary>stdout and the error stream, at most 1 MiB.</summary>
+    public string? Output { get; set; }
+
+    [MaxLength(2000)]
+    public string? Message { get; set; }
+
+    public double? DurationMs { get; set; }
+
+    public int TimeoutSeconds { get; set; }
+}

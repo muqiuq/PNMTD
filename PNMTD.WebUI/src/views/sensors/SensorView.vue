@@ -59,6 +59,7 @@ import WindowsNetworkTab from './windows/WindowsNetworkTab.vue'
 import WindowsAccessTab from './windows/WindowsAccessTab.vue'
 import WindowsChangesTab from './windows/WindowsChangesTab.vue'
 import WindowsDiagnosticsTab from './windows/WindowsDiagnosticsTab.vue'
+import WindowsScriptsTab from './windows/WindowsScriptsTab.vue'
 import WindowsEventLogTab from './windows/WindowsEventLogTab.vue'
 import WindowsRemoteAccessTab from './windows/WindowsRemoteAccessTab.vue'
 import WindowsServicesTab from './windows/WindowsServicesTab.vue'
@@ -129,6 +130,8 @@ const windowsTabs = computed(() => {
       badge: windows.server.value?.server.diagnosticsFailing || null,
     },
     { key: 'changes', label: 'Changes', icon: 'pi pi-history', to: to('changes') },
+    // PowerShell scripts (§7.3): Admin.
+    ...(isAdmin.value ? [{ key: 'scripts', label: 'Scripts', icon: 'pi pi-code', to: to('scripts') }] : []),
     {
       key: 'agent',
       label: 'Agent',
@@ -416,6 +419,7 @@ const more = computed(() =>
           :can-write="canWrite"
         />
         <WindowsChangesTab v-else-if="tab === 'changes'" :server="windows.server.value" />
+        <WindowsScriptsTab v-else-if="tab === 'scripts' && isAdmin" :server="windows.server.value" />
         <WindowsDiagnosticsTab
           v-else-if="tab === 'diagnostics'"
           :server="windows.server.value"
