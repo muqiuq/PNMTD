@@ -13,6 +13,7 @@ public static class WindowsSetup
         services.AddSingleton<AgentHub>();
         services.AddSingleton<JoinGuard>();
         services.AddSingleton<WindowsReportService>();
+        services.AddSingleton<WindowsChanges>();
         services.AddSingleton<WindowsMaintenanceTask>();
         services.AddSingleton<WindowsDownloads>();
         return services;

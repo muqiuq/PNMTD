@@ -5,12 +5,13 @@ import { computed } from 'vue'
 import type { S } from '@/api/resources'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { logKindLabel, logKindSeverity } from '@/views/admin/windows/windowsFormat'
+import WindowsSystemPanel from './WindowsSystemPanel.vue'
 
 /**
  * A server's overview (docs/windows-sensor-plan.md §10.2): who is logged on now, the agent's recent problems, and what
  * the later sections add (remote access, logins, diagnostics, changes).
  */
-const props = defineProps<{ server: S['WindowsServerDetail'] }>()
+const props = defineProps<{ server: S['WindowsServerDetail']; canWrite: boolean }>()
 const sessions = computed(() => props.server.heartbeat?.sessions ?? [])
 </script>
 
@@ -37,6 +38,7 @@ const sessions = computed(() => props.server.heartbeat?.sessions ?? [])
           </ul>
         </div>
       </section>
+      <WindowsSystemPanel :server="server" :can-write="canWrite" />
       <slot name="left" />
     </div>
     <div class="column">

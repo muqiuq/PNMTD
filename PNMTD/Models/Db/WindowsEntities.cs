@@ -233,3 +233,32 @@ public class WindowsAgentLogEntity
     [MaxLength(100)]
     public string? Address { get; set; }
 }
+
+/// <summary>
+/// A server's latest section of each kind (docs/windows-sensor-plan.md §4, §8.3): the gzip-compressed JSON, its hash, when it
+/// was collected and received, and its collector's errors. A section with a new hash is compared with this one first (§4.9).
+/// </summary>
+[Table("windows_sections")]
+public class WindowsSectionEntity
+{
+    public Guid SensorId { get; set; }
+
+    [MaxLength(40)]
+    public string Section { get; set; } = "";
+
+    public int SchemaVersion { get; set; }
+
+    [MaxLength(64)]
+    public string Hash { get; set; } = "";
+
+    public DateTime CollectedAt { get; set; }
+
+    public DateTime ReceivedAt { get; set; }
+
+    /// <summary>When the hash last changed.</summary>
+    public DateTime ChangedAt { get; set; }
+
+    public byte[] Content { get; set; } = [];
+
+    public List<string> Errors { get; set; } = [];
+}

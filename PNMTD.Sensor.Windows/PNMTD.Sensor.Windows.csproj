@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The PNMT sensor service (docs/windows-sensor-plan.md §3.1): one Windows executable with .NET included, a window, a
+    service mode and a command line. EnableWindowsTargeting lets it build on macOS and on Linux runners; tools/agent.sh
+    publishes it single-file and self-contained for win-x64 and win-arm64.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <AssemblyName>pnmt-sensor</AssemblyName>
+    <RootNamespace>PNMTD.Sensor.Windows</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Product>PNMT Sensor</Product>
+    <Company>PNMT</Company>
+    <Description>PNMT sensor service for Windows</Description>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- WinForms cannot be trimmed (§3.1). -->
+    <PublishTrimmed>false</PublishTrimmed>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PNMTD.Lib\PNMTD.Lib.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Management" />
+    <PackageReference Include="System.Diagnostics.EventLog" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" />
+    <PackageReference Include="DnsClient" />
+  </ItemGroup>
+
+</Project>

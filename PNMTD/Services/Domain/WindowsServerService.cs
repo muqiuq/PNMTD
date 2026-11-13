@@ -163,6 +163,30 @@ public sealed class WindowsServerService(
         return await CreateTokenAsync(sensor.ParentId, sensor.Name, request.ValidHours, id, ct);
     }
 
+    /// <summary>A section, typed (§9.2); access and event-log need CanWrite.</summary>
+    public async Task<WindowsSectionView> SectionAsync(Guid id, string section, bool canWrite, CancellationToken ct)
+    {
+        await AgentAsync(id, ct);
+        if (!SectionNames.IsKnown(section))
+        {
+            throw ApiException.NotFound("Section");
+        }
+        if (section is SectionNames.Access or SectionNames.EventLog && !canWrite)
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "forbidden", "Logins and the event log need the User role: they hold user names and addresses.");
+        }
+        var row = await db.WindowsSections.AsNoTracking().SingleOrDefaultAsync(s => s.SensorId == id && s.Section == section, ct)
+            ?? throw ApiException.NotFound("Section (not reported yet)");
+        var view = new WindowsSectionView(row.Section, row.CollectedAt, row.ReceivedAt, row.ChangedAt, row.Errors);
+        return section switch
+        {
+            SectionNames.System => view with { System = WindowsSections.Parse<SystemSection>(row.Content) },
+            SectionNames.Hardware => view with { Hardware = WindowsSections.Parse<HardwareSection>(row.Content) },
+            SectionNames.Network => view with { Network = WindowsSections.Parse<NetworkSection>(row.Content) },
+            _ => view,
+        };
+    }
+
     /// <summary>Asks the agent to collect sections now (§6): answered when the agent acknowledged it.</summary>
     public async Task<WindowsRequestResult> CollectAsync(Guid id, WindowsCollectRequest request, CancellationToken ct)
     {
@@ -330,6 +354,7 @@ public sealed record WindowsExtras(
     public static Task<WindowsExtras> LoadAsync(PnmtdDbContext db, IReadOnlyCollection<Guid> sensorIds, CancellationToken ct) =>
         Task.FromResult(new WindowsExtras(new Dictionary<Guid, string>(), new Dictionary<Guid, int>(), new Dictionary<Guid, int>()));
 
-    public static Task<IReadOnlyList<WindowsSectionInfo>> SectionsAsync(PnmtdDbContext db, Guid sensorId, CancellationToken ct) =>
-        Task.FromResult<IReadOnlyList<WindowsSectionInfo>>([]);
+    public static async Task<IReadOnlyList<WindowsSectionInfo>> SectionsAsync(PnmtdDbContext db, Guid sensorId, CancellationToken ct) =>
+        await db.WindowsSections.AsNoTracking().Where(s => s.SensorId == sensorId).OrderBy(s => s.Section)
+            .Select(s => new WindowsSectionInfo(s.Section, s.CollectedAt, s.ReceivedAt, s.Errors)).ToListAsync(ct);
 }

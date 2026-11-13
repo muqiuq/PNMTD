@@ -7937,6 +7937,54 @@
         }
       }
     },
+    "/api/v1/windows/servers/{id}/sections/{section}": {
+      "get": {
+        "tags": [
+          "WindowsServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsSectionView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsSectionView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsSectionView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/windows/servers/{id}/log": {
       "get": {
         "tags": [
@@ -9015,6 +9063,142 @@
   },
   "components": {
     "schemas": {
+      "AdapterInfo": {
+        "required": [
+          "name",
+          "description",
+          "kind",
+          "mac",
+          "status",
+          "speedBps",
+          "mtu",
+          "dhcp",
+          "dhcpServer",
+          "leaseExpires",
+          "addresses",
+          "gateways",
+          "dnsServers",
+          "dnsSuffix",
+          "registerInDns",
+          "vlanId",
+          "driver",
+          "driverVersion",
+          "profile",
+          "virtual"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "mac": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "speedBps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "mtu": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "dhcp": {
+            "type": "boolean"
+          },
+          "dhcpServer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "leaseExpires": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "gateways": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dnsServers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dnsSuffix": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "registerInDns": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "vlanId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "driver": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "driverVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "profile": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "virtual": {
+            "type": "boolean"
+          }
+        }
+      },
       "AiAnalysisQueued": {
         "required": [
           "id"
@@ -9822,6 +10006,54 @@
           }
         }
       },
+      "BatteryInfo": {
+        "required": [
+          "name",
+          "chargePercent",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "chargePercent": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "BitLockerVolume": {
+        "required": [
+          "volume",
+          "protection",
+          "conversion"
+        ],
+        "type": "object",
+        "properties": {
+          "volume": {
+            "type": "string"
+          },
+          "protection": {
+            "type": "string"
+          },
+          "conversion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ChangePasswordRequest": {
         "type": "object",
         "properties": {
@@ -10489,12 +10721,124 @@
           "Failed"
         ]
       },
+      "DefenderInfo": {
+        "required": [
+          "realTimeProtection",
+          "signatureAgeDays",
+          "lastQuickScan",
+          "lastFullScan",
+          "productVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "realTimeProtection": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "signatureAgeDays": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "lastQuickScan": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastFullScan": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "productVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "DiffLineKind": {
         "enum": [
           "Context",
           "Added",
           "Removed"
         ]
+      },
+      "DiskInfo": {
+        "required": [
+          "number",
+          "model",
+          "sizeBytes",
+          "media",
+          "bus",
+          "health",
+          "operationalStatus",
+          "predictFailure"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "model": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "media": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bus": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "health": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "operationalStatus": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "predictFailure": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "serialNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       },
       "DnsLogEntry": {
         "required": [
@@ -11002,6 +11346,184 @@
           "Critical"
         ]
       },
+      "FirewallInfo": {
+        "required": [
+          "profiles",
+          "inboundRules"
+        ],
+        "type": "object",
+        "properties": {
+          "profiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FirewallProfileState"
+            }
+          },
+          "inboundRules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FirewallRuleInfo"
+            }
+          }
+        }
+      },
+      "FirewallProfileState": {
+        "required": [
+          "profile",
+          "enabled",
+          "defaultInbound",
+          "active"
+        ],
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "defaultInbound": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FirewallRuleInfo": {
+        "required": [
+          "name",
+          "group",
+          "protocol",
+          "ports",
+          "profiles",
+          "program",
+          "remoteAddresses"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "group": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "ports": {
+            "type": "string"
+          },
+          "profiles": {
+            "type": "string"
+          },
+          "program": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "remoteAddresses": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "GpuInfo": {
+        "required": [
+          "name",
+          "driverVersion",
+          "memoryBytes"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "driverVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "memoryBytes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "HardwareSection": {
+        "required": [
+          "machine",
+          "tpm",
+          "processors",
+          "memory",
+          "disks",
+          "volumes",
+          "gpus",
+          "batteries"
+        ],
+        "type": "object",
+        "properties": {
+          "machine": {
+            "$ref": "#/components/schemas/MachineInfo"
+          },
+          "tpm": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TpmInfo"
+              }
+            ]
+          },
+          "processors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProcessorInfo"
+            }
+          },
+          "memory": {
+            "$ref": "#/components/schemas/MemoryInfo"
+          },
+          "disks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiskInfo"
+            }
+          },
+          "volumes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VolumeInfo"
+            }
+          },
+          "gpus": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GpuInfo"
+            }
+          },
+          "batteries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BatteryInfo"
+            }
+          }
+        }
+      },
       "Heartbeat": {
         "required": [
           "agentTime",
@@ -11316,6 +11838,31 @@
           "Disabled"
         ]
       },
+      "HypervisorInfo": {
+        "required": [
+          "present",
+          "vendor",
+          "model"
+        ],
+        "type": "object",
+        "properties": {
+          "present": {
+            "type": "boolean"
+          },
+          "vendor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "IFormFile": {
         "type": "string",
         "format": "binary"
@@ -11452,6 +11999,72 @@
           }
         }
       },
+      "ListenerInfo": {
+        "required": [
+          "protocol",
+          "address",
+          "port",
+          "pid",
+          "process",
+          "services"
+        ],
+        "type": "object",
+        "properties": {
+          "protocol": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pid": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "process": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LocalAdmin": {
+        "required": [
+          "name",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "members": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "LoginRequest": {
         "type": "object",
         "properties": {
@@ -11498,6 +12111,56 @@
               {
                 "$ref": "#/components/schemas/SessionFlags"
               }
+            ]
+          }
+        }
+      },
+      "MachineInfo": {
+        "required": [
+          "manufacturer",
+          "model",
+          "serialNumber",
+          "biosVersion",
+          "biosDate",
+          "firmware"
+        ],
+        "type": "object",
+        "properties": {
+          "manufacturer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "serialNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "biosVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "biosDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "firmware": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         }
@@ -12064,6 +12727,66 @@
           "unprocessed": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "MemoryInfo": {
+        "required": [
+          "totalBytes",
+          "modules"
+        ],
+        "type": "object",
+        "properties": {
+          "totalBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemoryModule"
+            }
+          }
+        }
+      },
+      "MemoryModule": {
+        "required": [
+          "slot",
+          "sizeBytes",
+          "speedMhz",
+          "manufacturer",
+          "partNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "slot": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "speedMhz": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "manufacturer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "partNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -14157,6 +14880,81 @@
         ],
         "default": "Download"
       },
+      "NetworkSection": {
+        "required": [
+          "adapters",
+          "teams",
+          "virtualSwitches",
+          "routes",
+          "listeners",
+          "connectionsByState",
+          "firewall",
+          "proxy",
+          "hostsEntries"
+        ],
+        "type": "object",
+        "properties": {
+          "adapters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdapterInfo"
+            }
+          },
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamInfo"
+            }
+          },
+          "virtualSwitches": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouteInfo"
+            }
+          },
+          "listeners": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListenerInfo"
+            }
+          },
+          "connectionsByState": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "firewall": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FirewallInfo"
+              }
+            ]
+          },
+          "proxy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hostsEntries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "NotificationAssignRequest": {
         "type": "object",
         "properties": {
@@ -14585,6 +15383,83 @@
               "string"
             ],
             "format": "uuid"
+          }
+        }
+      },
+      "OsInfo": {
+        "required": [
+          "caption",
+          "edition",
+          "version",
+          "build",
+          "ubr",
+          "displayVersion",
+          "installDate",
+          "architecture",
+          "activated",
+          "supported",
+          "productType"
+        ],
+        "type": "object",
+        "properties": {
+          "caption": {
+            "type": "string"
+          },
+          "edition": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "build": {
+            "type": "string"
+          },
+          "ubr": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "displayVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "installDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "architecture": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "activated": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "supported": {
+            "type": "boolean"
+          },
+          "productType": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -15497,6 +16372,41 @@
           }
         }
       },
+      "ProcessorInfo": {
+        "required": [
+          "name",
+          "cores",
+          "threads",
+          "maxClockMhz"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "cores": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "threads": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "maxClockMhz": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "Ref": {
         "required": [
           "id",
@@ -15528,6 +16438,40 @@
             "type": "boolean"
           },
           "read": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RouteInfo": {
+        "required": [
+          "destination",
+          "gateway",
+          "interface",
+          "metric",
+          "persistent"
+        ],
+        "type": "object",
+        "properties": {
+          "destination": {
+            "type": "string"
+          },
+          "gateway": {
+            "type": "string"
+          },
+          "interface": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "metric": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "persistent": {
             "type": "boolean"
           }
         }
@@ -15639,6 +16583,45 @@
           },
           "hostName": {
             "type": "string"
+          }
+        }
+      },
+      "SecurityInfo": {
+        "required": [
+          "defender",
+          "firewall",
+          "bitLocker",
+          "secureBoot"
+        ],
+        "type": "object",
+        "properties": {
+          "defender": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DefenderInfo"
+              }
+            ]
+          },
+          "firewall": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FirewallProfileState"
+            }
+          },
+          "bitLocker": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BitLockerVolume"
+            }
+          },
+          "secureBoot": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -16290,6 +17273,36 @@
           }
         }
       },
+      "ShutdownInfo": {
+        "required": [
+          "at",
+          "unexpected",
+          "reason",
+          "user"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "unexpected": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "user": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "SituationStatus": {
         "enum": [
           "Normal",
@@ -16464,6 +17477,127 @@
           }
         }
       },
+      "SystemSection": {
+        "required": [
+          "hostname",
+          "fqdn",
+          "domain",
+          "partOfDomain",
+          "domainRole",
+          "machineGuid",
+          "os",
+          "bootTime",
+          "lastShutdown",
+          "updates",
+          "time",
+          "security",
+          "localAdministrators",
+          "sessions",
+          "hypervisor"
+        ],
+        "type": "object",
+        "properties": {
+          "hostname": {
+            "type": "string"
+          },
+          "fqdn": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "domain": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "partOfDomain": {
+            "type": "boolean"
+          },
+          "domainRole": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "machineGuid": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "os": {
+            "$ref": "#/components/schemas/OsInfo"
+          },
+          "bootTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastShutdown": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ShutdownInfo"
+              }
+            ]
+          },
+          "updates": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/UpdatesInfo"
+              }
+            ]
+          },
+          "time": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TimeInfo"
+              }
+            ]
+          },
+          "security": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SecurityInfo"
+              }
+            ]
+          },
+          "localAdministrators": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocalAdmin"
+            }
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionInfo"
+            }
+          },
+          "hypervisor": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HypervisorInfo"
+              }
+            ]
+          }
+        }
+      },
       "TaskStatus": {
         "required": [
           "name",
@@ -16526,6 +17660,31 @@
           }
         }
       },
+      "TeamInfo": {
+        "required": [
+          "name",
+          "members",
+          "mode"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "TemporaryPassword": {
         "required": [
           "password",
@@ -16538,6 +17697,32 @@
           },
           "expiresAt": {
             "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TimeInfo": {
+        "required": [
+          "timeZone",
+          "source",
+          "lastSync"
+        ],
+        "type": "object",
+        "properties": {
+          "timeZone": {
+            "type": "string"
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastSync": {
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "date-time"
           }
         }
@@ -16622,6 +17807,31 @@
           "expiresAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "TpmInfo": {
+        "required": [
+          "present",
+          "version",
+          "ready"
+        ],
+        "type": "object",
+        "properties": {
+          "present": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ready": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -18588,6 +19798,39 @@
           }
         }
       },
+      "UpdatesInfo": {
+        "required": [
+          "lastHotfix",
+          "lastHotfixAt",
+          "rebootPending",
+          "rebootReasons"
+        ],
+        "type": "object",
+        "properties": {
+          "lastHotfix": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastHotfixAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "rebootPending": {
+            "type": "boolean"
+          },
+          "rebootReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "UpdateUserRequest": {
         "type": "object",
         "properties": {
@@ -19068,6 +20311,54 @@
           }
         }
       },
+      "VolumeInfo": {
+        "required": [
+          "letter",
+          "label",
+          "fileSystem",
+          "sizeBytes",
+          "freeBytes",
+          "bitLocker"
+        ],
+        "type": "object",
+        "properties": {
+          "letter": {
+            "type": "string"
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fileSystem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sizeBytes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "freeBytes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "bitLocker": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "WgPeerKind": {
         "enum": [
           "Router",
@@ -19473,6 +20764,69 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "WindowsSectionView": {
+        "required": [
+          "name",
+          "collectedAt",
+          "receivedAt",
+          "changedAt",
+          "errors"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "collectedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "system": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SystemSection"
+              }
+            ]
+          },
+          "hardware": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HardwareSection"
+              }
+            ]
+          },
+          "network": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NetworkSection"
+              }
+            ]
           }
         }
       },

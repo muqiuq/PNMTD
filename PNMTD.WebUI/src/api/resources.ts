@@ -310,6 +310,8 @@ export const api = {
       },
     ) => call(client.GET('/api/v1/windows/servers', { params: { query } })),
     server: (id: Id) => call(client.GET('/api/v1/windows/servers/{id}', { params: { path: { id } } })),
+    section: (id: Id, section: string) =>
+      call(client.GET('/api/v1/windows/servers/{id}/sections/{section}', { params: { path: { id, section } } })),
     serverLog: (id: Id, query: ListQuery & { kind?: S['WindowsAgentLogKind'] }) =>
       call(client.GET('/api/v1/windows/servers/{id}/log', { params: { path: { id }, query } })),
     collect: (id: Id, sections: string[] = []) =>

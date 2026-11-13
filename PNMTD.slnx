@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="PNMTD/PNMTD.csproj" />
   <Project Path="PNMTD.Lib/PNMTD.Lib.csproj" />
+  <Project Path="PNMTD.Sensor.Windows/PNMTD.Sensor.Windows.csproj" />
   <Folder Name="/tests/">
     <Project Path="PNMTD.Tests/PNMTD.Tests.csproj" />
     <Project Path="PNMTD.Contract.Tests/PNMTD.Contract.Tests.csproj" />

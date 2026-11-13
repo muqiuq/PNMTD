@@ -60,3 +60,22 @@ export function uptime(boot: string | null | undefined): string | null {
   const hours = Math.floor((minutes % 1440) / 60)
   return days > 0 ? `${days} d ${hours} h` : hours > 0 ? `${hours} h ${minutes % 60} min` : `${minutes} min`
 }
+
+/** Bytes as "16 GiB", "812 MiB". */
+export function bytes(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '–'
+  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB']
+  let v = value
+  let i = 0
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024
+    i++
+  }
+  return `${v >= 100 || i === 0 ? Math.round(v) : v.toFixed(1)} ${units[i]}`
+}
+
+/** Bits per second as "10 Gbit/s". */
+export function speed(bps: number | null | undefined): string {
+  if (!bps) return '–'
+  return bps >= 1e9 ? `${bps / 1e9} Gbit/s` : bps >= 1e6 ? `${bps / 1e6} Mbit/s` : `${bps / 1e3} kbit/s`
+}

@@ -234,6 +234,7 @@ public sealed class EndpointAuditTests
         // Windows servers (docs/windows-sensor-plan.md §9.2): the agent log, revoking and tokens are Admin, requests CanWrite.
         ["GET /api/v1/windows/servers"] = Roles.Viewer,
         ["GET /api/v1/windows/servers/{id:guid}"] = Roles.Viewer,
+        ["GET /api/v1/windows/servers/{id:guid}/sections/{section}"] = Roles.Viewer,
         ["GET /api/v1/windows/servers/{id:guid}/log"] = Roles.Admin,
         ["POST /api/v1/windows/servers/{id:guid}/collect"] = Roles.User,
         ["POST /api/v1/windows/servers/{id:guid}/send-log"] = Roles.Admin,

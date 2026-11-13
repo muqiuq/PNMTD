@@ -20,6 +20,11 @@ public sealed class WindowsServersController(WindowsServerService servers) : V1C
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<WindowsServerDetail>> Get(Guid id, CancellationToken ct) => await servers.DetailAsync(id, ct);
 
+    /// <summary>A section, typed (§4). <c>access</c> and <c>event-log</c> need the User role.</summary>
+    [HttpGet("{id:guid}/sections/{section}")]
+    public async Task<ActionResult<WindowsSectionView>> Section(Guid id, string section, CancellationToken ct) =>
+        await servers.SectionAsync(id, section, CanSeeSecrets, ct);
+
     /// <summary>The agent log of this server, with its problems (§3.8). Admin.</summary>
     [HttpGet("{id:guid}/log")]
     [Authorize(Policy = Policies.Admin)]

@@ -91,6 +91,7 @@ namespace PNMTD.Data
         public DbSet<WindowsJoinTokenEntity> WindowsJoinTokens { get; set; }
         public DbSet<WindowsAgentEntity> WindowsAgents { get; set; }
         public DbSet<WindowsAgentLogEntity> WindowsAgentLog { get; set; }
+        public DbSet<WindowsSectionEntity> WindowsSections { get; set; }
 
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
@@ -266,6 +267,11 @@ namespace PNMTD.Data
                 e.HasOne(a => a.Sensor).WithOne().HasForeignKey<WindowsAgentEntity>(a => a.SensorId).OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(a => a.AgentId).IsUnique();
                 e.HasIndex(a => a.MachineGuid);
+            });
+            modelBuilder.Entity<WindowsSectionEntity>(e =>
+            {
+                e.HasKey(x => new { x.SensorId, x.Section });
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(x => x.SensorId).OnDelete(DeleteBehavior.Cascade);
             });
             modelBuilder.Entity<WindowsAgentLogEntity>(e =>
             {

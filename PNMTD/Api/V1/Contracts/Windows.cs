@@ -154,3 +154,17 @@ public sealed record WindowsRequestResult(bool Ok, string? Error);
 
 /// <summary>The last lines of the agent's log file.</summary>
 public sealed record WindowsAgentLogFile(DateTime At, IReadOnlyList<string> Lines);
+
+/// <summary>
+/// A server's section (§4), typed: the one asked for is filled in, the others are null. <c>access</c> and <c>event-log</c>
+/// need CanWrite (§6): they hold user names and addresses.
+/// </summary>
+public sealed record WindowsSectionView(
+    string Name,
+    DateTime CollectedAt,
+    DateTime ReceivedAt,
+    DateTime ChangedAt,
+    IReadOnlyList<string> Errors,
+    SystemSection? System = null,
+    HardwareSection? Hardware = null,
+    NetworkSection? Network = null);

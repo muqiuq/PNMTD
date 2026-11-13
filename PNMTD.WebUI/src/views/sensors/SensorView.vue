@@ -54,6 +54,8 @@ import UdpStatusStrip from './udp/UdpStatusStrip.vue'
 import { useNodeActions } from './udp/useNodeActions'
 import { useWindowsServer } from './windows/useWindowsServer'
 import WindowsAgentTab from './windows/WindowsAgentTab.vue'
+import WindowsHardwareTab from './windows/WindowsHardwareTab.vue'
+import WindowsNetworkTab from './windows/WindowsNetworkTab.vue'
 import WindowsOverviewTab from './windows/WindowsOverviewTab.vue'
 import WindowsStatusStrip from './windows/WindowsStatusStrip.vue'
 
@@ -102,6 +104,8 @@ const windowsTabs = computed(() => {
   return [
     { key: 'overview', label: 'Overview', icon: 'pi pi-microsoft', to: to() },
     { key: 'events', label: 'Events', icon: 'pi pi-list', to: to('events') },
+    { key: 'hardware', label: 'Hardware', icon: 'pi pi-box', to: to('hardware') },
+    { key: 'network', label: 'Network', icon: 'pi pi-sitemap', to: to('network') },
     {
       key: 'agent',
       label: 'Agent',
@@ -369,7 +373,9 @@ const more = computed(() =>
       <ProtocolPage v-else-if="tab === 'protocol'" :sensor-id="sensor.id" :sensor-name="sensor.name" />
       <template v-else-if="isWindows && tab !== 'events'">
         <div v-if="!windows.server.value" class="center"><ProgressSpinner style="width: 32px; height: 32px" /></div>
-        <WindowsOverviewTab v-else-if="tab === 'overview'" :server="windows.server.value" />
+        <WindowsOverviewTab v-else-if="tab === 'overview'" :server="windows.server.value" :can-write="canWrite" />
+        <WindowsHardwareTab v-else-if="tab === 'hardware'" :server="windows.server.value" :can-write="canWrite" />
+        <WindowsNetworkTab v-else-if="tab === 'network'" :server="windows.server.value" :can-write="canWrite" />
         <WindowsAgentTab
           v-else-if="tab === 'agent'"
           :server="windows.server.value"

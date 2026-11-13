@@ -16,7 +16,7 @@ namespace PNMTD.Windows;
 /// 451 for a clock that is off or problems in three heartbeats in a row; problems go to the agent log; <c>bye</c> marks the
 /// server uninstalled.
 /// </summary>
-public sealed class WindowsReportService(IDbContextFactory<PnmtdDbContext> dbs, IOptionsMonitor<WindowsOptions> options)
+public sealed class WindowsReportService(IDbContextFactory<PnmtdDbContext> dbs, IOptionsMonitor<WindowsOptions> options, WindowsChanges changes)
 {
     /// <summary>The source of the events PNMTD writes for agents: one, so the dedupe collapses repeated heartbeats.</summary>
     public const string EventSource = "windows-agent";
@@ -128,6 +128,29 @@ public sealed class WindowsReportService(IDbContextFactory<PnmtdDbContext> dbs, 
                 .ExecuteUpdateAsync(u => u.SetProperty(a => a.LastProblemAt, Clock.UtcNow), ct);
         }
         await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>A section (§4): stored when its hash is new, compared with the one it replaces (§4.9).</summary>
+    public async Task SectionAsync(AgentConnection connection, SectionMessage message, CancellationToken ct)
+    {
+        if (!SectionNames.IsKnown(message.Name))
+        {
+            throw new InvalidOperationException($"An unknown section \"{Cuts.Cut(message.Name, 40)}\".");
+        }
+        await using var db = await dbs.CreateDbContextAsync(ct);
+        var agent = await db.WindowsAgents.Include(a => a.Sensor).ThenInclude(s => s.Parent).SingleOrDefaultAsync(a => a.SensorId == connection.SensorId, ct);
+        if (agent is null || agent.AgentId != connection.AgentId)
+        {
+            return;
+        }
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var (_, previous) = await WindowsSections.StoreAsync(db, connection.SensorId, message, ct);
+        if (previous is not null)
+        {
+            await changes.CompareAsync(db, agent, message.Name, previous, message.Data, ct);
+        }
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
     }
 
     public async Task ByeAsync(AgentConnection connection, Bye bye, CancellationToken ct)

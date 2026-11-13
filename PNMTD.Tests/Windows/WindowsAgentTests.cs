@@ -44,8 +44,16 @@ public sealed class WindowsAgentTests
         hostId = await WindowsHarness.CreateHostAsync(admin, "windows-tests");
     }
 
+    /// <summary>The servers' state changes would crowd other classes' dashboards (the newest 15 changes): their host goes off.</summary>
     [ClassCleanup]
-    public static void Stop() => app.Dispose();
+    public static async Task Stop()
+    {
+        await using (var db = app.NewDb())
+        {
+            await db.Hosts.Where(h => h.Id == hostId).ExecuteUpdateAsync(u => u.SetProperty(h => h.Enabled, false));
+        }
+        app.Dispose();
+    }
 
     [TestCleanup]
     public void Thaw() => Clock.Provider = TimeProvider.System;
@@ -286,6 +294,46 @@ public sealed class WindowsAgentTests
         await WindowsHarness.EventuallyAsync(() => Task.FromResult(!app.Services.GetRequiredService<AgentHub>().IsConnected(state.SensorId)));
         var offline = await app.Client(Roles.User).PostJsonAsync($"/api/v1/windows/servers/{state.SensorId}/collect", new WindowsCollectRequest(null));
         Assert.AreEqual(HttpStatusCode.Conflict, offline.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task SectionsAreStoredOncePerHashAndServedTyped()
+    {
+        var created = await WindowsHarness.TokenAsync(admin, hostId, "sections");
+        var simulator = new WindowsSimulator(new Uri("http://localhost/"), app.Client(), ct => WindowsHarness.ConnectAsync(app, ct), TextWriter.Null);
+        var state = await simulator.JoinAsync(created.Token, null, "SIM-SECTIONS", CancellationToken.None);
+        using var stop = new CancellationTokenSource();
+        var running = simulator.RunAsync(state, stop.Token, TimeSpan.FromSeconds(30));
+        var rows = await WindowsHarness.EventuallyAsync(async () =>
+        {
+            await using var db = app.NewDb();
+            return await db.WindowsSections.AsNoTracking().Where(s => s.SensorId == state.SensorId).ToListAsync();
+        }, r => r.Count == 3);
+        var viewer = app.Client(Roles.Viewer);
+        var system = await (await viewer.GetAsync($"/api/v1/windows/servers/{state.SensorId}/sections/system")).ReadAsync<WindowsSectionView>();
+        Assert.AreEqual("SIM-SECTIONS", system.System?.Hostname);
+        Assert.AreEqual("17763", system.System?.Os.Build);
+        Assert.IsNull(system.Hardware);
+        var network = await (await viewer.GetAsync($"/api/v1/windows/servers/{state.SensorId}/sections/network")).ReadAsync<WindowsSectionView>();
+        Assert.AreEqual(3389, network.Network?.Listeners.Single(l => l.Services.Contains("TermService")).Port);
+
+        // The same hash again only moves the times.
+        var changedAt = rows.Single(r => r.Section == "hardware").ChangedAt;
+        Assert.IsTrue((await (await app.Client(Roles.User).PostJsonAsync($"/api/v1/windows/servers/{state.SensorId}/collect",
+            new WindowsCollectRequest(["hardware"]))).ReadAsync<WindowsRequestResult>()).Ok);
+        var again = await WindowsHarness.EventuallyAsync(async () =>
+        {
+            await using var db = app.NewDb();
+            return await db.WindowsSections.AsNoTracking().SingleAsync(s => s.SensorId == state.SensorId && s.Section == "hardware");
+        }, r => r.ReceivedAt > rows.Single(x => x.Section == "hardware").ReceivedAt);
+        Assert.AreEqual(changedAt, again.ChangedAt);
+
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await viewer.GetAsync($"/api/v1/windows/servers/{state.SensorId}/sections/access")).StatusCode);
+        Assert.AreEqual(HttpStatusCode.NotFound, (await viewer.GetAsync($"/api/v1/windows/servers/{state.SensorId}/sections/nonsense")).StatusCode);
+        var detail = await (await viewer.GetAsync($"/api/v1/windows/servers/{state.SensorId}")).ReadAsync<WindowsServerDetail>();
+        CollectionAssert.AreEquivalent(new[] { "hardware", "network", "system" }, detail.Sections.Select(s => s.Name).ToList());
+        stop.Cancel();
+        await running.WaitAsync(TimeSpan.FromSeconds(10));
     }
 
     [TestMethod]
