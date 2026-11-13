@@ -26,6 +26,10 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new("Mail processing", KeyValueKeyEnums.LAST_MAIL_PROCESSING, 60, _ => true),
         new("Mailbox check", KeyValueKeyEnums.LAST_MAILBOX_CHECK, 60, MailboxConfigured),
         new("Uplink check", KeyValueKeyEnums.LAST_UPLINK_CHECK, 120, UplinkConfigured),
+        // docs/mikrotik-plan.md §5.2, §5.4: every 10 seconds, and every 6 hours by default.
+        new("MikroTik poller", KeyValueKeyEnums.LAST_MIKROTIK_POLL_RUN, 10, c => c.GetValue("Mikrotik:Enabled", true)),
+        new("MikroTik version check", KeyValueKeyEnums.LAST_MIKROTIK_VERSION_CHECK, 6 * 3600,
+            c => c.GetValue("Mikrotik:Enabled", true) && c.GetValue("Mikrotik:VersionCheck:Enabled", true)),
     ];
 
     public static bool MailboxConfigured(IConfiguration c) =>
@@ -94,12 +98,21 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.UDP_ALIVE, "UDP_ALIVE", true, "A UDP node sent a heartbeat, or another packet that shows it is alive."),
         new(PNMTStatusCodes.UDP_BOOT, "UDP_BOOT", true, "A UDP node restarted; the message names the reason and its INFO (often the firmware version)."),
         new(PNMTStatusCodes.UDP_DATA, "UDP_DATA", true, "A UDP node sent DATA; the message is the payload, as text or as hex."),
+        new(PNMTStatusCodes.MIKROTIK_OK, "MIKROTIK_OK", true, "A MikroTik router answered its poll: the message names its RouterOS version and model, and an available update."),
+        new(PNMTStatusCodes.MIKROTIK_RESTARTED, "MIKROTIK_RESTARTED", true, "A MikroTik router restarted since the last poll (its boot time moved)."),
+        new(PNMTStatusCodes.MIKROTIK_UPDATED, "MIKROTIK_UPDATED", true, "A MikroTik router runs another RouterOS version than at the last poll."),
+        new(PNMTStatusCodes.MIKROTIK_CONFIG_CHANGED, "MIKROTIK_CONFIG_CHANGED", true, "A MikroTik router's configuration changed: a backup found a new version."),
+        new(PNMTStatusCodes.MIKROTIK_UPDATE_AVAILABLE, "MIKROTIK_UPDATE_AVAILABLE", true, "A newer RouterOS version is available on the router's channel (once per version)."),
         new(PNMTStatusCodes.DNS_FAILED, "DNS_FAILED", false, "At least one record of the DNS zone differs from what the resolvers answer."),
         new(PNMTStatusCodes.HEARTBEAT_MISSING, "HEARTBEAT_MISSING", false, "No report within the interval and the grace period."),
         new(PNMTStatusCodes.PING_FAILED, "PING_FAILED", false, "The ping target did not answer."),
         new(PNMTStatusCodes.VALUECHECK_FAILED, "VALUECHECK_FAILED", false, "The message did not match the sensor's regular expression."),
         new(PNMTStatusCodes.ONE_WITHIN_TIMESPAN_FAILED, "ONE_WITHIN_TIMESPAN_FAILED", false, "No successful report within the timespan."),
         new(PNMTStatusCodes.ALL_WITHIN_TIMESPAN_FAILED, "ALL_WITHIN_TIMESPAN_FAILED", false, "Not every report within the timespan was successful."),
+        new(PNMTStatusCodes.MIKROTIK_UNREACHABLE, "MIKROTIK_UNREACHABLE", false, "A MikroTik router did not answer its polls for longer than the grace period; the message says why."),
+        new(PNMTStatusCodes.MIKROTIK_ACCESS_DENIED, "MIKROTIK_ACCESS_DENIED", false, "PNMTD reached a MikroTik router but cannot use it: login refused, host key changed, a missing policy, or RouterOS below 7.13."),
+        new(PNMTStatusCodes.MIKROTIK_BACKUP_FAILED, "MIKROTIK_BACKUP_FAILED", false, "The last two configuration backups of a MikroTik router failed."),
+        new(PNMTStatusCodes.MIKROTIK_UPDATE_FAILED, "MIKROTIK_UPDATE_FAILED", false, "An update job of a MikroTik router failed; the message names the step and the reason."),
         new(PNMTStatusCodes.ERROR, "ERROR", false, "The default failure code. Any code above 399 counts as a failure."),
     ];
 
@@ -115,6 +128,7 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(SensorType.ALL_WITHIN_TIMESPAN, "Like ONE_WITHIN_TIMESPAN, but every report must have succeeded (281 or 481).", "An interval descriptor.", true, false),
         new(SensorType.DNS, "Created by a DNS zone with a host: 211 while its records match, 411 when not.", null, false, false),
         new(SensorType.UDP_NODE, "A device reporting over PNMT-UDP (port 5028/udp): 230 when alive, 231 after a restart, 232 for data; 460 after Interval + GracePeriod without a packet.", null, true, true),
+        new(SensorType.MIKROTIK, "A MikroTik router (RouterOS 7.13 or later) that PNMTD polls every Interval seconds over SSH, as the read-only user pnmt: 240 when it answers, 241 after a restart, 242 after an update, 244 when an update is available; 440 when unreachable for longer than the GracePeriod, 441 when access is refused.", null, true, true),
     ];
 
     public static IReadOnlyList<NotificationRuleTypeInfo> NotificationRuleTypes() =>

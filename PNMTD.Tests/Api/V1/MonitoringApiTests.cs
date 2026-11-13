@@ -161,7 +161,8 @@ public sealed class MonitoringApiTests
     {
         var tasks = await (await admin.GetAsync("/api/v1/system/tasks")).ReadAsync<List<PNMTD.Api.V1.Contracts.TaskStatus>>();
 
-        Assert.AreEqual(8, tasks.Count);
+        // 8 monitoring tasks, plus the MikroTik poller and version check (docs/mikrotik-plan.md §5.2, §5.4).
+        Assert.AreEqual(10, tasks.Count);
         Assert.IsTrue(tasks.All(t => t.State == "off"), string.Join(",", tasks.Select(t => t.State)));
         Assert.IsTrue(tasks.Any(t => t.Key == "last_heartbeat_task_run" && t.IntervalSeconds == 10));
     }

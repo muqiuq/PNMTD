@@ -23,6 +23,9 @@
         LAST_DNS_CHECK = 240,
         DNS_SERVERS = 241,
 
+        LAST_MIKROTIK_POLL_RUN = 250,
+        LAST_MIKROTIK_VERSION_CHECK = 251,
+
         UNUSED = 999,
     }
 }

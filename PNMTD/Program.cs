@@ -7,6 +7,7 @@ using PNMTD.Auth;
 using PNMTD.Data;
 using PNMTD.Helper;
 using PNMTD.Hosting;
+using PNMTD.Mikrotik;
 using PNMTD.Notifications;
 using PNMTD.SensorApi;
 using PNMTD.Services.Domain;
@@ -82,6 +83,7 @@ public partial class Program
         builder.Services.AddHttpClient();
         builder.Services.AddSingleton<NotificationService>();
         builder.Services.AddUdpNodes(builder.Configuration);
+        builder.Services.AddMikrotik(builder.Configuration);
 
         // The build writes the OpenAPI document by starting the host without a database (GetDocument.Insider).
         var documentBuild = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
@@ -104,6 +106,9 @@ public partial class Program
             builder.Services.AddHostedService<UplinkCheckTask>();
             builder.Services.AddHostedService<DnsCheckTask>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<UdpMaintenanceTask>());
+            // MikroTik routers (docs/mikrotik-plan.md §5.2, §5.4); Mikrotik:Enabled=false pauses both.
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<RouterPoller>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<VersionCatalog>());
         }
 
         // UDP nodes (docs/udp-iot-plan.md §4.4): on unless Udp:Enabled=false, not tied to the

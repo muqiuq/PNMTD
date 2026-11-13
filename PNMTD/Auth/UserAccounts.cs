@@ -38,11 +38,19 @@ public static class AuthEvents
     public const string UdpUpdateStarted = "UdpUpdateStarted";
     public const string UdpUpdateCancelled = "UdpUpdateCancelled";
 
+    // MikroTik routers (docs/mikrotik-plan.md §9.6): who saw a join script, and the security-relevant changes.
+    public const string MikrotikJoinScriptViewed = "MikrotikJoinScriptViewed";
+    public const string MikrotikHostKeyAccepted = "MikrotikHostKeyAccepted";
+    public const string MikrotikSecretsChanged = "MikrotikSecretsChanged";
+    public const string MikrotikManagementAccessChanged = "MikrotikManagementAccessChanged";
+    public const string MikrotikDiagnosticsChanged = "MikrotikDiagnosticsChanged";
+
     public static readonly string[] All =
     [
         LoginSucceeded, LoginFailed, LockedOut, TotpFailed, Logout, TotpEnabled, TotpDisabled, TotpReset, PasswordChanged,
         PasswordReset, SessionsRevoked, UserCreated, UserUpdated, UserUnlocked, RoleChanged, UserDeleted,
         UdpKeyChanged, UdpCounterReset, UdpSessionReset, UdpFirmwareUploaded, UdpFirmwareDeleted, UdpUpdateStarted, UdpUpdateCancelled,
+        MikrotikJoinScriptViewed, MikrotikHostKeyAccepted, MikrotikSecretsChanged, MikrotikManagementAccessChanged, MikrotikDiagnosticsChanged,
     ];
 }
 

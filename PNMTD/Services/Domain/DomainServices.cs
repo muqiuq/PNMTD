@@ -29,6 +29,8 @@ public static class DomainServicesSetup
         services.AddScoped<UdpCommandService>();
         services.AddScoped<UdpOtaService>();
         services.AddScoped<UdpProtocolDocs>();
+        // MikroTik routers (docs/mikrotik-plan.md §10).
+        services.AddScoped<MikrotikRouterService>();
         return services;
     }
 }

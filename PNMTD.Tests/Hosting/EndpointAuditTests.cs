@@ -127,6 +127,13 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/sensors/{id:guid}/udp/commands"] = Roles.User,
         ["DELETE /api/v1/sensors/{id:guid}/udp/commands/{commandId:guid}"] = Roles.User,
         ["GET /api/v1/sensors/{id:guid}/udp/ota-jobs"] = Roles.Viewer,
+        // MikroTik routers (docs/mikrotik-plan.md §10): the join script holds keys (CanWrite), the rest of a router's own as the sensor's.
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/join-script"] = Roles.User,
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/removal-script"] = Roles.User,
+        ["POST /api/v1/sensors/{id:guid}/mikrotik/poll"] = Roles.User,
+        ["POST /api/v1/sensors/{id:guid}/mikrotik/host-key/accept"] = Roles.Admin,
+        ["GET /api/v1/mikrotik/status"] = Roles.Admin,
+        ["GET /api/v1/mikrotik/routers"] = Roles.Admin,
         ["GET /api/v1/udp/status"] = Roles.Admin,
         ["GET /api/v1/udp/nodes"] = Roles.Admin,
         ["GET /api/v1/udp/command-log"] = Roles.Admin,

@@ -61,7 +61,8 @@ public sealed record SensorDetail(
     IReadOnlyList<SensorSummary> Children,
     SensorIntegration? Integration,
     string? Notes = null,
-    UdpNodeDetail? Udp = null);
+    UdpNodeDetail? Udp = null,
+    MikrotikRouterDetail? Mikrotik = null);
 
 /// <summary>
 /// How an application reports: <c>{WriteUrl}/{code}/{message}</c> (GET) or a POST of the message to
@@ -102,6 +103,9 @@ public sealed class SensorRequest
 
     /// <summary>A UDP_NODE's protocol settings (docs/udp-iot-plan.md §5); ignored for other types.</summary>
     public UdpNodeRequest? Udp { get; init; }
+
+    /// <summary>A MIKROTIK router's settings (docs/mikrotik-plan.md §10); ignored for other types.</summary>
+    public MikrotikRouterRequest? Mikrotik { get; init; }
 }
 
 /// <summary><c>POST /sensors/{id}/tokens/rotate</c>: which tokens get new values. The old URLs stop working at once.</summary>

@@ -3,11 +3,11 @@ using PNMTD.Data;
 using PNMTD.Lib.Helper;
 using PNMTD.Models.Db;
 
-namespace PNMTD.Udp;
+namespace PNMTD.Services.Events;
 
 /// <summary>
-/// Events of UDP nodes with the sensor API's rules (docs/webui-migration-plan.md §3.3): one writer
-/// per sensor at a time (a transaction-scoped advisory lock), the dedupe (when the last two events
+/// Events that PNMTD writes itself (UDP nodes, MikroTik routers: docs/mikrotik-plan.md §5.3), with the
+/// sensor API's rules (docs/webui-migration-plan.md §3.3): one writer per sensor at a time (a transaction-scoped advisory lock), the dedupe (when the last two events
 /// and this one share code, message and source address, only the last one's time moves) and at
 /// most 2000 events per sensor. The sensor API keeps its own copy of these rules, untouched, so its
 /// contract cannot change through this code (docs/udp-iot-plan.md §10).

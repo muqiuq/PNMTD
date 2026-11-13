@@ -32,6 +32,17 @@ namespace PNMTD.Lib.Models
         public const int UDP_BOOT = 231;
         public const int UDP_DATA = 232;
 
+        /// <summary>MikroTik routers (docs/mikrotik-plan.md §5.3): the current condition, and changes as single events.</summary>
+        public const int MIKROTIK_OK = 240;
+        public const int MIKROTIK_RESTARTED = 241;
+        public const int MIKROTIK_UPDATED = 242;
+        public const int MIKROTIK_CONFIG_CHANGED = 243;
+        public const int MIKROTIK_UPDATE_AVAILABLE = 244;
+        public const int MIKROTIK_UNREACHABLE = 440;
+        public const int MIKROTIK_ACCESS_DENIED = 441;
+        public const int MIKROTIK_BACKUP_FAILED = 442;
+        public const int MIKROTIK_UPDATE_FAILED = 443;
+
         public static readonly int[] ONE_OR_ALL_WITHIN_CODES = new int[]{ ONE_WITHIN_TIMESPAN_FAILED, ONE_WITHIN_TIMESPAN_OK, ALL_WITHIN_TIMESPAN_OK, ALL_WITHIN_TIMESPAN_FAILED };
     }
 }

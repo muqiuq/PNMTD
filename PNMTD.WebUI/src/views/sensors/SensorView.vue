@@ -35,6 +35,9 @@ import {
 import { useServerTable } from '@/composables/useServerTable'
 import { formatAbsolute, formatPercent } from '@/format'
 import { useSession } from '@/stores/session'
+import MikrotikSettingsDialog from './mikrotik/MikrotikSettingsDialog.vue'
+import MikrotikStatusStrip from './mikrotik/MikrotikStatusStrip.vue'
+import SetupTab from './mikrotik/SetupTab.vue'
 import CommandsTab from './udp/CommandsTab.vue'
 import FirmwareTab from './udp/FirmwareTab.vue'
 import LastPacketsTab from './udp/LastPacketsTab.vue'
@@ -51,6 +54,7 @@ import { useNodeActions } from './udp/useNodeActions'
  * Right: its state and uptime, and its events, paged, on the first screen. A UDP node
  * (docs/udp-iot-plan.md §6.2) adds a status strip and subpages with routes of their own: Last
  * packets, Commands, Firmware, Protocol; its integration panel shows the endpoint, key and token.
+ * A MikroTik router (docs/mikrotik-plan.md §11.1) adds its status strip and the Setup tab.
  */
 const route = useRoute()
 const router = useRouter()
@@ -74,7 +78,24 @@ const heartbeat = computed(() => usesGracePeriod(sensor.value?.type))
 
 // --- a UDP node's subpages ------------------------------------------------------------------
 const isUdp = computed(() => sensor.value?.type === 'UDP_NODE' && !!sensor.value.udp)
-const tab = computed(() => (isUdp.value && typeof route.params.tab === 'string' && route.params.tab) || 'events')
+const isMikrotik = computed(() => sensor.value?.type === 'MIKROTIK' && !!sensor.value.mikrotik)
+const tab = computed(
+  () => ((isUdp.value || isMikrotik.value) && typeof route.params.tab === 'string' && route.params.tab) || 'events',
+)
+const mikrotikTabs = computed(() => {
+  const to = (t?: string) => ({ name: 'sensor', params: { id: id.value, tab: t } })
+  return [
+    { key: 'events', label: 'Events', icon: 'pi pi-list', to: to() },
+    {
+      key: 'setup',
+      label: 'Setup',
+      icon: 'pi pi-cog',
+      to: to('setup'),
+      badge: sensor.value?.mikrotik?.setupState !== 'Ready' || sensor.value?.mikrotik?.scriptOutdated ? '!' : null,
+    },
+  ]
+})
+const routerSettingsOpen = ref(false)
 const tabs = computed(() => {
   const to = (t?: string) => ({ name: 'sensor', params: { id: id.value, tab: t } })
   return [
@@ -204,8 +225,18 @@ const udpItems = computed(() => {
   ]
 })
 
+const mikrotikItems = computed(() =>
+  isMikrotik.value
+    ? [
+        { label: 'Edit router settings…', icon: 'pi pi-sliders-h', command: () => (routerSettingsOpen.value = true) },
+        { separator: true },
+      ]
+    : [],
+)
+
 const more = computed(() => [
   ...udpItems.value,
+  ...mikrotikItems.value,
   ...(sensor.value?.integration
     ? [{ label: 'New tokens…', icon: 'pi pi-key', command: () => (rotating.value = true) }]
     : []),
@@ -245,8 +276,19 @@ const more = computed(() => [
         <UdpStatusStrip :sensor="sensor" />
         <TabNav :items="tabs" :active="tab" label="Node pages" />
       </template>
+      <template v-else-if="isMikrotik">
+        <MikrotikStatusStrip :sensor="sensor" />
+        <TabNav :items="mikrotikTabs" :active="tab" label="Router pages" />
+      </template>
 
-      <LastPacketsTab v-if="tab === 'last-packets'" :sensor="sensor" />
+      <SetupTab
+        v-if="isMikrotik && tab === 'setup'"
+        :sensor="sensor"
+        :can-write="canWrite"
+        :is-admin="isAdmin"
+        @edit="routerSettingsOpen = true"
+      />
+      <LastPacketsTab v-else-if="tab === 'last-packets'" :sensor="sensor" />
       <CommandsTab v-else-if="tab === 'commands'" :sensor="sensor" :can-write="canWrite" />
       <FirmwareTab v-else-if="tab === 'firmware'" :sensor="sensor" :is-admin="isAdmin" @update="updating = true" />
       <ProtocolPage v-else-if="tab === 'protocol'" :sensor-id="sensor.id" :sensor-name="sensor.name" />
@@ -391,7 +433,7 @@ const more = computed(() => [
               />
             </div>
           </section>
-          <section v-else-if="sensor.integration" class="panel" aria-labelledby="integration-title">
+          <section v-else-if="sensor.integration && !isMikrotik" class="panel" aria-labelledby="integration-title">
             <div id="integration-title" class="panel-header">Integration</div>
             <div class="panel-body">
               <SensorUrlPanel :integration="sensor.integration" :type="sensor.type" />
@@ -528,6 +570,13 @@ const more = computed(() => [
         />
         <OtaDialog v-if="isAdmin" v-model:visible="updating" :sensor-ids="[sensor.id]" :names="[sensor.name]" />
       </template>
+
+      <MikrotikSettingsDialog
+        v-if="isMikrotik && canWrite"
+        v-model:visible="routerSettingsOpen"
+        :sensor="sensor"
+        :is-admin="isAdmin"
+      />
 
       <Dialog v-model:visible="rotating" header="New tokens" modal :style="{ width: '28rem' }">
         <p class="dialog-text">

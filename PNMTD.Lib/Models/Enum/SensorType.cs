@@ -14,7 +14,9 @@ namespace PNMTD.Lib.Models.Enum
         ONE_WITHIN_TIMESPAN = 60,
         ALL_WITHIN_TIMESPAN = 61,
         /// <summary>A device reporting over PNMT-UDP (docs/udp-iot-plan.md §4.1), with heartbeat semantics.</summary>
-        UDP_NODE = 70
+        UDP_NODE = 70,
+        /// <summary>A MikroTik router that PNMTD polls over SSH, or watches through its tunnel (docs/mikrotik-plan.md §9.1).</summary>
+        MIKROTIK = 80
     }
 }
 

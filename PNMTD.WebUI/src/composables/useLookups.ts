@@ -49,11 +49,20 @@ export function useRuleTypes() {
 
 /** The label of a sensor type: "HEARTBEAT_VALUECHECK" → "Heartbeat valuecheck". */
 export const typeLabel = (type: string) =>
-  type === 'ENCAPSULADED' ? 'Encapsulated (JSON)' : type === 'UDP_NODE' ? 'UDP node' : humanize(type)
+  type === 'ENCAPSULADED'
+    ? 'Encapsulated (JSON)'
+    : type === 'UDP_NODE'
+      ? 'UDP node'
+      : type === 'MIKROTIK'
+        ? 'MikroTik router'
+        : humanize(type)
 
-/** Types that report themselves and turn 460 after Interval + GracePeriod without a report. */
+/**
+ * Types that report themselves and turn 460 after Interval + GracePeriod without a report, and MikroTik
+ * routers, which turn 440 after failing polls for the GracePeriod (docs/mikrotik-plan.md §5.2).
+ */
 export const usesGracePeriod = (type: string | null | undefined) =>
-  type === 'HEARTBEAT' || type === 'HEARTBEAT_VALUECHECK' || type === 'UDP_NODE'
+  type === 'HEARTBEAT' || type === 'HEARTBEAT_VALUECHECK' || type === 'UDP_NODE' || type === 'MIKROTIK'
 
 /** The PrimeIcon of a sensor type. */
 export function typeIcon(type: string): string {
@@ -70,6 +79,8 @@ export function typeIcon(type: string): string {
       return 'pi pi-globe'
     case 'ENCAPSULADED':
       return 'pi pi-sitemap'
+    case 'MIKROTIK':
+      return 'pi pi-server'
     case 'ONE_WITHIN_TIMESPAN':
     case 'ALL_WITHIN_TIMESPAN':
       return 'pi pi-clock'

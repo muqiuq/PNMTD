@@ -1659,6 +1659,247 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sensors/{id}/mikrotik/join-script": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikScript"];
+                        "text/json": components["schemas"]["MikrotikScript"];
+                        "text/plain": components["schemas"]["MikrotikScript"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/mikrotik/removal-script": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikScript"];
+                        "text/json": components["schemas"]["MikrotikScript"];
+                        "text/plain": components["schemas"]["MikrotikScript"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/mikrotik/poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikRouterDetail"];
+                        "text/json": components["schemas"]["MikrotikRouterDetail"];
+                        "text/plain": components["schemas"]["MikrotikRouterDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/mikrotik/host-key/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikRouterDetail"];
+                        "text/json": components["schemas"]["MikrotikRouterDetail"];
+                        "text/plain": components["schemas"]["MikrotikRouterDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mikrotik/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikStatus"];
+                        "text/json": components["schemas"]["MikrotikStatus"];
+                        "text/plain": components["schemas"]["MikrotikStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mikrotik/routers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    mode?: components["schemas"]["MikrotikMode"];
+                    setupState?: components["schemas"]["MikrotikSetupState"];
+                    state?: components["schemas"]["SensorState"];
+                    updateAvailable?: boolean;
+                    scriptOutdated?: boolean;
+                    channel?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfMikrotikFleetItem"];
+                        "text/json": components["schemas"]["PagedOfMikrotikFleetItem"];
+                        "text/plain": components["schemas"]["PagedOfMikrotikFleetItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notification-rules": {
         parameters: {
             query?: never;
@@ -3920,6 +4161,165 @@ export interface components {
             user: components["schemas"]["CurrentUser"];
             flags: components["schemas"]["SessionFlags"];
         };
+        MikrotikChannelVersion: {
+            channel: string;
+            version: string;
+            /** Format: date-time */
+            releasedAt: null | string;
+        };
+        MikrotikCount: {
+            key: string;
+            /** Format: int32 */
+            count: number;
+        };
+        MikrotikFleetItem: {
+            /** Format: uuid */
+            sensorId: string;
+            name: string;
+            host: components["schemas"]["Ref"];
+            enabled: boolean;
+            mode: components["schemas"]["MikrotikMode"];
+            setupState: components["schemas"]["MikrotikSetupState"];
+            state: components["schemas"]["SensorState"];
+            /** Format: int32 */
+            lastCode: null | number;
+            lastMessage: null | string;
+            address: null | string;
+            identity: null | string;
+            model: null | string;
+            serialNumber: null | string;
+            version: null | string;
+            channel: null | string;
+            latestVersion: null | string;
+            updateAvailable: boolean;
+            firmwareCurrent: null | string;
+            firmwareUpgrade: null | string;
+            /** Format: date-time */
+            bootedAt: null | string;
+            /** Format: date-time */
+            lastSuccessAt: null | string;
+            lastError: null | string;
+            scriptOutdated: boolean;
+        };
+        MikrotikHostKey: {
+            type: string;
+            fingerprint: string;
+            /** Format: date-time */
+            at: null | string;
+        };
+        /** @enum {unknown} */
+        MikrotikMode: "WireGuardSsh" | "WireGuardOnly" | "DirectSsh";
+        MikrotikResources: {
+            cpu: null | string;
+            /** Format: int32 */
+            cpuCount: null | number;
+            /** Format: int32 */
+            cpuLoad: null | number;
+            /** Format: int64 */
+            freeMemory: null | number;
+            /** Format: int64 */
+            totalMemory: null | number;
+            /** Format: int64 */
+            freeStorage: null | number;
+            /** Format: int64 */
+            totalStorage: null | number;
+            /** Format: int64 */
+            writeSectorsTotal: null | number;
+            badBlocks: null | string;
+            /** Format: int64 */
+            uptimeSeconds: null | number;
+        };
+        MikrotikRouterDetail: {
+            mode: components["schemas"]["MikrotikMode"];
+            setupState: components["schemas"]["MikrotikSetupState"];
+            address: null | string;
+            /** Format: int32 */
+            sshPort: number;
+            sourceAddress: null | string;
+            /** Format: int32 */
+            backupIntervalHours: number;
+            managementAccess: boolean;
+            includeSecrets: boolean;
+            diagnostics: boolean;
+            hostKey: null | components["schemas"]["MikrotikHostKey"];
+            pendingHostKey: null | components["schemas"]["MikrotikHostKey"];
+            identity: null | string;
+            model: null | string;
+            boardName: null | string;
+            serialNumber: null | string;
+            architecture: null | string;
+            version: null | string;
+            channel: null | string;
+            latestVersion: null | string;
+            updateAvailable: boolean;
+            firmwareCurrent: null | string;
+            firmwareUpgrade: null | string;
+            /** Format: date-time */
+            bootedAt: null | string;
+            resources: null | components["schemas"]["MikrotikResources"];
+            /** Format: date-time */
+            lastPollAt: null | string;
+            /** Format: date-time */
+            lastSuccessAt: null | string;
+            /** Format: date-time */
+            failingSince: null | string;
+            lastError: null | string;
+            /** Format: int32 */
+            lastErrorCode: null | number;
+            scriptOutdated: boolean;
+            scriptDifferences: string[];
+            warnings: string[];
+        };
+        MikrotikRouterRequest: {
+            mode?: components["schemas"]["MikrotikMode"];
+            address?: null | string;
+            /** Format: int32 */
+            sshPort?: number;
+            sourceAddress?: null | string;
+            /** Format: int32 */
+            backupIntervalHours?: number;
+            managementAccess?: boolean;
+            includeSecrets?: boolean;
+            diagnostics?: boolean;
+        };
+        MikrotikScript: {
+            script: string;
+            fileName: string;
+            mode: components["schemas"]["MikrotikMode"];
+            /** Format: date-time */
+            generatedAt: string;
+            notes: string[];
+        };
+        /** @enum {unknown} */
+        MikrotikSetupState: "AwaitingRouter" | "TunnelUp" | "Ready" | "NeedsAttention";
+        MikrotikSshPublicKey: {
+            publicKey: string;
+            comment: string;
+            fingerprint: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            retiredAt: null | string;
+        };
+        MikrotikStatus: {
+            enabled: boolean;
+            tag: string;
+            instance: string;
+            sshKeys: components["schemas"]["MikrotikSshPublicKey"][];
+            latestVersions: components["schemas"]["MikrotikChannelVersion"][];
+            /** Format: date-time */
+            versionsCheckedAt: null | string;
+            versionCheckError: null | string;
+            versionCheckEnabled: boolean;
+            /** Format: int32 */
+            routers: number;
+            bySetupState: components["schemas"]["MikrotikCount"][];
+            byVersion: components["schemas"]["MikrotikCount"][];
+            /** Format: int32 */
+            updatesAvailable: number;
+            /** Format: int32 */
+            scriptsOutdated: number;
+        };
         NotificationRuleDetail: {
             /** Format: uuid */
             id: string;
@@ -4028,6 +4428,15 @@ export interface components {
         };
         PagedOfMailLogItem: {
             items: components["schemas"]["MailLogItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfMikrotikFleetItem: {
+            items: components["schemas"]["MikrotikFleetItem"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */
@@ -4199,6 +4608,7 @@ export interface components {
             integration: null | components["schemas"]["SensorIntegration"];
             notes?: null | string;
             udp?: null | components["schemas"]["UdpNodeDetail"];
+            mikrotik?: null | components["schemas"]["MikrotikRouterDetail"];
         };
         SensorIntegration: {
             writeToken: string;
@@ -4249,6 +4659,7 @@ export interface components {
             textId?: null | string;
             notes?: null | string;
             udp?: null | components["schemas"]["UdpNodeRequest"];
+            mikrotik?: null | components["schemas"]["MikrotikRouterRequest"];
         };
         /** @enum {unknown} */
         SensorState: "Ok" | "Failing" | "NoData" | "Ignored" | "Disabled";
@@ -4271,7 +4682,7 @@ export interface components {
             childCount: number;
         };
         /** @enum {unknown} */
-        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN" | "UDP_NODE";
+        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN" | "UDP_NODE" | "MIKROTIK";
         SensorTypeInfo: {
             type: components["schemas"]["SensorType"];
             description: string;

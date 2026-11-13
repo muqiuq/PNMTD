@@ -1,0 +1,9 @@
+# The lab image for tools/chr-lab.sh: QEMU for MikroTik's CHR (x86_64 and ARM64), the serial-console
+# driver, and an SSH client with password support for the admin side of the lab.
+FROM docker.io/library/debian:trixie-slim
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends qemu-system-x86 qemu-system-arm qemu-efi-aarch64 \
+      python3 python3-pexpect unzip curl ca-certificates openssh-client sshpass socat \
+ && rm -rf /var/lib/apt/lists/*
+COPY run.py /lab/run.py
+ENTRYPOINT ["python3", "-u", "/lab/run.py"]

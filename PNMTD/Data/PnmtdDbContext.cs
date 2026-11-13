@@ -47,6 +47,11 @@ namespace PNMTD.Data
         public DbSet<UdpFirmwareEntity> UdpFirmware { get; set; }
         public DbSet<UdpOtaJobEntity> UdpOtaJobs { get; set; }
 
+        // MikroTik routers (docs/mikrotik-plan.md §9.2).
+        public DbSet<MikrotikRouterEntity> MikrotikRouters { get; set; }
+        public DbSet<MikrotikSettingsEntity> MikrotikSettings { get; set; }
+        public DbSet<MikrotikSshKeyEntity> MikrotikSshKeys { get; set; }
+
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
         }
@@ -125,6 +130,12 @@ namespace PNMTD.Data
                 e.HasOne<UdpFirmwareEntity>().WithMany().HasForeignKey(j => j.FirmwareId).OnDelete(DeleteBehavior.SetNull);
                 e.HasIndex(j => new { j.SensorId, j.State, j.Created });
                 e.HasIndex(j => j.Created);
+            });
+
+            // MikroTik routers: the router goes with its sensor (§9.2).
+            modelBuilder.Entity<MikrotikRouterEntity>(e =>
+            {
+                e.HasOne(r => r.Sensor).WithOne().HasForeignKey<MikrotikRouterEntity>(r => r.SensorId).OnDelete(DeleteBehavior.Cascade);
             });
 
             base.OnModelCreating(modelBuilder);

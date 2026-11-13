@@ -16,6 +16,8 @@ import { useActions } from '@/composables/useActions'
 import { typeIcon, typeLabel, usesGracePeriod, useSensorTypes } from '@/composables/useLookups'
 import { formatDuration } from '@/format'
 import { useSession } from '@/stores/session'
+import MikrotikFields from './mikrotik/MikrotikFields.vue'
+import { draftErrors, MIKROTIK_FIELDS, mikrotikRequestFromDraft, newMikrotikDraft } from './mikrotik/mikrotikDraft'
 import UdpNodeFields from './udp/UdpNodeFields.vue'
 import { KEY_BYTES, newUdpDraft, secretError, TOKEN_BYTES, udpRequest } from './udp/udpDraft'
 
@@ -24,6 +26,8 @@ import { KEY_BYTES, newUdpDraft, secretError, TOKEN_BYTES, udpRequest } from './
  * server validates the parameters (a regex, a ping target, a timespan such as "daily 8"). After the
  * creation the sensor's page shows its URLs. A UDP node (docs/udp-iot-plan.md §6.1) has a section
  * of its own; ?type=UDP_NODE&deviceId=42 preset it (the admin page's "Add UDP node", unknown senders).
+ * So does a MikroTik router (docs/mikrotik-plan.md §11.1): after the creation its Setup tab shows the
+ * join script.
  */
 const route = useRoute()
 const router = useRouter()
@@ -44,6 +48,7 @@ const presets: SensorType[] = [
   'ONE_WITHIN_TIMESPAN',
   'ALL_WITHIN_TIMESPAN',
   'UDP_NODE',
+  'MIKROTIK',
 ]
 const presetType = presets.find((t) => t === route.query.type) ?? 'SIMPLE'
 const presetDevice = Number(route.query.deviceId)
@@ -56,6 +61,7 @@ const enabled = ref(true)
 const textId = ref('')
 const notes = ref('')
 const udp = ref(newUdpDraft(Number.isInteger(presetDevice) && presetDevice > 0 ? presetDevice : null))
+const mikrotik = ref(newMikrotikDraft())
 const errors = ref<Record<string, string | undefined>>({})
 const busy = ref(false)
 
@@ -63,13 +69,15 @@ const creatable = computed(() => types.list.value.filter((t) => t.canCreate))
 const info = computed(() => types.info(type.value))
 const heartbeat = computed(() => usesGracePeriod(type.value))
 const isUdp = computed(() => type.value === 'UDP_NODE')
+const isMikrotik = computed(() => type.value === 'MIKROTIK')
 const timespan = computed(() => type.value === 'ONE_WITHIN_TIMESPAN' || type.value === 'ALL_WITHIN_TIMESPAN')
 
 // Sensible defaults per type: a ping every minute, a daily heartbeat with an hour of grace, a UDP
-// node every 10 minutes with 5 minutes of grace.
+// node every 10 minutes with 5 minutes of grace, a router polled every 5 minutes with 10 of grace.
 function defaults(t: SensorType) {
-  interval.value = t === 'PING' ? 60 : t === 'UDP_NODE' ? 600 : usesGracePeriod(t) ? 86_400 : null
-  grace.value = t === 'UDP_NODE' ? 300 : usesGracePeriod(t) ? 3_600 : null
+  interval.value =
+    t === 'PING' ? 60 : t === 'UDP_NODE' ? 600 : t === 'MIKROTIK' ? 300 : usesGracePeriod(t) ? 86_400 : null
+  grace.value = t === 'UDP_NODE' ? 300 : t === 'MIKROTIK' ? 600 : usesGracePeriod(t) ? 3_600 : null
 }
 defaults(type.value)
 watch(type, (t) => {
@@ -132,6 +140,7 @@ async function submit() {
     'udp.allowedSuites': isUdp.value && !udp.value.allowedSuites.length ? 'Allow at least one suite.' : undefined,
     'udp.key': isUdp.value && udp.value.manual ? (secretError(udp.value.key, KEY_BYTES) ?? undefined) : undefined,
     'udp.token': isUdp.value && udp.value.manual ? (secretError(udp.value.token, TOKEN_BYTES) ?? undefined) : undefined,
+    ...(isMikrotik.value ? draftErrors(mikrotik.value) : {}),
   }
   if (Object.values(errors.value).some((e) => e)) {
     return
@@ -153,16 +162,23 @@ async function submit() {
     if (isUdp.value) {
       request.udp = udpRequest(udp.value)
     }
+    if (isMikrotik.value) {
+      request.mikrotik = mikrotikRequestFromDraft(mikrotik.value)
+    }
     const sensor = await api.sensors.create(request)
     await invalidate([keys.host(hostId.value), keys.hosts, keys.udp])
     notify.success(
       `Sensor ${sensor.name} created`,
-      isUdp.value ? 'Its endpoint, key and token are on its page.' : 'Its URLs are on its page.',
+      isUdp.value
+        ? 'Its endpoint, key and token are on its page.'
+        : isMikrotik.value
+          ? 'Its join script is on the Setup tab: paste it on the router.'
+          : 'Its URLs are on its page.',
     )
     for (const warning of sensor.udp?.warnings ?? []) {
       notify.info('Note', warning)
     }
-    await router.replace({ name: 'sensor', params: { id: sensor.id } })
+    await router.replace({ name: 'sensor', params: { id: sensor.id, tab: isMikrotik.value ? 'setup' : undefined } })
   } catch (e) {
     if (e instanceof ApiError && Object.keys(e.errors).length) {
       errors.value = {
@@ -174,6 +190,7 @@ async function submit() {
         textId: e.field('textId'),
         notes: e.field('notes'),
         ...Object.fromEntries(udpFields.map((f) => [f, e.field(f)])),
+        ...Object.fromEntries(MIKROTIK_FIELDS.map((f) => [f, e.field(f)])),
       }
     } else {
       notify.error(e, 'Not created')
@@ -187,7 +204,7 @@ async function submit() {
 <template>
   <div class="page">
     <PageHeader
-      :title="isUdp ? 'New UDP node' : 'New sensor'"
+      :title="isUdp ? 'New UDP node' : isMikrotik ? 'New MikroTik router' : 'New sensor'"
       :crumbs="[
         { label: 'Hosts', to: { name: 'hosts' } },
         { label: host.data.value?.name ?? '…', to: { name: 'host', params: { id: hostId } } },
@@ -248,7 +265,9 @@ async function submit() {
             ? 'How often PNMTD pings.'
             : isUdp
               ? 'How often the node reports: 600 is every 10 min.'
-              : 'How often a report must arrive: 86400 is daily.'
+              : isMikrotik
+                ? 'How often PNMTD polls the router: 300 is every 5 min, 60 at least.'
+                : 'How often a report must arrive: 86400 is daily.'
         }}</small>
       </div>
       <div v-if="heartbeat" class="field">
@@ -262,10 +281,14 @@ async function submit() {
         />
         <small v-if="errors.gracePeriod" class="field-error">{{ errors.gracePeriod }}</small>
         <small v-else class="field-hint">{{
-          graceHint ?? 'How late a report may be before it counts as missing (460).'
+          graceHint ??
+          (isMikrotik
+            ? 'How long polls may fail before the router counts as unreachable (440).'
+            : 'How late a report may be before it counts as missing (460).')
         }}</small>
       </div>
       <UdpNodeFields v-if="isUdp" v-model="udp" :errors="errors" :listener-off="listenerOff" />
+      <MikrotikFields v-if="isMikrotik" v-model="mikrotik" :errors="errors" :is-admin="session.can('Admin')" />
       <div class="field">
         <label for="sensor-textid">Text id <span class="muted">(optional)</span></label>
         <InputText id="sensor-textid" v-model="textId" class="mono" :invalid="!!errors.textId" />
@@ -288,7 +311,11 @@ async function submit() {
         Its reports are a JSON array; each Name in it becomes a child sensor of its own.
       </Message>
       <div class="form-actions wide">
-        <Button type="submit" :label="isUdp ? 'Create UDP node' : 'Create sensor'" :loading="busy" />
+        <Button
+          type="submit"
+          :label="isUdp ? 'Create UDP node' : isMikrotik ? 'Add router' : 'Create sensor'"
+          :loading="busy"
+        />
         <Button label="Cancel" severity="secondary" text @click="router.back()" />
       </div>
     </form>

@@ -10,7 +10,8 @@ using PNMTD.Models.Db;
 
 namespace PNMTD.Services.Domain;
 
-public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, PublicUrls urls, NotificationRuleService rules, UdpNodeService udp)
+public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, PublicUrls urls, NotificationRuleService rules, UdpNodeService udp,
+    MikrotikRouterService mikrotik)
 {
     private static readonly string[] SortFields = ["name", "host", "state", "type", "lastevent"];
 
@@ -72,7 +73,8 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             status.LastCode, status.LastMessage, status.LastEventAt, status.FailingSince,
             hours.AverageOverall(uptimeIds, 24), days.AverageOverall(uptimeIds, 30), days.Series(days.Average(uptimeIds)),
             status.Children.OrderBy(c => c.Info.Name, StringComparer.OrdinalIgnoreCase).Select(c => c.ToSummary()).ToList(),
-            integration, sensor.Notes, isUdp ? await udp.DetailAsync(id, ct) : null);
+            integration, sensor.Notes, isUdp ? await udp.DetailAsync(id, ct) : null,
+            sensor.Type == SensorType.MIKROTIK ? await mikrotik.DetailAsync(id, ct) : null);
     }
 
     public async Task<SensorDetail> CreateAsync(SensorRequest request, CancellationToken ct)
@@ -89,6 +91,10 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         if (sensor.Type == SensorType.UDP_NODE)
         {
             await udp.ApplyAsync(sensor, request.Udp, ct);
+        }
+        if (sensor.Type == SensorType.MIKROTIK)
+        {
+            await mikrotik.ApplyAsync(sensor, request.Mikrotik, ct);
         }
         await db.SaveChangesAsync(ct);
         udp.Changed();
@@ -114,6 +120,7 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         else
         {
             var wasUdp = sensor.Type == SensorType.UDP_NODE;
+            var wasMikrotik = sensor.Type == SensorType.MIKROTIK;
             await ValidateAsync(request, sensor, ct);
             Apply(sensor, request);
             if (sensor.Type == SensorType.UDP_NODE)
@@ -123,6 +130,14 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             else if (wasUdp)
             {
                 await udp.RemoveAsync(sensor.Id, ct);
+            }
+            if (sensor.Type == SensorType.MIKROTIK)
+            {
+                await mikrotik.ApplyAsync(sensor, request.Mikrotik, ct);
+            }
+            else if (wasMikrotik)
+            {
+                await mikrotik.RemoveAsync(sensor.Id, ct);
             }
         }
         await db.SaveChangesAsync(ct);
@@ -220,6 +235,15 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         {
             var node = existing is null ? null : await db.UdpNodes.AsNoTracking().SingleOrDefaultAsync(n => n.SensorId == existing.Id, ct);
             await udp.ValidateAsync(request.Udp, node, existing?.Id, v, ct);
+        }
+        if (request.Type == SensorType.MIKROTIK)
+        {
+            var router = existing is null || existing.Type != SensorType.MIKROTIK
+                ? null
+                : await db.MikrotikRouters.AsNoTracking().SingleOrDefaultAsync(r => r.SensorId == existing.Id, ct);
+            mikrotik.Validate(request.Mikrotik, router, v);
+            v.Check(request.Interval >= Mikrotik.RouterPoller.MinimumIntervalSeconds, "interval",
+                $"A MikroTik router is polled at most every {Mikrotik.RouterPoller.MinimumIntervalSeconds} seconds: an interval of {Mikrotik.RouterPoller.MinimumIntervalSeconds} or more.");
         }
         if (request.Type is SensorType.HEARTBEAT or SensorType.HEARTBEAT_VALUECHECK or SensorType.PING or SensorType.UDP_NODE)
         {

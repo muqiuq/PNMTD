@@ -20,9 +20,10 @@ namespace PNMTD.Tests;
 /// The app in memory, on the run's PostgreSQL database (TestDefaults), in Development (no 5-second
 /// rule). Sign-in arrives in phase 3; until then <see cref="TestSignIn"/> signs a request in with the
 /// role in its <see cref="TestSignIn.RoleHeader"/> header. <c>testSignIn: false</c> keeps the real
-/// cookie scheme (what a signed-out client meets).
+/// cookie scheme (what a signed-out client meets). <c>services</c> replaces services for the test.
 /// </summary>
-public sealed class TestApp(bool testSignIn = true, IReadOnlyDictionary<string, string?>? settings = null) : WebApplicationFactory<Program>
+public sealed class TestApp(bool testSignIn = true, IReadOnlyDictionary<string, string?>? settings = null, Action<IServiceCollection>? services = null)
+    : WebApplicationFactory<Program>
 {
     private DbTestHelper? dbTestHelper;
 
@@ -38,6 +39,11 @@ public sealed class TestApp(bool testSignIn = true, IReadOnlyDictionary<string, 
         foreach (var (key, value) in settings ?? new Dictionary<string, string?>())
         {
             builder.UseSetting(key, value);
+        }
+        if (services is not null)
+        {
+            // Replacements for the test, such as a simulated MikroTik router (docs/mikrotik-plan.md §14).
+            builder.ConfigureTestServices(services);
         }
         if (testSignIn)
         {

@@ -1,3 +1,4 @@
+using PNMTD.Services.Events;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PNMTD.Data;

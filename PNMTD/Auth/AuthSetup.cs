@@ -61,6 +61,15 @@ public static class AuthSetup
     public const string DefaultKeysPath = "/var/lib/pnmtd/keys";
 
     /// <summary>
+    /// The key ring on the keys volume, under the application name PNMTD: the server, and the CLI where
+    /// it decrypts what the server encrypted (PNMTD's SSH key for <c>pnmtd mikrotik poll</c>).
+    /// </summary>
+    public static IDataProtectionBuilder AddPnmtdDataProtection(this IServiceCollection services, IConfiguration configuration) =>
+        services.AddDataProtection()
+            .SetApplicationName("PNMTD")
+            .PersistKeysToFileSystem(new DirectoryInfo(configuration["DataProtection:KeysPath"] ?? DefaultKeysPath));
+
+    /// <summary>
     /// The server protects itself, whatever a reverse proxy does (§3.6):
     /// <list type="bullet">
     /// <item>Cookie authentication only. It never redirects: 401 when signed out, 403 for the wrong role.</item>
@@ -70,9 +79,7 @@ public static class AuthSetup
     /// </summary>
     public static IServiceCollection AddPnmtdAuth(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDataProtection()
-            .SetApplicationName("PNMTD")
-            .PersistKeysToFileSystem(new DirectoryInfo(configuration["DataProtection:KeysPath"] ?? DefaultKeysPath));
+        services.AddPnmtdDataProtection(configuration);
 
         services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
             .AddCookie(options =>

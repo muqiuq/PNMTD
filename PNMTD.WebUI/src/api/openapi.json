@@ -2136,6 +2136,298 @@
         }
       }
     },
+    "/api/v1/sensors/{id}/mikrotik/join-script": {
+      "get": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikScript"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikScript"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikScript"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/mikrotik/removal-script": {
+      "get": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikScript"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikScript"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikScript"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/mikrotik/poll": {
+      "post": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/mikrotik/host-key/accept": {
+      "post": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mikrotik/status": {
+      "get": {
+        "tags": [
+          "Mikrotik"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mikrotik/routers": {
+      "get": {
+        "tags": [
+          "Mikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "mode",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/MikrotikMode"
+            }
+          },
+          {
+            "name": "setupState",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/MikrotikSetupState"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SensorState"
+            }
+          },
+          {
+            "name": "updateAvailable",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "scriptOutdated",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "channel",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfMikrotikFleetItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfMikrotikFleetItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfMikrotikFleetItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/notification-rules": {
       "get": {
         "tags": [
@@ -6030,6 +6322,717 @@
           }
         }
       },
+      "MikrotikChannelVersion": {
+        "required": [
+          "channel",
+          "version",
+          "releasedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "releasedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "MikrotikCount": {
+        "required": [
+          "key",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "MikrotikFleetItem": {
+        "required": [
+          "sensorId",
+          "name",
+          "host",
+          "enabled",
+          "mode",
+          "setupState",
+          "state",
+          "lastCode",
+          "lastMessage",
+          "address",
+          "identity",
+          "model",
+          "serialNumber",
+          "version",
+          "channel",
+          "latestVersion",
+          "updateAvailable",
+          "firmwareCurrent",
+          "firmwareUpgrade",
+          "bootedAt",
+          "lastSuccessAt",
+          "lastError",
+          "scriptOutdated"
+        ],
+        "type": "object",
+        "properties": {
+          "sensorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "host": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/MikrotikMode"
+          },
+          "setupState": {
+            "$ref": "#/components/schemas/MikrotikSetupState"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SensorState"
+          },
+          "lastCode": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "lastMessage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "identity": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "serialNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "channel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "latestVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "updateAvailable": {
+            "type": "boolean"
+          },
+          "firmwareCurrent": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "firmwareUpgrade": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bootedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastSuccessAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scriptOutdated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MikrotikHostKey": {
+        "required": [
+          "type",
+          "fingerprint",
+          "at"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "MikrotikMode": {
+        "enum": [
+          "WireGuardSsh",
+          "WireGuardOnly",
+          "DirectSsh"
+        ]
+      },
+      "MikrotikResources": {
+        "required": [
+          "cpu",
+          "cpuCount",
+          "cpuLoad",
+          "freeMemory",
+          "totalMemory",
+          "freeStorage",
+          "totalStorage",
+          "writeSectorsTotal",
+          "badBlocks",
+          "uptimeSeconds"
+        ],
+        "type": "object",
+        "properties": {
+          "cpu": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cpuCount": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "cpuLoad": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "freeMemory": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "totalMemory": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "freeStorage": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "totalStorage": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "writeSectorsTotal": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "badBlocks": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "uptimeSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "MikrotikRouterDetail": {
+        "required": [
+          "mode",
+          "setupState",
+          "address",
+          "sshPort",
+          "sourceAddress",
+          "backupIntervalHours",
+          "managementAccess",
+          "includeSecrets",
+          "diagnostics",
+          "hostKey",
+          "pendingHostKey",
+          "identity",
+          "model",
+          "boardName",
+          "serialNumber",
+          "architecture",
+          "version",
+          "channel",
+          "latestVersion",
+          "updateAvailable",
+          "firmwareCurrent",
+          "firmwareUpgrade",
+          "bootedAt",
+          "resources",
+          "lastPollAt",
+          "lastSuccessAt",
+          "failingSince",
+          "lastError",
+          "lastErrorCode",
+          "scriptOutdated",
+          "scriptDifferences",
+          "warnings"
+        ],
+        "type": "object",
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/MikrotikMode"
+          },
+          "setupState": {
+            "$ref": "#/components/schemas/MikrotikSetupState"
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sshPort": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sourceAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "backupIntervalHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "managementAccess": {
+            "type": "boolean"
+          },
+          "includeSecrets": {
+            "type": "boolean"
+          },
+          "diagnostics": {
+            "type": "boolean"
+          },
+          "hostKey": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MikrotikHostKey"
+              }
+            ]
+          },
+          "pendingHostKey": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MikrotikHostKey"
+              }
+            ]
+          },
+          "identity": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "boardName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "serialNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "architecture": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "channel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "latestVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "updateAvailable": {
+            "type": "boolean"
+          },
+          "firmwareCurrent": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "firmwareUpgrade": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bootedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "resources": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MikrotikResources"
+              }
+            ]
+          },
+          "lastPollAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastSuccessAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "failingSince": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastErrorCode": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "scriptOutdated": {
+            "type": "boolean"
+          },
+          "scriptDifferences": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "MikrotikRouterRequest": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/MikrotikMode"
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sshPort": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sourceAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "backupIntervalHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "managementAccess": {
+            "type": "boolean"
+          },
+          "includeSecrets": {
+            "type": "boolean"
+          },
+          "diagnostics": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MikrotikScript": {
+        "required": [
+          "script",
+          "fileName",
+          "mode",
+          "generatedAt",
+          "notes"
+        ],
+        "type": "object",
+        "properties": {
+          "script": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/MikrotikMode"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "MikrotikSetupState": {
+        "enum": [
+          "AwaitingRouter",
+          "TunnelUp",
+          "Ready",
+          "NeedsAttention"
+        ]
+      },
+      "MikrotikSshPublicKey": {
+        "required": [
+          "publicKey",
+          "comment",
+          "fingerprint",
+          "createdAt",
+          "retiredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "publicKey": {
+            "type": "string"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "retiredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "MikrotikStatus": {
+        "required": [
+          "enabled",
+          "tag",
+          "instance",
+          "sshKeys",
+          "latestVersions",
+          "versionsCheckedAt",
+          "versionCheckError",
+          "versionCheckEnabled",
+          "routers",
+          "bySetupState",
+          "byVersion",
+          "updatesAvailable",
+          "scriptsOutdated"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "sshKeys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikSshPublicKey"
+            }
+          },
+          "latestVersions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikChannelVersion"
+            }
+          },
+          "versionsCheckedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "versionCheckError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "versionCheckEnabled": {
+            "type": "boolean"
+          },
+          "routers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "bySetupState": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikCount"
+            }
+          },
+          "byVersion": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikCount"
+            }
+          },
+          "updatesAvailable": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scriptsOutdated": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "NotificationRuleDetail": {
         "required": [
           "id",
@@ -6410,6 +7413,35 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MailLogItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfMikrotikFleetItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikFleetItem"
             }
           },
           "page": {
@@ -7032,6 +8064,16 @@
                 "$ref": "#/components/schemas/UdpNodeDetail"
               }
             ]
+          },
+          "mikrotik": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MikrotikRouterDetail"
+              }
+            ]
           }
         }
       },
@@ -7231,6 +8273,16 @@
                 "$ref": "#/components/schemas/UdpNodeRequest"
               }
             ]
+          },
+          "mikrotik": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MikrotikRouterRequest"
+              }
+            ]
           }
         }
       },
@@ -7322,7 +8374,8 @@
           "ENCAPSULADED",
           "ONE_WITHIN_TIMESPAN",
           "ALL_WITHIN_TIMESPAN",
-          "UDP_NODE"
+          "UDP_NODE",
+          "MIKROTIK"
         ]
       },
       "SensorTypeInfo": {
@@ -9842,6 +10895,12 @@
     },
     {
       "name": "MailLog"
+    },
+    {
+      "name": "SensorMikrotik"
+    },
+    {
+      "name": "Mikrotik"
     },
     {
       "name": "NotificationRules"

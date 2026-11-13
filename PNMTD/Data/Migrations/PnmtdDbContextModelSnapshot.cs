@@ -365,6 +365,173 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("maillogs");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.MikrotikRouterEntity", b =>
+                {
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Architecture")
+                        .HasColumnType("text");
+
+                    b.Property<int>("BackupIntervalHours")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BoardName")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("BootedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Channel")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Diagnostics")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("FailingSince")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FirmwareCurrent")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FirmwareUpgrade")
+                        .HasColumnType("text");
+
+                    b.Property<string>("HostKeyFingerprint")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("HostKeyPinnedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HostKeyType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Identity")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IncludeSecrets")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("LastErrorCode")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastPollAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastSuccessAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("ManagementAccess")
+                        .HasColumnType("boolean");
+
+                    b.Property<short>("Mode")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Model")
+                        .HasColumnType("text");
+
+                    b.Property<string>("NotifiedUpdateVersion")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PendingHostKeyFingerprint")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PendingHostKeySeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PendingHostKeyType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PnmtSourceAddress")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Reading")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("ScriptChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SerialNumber")
+                        .HasColumnType("text");
+
+                    b.Property<short>("SetupState")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("SshPort")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Version")
+                        .HasColumnType("text");
+
+                    b.HasKey("SensorId");
+
+                    b.ToTable("mikrotik_routers");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.MikrotikSettingsEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LatestVersions")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Tag")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("VersionCheckError")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("VersionsCheckedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("mikrotik_settings");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.MikrotikSshKeyEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PrivateKeyProtected")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PublicKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("RetiredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("mikrotik_ssh_keys");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.NotificationRuleEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1104,6 +1271,17 @@ namespace PNMTD.Data.Migrations
                         .HasForeignKey("ProcessedById");
 
                     b.Navigation("ProcessedBy");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.MikrotikRouterEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", "Sensor")
+                        .WithOne()
+                        .HasForeignKey("PNMTD.Models.Db.MikrotikRouterEntity", "SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sensor");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.NotificationRuleEventEntity", b =>

@@ -130,6 +130,28 @@ export const api = {
       call(client.GET('/api/v1/auth-log', { params: { query } })),
   },
 
+  mikrotik: {
+    // --- a router (docs/mikrotik-plan.md §10): CanWrite, accepting a host key Admin -------------
+    joinScript: (id: Id) => call(client.GET('/api/v1/sensors/{id}/mikrotik/join-script', { params: { path: { id } } })),
+    removalScript: (id: Id) =>
+      call(client.GET('/api/v1/sensors/{id}/mikrotik/removal-script', { params: { path: { id } } })),
+    poll: (id: Id) => call(client.POST('/api/v1/sensors/{id}/mikrotik/poll', { params: { path: { id } } })),
+    acceptHostKey: (id: Id) =>
+      call(client.POST('/api/v1/sensors/{id}/mikrotik/host-key/accept', { params: { path: { id } } })),
+    // --- the admin page: Admin ------------------------------------------------------------------
+    status: () => call(client.GET('/api/v1/mikrotik/status')),
+    routers: (
+      query: ListQuery & {
+        mode?: S['MikrotikMode']
+        setupState?: S['MikrotikSetupState']
+        state?: S['SensorState']
+        updateAvailable?: boolean
+        scriptOutdated?: boolean
+        channel?: string
+      } = {},
+    ) => call(client.GET('/api/v1/mikrotik/routers', { params: { query } })),
+  },
+
   udp: {
     // --- a node (docs/udp-iot-plan.md §5): CanRead, the writes CanWrite --------------------
     setSecrets: (id: Id, body: S['UdpKeyRequest']) =>
@@ -213,6 +235,8 @@ export const keys = {
   /** Everything UDP: the admin page's lists, a node's packets, commands and updates, the protocol examples. */
   udp: ['udp'] as const,
   udpNode: (id: Id) => ['udp', 'node', id] as const,
+  /** MikroTik routers: the admin page's status and fleet (docs/mikrotik-plan.md §11.2). */
+  mikrotik: ['mikrotik'] as const,
 }
 
 /** The request of a resource as it is, with some fields changed: v1's PUT takes every writable field. */
@@ -235,6 +259,26 @@ export function sensorRequest(s: S['SensorDetail'], patch: Partial<S['SensorRequ
     // A UDP node's settings as they are (never its key or token: omitted means unchanged); without
     // them a save would reset the node to the defaults.
     udp: (patch.type ?? s.type) === 'UDP_NODE' && s.udp ? udpNodeRequest(s.udp) : undefined,
+    // A router's settings as they are (docs/mikrotik-plan.md §10), for the same reason.
+    mikrotik: (patch.type ?? s.type) === 'MIKROTIK' && s.mikrotik ? mikrotikRequest(s.mikrotik) : undefined,
+    ...patch,
+  }
+}
+
+/** A router's settings for SensorRequest.mikrotik, as they are, with some changed. */
+export function mikrotikRequest(
+  m: S['MikrotikRouterDetail'],
+  patch: Partial<S['MikrotikRouterRequest']> = {},
+): S['MikrotikRouterRequest'] {
+  return {
+    mode: m.mode,
+    address: m.address,
+    sshPort: m.sshPort,
+    sourceAddress: m.sourceAddress,
+    backupIntervalHours: m.backupIntervalHours,
+    managementAccess: m.managementAccess,
+    includeSecrets: m.includeSecrets,
+    diagnostics: m.diagnostics,
     ...patch,
   }
 }
