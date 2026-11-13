@@ -201,6 +201,7 @@ PNMT can use AI models through [OpenRouter](https://openrouter.ai): to propose r
 - **What is sent:** for mail analysis, the mail and the names of the sensors a rule could feed. The situation analysis is anonymised: no names, addresses or notes leave PNMT. OpenRouter is asked to use only providers that neither store nor train on prompts (`data_collection: deny`).
 - **What it costs:** every request is in *Admin → AI*, with its tokens and cost. `Ai__Budget__Usd` (30 by default) limits each month; at 80 % and 90 % the *AI budget* sensor warns, and at 100 % AI work waits for the next month.
 - **When it fails:** a request is retried every minute 5 times, then after 1 hour, 3 hours and every 24 hours. The *AI* sensor turns red (421) while requests keep failing; a notification rule on it tells you.
+- **The situation analysis** runs every `Ai__Analysis__IntervalMinutes` (60) when something changed, and early on a storm of failures, when the uplink comes back or the WireGuard gateway goes down. Its findings go to three sensors on the host *PNMT*: *AI analysis: critical* (High), *warnings* (Normal) and *info* (Low). A notification rule on them, or a scope such as *at least High*, decides who hears of them; warnings and critical findings also wait under *Decisions*, where similar ones can be muted for 7 days.
 - **Turning it off:** `Ai__Enabled=false`, or one use at a time (`Ai__Mail__Enabled`, `Ai__Analysis__Enabled`). *Admin → Debug → Test the AI* checks the key and every model.
 
 ## What lives where

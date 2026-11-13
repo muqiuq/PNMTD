@@ -1066,6 +1066,20 @@ Where the implementation differs from the sections above, or settles what they l
 - **Important releases** show the routers behind them too, on the Overview's *Advisories* card and as an amber badge; only critical ones write 422.
 - **The changelog's security lines** are found by the same words in the UI (`views/sensors/mikrotik/security.ts`) as in the code's assessment, so a router's *Updates* tab highlights them without an Admin-only request.
 - **The rate handler resolves the feed when it runs:** the feed enqueues through the queue, whose worker holds the handlers.
+
+### A7: the situation analysis (2026-11-13)
+
+- **Where:** `PNMTD/Ai/Analysis/`: `Scrubber`, `SituationSnapshots` (the snapshot), `SituationTask`, `SituationHandler` (`situation.analyse`), `SituationScheduler` (hosted). Tables `ai_analysis_runs` and `ai_findings` (migration `AiAnalysis`); `GET /api/v1/ai/analysis` and `/{id}` (CanRead), `POST /api/v1/ai/analysis/run` (Admin, audited); the AI page's *Analysis* tab and the dashboard's *Situation* card.
+- **The snapshot leaves out** the three *AI analysis* sensors (their own findings would feed back) and ENCAPSULADED containers (their children are in). Disabled and ignored sensors come last, so the size cap drops them first.
+- **Names in messages:** host names (3 characters or more) always become their pseudonym. Sensor names only when distinctive: a digit, a dot, a hyphen or an underscore, or 8 characters or more. Otherwise a sensor called *Backup* would turn every "backup" into `S7`.
+- **Placeholders** are numbered in the order of replacement (URLs, mails, GUIDs, MACs, IPv6, IPv4, host names, tokens), so `<ip:1>` may be the second address in a text. The mapping, pseudonyms and placeholders alike, stays in the run's row; PNMT maps them back for display.
+- **Messages are screened per message by the scan** (a hit becomes `<message withheld>`). Jev screens them as one batch. When it flags the batch, the analysis runs again with every message withheld, instead of not at all; the run says so (`GuardFlagged`).
+- **The structural hash** covers each sensor's state, its failures in the last hour and 24 hours, and its state changes, in coarse steps (0, 1–2, 3–9, 10–99, 100+), plus the uplink's state and outages, the gateway, and late tasks. A sensor that keeps failing is no change; one that starts or stops is.
+- **The schedule:** a look every minute; one run at a time; early triggers wait until 10 minutes after the last run. The uplink's return and the gateway's loss are kept until then; a storm counts only while it lasts. The same finding twice in one answer counts once. Without a change the next look at the interval is one interval later. Runs are kept 90 days.
+- **Critical findings are verified one by one**, at most 3 a run (`AiPipeline.VerifyAsync`, the generic verification on one finding); the rest count as disputed.
+- **"New"** compares the key together with the sensors (`DedupeKey`), as the decisions do; a finding not reported in 24 hours is new again, and sent again.
+- **A finding that persists** writes nothing to its sensor (the sensor keeps its state); it attaches to the open decision, if one is open. A muted finding counts as none, so its sensor returns to 220.
+- **The AI's JSON** (all tasks): numbers are strict (the web defaults made every number "string or number" with a pattern in the schema), and `<`, `>` and `&` are not escaped, so placeholders reach the model as written.
 ---
 
 ## Appendix: configuration and file changes

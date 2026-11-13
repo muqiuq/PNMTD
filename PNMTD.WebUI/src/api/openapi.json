@@ -379,6 +379,143 @@
         }
       }
     },
+    "/api/v1/ai/analysis": {
+      "get": {
+        "tags": [
+          "AiAnalysis"
+        ],
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AnalysisRunState"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAiAnalysisRunItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAiAnalysisRunItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAiAnalysisRunItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/analysis/{id}": {
+      "get": {
+        "tags": [
+          "AiAnalysis"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiAnalysisRunDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiAnalysisRunDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiAnalysisRunDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/analysis/run": {
+      "post": {
+        "tags": [
+          "AiAnalysis"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiAnalysisQueued"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiAnalysisQueued"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiAnalysisQueued"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "tags": [
@@ -8112,6 +8249,131 @@
   },
   "components": {
     "schemas": {
+      "AiAnalysisQueued": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "AiAnalysisRunDetail": {
+        "required": [
+          "run",
+          "findings",
+          "requestIds",
+          "snapshotChars"
+        ],
+        "type": "object",
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/AiAnalysisRunItem"
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiFindingItem"
+            }
+          },
+          "requestIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "snapshotChars": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AiAnalysisRunItem": {
+        "required": [
+          "id",
+          "at",
+          "trigger",
+          "state",
+          "status",
+          "summary",
+          "critical",
+          "warnings",
+          "infos",
+          "withheld",
+          "guardFlagged",
+          "completedAt",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "trigger": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/AnalysisRunState"
+          },
+          "status": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SituationStatus"
+              }
+            ]
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "critical": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warnings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "infos": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "withheld": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "guardFlagged": {
+            "type": "boolean"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "AiBudgetStatus": {
         "required": [
           "usd",
@@ -8198,6 +8460,92 @@
               "type": "integer",
               "format": "int64"
             }
+          }
+        }
+      },
+      "AiFindingItem": {
+        "required": [
+          "id",
+          "key",
+          "kind",
+          "severity",
+          "title",
+          "explanation",
+          "recommendation",
+          "confidence",
+          "sensors",
+          "hosts",
+          "evidence",
+          "verified",
+          "disputed",
+          "new",
+          "muted",
+          "decisionId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/FindingKind"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/FindingSeverity"
+          },
+          "title": {
+            "type": "string"
+          },
+          "explanation": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "format": "double"
+          },
+          "sensors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ref"
+            }
+          },
+          "hosts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ref"
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "disputed": {
+            "type": "boolean"
+          },
+          "new": {
+            "type": "boolean"
+          },
+          "muted": {
+            "type": "boolean"
+          },
+          "decisionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -8495,7 +8843,10 @@
           "warnings",
           "budget",
           "spending",
-          "queue"
+          "queue",
+          "mailEnabled",
+          "analysisEnabled",
+          "analysisIntervalMinutes"
         ],
         "type": "object",
         "properties": {
@@ -8548,6 +8899,16 @@
           },
           "queue": {
             "$ref": "#/components/schemas/AiQueueStatus"
+          },
+          "mailEnabled": {
+            "type": "boolean"
+          },
+          "analysisEnabled": {
+            "type": "boolean"
+          },
+          "analysisIntervalMinutes": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -8623,6 +8984,14 @@
           "WaitingRetry",
           "WaitingBudget",
           "Succeeded",
+          "Failed",
+          "Cancelled"
+        ]
+      },
+      "AnalysisRunState": {
+        "enum": [
+          "Queued",
+          "Done",
           "Failed",
           "Cancelled"
         ]
@@ -9851,6 +10220,21 @@
             "type": "boolean"
           }
         }
+      },
+      "FindingKind": {
+        "enum": [
+          "Incident",
+          "Pattern",
+          "Risk",
+          "Noise"
+        ]
+      },
+      "FindingSeverity": {
+        "enum": [
+          "Info",
+          "Warning",
+          "Critical"
+        ]
       },
       "HostCounts": {
         "required": [
@@ -13387,6 +13771,35 @@
           "OtaChunk"
         ]
       },
+      "PagedOfAiAnalysisRunItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiAnalysisRunItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "PagedOfAiRequestItem": {
         "required": [
           "items",
@@ -14897,6 +15310,14 @@
             "type": "boolean"
           }
         }
+      },
+      "SituationStatus": {
+        "enum": [
+          "Normal",
+          "Degraded",
+          "Incident",
+          null
+        ]
       },
       "StateChange": {
         "required": [
@@ -18231,6 +18652,9 @@
     },
     {
       "name": "DebugAi"
+    },
+    {
+      "name": "AiAnalysis"
     },
     {
       "name": "Auth"

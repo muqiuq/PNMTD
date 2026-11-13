@@ -82,6 +82,10 @@ namespace PNMTD.Data
         // RouterOS releases and their assessment (docs/ai-operations-plan.md §10).
         public DbSet<MikrotikReleaseEntity> MikrotikReleases { get; set; }
 
+        // The situation analysis (docs/ai-operations-plan.md §9).
+        public DbSet<AiAnalysisRunEntity> AiAnalysisRuns { get; set; }
+        public DbSet<AiFindingEntity> AiFindings { get; set; }
+
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
         }
@@ -231,6 +235,17 @@ namespace PNMTD.Data
                 e.HasIndex(d => d.DedupeKey).IsUnique().HasFilter("\"State\" = 0");
             });
             modelBuilder.Entity<MikrotikReleaseEntity>().HasIndex(r => new { r.Version, r.Channel }).IsUnique();
+            modelBuilder.Entity<AiAnalysisRunEntity>(e =>
+            {
+                e.HasIndex(r => r.At);
+                e.HasIndex(r => r.State);
+                e.HasOne<AiWorkEntity>().WithMany().HasForeignKey(r => r.WorkId).OnDelete(DeleteBehavior.SetNull);
+            });
+            modelBuilder.Entity<AiFindingEntity>(e =>
+            {
+                e.HasOne(f => f.Run).WithMany(r => r.Findings).HasForeignKey(f => f.RunId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(f => f.DedupeKey);
+            });
 
             modelBuilder.Entity<NotificationRuleScopeEntity>(e =>
             {

@@ -288,6 +288,11 @@ export const api = {
     retry: (id: Id) => call(client.POST('/api/v1/ai/work/{id}/retry', { params: { path: { id } } })),
     cancel: (id: Id) => call(client.POST('/api/v1/ai/work/{id}/cancel', { params: { path: { id } } })),
     backfill: (body: S['MailBackfillRequest']) => call(client.POST('/api/v1/ai/mail/backfill', { body })),
+    // --- the situation analysis (docs/ai-operations-plan.md §9): CanRead; a run on demand Admin ---------------
+    analysis: (query: ListQuery & { state?: S['AnalysisRunState'] }) =>
+      call(client.GET('/api/v1/ai/analysis', { params: { query } })),
+    analysisRun: (id: Id) => call(client.GET('/api/v1/ai/analysis/{id}', { params: { path: { id } } })),
+    runAnalysis: () => call(client.POST('/api/v1/ai/analysis/run')),
   },
 
   /** Admin → Debug (docs/ai-operations-plan.md §8): test sends, 10 a minute. */

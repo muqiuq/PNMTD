@@ -587,6 +587,8 @@ Updates exist in the SSH modes only.
 - **The job log** (`mikrotik_job_log`, permanent): one row per step and outcome, with the time and the router's answer (at most 64 KiB, and never the password). The UI shows it as a timeline, as it does for UDP commands.
 - **Cancelling** is possible until step 5 starts. After that, a cancel only stops the waiting.
 - **The downtime** shown before the start: one reboot, two with the firmware, typically 1–5 minutes each. Custom tunnels to the router are interrupted for that time as well.
+- **A second method, and an optional storage check** (added later, docs/ai-operations-plan.md §12.2): *Install* replaces steps 4 and 5 with `/system package update install`, which downloads, installs and reboots in one command. Verified on a CHR (7.24.5 to 7.25.1): over SSH it prints its progress, asks nothing, and returns with exit 0 when RouterOS reboots. Step 1's storage check can be turned off for a job, for routers with little flash that update anyway. Each router keeps its method and its storage choice as the default for the next update.
+- **Security advisories** (docs/ai-operations-plan.md §10): MikroTik's release feed marks the routers behind a release with a security fix; a critical one raises an event on the *RouterOS advisories* sensor.
 
 ### 7.4 Several routers
 

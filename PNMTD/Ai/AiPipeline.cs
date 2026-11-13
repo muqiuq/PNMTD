@@ -150,16 +150,34 @@ public sealed class AiPipeline(ChatClient chat, DecisionClient decisions, IOptio
         ids.Add(result.RequestId);
         var output = await ParseAsync(task, input, result, ct);
         Verdict? verdict = null;
-        if (task.Verify && !string.IsNullOrWhiteSpace(o.VerifyModel))
+        if (task.Verify)
         {
-            var verifyInput = new VerifyTask.Input(task.Purpose, task.VerifyQuestion,
-                JsonSerializer.SerializeToElement(input, AiJson.Options), JsonSerializer.SerializeToElement(output, AiJson.Options));
-            var verified = await chat.CompleteAsync(call with { PromptVersion = Verifier.PromptVersion }, AiRole.Verify, o.VerifyModel,
-                Verifier.SystemPrompt, Verifier.Render(verifyInput), Verifier.SchemaName, Verifier.Schema, Verifier.MaxTokens, ct);
-            ids.Add(verified.RequestId);
-            verdict = await ParseAsync(Verifier, verifyInput, verified, ct);
+            (verdict, var verifyId) = await VerifyAsync(task.Purpose, task.VerifyQuestion, input!, output, call, ct);
+            if (verifyId is { } id)
+            {
+                ids.Add(id);
+            }
         }
         return new AiPipelineResult<TOut>(null, output, verdict, injection, scan, guard, ids);
+    }
+
+    /// <summary>
+    /// The verification model's verdict on a proposal (layer 5), for a task that verifies only part of its output (the
+    /// analysis's critical findings). No verdict without a verification model.
+    /// </summary>
+    public async Task<(Verdict? Verdict, long? RequestId)> VerifyAsync(string purpose, string question, object input, object proposal, AiCall call,
+        CancellationToken ct)
+    {
+        var model = options.CurrentValue.VerifyModel;
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            return (null, null);
+        }
+        var verifyInput = new VerifyTask.Input(purpose, question, JsonSerializer.SerializeToElement(input, AiJson.Options),
+            JsonSerializer.SerializeToElement(proposal, AiJson.Options));
+        var verified = await chat.CompleteAsync(call with { PromptVersion = Verifier.PromptVersion }, AiRole.Verify, model,
+            Verifier.SystemPrompt, Verifier.Render(verifyInput), Verifier.SchemaName, Verifier.Schema, Verifier.MaxTokens, ct);
+        return (await ParseAsync(Verifier, verifyInput, verified, ct), verified.RequestId);
     }
 
     /// <summary>The output, or an <c>invalid-output</c> failure (the request's log row says so too).</summary>

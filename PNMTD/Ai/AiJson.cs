@@ -18,6 +18,10 @@ public static class AiJson
         RespectNullableAnnotations = true,
         TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+        // The web defaults read numbers from strings, which makes every number "string or number" with a pattern in the schema.
+        NumberHandling = JsonNumberHandling.Strict,
+        // Model input, not HTML: placeholders such as <ip:1> stay readable instead of \u003Cip:1\u003E.
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         WriteIndented = false,
     };
 

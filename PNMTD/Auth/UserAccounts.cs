@@ -75,6 +75,7 @@ public static class AuthEvents
     public const string AiWorkRetried = "AiWorkRetried";
     public const string AiWorkCancelled = "AiWorkCancelled";
     public const string AiBackfillStarted = "AiBackfillStarted";
+    public const string AiAnalysisStarted = "AiAnalysisStarted";
 
     public static readonly string[] All =
     [
@@ -87,7 +88,7 @@ public static class AuthEvents
         MikrotikBackupKeySet, MikrotikBackupKeyRetired, MikrotikBackupEncryptionChanged,
         WireGuardNetworkChanged, WireGuardKeysRegenerated,
         WireGuardTunnelCreated, WireGuardTunnelChanged, WireGuardTunnelDeleted, WireGuardTunnelDownloaded,
-        DebugNotificationSent, DebugAiTested, AiWorkRetried, AiWorkCancelled, AiBackfillStarted,
+        DebugNotificationSent, DebugAiTested, AiWorkRetried, AiWorkCancelled, AiBackfillStarted, AiAnalysisStarted,
     ];
 }
 

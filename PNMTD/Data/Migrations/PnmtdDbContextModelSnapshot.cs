@@ -23,6 +23,69 @@ namespace PNMTD.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("PNMTD.Models.Db.AiAnalysisRunEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("GuardFlagged")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Mapping")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("SnapshotChars")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SnapshotHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<short>("State")
+                        .HasColumnType("smallint");
+
+                    b.Property<short?>("Status")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Trigger")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("Withheld")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("WorkId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.HasIndex("State");
+
+                    b.HasIndex("WorkId");
+
+                    b.ToTable("ai_analysis_runs");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.AiBudgetStateEntity", b =>
                 {
                     b.Property<string>("Period")
@@ -41,6 +104,85 @@ namespace PNMTD.Data.Migrations
                     b.HasKey("Period");
 
                     b.ToTable("ai_budget_state");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AiFindingEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<double>("Confidence")
+                        .HasColumnType("double precision");
+
+                    b.Property<Guid?>("DecisionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DedupeKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("Disputed")
+                        .HasColumnType("boolean");
+
+                    b.PrimitiveCollection<List<string>>("Evidence")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("Explanation")
+                        .IsRequired()
+                        .HasMaxLength(1200)
+                        .HasColumnType("character varying(1200)");
+
+                    b.PrimitiveCollection<List<Guid>>("Hosts")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<short>("Kind")
+                        .HasColumnType("smallint");
+
+                    b.Property<bool>("Muted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("New")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Recommendation")
+                        .IsRequired()
+                        .HasMaxLength(600)
+                        .HasColumnType("character varying(600)");
+
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<List<Guid>>("Sensors")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
+                    b.Property<short>("Severity")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("Verified")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DedupeKey");
+
+                    b.HasIndex("RunId");
+
+                    b.ToTable("ai_findings");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.AiRequestEntity", b =>
@@ -2164,6 +2306,25 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("wg_peer_status");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.AiAnalysisRunEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.AiWorkEntity", null)
+                        .WithMany()
+                        .HasForeignKey("WorkId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AiFindingEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.AiAnalysisRunEntity", "Run")
+                        .WithMany("Findings")
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Run");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.AiRequestEntity", b =>
                 {
                     b.HasOne("PNMTD.Models.Db.AiWorkEntity", null)
@@ -2453,6 +2614,11 @@ namespace PNMTD.Data.Migrations
                         .HasForeignKey("PNMTD.Models.Db.WgPeerStatusEntity", "PeerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AiAnalysisRunEntity", b =>
+                {
+                    b.Navigation("Findings");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.DnsZoneEntity", b =>

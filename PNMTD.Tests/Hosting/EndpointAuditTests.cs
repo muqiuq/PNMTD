@@ -219,6 +219,9 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/debug/ai"] = Roles.Admin,
         ["POST /api/v1/ai/mail/backfill"] = Roles.Admin,
         ["GET /api/v1/mikrotik/releases"] = Roles.Admin,
+        ["GET /api/v1/ai/analysis"] = Roles.Viewer,
+        ["GET /api/v1/ai/analysis/{id:guid}"] = Roles.Viewer,
+        ["POST /api/v1/ai/analysis/run"] = Roles.Admin,
         // Decisions (docs/ai-operations-plan.md §5.3): the User role, as the mail log.
         ["GET /api/v1/decisions"] = Roles.User,
         ["GET /api/v1/decisions/count"] = Roles.User,

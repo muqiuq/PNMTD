@@ -321,6 +321,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    state?: components["schemas"]["AnalysisRunState"];
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfAiAnalysisRunItem"];
+                        "text/json": components["schemas"]["PagedOfAiAnalysisRunItem"];
+                        "text/plain": components["schemas"]["PagedOfAiAnalysisRunItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/analysis/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AiAnalysisRunDetail"];
+                        "text/json": components["schemas"]["AiAnalysisRunDetail"];
+                        "text/plain": components["schemas"]["AiAnalysisRunDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/analysis/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AiAnalysisQueued"];
+                        "text/json": components["schemas"]["AiAnalysisQueued"];
+                        "text/plain": components["schemas"]["AiAnalysisQueued"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -6395,6 +6514,39 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AiAnalysisQueued: {
+            /** Format: uuid */
+            id: string;
+        };
+        AiAnalysisRunDetail: {
+            run: components["schemas"]["AiAnalysisRunItem"];
+            findings: components["schemas"]["AiFindingItem"][];
+            requestIds: number[];
+            /** Format: int32 */
+            snapshotChars: number;
+        };
+        AiAnalysisRunItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            at: string;
+            trigger: string;
+            state: components["schemas"]["AnalysisRunState"];
+            status: null | components["schemas"]["SituationStatus"];
+            summary: null | string;
+            /** Format: int32 */
+            critical: number;
+            /** Format: int32 */
+            warnings: number;
+            /** Format: int32 */
+            infos: number;
+            /** Format: int32 */
+            withheld: number;
+            guardFlagged: boolean;
+            /** Format: date-time */
+            completedAt: null | string;
+            error: null | string;
+        };
         AiBudgetStatus: {
             /** Format: double */
             usd: number;
@@ -6415,6 +6567,27 @@ export interface components {
             verdict: null | string;
             issues: string[];
             requestIds: number[];
+        };
+        AiFindingItem: {
+            /** Format: uuid */
+            id: string;
+            key: string;
+            kind: components["schemas"]["FindingKind"];
+            severity: components["schemas"]["FindingSeverity"];
+            title: string;
+            explanation: string;
+            recommendation: string;
+            /** Format: double */
+            confidence: number;
+            sensors: components["schemas"]["Ref"][];
+            hosts: components["schemas"]["Ref"][];
+            evidence: string[];
+            verified: boolean;
+            disputed: boolean;
+            new: boolean;
+            muted: boolean;
+            /** Format: uuid */
+            decisionId: null | string;
         };
         /** @enum {unknown} */
         AiOutcome: "Ok" | "HttpError" | "Timeout" | "ConnectError" | "InvalidOutput" | "BlockedByGuard";
@@ -6509,6 +6682,10 @@ export interface components {
             budget: components["schemas"]["AiBudgetStatus"];
             spending: components["schemas"]["AiSpendingSummary"];
             queue: components["schemas"]["AiQueueStatus"];
+            mailEnabled: boolean;
+            analysisEnabled: boolean;
+            /** Format: int32 */
+            analysisIntervalMinutes: number;
         };
         AiWorkItem: {
             /** Format: uuid */
@@ -6530,6 +6707,8 @@ export interface components {
         };
         /** @enum {unknown} */
         AiWorkState: "Queued" | "Running" | "WaitingRetry" | "WaitingBudget" | "Succeeded" | "Failed" | "Cancelled";
+        /** @enum {unknown} */
+        AnalysisRunState: "Queued" | "Done" | "Failed" | "Cancelled";
         /** @enum {unknown} */
         AssignMode: "Add" | "Remove";
         AuthLogItem: {
@@ -6839,6 +7018,10 @@ export interface components {
             hosts: components["schemas"]["Ref"][];
             verified: boolean;
         };
+        /** @enum {unknown} */
+        FindingKind: "Incident" | "Pattern" | "Risk" | "Noise";
+        /** @enum {unknown} */
+        FindingSeverity: "Info" | "Warning" | "Critical";
         HostCounts: {
             /** Format: int32 */
             total: number;
@@ -7734,6 +7917,15 @@ export interface components {
         };
         /** @enum {unknown} */
         PacketType: "Heartbeat" | "Data" | "Event" | "CmdResult" | "Boot" | "Join" | "Ota" | "Ack" | "Command" | "JoinAccept" | "OtaOffer" | "OtaChunk";
+        PagedOfAiAnalysisRunItem: {
+            items: components["schemas"]["AiAnalysisRunItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfAiRequestItem: {
             items: components["schemas"]["AiRequestItem"][];
             /** Format: int32 */
@@ -8146,6 +8338,8 @@ export interface components {
             totpSetupRequired: boolean;
             totpSetupSuggested: boolean;
         };
+        /** @enum {unknown} */
+        SituationStatus: "Normal" | "Degraded" | "Incident" | null;
         StateChange: {
             /** Format: date-time */
             at: string;

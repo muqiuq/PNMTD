@@ -24,6 +24,10 @@ public static class AiSetup
         services.AddSingleton<IAiWorkHandler, Mails.MailAnalyseHandler>();
         services.AddSingleton<IAiWorkHandler, Mails.MailImproveHandler>();
         services.AddSingleton<IAiWorkHandler, Mails.MailEvaluateHandler>();
+        // The situation analysis (docs/ai-operations-plan.md §9).
+        services.AddSingleton<Analysis.SituationSnapshots>();
+        services.AddSingleton<Analysis.SituationScheduler>();
+        services.AddSingleton<IAiWorkHandler, Analysis.SituationHandler>();
         return services;
     }
 }
