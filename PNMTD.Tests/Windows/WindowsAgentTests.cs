@@ -308,7 +308,7 @@ public sealed class WindowsAgentTests
         {
             await using var db = app.NewDb();
             return await db.WindowsSections.AsNoTracking().Where(s => s.SensorId == state.SensorId).ToListAsync();
-        }, r => r.Count == 3);
+        }, r => r.Count == SectionNames.All.Count);
         var viewer = app.Client(Roles.Viewer);
         var system = await (await viewer.GetAsync($"/api/v1/windows/servers/{state.SensorId}/sections/system")).ReadAsync<WindowsSectionView>();
         Assert.AreEqual("SIM-SECTIONS", system.System?.Hostname);
@@ -331,9 +331,120 @@ public sealed class WindowsAgentTests
         Assert.AreEqual(HttpStatusCode.Forbidden, (await viewer.GetAsync($"/api/v1/windows/servers/{state.SensorId}/sections/access")).StatusCode);
         Assert.AreEqual(HttpStatusCode.NotFound, (await viewer.GetAsync($"/api/v1/windows/servers/{state.SensorId}/sections/nonsense")).StatusCode);
         var detail = await (await viewer.GetAsync($"/api/v1/windows/servers/{state.SensorId}")).ReadAsync<WindowsServerDetail>();
-        CollectionAssert.AreEquivalent(new[] { "hardware", "network", "system" }, detail.Sections.Select(s => s.Name).ToList());
+        CollectionAssert.AreEquivalent(SectionNames.All.ToList(), detail.Sections.Select(s => s.Name).ToList());
         stop.Cancel();
         await running.WaitAsync(TimeSpan.FromSeconds(10));
+    }
+
+    [TestMethod]
+    public async Task LoginsAreStoredOnceAndAnAdminLoginWrites254()
+    {
+        var joined = await WindowsHarness.JoinAsync(app, (await WindowsHarness.TokenAsync(admin, hostId, null)).Token, "SRV-LOGINS");
+        await using var session = await WindowsHarness.OpenAsync(app, joined);
+        var now = DateTimeOffset.UtcNow;
+        var rdp = new LoginRecord("Security", 1001, now.AddSeconds(-5), null, 1, LogonOutcome.Success, null, "jdoe", "CONTOSO", true, LogonKind.Rdp, "Kerberos",
+            "10.0.4.17", 50000, "WS17", true, "0x1A2B", null);
+        var share = new LoginRecord("Security", 1002, now.AddSeconds(-4), null, 1, LogonOutcome.Success, null, "admin", "CONTOSO", true, LogonKind.Network, "NTLM V2",
+            "10.0.4.18", null, null, null, "0x1A2C", null);
+        await session.SendAsync(AgentMessageTypes.Access, new AccessBatch([rdp, share]), CancellationToken.None);
+        var events = await WindowsHarness.EventuallyAsync(() => WindowsHarness.EventsAsync(app, joined.Grant.SensorId), e => e.Count >= 1);
+        Assert.AreEqual(PNMTStatusCodes.WINDOWS_ADMIN_LOGIN, events[0].Code);
+        Assert.AreEqual(@"CONTOSO\jdoe: RDP from 10.0.4.17 (Kerberos, elevated)", events[0].Message);
+        Assert.AreEqual(1, events.Count, "a network logon is recorded, but writes no 254");
+
+        // The same record again, now with its logoff: updated, not added; no second 254.
+        await session.SendAsync(AgentMessageTypes.Access, new AccessBatch([rdp with { LoggedOffAt = now }]), CancellationToken.None);
+        var logins = await WindowsHarness.EventuallyAsync(async () =>
+            await (await app.Client(Roles.User).GetAsync($"/api/v1/windows/servers/{joined.Grant.SensorId}/logins")).ReadAsync<Paged<WindowsLoginItem>>(),
+            p => p.Items.Any(l => l.LoggedOffAt is not null));
+        Assert.AreEqual(2, logins.TotalCount);
+        Assert.AreEqual(1, (await WindowsHarness.EventsAsync(app, joined.Grant.SensorId)).Count);
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await app.Client(Roles.Viewer).GetAsync($"/api/v1/windows/servers/{joined.Grant.SensorId}/logins")).StatusCode);
+    }
+
+    [TestMethod]
+    public async Task ABurstOfFailedLoginsAndALockoutWrite454()
+    {
+        var joined = await WindowsHarness.JoinAsync(app, (await WindowsHarness.TokenAsync(admin, hostId, null)).Token, "SRV-BURST");
+        await (await app.Client(Roles.User).PutJsonAsync($"/api/v1/windows/servers/{joined.Grant.SensorId}/settings",
+            new WindowsServerSettings(true, true, 5, false))).ReadAsync<WindowsServerDetail>();
+        await using var session = await WindowsHarness.OpenAsync(app, joined);
+        var now = DateTimeOffset.UtcNow;
+        LoginRecord Failure(long id, string user, int count) => new("Security", id, now.AddSeconds(-30), now.AddSeconds(-1), count, LogonOutcome.Failure, "bad password",
+            user, null, false, LogonKind.Network, "NTLM", "203.0.113.9", null, "KALI", null, null, null);
+        await session.SendAsync(AgentMessageTypes.Access, new AccessBatch([Failure(2001, "administrator", 3)]), CancellationToken.None);
+        await Task.Delay(300);
+        Assert.AreEqual(0, (await WindowsHarness.EventsAsync(app, joined.Grant.SensorId)).Count, "below the threshold");
+        await session.SendAsync(AgentMessageTypes.Access, new AccessBatch([Failure(2002, "admin", 2)]), CancellationToken.None);
+        var events = await WindowsHarness.EventuallyAsync(() => WindowsHarness.EventsAsync(app, joined.Grant.SensorId), e => e.Count >= 1);
+        Assert.AreEqual(PNMTStatusCodes.WINDOWS_LOGIN_FAILURES, events[0].Code);
+        StringAssert.StartsWith(events[0].Message, "Failed logins from 203.0.113.9: at least 5 in 10 min");
+
+        await session.SendAsync(AgentMessageTypes.Access, new AccessBatch([new LoginRecord("Security", 2003, now, null, 1, LogonOutcome.Failure, "locked out", "jdoe",
+            null, false, LogonKind.Lockout, null, null, null, "WS17", null, null, null)]), CancellationToken.None);
+        await WindowsHarness.EventuallyAsync(() => WindowsHarness.EventsAsync(app, joined.Grant.SensorId), e => e.Any(x => x.Message == "jdoe locked out (from WS17)"));
+    }
+
+    [TestMethod]
+    public async Task AChangedSectionWritesReadableChangesAnd253()
+    {
+        var joined = await WindowsHarness.JoinAsync(app, (await WindowsHarness.TokenAsync(admin, hostId, null)).Token, "SRV-CHANGES");
+        await (await app.Client(Roles.User).PutJsonAsync($"/api/v1/windows/servers/{joined.Grant.SensorId}/settings",
+            new WindowsServerSettings(true, true, 10, true))).ReadAsync<WindowsServerDetail>();
+        await using var session = await WindowsHarness.OpenAsync(app, joined);
+        await session.SendAsync(AgentMessageTypes.Section, WindowsHarness.Section(SectionNames.Services, SimulatedSections.Services()), CancellationToken.None);
+        await session.SendAsync(AgentMessageTypes.Section, WindowsHarness.Section(SectionNames.RemoteAccess, SimulatedSections.RemoteAccess()), CancellationToken.None);
+        await session.SendAsync(AgentMessageTypes.Section, WindowsHarness.Section(SectionNames.EventLog, SimulatedSections.EventLog()), CancellationToken.None);
+        await WindowsHarness.EventuallyAsync(async () =>
+        {
+            await using var db = app.NewDb();
+            return await db.WindowsSections.CountAsync(s => s.SensorId == joined.Grant.SensorId) == 3;
+        });
+        var list = await (await admin.GetAsync($"/api/v1/windows/servers?search=SRV-CHANGES")).ReadAsync<Paged<WindowsServerItem>>();
+        Assert.AreEqual("RDP · WinRM · SMB · AnyDesk open", list.Items.Single().RemoteAccess);
+
+        var services = SimulatedSections.Services();
+        var changed = new ServicesSection([.. services.Services, new ServiceEntry("TeamViewer", "TeamViewer", "Running", "Automatic", "LocalSystem",
+            @"C:\Program Files\TeamViewer\TeamViewer_Service.exe", null, "15.0", "TeamViewer Germany GmbH", "TeamViewer Germany GmbH", ServiceClass.ThirdParty, false)]);
+        await session.SendAsync(AgentMessageTypes.Section, WindowsHarness.Section(SectionNames.Services, changed), CancellationToken.None);
+        var remote = SimulatedSections.RemoteAccess();
+        var rdpOff = remote with { Features = remote.Features.Select(f => f.Key == "rdp" ? f with { Active = false } : f).ToList() };
+        await session.SendAsync(AgentMessageTypes.Section, WindowsHarness.Section(SectionNames.RemoteAccess, rdpOff), CancellationToken.None);
+        var critical = new EventLogSection([new EventEntry(DateTimeOffset.UtcNow, "System", "Critical", "Kernel-Power", 41, null,
+            "The system has rebooted without cleanly shutting down first.", null, 99999), .. SimulatedSections.EventLog().Entries]);
+        await session.SendAsync(AgentMessageTypes.Section, WindowsHarness.Section(SectionNames.EventLog, critical), CancellationToken.None);
+
+        var changes = await WindowsHarness.EventuallyAsync(async () =>
+            await (await app.Client(Roles.Viewer).GetAsync($"/api/v1/windows/servers/{joined.Grant.SensorId}/changes")).ReadAsync<Paged<WindowsChangeItem>>(),
+            p => p.TotalCount >= 2);
+        CollectionAssert.IsSubsetOf(new[] { "Service TeamViewer added (third-party, automatic, running)", "Remote Desktop (RDP) disabled" },
+            changes.Items.Select(c => c.Summary).ToList());
+        var events = await WindowsHarness.EventuallyAsync(() => WindowsHarness.EventsAsync(app, joined.Grant.SensorId),
+            e => e.Count(x => x.Code == PNMTStatusCodes.WINDOWS_CHANGED) == 2 && e.Any(x => x.Code == PNMTStatusCodes.WINDOWS_CRITICAL_EVENT));
+        Assert.AreEqual("Kernel-Power 41: The system has rebooted without cleanly shutting down first.",
+            events.Single(e => e.Code == PNMTStatusCodes.WINDOWS_CRITICAL_EVENT).Message);
+    }
+
+    [TestMethod]
+    public void TheDiffersNameWhatChanged()
+    {
+        string Json<T>(T value) => AgentJson.Serialize(value);
+        var network = SimulatedSections.Network();
+        var moved = network with { Adapters = network.Adapters.Select(a => a with { Addresses = ["10.0.1.21/24", .. a.Addresses.Skip(1)], DnsServers = ["10.0.1.10"] }).ToList() };
+        var lines = PNMTD.Windows.WindowsChanges.Compare(SectionNames.Network, Json(network), Json(moved)).Select(c => c.Summary).ToList();
+        CollectionAssert.Contains(lines, "10.0.1.20/24 → 10.0.1.21/24 on Ethernet0");
+        CollectionAssert.Contains(lines, "DNS servers on Ethernet0: 10.0.1.10, 10.0.1.11 → 10.0.1.10");
+
+        var system = SimulatedSections.System("SRV");
+        var updated = system with { Os = system.Os with { Ubr = 6659 }, LocalAdministrators = [.. system.LocalAdministrators, new LocalAdmin(@"SIM\jdoe", "User")] };
+        lines = PNMTD.Windows.WindowsChanges.Compare(SectionNames.System, Json(system), Json(updated)).Select(c => c.Summary).ToList();
+        CollectionAssert.Contains(lines, "Windows updated: build 17763.6532 → 17763.6659");
+        CollectionAssert.Contains(lines, @"New local administrator SIM\jdoe");
+
+        var access = SimulatedSections.Access();
+        var off = access with { AuditPolicy = access.AuditPolicy.Select(a => a with { Success = false }).ToList() };
+        lines = PNMTD.Windows.WindowsChanges.Compare(SectionNames.Access, Json(access), Json(off)).Select(c => c.Summary).ToList();
+        CollectionAssert.Contains(lines, "Logon success auditing turned off");
     }
 
     [TestMethod]
@@ -418,6 +529,13 @@ internal static class WindowsHarness
 
     public static Heartbeat Heartbeat(AgentSession session, DateTimeOffset? boot = null) => new(DateTimeOffset.UtcNow, boot ?? DateTimeOffset.UtcNow.AddDays(-1),
         12.5, 40, "C:", 55, [], false, new Dictionary<string, string>(), session.Config.ConfigVersion, "1.2.0", 0, null, null);
+
+    public static SectionMessage Section<T>(string name, T data)
+    {
+        var element = AgentJson.ToElement(data);
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(element.GetRawText())), 0, 16).ToLowerInvariant();
+        return new SectionMessage(name, SectionNames.SchemaVersion, hash, DateTimeOffset.UtcNow, element);
+    }
 
     public static async Task SendRawAsync(AgentSession session, byte[] bytes, WebSocketMessageType type)
     {

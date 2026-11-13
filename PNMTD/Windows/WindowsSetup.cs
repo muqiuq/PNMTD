@@ -14,6 +14,7 @@ public static class WindowsSetup
         services.AddSingleton<JoinGuard>();
         services.AddSingleton<WindowsReportService>();
         services.AddSingleton<WindowsChanges>();
+        services.AddSingleton<WindowsAccessService>();
         services.AddSingleton<WindowsMaintenanceTask>();
         services.AddSingleton<WindowsDownloads>();
         return services;

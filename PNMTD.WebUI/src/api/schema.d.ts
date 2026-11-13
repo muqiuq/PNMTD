@@ -6219,6 +6219,103 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/windows/servers/{id}/logins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    outcome?: components["schemas"]["LogonOutcome"];
+                    admin?: boolean;
+                    kind?: components["schemas"]["LogonKind"];
+                    user?: string;
+                    source?: string;
+                    from?: string;
+                    to?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfWindowsLoginItem"];
+                        "text/json": components["schemas"]["PagedOfWindowsLoginItem"];
+                        "text/plain": components["schemas"]["PagedOfWindowsLoginItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/windows/servers/{id}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    section?: string;
+                    notable?: boolean;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfWindowsChangeItem"];
+                        "text/json": components["schemas"]["PagedOfWindowsChangeItem"];
+                        "text/plain": components["schemas"]["PagedOfWindowsChangeItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/windows/servers/{id}/log": {
         parameters: {
             query?: never;
@@ -7094,6 +7191,24 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AccessCounts: {
+            /** Format: int32 */
+            successes: number;
+            /** Format: int32 */
+            failures: number;
+            /** Format: int32 */
+            adminLogins: number;
+            /** Format: int32 */
+            lockouts: number;
+        };
+        AccessSection: {
+            sessions: components["schemas"]["SessionInfo"][];
+            auditPolicy: components["schemas"]["AuditSetting"][];
+            logs: components["schemas"]["OperationalLog"][];
+            securityLog: null | components["schemas"]["SecurityLogInfo"];
+            last24Hours: null | components["schemas"]["AccessCounts"];
+            gaps: string[];
+        };
         AdapterInfo: {
             name: string;
             description: null | string;
@@ -7317,6 +7432,15 @@ export interface components {
         AnalysisRunState: "Queued" | "Done" | "Failed" | "Cancelled";
         /** @enum {unknown} */
         AssignMode: "Add" | "Remove";
+        AuditSetting: {
+            subcategory: string;
+            guid: string;
+            success: boolean;
+            failure: boolean;
+            needsSuccess: boolean;
+            needsFailure: boolean;
+            fix: null | string;
+        };
         AuthLogItem: {
             /** Format: uuid */
             id: string;
@@ -7618,6 +7742,20 @@ export interface components {
             tag?: components["schemas"]["StringSegment"];
             isWeak?: boolean;
         };
+        EventEntry: {
+            /** Format: date-time */
+            at: string;
+            log: string;
+            level: string;
+            source: string;
+            /** Format: int32 */
+            eventId: number;
+            category: null | string;
+            message: string;
+            user: null | string;
+            /** Format: int64 */
+            recordId: number;
+        };
         EventItem: {
             /** Format: uuid */
             id: string;
@@ -7634,6 +7772,9 @@ export interface components {
             /** Format: uuid */
             hostId: string;
             hostName: string;
+        };
+        EventLogSection: {
+            entries: components["schemas"]["EventEntry"][];
         };
         FileContentResult: {
             /** Format: byte */
@@ -7849,6 +7990,10 @@ export interface components {
             user: null | components["schemas"]["CurrentUser"];
             flags: null | components["schemas"]["SessionFlags"];
         };
+        /** @enum {unknown} */
+        LogonKind: "Console" | "Rdp" | "RdpConnection" | "Ssh" | "WinRm" | "Network" | "Cached" | "Unlock" | "Explicit" | "Batch" | "Lockout";
+        /** @enum {unknown} */
+        LogonOutcome: "Success" | "Failure";
         MachineInfo: {
             manufacturer: null | string;
             model: null | string;
@@ -8662,6 +8807,13 @@ export interface components {
             /** Format: uuid */
             hostId?: null | string;
         };
+        OperationalLog: {
+            name: string;
+            purpose: string;
+            exists: boolean;
+            enabled: boolean;
+            fix: null | string;
+        };
         OsInfo: {
             caption: string;
             edition: null | string;
@@ -8912,8 +9064,26 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
+        PagedOfWindowsChangeItem: {
+            items: components["schemas"]["WindowsChangeItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfWindowsJoinTokenItem: {
             items: components["schemas"]["WindowsJoinTokenItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfWindowsLoginItem: {
+            items: components["schemas"]["WindowsLoginItem"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */
@@ -8966,6 +9136,21 @@ export interface components {
         };
         /** @enum {unknown} */
         ReleaseSeverity: "Normal" | "Important" | "Critical" | null;
+        RemoteAccessSection: {
+            features: components["schemas"]["RemoteFeature"][];
+            summary: string;
+        };
+        RemoteFeature: {
+            key: string;
+            name: string;
+            installed: boolean;
+            active: boolean;
+            ports: number[];
+            listening: boolean;
+            firewallOpen: boolean;
+            firewallProfiles: string[];
+            notes: string[];
+        };
         RotateTokensRequest: {
             write?: boolean;
             read?: boolean;
@@ -9013,6 +9198,14 @@ export interface components {
             firewall: components["schemas"]["FirewallProfileState"][];
             bitLocker: components["schemas"]["BitLockerVolume"][];
             secureBoot: null | boolean;
+        };
+        SecurityLogInfo: {
+            /** Format: int64 */
+            maxBytes: number;
+            /** Format: date-time */
+            oldestAt: null | string;
+            /** Format: double */
+            spanHours: null | number;
         };
         /** @enum {unknown} */
         SecuritySuite: "None" | "Token32" | "HmacSha256_32" | "HmacSha256_64" | "AesCmac32" | "AesCmac64" | "AesCcm32" | "AesCcm64" | "HmacMd5_32" | "HmacMd5_64" | "HmacSha1_32" | "HmacSha1_64";
@@ -9152,6 +9345,27 @@ export interface components {
             parameters: null | string;
             canCreate: boolean;
             usesInterval: boolean;
+        };
+        /** @enum {unknown} */
+        ServiceClass: "Windows" | "Microsoft" | "ThirdParty" | "Unsigned" | "Pnmt";
+        ServiceEntry: {
+            name: string;
+            displayName: string;
+            state: string;
+            startType: string;
+            account: null | string;
+            path: null | string;
+            serviceDll: null | string;
+            version: null | string;
+            company: null | string;
+            signer: null | string;
+            class: components["schemas"]["ServiceClass"];
+            autoNotRunning: boolean;
+            /** Format: int32 */
+            pid?: null | number;
+        };
+        ServicesSection: {
+            services: components["schemas"]["ServiceEntry"][];
         };
         SessionFlags: {
             mustChangePassword: boolean;
@@ -9974,6 +10188,16 @@ export interface components {
         };
         /** @enum {unknown} */
         WindowsAgentLogKind: "Joined" | "Connected" | "Disconnected" | "AuthFailed" | "Revoked" | "Uninstalled" | "ConfigSent" | "Request" | "Problem" | "Crashed" | "Error" | "Warning";
+        WindowsChangeItem: {
+            /** Format: uuid */
+            id: string;
+            section: string;
+            /** Format: date-time */
+            at: string;
+            summary: string;
+            notable: boolean;
+            details: null | string;
+        };
         WindowsCollectRequest: {
             sections: null | string[];
         };
@@ -10014,6 +10238,31 @@ export interface components {
         };
         /** @enum {unknown} */
         WindowsJoinTokenState: "Pending" | "Used" | "Expired" | "Revoked";
+        WindowsLoginItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            at: string;
+            /** Format: date-time */
+            lastAt: null | string;
+            /** Format: int32 */
+            count: number;
+            outcome: components["schemas"]["LogonOutcome"];
+            failureReason: null | string;
+            user: string;
+            domain: null | string;
+            isAdmin: boolean;
+            kind: components["schemas"]["LogonKind"];
+            authPackage: null | string;
+            sourceAddress: null | string;
+            /** Format: int32 */
+            sourcePort: null | number;
+            workstation: null | string;
+            elevated: null | boolean;
+            /** Format: date-time */
+            loggedOffAt: null | string;
+            channel: string;
+        };
         WindowsRejoinTokenRequest: {
             /** Format: int32 */
             validHours: null | number;
@@ -10045,6 +10294,10 @@ export interface components {
             system?: null | components["schemas"]["SystemSection"];
             hardware?: null | components["schemas"]["HardwareSection"];
             network?: null | components["schemas"]["NetworkSection"];
+            services?: null | components["schemas"]["ServicesSection"];
+            remoteAccess?: null | components["schemas"]["RemoteAccessSection"];
+            access?: null | components["schemas"]["AccessSection"];
+            eventLog?: null | components["schemas"]["EventLogSection"];
         };
         WindowsServerDetail: {
             server: components["schemas"]["WindowsServerItem"];

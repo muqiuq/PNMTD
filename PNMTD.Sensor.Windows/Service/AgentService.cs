@@ -330,13 +330,26 @@ internal sealed class AgentService(
             try
             {
                 AgentFiles.WriteStatus(new AgentStatusFile(DateTimeOffset.UtcNow, AgentInfo.Version, session?.IsOpen == true, connectedSince, config?.Url,
-                    lastHeartbeatAt, state, problems.Recent, extras.SelectMany(f => f.Diagnostics).ToList(), extras.SelectMany(f => f.AuditGaps).ToList(), startedAt));
+                    lastHeartbeatAt, state, problems.Recent, extras.SelectMany(f => f.Diagnostics).ToList(), AuditGaps(), startedAt));
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
                 logger.LogDebug("status.json: {Message}", e.Message);
             }
             await Task.Delay(TimeSpan.FromSeconds(10), ct);
+        }
+    }
+
+    /// <summary>What the audit policy misses, from the latest access section, for the window.</summary>
+    private List<string> AuditGaps()
+    {
+        try
+        {
+            return sections.Latest(SectionNames.Access) is { } message ? AgentJson.Deserialize<AccessSection>(message.Data)?.Gaps.ToList() ?? [] : [];
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return [];
         }
     }
 

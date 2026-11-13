@@ -145,10 +145,7 @@ public sealed class WindowsReportService(IDbContextFactory<PnmtdDbContext> dbs, 
         }
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var (_, previous) = await WindowsSections.StoreAsync(db, connection.SensorId, message, ct);
-        if (previous is not null)
-        {
-            await changes.CompareAsync(db, agent, message.Name, previous, message.Data, ct);
-        }
+        await changes.StoredAsync(db, agent, message, previous, ct);
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
     }

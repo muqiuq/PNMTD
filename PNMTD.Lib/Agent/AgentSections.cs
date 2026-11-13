@@ -145,3 +145,113 @@ public sealed record FirewallInfo(IReadOnlyList<FirewallProfileState> Profiles, 
 
 /// <summary>An enabled inbound allow rule for a port that listens.</summary>
 public sealed record FirewallRuleInfo(string Name, string? Group, string Protocol, string Ports, string Profiles, string? Program, string? RemoteAddresses);
+
+// --- services (§4.5) ----------------------------------------------------------------------------------------
+
+/// <summary>Who signed a service's binary: Windows' own, Microsoft's, someone else's, nobody's, or the PNMT sensor itself.</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ServiceClass>))]
+public enum ServiceClass { Windows, Microsoft, ThirdParty, Unsigned, Pnmt }
+
+public sealed record ServicesSection(IReadOnlyList<ServiceEntry> Services);
+
+/// <summary>
+/// A service (§4.5): its state, start type (Automatic, Delayed, Manual, Trigger, Disabled), account, binary (the ServiceDll for
+/// svchost services), version, company, signer, and its class. <see cref="AutoNotRunning"/>: automatic, not trigger-started,
+/// and stopped.
+/// </summary>
+public sealed record ServiceEntry(
+    string Name,
+    string DisplayName,
+    string State,
+    string StartType,
+    string? Account,
+    string? Path,
+    string? ServiceDll,
+    string? Version,
+    string? Company,
+    string? Signer,
+    ServiceClass Class,
+    bool AutoNotRunning,
+    int? Pid = null);
+
+// --- remote access (§4.6) -----------------------------------------------------------------------------------
+
+public sealed record RemoteAccessSection(IReadOnlyList<RemoteFeature> Features, string Summary);
+
+/// <summary>
+/// A way in (§4.6): installed or not, active or not, its ports and whether they listen, whether the firewall lets them in and on
+/// which profiles, and notes such as "NLA off" or "SMB1 on".
+/// </summary>
+public sealed record RemoteFeature(
+    string Key,
+    string Name,
+    bool Installed,
+    bool Active,
+    IReadOnlyList<int> Ports,
+    bool Listening,
+    bool FirewallOpen,
+    IReadOnlyList<string> FirewallProfiles,
+    IReadOnlyList<string> Notes);
+
+// --- access (§4.7) ------------------------------------------------------------------------------------------
+
+/// <summary>
+/// The access section: the sessions now, the audit policy and the operational logs with what is missing and the command that
+/// fixes it, the Security log's span, and the last 24 hours in numbers. The logins themselves are a stream (<see cref="AccessBatch"/>).
+/// </summary>
+public sealed record AccessSection(
+    IReadOnlyList<SessionInfo> Sessions,
+    IReadOnlyList<AuditSetting> AuditPolicy,
+    IReadOnlyList<OperationalLog> Logs,
+    SecurityLogInfo? SecurityLog,
+    AccessCounts? Last24Hours,
+    IReadOnlyList<string> Gaps);
+
+/// <summary>An audit subcategory: what is on, what is needed, and the auditpol line for the rest.</summary>
+public sealed record AuditSetting(string Subcategory, string Guid, bool Success, bool Failure, bool NeedsSuccess, bool NeedsFailure, string? Fix);
+
+public sealed record OperationalLog(string Name, string Purpose, bool Exists, bool Enabled, string? Fix);
+
+public sealed record SecurityLogInfo(long MaxBytes, DateTimeOffset? OldestAt, double? SpanHours);
+
+public sealed record AccessCounts(int Successes, int Failures, int AdminLogins, int Lockouts);
+
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LogonKind>))]
+public enum LogonKind { Console, Rdp, RdpConnection, Ssh, WinRm, Network, Cached, Unlock, Explicit, Batch, Lockout }
+
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LogonOutcome>))]
+public enum LogonOutcome { Success, Failure }
+
+/// <summary>
+/// A login or connection (§4.7), or an aggregate of identical ones within 10 minutes (<see cref="Count"/> above 1). Identified by
+/// its log and the record id of its first event: sending it again (a higher count, a logoff) updates it.
+/// </summary>
+public sealed record LoginRecord(
+    string Channel,
+    long RecordId,
+    DateTimeOffset At,
+    DateTimeOffset? LastAt,
+    int Count,
+    LogonOutcome Outcome,
+    string? FailureReason,
+    string User,
+    string? Domain,
+    bool IsAdmin,
+    LogonKind Kind,
+    string? AuthPackage,
+    string? SourceAddress,
+    int? SourcePort,
+    string? Workstation,
+    bool? Elevated,
+    string? LogonId,
+    DateTimeOffset? LoggedOffAt);
+
+/// <summary>Agent → PNMTD: logins and connections, as they happen (in batches of up to a second), or buffered while offline.</summary>
+public sealed record AccessBatch(IReadOnlyList<LoginRecord> Entries);
+
+// --- the event log (§4.8) -------------------------------------------------------------------------------------
+
+public sealed record EventLogSection(IReadOnlyList<EventEntry> Entries);
+
+/// <summary>An entry of System or Application at Critical, Error or Warning; the message rendered and capped at 2 KB.</summary>
+public sealed record EventEntry(DateTimeOffset At, string Log, string Level, string Source, int EventId, string? Category, string Message, string? User, long RecordId);

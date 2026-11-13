@@ -7985,6 +7985,211 @@
         }
       }
     },
+    "/api/v1/windows/servers/{id}/logins": {
+      "get": {
+        "tags": [
+          "WindowsServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/LogonOutcome"
+            }
+          },
+          {
+            "name": "admin",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/LogonKind"
+            }
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfWindowsLoginItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfWindowsLoginItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfWindowsLoginItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/windows/servers/{id}/changes": {
+      "get": {
+        "tags": [
+          "WindowsServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "section",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "notable",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfWindowsChangeItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfWindowsChangeItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfWindowsChangeItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/windows/servers/{id}/log": {
       "get": {
         "tags": [
@@ -9063,6 +9268,90 @@
   },
   "components": {
     "schemas": {
+      "AccessCounts": {
+        "required": [
+          "successes",
+          "failures",
+          "adminLogins",
+          "lockouts"
+        ],
+        "type": "object",
+        "properties": {
+          "successes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failures": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "adminLogins": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lockouts": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AccessSection": {
+        "required": [
+          "sessions",
+          "auditPolicy",
+          "logs",
+          "securityLog",
+          "last24Hours",
+          "gaps"
+        ],
+        "type": "object",
+        "properties": {
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionInfo"
+            }
+          },
+          "auditPolicy": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditSetting"
+            }
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperationalLog"
+            }
+          },
+          "securityLog": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SecurityLogInfo"
+              }
+            ]
+          },
+          "last24Hours": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AccessCounts"
+              }
+            ]
+          },
+          "gaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "AdapterInfo": {
         "required": [
           "name",
@@ -9951,6 +10240,44 @@
           "Add",
           "Remove"
         ]
+      },
+      "AuditSetting": {
+        "required": [
+          "subcategory",
+          "guid",
+          "success",
+          "failure",
+          "needsSuccess",
+          "needsFailure",
+          "fix"
+        ],
+        "type": "object",
+        "properties": {
+          "subcategory": {
+            "type": "string"
+          },
+          "guid": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "failure": {
+            "type": "boolean"
+          },
+          "needsSuccess": {
+            "type": "boolean"
+          },
+          "needsFailure": {
+            "type": "boolean"
+          },
+          "fix": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       },
       "AuthLogItem": {
         "required": [
@@ -11182,6 +11509,58 @@
           }
         }
       },
+      "EventEntry": {
+        "required": [
+          "at",
+          "log",
+          "level",
+          "source",
+          "eventId",
+          "category",
+          "message",
+          "user",
+          "recordId"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "log": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "eventId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "category": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "user": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recordId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "EventItem": {
         "required": [
           "id",
@@ -11237,6 +11616,20 @@
           },
           "hostName": {
             "type": "string"
+          }
+        }
+      },
+      "EventLogSection": {
+        "required": [
+          "entries"
+        ],
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventEntry"
+            }
           }
         }
       },
@@ -12114,6 +12507,27 @@
             ]
           }
         }
+      },
+      "LogonKind": {
+        "enum": [
+          "Console",
+          "Rdp",
+          "RdpConnection",
+          "Ssh",
+          "WinRm",
+          "Network",
+          "Cached",
+          "Unlock",
+          "Explicit",
+          "Batch",
+          "Lockout"
+        ]
+      },
+      "LogonOutcome": {
+        "enum": [
+          "Success",
+          "Failure"
+        ]
       },
       "MachineInfo": {
         "required": [
@@ -15386,6 +15800,36 @@
           }
         }
       },
+      "OperationalLog": {
+        "required": [
+          "name",
+          "purpose",
+          "exists",
+          "enabled",
+          "fix"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "exists": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "fix": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "OsInfo": {
         "required": [
           "caption",
@@ -16229,6 +16673,35 @@
           }
         }
       },
+      "PagedOfWindowsChangeItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WindowsChangeItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "PagedOfWindowsJoinTokenItem": {
         "required": [
           "items",
@@ -16242,6 +16715,35 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/WindowsJoinTokenItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfWindowsLoginItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WindowsLoginItem"
             }
           },
           "page": {
@@ -16430,6 +16932,77 @@
           "Critical",
           null
         ]
+      },
+      "RemoteAccessSection": {
+        "required": [
+          "features",
+          "summary"
+        ],
+        "type": "object",
+        "properties": {
+          "features": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RemoteFeature"
+            }
+          },
+          "summary": {
+            "type": "string"
+          }
+        }
+      },
+      "RemoteFeature": {
+        "required": [
+          "key",
+          "name",
+          "installed",
+          "active",
+          "ports",
+          "listening",
+          "firewallOpen",
+          "firewallProfiles",
+          "notes"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "ports": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "listening": {
+            "type": "boolean"
+          },
+          "firewallOpen": {
+            "type": "boolean"
+          },
+          "firewallProfiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
       },
       "RotateTokensRequest": {
         "type": "object",
@@ -16622,6 +17195,34 @@
               "null",
               "boolean"
             ]
+          }
+        }
+      },
+      "SecurityLogInfo": {
+        "required": [
+          "maxBytes",
+          "oldestAt",
+          "spanHours"
+        ],
+        "type": "object",
+        "properties": {
+          "maxBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "oldestAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "spanHours": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
           }
         }
       },
@@ -17219,6 +17820,109 @@
           },
           "usesInterval": {
             "type": "boolean"
+          }
+        }
+      },
+      "ServiceClass": {
+        "enum": [
+          "Windows",
+          "Microsoft",
+          "ThirdParty",
+          "Unsigned",
+          "Pnmt"
+        ]
+      },
+      "ServiceEntry": {
+        "required": [
+          "name",
+          "displayName",
+          "state",
+          "startType",
+          "account",
+          "path",
+          "serviceDll",
+          "version",
+          "company",
+          "signer",
+          "class",
+          "autoNotRunning"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "startType": {
+            "type": "string"
+          },
+          "account": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "path": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "serviceDll": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "company": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "signer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "class": {
+            "$ref": "#/components/schemas/ServiceClass"
+          },
+          "autoNotRunning": {
+            "type": "boolean"
+          },
+          "pid": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ServicesSection": {
+        "required": [
+          "services"
+        ],
+        "type": "object",
+        "properties": {
+          "services": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceEntry"
+            }
           }
         }
       },
@@ -20516,6 +21220,42 @@
           "Warning"
         ]
       },
+      "WindowsChangeItem": {
+        "required": [
+          "id",
+          "section",
+          "at",
+          "summary",
+          "notable",
+          "details"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "section": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "notable": {
+            "type": "boolean"
+          },
+          "details": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "WindowsCollectRequest": {
         "required": [
           "sections"
@@ -20692,6 +21432,114 @@
           "Revoked"
         ]
       },
+      "WindowsLoginItem": {
+        "required": [
+          "id",
+          "at",
+          "lastAt",
+          "count",
+          "outcome",
+          "failureReason",
+          "user",
+          "domain",
+          "isAdmin",
+          "kind",
+          "authPackage",
+          "sourceAddress",
+          "sourcePort",
+          "workstation",
+          "elevated",
+          "loggedOffAt",
+          "channel"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/LogonOutcome"
+          },
+          "failureReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "user": {
+            "type": "string"
+          },
+          "domain": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/LogonKind"
+          },
+          "authPackage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sourceAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sourcePort": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "workstation": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "elevated": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "loggedOffAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "channel": {
+            "type": "string"
+          }
+        }
+      },
       "WindowsRejoinTokenRequest": {
         "required": [
           "validHours"
@@ -20825,6 +21673,46 @@
               },
               {
                 "$ref": "#/components/schemas/NetworkSection"
+              }
+            ]
+          },
+          "services": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ServicesSection"
+              }
+            ]
+          },
+          "remoteAccess": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RemoteAccessSection"
+              }
+            ]
+          },
+          "access": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AccessSection"
+              }
+            ]
+          },
+          "eventLog": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EventLogSection"
               }
             ]
           }

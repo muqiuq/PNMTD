@@ -184,6 +184,13 @@ public class WindowsAgentEntity
 
     /// <summary>The agent said <c>bye</c>: the service was uninstalled (§10.4). The sensor and its history stay.</summary>
     public DateTime? UninstalledAt { get; set; }
+
+    /// <summary>From the remote-access section, for the list: "RDP · WinRM · SMB open" (§4.6).</summary>
+    [MaxLength(300)]
+    public string? RemoteAccessSummary { get; set; }
+
+    /// <summary>From the access section, for the list: what the audit policy and the logs miss (§4.7).</summary>
+    public int AuditGaps { get; set; }
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<WindowsAgentLogKind>))]
@@ -261,4 +268,86 @@ public class WindowsSectionEntity
     public byte[] Content { get; set; } = [];
 
     public List<string> Errors { get; set; } = [];
+}
+
+/// <summary>
+/// A login or connection (docs/windows-sensor-plan.md §4.7, §8.3), or an aggregate of identical ones, deduplicated by its log
+/// and the record id of its first event: sent again, it is updated (a higher count, a logoff). Kept 180 days.
+/// </summary>
+[Table("windows_logins")]
+public class WindowsLoginEntity
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    public Guid SensorId { get; set; }
+
+    public DateTime At { get; set; }
+
+    public DateTime? LastAt { get; set; }
+
+    public int Count { get; set; } = 1;
+
+    public Lib.Agent.LogonOutcome Outcome { get; set; }
+
+    [MaxLength(100)]
+    public string? FailureReason { get; set; }
+
+    [MaxLength(256)]
+    public string User { get; set; } = "";
+
+    [MaxLength(256)]
+    public string? Domain { get; set; }
+
+    public bool IsAdmin { get; set; }
+
+    public Lib.Agent.LogonKind Kind { get; set; }
+
+    [MaxLength(50)]
+    public string? AuthPackage { get; set; }
+
+    [MaxLength(100)]
+    public string? SourceAddress { get; set; }
+
+    public int? SourcePort { get; set; }
+
+    [MaxLength(256)]
+    public string? Workstation { get; set; }
+
+    public bool? Elevated { get; set; }
+
+    [MaxLength(40)]
+    public string? LogonId { get; set; }
+
+    public DateTime? LoggedOffAt { get; set; }
+
+    [MaxLength(200)]
+    public string Channel { get; set; } = "";
+
+    public long RecordId { get; set; }
+}
+
+/// <summary>A readable change of a section (§4.9): "Service AnyDesk added (third-party, automatic, running)". Kept 180 days.</summary>
+[Table("windows_changes")]
+public class WindowsChangeEntity
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    public Guid SensorId { get; set; }
+
+    [MaxLength(40)]
+    public string Section { get; set; } = "";
+
+    public DateTime At { get; set; }
+
+    [MaxLength(1000)]
+    public string Summary { get; set; } = "";
+
+    /// <summary>The values before and after, small.</summary>
+    [Column(TypeName = "jsonb")]
+    public string? Details { get; set; }
+
+    /// <summary>Notable changes write 253 (§4.9).</summary>
+    public bool Notable { get; set; }
 }

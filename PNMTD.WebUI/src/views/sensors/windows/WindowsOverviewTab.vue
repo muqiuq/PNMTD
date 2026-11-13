@@ -5,6 +5,7 @@ import { computed } from 'vue'
 import type { S } from '@/api/resources'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { logKindLabel, logKindSeverity } from '@/views/admin/windows/windowsFormat'
+import WindowsOverviewExtras from './WindowsOverviewExtras.vue'
 import WindowsSystemPanel from './WindowsSystemPanel.vue'
 
 /**
@@ -54,6 +55,7 @@ const sessions = computed(() => props.server.heartbeat?.sessions ?? [])
           </ul>
         </div>
       </section>
+      <WindowsOverviewExtras :server="server" :can-write="canWrite" />
       <slot name="right" />
     </div>
   </div>

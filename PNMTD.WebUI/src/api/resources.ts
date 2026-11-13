@@ -312,6 +312,20 @@ export const api = {
     server: (id: Id) => call(client.GET('/api/v1/windows/servers/{id}', { params: { path: { id } } })),
     section: (id: Id, section: string) =>
       call(client.GET('/api/v1/windows/servers/{id}/sections/{section}', { params: { path: { id, section } } })),
+    logins: (
+      id: Id,
+      query: ListQuery & {
+        outcome?: S['LogonOutcome']
+        admin?: boolean
+        kind?: S['LogonKind']
+        user?: string
+        source?: string
+        from?: string
+        to?: string
+      },
+    ) => call(client.GET('/api/v1/windows/servers/{id}/logins', { params: { path: { id }, query } })),
+    changes: (id: Id, query: ListQuery & { section?: string; notable?: boolean }) =>
+      call(client.GET('/api/v1/windows/servers/{id}/changes', { params: { path: { id }, query } })),
     serverLog: (id: Id, query: ListQuery & { kind?: S['WindowsAgentLogKind'] }) =>
       call(client.GET('/api/v1/windows/servers/{id}/log', { params: { path: { id }, query } })),
     collect: (id: Id, sections: string[] = []) =>

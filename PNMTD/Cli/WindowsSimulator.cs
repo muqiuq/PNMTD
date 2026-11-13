@@ -121,6 +121,7 @@ public sealed class WindowsSimulator(Uri baseUrl, HttpClient http, Func<Cancella
     private async Task ReportAsync(AgentSession current, TimeSpan interval, int? count, CancellationToken ct)
     {
         await SendSectionsAsync(current, [], ct);
+        await current.SendAsync(AgentMessageTypes.Access, SimulatedSections.Logins(hostname), ct);
         while (!ct.IsCancellationRequested && (count is null || Heartbeats < count))
         {
             await current.SendAsync(AgentMessageTypes.Heartbeat, Heartbeat(current), ct);
@@ -220,6 +221,10 @@ public static class SimulatedSections
             [SectionNames.System] = System(hostname),
             [SectionNames.Hardware] = Hardware(),
             [SectionNames.Network] = Network(),
+            [SectionNames.Services] = Services(),
+            [SectionNames.RemoteAccess] = RemoteAccess(),
+            [SectionNames.Access] = Access(),
+            [SectionNames.EventLog] = EventLog(),
         };
         foreach (var name in sections.Keys.ToList())
         {
@@ -291,6 +296,69 @@ public static class SimulatedSections
              new FirewallRuleInfo("Windows Remote Management (HTTP-In)", "Windows Remote Management", "TCP", "5985", "Domain, Private", "System", null)]),
         null,
         []);
+
+    public static ServicesSection Services() => new(
+    [
+        new ServiceEntry("AnyDesk", "AnyDesk Service", "Running", "Automatic", "LocalSystem", @"C:\Program Files (x86)\AnyDesk\AnyDesk.exe", null, "8.0.14",
+            "philandro Software GmbH", "philandro Software GmbH", ServiceClass.ThirdParty, false, 2210),
+        new ServiceEntry("BackupAgent", "Backup Agent", "Stopped", "Automatic", @"SIM\svc-backup", @"C:\Tools\backup-agent.exe", null, "2.1.0", null, null,
+            ServiceClass.Unsigned, true),
+        new ServiceEntry("MSSQLSERVER", "SQL Server (MSSQLSERVER)", "Running", "Automatic", @"NT Service\MSSQLSERVER",
+            @"C:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\Binn\sqlservr.exe", null, "2022.160.4135.4", "Microsoft Corporation",
+            "Microsoft Corporation", ServiceClass.Microsoft, false, 3120),
+        new ServiceEntry("PNMTSensor", "PNMT Sensor", "Running", "Delayed", "LocalSystem", @"C:\Program Files\PNMT Sensor\pnmt-sensor.exe", null, WindowsSimulator.AgentVersion, "PNMT", null,
+            ServiceClass.Pnmt, false, 4410),
+        new ServiceEntry("TermService", "Remote Desktop Services", "Running", "Manual", @"NT Authority\NetworkService", @"C:\Windows\System32\svchost.exe",
+            @"C:\Windows\System32\termsrv.dll", "10.0.17763.1", "Microsoft Corporation", "Microsoft Windows (catalog)", ServiceClass.Windows, false, 1104),
+        new ServiceEntry("WinRM", "Windows Remote Management (WS-Management)", "Running", "Automatic", @"NT AUTHORITY\NetworkService", @"C:\Windows\System32\svchost.exe",
+            @"C:\Windows\system32\WsmSvc.dll", "10.0.17763.1", "Microsoft Corporation", "Microsoft Windows (catalog)", ServiceClass.Windows, false, 1388),
+    ]);
+
+    public static RemoteAccessSection RemoteAccess() => new(
+    [
+        new RemoteFeature("rdp", "Remote Desktop (RDP)", true, true, [3389], true, true, ["Domain", "Private", "Public"], []),
+        new RemoteFeature("winrm", "WinRM / PowerShell remoting", true, true, [5985], true, true, ["Domain", "Private"], []),
+        new RemoteFeature("smb", "SMB file sharing", true, true, [445], true, true, ["Domain"], ["shares: ADMIN$, C$, IPC$, Data"]),
+        new RemoteFeature("openssh", "OpenSSH Server", false, false, [22], false, false, [], []),
+        new RemoteFeature("tool:anydesk", "AnyDesk", true, true, [], false, false, [], ["service AnyDesk"]),
+    ], "RDP · WinRM · SMB · AnyDesk open");
+
+    public static AccessSection Access() => new(
+        [new SessionInfo("SIM\\admin", "Rdp", "Active", "10.0.4.17", Stamp.AddMinutes(-42))],
+        [
+            new AuditSetting("Logon", "{0CCE9215-69AE-11D9-BED3-505054503030}", true, false, true, true,
+                "auditpol /set /subcategory:{0CCE9215-69AE-11D9-BED3-505054503030} /failure:enable"),
+            new AuditSetting("Special Logon", "{0CCE921B-69AE-11D9-BED3-505054503030}", true, false, true, false, null),
+        ],
+        [
+            new OperationalLog("Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational", "RDP connections (1149)", true, true, null),
+            new OperationalLog("OpenSSH/Operational", "SSH logins", false, false, null),
+        ],
+        new SecurityLogInfo(20 * 1024 * 1024, Stamp.AddHours(-9), 9),
+        new AccessCounts(14, 3, 2, 0),
+        ["auditpol /set /subcategory:{0CCE9215-69AE-11D9-BED3-505054503030} /failure:enable", "wevtutil sl Security /ms:536870912"]);
+
+    public static EventLogSection EventLog() => new(
+    [
+        new EventEntry(Stamp.AddHours(-1), "System", "Error", "Service Control Manager", 7031, null,
+            "The Backup Agent service terminated unexpectedly. It has done this 1 time(s).", null, 40211),
+        new EventEntry(Stamp.AddHours(-3), "Application", "Warning", "MSSQLSERVER", 833, null,
+            "SQL Server has encountered 1 occurrence(s) of I/O requests taking longer than 15 seconds to complete.", null, 88123),
+    ]);
+
+    /// <summary>An admin's RDP login and a few failed ones, new each time (record ids from the clock).</summary>
+    public static AccessBatch Logins(string hostname)
+    {
+        var id = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var now = DateTimeOffset.UtcNow;
+        return new AccessBatch(
+        [
+            new LoginRecord("Security", id, now.AddSeconds(-30), null, 1, LogonOutcome.Success, null, "admin", "SIM", true, LogonKind.Rdp, "Kerberos", "10.0.4.17",
+                51234, "WS-17", true, "0x3E7A1", null),
+            new LoginRecord("Security", id + 1, now.AddSeconds(-20), now.AddSeconds(-5), 3, LogonOutcome.Failure, "bad password", "administrator", null, true,
+                LogonKind.Network, "NTLM", "203.0.113.9", null, "KALI", null, null, null),
+        ]);
+    }
 
     public static DiagnosticRunResult? Diagnostics(AgentConfig config, Guid assignmentId, Guid runId, string trigger) => null;
 }

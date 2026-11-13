@@ -56,6 +56,11 @@ import { useWindowsServer } from './windows/useWindowsServer'
 import WindowsAgentTab from './windows/WindowsAgentTab.vue'
 import WindowsHardwareTab from './windows/WindowsHardwareTab.vue'
 import WindowsNetworkTab from './windows/WindowsNetworkTab.vue'
+import WindowsAccessTab from './windows/WindowsAccessTab.vue'
+import WindowsChangesTab from './windows/WindowsChangesTab.vue'
+import WindowsEventLogTab from './windows/WindowsEventLogTab.vue'
+import WindowsRemoteAccessTab from './windows/WindowsRemoteAccessTab.vue'
+import WindowsServicesTab from './windows/WindowsServicesTab.vue'
 import WindowsOverviewTab from './windows/WindowsOverviewTab.vue'
 import WindowsStatusStrip from './windows/WindowsStatusStrip.vue'
 
@@ -106,6 +111,16 @@ const windowsTabs = computed(() => {
     { key: 'events', label: 'Events', icon: 'pi pi-list', to: to('events') },
     { key: 'hardware', label: 'Hardware', icon: 'pi pi-box', to: to('hardware') },
     { key: 'network', label: 'Network', icon: 'pi pi-sitemap', to: to('network') },
+    { key: 'services', label: 'Services', icon: 'pi pi-cog', to: to('services') },
+    { key: 'remote-access', label: 'Remote access', icon: 'pi pi-desktop', to: to('remote-access') },
+    // Logins and the event log hold names and addresses: the User role (§10.2).
+    ...(canWrite.value
+      ? [
+          { key: 'access', label: 'Access', icon: 'pi pi-sign-in', to: to('access') },
+          { key: 'event-log', label: 'Event log', icon: 'pi pi-exclamation-triangle', to: to('event-log') },
+        ]
+      : []),
+    { key: 'changes', label: 'Changes', icon: 'pi pi-history', to: to('changes') },
     {
       key: 'agent',
       label: 'Agent',
@@ -376,6 +391,23 @@ const more = computed(() =>
         <WindowsOverviewTab v-else-if="tab === 'overview'" :server="windows.server.value" :can-write="canWrite" />
         <WindowsHardwareTab v-else-if="tab === 'hardware'" :server="windows.server.value" :can-write="canWrite" />
         <WindowsNetworkTab v-else-if="tab === 'network'" :server="windows.server.value" :can-write="canWrite" />
+        <WindowsServicesTab v-else-if="tab === 'services'" :server="windows.server.value" :can-write="canWrite" />
+        <WindowsRemoteAccessTab
+          v-else-if="tab === 'remote-access'"
+          :server="windows.server.value"
+          :can-write="canWrite"
+        />
+        <WindowsAccessTab
+          v-else-if="tab === 'access' && canWrite"
+          :server="windows.server.value"
+          :can-write="canWrite"
+        />
+        <WindowsEventLogTab
+          v-else-if="tab === 'event-log' && canWrite"
+          :server="windows.server.value"
+          :can-write="canWrite"
+        />
+        <WindowsChangesTab v-else-if="tab === 'changes'" :server="windows.server.value" />
         <WindowsAgentTab
           v-else-if="tab === 'agent'"
           :server="windows.server.value"

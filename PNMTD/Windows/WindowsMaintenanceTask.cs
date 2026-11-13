@@ -44,5 +44,10 @@ public sealed class WindowsMaintenanceTask(IDbContextFactory<PnmtdDbContext> dbs
     }
 
     /// <summary>The retention of the later phases' tables.</summary>
-    private static Task<int> RetentionAsync(PnmtdDbContext db, WindowsOptions settings, DateTime now, CancellationToken ct) => Task.FromResult(0);
+    private static async Task<int> RetentionAsync(PnmtdDbContext db, WindowsOptions settings, DateTime now, CancellationToken ct)
+    {
+        var logins = await db.WindowsLogins.Where(l => l.At < now.AddDays(-Math.Max(7, settings.KeepLoginsDays))).ExecuteDeleteAsync(ct);
+        var changes = await db.WindowsChanges.Where(c => c.At < now.AddDays(-Math.Max(7, settings.KeepChangesDays))).ExecuteDeleteAsync(ct);
+        return logins + changes;
+    }
 }

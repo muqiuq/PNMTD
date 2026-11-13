@@ -183,8 +183,75 @@ public sealed class WindowsServerService(
             SectionNames.System => view with { System = WindowsSections.Parse<SystemSection>(row.Content) },
             SectionNames.Hardware => view with { Hardware = WindowsSections.Parse<HardwareSection>(row.Content) },
             SectionNames.Network => view with { Network = WindowsSections.Parse<NetworkSection>(row.Content) },
+            SectionNames.Services => view with { Services = WindowsSections.Parse<ServicesSection>(row.Content) },
+            SectionNames.RemoteAccess => view with { RemoteAccess = WindowsSections.Parse<RemoteAccessSection>(row.Content) },
+            SectionNames.Access => view with { Access = WindowsSections.Parse<AccessSection>(row.Content) },
+            SectionNames.EventLog => view with { EventLog = WindowsSections.Parse<EventLogSection>(row.Content) },
             _ => view,
         };
+    }
+
+    /// <summary>Logins and connections (§4.7), newest first. CanWrite: they hold user names and addresses.</summary>
+    public async Task<Paged<WindowsLoginItem>> LoginsAsync(Guid id, WindowsLoginQuery query, CancellationToken ct)
+    {
+        await AgentAsync(id, ct);
+        var q = db.WindowsLogins.AsNoTracking().Where(l => l.SensorId == id);
+        if (query.Outcome is { } outcome)
+        {
+            q = q.Where(l => l.Outcome == outcome);
+        }
+        if (query.Admin is { } admin)
+        {
+            q = q.Where(l => l.IsAdmin == admin);
+        }
+        if (query.Kind is { } kind)
+        {
+            q = q.Where(l => l.Kind == kind);
+        }
+        if (Text.Pattern(query.User) is { } user)
+        {
+            q = q.Where(l => EF.Functions.ILike(l.User, user) || EF.Functions.ILike(l.Domain ?? "", user));
+        }
+        if (Text.Pattern(query.Source) is { } source)
+        {
+            q = q.Where(l => EF.Functions.ILike(l.SourceAddress ?? "", source) || EF.Functions.ILike(l.Workstation ?? "", source));
+        }
+        if (Text.Pattern(query.Search) is { } search)
+        {
+            q = q.Where(l => EF.Functions.ILike(l.User, search) || EF.Functions.ILike(l.SourceAddress ?? "", search) || EF.Functions.ILike(l.Workstation ?? "", search));
+        }
+        if (query.From is { } from)
+        {
+            q = q.Where(l => (l.LastAt ?? l.At) >= from.ToUniversalTime());
+        }
+        if (query.To is { } to)
+        {
+            q = q.Where(l => l.At <= to.ToUniversalTime());
+        }
+        return await Paging.PageAsync(q.OrderByDescending(l => l.LastAt ?? l.At).Select(l => new WindowsLoginItem(l.Id, l.At, l.LastAt, l.Count, l.Outcome,
+            l.FailureReason, l.User, l.Domain, l.IsAdmin, l.Kind, l.AuthPackage, l.SourceAddress, l.SourcePort, l.Workstation, l.Elevated, l.LoggedOffAt, l.Channel)),
+            query, ct);
+    }
+
+    /// <summary>The readable changes (§4.9), newest first.</summary>
+    public async Task<Paged<WindowsChangeItem>> ChangesAsync(Guid id, WindowsChangeQuery query, CancellationToken ct)
+    {
+        await AgentAsync(id, ct);
+        var q = db.WindowsChanges.AsNoTracking().Where(c => c.SensorId == id);
+        if (!string.IsNullOrWhiteSpace(query.Section))
+        {
+            q = q.Where(c => c.Section == query.Section);
+        }
+        if (query.Notable is { } notable)
+        {
+            q = q.Where(c => c.Notable == notable);
+        }
+        if (Text.Pattern(query.Search) is { } search)
+        {
+            q = q.Where(c => EF.Functions.ILike(c.Summary, search));
+        }
+        return await Paging.PageAsync(q.OrderByDescending(c => c.At).ThenBy(c => c.Summary)
+            .Select(c => new WindowsChangeItem(c.Id, c.Section, c.At, c.Summary, c.Notable, c.Details)), query, ct);
     }
 
     /// <summary>Asks the agent to collect sections now (§6): answered when the agent acknowledged it.</summary>
@@ -351,8 +418,15 @@ public sealed record WindowsExtras(
     IReadOnlyDictionary<Guid, int> AuditGaps,
     IReadOnlyDictionary<Guid, int> DiagnosticsFailing)
 {
-    public static Task<WindowsExtras> LoadAsync(PnmtdDbContext db, IReadOnlyCollection<Guid> sensorIds, CancellationToken ct) =>
-        Task.FromResult(new WindowsExtras(new Dictionary<Guid, string>(), new Dictionary<Guid, int>(), new Dictionary<Guid, int>()));
+    public static async Task<WindowsExtras> LoadAsync(PnmtdDbContext db, IReadOnlyCollection<Guid> sensorIds, CancellationToken ct)
+    {
+        var agents = await db.WindowsAgents.AsNoTracking().Where(a => sensorIds.Contains(a.SensorId))
+            .Select(a => new { a.SensorId, a.RemoteAccessSummary, a.AuditGaps }).ToListAsync(ct);
+        return new WindowsExtras(
+            agents.Where(a => a.RemoteAccessSummary != null).ToDictionary(a => a.SensorId, a => a.RemoteAccessSummary!),
+            agents.ToDictionary(a => a.SensorId, a => a.AuditGaps),
+            new Dictionary<Guid, int>());
+    }
 
     public static async Task<IReadOnlyList<WindowsSectionInfo>> SectionsAsync(PnmtdDbContext db, Guid sensorId, CancellationToken ct) =>
         await db.WindowsSections.AsNoTracking().Where(s => s.SensorId == sensorId).OrderBy(s => s.Section)

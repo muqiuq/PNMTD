@@ -167,4 +167,54 @@ public sealed record WindowsSectionView(
     IReadOnlyList<string> Errors,
     SystemSection? System = null,
     HardwareSection? Hardware = null,
-    NetworkSection? Network = null);
+    NetworkSection? Network = null,
+    ServicesSection? Services = null,
+    RemoteAccessSection? RemoteAccess = null,
+    AccessSection? Access = null,
+    EventLogSection? EventLog = null);
+
+/// <summary>A login or connection (§4.7): an aggregate when <see cref="Count"/> is above 1.</summary>
+public sealed record WindowsLoginItem(
+    Guid Id,
+    DateTime At,
+    DateTime? LastAt,
+    int Count,
+    LogonOutcome Outcome,
+    string? FailureReason,
+    string User,
+    string? Domain,
+    bool IsAdmin,
+    LogonKind Kind,
+    string? AuthPackage,
+    string? SourceAddress,
+    int? SourcePort,
+    string? Workstation,
+    bool? Elevated,
+    DateTime? LoggedOffAt,
+    string Channel);
+
+public sealed class WindowsLoginQuery : PageQuery
+{
+    public LogonOutcome? Outcome { get; set; }
+
+    public bool? Admin { get; set; }
+
+    public LogonKind? Kind { get; set; }
+
+    public string? User { get; set; }
+
+    public string? Source { get; set; }
+
+    public DateTime? From { get; set; }
+
+    public DateTime? To { get; set; }
+}
+
+public sealed record WindowsChangeItem(Guid Id, string Section, DateTime At, string Summary, bool Notable, string? Details);
+
+public sealed class WindowsChangeQuery : PageQuery
+{
+    public string? Section { get; set; }
+
+    public bool? Notable { get; set; }
+}

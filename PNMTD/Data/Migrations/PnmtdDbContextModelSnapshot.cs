@@ -2325,6 +2325,9 @@ namespace PNMTD.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<int>("AuditGaps")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("BootTime")
                         .HasColumnType("timestamp with time zone");
 
@@ -2417,6 +2420,10 @@ namespace PNMTD.Data.Migrations
                     b.Property<string>("PublicKey")
                         .HasColumnType("text");
 
+                    b.Property<string>("RemoteAccessSummary")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<string>("RemoteAddress")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -2480,6 +2487,43 @@ namespace PNMTD.Data.Migrations
                     b.HasIndex("SensorId", "At");
 
                     b.ToTable("windows_agent_log");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.WindowsChangeEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("Notable")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Section")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.HasIndex("SensorId", "At");
+
+                    b.ToTable("windows_changes");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.WindowsJoinTokenEntity", b =>
@@ -2546,6 +2590,91 @@ namespace PNMTD.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("windows_join_tokens");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.WindowsLoginEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AuthPackage")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Domain")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool?>("Elevated")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LoggedOffAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LogonId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int>("Outcome")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("RecordId")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceAddress")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("SourcePort")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("User")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Workstation")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.HasIndex("SensorId", "At");
+
+                    b.HasIndex("SensorId", "Channel", "RecordId")
+                        .IsUnique();
+
+                    b.ToTable("windows_logins");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.WindowsSectionEntity", b =>
@@ -2944,6 +3073,15 @@ namespace PNMTD.Data.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.WindowsChangeEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.WindowsJoinTokenEntity", b =>
                 {
                     b.HasOne("PNMTD.Models.Db.HostEntity", null)
@@ -2956,6 +3094,15 @@ namespace PNMTD.Data.Migrations
                         .WithMany()
                         .HasForeignKey("SensorId")
                         .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.WindowsLoginEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.WindowsSectionEntity", b =>

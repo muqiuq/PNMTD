@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net.NetworkInformation;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using PNMTD.Lib.Agent;
 using PNMTD.Sensor.Windows.Collectors;
@@ -12,11 +13,14 @@ namespace PNMTD.Sensor.Windows.Service;
 /// interval, all of them every 6 hours and on request; each with a 30 s timeout, a failure reported and the next one run.
 /// Keeps the latest section of each kind (sent again after a reconnect) and which ones changed since they were sent.
 /// </summary>
-internal sealed class SectionScheduler(IEnumerable<Collector> collectors, ProblemReporter problems, ILogger<SectionScheduler> logger)
+internal sealed class SectionScheduler(IServiceProvider services, ProblemReporter problems, ILogger<SectionScheduler> logger)
 {
     private static readonly TimeSpan CollectorTimeout = TimeSpan.FromSeconds(30);
 
-    private readonly List<Collector> all = collectors.ToList();
+    // Resolved when first used: the access collector needs the login stream, which asks this scheduler for the event log.
+    private List<Collector>? collectors;
+
+    private List<Collector> all => collectors ??= services.GetServices<Collector>().ToList();
     private readonly ConcurrentDictionary<string, SectionMessage> latest = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string> sentHashes = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, DateTimeOffset> due = new(StringComparer.Ordinal);

@@ -102,6 +102,13 @@ internal static partial class Program
         services.AddSingleton<Collector, SystemCollector>();
         services.AddSingleton<Collector, HardwareCollector>();
         services.AddSingleton<Collector, NetworkCollector>();
+        services.AddSingleton<Collector, ServicesCollector>();
+        services.AddSingleton<Collector, RemoteAccessCollector>();
+        services.AddSingleton<Collector, AccessCollector>();
+        services.AddSingleton<Collector, EventLogCollector>();
+        // Logins and connections (§4.7): a stream of its own, and the source of the access section's numbers.
+        services.AddSingleton<Access.LoginStream>();
+        services.AddSingleton<IAgentFeature>(sp => sp.GetRequiredService<Access.LoginStream>());
         services.AddSingleton<SectionScheduler>();
         services.AddSingleton<HeartbeatSampler>();
         services.AddSingleton<AgentService>();

@@ -383,6 +383,9 @@ public sealed class AgentHub(
             case AgentMessageTypes.Section:
                 await Report().SectionAsync(connection, Read<SectionMessage>(body), ct);
                 break;
+            case AgentMessageTypes.Access:
+                await services.GetRequiredService<WindowsAccessService>().AccessAsync(connection, Read<AccessBatch>(body), ct);
+                break;
             case AgentMessageTypes.Ack:
                 var ack = Read<Ack>(body);
                 if (!connection.Complete(ack.RequestId, body) && !ack.Ok)

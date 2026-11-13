@@ -92,6 +92,8 @@ namespace PNMTD.Data
         public DbSet<WindowsAgentEntity> WindowsAgents { get; set; }
         public DbSet<WindowsAgentLogEntity> WindowsAgentLog { get; set; }
         public DbSet<WindowsSectionEntity> WindowsSections { get; set; }
+        public DbSet<WindowsLoginEntity> WindowsLogins { get; set; }
+        public DbSet<WindowsChangeEntity> WindowsChanges { get; set; }
 
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
@@ -272,6 +274,19 @@ namespace PNMTD.Data
             {
                 e.HasKey(x => new { x.SensorId, x.Section });
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(x => x.SensorId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<WindowsLoginEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(l => l.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(l => new { l.SensorId, l.Channel, l.RecordId }).IsUnique();
+                e.HasIndex(l => new { l.SensorId, l.At });
+                e.HasIndex(l => l.At);
+            });
+            modelBuilder.Entity<WindowsChangeEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(c => c.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(c => new { c.SensorId, c.At });
+                e.HasIndex(c => c.At);
             });
             modelBuilder.Entity<WindowsAgentLogEntity>(e =>
             {

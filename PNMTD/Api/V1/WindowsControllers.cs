@@ -25,6 +25,17 @@ public sealed class WindowsServersController(WindowsServerService servers) : V1C
     public async Task<ActionResult<WindowsSectionView>> Section(Guid id, string section, CancellationToken ct) =>
         await servers.SectionAsync(id, section, CanSeeSecrets, ct);
 
+    /// <summary>Logins and connections (§4.7): every admin login, failures aggregated. The User role: names and addresses.</summary>
+    [HttpGet("{id:guid}/logins")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<ActionResult<Paged<WindowsLoginItem>>> Logins(Guid id, [FromQuery] WindowsLoginQuery query, CancellationToken ct) =>
+        await servers.LoginsAsync(id, query, ct);
+
+    /// <summary>The readable changes of the sections (§4.9).</summary>
+    [HttpGet("{id:guid}/changes")]
+    public async Task<ActionResult<Paged<WindowsChangeItem>>> Changes(Guid id, [FromQuery] WindowsChangeQuery query, CancellationToken ct) =>
+        await servers.ChangesAsync(id, query, ct);
+
     /// <summary>The agent log of this server, with its problems (§3.8). Admin.</summary>
     [HttpGet("{id:guid}/log")]
     [Authorize(Policy = Policies.Admin)]
