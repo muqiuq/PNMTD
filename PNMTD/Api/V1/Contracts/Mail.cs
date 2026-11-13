@@ -1,3 +1,5 @@
+using PNMTD.Models.Db;
+
 namespace PNMTD.Api.V1.Contracts;
 
 /// <summary>
@@ -18,7 +20,10 @@ public sealed record MailInputRule(
     int? FailCode,
     int DefaultCode,
     string? ExtractMessageRegex,
-    SensorRef? Sensor);
+    SensorRef? Sensor,
+    MailRuleAction Action = MailRuleAction.Event,
+    bool AskAiWhenUnsure = false,
+    bool VerifyAi = true);
 
 public sealed record SensorRef(Guid Id, string Name, Guid HostId, string HostName);
 
@@ -48,6 +53,13 @@ public sealed class MailInputRuleRequest
     public string? ExtractMessageRegex { get; init; }
 
     public Guid? SensorId { get; init; }
+
+    /// <summary>Event (default), AskAi (every matching mail to the AI), Ignore or Delete (docs/ai-operations-plan.md §6.4).</summary>
+    public MailRuleAction Action { get; init; } = MailRuleAction.Event;
+
+    public bool AskAiWhenUnsure { get; init; }
+
+    public bool VerifyAi { get; init; } = true;
 }
 
 /// <summary>A mail the mailbox task read. Not visible to Viewers.</summary>
@@ -59,7 +71,10 @@ public sealed record MailLogItem(
     string To,
     string Subject,
     bool Processed,
-    Ref? ProcessedBy);
+    Ref? ProcessedBy,
+    MailDisposition Disposition = MailDisposition.None,
+    MailAiState AiState = MailAiState.None,
+    Guid? DecisionId = null);
 
 public sealed record MailLogDetail(
     Guid Id,
@@ -71,10 +86,15 @@ public sealed record MailLogDetail(
     bool Processed,
     Ref? ProcessedBy,
     string Content,
-    string ProcessLog);
+    string ProcessLog,
+    MailDisposition Disposition = MailDisposition.None,
+    MailAiState AiState = MailAiState.None,
+    Guid? DecisionId = null);
 
 /// <summary><c>GET /mail-log</c>: newest first.</summary>
 public sealed class MailLogQuery : PageQuery
 {
     public bool? Processed { get; set; }
+
+    public MailAiState? AiState { get; set; }
 }

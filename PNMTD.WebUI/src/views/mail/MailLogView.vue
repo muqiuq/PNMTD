@@ -68,9 +68,23 @@ const entry = useQuery({
       </Column>
       <Column header="Processed by" style="width: 14rem">
         <template #body="{ data }">
-          <span v-if="data.processedBy">{{ data.processedBy.name }}</span>
-          <Tag v-else-if="data.processed" value="no rule" severity="secondary" />
-          <Tag v-else value="waiting" severity="warn" />
+          <Tag v-if="data.disposition === 'Deleted'" value="deleted" severity="secondary" />
+          <Tag v-else-if="data.disposition === 'Ignored'" value="ignored" severity="secondary" />
+          <Tag v-else-if="data.disposition === 'AiEvent'" value="AI" severity="info" />
+          <span v-if="data.processedBy"> {{ data.processedBy.name }}</span>
+          <Tag v-else-if="data.processed && data.disposition === 'None'" value="no rule" severity="secondary" />
+          <Tag v-else-if="!data.processed" value="waiting" severity="warn" />
+        </template>
+      </Column>
+      <Column header="AI" style="width: 9rem">
+        <template #body="{ data }">
+          <RouterLink v-if="data.decisionId" :to="{ name: 'decisions', params: { id: data.decisionId } }" @click.stop
+            ><Tag
+              :value="data.aiState === 'Blocked' ? 'blocked' : 'decision'"
+              :severity="data.aiState === 'Blocked' ? 'danger' : 'warn'"
+          /></RouterLink>
+          <Tag v-else-if="data.aiState === 'Queued'" value="queued" severity="info" />
+          <Tag v-else-if="data.aiState === 'Failed'" value="failed" severity="danger" />
         </template>
       </Column>
       <template #mobile="{ item }">

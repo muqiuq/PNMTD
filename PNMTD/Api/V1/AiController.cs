@@ -10,8 +10,13 @@ namespace PNMTD.Api.V1;
 /// <summary>Admin → AI (docs/ai-operations-plan.md §14, §15): Admin only, because requests hold mail contents.</summary>
 [Route("api/v1/ai")]
 [Authorize(Policy = Policies.Admin)]
-public sealed class AiController(AiService ai) : V1ControllerBase
+public sealed class AiController(AiService ai, PNMTD.Decisions.DecisionBook decisions, PNMTD.Ai.AiWorkQueue queue) : V1ControllerBase
 {
+    /// <summary>The unmatched mails of the last days (§6.2): <c>dryRun</c> (the default) counts them first.</summary>
+    [HttpPost("mail/backfill")]
+    public async Task<ActionResult<MailBackfillResult>> Backfill(MailBackfillRequest request, CancellationToken ct) =>
+        await ai.BackfillAsync(request, decisions, queue, ct);
+
     [HttpGet("status")]
     public async Task<ActionResult<AiStatus>> Status(CancellationToken ct) => await ai.StatusAsync(ct);
 

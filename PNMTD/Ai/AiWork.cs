@@ -102,8 +102,8 @@ public sealed class AiWorker(IDbContextFactory<PnmtdDbContext> dbs, IEnumerable<
         }
     }
 
-    /// <summary>One round: the budget's period, then the due items. Public for the tests.</summary>
-    public async Task TickAsync(CancellationToken ct)
+    /// <summary>One round: the budget's period, then the due items; how many started. Public for the tests.</summary>
+    public async Task<int> TickAsync(CancellationToken ct)
     {
         foreach (var done in running.Where(r => r.Value.IsCompleted).Select(r => r.Key).ToList())
         {
@@ -112,7 +112,7 @@ public sealed class AiWorker(IDbContextFactory<PnmtdDbContext> dbs, IEnumerable<
         var o = options.CurrentValue;
         if (!o.Usable)
         {
-            return;
+            return 0;
         }
         if (Clock.UtcNow - lastBudgetCheck > TimeSpan.FromMinutes(1))
         {
@@ -122,7 +122,7 @@ public sealed class AiWorker(IDbContextFactory<PnmtdDbContext> dbs, IEnumerable<
         var free = Math.Max(1, o.Parallelism) - running.Count;
         if (free <= 0)
         {
-            return;
+            return 0;
         }
         await using var db = await dbs.CreateDbContextAsync(ct);
         var now = Clock.UtcNow;
@@ -138,13 +138,21 @@ public sealed class AiWorker(IDbContextFactory<PnmtdDbContext> dbs, IEnumerable<
         {
             running[work.Id] = RunOneAsync(work.Id, ct);
         }
+        return due.Count;
     }
 
-    /// <summary>Runs every due item and waits for them: for tests and <c>Retry now</c>.</summary>
+    /// <summary>Runs every item due now, round after round, and waits for them: for the tests.</summary>
     public async Task DrainAsync(CancellationToken ct)
     {
-        await TickAsync(ct);
-        await Task.WhenAll(running.Values.ToList());
+        for (var round = 0; round < 100; round++)
+        {
+            var started = await TickAsync(ct);
+            await Task.WhenAll(running.Values.ToList());
+            if (started == 0)
+            {
+                break;
+            }
+        }
     }
 
     private async Task RunOneAsync(Guid id, CancellationToken ct)

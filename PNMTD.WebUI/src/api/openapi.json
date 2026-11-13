@@ -5,6 +5,55 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/v1/ai/mail/backfill": {
+      "post": {
+        "tags": [
+          "Ai"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailBackfillRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailBackfillRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailBackfillRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailBackfillResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailBackfillResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailBackfillResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ai/status": {
       "get": {
         "tags": [
@@ -1115,6 +1164,210 @@
               "text/plain": {
                 "schema": {
                   "$ref": "#/components/schemas/DebugResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/decisions": {
+      "get": {
+        "tags": [
+          "Decisions"
+        ],
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/DecisionState"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfDecisionItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfDecisionItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfDecisionItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/decisions/count": {
+      "get": {
+        "tags": [
+          "Decisions"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionCount"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionCount"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionCount"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/decisions/{id}": {
+      "get": {
+        "tags": [
+          "Decisions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/decisions/{id}/decide": {
+      "post": {
+        "tags": [
+          "Decisions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionDetail"
                 }
               }
             }
@@ -2550,6 +2803,13 @@
             "in": "query",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "aiState",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/MailAiState"
             }
           },
           {
@@ -7852,6 +8112,57 @@
           }
         }
       },
+      "AiEvidence": {
+        "required": [
+          "injection",
+          "blockedBy",
+          "flags",
+          "verdict",
+          "issues",
+          "requestIds"
+        ],
+        "type": "object",
+        "properties": {
+          "injection": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "blockedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verdict": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requestIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        }
+      },
       "AiOutcome": {
         "enum": [
           "Ok",
@@ -8765,6 +9076,246 @@
           }
         }
       },
+      "DecideRequest": {
+        "type": "object",
+        "properties": {
+          "choice": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rule": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MailInputRuleRequest"
+              }
+            ]
+          }
+        }
+      },
+      "DecisionCount": {
+        "required": [
+          "open"
+        ],
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "DecisionDetail": {
+        "required": [
+          "item",
+          "options",
+          "mailRule",
+          "mail",
+          "ai",
+          "finding",
+          "subjects",
+          "result",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/DecisionItem"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DecisionOption"
+            }
+          },
+          "mailRule": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MailRuleProposal"
+              }
+            ]
+          },
+          "mail": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MailEvidence"
+              }
+            ]
+          },
+          "ai": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AiEvidence"
+              }
+            ]
+          },
+          "finding": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FindingEvidence"
+              }
+            ]
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "result": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DecisionItem": {
+        "required": [
+          "id",
+          "kind",
+          "state",
+          "title",
+          "summary",
+          "occurrences",
+          "disputed",
+          "requiredRole",
+          "createdAt",
+          "lastSeenAt",
+          "expiresAt",
+          "decidedAt",
+          "decidedByName",
+          "choice"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/DecisionState"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "occurrences": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "disputed": {
+            "type": "boolean"
+          },
+          "requiredRole": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "decidedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "decidedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "choice": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DecisionOption": {
+        "required": [
+          "id",
+          "label",
+          "description",
+          "edit",
+          "adminOnly",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "edit": {
+            "type": "boolean"
+          },
+          "adminOnly": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DecisionState": {
+        "enum": [
+          "Open",
+          "Accepted",
+          "Rejected",
+          "Dismissed",
+          "Expired",
+          "Superseded",
+          "Failed"
+        ]
+      },
       "DiffLineKind": {
         "enum": [
           "Context",
@@ -9213,6 +9764,56 @@
           }
         }
       },
+      "FindingEvidence": {
+        "required": [
+          "key",
+          "kind",
+          "severity",
+          "explanation",
+          "recommendation",
+          "confidence",
+          "sensors",
+          "hosts",
+          "verified"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "explanation": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "format": "double"
+          },
+          "sensors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ref"
+            }
+          },
+          "hosts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ref"
+            }
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        }
+      },
       "HostCounts": {
         "required": [
           "total",
@@ -9621,6 +10222,96 @@
           }
         }
       },
+      "MailAiState": {
+        "enum": [
+          "None",
+          "Queued",
+          "Analysed",
+          "Blocked",
+          "Failed"
+        ],
+        "default": "None"
+      },
+      "MailBackfillRequest": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dryRun": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MailBackfillResult": {
+        "required": [
+          "mails",
+          "queued",
+          "attached"
+        ],
+        "type": "object",
+        "properties": {
+          "mails": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "queued": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "attached": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "MailDisposition": {
+        "enum": [
+          "None",
+          "Event",
+          "AiEvent",
+          "Ignored",
+          "Deleted"
+        ],
+        "default": "None"
+      },
+      "MailEvidence": {
+        "required": [
+          "mailId",
+          "from",
+          "to",
+          "subject",
+          "body",
+          "date"
+        ],
+        "type": "object",
+        "properties": {
+          "mailId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "date": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "MailInputRule": {
         "required": [
           "id",
@@ -9712,6 +10403,17 @@
                 "$ref": "#/components/schemas/SensorRef"
               }
             ]
+          },
+          "action": {
+            "$ref": "#/components/schemas/MailRuleAction"
+          },
+          "askAiWhenUnsure": {
+            "type": "boolean",
+            "default": false
+          },
+          "verifyAi": {
+            "type": "boolean",
+            "default": true
           }
         }
       },
@@ -9787,6 +10489,15 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "action": {
+            "$ref": "#/components/schemas/MailRuleAction"
+          },
+          "askAiWhenUnsure": {
+            "type": "boolean"
+          },
+          "verifyAi": {
+            "type": "boolean"
           }
         }
       },
@@ -9847,6 +10558,19 @@
           },
           "processLog": {
             "type": "string"
+          },
+          "disposition": {
+            "$ref": "#/components/schemas/MailDisposition"
+          },
+          "aiState": {
+            "$ref": "#/components/schemas/MailAiState"
+          },
+          "decisionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -9898,6 +10622,143 @@
               {
                 "$ref": "#/components/schemas/Ref"
               }
+            ]
+          },
+          "disposition": {
+            "$ref": "#/components/schemas/MailDisposition"
+          },
+          "aiState": {
+            "$ref": "#/components/schemas/MailAiState"
+          },
+          "decisionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "MailRuleAction": {
+        "enum": [
+          "Event",
+          "AskAi",
+          "Ignore",
+          "Delete"
+        ]
+      },
+      "MailRuleProposal": {
+        "required": [
+          "action",
+          "name",
+          "fromTest",
+          "subjectTest",
+          "okTest",
+          "failTest",
+          "extractMessageRegex",
+          "defaultOutcome",
+          "sensorId",
+          "sensorName",
+          "hostName",
+          "newSensorName",
+          "kind",
+          "confidence",
+          "summary",
+          "reasoning",
+          "preview",
+          "existingRuleId",
+          "existingRuleName"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "fromTest": {
+            "type": "string"
+          },
+          "subjectTest": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "okTest": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "failTest": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "extractMessageRegex": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "defaultOutcome": {
+            "type": "string"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sensorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hostName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "newSensorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "format": "double"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "reasoning": {
+            "type": "string"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/RulePreview"
+          },
+          "existingRuleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "existingRuleName": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         }
@@ -12484,6 +13345,35 @@
           }
         }
       },
+      "PagedOfDecisionItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DecisionItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "PagedOfDnsLogEntry": {
         "required": [
           "items",
@@ -13144,6 +14034,39 @@
           },
           "read": {
             "type": "boolean"
+          }
+        }
+      },
+      "RulePreview": {
+        "required": [
+          "checked",
+          "matches",
+          "otherSenders",
+          "tooBroad",
+          "examples"
+        ],
+        "type": "object",
+        "properties": {
+          "checked": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "matches": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "otherSenders": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tooBroad": {
+            "type": "boolean"
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -17186,6 +18109,9 @@
     },
     {
       "name": "Debug"
+    },
+    {
+      "name": "Decisions"
     },
     {
       "name": "DnsZones"

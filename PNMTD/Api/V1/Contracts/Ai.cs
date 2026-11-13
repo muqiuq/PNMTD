@@ -88,5 +88,16 @@ public sealed class AiWorkQuery : PageQuery
     public string? Purpose { get; set; }
 }
 
+/// <summary><c>POST /ai/mail/backfill</c> (§6.2): the unmatched mails of the last days; a dry run only counts them.</summary>
+public sealed class MailBackfillRequest
+{
+    public int Days { get; init; } = 7;
+
+    public bool DryRun { get; init; } = true;
+}
+
+/// <summary><c>Mails</c>: unmatched and not analysed; <c>Queued</c>: one request each; <c>Attached</c>: to a waiting decision.</summary>
+public sealed record MailBackfillResult(int Mails, int Queued, int Attached);
+
 /// <summary>Admin → Debug → Test the AI (§8.4): each model's answer to a fixed prompt.</summary>
 public sealed record DebugAiResult(AiRole Role, string Model, bool Ok, string Detail, int DurationMs, decimal? Cost, string? ModelServed);

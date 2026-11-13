@@ -259,6 +259,16 @@ export const api = {
     check: () => call(client.POST('/api/v1/uplink/check')),
   },
 
+  /** Monitoring → Decisions (docs/ai-operations-plan.md §5.3): the User role. */
+  decisions: {
+    list: (query: ListQuery & { state?: S['DecisionState']; kind?: string }) =>
+      call(client.GET('/api/v1/decisions', { params: { query } })),
+    count: () => call(client.GET('/api/v1/decisions/count')),
+    get: (id: Id) => call(client.GET('/api/v1/decisions/{id}', { params: { path: { id } } })),
+    decide: (id: Id, body: S['DecideRequest']) =>
+      call(client.POST('/api/v1/decisions/{id}/decide', { params: { path: { id } }, body })),
+  },
+
   /** Admin → AI (docs/ai-operations-plan.md §3.6, §15): Admin only. */
   ai: {
     status: () => call(client.GET('/api/v1/ai/status')),
@@ -276,6 +286,7 @@ export const api = {
       call(client.GET('/api/v1/ai/work', { params: { query } })),
     retry: (id: Id) => call(client.POST('/api/v1/ai/work/{id}/retry', { params: { path: { id } } })),
     cancel: (id: Id) => call(client.POST('/api/v1/ai/work/{id}/cancel', { params: { path: { id } } })),
+    backfill: (body: S['MailBackfillRequest']) => call(client.POST('/api/v1/ai/mail/backfill', { body })),
   },
 
   /** Admin → Debug (docs/ai-operations-plan.md §8): test sends, 10 a minute. */
@@ -377,6 +388,8 @@ export const keys = {
   notifications: ['notifications'] as const,
   /** The AI's status, requests and queue (docs/ai-operations-plan.md §15). */
   ai: ['ai'] as const,
+  /** Decisions and their count (docs/ai-operations-plan.md §5.3). */
+  decisions: ['decisions'] as const,
 }
 
 /** The request of a resource as it is, with some fields changed: v1's PUT takes every writable field. */

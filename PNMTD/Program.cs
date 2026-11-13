@@ -107,6 +107,7 @@ public partial class Program
         {
             builder.Services.AddHostedService<PNMTD.Services.Events.SystemSensorStartup>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Ai.AiWorker>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Decisions.DecisionMaintenanceTask>());
             builder.Services.AddHostedService<NotificationTask>();
             builder.Services.AddHostedService<HeartbeatCheckTask>();
             builder.Services.AddHostedService<PingCheckTask>();

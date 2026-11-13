@@ -35,5 +35,14 @@ namespace PNMTD.Models.Db
         public virtual SensorEntity? SensorOutput { get; set; }
 
         public Guid? SensorOutputId { get; set; }
+
+        /// <summary>Event (as before), AI every time, Ignore or Delete (docs/ai-operations-plan.md §6.4).</summary>
+        public MailRuleAction Action { get; set; }
+
+        /// <summary>When neither the OK nor the FAIL test matches, the AI proposes better tests (§6.2, trigger B).</summary>
+        public bool AskAiWhenUnsure { get; set; }
+
+        /// <summary>For AI every time: the verification model's second opinion before an event.</summary>
+        public bool VerifyAi { get; set; } = true;
     }
 }

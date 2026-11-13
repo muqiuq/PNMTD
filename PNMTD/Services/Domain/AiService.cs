@@ -145,6 +145,43 @@ public sealed class AiService(PnmtdDbContext db, IOptionsMonitor<AiOptions> opti
         await db.SaveChangesAsync(ct);
     }
 
+    /// <summary>
+    /// The unmatched mails of the last <c>Days</c> that the AI has not seen (§6.2): counted, or with <c>DryRun</c> false queued,
+    /// attaching those like a mail that waits for a decision.
+    /// </summary>
+    public async Task<MailBackfillResult> BackfillAsync(MailBackfillRequest request, Decisions.DecisionBook decisions, AiWorkQueue queue, CancellationToken ct)
+    {
+        new ApiValidator().Check(request.Days is >= 1 and <= 365, "days", "Between 1 and 365 days.").ThrowIfInvalid();
+        var since = Clock.UtcNow.AddDays(-request.Days);
+        var mails = await db.MailLogs.Where(m => !m.Processed && m.AiState == MailAiState.None && m.Created >= since).OrderBy(m => m.Created).ToListAsync(ct);
+        if (request.DryRun)
+        {
+            return new MailBackfillResult(mails.Count, 0, 0);
+        }
+        if (!options.CurrentValue.Usable || !options.CurrentValue.Mail.Enabled)
+        {
+            throw ApiException.Conflict("ai_not_configured", "AI on mails is off: Ai__Enabled, Ai__ApiKey and Ai__Mail__Enabled.");
+        }
+        int queued = 0, attached = 0;
+        foreach (var mail in mails)
+        {
+            if (await decisions.AttachAsync(Mails.MailAi.RuleKey(mail.From, mail.Subject), mail.Id, ct) is { } decision)
+            {
+                mail.AiState = MailAiState.Analysed;
+                mail.DecisionId = decision;
+                attached++;
+                continue;
+            }
+            mail.AiState = MailAiState.Queued;
+            await db.SaveChangesAsync(ct);
+            await queue.EnqueueAsync("mail.analyse", "mail", mail.Id, null, ct);
+            queued++;
+        }
+        UdpViews.Audit(db, accessor, AuthEvents.AiBackfillStarted, $"{request.Days} days: {queued} queued, {attached} attached");
+        await db.SaveChangesAsync(ct);
+        return new MailBackfillResult(mails.Count, queued, attached);
+    }
+
     /// <summary>A fixed prompt to each configured model (§8.4), logged with the purpose <c>debug</c>.</summary>
     public async Task<IReadOnlyList<DebugAiResult>> TestAsync(CancellationToken ct)
     {

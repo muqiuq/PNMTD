@@ -14,6 +14,16 @@ public static class AiSetup
         services.AddSingleton<AiPipeline>();
         services.AddSingleton<AiWorker>();
         services.AddSingleton<AiWorkQueue>();
+        // Decisions and the mail handlers (docs/ai-operations-plan.md §5, §6).
+        services.AddSingleton<Decisions.DecisionBook>();
+        services.AddSingleton<Decisions.IDecisionKind, Decisions.MailRuleDecision>();
+        services.AddSingleton<Decisions.IDecisionKind, Decisions.MailSuspiciousDecision>();
+        services.AddSingleton<Decisions.IDecisionKind, Decisions.MailOutcomeDecision>();
+        services.AddSingleton<Decisions.IDecisionKind, Decisions.AnalysisFindingDecision>();
+        services.AddSingleton<Decisions.DecisionMaintenanceTask>();
+        services.AddSingleton<IAiWorkHandler, Mails.MailAnalyseHandler>();
+        services.AddSingleton<IAiWorkHandler, Mails.MailImproveHandler>();
+        services.AddSingleton<IAiWorkHandler, Mails.MailEvaluateHandler>();
         return services;
     }
 }

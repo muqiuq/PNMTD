@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
-import { useQueryClient } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, watch, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import GlobalSearch from '@/components/GlobalSearch.vue'
@@ -9,6 +9,7 @@ import LogoMark from '@/components/LogoMark.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { useDashboard } from '@/composables/useDashboard'
 import { useMedia } from '@/composables/useMedia'
+import { api, keys } from '@/api/resources'
 import { pageTitle } from '@/router'
 import { usePreferences } from '@/stores/preferences'
 import { useSession } from '@/stores/session'
@@ -31,6 +32,14 @@ const overlayOpen = ref(false)
 // in the background still shows problems.
 const dashboard = useDashboard()
 const failing = computed(() => dashboard.data.value?.summary.sensors.failing ?? 0)
+// Open decisions (docs/ai-operations-plan.md §5.3), for those who may decide.
+const decisions = useQuery({
+  queryKey: [...keys.decisions, 'count'],
+  queryFn: api.decisions.count,
+  refetchInterval: 30_000,
+  enabled: computed(() => session.can('User')),
+})
+const openDecisions = computed(() => decisions.data.value?.open ?? 0)
 const updatedAt = computed(() =>
   dashboard.dataUpdatedAt.value ? new Date(dashboard.dataUpdatedAt.value).toISOString() : null,
 )
@@ -123,6 +132,13 @@ async function signOut() {
               :class="{ dot: rail }"
               :aria-label="`${failing} failing`"
               >{{ rail ? '' : failing }}</span
+            >
+            <span
+              v-else-if="item.name === 'decisions' && openDecisions"
+              class="badge"
+              :class="{ dot: rail }"
+              :aria-label="`${openDecisions} open`"
+              >{{ rail ? '' : openDecisions }}</span
             >
             <span v-else class="sr-only">{{ item.label }}</span>
           </RouterLink>

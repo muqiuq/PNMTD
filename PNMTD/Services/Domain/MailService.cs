@@ -26,7 +26,7 @@ public sealed class MailService(PnmtdDbContext db)
             r.FailTest, r.FailCode, r.DefaultCode, r.ExtractMessageRegex,
             r.SensorOutput != null
                 ? new SensorRef(r.SensorOutput.Id, r.SensorOutput.Name, r.SensorOutput.ParentId, r.SensorOutput.Parent.Name)
-                : null));
+                : null, r.Action, r.AskAiWhenUnsure, r.VerifyAi));
 
     public async Task<MailInputRule> GetRuleAsync(Guid id, CancellationToken ct) =>
         await Project(db.MailInputs.AsNoTracking().Where(r => r.Id == id)).SingleOrDefaultAsync(ct)
@@ -72,6 +72,10 @@ public sealed class MailService(PnmtdDbContext db)
         {
             log = log.Where(m => m.Processed == processed);
         }
+        if (query.AiState is { } aiState)
+        {
+            log = log.Where(m => m.AiState == aiState);
+        }
         if (Text.Pattern(query.Search) is { } pattern)
         {
             log = log.Where(m => EF.Functions.ILike(m.From, pattern, @"\") || EF.Functions.ILike(m.To, pattern, @"\")
@@ -82,10 +86,11 @@ public sealed class MailService(PnmtdDbContext db)
             .Select(m => new
             {
                 m.Id, m.Created, m.MessageDate, m.From, m.To, m.Subject, m.Processed, m.ProcessedById,
-                RuleName = m.ProcessedBy != null ? m.ProcessedBy.Name : null,
+                RuleName = m.ProcessedBy != null ? m.ProcessedBy.Name : null, m.Disposition, m.AiState, m.DecisionId,
             }), query, ct);
         return new Paged<MailLogItem>(page.Items.Select(m => new MailLogItem(m.Id, Instants.Utc(m.Created), Instants.OrNull(m.MessageDate),
-            m.From, m.To, m.Subject, m.Processed, m.ProcessedById is { } rule && m.RuleName is { } name ? new Ref(rule, name) : null)).ToList(),
+            m.From, m.To, m.Subject, m.Processed, m.ProcessedById is { } rule && m.RuleName is { } name ? new Ref(rule, name) : null,
+            m.Disposition, m.AiState, m.DecisionId)).ToList(),
             page.Page, page.PageSize, page.TotalCount);
     }
 
@@ -99,7 +104,7 @@ public sealed class MailService(PnmtdDbContext db)
         var mail = m.Mail;
         return new MailLogDetail(mail.Id, Instants.Utc(mail.Created), Instants.OrNull(mail.MessageDate), mail.From, mail.To, mail.Subject,
             mail.Processed, mail.ProcessedById is { } rule && m.RuleName is { } name ? new Ref(rule, name) : null, mail.Content,
-            mail.ProcessLog);
+            mail.ProcessLog, mail.Disposition, mail.AiState, mail.DecisionId);
     }
 
     private async Task ValidateAsync(MailInputRuleRequest request, CancellationToken ct)
@@ -126,6 +131,8 @@ public sealed class MailService(PnmtdDbContext db)
         {
             v.Check(await db.Sensors.AnyAsync(s => s.Id == sensorId, ct), "sensorId", "No such sensor.");
         }
+        v.Check(Enum.IsDefined(request.Action), "action", "Event, AskAi, Ignore or Delete.");
+        v.Check(request.Action != MailRuleAction.AskAi || request.SensorId is not null, "sensorId", "AI every time needs the sensor its events go to.");
         v.ThrowIfInvalid();
     }
 
@@ -142,7 +149,10 @@ public sealed class MailService(PnmtdDbContext db)
         rule.FailCode = request.FailCode;
         rule.DefaultCode = request.DefaultCode;
         rule.ExtractMessageRegex = Empty(request.ExtractMessageRegex?.Trim());
-        rule.SensorOutputId = request.SensorId;
+        rule.SensorOutputId = request.Action is MailRuleAction.Ignore or MailRuleAction.Delete ? null : request.SensorId;
+        rule.Action = request.Action;
+        rule.AskAiWhenUnsure = request.Action == MailRuleAction.Event && request.AskAiWhenUnsure;
+        rule.VerifyAi = request.VerifyAi;
     }
 
     private static string? Empty(string? value) => string.IsNullOrEmpty(value) ? null : value;

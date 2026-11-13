@@ -1043,6 +1043,18 @@ Where the implementation differs from the sections above, or settles what they l
 - **The admin page** is *Admin → AI* (`/admin/ai/requests|queue|settings`); the *Analysis* tab comes with A7. *Admin → Debug* has *Test the AI*.
 - **`deploy/upgrade-1.0.sh` is unchanged:** it copies v0.12's settings, which never had `Ai__*`.
 
+### A5: decisions and mails with AI (2026-11-13)
+
+- **Four kinds:** `mail.rule`, `mail.suspicious`, **`mail.outcome`** (the AI could not decide a mail of an AI-every-time rule: *It reports success*, *a failure*, or *Ignore it*; a kind of its own instead of a variant of `mail.rule`), and `analysis.finding`, whose decision side came with A5 so that A7 only raises it.
+- **A mute is the decision itself:** a finding key is skipped while a decision with that key chose *mute* in the last 7 days. No table of its own.
+- **Trigger B** is the purpose `mail.improve`; its decision offers *Update the rule …* with the proposed OK and FAIL tests.
+- **The candidate sensors** reach the model as short references (`s1` … `s100`), mapped back in code: fewer tokens, and no ids it could invent.
+- **The proposal's phrases** must occur verbatim, and its template must reproduce the subject, or the attempt is `invalid-output` and retried (§3.5).
+- ***Edit, then create*** is a form inside the decision, not the rule page; the rule it creates goes through `MailService`'s validation.
+- **A rule set to AI every time while AI is off** leaves its mails unprocessed until AI is on, or a person handles them.
+- **Mail events are still written directly**, as `MailProcessTask` always did, not through `SensorEventWriter`.
+- **Where:** `PNMTD/Decisions/` (`DecisionBook`, the kinds, `DecisionMaintenanceTask`), `PNMTD/Mails/` (`RuleTemplate`, `MailAiTasks`, `MailAiHandlers`), Monitoring → Decisions (`/decisions/:id?`, with a count in the menu), the mail rule form's *Action*, the mail log's *AI* column, and the AI page's backfill. Migration `DecisionsAndMailAi`.
+
 ---
 
 ## Appendix: configuration and file changes

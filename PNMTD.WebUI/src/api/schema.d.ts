@@ -4,6 +4,49 @@
  */
 
 export interface paths {
+    "/api/v1/ai/mail/backfill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MailBackfillRequest"];
+                    "text/json": components["schemas"]["MailBackfillRequest"];
+                    "application/*+json": components["schemas"]["MailBackfillRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailBackfillResult"];
+                        "text/json": components["schemas"]["MailBackfillResult"];
+                        "text/plain": components["schemas"]["MailBackfillResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai/status": {
         parameters: {
             query?: never;
@@ -1053,6 +1096,171 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    state?: components["schemas"]["DecisionState"];
+                    kind?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfDecisionItem"];
+                        "text/json": components["schemas"]["PagedOfDecisionItem"];
+                        "text/plain": components["schemas"]["PagedOfDecisionItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/decisions/count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DecisionCount"];
+                        "text/json": components["schemas"]["DecisionCount"];
+                        "text/plain": components["schemas"]["DecisionCount"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/decisions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DecisionDetail"];
+                        "text/json": components["schemas"]["DecisionDetail"];
+                        "text/plain": components["schemas"]["DecisionDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/decisions/{id}/decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DecideRequest"];
+                    "text/json": components["schemas"]["DecideRequest"];
+                    "application/*+json": components["schemas"]["DecideRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DecisionDetail"];
+                        "text/json": components["schemas"]["DecisionDetail"];
+                        "text/plain": components["schemas"]["DecisionDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dns-zones": {
         parameters: {
             query?: never;
@@ -2029,6 +2237,7 @@ export interface paths {
             parameters: {
                 query?: {
                     processed?: boolean;
+                    aiState?: components["schemas"]["MailAiState"];
                     page?: number;
                     pageSize?: number;
                     sort?: string;
@@ -6161,6 +6370,15 @@ export interface components {
             /** Format: date-time */
             periodEndsAt: string;
         };
+        AiEvidence: {
+            /** Format: double */
+            injection: null | number;
+            blockedBy: null | string;
+            flags: string[];
+            verdict: null | string;
+            issues: string[];
+            requestIds: number[];
+        };
         /** @enum {unknown} */
         AiOutcome: "Ok" | "HttpError" | "Timeout" | "ConnectError" | "InvalidOutput" | "BlockedByGuard";
         AiQueueStatus: {
@@ -6396,6 +6614,57 @@ export interface components {
             mail: components["schemas"]["DebugMailStatus"];
             pushoverRules: components["schemas"]["Ref"][];
         };
+        DecideRequest: {
+            choice?: null | string;
+            rule?: null | components["schemas"]["MailInputRuleRequest"];
+        };
+        DecisionCount: {
+            /** Format: int32 */
+            open: number;
+        };
+        DecisionDetail: {
+            item: components["schemas"]["DecisionItem"];
+            options: components["schemas"]["DecisionOption"][];
+            mailRule: null | components["schemas"]["MailRuleProposal"];
+            mail: null | components["schemas"]["MailEvidence"];
+            ai: null | components["schemas"]["AiEvidence"];
+            finding: null | components["schemas"]["FindingEvidence"];
+            subjects: string[];
+            result: null | string;
+            error: null | string;
+        };
+        DecisionItem: {
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            state: components["schemas"]["DecisionState"];
+            title: string;
+            summary: string;
+            /** Format: int32 */
+            occurrences: number;
+            disputed: boolean;
+            requiredRole: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastSeenAt: string;
+            /** Format: date-time */
+            expiresAt: null | string;
+            /** Format: date-time */
+            decidedAt: null | string;
+            decidedByName: null | string;
+            choice: null | string;
+        };
+        DecisionOption: {
+            id: string;
+            label: string;
+            description: string;
+            edit: boolean;
+            adminOnly: boolean;
+            enabled: boolean;
+        };
+        /** @enum {unknown} */
+        DecisionState: "Open" | "Accepted" | "Rejected" | "Dismissed" | "Expired" | "Superseded" | "Failed";
         /** @enum {unknown} */
         DiffLineKind: "Context" | "Added" | "Removed";
         DnsLogEntry: {
@@ -6521,6 +6790,18 @@ export interface components {
             entityTag?: null | components["schemas"]["EntityTagHeaderValue"];
             enableRangeProcessing?: boolean;
         };
+        FindingEvidence: {
+            key: string;
+            kind: string;
+            severity: string;
+            explanation: string;
+            recommendation: string;
+            /** Format: double */
+            confidence: number;
+            sensors: components["schemas"]["Ref"][];
+            hosts: components["schemas"]["Ref"][];
+            verified: boolean;
+        };
         HostCounts: {
             /** Format: int32 */
             total: number;
@@ -6629,6 +6910,39 @@ export interface components {
             user: null | components["schemas"]["CurrentUser"];
             flags: null | components["schemas"]["SessionFlags"];
         };
+        /**
+         * @default None
+         * @enum {unknown}
+         */
+        MailAiState: "None" | "Queued" | "Analysed" | "Blocked" | "Failed";
+        MailBackfillRequest: {
+            /** Format: int32 */
+            days?: number;
+            dryRun?: boolean;
+        };
+        MailBackfillResult: {
+            /** Format: int32 */
+            mails: number;
+            /** Format: int32 */
+            queued: number;
+            /** Format: int32 */
+            attached: number;
+        };
+        /**
+         * @default None
+         * @enum {unknown}
+         */
+        MailDisposition: "None" | "Event" | "AiEvent" | "Ignored" | "Deleted";
+        MailEvidence: {
+            /** Format: uuid */
+            mailId: string;
+            from: string;
+            to: string;
+            subject: string;
+            body: string;
+            /** Format: date-time */
+            date: null | string;
+        };
         MailInputRule: {
             /** Format: uuid */
             id: string;
@@ -6647,6 +6961,11 @@ export interface components {
             defaultCode: number;
             extractMessageRegex: null | string;
             sensor: null | components["schemas"]["SensorRef"];
+            action?: components["schemas"]["MailRuleAction"];
+            /** @default false */
+            askAiWhenUnsure: boolean;
+            /** @default true */
+            verifyAi: boolean;
         };
         MailInputRuleRequest: {
             name?: null | string;
@@ -6665,6 +6984,9 @@ export interface components {
             extractMessageRegex?: null | string;
             /** Format: uuid */
             sensorId?: null | string;
+            action?: components["schemas"]["MailRuleAction"];
+            askAiWhenUnsure?: boolean;
+            verifyAi?: boolean;
         };
         MailLogDetail: {
             /** Format: uuid */
@@ -6680,6 +7002,10 @@ export interface components {
             processedBy: null | components["schemas"]["Ref"];
             content: string;
             processLog: string;
+            disposition?: components["schemas"]["MailDisposition"];
+            aiState?: components["schemas"]["MailAiState"];
+            /** Format: uuid */
+            decisionId?: null | string;
         };
         MailLogItem: {
             /** Format: uuid */
@@ -6693,6 +7019,36 @@ export interface components {
             subject: string;
             processed: boolean;
             processedBy: null | components["schemas"]["Ref"];
+            disposition?: components["schemas"]["MailDisposition"];
+            aiState?: components["schemas"]["MailAiState"];
+            /** Format: uuid */
+            decisionId?: null | string;
+        };
+        /** @enum {unknown} */
+        MailRuleAction: "Event" | "AskAi" | "Ignore" | "Delete";
+        MailRuleProposal: {
+            action: string;
+            name: string;
+            fromTest: string;
+            subjectTest: null | string;
+            okTest: null | string;
+            failTest: null | string;
+            extractMessageRegex: null | string;
+            defaultOutcome: string;
+            /** Format: uuid */
+            sensorId: null | string;
+            sensorName: null | string;
+            hostName: null | string;
+            newSensorName: null | string;
+            kind: string;
+            /** Format: double */
+            confidence: number;
+            summary: string;
+            reasoning: string;
+            preview: components["schemas"]["RulePreview"];
+            /** Format: uuid */
+            existingRuleId: null | string;
+            existingRuleName: null | string;
         };
         MailSummary: {
             configured: boolean;
@@ -7351,6 +7707,15 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
+        PagedOfDecisionItem: {
+            items: components["schemas"]["DecisionItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfDnsLogEntry: {
             items: components["schemas"]["DnsLogEntry"][];
             /** Format: int32 */
@@ -7550,6 +7915,16 @@ export interface components {
         RotateTokensRequest: {
             write?: boolean;
             read?: boolean;
+        };
+        RulePreview: {
+            /** Format: int32 */
+            checked: number;
+            /** Format: int32 */
+            matches: number;
+            /** Format: int32 */
+            otherSenders: number;
+            tooBroad: boolean;
+            examples: string[];
         };
         SearchHost: {
             /** Format: uuid */

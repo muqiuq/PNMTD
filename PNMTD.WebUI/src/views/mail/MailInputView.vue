@@ -5,6 +5,7 @@ import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import ProgressSpinner from 'primevue/progressspinner'
+import Select from 'primevue/select'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -47,7 +48,30 @@ const form = ref({
   failCode: 500 as number | null,
   defaultCode: 500,
   extractMessageRegex: '',
+  action: 'Event' as S['MailRuleAction'],
+  askAiWhenUnsure: false,
+  verifyAi: true,
 })
+/** Event and AI rules write events; Ignore and Delete rules only act when no event rule matched (docs/ai-operations-plan.md §6.4). */
+const actions: { label: string; value: S['MailRuleAction']; hint: string }[] = [
+  { label: 'An event on the sensor', value: 'Event', hint: 'As set below: OK, failed or otherwise.' },
+  {
+    label: 'The AI decides every time',
+    value: 'AskAi',
+    hint: 'Each mail goes to the AI, which says OK or failure; unclear ones come to Decisions.',
+  },
+  {
+    label: 'Ignore such mails',
+    value: 'Ignore',
+    hint: 'Processed, without an event; only when no event rule matched.',
+  },
+  {
+    label: 'Delete such mails',
+    value: 'Delete',
+    hint: 'Deleted from the mailbox; the log keeps them. Only when no event rule matched.',
+  },
+]
+const writesEvents = computed(() => form.value.action === 'Event' || form.value.action === 'AskAi')
 const sensor = ref<S['SensorRef'] | S['SearchSensor'] | null>(null)
 const errors = ref<Record<string, string | undefined>>({})
 const busy = ref(false)
@@ -68,6 +92,9 @@ watch(
       failCode: r.failCode,
       defaultCode: r.defaultCode,
       extractMessageRegex: r.extractMessageRegex ?? '',
+      action: r.action ?? 'Event',
+      askAiWhenUnsure: r.askAiWhenUnsure ?? false,
+      verifyAi: r.verifyAi ?? true,
     }
     sensor.value = r.sensor
   },
@@ -128,6 +155,9 @@ async function submit() {
     defaultCode: f.defaultCode,
     extractMessageRegex: f.extractMessageRegex || null,
     sensorId: sensor.value && typeof sensor.value !== 'string' ? sensor.value.id : null,
+    action: f.action,
+    askAiWhenUnsure: f.askAiWhenUnsure,
+    verifyAi: f.verifyAi,
   }
   try {
     const rule = id.value ? await api.mail.updateRule(id.value, body) : await api.mail.createRule(body)
@@ -219,7 +249,22 @@ const err = (f: string) => errors.value[f] ?? liveErrors.value[f as (typeof rege
         <fieldset class="panel" :disabled="!canWrite">
           <legend class="panel-header">What becomes of them</legend>
           <div class="panel-body form">
-            <div class="pair">
+            <div class="field">
+              <label for="mi-action">Action</label>
+              <Select
+                v-model="form.action"
+                input-id="mi-action"
+                :options="actions"
+                option-label="label"
+                option-value="value"
+              />
+              <small class="field-hint">{{ actions.find((a) => a.value === form.action)?.hint }}</small>
+            </div>
+            <div v-if="form.action === 'AskAi'" class="switch-row">
+              <ToggleSwitch v-model="form.verifyAi" input-id="mi-verify" />
+              <label for="mi-verify">Verify with the second model before an event</label>
+            </div>
+            <div v-if="writesEvents" class="pair">
               <div class="field grow">
                 <label for="mi-ok">OK when (regex)</label>
                 <InputText
@@ -236,7 +281,7 @@ const err = (f: string) => errors.value[f] ?? liveErrors.value[f as (typeof rege
                 <InputNumber v-model="form.okCode" input-id="mi-okcode" :use-grouping="false" fluid />
               </div>
             </div>
-            <div class="pair">
+            <div v-if="writesEvents" class="pair">
               <div class="field grow">
                 <label for="mi-fail">Failed when (regex)</label>
                 <InputText
@@ -253,11 +298,15 @@ const err = (f: string) => errors.value[f] ?? liveErrors.value[f as (typeof rege
                 <InputNumber v-model="form.failCode" input-id="mi-failcode" :use-grouping="false" fluid />
               </div>
             </div>
-            <div class="field code-wide">
+            <div v-if="form.action === 'Event'" class="switch-row">
+              <ToggleSwitch v-model="form.askAiWhenUnsure" input-id="mi-unsure" />
+              <label for="mi-unsure">Ask the AI when neither test matches: it proposes better tests</label>
+            </div>
+            <div v-if="writesEvents" class="field code-wide">
               <label for="mi-default">Otherwise code</label>
               <InputNumber v-model="form.defaultCode" input-id="mi-default" :use-grouping="false" fluid />
             </div>
-            <div class="field">
+            <div v-if="form.action === 'Event'" class="field">
               <label for="mi-extract">Message (regex, first group)</label>
               <InputText
                 id="mi-extract"
@@ -269,7 +318,7 @@ const err = (f: string) => errors.value[f] ?? liveErrors.value[f as (typeof rege
               <small v-if="err('extractMessageRegex')" class="field-error">{{ err('extractMessageRegex') }}</small>
               <small v-else class="field-hint">Without it, the event's message names the rule.</small>
             </div>
-            <div class="field">
+            <div v-if="writesEvents" class="field">
               <label for="mi-sensor">Sensor</label>
               <AutoComplete
                 v-model="sensor"

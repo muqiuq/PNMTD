@@ -19,6 +19,7 @@ export const navigation: NavGroup[] = [
     label: 'Monitoring',
     items: [
       { label: 'Dashboard', icon: 'pi pi-th-large', to: '/', name: 'dashboard' },
+      { label: 'Decisions', icon: 'pi pi-inbox', to: '/decisions', name: 'decisions', role: 'User' },
       { label: 'Hosts', icon: 'pi pi-server', to: '/hosts', name: 'hosts' },
       { label: 'Events', icon: 'pi pi-list', to: '/events', name: 'events' },
       { label: 'DNS zones', icon: 'pi pi-globe', to: '/dns-zones', name: 'dns-zones' },

@@ -161,7 +161,14 @@ namespace PNMTD.Tasks
 
                             if (mailLog == null) continue;
 
-                            if (mailLog.Processed)
+                            if (mailLog.Processed && mailLog.Disposition == MailDisposition.Deleted)
+                            {
+                                // A delete rule or decision (docs/ai-operations-plan.md §6.4): gone from the mailbox; the log row stays.
+                                preProcessedFolder.AddFlags(item.UniqueId, MessageFlags.Deleted, true);
+                                preProcessedFolder.Expunge();
+                                logger.LogInformation($"Deleted a mail from {mailLog.From} as a rule or decision said");
+                            }
+                            else if (mailLog.Processed)
                             {
                                 preProcessedFolder.MoveTo(item.UniqueId, processedFolder);
                                 preProcessedFolder.Expunge();

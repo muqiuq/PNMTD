@@ -217,6 +217,12 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/ai/work/{id:guid}/retry"] = Roles.Admin,
         ["POST /api/v1/ai/work/{id:guid}/cancel"] = Roles.Admin,
         ["POST /api/v1/debug/ai"] = Roles.Admin,
+        ["POST /api/v1/ai/mail/backfill"] = Roles.Admin,
+        // Decisions (docs/ai-operations-plan.md §5.3): the User role, as the mail log.
+        ["GET /api/v1/decisions"] = Roles.User,
+        ["GET /api/v1/decisions/count"] = Roles.User,
+        ["GET /api/v1/decisions/{id:guid}"] = Roles.User,
+        ["POST /api/v1/decisions/{id:guid}/decide"] = Roles.User,
     };
 
     private sealed record EndpointInfo(string Key, string Method, string Pattern, RouteEndpoint Endpoint);

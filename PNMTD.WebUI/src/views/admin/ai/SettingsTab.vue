@@ -5,8 +5,11 @@ import DataTable from 'primevue/datatable'
 import Message from 'primevue/message'
 import ProgressBar from 'primevue/progressbar'
 import Tag from 'primevue/tag'
-import { computed } from 'vue'
-import { api, keys } from '@/api/resources'
+import Button from 'primevue/button'
+import InputNumber from 'primevue/inputnumber'
+import { computed, ref } from 'vue'
+import { api, keys, type S } from '@/api/resources'
+import { useActions } from '@/composables/useActions'
 import { formatAbsolute } from '@/format'
 import { usd } from './aiFormat'
 
@@ -17,6 +20,22 @@ import { usd } from './aiFormat'
 const status = useQuery({ queryKey: [...keys.ai, 'status'], queryFn: api.ai.status, refetchInterval: 15_000 })
 const s = computed(() => status.data.value)
 const percent = computed(() => (s.value?.budget.share == null ? null : Math.round(s.value.budget.share * 100)))
+
+// The unmatched mails of the last days (§6.2): counted first, then queued, one request each.
+const days = ref(7)
+const counted = ref<S['MailBackfillResult'] | null>(null)
+const queued = ref<S['MailBackfillResult'] | null>(null)
+const { run, busy } = useActions()
+async function count() {
+  queued.value = null
+  counted.value =
+    (await run(() => api.ai.backfill({ days: days.value, dryRun: true }), { failure: 'Not counted' })) ?? null
+}
+async function analyse() {
+  queued.value =
+    (await run(() => api.ai.backfill({ days: days.value, dryRun: false }), { failure: 'Not queued' })) ?? null
+  counted.value = null
+}
 </script>
 
 <template>
@@ -82,6 +101,36 @@ const percent = computed(() => (s.value?.budget.share == null ? null : Math.roun
         </div>
       </section>
     </div>
+    <section class="panel" aria-labelledby="backfill-title">
+      <div id="backfill-title" class="panel-header">Unmatched mails</div>
+      <div class="panel-body body">
+        <p class="muted small">
+          New mails no rule handles go to the AI after a few minutes. Mails from before AI was on can be analysed too:
+          one request each, except those like a mail that already waits for a decision.
+        </p>
+        <div class="backfill">
+          <label for="backfill-days">Of the last</label>
+          <InputNumber
+            v-model="days"
+            input-id="backfill-days"
+            :min="1"
+            :max="365"
+            suffix=" days"
+            :use-grouping="false"
+          />
+          <Button label="Count" size="small" severity="secondary" :loading="busy" @click="count" />
+          <Button
+            v-if="counted && counted.mails"
+            :label="`Analyse ${counted.mails} mail(s)`"
+            size="small"
+            :loading="busy"
+            @click="analyse"
+          />
+        </div>
+        <p v-if="counted">{{ counted.mails }} unmatched mail(s) the AI has not seen.</p>
+        <p v-if="queued">{{ queued.queued }} queued, {{ queued.attached }} attached to a waiting decision.</p>
+      </div>
+    </section>
     <div class="two-columns">
       <section class="panel" aria-labelledby="purpose-title">
         <div id="purpose-title" class="panel-header">Spending by purpose, 30 days</div>
@@ -129,5 +178,11 @@ const percent = computed(() => (s.value?.budget.share == null ? null : Math.roun
 }
 .small {
   font-size: 0.857rem;
+}
+.backfill {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pnmt-space-2);
 }
 </style>

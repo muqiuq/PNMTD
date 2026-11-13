@@ -76,6 +76,9 @@ namespace PNMTD.Data
         public DbSet<AiSpendingEntity> AiSpending { get; set; }
         public DbSet<AiBudgetStateEntity> AiBudgetState { get; set; }
 
+        // Decisions (docs/ai-operations-plan.md §5).
+        public DbSet<DecisionEntity> Decisions { get; set; }
+
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
         }
@@ -217,6 +220,13 @@ namespace PNMTD.Data
                 e.HasOne<AiWorkEntity>().WithMany().HasForeignKey(r => r.WorkId).OnDelete(DeleteBehavior.SetNull);
             });
             modelBuilder.Entity<AiSpendingEntity>().HasKey(s => new { s.Day, s.Purpose, s.Model });
+
+            modelBuilder.Entity<DecisionEntity>(e =>
+            {
+                e.HasIndex(d => new { d.State, d.Kind });
+                // One open decision per key (§5.1).
+                e.HasIndex(d => d.DedupeKey).IsUnique().HasFilter("\"State\" = 0");
+            });
 
             modelBuilder.Entity<NotificationRuleScopeEntity>(e =>
             {
