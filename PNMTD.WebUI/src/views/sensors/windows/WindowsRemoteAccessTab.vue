@@ -25,6 +25,7 @@ const features = computed(() =>
       :sensor-id="id"
       section="remote-access"
       :view="section.data.value"
+      :loading="section.loading.value"
       :can-write="canWrite"
       :connected="server.server.connected"
     />

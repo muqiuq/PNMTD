@@ -29,6 +29,7 @@ const connections = computed(() =>
       :sensor-id="id"
       section="network"
       :view="section.data.value"
+      :loading="section.loading.value"
       :can-write="canWrite"
       :connected="server.server.connected"
     />

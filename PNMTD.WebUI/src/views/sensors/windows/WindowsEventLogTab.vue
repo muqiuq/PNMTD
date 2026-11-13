@@ -29,6 +29,7 @@ const severity = (l: string) => (l === 'Critical' ? 'danger' : l === 'Error' ? '
       :sensor-id="id"
       section="event-log"
       :view="section.data.value"
+      :loading="section.loading.value"
       :can-write="canWrite"
       :connected="server.server.connected"
     />

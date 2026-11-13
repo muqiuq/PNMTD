@@ -103,7 +103,8 @@ A **new PostgreSQL major version** means `./backup.sh`, the new image in `docker
   - Set `Proxy=docker` in `.env` if the proxy runs in a Docker network, or else set it to the proxy's address. Without it, lockout and the audit log see the proxy's address instead of the client's.
   - With the proxy on the same host, set `PNMTD_BIND_ADDRESS=127.0.0.1`.
 - **Sensor URLs:** they stay plain HTTP if they were before. The app never redirects them.
-- **Restricting paths:** the app enforces sign-in itself. If you restrict paths at the proxy anyway, keep `/event/` and `/read/` open, and match them case-insensitively, because the app accepts `/EVENT/` too.
+- **Restricting paths:** the app enforces sign-in itself. If you restrict paths at the proxy anyway, keep `/event/` and `/read/` open, and match them case-insensitively, because the app accepts `/EVENT/` too. Windows agents need `/agent/` as well.
+- **WebSockets:** Windows agents keep a WebSocket open on `/agent/v1/ws`, on the same address and port. Caddy and Traefik pass them as they are; nginx needs the `Upgrade` lines below and a `proxy_read_timeout` above the agents' 30 s ping. Pass the `Host` header on: agents sign the address they use, and PNMTD checks it against `PublicBaseUrl` or that header.
 
 Each example below forwards one hostname to the app. For a proxy on the same host, set `PNMTD_BIND_ADDRESS=127.0.0.1` and `Proxy=docker`. Through the published port, the app sees requests coming from Docker's bridge, which `docker` trusts (172.16.0.0/12).
 
@@ -118,6 +119,12 @@ pnmt.example.com {
 **nginx:**
 
 ```nginx
+# The Windows agents' WebSocket (map goes in the http block).
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
 server {
     listen 443 ssl;
     server_name pnmt.example.com;
@@ -127,6 +134,10 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_read_timeout 120s;
     }
 }
 ```
@@ -192,6 +203,18 @@ PNMTD monitors MikroTik routers (RouterOS 7.13 or later) and backs up their conf
 - **Updates and commands that change a router** take the router admin's password, typed for each run: PNMTD keeps it in memory while the run lasts and never stores it, so it can change no router on its own. The password is accepted over HTTPS only (`Proxy` in `.env` when a reverse proxy terminates TLS). Commands as `pnmt` (read-only) need no password; their text and output are kept as the router's history. From the server: `docker compose exec -T pnmtd pnmtd mikrotik run <router> --command '/ip address print'` (add `--admin admin --password-stdin` and the password on standard input to run as the admin).
 - **Security advisories:** PNMTD reads MikroTik's release feed every hour (`Mikrotik__Advisories__*` in `.env`). A release whose changelog mentions a CVE or an exploit is assessed, by the AI too when it is on; when one rated critical is newer than a router's version on the same channel, the *RouterOS advisories* sensor reports 422 with the routers behind. *Admin → MikroTik & WireGuard* lists the releases, the *Routers* tab marks the routers, and a router's *Updates* tab highlights the security lines in the changelog.
 - `./info.sh` shows the gateway's state and the endpoint; `docker compose exec pnmtd pnmtd wireguard status` the tunnels, `pnmtd mikrotik list` the routers.
+
+## Windows servers
+
+Windows servers and PCs report through the PNMT sensor service ([docs/windows-sensor-plan.md](../docs/windows-sensor-plan.md)): one executable, `pnmt-sensor-x64.exe` or `pnmt-sensor-arm64.exe`, from the GitHub release of PNMT's own version (*Admin → Windows servers → Download* links it with its SHA-256).
+
+- **Nothing to open.** The agents connect to PNMT's existing address and port over HTTPS, with a WebSocket on `/agent/v1/ws`. Behind nginx, add the WebSocket lines above. Without a reverse proxy, the published port works as it is; the agents still require HTTPS, unless `Windows__AllowHttp=true` (development only).
+- **Adding a server:** *Add Windows server…* in a host's menu (Admin) gives a token, `xxxx-xxxx`, valid 24 hours and once. On the server, run the executable as an administrator, enter PNMT's URL and the token. Unattended: `pnmt-sensor-x64.exe join --url https://pnmt.example.com --token xxxx-xxxx --quiet` (exit 0 when connected).
+- **Unsigned.** The executable has no code signature: compare `Get-FileHash .\pnmt-sensor-x64.exe` with the SHA-256 PNMT shows; SmartScreen asks (*More info → Run anyway*); for scripts, `Unblock-File`.
+- **Trust.** Each agent has a key in the server's machine store; PNMTD's signing key is under Data Protection in the keys volume, which `./backup.sh` includes. A restore without the keys volume means every server must re-join.
+- **Updating:** run the newer executable on the server: its window offers *Update*, or `pnmt-sensor.exe update` on the command line. The identity and key stay.
+- **Logins** need the audit policy: the server's *Access* tab lists what is missing, with the `auditpol` lines to fix it. The agent changes nothing itself.
+- `docker compose exec pnmtd pnmtd windows simulate --url https://pnmt.example.com --token xxxx-xxxx` runs a fake agent next to the server, for a look without Windows.
 
 ## AI (optional)
 

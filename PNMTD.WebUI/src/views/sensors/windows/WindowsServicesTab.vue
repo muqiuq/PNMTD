@@ -49,6 +49,7 @@ const classSeverity = (c: S['ServiceClass']) =>
       :sensor-id="id"
       section="services"
       :view="section.data.value"
+      :loading="section.loading.value"
       :can-write="canWrite"
       :connected="server.server.connected"
     />

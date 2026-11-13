@@ -63,6 +63,7 @@ const who = (l: S['WindowsLoginItem']) => (l.domain ? `${l.domain}\\${l.user}` :
       :sensor-id="id"
       section="access"
       :view="section.data.value"
+      :loading="section.loading.value"
       :can-write="canWrite"
       :connected="server.server.connected"
     />

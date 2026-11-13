@@ -193,6 +193,7 @@ internal static class DevSeedCommand
         SeedMail(db, hosts, sensors.Select(s => s.Sensor).ToList(), now);
         SeedUdp(db, sensors.Select(s => s.Sensor).ToList(), hosts, now);
         counter += DevSeedMikrotik.Seed(db, hosts, now);
+        counter += DevSeedWindows.Seed(db, hosts, now);
         foreach (var key in new[]
         {
             KeyValueKeyEnums.LAST_HEARTBEAT_TASK_RUN, KeyValueKeyEnums.LAST_NOTIFICATION_TASK_RUN, KeyValueKeyEnums.LAST_PING_TASK_RUN,

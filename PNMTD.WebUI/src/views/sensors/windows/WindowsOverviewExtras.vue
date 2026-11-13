@@ -46,7 +46,7 @@ const who = (l: S['WindowsLoginItem']) => (l.domain ? `${l.domain}\\${l.user}` :
   <section class="panel">
     <div class="panel-header">Remote access</div>
     <div class="panel-body">
-      <p>{{ remote.data.value?.remoteAccess?.summary ?? 'Not reported yet.' }}</p>
+      <p>{{ remote.data.value?.remoteAccess?.summary ?? (remote.loading.value ? 'Loading…' : 'Not reported yet.') }}</p>
       <div class="tags">
         <Tag
           v-for="f in active"
@@ -64,7 +64,8 @@ const who = (l: S['WindowsLoginItem']) => (l.domain ? `${l.domain}\\${l.user}` :
         <RelativeTime :value="l.lastAt ?? l.at" /> · <strong>{{ who(l) }}</strong> · {{ l.kind }}
         <span v-if="l.sourceAddress" class="mono muted"> from {{ l.sourceAddress }}</span>
       </li>
-      <li v-if="!admins.data.value?.items.length" class="muted">None recorded.</li>
+      <li v-if="admins.isPending.value" class="muted">Loading…</li>
+      <li v-else-if="!admins.data.value?.items.length" class="muted">None recorded.</li>
     </ul>
     <div class="panel-body small">
       Failed logins in the last 24 hours:
@@ -89,7 +90,8 @@ const who = (l: S['WindowsLoginItem']) => (l.domain ? `${l.domain}\\${l.user}` :
     <div class="panel-header">Last changes</div>
     <ul class="panel-body plain">
       <li v-for="c in changes.data.value?.items ?? []" :key="c.id"><RelativeTime :value="c.at" /> · {{ c.summary }}</li>
-      <li v-if="!changes.data.value?.items.length" class="muted">None yet.</li>
+      <li v-if="changes.isPending.value" class="muted">Loading…</li>
+      <li v-else-if="!changes.data.value?.items.length" class="muted">None yet.</li>
     </ul>
   </section>
 </template>

@@ -16,5 +16,5 @@ export function useWindowsSection(id: Ref<string>, section: string) {
     },
     refetchInterval: 60_000,
   })
-  return { query, data: computed(() => query.data.value ?? null) }
+  return { query, data: computed(() => query.data.value ?? null), loading: computed(() => query.isPending.value) }
 }

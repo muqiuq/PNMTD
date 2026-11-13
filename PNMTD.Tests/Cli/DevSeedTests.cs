@@ -21,7 +21,12 @@ public sealed class DevSeedTests
         Assert.AreEqual(0, DevSeedCommand.Run(["seed"], () => Data.PnmtdDbContext.Create(connection), NullLogger.Instance));
 
         Assert.AreEqual(50, await db.Hosts.CountAsync());
-        Assert.AreEqual(300, await db.Sensors.CountAsync());
+        // 300, and two Windows servers with their diagnostics sensors (docs/windows-sensor-plan.md §11).
+        Assert.AreEqual(304, await db.Sensors.CountAsync());
+        Assert.AreEqual(2, await db.WindowsAgents.CountAsync());
+        Assert.AreEqual(2 * Lib.Agent.SectionNames.All.Count, await db.WindowsSections.CountAsync());
+        Assert.AreEqual(2, await db.DiagnosticAssignments.CountAsync());
+        Assert.IsTrue(await db.DiagnosticRuns.AnyAsync(r => r.Outcome == Lib.Agent.DiagnosticOutcome.Fail), "the Basel gateway's half hour");
         Assert.IsGreaterThan(150_000, await db.Events.CountAsync());
         // UDP nodes (docs/udp-iot-plan.md U6): four fan sensors became nodes, with the real codec's packets.
         Assert.AreEqual(4, await db.UdpNodes.CountAsync());

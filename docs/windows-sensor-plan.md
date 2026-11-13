@@ -1032,6 +1032,32 @@ W0 needs real machines (one Windows Server 2019, one Windows 10 Pro or 11) and t
 - **Web UI:** *Admin → Diagnostics* (*Sets* with an editor of typed rows, *Assignments* with *Assign…*, the interval, *Pause*, *Run now* and delete, *Runs* with a drawer per run); a server's *Diagnostics* tab (its assignments and history) and the states on its overview; the fleet's *diagnostics failing* filter and badge.
 - **Tests** (`PNMTD.Tests/Diagnostics/DiagnosticsTests.cs`): the caps, an assignment with its sensor and the agent's new configuration, Run now through the simulator with 252 and 452, the fleet's count, and deleting.
 
+### W5: release and polish
+
+- **The release:** `.github/workflows/push.yml` has a second job on version tags, `agent_release`, on `ubuntu-latest`: `tools/agent.sh`, then `gh release create` (or nothing, when the release exists) and `gh release upload --clobber` of both executables and their `.sha256`, with the workflow's token (`contents: write`). A tag with a dash is a pre-release. No tests run there; `dotnet.yml` is unchanged and builds the agent with the solution on every push.
+- **The Download tab** (*Admin → Windows servers*): PNMTD's version, both links, the SHA-256 read from the release's `.sha256` assets (cached 6 hours, 10 minutes after a failure; *Add server* never waits for GitHub), the `Get-FileHash` line, the unattended command line, and how to update.
+- **Updating:** the window offers *Update* when the installed agent is older than the executable that runs; `pnmt-sensor.exe update` does the same on the command line. Stop, replace, start: `agent.json`, the key and the buffers stay.
+- **The outdated badge** shows in the fleet, the status strip and the Agent tab when the agent is older than PNMTD.
+- **`deploy/README.md`:** the nginx example passes the upgrade (`map $http_upgrade`, `proxy_http_version 1.1`, `proxy_read_timeout 120s`), and a *Windows servers* section; **`deploy/.env.example`:** the `Windows__*` settings.
+- **`pnmtd dev seed`** adds two servers (`backup-srv`, `app-04`) with every section, a week of logins, changes, the agent log, and *branch connectivity* assigned to both with runs (app-04's Basel gateway failed for half an hour and recovered, so the demo's failing hosts stay three). The seed's servers have no agent: their heartbeat interval is a day.
+- **A browser test after all** (`e2e/windows.spec.ts`, two tests): the admin page and *Add server*, every tab of a seeded server, and *Admin → Diagnostics* with a run. Not the agent: only the pages, which nothing else could open (§13 asked for no e2e tests; these are the cheapest way to see the pages render).
+- **Not done: the limits tuned with W0's numbers** (W0 is still to do).
+
+### The checklist per release (§13)
+
+On one Windows Server 2019 and one Windows 10 Pro or Windows 11 machine, with the release's executable:
+
+1. `Get-FileHash` matches the release's `.sha256`; SmartScreen's *Run anyway* works.
+2. Join from the window with a token from *Add Windows server…*: both fingerprints match the agent log; the server shows *connected*.
+3. Within a minute: 250; the overview, *Hardware*, *Network*, *Services*, *Remote access*, *Access*, *Event log* filled, without errors in the sections.
+4. A login over RDP as an admin: in *Access* within seconds, 254. A wrong password three times: an aggregate with its count; ten from one address: 454.
+5. Stop a service set to automatic: *Services* flags it; add a local administrator: *Changes* has the line, 253.
+6. Assign a diagnostics set: *Run now* shows its result within seconds; a check against an address that doesn't answer: 452.
+7. Unplug the network for 5 minutes: the agent's log shows the reconnects; the logins of that time arrive after.
+8. Kill `pnmt-sensor.exe` in the task manager: Windows starts it again within a minute; the agent log has *crashed*.
+9. Run the next version's executable: *Update*; the server stays the same sensor.
+10. *Uninstall…*: the service and the key are gone; PNMT shows *uninstalled* and no 460.
+
 ---
 
 ## Appendix: configuration and file changes

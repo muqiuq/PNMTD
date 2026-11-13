@@ -12,6 +12,7 @@ const props = defineProps<{
   view: S['WindowsSectionView'] | null
   canWrite: boolean
   connected: boolean
+  loading?: boolean
 }>()
 const { run, busy } = useActions()
 const collect = () =>
@@ -30,6 +31,7 @@ const collect = () =>
     <span v-if="view" class="muted small"
       >Collected <RelativeTime :value="view.collectedAt" />, changed <RelativeTime :value="view.changedAt"
     /></span>
+    <span v-else-if="loading" class="muted small">Loading…</span>
     <span v-else class="muted small">Not reported yet.</span>
     <span class="spacer" />
     <Button

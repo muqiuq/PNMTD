@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import TabNav from '@/components/TabNav.vue'
 import AgentLogTab from './AgentLogTab.vue'
+import DownloadTab from './DownloadTab.vue'
 import ServersTab from './ServersTab.vue'
 import TokensTab from './TokensTab.vue'
 
@@ -16,6 +17,7 @@ const tab = computed(() => (typeof route.params.tab === 'string' && route.params
 const tabs = [
   { key: 'servers', label: 'Servers', icon: 'pi pi-microsoft', to: { name: 'windows', params: { tab: 'servers' } } },
   { key: 'tokens', label: 'Join tokens', icon: 'pi pi-key', to: { name: 'windows', params: { tab: 'tokens' } } },
+  { key: 'download', label: 'Download', icon: 'pi pi-download', to: { name: 'windows', params: { tab: 'download' } } },
   { key: 'log', label: 'Agent log', icon: 'pi pi-history', to: { name: 'windows', params: { tab: 'log' } } },
 ]
 </script>
@@ -25,6 +27,7 @@ const tabs = [
     <PageHeader title="Windows servers" />
     <TabNav :items="tabs" :active="tab" label="Windows servers" />
     <TokensTab v-if="tab === 'tokens'" />
+    <DownloadTab v-else-if="tab === 'download'" />
     <AgentLogTab v-else-if="tab === 'log'" />
     <ServersTab v-else />
   </div>

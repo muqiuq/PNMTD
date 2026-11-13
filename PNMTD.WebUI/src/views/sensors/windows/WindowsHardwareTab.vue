@@ -23,6 +23,7 @@ const healthSeverity = (h: string | null | undefined) =>
       :sensor-id="id"
       section="hardware"
       :view="section.data.value"
+      :loading="section.loading.value"
       :can-write="canWrite"
       :connected="server.server.connected"
     />

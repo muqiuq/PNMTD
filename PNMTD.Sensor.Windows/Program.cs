@@ -28,6 +28,8 @@ internal static partial class Program
         pnmt-sensor.exe status                the service and the connection, as status.json says
         pnmt-sensor.exe uninstall [--delete-logs]
                                               stops and deletes the service, the key and the data; PNMT keeps the server
+        pnmt-sensor.exe update                replaces the installed agent with this executable: stop, replace, start;
+                                              the identity, the key and the configuration stay
         pnmt-sensor.exe collect               collects every section once and prints them as JSON (for support)
         pnmt-sensor.exe version
         """;
@@ -52,6 +54,7 @@ internal static partial class Program
                 "status" => Status(),
                 "uninstall" => Uninstall(args[1..]),
                 "collect" => Collect(),
+                "update" => Update(),
                 "version" or "--version" => Print($"PNMT Sensor {AgentInfo.Version} ({AgentInfo.Architecture})", 0),
                 _ => Print(Usage, args[0] is "help" or "--help" or "-h" or "/?" ? 0 : 2),
             };
@@ -225,6 +228,22 @@ internal static partial class Program
         }
         WriteEventLog("PNMT Sensor uninstalled.", EventLogEntryType.Information);
         return 0;
+    }
+
+    /// <summary>Update (§10.4): the newer executable replaces the installed one; agent.json and the key stay.</summary>
+    private static int Update()
+    {
+        var installed = ServiceControl.InstalledVersion();
+        if (!ServiceControl.IsInstalled)
+        {
+            return Print("The service is not installed: join first.", 1);
+        }
+        ServiceControl.Stop();
+        ServiceControl.InstallProgram();
+        ServiceControl.Install(AgentInfo.InstalledExecutable);
+        ServiceControl.Start();
+        WriteEventLog($"PNMT Sensor updated from {installed} to {AgentInfo.Version}.", EventLogEntryType.Information);
+        return Print($"Updated from {installed?.ToString() ?? "?"} to {AgentInfo.Version}; the service runs again.", 0);
     }
 
     private static int Collect()

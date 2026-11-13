@@ -2,6 +2,8 @@ name: Publish Docker image
 
 # A version tag builds the image and pushes it to Docker Hub, once "Build and test" is green on the
 # commit:  git tag -a v1.1.0 -m "PNMT 1.1.0" && git push origin v1.1.0
+# The same tag publishes the Windows agent to the tag's GitHub release (docs/windows-sensor-plan.md
+# §11): pnmt-sensor-x64.exe and pnmt-sensor-arm64.exe with their SHA-256. No tests run here.
 on:
   push:
     tags: [ "v*" ]
@@ -62,3 +64,37 @@ jobs:
           subject-name: index.docker.io/uisach/pnmtd
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+
+  agent_release:
+    name: Publish the Windows agent to the release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # Single-file and self-contained for win-x64 and win-arm64 (EnableWindowsTargeting): the
+      # executables' version is Directory.Build.props', so they match the image of the same tag.
+      - name: Publish pnmt-sensor
+        run: tools/agent.sh
+
+      - name: Create the release, or add to it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            prerelease=()
+            [[ "$tag" == *-* ]] && prerelease=(--prerelease)
+            gh release create "$tag" --verify-tag --title "PNMT ${tag#v}" "${prerelease[@]}" \
+              --notes "The PNMT sensor service for Windows: pnmt-sensor-x64.exe and pnmt-sensor-arm64.exe, unsigned; compare the SHA-256 with Get-FileHash."
+          fi
+          gh release upload "$tag" --clobber \
+            artifacts/agent/pnmt-sensor-x64.exe artifacts/agent/pnmt-sensor-x64.exe.sha256 \
+            artifacts/agent/pnmt-sensor-arm64.exe artifacts/agent/pnmt-sensor-arm64.exe.sha256

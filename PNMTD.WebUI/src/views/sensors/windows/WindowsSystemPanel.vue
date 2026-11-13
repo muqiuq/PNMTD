@@ -24,6 +24,7 @@ const sys = computed(() => section.data.value?.system ?? null)
         :sensor-id="id"
         section="system"
         :view="section.data.value"
+        :loading="section.loading.value"
         :can-write="canWrite"
         :connected="server.server.connected"
       />
