@@ -235,6 +235,18 @@ public sealed class RouterPollService(
         return RouterPoll.Parse(exec.Output);
     }
 
+    /// <summary>
+    /// An export for a job (§7.3, §8.2) as the poll takes it: with secrets only when the router opted in and its
+    /// group has <c>sensitive</c>, so a job's versions compare with the poll's.
+    /// </summary>
+    public async Task<(string? Output, string? Error, bool WithSecrets)> JobExportAsync(IRouterSession session, MikrotikRouterEntity router,
+        CancellationToken ct)
+    {
+        var withSecrets = router.IncludeSecrets && (await ReadAsync(session, ct)).GroupPolicies.Contains("sensitive");
+        var (output, error) = await ExportAsync(session, withSecrets, ct);
+        return (output, error, withSecrets);
+    }
+
     /// <summary><c>/export terse</c> in an open session: the text, or why there is none.</summary>
     public async Task<(string? Output, string? Error)> ExportAsync(IRouterSession session, bool withSecrets, CancellationToken ct)
     {

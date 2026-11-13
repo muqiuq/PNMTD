@@ -16,6 +16,8 @@ public sealed class MikrotikOptions
 
     public UpdateOptions Updates { get; set; } = new();
 
+    public CommandOptions Commands { get; set; } = new();
+
     /// <summary>Admin passwords only over HTTPS (§7.2), unless this is set: development only.</summary>
     public bool AllowPasswordsOverHttp { get; set; }
 
@@ -65,6 +67,25 @@ public sealed class MikrotikOptions
         public long MinimumFreeStorageBytes { get; set; } = 24L * 1024 * 1024;
 
         public long MaxBinaryBackupBytes { get; set; } = 64L * 1024 * 1024;
+    }
+
+    public sealed class CommandOptions
+    {
+        /// <summary>The text of a remote command, in UTF-8 (§8.2). M6 ran 64 KB in one exec on 7.25.1.</summary>
+        public int MaxCommandBytes { get; set; } = 16 * 1024;
+
+        public int DefaultTimeoutSeconds { get; set; } = 60;
+
+        public int MaxTimeoutSeconds { get; set; } = 600;
+
+        /// <summary>The output is read up to this (§8.3)…</summary>
+        public int MaxOutputBytes { get; set; } = 1024 * 1024;
+
+        /// <summary>…and kept up to this, marked as cut beyond it.</summary>
+        public int MaxStoredOutputBytes { get; set; } = 256 * 1024;
+
+        /// <summary>Jobs that run at once, over all batches; a batch run one at a time takes one of them.</summary>
+        public int Parallelism { get; set; } = 4;
     }
 
     public sealed class VersionCheckOptions

@@ -36,6 +36,7 @@ import { useServerTable } from '@/composables/useServerTable'
 import { formatAbsolute, formatPercent } from '@/format'
 import { useSession } from '@/stores/session'
 import BackupsTab from './mikrotik/BackupsTab.vue'
+import MikrotikCommandsTab from './mikrotik/CommandsTab.vue'
 import UpdatesTab from './mikrotik/UpdatesTab.vue'
 import MikrotikSettingsDialog from './mikrotik/MikrotikSettingsDialog.vue'
 import MikrotikStatusStrip from './mikrotik/MikrotikStatusStrip.vue'
@@ -111,6 +112,8 @@ const mikrotikTabs = computed(() => {
             to: to('updates'),
             badge: sensor.value?.mikrotik?.updateAvailable ? '1' : null,
           },
+          // Remote commands need CanWrite (§8.3).
+          ...(canWrite.value ? [{ key: 'commands', label: 'Commands', icon: 'pi pi-code', to: to('commands') }] : []),
         ]
       : []),
   ]
@@ -315,6 +318,7 @@ const more = computed(() => [
         :can-write="canWrite"
         :is-admin="isAdmin"
       />
+      <MikrotikCommandsTab v-else-if="isMikrotik && tab === 'commands'" :sensor="sensor" :is-admin="isAdmin" />
       <LastPacketsTab v-else-if="tab === 'last-packets'" :sensor="sensor" />
       <CommandsTab v-else-if="tab === 'commands'" :sensor="sensor" :can-write="canWrite" />
       <FirmwareTab v-else-if="tab === 'firmware'" :sensor="sensor" :is-admin="isAdmin" @update="updating = true" />

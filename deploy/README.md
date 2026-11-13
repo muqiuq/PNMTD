@@ -177,6 +177,7 @@ PNMTD monitors MikroTik routers (RouterOS 7.13 or later) and backs up their conf
 - **Firewalls:** the external port must be reachable from the routers. Docker's published ports bypass `ufw`; a cloud security group needs a rule.
 - **The tunnel network** (default 10.253.0.0/16), the keepalive, the MTU and the management ports are set on the admin page. A change applies to new join scripts; the page lists the routers that need theirs pasted again.
 - **Backups are credentials.** The database holds the routers' configurations (without secrets unless a router opts in) and the tunnel keys, encrypted with the key ring on `pnmtd-keys`. `./backup.sh` covers both, so a restored installation works with every router's old script.
+- **Updates and commands that change a router** take the router admin's password, typed for each run: PNMTD keeps it in memory while the run lasts and never stores it, so it can change no router on its own. The password is accepted over HTTPS only (`Proxy` in `.env` when a reverse proxy terminates TLS). Commands as `pnmt` (read-only) need no password; their text and output are kept as the router's history. From the server: `docker compose exec -T pnmtd pnmtd mikrotik run <router> --command '/ip address print'` (add `--admin admin --password-stdin` and the password on standard input to run as the admin).
 - `./info.sh` shows the gateway's state and the endpoint; `docker compose exec pnmtd pnmtd wireguard status` the tunnels, `pnmtd mikrotik list` the routers.
 
 ## What lives where

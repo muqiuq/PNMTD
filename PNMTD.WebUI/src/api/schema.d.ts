@@ -2408,6 +2408,214 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/mikrotik/commands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    sensorId?: string;
+                    batchId?: string;
+                    state?: components["schemas"]["MikrotikJobState"];
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfMikrotikCommandItem"];
+                        "text/json": components["schemas"]["PagedOfMikrotikCommandItem"];
+                        "text/plain": components["schemas"]["PagedOfMikrotikCommandItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MikrotikCommandRequest"];
+                    "text/json": components["schemas"]["MikrotikCommandRequest"];
+                    "application/*+json": components["schemas"]["MikrotikCommandRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikCommandsCreated"];
+                        "text/json": components["schemas"]["MikrotikCommandsCreated"];
+                        "text/plain": components["schemas"]["MikrotikCommandsCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mikrotik/commands/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikCommandDetail"];
+                        "text/json": components["schemas"]["MikrotikCommandDetail"];
+                        "text/plain": components["schemas"]["MikrotikCommandDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mikrotik/commands/batches/{batchId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    batchId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikCommandBatch"];
+                        "text/json": components["schemas"]["MikrotikCommandBatch"];
+                        "text/plain": components["schemas"]["MikrotikCommandBatch"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mikrotik/commands/{id}/redact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikCommandItem"];
+                        "text/json": components["schemas"]["MikrotikCommandItem"];
+                        "text/plain": components["schemas"]["MikrotikCommandItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notification-rules": {
         parameters: {
             query?: never;
@@ -5146,6 +5354,83 @@ export interface components {
             /** Format: date-time */
             releasedAt: null | string;
         };
+        MikrotikCommandBatch: {
+            /** Format: uuid */
+            batchId: string;
+            command: null | string;
+            runAs: string;
+            asAdmin: boolean;
+            requestedBy: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            groups: components["schemas"]["MikrotikCommandGroup"][];
+        };
+        MikrotikCommandDetail: {
+            command: components["schemas"]["MikrotikCommandItem"];
+            output: null | string;
+            log: components["schemas"]["MikrotikJobLogItem"][];
+            /** Format: int32 */
+            added: null | number;
+            /** Format: int32 */
+            removed: null | number;
+        };
+        MikrotikCommandGroup: {
+            state: components["schemas"]["MikrotikJobState"];
+            output: null | string;
+            outputTruncated: boolean;
+            jobs: components["schemas"]["MikrotikCommandItem"][];
+        };
+        MikrotikCommandItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            batchId: string;
+            /** Format: uuid */
+            sensorId: null | string;
+            routerName: string;
+            state: components["schemas"]["MikrotikJobState"];
+            step: components["schemas"]["MikrotikJobStep"];
+            requestedBy: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            startedAt: null | string;
+            /** Format: date-time */
+            finishedAt: null | string;
+            command: null | string;
+            runAs: string;
+            asAdmin: boolean;
+            /** Format: int32 */
+            timeoutSeconds: number;
+            /** Format: int32 */
+            exitStatus: null | number;
+            error: null | string;
+            outputTruncated: boolean;
+            /** Format: uuid */
+            backupBeforeId: null | string;
+            /** Format: uuid */
+            backupAfterId: null | string;
+            /** Format: date-time */
+            redactedAt: null | string;
+            redactedBy: null | string;
+        };
+        MikrotikCommandRequest: {
+            sensorIds?: string[];
+            command?: string;
+            runAs?: components["schemas"]["MikrotikRunAs"];
+            username?: null | string;
+            password?: null | string;
+            /** Format: int32 */
+            timeoutSeconds?: null | number;
+            backupBeforeAndAfter?: null | boolean;
+            oneAtATime?: null | boolean;
+        };
+        MikrotikCommandsCreated: {
+            /** Format: uuid */
+            batchId: string;
+            jobs: components["schemas"]["MikrotikCommandItem"][];
+            refused: components["schemas"]["MikrotikJobRefusal"][];
+        };
         MikrotikCount: {
             key: string;
             /** Format: int32 */
@@ -5232,6 +5517,8 @@ export interface components {
             toVersion: null | string;
             channel: null | string;
             error: null | string;
+            command: null | string;
+            runAs: null | string;
         };
         /** @enum {unknown} */
         MikrotikJobKind: "Update" | "Command";
@@ -5270,7 +5557,7 @@ export interface components {
             refused: components["schemas"]["MikrotikJobRefusal"][];
         };
         /** @enum {unknown} */
-        MikrotikJobState: "Queued" | "Running" | "Succeeded" | "Skipped" | "Failed" | "Cancelled";
+        MikrotikJobState: "Queued" | "Running" | "Succeeded" | "Skipped" | "Failed" | "Cancelled" | "TimedOut";
         /** @enum {unknown} */
         MikrotikJobStep: "Check" | "Export" | "BinaryBackup" | "Download" | "Reboot" | "Wait" | "Verify" | "Firmware" | "Done" | "Run" | "ExportAfter";
         /** @enum {unknown} */
@@ -5363,6 +5650,8 @@ export interface components {
             includeSecrets?: boolean;
             diagnostics?: boolean;
         };
+        /** @enum {unknown} */
+        MikrotikRunAs: "Pnmt" | "Admin";
         MikrotikScript: {
             script: string;
             fileName: string;
@@ -5535,6 +5824,15 @@ export interface components {
         };
         PagedOfMikrotikBackupItem: {
             items: components["schemas"]["MikrotikBackupItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfMikrotikCommandItem: {
+            items: components["schemas"]["MikrotikCommandItem"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */

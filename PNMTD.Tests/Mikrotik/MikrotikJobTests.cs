@@ -21,7 +21,7 @@ namespace PNMTD.Tests.Mikrotik;
 [TestClass]
 public sealed class MikrotikJobTests
 {
-    private const string AdminPassword = "marker-Zq7#pw-9f31";
+    internal const string AdminPassword = "marker-Zq7#pw-9f31";
 
     private static TestApp app = null!;
     private static AdminConnector routers = null!;
@@ -133,7 +133,7 @@ public sealed class MikrotikJobTests
         var binary = backups.Single(b => b.Kind == MikrotikBackupKind.Binary);
         Assert.AreEqual(HttpStatusCode.Forbidden, (await user.GetAsync($"/api/v1/sensors/{id}/mikrotik/backups/{binary.Id}/download")).StatusCode);
         Assert.AreEqual(HttpStatusCode.OK, (await admin.GetAsync($"/api/v1/sensors/{id}/mikrotik/backups/{binary.Id}/download")).StatusCode);
-        Assert.AreEqual(0, await CountMarkerAsync(AdminPassword), "the admin password must never be stored");
+        Assert.AreEqual(0, await CountMarkerAsync(app, AdminPassword), "the admin password must never be stored");
     }
 
     [TestMethod]
@@ -191,7 +191,7 @@ public sealed class MikrotikJobTests
     }
 
     /// <summary>Every text column of every table, searched for <paramref name="marker"/> (§14: the password never persists).</summary>
-    private static async Task<int> CountMarkerAsync(string marker)
+    internal static async Task<int> CountMarkerAsync(TestApp app, string marker)
     {
         await using var db = app.NewDb();
         var columns = await db.Database.SqlQueryRaw<ColumnRow>("""
@@ -237,13 +237,101 @@ public sealed class MikrotikJobTests
 
         public RouterHostKey HostKey { get; } = new("ssh-ed25519", "SimulatedHostKeySimulatedHostKeySimulatedHo");
 
+        /// <summary>For the command tests: its identity, configuration added by admin runs, and a log to print.</summary>
+        public string Identity { get; set; } = "router";
+
+        public List<string> Config { get; } = [];
+
+        public int LogBytes { get; set; } = 100;
+
+        /// <summary>The scripts run through <c>:parse</c> (§8.2), unwrapped.</summary>
+        public List<string> Scripts { get; } = [];
+
+        public async Task<RouterExecResult> ExecAsync(string command, bool asAdmin, CancellationToken ct)
+        {
+            const string wrapper = ":local pnmtScript [:parse ";
+            if (!command.StartsWith(wrapper, StringComparison.Ordinal))
+            {
+                return Exec(command, asAdmin);
+            }
+            var script = Unquote(command[wrapper.Length..command.LastIndexOf("]; $pnmtScript", StringComparison.Ordinal)]);
+            Scripts.Add(script);
+            RouterExecResult Result(string output, int? status = 0) => new(output, "", status, false, false, TimeSpan.FromMilliseconds(5));
+            switch (script)
+            {
+                case "/ip address print":
+                    // As a terminal might: CR LF, and an escape sequence for colour.
+                    return Result("\u001b[mFlags: D - DYNAMIC\r\n#   ADDRESS        INTERFACE\r\n0   10.0.2.15/24   ether1\r\n");
+                case "/system identity print":
+                    return Result($"  name: {Identity}\r\n");
+                case "/log print":
+                    return Result(string.Concat(Enumerable.Repeat("00:00:01 system,info router rebooted\r\n", LogBytes / 38 + 1)));
+                case "/tool torch interface=ether1":
+                    await Task.Delay(Timeout.Infinite, ct);
+                    break;
+            }
+            if (script.StartsWith(":delay", StringComparison.Ordinal))
+            {
+                return new RouterExecResult("partial output\r\n", "", null, TimedOut: true, false, TimeSpan.FromSeconds(5));
+            }
+            if (script == "/flaky")
+            {
+                // M6 on 7.25.1: about one failed script in ten ends with exit status 0; the error line tells.
+                return Result("bad command name flaky (line 1 column 2)\n", 0);
+            }
+            if (script.StartsWith(":error ", StringComparison.Ordinal))
+            {
+                return Result($"{script[8..^1]} (:error; line 1)\n", 1);
+            }
+            if (script.StartsWith("/ip address add ", StringComparison.Ordinal))
+            {
+                if (!asAdmin)
+                {
+                    return Result("not enough permissions (9)\n", 1);
+                }
+                Config.Add(script);
+                return Result("");
+            }
+            return Result($"bad command name {script.Split(' ')[0].TrimStart('/')} (line 1 column 2)\n", 1);
+        }
+
+        /// <summary>RouterOsScript.Quote backwards.</summary>
+        private static string Unquote(string quoted)
+        {
+            var bytes = new List<byte>();
+            for (var i = 1; i < quoted.Length - 1; i++)
+            {
+                if (quoted[i] != '\\')
+                {
+                    bytes.Add((byte)quoted[i]);
+                    continue;
+                }
+                var c = quoted[++i];
+                switch (c)
+                {
+                    case 'n': bytes.Add((byte)'\n'); break;
+                    case 'r': bytes.Add((byte)'\r'); break;
+                    case 't': bytes.Add((byte)'\t'); break;
+                    case '"' or '\\' or '$' or '?': bytes.Add((byte)c); break;
+                    default:
+                        bytes.Add(Convert.ToByte(quoted.Substring(i, 2), 16));
+                        i++;
+                        break;
+                }
+            }
+            return System.Text.Encoding.UTF8.GetString(bytes.ToArray());
+        }
+
         public RouterExecResult Exec(string command, bool asAdmin)
         {
             Commands.Add(command);
             RouterExecResult Ok(string output = "") => new(output, "", 0, false, false, TimeSpan.Zero);
             RouterExecResult Denied() => new("not enough permissions (9)", "", 1, false, false, TimeSpan.Zero);
-            // A newer RouterOS exports one more default, as upgrades often do.
-            if (command.StartsWith("/export", StringComparison.Ordinal)) return Ok(Version == "7.25.1" ? export : export + "/ip dns set max-concurrent-queries=200\n");
+            // A newer RouterOS exports one more default, as upgrades often do; admin runs add their lines.
+            if (command.StartsWith("/export", StringComparison.Ordinal))
+            {
+                return Ok((Version == "7.25.1" ? export : export + "/ip dns set max-concurrent-queries=200\n") + string.Concat(Config.Select(c => c + "\n")));
+            }
             if (command.StartsWith("{ :local r", StringComparison.Ordinal))
             {
                 var json = JsonNode.Parse(poll)!;
@@ -317,7 +405,7 @@ public sealed class MikrotikJobTests
             public RouterHostKey HostKey => router.HostKey;
 
             public Task<RouterExecResult> ExecAsync(string command, TimeSpan timeout, int maxOutputBytes, CancellationToken ct) =>
-                Task.FromResult(router.Exec(command, admin));
+                router.ExecAsync(command, admin, ct);
 
             public Task<byte[]> DownloadAsync(string path, long maxBytes, CancellationToken ct) =>
                 router.Files.TryGetValue(path, out var file) ? Task.FromResult(file) : throw new RouterSessionException(RouterFailureKind.Protocol, "SFTP: no such file");

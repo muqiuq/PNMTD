@@ -269,4 +269,51 @@ public sealed class RouterOsTests
         Assert.IsFalse(VersionCatalog.TryParse("<html>", out _));
         Assert.IsFalse(VersionCatalog.TryParse("", out _));
     }
+
+    // --- remote command output (§8.3) ----------------------------------------------------------------------
+
+    [TestMethod]
+    public void Command_output_is_cleaned_of_terminal_sequences()
+    {
+        Assert.AreEqual("Flags: X\nred\n", CommandOutput.Clean("\u001b[mFlags: X\r\n\u001b[31mred\u001b[0m\r\n"));
+        Assert.AreEqual("title gone\n", CommandOutput.Clean("\u001b]0;window\u0007title gone\n"), "OSC titles");
+        Assert.AreEqual("a\tb\nc", CommandOutput.Clean("a\tb\rc\u0000\u0008"), "a lone CR is a line end; other controls go");
+        Assert.AreEqual("grüezi 🦊\n", CommandOutput.Clean("grüezi 🦊\r\n"));
+    }
+
+    [TestMethod]
+    public void RouterOS_errors_are_the_last_line()
+    {
+        // As M0 and M6 recorded them on 7.13 and 7.25.1.
+        Assert.AreEqual("not enough permissions (9)", CommandOutput.Error("not enough permissions (9)\n"));
+        Assert.AreEqual("bad command name nosuch (line 1 column 2)", CommandOutput.Error("bad command name nosuch (line 1 column 2)\n"));
+        Assert.AreEqual("expected end of command (line 2 column 19)", CommandOutput.Error("expected end of command (line 2 column 19)\n"));
+        Assert.AreEqual("input does not match any value of interface (/ip/address/add (interface); line 1)",
+            CommandOutput.Error("before\ninput does not match any value of interface (/ip/address/add (interface); line 1)\n"));
+        Assert.AreEqual("boom (:error; line 1)", CommandOutput.Error("boom (:error; line 1)\n"), ":error's own text");
+        Assert.IsNull(CommandOutput.Error("Flags: D - DYNAMIC\n0 D 10.0.2.15/24\n"));
+        Assert.IsNull(CommandOutput.Error("not enough permissions (9)\nbut it went on\n"), "only the last line: an error stops the script");
+        Assert.IsNull(CommandOutput.Error("13:00:01 system,error login failure for user x\n"), "a log line is not an error");
+        Assert.AreEqual("last", CommandOutput.LastLine("first\n  last  \n\n"));
+        Assert.IsNull(CommandOutput.LastLine("\n \n"));
+    }
+
+    [TestMethod]
+    public void Command_output_is_cut_at_a_character_boundary()
+    {
+        Assert.AreEqual(("abc", false), CommandOutput.Limit("abc", 3));
+        Assert.AreEqual(("ab", true), CommandOutput.Limit("abc", 2));
+        Assert.AreEqual(("a", true), CommandOutput.Limit("aü", 2), "ü takes two bytes");
+        Assert.AreEqual(("a", true), CommandOutput.Limit("a🦊", 4), "the fox takes four bytes and two chars");
+        Assert.AreEqual(("a🦊", false), CommandOutput.Limit("a🦊", 5));
+    }
+
+    [TestMethod]
+    public void A_batch_is_grouped_by_output_the_largest_group_first()
+    {
+        var groups = CommandOutput.Group(new[] { ("r1", "x"), ("r2", "y"), ("r3", "y"), ("r4", "x"), ("r5", "y") }, r => r.Item2);
+        Assert.AreEqual(2, groups.Count);
+        CollectionAssert.AreEqual(new[] { "r2", "r3", "r5" }, groups[0].Select(r => r.Item1).ToArray());
+        CollectionAssert.AreEqual(new[] { "r1", "r4" }, groups[1].Select(r => r.Item1).ToArray());
+    }
 }

@@ -27,6 +27,12 @@ internal static class MikrotikCommand
           mikrotik script <name|id> [--removal] print the join script (audit-logged), or the removal script
           mikrotik accept-host-key <name|id>    accept the host key the router presented instead of the pinned one
           mikrotik versions                     fetch the newest RouterOS version of each channel now
+          mikrotik run <name|id>… (--command <text> | --file <script.rsc>) [--admin <user> --password-stdin]
+                [--timeout <seconds>] [--backup | --no-backup] [--one-at-a-time | --all-at-once]
+                                                run a command (or a script) here, stored as a job like one from the
+                                                web; as pnmt, or as the router's admin with the password from
+                                                standard input. Prints the output grouped by router; exit 0 when
+                                                every router succeeded
         """;
 
     public static int Run(string[] args, IConfiguration configuration)
@@ -42,6 +48,7 @@ internal static class MikrotikCommand
             ["script", var router, .. var rest] => Script(sp, router, new CommandLine.Options(rest)),
             ["accept-host-key", var router] => AcceptHostKey(sp, router),
             ["versions"] => Versions(sp),
+            ["run", .. var rest] => RunCommand(sp, rest),
             _ => throw new CommandLineException($"Unknown mikrotik command: {string.Join(' ', args)}"),
         };
     }
@@ -180,6 +187,80 @@ internal static class MikrotikCommand
             Console.WriteLine($"{channel,-12} {version.Version}{released}");
         }
         return latest.Count > 0 ? 0 : 1;
+    }
+
+    /// <summary>
+    /// A remote command (§8, §12) run in this process: the jobs are claimed when they are created, so the
+    /// server's runner leaves them alone, and the admin password never leaves this process.
+    /// </summary>
+    private static int RunCommand(IServiceProvider sp, string[] args)
+    {
+        var names = args.TakeWhile(a => !a.StartsWith("--", StringComparison.Ordinal)).ToList();
+        var o = new CommandLine.Options(args[names.Count..]);
+        if (names.Count == 0)
+        {
+            throw new CommandLineException("mikrotik run needs at least one router.");
+        }
+        var text = o.Optional("--command");
+        var file = o.Optional("--file");
+        if ((text is null) == (file is null))
+        {
+            throw new CommandLineException("Give either --command <text> or --file <script.rsc>.");
+        }
+        text ??= File.ReadAllText(file!);
+        var admin = o.Optional("--admin");
+        var fromStdin = o.Flag("--password-stdin");
+        if (admin is not null != fromStdin)
+        {
+            throw new CommandLineException("--admin <user> goes with --password-stdin: a password is never an argument.");
+        }
+        int? timeout = o.Optional("--timeout") is { } t
+            ? int.TryParse(t, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds) ? seconds : throw new CommandLineException("--timeout takes seconds.")
+            : null;
+        bool? backup = o.Flag("--backup") ? true : o.Flag("--no-backup") ? false : null;
+        bool? oneAtATime = o.Flag("--one-at-a-time") ? true : o.Flag("--all-at-once") ? false : null;
+        o.EnsureAllUsed();
+        var ids = names.Select(n => Resolve(sp, n)).ToList();
+        var password = admin is not null ? Console.In.ReadLine() is { Length: > 0 } line ? line : throw new CommandLineException("--password-stdin: no password on standard input.") : null;
+
+        var commands = sp.GetRequiredService<MikrotikCommandService>();
+        var created = commands.CreateAsync(new Api.V1.Contracts.MikrotikCommandRequest
+        {
+            SensorIds = ids, Command = text, RunAs = admin is null ? Models.Enums.MikrotikRunAs.Pnmt : Models.Enums.MikrotikRunAs.Admin,
+            Username = admin, Password = password, TimeoutSeconds = timeout, BackupBeforeAndAfter = backup, OneAtATime = oneAtATime,
+        }, CancellationToken.None, claim: true).GetAwaiter().GetResult();
+        foreach (var refusal in created.Refused)
+        {
+            Console.Error.WriteLine($"{refusal.Name}: refused: {refusal.Reason}");
+        }
+        if (created.Jobs.Count == 0)
+        {
+            return 1;
+        }
+        using var cancel = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            cancel.Cancel();
+        };
+        sp.GetRequiredService<JobRunner>().RunHereAsync(created.Jobs.Select(j => j.Id).ToList(), cancel.Token).GetAwaiter().GetResult();
+
+        var batch = commands.BatchAsync(created.BatchId, CancellationToken.None).GetAwaiter().GetResult();
+        foreach (var group in batch.Groups)
+        {
+            Console.WriteLine($"=== {string.Join(", ", group.Jobs.Select(j => j.RouterName))}: {group.State}" +
+                (group.Jobs[0].Error is { } error ? $" ({error})" : ""));
+            if (!string.IsNullOrEmpty(group.Output))
+            {
+                Console.Write(group.Output.EndsWith('\n') ? group.Output : group.Output + "\n");
+            }
+            if (group.OutputTruncated)
+            {
+                Console.WriteLine("[output cut]");
+            }
+        }
+        var all = batch.Groups.SelectMany(g => g.Jobs).ToList();
+        return created.Refused.Count == 0 && all.All(j => j.State == Models.Enums.MikrotikJobState.Succeeded) ? 0 : 1;
     }
 
     /// <summary>A sensor id, or the name of exactly one MikroTik router (case-insensitive).</summary>

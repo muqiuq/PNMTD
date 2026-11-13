@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Models.Enums;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Api.V1;
@@ -16,7 +17,8 @@ public sealed class SensorMikrotikController(MikrotikRouterService routers, Mikr
     public async Task<ActionResult<Paged<MikrotikJobItem>>> Jobs(Guid id, [FromQuery] MikrotikJobQuery query, CancellationToken ct)
     {
         await routers.EnsureRouterAsync(id, ct);
-        return await jobs.ListAsync(new MikrotikJobQuery { SensorId = id, Kind = query.Kind, State = query.State, Page = query.Page, PageSize = query.PageSize }, ct);
+        // Updates only: a router's commands need CanWrite, and admin runs Admin (§8.3).
+        return await jobs.ListAsync(new MikrotikJobQuery { SensorId = id, Kind = MikrotikJobKind.Update, State = query.State, Page = query.Page, PageSize = query.PageSize }, ct);
     }
 
     /// <summary>A job of the router, with its log.</summary>
@@ -133,4 +135,46 @@ public sealed class MikrotikController(MikrotikRouterService routers, MikrotikJo
     [HttpGet("routers")]
     public async Task<ActionResult<Paged<MikrotikFleetItem>>> Routers([FromQuery] MikrotikFleetQuery query, CancellationToken ct) =>
         await routers.FleetAsync(query, ct);
+}
+
+/// <summary>
+/// Remote commands (§8, §10): as <c>pnmt</c> for CanWrite, as a router's admin for Admins (checked in the
+/// service). Admin runs are seen by Admins only. Starting, cancelling and redacting are audit-logged.
+/// </summary>
+[Route("api/v1/mikrotik/commands")]
+[Authorize(Policy = Policies.CanWrite)]
+public sealed class MikrotikCommandsController(MikrotikCommandService commands) : V1ControllerBase
+{
+    /// <summary>
+    /// Runs a command on one router or several: one job per router in one batch. An admin run is refused over
+    /// plain HTTP and checks the credentials on every router first; the answer lists the routers refused.
+    /// </summary>
+    [HttpPost]
+    public async Task<ActionResult<MikrotikCommandsCreated>> Run(MikrotikCommandRequest request, CancellationToken ct) =>
+        await commands.CreateAsync(request, ct);
+
+    [HttpGet]
+    public async Task<ActionResult<Paged<MikrotikCommandItem>>> List([FromQuery] MikrotikCommandQuery query, CancellationToken ct) =>
+        await commands.ListAsync(query, ct);
+
+    /// <summary>A command on one router, with its output, its log and what it changed.</summary>
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<MikrotikCommandDetail>> Get(Guid id, CancellationToken ct) => await commands.GetAsync(id, ct);
+
+    /// <summary>A batch's results grouped by outcome and output (§8.3).</summary>
+    [HttpGet("batches/{batchId:guid}")]
+    public async Task<ActionResult<MikrotikCommandBatch>> Batch(Guid batchId, CancellationToken ct) => await commands.BatchAsync(batchId, ct);
+
+    /// <summary>Cancels a queued or running command: one's own, or any as an Admin.</summary>
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
+    {
+        await commands.CancelAsync(id, ct);
+        return NoContent();
+    }
+
+    /// <summary>Replaces the text and output with who redacted them and when (§8.3).</summary>
+    [HttpPost("{id:guid}/redact")]
+    [Authorize(Policy = Policies.Admin)]
+    public async Task<ActionResult<MikrotikCommandItem>> Redact(Guid id, CancellationToken ct) => await commands.RedactAsync(id, ct);
 }

@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { api, keys, type S } from '@/api/resources'
 import CodeTag from '@/components/CodeTag.vue'
 import ListTable from '@/components/ListTable.vue'
@@ -10,8 +13,13 @@ import RelativeTime from '@/components/RelativeTime.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useServerTable } from '@/composables/useServerTable'
 import { modeLabel } from '@/views/sensors/mikrotik/mikrotikDraft'
+import UpdateDialog from '@/views/sensors/mikrotik/UpdateDialog.vue'
+import CommandDialog from './CommandDialog.vue'
 
-/** Every router (§11.2): its state, version against the latest of its channel, and whether its script is up to date. */
+/**
+ * Every router (§11.2): its state, version against the latest of its channel, and whether its script is up to
+ * date. Routers chosen here, across pages and filters, get one batch: Run command… (§8.2) or Update… (§7.4).
+ */
 const filter = ref<'' | 'update' | 'outdated' | 'failing'>('')
 const filters = computed(() => ({
   updateAvailable: filter.value === 'update' ? true : undefined,
@@ -29,6 +37,33 @@ const table = useServerTable<S['MikrotikFleetItem'] & { id: string }>({
   filters,
   syncUrl: true,
 })
+type Router = S['MikrotikFleetItem'] & { id: string }
+const router = useRouter()
+const selected = ref(new Map<string, Router>())
+const loginModes = (r: Router) => r.mode !== 'WireGuardOnly'
+const onPage = computed(() => table.items.value.filter(loginModes))
+const allOnPage = computed(() => onPage.value.length > 0 && onPage.value.every((r) => selected.value.has(r.id)))
+function toggle(r: Router, on: boolean) {
+  const next = new Map(selected.value)
+  if (on) next.set(r.id, r)
+  else next.delete(r.id)
+  selected.value = next
+}
+function toggleAll(on: boolean) {
+  const next = new Map(selected.value)
+  for (const r of onPage.value) {
+    if (on) next.set(r.id, r)
+    else next.delete(r.id)
+  }
+  selected.value = next
+}
+const chosen = computed(() => [...selected.value.values()])
+const commanding = ref(false)
+const updating = ref(false)
+function commandStarted(created: S['MikrotikCommandsCreated']) {
+  void router.push({ query: { tab: 'jobs', batch: created.batchId } })
+}
+
 const choices = [
   { label: 'All routers', value: '' },
   { label: 'Behind on updates', value: 'update' },
@@ -46,10 +81,51 @@ const choices = [
         option-label="label"
         option-value="value"
         size="small"
+        placeholder="All routers"
         aria-label="Filter"
+      />
+      <span class="spacer" />
+      <template v-if="chosen.length">
+        <span class="muted">{{ chosen.length }} chosen</span>
+        <Button label="Clear" size="small" text severity="secondary" @click="selected = new Map()" />
+      </template>
+      <Button
+        label="Run command…"
+        icon="pi pi-code"
+        size="small"
+        :disabled="!chosen.length"
+        @click="commanding = true"
+      />
+      <Button
+        label="Update…"
+        icon="pi pi-upload"
+        size="small"
+        severity="secondary"
+        :disabled="!chosen.length"
+        @click="updating = true"
       />
     </div>
     <ListTable :table="table" what="routers" empty-text="No MikroTik router yet: add one as a sensor of a host.">
+      <Column style="width: 2.5rem">
+        <template #header>
+          <Checkbox
+            :model-value="allOnPage"
+            binary
+            :disabled="!onPage.length"
+            aria-label="Choose every router on this page"
+            @update:model-value="(v: boolean) => toggleAll(v)"
+          />
+        </template>
+        <template #body="{ data }">
+          <Checkbox
+            v-if="loginModes(data)"
+            :model-value="selected.has(data.id)"
+            binary
+            :aria-label="`Choose ${data.name}`"
+            @update:model-value="(v: boolean) => toggle(data, v)"
+          />
+        </template>
+      </Column>
       <Column header="Router">
         <template #body="{ data }">
           <StatusBadge :status="data.state" icon-only />
@@ -90,6 +166,23 @@ const choices = [
         </div>
       </template>
     </ListTable>
+    <CommandDialog
+      v-model:visible="commanding"
+      :routers="chosen.map((r) => ({ id: r.sensorId, name: r.name }))"
+      @started="commandStarted"
+    />
+    <UpdateDialog
+      v-model:visible="updating"
+      :routers="
+        chosen.map((r) => ({
+          id: r.sensorId,
+          name: r.name,
+          identity: r.identity,
+          from: r.version,
+          to: r.latestVersion,
+        }))
+      "
+    />
   </div>
 </template>
 
@@ -110,6 +203,17 @@ const choices = [
 
 .update {
   color: var(--pnmt-warn);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--pnmt-space-2);
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1;
 }
 
 .line {

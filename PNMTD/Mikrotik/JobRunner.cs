@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -14,11 +15,15 @@ namespace PNMTD.Mikrotik;
 /// <summary>An update's options (docs/mikrotik-plan.md §7.1).</summary>
 public sealed record UpdateJobOptions(bool BinaryBackup = true, bool Firmware = true, bool StopAtFirstFailure = true);
 
+/// <summary>A remote command's options (§8.2): exports before and after, and one router at a time with a stop at the first failure.</summary>
+public sealed record CommandJobOptions(bool BackupBeforeAndAfter = false, bool OneAtATime = false);
+
 /// <summary>
-/// Runs the update jobs (docs/mikrotik-plan.md §7.3), one at a time, step by step, holding the router (the
-/// poller pauses), with every step in the permanent job log. A batch that stops at its first failure cancels
-/// the jobs after it. A job whose admin password is gone (a restart of PNMTD, its lifetime) fails at the
-/// first step that needs it. Not a monitoring task: it runs without BackgroundTasks, so the tests can run jobs.
+/// Runs the jobs (docs/mikrotik-plan.md §7.3, §8.2) step by step, holding the router (the poller pauses), with
+/// every step in the permanent job log. Up to <c>Commands:Parallelism</c> jobs run at once, one per router. A
+/// batch of updates, or of commands run one at a time, runs in order, and stops at its first failure by
+/// cancelling the jobs after it. A job whose admin password is gone (a restart of PNMTD, its lifetime) fails at
+/// the first step that needs it. Not a monitoring task: it runs without BackgroundTasks, so the tests can run jobs.
 /// </summary>
 public sealed class JobRunner(
     IDbContextFactory<PnmtdDbContext> dbs,
@@ -28,9 +33,19 @@ public sealed class JobRunner(
     ILogger<JobRunner> logger) : BackgroundService
 {
     private readonly SemaphoreSlim wake = new(0);
+    private readonly ConcurrentDictionary<Guid, CancellationTokenSource> active = new();
 
-    /// <summary>A new job: run it now rather than at the next tick.</summary>
+    /// <summary>A new job, or a finished one: start what may run now rather than at the next tick.</summary>
     public void Wake() => wake.Release();
+
+    /// <summary>Closes a running command's SSH channel (§8.2). Whatever the router did stays done.</summary>
+    public void Cancel(Guid jobId)
+    {
+        if (active.TryGetValue(jobId, out var cts))
+        {
+            cts.Cancel();
+        }
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -39,9 +54,7 @@ public sealed class JobRunner(
         {
             try
             {
-                while (await RunNextAsync(stoppingToken))
-                {
-                }
+                await StartReadyAsync(stoppingToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -65,54 +78,199 @@ public sealed class JobRunner(
         var running = await db.MikrotikJobs.Where(j => j.State == MikrotikJobState.Running).ToListAsync(ct);
         foreach (var job in running)
         {
-            // After the reboot began, the router carries on without PNMTD: the next poll shows the version (242).
-            Finish(db, job, MikrotikJobState.Failed, job.Step is >= MikrotikJobStep.Reboot and <= MikrotikJobStep.Done
-                ? "PNMTD restarted while the router was rebooting for the update: the update goes on without PNMTD, and the next poll shows the version."
-                : "PNMTD restarted during the job, and the admin password is gone with it: start the update again.");
+            Finish(db, job, MikrotikJobState.Failed, job.Kind switch
+            {
+                // After the reboot began, the router carries on without PNMTD: the next poll shows the version (242).
+                MikrotikJobKind.Update when job.Step is >= MikrotikJobStep.Reboot and <= MikrotikJobStep.Done =>
+                    "PNMTD restarted while the router was rebooting for the update: the update goes on without PNMTD, and the next poll shows the version.",
+                MikrotikJobKind.Update => "PNMTD restarted during the job, and the admin password is gone with it: start the update again.",
+                _ when job.Step >= MikrotikJobStep.Run => "PNMTD restarted while the command ran: the router may have run it, but its output is lost.",
+                _ => "PNMTD restarted before the command ran: run it again.",
+            });
         }
         await db.SaveChangesAsync(ct);
     }
 
-    /// <summary>Runs the oldest queued job, if any. Public for the tests.</summary>
-    public async Task<bool> RunNextAsync(CancellationToken ct)
+    /// <summary>
+    /// Starts every queued job that may run now: within the parallelism, not on a router with a running job, and
+    /// for a batch in order only after its job before. Returns how many started.
+    /// </summary>
+    private async Task<int> StartReadyAsync(CancellationToken stopping)
     {
-        Guid jobId;
-        await using (var db = await dbs.CreateDbContextAsync(ct))
+        var limit = Math.Max(1, options.CurrentValue.Commands.Parallelism);
+        if (active.Count >= limit)
         {
-            var job = await db.MikrotikJobs.Where(j => j.State == MikrotikJobState.Queued).OrderBy(j => j.CreatedAt).FirstOrDefaultAsync(ct);
-            if (job is null)
-            {
-                return false;
-            }
-            var stop = Options(job).StopAtFirstFailure
-                && await db.MikrotikJobs.AnyAsync(j => j.BatchId == job.BatchId && j.State == MikrotikJobState.Failed, ct);
-            if (stop)
-            {
-                Finish(db, job, MikrotikJobState.Cancelled, "Not started: an earlier router of the batch failed.");
-                await db.SaveChangesAsync(ct);
-                await ForgetIfDoneAsync(db, job.BatchId, ct);
-                return true;
-            }
-            job.State = MikrotikJobState.Running;
-            job.StartedAt = Clock.UtcNow;
-            await db.SaveChangesAsync(ct);
-            jobId = job.Id;
+            return 0;
         }
-        await RunAsync(jobId, ct);
-        return true;
+        await using var db = await dbs.CreateDbContextAsync(stopping);
+        var queued = await db.MikrotikJobs.Where(j => j.State == MikrotikJobState.Queued).OrderBy(j => j.CreatedAt).Take(1000).ToListAsync(stopping);
+        if (queued.Count == 0)
+        {
+            return 0;
+        }
+        var running = await db.MikrotikJobs.Where(j => j.State == MikrotikJobState.Running).Select(j => new { j.BatchId, j.SensorId }).ToListAsync(stopping);
+        var busyRouters = running.Where(r => r.SensorId != null).Select(r => r.SensorId!.Value).ToHashSet();
+        var busyBatches = running.Select(r => r.BatchId).ToHashSet();
+        var batchIds = queued.Select(j => j.BatchId).Distinct().ToList();
+        var failedBatches = (await db.MikrotikJobs.Where(j => batchIds.Contains(j.BatchId) && j.State == MikrotikJobState.Failed)
+            .Select(j => j.BatchId).Distinct().ToListAsync(stopping)).ToHashSet();
+        var inOrderSeen = new HashSet<Guid>();
+        var started = 0;
+        foreach (var job in queued)
+        {
+            var (inOrder, stopAtFailure) = Order(job);
+            if (inOrder && !inOrderSeen.Add(job.BatchId))
+            {
+                continue;
+            }
+            if (stopAtFailure && failedBatches.Contains(job.BatchId))
+            {
+                // The canary failed (§7.4): the rest of the batch does not start.
+                foreach (var rest in queued.Where(j => j.BatchId == job.BatchId))
+                {
+                    Finish(db, rest, MikrotikJobState.Cancelled, "Not started: an earlier router of the batch failed.");
+                }
+                await db.SaveChangesAsync(stopping);
+                vault.Remove(job.BatchId);
+                continue;
+            }
+            if (active.Count >= limit || (inOrder && busyBatches.Contains(job.BatchId)) || (job.SensorId is { } busy && busyRouters.Contains(busy)))
+            {
+                continue;
+            }
+            // Claimed only while still queued: a Cancel in between wins.
+            var now = Clock.UtcNow;
+            var claimed = await db.MikrotikJobs.Where(j => j.Id == job.Id && j.State == MikrotikJobState.Queued)
+                .ExecuteUpdateAsync(u => u.SetProperty(j => j.State, MikrotikJobState.Running).SetProperty(j => j.StartedAt, now), stopping);
+            if (claimed == 0)
+            {
+                continue;
+            }
+            busyBatches.Add(job.BatchId);
+            if (job.SensorId is { } sensorId)
+            {
+                busyRouters.Add(sensorId);
+            }
+            Launch(job.Id, stopping);
+            started++;
+        }
+        return started;
     }
 
-    private static UpdateJobOptions Options(MikrotikJobEntity job) =>
+    private void Launch(Guid jobId, CancellationToken stopping)
+    {
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(stopping);
+        active[jobId] = cts;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await RunAsync(jobId, cts.Token, stopping);
+            }
+            catch (OperationCanceledException) when (stopping.IsCancellationRequested)
+            {
+                // PNMTD stops: the next start fails the job (FailOrphansAsync).
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "MikroTik job {JobId} failed unexpectedly", jobId);
+                await FailUnexpectedAsync(jobId);
+            }
+            finally
+            {
+                active.TryRemove(jobId, out _);
+                cts.Dispose();
+                Wake();
+            }
+        }, CancellationToken.None);
+    }
+
+    /// <summary>A job is never left running by a fault of PNMTD's own.</summary>
+    private async Task FailUnexpectedAsync(Guid jobId)
+    {
+        try
+        {
+            await using var db = await dbs.CreateDbContextAsync();
+            var job = await db.MikrotikJobs.SingleAsync(j => j.Id == jobId);
+            if (job.State is MikrotikJobState.Running or MikrotikJobState.Queued)
+            {
+                Finish(db, job, MikrotikJobState.Failed, "PNMTD failed during the job; its log has the details.");
+                await db.SaveChangesAsync();
+            }
+            await ForgetIfDoneAsync(db, job.BatchId, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "MikroTik job {JobId} could not be marked as failed", jobId);
+        }
+    }
+
+    /// <summary>
+    /// The CLI's batch (§12), claimed at its creation and run here, in order: the server's runner leaves running
+    /// jobs alone. A batch run one at a time stops at its first failure.
+    /// </summary>
+    public async Task RunHereAsync(IReadOnlyList<Guid> jobIds, CancellationToken ct)
+    {
+        var stopped = false;
+        foreach (var id in jobIds)
+        {
+            if (stopped || ct.IsCancellationRequested)
+            {
+                await using var db = await dbs.CreateDbContextAsync();
+                var rest = await db.MikrotikJobs.SingleAsync(j => j.Id == id);
+                Finish(db, rest, MikrotikJobState.Cancelled, stopped ? "Not started: an earlier router of the batch failed." : "Cancelled before it started.");
+                await db.SaveChangesAsync();
+                continue;
+            }
+            try
+            {
+                // ct cancels the job as the web's Cancel does (Ctrl-C); nothing stops the bookkeeping.
+                await RunAsync(id, ct, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "MikroTik job {JobId} failed unexpectedly", id);
+                await FailUnexpectedAsync(id);
+            }
+            await using (var db = await dbs.CreateDbContextAsync())
+            {
+                var job = await db.MikrotikJobs.AsNoTracking().SingleAsync(j => j.Id == id);
+                stopped = job.State == MikrotikJobState.Failed && Order(job).StopAtFailure;
+            }
+        }
+        if (jobIds.Count > 0)
+        {
+            await using var db = await dbs.CreateDbContextAsync();
+            var batchId = await db.MikrotikJobs.Where(j => j.Id == jobIds[0]).Select(j => j.BatchId).SingleAsync();
+            await ForgetIfDoneAsync(db, batchId, CancellationToken.None);
+        }
+    }
+
+    /// <summary>Whether a job's batch runs in order, and whether it stops at its first failure.</summary>
+    private static (bool InOrder, bool StopAtFailure) Order(MikrotikJobEntity job)
+    {
+        if (job.Kind == MikrotikJobKind.Update)
+        {
+            return (true, UpdateOptions(job).StopAtFirstFailure);
+        }
+        var oneAtATime = CommandOptions(job).OneAtATime;
+        return (oneAtATime, oneAtATime);
+    }
+
+    private static UpdateJobOptions UpdateOptions(MikrotikJobEntity job) =>
         job.Options is { } json ? JsonSerializer.Deserialize<UpdateJobOptions>(json, VersionCatalog.Json) ?? new UpdateJobOptions() : new UpdateJobOptions();
+
+    private static CommandJobOptions CommandOptions(MikrotikJobEntity job) =>
+        job.Options is { } json ? JsonSerializer.Deserialize<CommandJobOptions>(json, VersionCatalog.Json) ?? new CommandJobOptions() : new CommandJobOptions();
 
     private sealed class StepFailed(string message) : Exception(message);
 
     private sealed class Cancelled() : Exception("Cancelled");
 
-    private async Task RunAsync(Guid jobId, CancellationToken ct)
+    private async Task RunAsync(Guid jobId, CancellationToken ct, CancellationToken stopping)
     {
-        await using var db = await dbs.CreateDbContextAsync(ct);
-        var job = await db.MikrotikJobs.SingleAsync(j => j.Id == jobId, ct);
+        await using var db = await dbs.CreateDbContextAsync(stopping);
+        var job = await db.MikrotikJobs.SingleAsync(j => j.Id == jobId, stopping);
         var downloaded = false;
         try
         {
@@ -128,7 +286,7 @@ public sealed class JobRunner(
                 }
                 else
                 {
-                    throw new StepFailed("Commands arrive with phase M6.");
+                    await CommandAsync(db, job, sensorId, ct);
                 }
             }
             await db.SaveChangesAsync(ct);
@@ -154,24 +312,29 @@ public sealed class JobRunner(
         catch (Cancelled)
         {
             Finish(db, job, MikrotikJobState.Cancelled, "Cancelled.");
-            await LogAsync(db, job, job.Step, MikrotikJobOutcome.Info, "Cancelled before the reboot: nothing on the router changed but what the log shows.", null, ct);
-            await db.SaveChangesAsync(ct);
+            await LogAsync(db, job, job.Step, MikrotikJobOutcome.Info, job.Kind == MikrotikJobKind.Update
+                ? "Cancelled before the reboot: nothing on the router changed but what the log shows."
+                : "Cancelled before the command ran.", null, stopping);
+            await db.SaveChangesAsync(stopping);
+        }
+        catch (OperationCanceledException) when (!stopping.IsCancellationRequested)
+        {
+            // Cancel(jobId) closed the session of a running command (§8.2).
+            Finish(db, job, MikrotikJobState.Cancelled, "Cancelled while it ran: the session was closed, and whatever the router did stays done.");
+            await LogAsync(db, job, job.Step, MikrotikJobOutcome.Info, job.Error!, null, stopping);
+            await db.SaveChangesAsync(stopping);
         }
         catch (Exception ex) when (ex is StepFailed or RouterSessionException or FormatException or TimeoutException)
         {
             var message = ex.Message + (downloaded
                 ? " The downloaded package installs at the router's next reboot, whoever causes it; /file remove of the .npk file prevents that."
                 : "");
-            await LogAsync(db, job, job.Step, MikrotikJobOutcome.Failed, message, null, ct);
+            await LogAsync(db, job, job.Step, MikrotikJobOutcome.Failed, message, null, stopping);
             Finish(db, job, MikrotikJobState.Failed, message);
-            await db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(stopping);
             if (job.SensorId is { } id && job.Kind == MikrotikJobKind.Update)
             {
-                await using var transaction = await db.Database.BeginTransactionAsync(ct);
-                await SensorEventWriter.WriteAsync(db, id, PNMTStatusCodes.MIKROTIK_UPDATE_FAILED,
-                    $"Update to {job.ToVersion} failed at {job.Step}: {ex.Message}", $"mikrotik-job:{job.Id}", ct);
-                await db.SaveChangesAsync(ct);
-                await transaction.CommitAsync(ct);
+                await WriteEventAsync(db, id, PNMTStatusCodes.MIKROTIK_UPDATE_FAILED, $"Update to {job.ToVersion} failed at {job.Step}: {ex.Message}", job, stopping);
             }
         }
         finally
@@ -185,7 +348,7 @@ public sealed class JobRunner(
     private async Task UpdateAsync(PnmtdDbContext db, MikrotikJobEntity job, Guid sensorId, Action downloaded, CancellationToken ct)
     {
         var o = options.CurrentValue.Updates;
-        var opts = Options(job);
+        var opts = UpdateOptions(job);
         var router = await db.MikrotikRouters.Include(r => r.Sensor).SingleAsync(r => r.SensorId == sensorId, ct);
         var target = RouterOsVersion.TryParse(job.ToVersion, out var t) ? t : throw new StepFailed($"No target version for the channel {job.Channel}.");
 
@@ -213,18 +376,7 @@ public sealed class JobRunner(
 
         // 2. Export, as pnmt.
         await StepAsync(db, job, MikrotikJobStep.Export, "Exporting the configuration", ct);
-        var export = await AsPnmtAsync(db, router, ct, (session, token) => polls.ExportAsync(session, false, token));
-        if (export.Error is not null)
-        {
-            throw new StepFailed(export.Error);
-        }
-        var stored = await BackupStore.SaveExportAsync(db, router, router.Sensor.Name, export.Output!, false, MikrotikBackupTrigger.BeforeUpdate,
-            job.RequestedBy, job.RequestedByName, Clock.UtcNow, ct);
-        if (stored.Backup is { } b)
-        {
-            b.JobId = job.Id;
-        }
-        await db.SaveChangesAsync(ct);
+        var (stored, _) = await ExportAsync(db, job, router, MikrotikBackupTrigger.BeforeUpdate, "", ct);
         await LogAsync(db, job, MikrotikJobStep.Export, MikrotikJobOutcome.Ok,
             stored.Backup is { } nb ? $"Stored as version {nb.Number}." : "The configuration is unchanged since the last backup.", null, ct);
         await CheckCancelledAsync(db, job, ct);
@@ -377,6 +529,176 @@ public sealed class JobRunner(
             }
             await Task.Delay(TimeSpan.FromSeconds(Math.Max(1, o.PollSeconds)), ct);
         }
+    }
+
+    // --- a remote command (§8.2) ----------------------------------------------------------------------------
+
+    private async Task CommandAsync(PnmtdDbContext db, MikrotikJobEntity job, Guid sensorId, CancellationToken ct)
+    {
+        var o = options.CurrentValue.Commands;
+        var opts = CommandOptions(job);
+        var router = await db.MikrotikRouters.Include(r => r.Sensor).SingleAsync(r => r.SensorId == sensorId, ct);
+        var asAdmin = job.AdminUsername is not null;
+
+        // 1. Check: what PNMTD knows of the router. Reaching it is the next step's.
+        await StepAsync(db, job, MikrotikJobStep.Check, $"Checking {router.Sensor.Name}", ct);
+        var skip = !router.Mode.UsesSsh() ? "WireGuard only: there is no login."
+            : router.HostKeyFingerprint is null ? "PNMTD has not logged in to it yet, so its host key is not pinned."
+            : RouterOsVersion.TryParse(router.Version, out var v) && v.IsBelowFloor ? $"RouterOS {router.Version} is below {RouterOsVersion.Floor}."
+            : null;
+        if (skip is not null)
+        {
+            await SkipAsync(db, job, skip, ct);
+            return;
+        }
+        var admin = asAdmin
+            ? vault.Get(job.BatchId) ?? throw new StepFailed("The admin password is gone (PNMTD restarted, or the batch waited longer than its lifetime): run the command again.")
+            : default;
+        await LogAsync(db, job, MikrotikJobStep.Check, MikrotikJobOutcome.Ok, $"RouterOS {router.Version ?? "?"}, {router.Mode.Label()}", null, ct);
+        await CheckCancelledAsync(db, job, ct);
+
+        // 2. The export before (option): so the result shows what the command changed.
+        if (opts.BackupBeforeAndAfter)
+        {
+            await StepAsync(db, job, MikrotikJobStep.Export, "Exporting the configuration before the command", ct);
+            try
+            {
+                var (stored, current) = await ExportAsync(db, job, router, MikrotikBackupTrigger.BeforeCommand, "", ct);
+                job.BackupBeforeId = current;
+                await LogAsync(db, job, MikrotikJobStep.Export, MikrotikJobOutcome.Ok,
+                    stored.Backup is { } nb ? $"Stored as version {nb.Number}." : "Unchanged since the last backup.", null, ct);
+            }
+            catch (RouterSessionException ex)
+            {
+                await SkipAsync(db, job, $"Not reached: {ex.Message}", ct);
+                return;
+            }
+            await CheckCancelledAsync(db, job, ct);
+        }
+
+        // 3. Run: one exec of the text as one script, in a session of its own, with the user's rights.
+        await StepAsync(db, job, MikrotikJobStep.Run, $"Running as {job.RunAs}", ct);
+        var (target, error) = await polls.TargetAsync(db, router, asAdmin ? admin.Username : RouterPoll.UserName,
+            asAdmin ? RouterCredentials.ForPassword(admin.Password) : await polls.PnmtCredentialsAsync(ct), ct);
+        if (target is null)
+        {
+            await SkipAsync(db, job, error!, ct);
+            return;
+        }
+        IRouterSession session;
+        try
+        {
+            session = await polls.Connector.ConnectAsync(target, ct);
+        }
+        catch (RouterSessionException ex)
+        {
+            // Nothing ran: an unreachable router, or a refused login, is skipped (§8.2).
+            await SkipAsync(db, job, ex.Kind == RouterFailureKind.AuthenticationFailed && asAdmin ? $"The router refused {job.RunAs}'s login." : $"Not reached: {ex.Message}", ct);
+            return;
+        }
+        var timeout = TimeSpan.FromSeconds(job.TimeoutSeconds ?? o.DefaultTimeoutSeconds);
+        RouterExecResult result;
+        await using (session)
+        {
+            result = await session.ExecAsync(RouterOsScript.AsOneScript(job.Command ?? ""), timeout, Math.Max(1024, o.MaxOutputBytes), ct);
+        }
+        var raw = result.Error.Length == 0 ? result.Output
+            : result.Output.Length == 0 || result.Output.EndsWith('\n') ? result.Output + result.Error
+            : result.Output + "\n" + result.Error;
+        var cleaned = CommandOutput.Clean(raw);
+        var (kept, cut) = CommandOutput.Limit(cleaned, Math.Max(1024, o.MaxStoredOutputBytes));
+        job.Output = kept;
+        job.OutputTruncated = cut || result.Truncated;
+        job.ExitStatus = result.ExitStatus;
+        var routerError = CommandOutput.Error(cleaned);
+        var (state, message) = result.TimedOut
+            ? (MikrotikJobState.TimedOut, $"No end within {timeout.TotalSeconds:0} s: the session was closed, and the output so far is kept.")
+            : result.ExitStatus is { } status and not 0
+                ? (MikrotikJobState.Failed, routerError ?? CommandOutput.LastLine(cleaned) ?? $"Exit status {status}.")
+                : routerError is not null
+                    ? (MikrotikJobState.Failed, routerError)
+                    : (MikrotikJobState.Succeeded, (string?)null);
+        var size = System.Text.Encoding.UTF8.GetByteCount(cleaned);
+        await LogAsync(db, job, MikrotikJobStep.Run, state == MikrotikJobState.Succeeded ? MikrotikJobOutcome.Ok : MikrotikJobOutcome.Failed,
+            $"{(message ?? "Done")} ({result.Duration.TotalSeconds:0.0} s, exit status {(result.ExitStatus?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "none")}, " +
+            $"{(size < 1024 ? $"{size} bytes" : $"{size / 1024} KiB")} of output{(job.OutputTruncated ? ", cut" : "")})", null, ct);
+
+        // 4. The export after (option), whatever the outcome: a script may change things before its error.
+        if (opts.BackupBeforeAndAfter)
+        {
+            await StepAsync(db, job, MikrotikJobStep.ExportAfter, "Exporting the configuration after the command", ct);
+            try
+            {
+                var (stored, current) = await ExportAsync(db, job, router, MikrotikBackupTrigger.AfterCommand,
+                    $" by a command of {job.RequestedByName ?? "?"} as {job.RunAs}", ct);
+                job.BackupAfterId = current;
+                await LogAsync(db, job, MikrotikJobStep.ExportAfter, MikrotikJobOutcome.Ok, stored.Backup is { } nb
+                    ? $"Stored as version {nb.Number}: +{stored.Added} −{stored.Removed} lines."
+                    : "Unchanged: the command changed no configuration.", null, ct);
+            }
+            catch (Exception ex) when (ex is RouterSessionException or StepFailed)
+            {
+                // A command that rebooted the router, or cut PNMT off, leaves no export after (§8.2).
+                await LogAsync(db, job, MikrotikJobStep.ExportAfter, MikrotikJobOutcome.Info, $"No export after the command: {ex.Message}", null, ct);
+            }
+        }
+
+        // 5. Done.
+        job.Step = MikrotikJobStep.Done;
+        Finish(db, job, state, message);
+        await LogAsync(db, job, MikrotikJobStep.Done, state == MikrotikJobState.Succeeded ? MikrotikJobOutcome.Ok : MikrotikJobOutcome.Failed,
+            state switch
+            {
+                MikrotikJobState.Succeeded => "Succeeded",
+                MikrotikJobState.TimedOut => "Timed out",
+                _ => "Failed",
+            }, null, ct);
+    }
+
+    private static async Task SkipAsync(PnmtdDbContext db, MikrotikJobEntity job, string reason, CancellationToken ct)
+    {
+        Finish(db, job, MikrotikJobState.Skipped, reason);
+        await LogAsync(db, job, job.Step, MikrotikJobOutcome.Info, $"Skipped: {reason}", null, ct);
+    }
+
+    // --- exports and events --------------------------------------------------------------------------------
+
+    /// <summary>
+    /// An export as <c>pnmt</c>, stored as a new version if it changed, with 243 as the poll writes it (§6.1);
+    /// <paramref name="cause"/> names the command. Returns the version the configuration is now.
+    /// </summary>
+    private async Task<(StoredExport Stored, Guid? Current)> ExportAsync(PnmtdDbContext db, MikrotikJobEntity job, MikrotikRouterEntity router,
+        MikrotikBackupTrigger trigger, string cause, CancellationToken ct)
+    {
+        var (output, error, withSecrets) = await AsPnmtAsync(db, router, ct, (session, token) => polls.JobExportAsync(session, router, token));
+        if (error is not null)
+        {
+            throw new StepFailed(error);
+        }
+        var stored = await BackupStore.SaveExportAsync(db, router, router.Sensor.Name, output!, withSecrets, trigger,
+            job.RequestedBy, job.RequestedByName, Clock.UtcNow, ct);
+        if (stored.Backup is { } b)
+        {
+            b.JobId = job.Id;
+        }
+        await db.SaveChangesAsync(ct);
+        if (stored is { Changed: true, First: false, Backup: { } backup })
+        {
+            await WriteEventAsync(db, router.SensorId, PNMTStatusCodes.MIKROTIK_CONFIG_CHANGED,
+                $"Configuration changed{cause}: +{stored.Added} −{stored.Removed} lines (version {backup.Number})", job, ct);
+        }
+        var current = stored.Backup?.Id ?? await db.MikrotikBackups.AsNoTracking()
+            .Where(x => x.SensorId == router.SensorId && x.Kind == MikrotikBackupKind.Export)
+            .OrderByDescending(x => x.Number).Select(x => (Guid?)x.Id).FirstOrDefaultAsync(ct);
+        return (stored, current);
+    }
+
+    private static async Task WriteEventAsync(PnmtdDbContext db, Guid sensorId, int code, string message, MikrotikJobEntity job, CancellationToken ct)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        await SensorEventWriter.WriteAsync(db, sensorId, code, message, $"mikrotik-job:{job.Id}", ct);
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
     }
 
     // --- sessions ------------------------------------------------------------------------------------------

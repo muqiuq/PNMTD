@@ -167,6 +167,15 @@ export const api = {
       call(client.GET('/api/v1/mikrotik/jobs', { params: { query } })),
     anyJob: (jobId: Id) => call(client.GET('/api/v1/mikrotik/jobs/{id}', { params: { path: { id: jobId } } })),
     cancelJob: (jobId: Id) => call(client.DELETE('/api/v1/mikrotik/jobs/{id}', { params: { path: { id: jobId } } })),
+    // --- remote commands (docs/mikrotik-plan.md §8): as pnmt CanWrite, as a router's admin Admin ------------
+    runCommand: (body: S['MikrotikCommandRequest']) => call(client.POST('/api/v1/mikrotik/commands', { body })),
+    commands: (query: ListQuery & { sensorId?: Id; batchId?: Id; state?: S['MikrotikJobState'] } = {}) =>
+      call(client.GET('/api/v1/mikrotik/commands', { params: { query } })),
+    command: (id: Id) => call(client.GET('/api/v1/mikrotik/commands/{id}', { params: { path: { id } } })),
+    commandBatch: (batchId: Id) =>
+      call(client.GET('/api/v1/mikrotik/commands/batches/{batchId}', { params: { path: { batchId } } })),
+    cancelCommand: (id: Id) => call(client.DELETE('/api/v1/mikrotik/commands/{id}', { params: { path: { id } } })),
+    redactCommand: (id: Id) => call(client.POST('/api/v1/mikrotik/commands/{id}/redact', { params: { path: { id } } })),
     removeBackup: (id: Id, backupId: Id) =>
       call(client.DELETE('/api/v1/sensors/{id}/mikrotik/backups/{backupId}', { params: { path: { id, backupId } } })),
     // --- the admin page: Admin ------------------------------------------------------------------

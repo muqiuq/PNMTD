@@ -41,6 +41,13 @@ public enum MikrotikJobKind : short
     Command = 1,
 }
 
+/// <summary>Who a remote command runs as on the router (§8.1): PNMT's read-only user, or an admin with the password typed for the run.</summary>
+public enum MikrotikRunAs
+{
+    Pnmt = 0,
+    Admin = 1,
+}
+
 public enum MikrotikJobState : short
 {
     Queued = 0,
@@ -49,6 +56,9 @@ public enum MikrotikJobState : short
     Skipped = 3,
     Failed = 4,
     Cancelled = 5,
+
+    /// <summary>A command that did not end within its timeout (§8.2); its output so far is kept.</summary>
+    TimedOut = 6,
 }
 
 /// <summary>An update's steps (docs/mikrotik-plan.md §7.3), and a command's (§8.2).</summary>

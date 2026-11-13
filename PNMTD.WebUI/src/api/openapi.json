@@ -3158,6 +3158,278 @@
         }
       }
     },
+    "/api/v1/mikrotik/commands": {
+      "post": {
+        "tags": [
+          "MikrotikCommands"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikCommandRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikCommandRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikCommandRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikCommandsCreated"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikCommandsCreated"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikCommandsCreated"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "MikrotikCommands"
+        ],
+        "parameters": [
+          {
+            "name": "sensorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "batchId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/MikrotikJobState"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfMikrotikCommandItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfMikrotikCommandItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfMikrotikCommandItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mikrotik/commands/{id}": {
+      "get": {
+        "tags": [
+          "MikrotikCommands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikCommandDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikCommandDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikCommandDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "MikrotikCommands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/mikrotik/commands/batches/{batchId}": {
+      "get": {
+        "tags": [
+          "MikrotikCommands"
+        ],
+        "parameters": [
+          {
+            "name": "batchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikCommandBatch"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikCommandBatch"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikCommandBatch"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mikrotik/commands/{id}/redact": {
+      "post": {
+        "tags": [
+          "MikrotikCommands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikCommandItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikCommandItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikCommandItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/notification-rules": {
       "get": {
         "tags": [
@@ -7743,6 +8015,332 @@
           }
         }
       },
+      "MikrotikCommandBatch": {
+        "required": [
+          "batchId",
+          "command",
+          "runAs",
+          "asAdmin",
+          "requestedBy",
+          "createdAt",
+          "groups"
+        ],
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "command": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "runAs": {
+            "type": "string"
+          },
+          "asAdmin": {
+            "type": "boolean"
+          },
+          "requestedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikCommandGroup"
+            }
+          }
+        }
+      },
+      "MikrotikCommandDetail": {
+        "required": [
+          "command",
+          "output",
+          "log",
+          "added",
+          "removed"
+        ],
+        "type": "object",
+        "properties": {
+          "command": {
+            "$ref": "#/components/schemas/MikrotikCommandItem"
+          },
+          "output": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikJobLogItem"
+            }
+          },
+          "added": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "removed": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "MikrotikCommandGroup": {
+        "required": [
+          "state",
+          "output",
+          "outputTruncated",
+          "jobs"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/MikrotikJobState"
+          },
+          "output": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "outputTruncated": {
+            "type": "boolean"
+          },
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikCommandItem"
+            }
+          }
+        }
+      },
+      "MikrotikCommandItem": {
+        "required": [
+          "id",
+          "batchId",
+          "sensorId",
+          "routerName",
+          "state",
+          "step",
+          "requestedBy",
+          "createdAt",
+          "startedAt",
+          "finishedAt",
+          "command",
+          "runAs",
+          "asAdmin",
+          "timeoutSeconds",
+          "exitStatus",
+          "error",
+          "outputTruncated",
+          "backupBeforeId",
+          "backupAfterId",
+          "redactedAt",
+          "redactedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "routerName": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/MikrotikJobState"
+          },
+          "step": {
+            "$ref": "#/components/schemas/MikrotikJobStep"
+          },
+          "requestedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "command": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "runAs": {
+            "type": "string"
+          },
+          "asAdmin": {
+            "type": "boolean"
+          },
+          "timeoutSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "exitStatus": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "outputTruncated": {
+            "type": "boolean"
+          },
+          "backupBeforeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "backupAfterId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "redactedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "redactedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MikrotikCommandRequest": {
+        "type": "object",
+        "properties": {
+          "sensorIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "command": {
+            "type": "string"
+          },
+          "runAs": {
+            "$ref": "#/components/schemas/MikrotikRunAs"
+          },
+          "username": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "password": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "timeoutSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "backupBeforeAndAfter": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "oneAtATime": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "MikrotikCommandsCreated": {
+        "required": [
+          "batchId",
+          "jobs",
+          "refused"
+        ],
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikCommandItem"
+            }
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikJobRefusal"
+            }
+          }
+        }
+      },
       "MikrotikCount": {
         "required": [
           "key",
@@ -8027,7 +8625,9 @@
           "fromVersion",
           "toVersion",
           "channel",
-          "error"
+          "error",
+          "command",
+          "runAs"
         ],
         "type": "object",
         "properties": {
@@ -8107,6 +8707,18 @@
             ]
           },
           "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "command": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "runAs": {
             "type": [
               "null",
               "string"
@@ -8259,7 +8871,8 @@
           "Succeeded",
           "Skipped",
           "Failed",
-          "Cancelled"
+          "Cancelled",
+          "TimedOut"
         ]
       },
       "MikrotikJobStep": {
@@ -8671,6 +9284,12 @@
             "type": "boolean"
           }
         }
+      },
+      "MikrotikRunAs": {
+        "enum": [
+          "Pnmt",
+          "Admin"
+        ]
       },
       "MikrotikScript": {
         "required": [
@@ -9291,6 +9910,35 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MikrotikBackupItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfMikrotikCommandItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikCommandItem"
             }
           },
           "page": {
@@ -13369,6 +14017,9 @@
     },
     {
       "name": "Mikrotik"
+    },
+    {
+      "name": "MikrotikCommands"
     },
     {
       "name": "NotificationRules"

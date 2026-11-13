@@ -41,12 +41,7 @@ public sealed class MikrotikJobService(
 
     public async Task<MikrotikJobsCreated> CreateAsync(MikrotikJobRequest request, CancellationToken ct)
     {
-        var o = options.CurrentValue;
-        var http = accessor.HttpContext;
-        if (http is not null && !http.Request.IsHttps && !o.AllowPasswordsOverHttp)
-        {
-            throw ApiException.Invalid("password", "A router's admin password only over HTTPS (Mikrotik__AllowPasswordsOverHttp=true for development).");
-        }
+        RequireHttps();
         if (request.Kind != MikrotikJobKind.Update)
         {
             throw ApiException.Invalid("kind", "Updates only here; commands have their own endpoint.");
@@ -82,7 +77,7 @@ public sealed class MikrotikJobService(
                 : RouterOsVersion.TryParse(router.Version, out var installed) && RouterOsVersion.TryParse(target.Version, out var t) && installed >= t
                     ? $"Already on {router.Version}, the newest of {channel}."
                 : null;
-            reason ??= await CheckCredentialsAsync(router, username!, request.Password!, needed, ct);
+            reason ??= (await CheckCredentialsAsync(router, username!, request.Password!, needed, ct)).Refusal;
             if (reason is not null)
             {
                 refused.Add(new MikrotikJobRefusal(router.SensorId, name, reason));
@@ -100,7 +95,7 @@ public sealed class MikrotikJobService(
         {
             Id = Guid.NewGuid(), BatchId = batchId, Kind = MikrotikJobKind.Update, SensorId = a.Router.SensorId, RouterName = a.Router.Sensor.Name,
             State = MikrotikJobState.Queued, Step = MikrotikJobStep.Check, RequestedBy = userId, RequestedByName = userName ?? "cli",
-            AdminUsername = username, CreatedAt = now.AddTicks(i), FromVersion = a.Router.Version, ToVersion = a.Target, Channel = a.Channel,
+            AdminUsername = username, CreatedAt = now.AddMicroseconds(i), FromVersion = a.Router.Version, ToVersion = a.Target, Channel = a.Channel,
             Options = jobOptions,
         }).ToList();
         if (jobs.Count > 0)
@@ -115,20 +110,31 @@ public sealed class MikrotikJobService(
         return new MikrotikJobsCreated(batchId, jobs.Select(Item).ToList(), refused);
     }
 
+    /// <summary>A router's admin password only over HTTPS (§7.2), unless allowed for development. The CLI has no request.</summary>
+    public void RequireHttps()
+    {
+        if (accessor.HttpContext is { } http && !http.Request.IsHttps && !options.CurrentValue.AllowPasswordsOverHttp)
+        {
+            throw ApiException.Invalid("password", "A router's admin password only over HTTPS (Mikrotik__AllowPasswordsOverHttp=true for development).");
+        }
+    }
+
     /// <summary>
-    /// Logs in as the admin and reads the user's group (§7.2): "wrong password", or which policies are missing.
-    /// The password goes only to a pinned host key; a router PNMTD never logged in to is refused.
+    /// Logs in as the admin and reads the user's group (§7.2): "wrong password", or which policies are missing;
+    /// else the group, as "full (ssh, read, write, …)". The password goes only to a pinned host key: a router
+    /// PNMTD never logged in to is refused.
     /// </summary>
-    private async Task<string?> CheckCredentialsAsync(MikrotikRouterEntity router, string username, string password, string[] needed, CancellationToken ct)
+    public async Task<(string? Refusal, string? Group)> CheckCredentialsAsync(MikrotikRouterEntity router, string username, string password,
+        string[] needed, CancellationToken ct)
     {
         if (router.HostKeyFingerprint is null)
         {
-            return "PNMTD has not logged in to it yet, so its host key is not pinned: the password goes only to a known router.";
+            return ("PNMTD has not logged in to it yet, so its host key is not pinned: the password goes only to a known router.", null);
         }
         var (target, error) = await polls.TargetAsync(db, router, username, RouterCredentials.ForPassword(password), ct);
         if (target is null)
         {
-            return error;
+            return (error, null);
         }
         try
         {
@@ -138,17 +144,19 @@ public sealed class MikrotikJobService(
                 TimeSpan.FromSeconds(30), 64 * 1024, ct);
             using var json = JsonDocument.Parse(exec.Output.Trim());
             var group = json.RootElement.ValueKind == JsonValueKind.Array && json.RootElement.GetArrayLength() > 0 ? json.RootElement[0] : json.RootElement;
-            var policies = group.List("policy").Where(p => !p.StartsWith('!')).ToHashSet();
+            var policies = group.List("policy").Where(p => !p.StartsWith('!')).ToList();
             var missing = needed.Where(p => !policies.Contains(p)).ToList();
-            return missing.Count == 0 ? null : $"{username} lacks the policies {string.Join(", ", missing)}.";
+            return missing.Count == 0
+                ? (null, $"{group.Text("name") ?? "?"} ({string.Join(", ", policies)})")
+                : ($"{username} lacks the policies {string.Join(", ", missing)}.", null);
         }
         catch (RouterSessionException ex)
         {
-            return ex.Kind == RouterFailureKind.AuthenticationFailed ? $"Wrong username or password for {router.Sensor.Name}." : ex.Message;
+            return (ex.Kind == RouterFailureKind.AuthenticationFailed ? $"Wrong username or password for {router.Sensor.Name}." : ex.Message, null);
         }
         catch (JsonException)
         {
-            return $"The group of {username} could not be read.";
+            return ($"The group of {username} could not be read.", null);
         }
     }
 
@@ -160,13 +168,15 @@ public sealed class MikrotikJobService(
         if (query.BatchId is { } batch) jobs = jobs.Where(j => j.BatchId == batch);
         if (query.SensorId is { } sensor) jobs = jobs.Where(j => j.SensorId == sensor);
         if (Text.Trimmed(query.Search) is { } search) jobs = jobs.Where(j => EF.Functions.ILike(j.RouterName, $"%{search}%"));
-        var page = await Paging.PageAsync(jobs.OrderByDescending(j => j.CreatedAt), query, ct);
+        var page = await Paging.PageAsync(MikrotikCommandService.WithoutOutput(jobs.OrderByDescending(j => j.CreatedAt)), query, ct);
         return new Paged<MikrotikJobItem>(page.Items.Select(Item).ToList(), page.Page, page.PageSize, page.TotalCount);
     }
 
+    /// <summary>A job with its log. Through a router (<paramref name="sensorId"/>, CanRead) updates only: commands have their own rights (§8.3).</summary>
     public async Task<MikrotikJobDetail> GetAsync(Guid id, Guid? sensorId, CancellationToken ct)
     {
-        var job = await db.MikrotikJobs.AsNoTracking().SingleOrDefaultAsync(j => j.Id == id && (sensorId == null || j.SensorId == sensorId), ct)
+        var job = await db.MikrotikJobs.AsNoTracking()
+            .SingleOrDefaultAsync(j => j.Id == id && (sensorId == null || (j.SensorId == sensorId && j.Kind == MikrotikJobKind.Update)), ct)
             ?? throw ApiException.NotFound("Job");
         var log = await db.MikrotikJobLog.AsNoTracking().Where(l => l.JobId == id).OrderBy(l => l.Id).ToListAsync(ct);
         return new MikrotikJobDetail(Item(job), log.Select(l => new MikrotikJobLogItem(l.Id, Instants.Utc(l.At), l.Step, l.Outcome, l.Message, l.Output)).ToList());
@@ -226,5 +236,5 @@ public sealed class MikrotikJobService(
 
     public static MikrotikJobItem Item(MikrotikJobEntity j) => new(j.Id, j.BatchId, j.Kind, j.SensorId, j.RouterName, j.State, j.Step, j.RequestedByName,
         j.AdminUsername, Instants.Utc(j.CreatedAt), UdpViews.NullableUtc(j.StartedAt), UdpViews.NullableUtc(j.FinishedAt), j.FromVersion, j.ToVersion,
-        j.Channel, j.Error);
+        j.Channel, j.Error, j.Command, j.RunAs);
 }

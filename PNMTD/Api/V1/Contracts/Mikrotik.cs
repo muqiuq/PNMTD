@@ -256,7 +256,9 @@ public sealed record MikrotikJobItem(
     string? FromVersion,
     string? ToVersion,
     string? Channel,
-    string? Error);
+    string? Error,
+    string? Command,
+    string? RunAs);
 
 public sealed record MikrotikJobLogItem(long Id, DateTime At, MikrotikJobStep Step, MikrotikJobOutcome Outcome, string Message, string? Output);
 
@@ -272,6 +274,88 @@ public sealed class MikrotikJobQuery : PageQuery
     public Guid? BatchId { get; set; }
 
     public Guid? SensorId { get; set; }
+}
+
+/// <summary>
+/// <c>POST /mikrotik/commands</c> (§8.2): a command or a short script for one router or several, as <c>pnmt</c>,
+/// or as the router's admin with the password for this batch only: held in memory, never stored or logged.
+/// </summary>
+public sealed class MikrotikCommandRequest
+{
+    public IReadOnlyList<Guid> SensorIds { get; init; } = [];
+
+    /// <summary>As typed: one command or several lines, at most 16 KiB. Stored with the job.</summary>
+    public string Command { get; init; } = "";
+
+    public MikrotikRunAs RunAs { get; init; } = MikrotikRunAs.Pnmt;
+
+    public string? Username { get; init; }
+
+    public string? Password { get; init; }
+
+    /// <summary>5 to 600 seconds; empty: 60.</summary>
+    public int? TimeoutSeconds { get; init; }
+
+    /// <summary>An export before and one after, for the diff (§8.2). Empty: on for admin runs, off for pnmt.</summary>
+    public bool? BackupBeforeAndAfter { get; init; }
+
+    /// <summary>One router at a time, stopping at the first failure. Empty: on for admin runs, off for pnmt.</summary>
+    public bool? OneAtATime { get; init; }
+
+    /// <summary>Neither the password nor the text.</summary>
+    public override string ToString() => $"command on {SensorIds.Count} router(s) as {(RunAs == MikrotikRunAs.Admin ? Username : "pnmt")}";
+}
+
+/// <summary>The command jobs created, one per router, and the routers refused before anything ran.</summary>
+public sealed record MikrotikCommandsCreated(Guid BatchId, IReadOnlyList<MikrotikCommandItem> Jobs, IReadOnlyList<MikrotikJobRefusal> Refused);
+
+/// <summary>A command on one router (§8.3). <see cref="Command"/> is null once redacted.</summary>
+public sealed record MikrotikCommandItem(
+    Guid Id,
+    Guid BatchId,
+    Guid? SensorId,
+    string RouterName,
+    MikrotikJobState State,
+    MikrotikJobStep Step,
+    string? RequestedBy,
+    DateTime CreatedAt,
+    DateTime? StartedAt,
+    DateTime? FinishedAt,
+    string? Command,
+    string RunAs,
+    bool AsAdmin,
+    int TimeoutSeconds,
+    int? ExitStatus,
+    string? Error,
+    bool OutputTruncated,
+    Guid? BackupBeforeId,
+    Guid? BackupAfterId,
+    DateTime? RedactedAt,
+    string? RedactedBy);
+
+/// <summary>A command with its output, its log, and what it changed: the two backups' line counts.</summary>
+public sealed record MikrotikCommandDetail(MikrotikCommandItem Command, string? Output, IReadOnlyList<MikrotikJobLogItem> Log, int? Added, int? Removed);
+
+/// <summary>A batch's results grouped by outcome and output (§8.3), the largest group first.</summary>
+public sealed record MikrotikCommandBatch(
+    Guid BatchId,
+    string? Command,
+    string RunAs,
+    bool AsAdmin,
+    string? RequestedBy,
+    DateTime CreatedAt,
+    IReadOnlyList<MikrotikCommandGroup> Groups);
+
+public sealed record MikrotikCommandGroup(MikrotikJobState State, string? Output, bool OutputTruncated, IReadOnlyList<MikrotikCommandItem> Jobs);
+
+/// <summary><c>GET /mikrotik/commands</c>: newest first. Admin runs only for Admins.</summary>
+public sealed class MikrotikCommandQuery : PageQuery
+{
+    public Guid? SensorId { get; set; }
+
+    public Guid? BatchId { get; set; }
+
+    public MikrotikJobState? State { get; set; }
 }
 
 /// <summary>A RouterOS release's changelog, from MikroTik's update server (§5.4).</summary>
