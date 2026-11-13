@@ -13,7 +13,7 @@ namespace PNMTD.Sensor.Windows.Access;
 
 /// <summary>
 /// Logins and connections (docs/windows-sensor-plan.md §4.7), as they happen: the Security log and the RDP, SSH, WinRM and SMB
-/// logs, each read on from its bookmark every second (after a restart or time offline too, as long as the log holds the
+/// logs, each read on from its bookmark every 15 seconds (after a restart or time offline too, as long as the log holds the
 /// records). Console, RDP, SSH and WinRM for everyone; network logons, explicit credentials and batch only for admins;
 /// failures of every kind aggregated per user, source and kind over 10 minutes, as are repeated identical successes. Never
 /// machine accounts, anonymous or built-in service logons. Buffered up to 5,000 while offline.
@@ -34,7 +34,11 @@ internal sealed partial class LoginStream(ProblemReporter problems, SectionSched
     ];
 
     public const int MaxBuffered = 5000;
-    private const int MaxPerPoll = 2000;
+    /// <summary>How often the logs are read: a login reaches PNMT within this time, plus the send.</summary>
+    public static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(15);
+
+    /// <summary>Records per log and poll; a backlog beyond it is read on at the next poll.</summary>
+    private const int MaxPerPoll = 20_000;
     private const string BookmarksFile = "bookmarks.json";
 
     private readonly Lock gate = new();
@@ -88,7 +92,7 @@ internal sealed partial class LoginStream(ProblemReporter problems, SectionSched
                     problems.Report("logins", $"reading {channel.Name}", e);
                 }
             }
-            if (DateTimeOffset.UtcNow - eventLogCheckedAt > TimeSpan.FromSeconds(10))
+            if (DateTimeOffset.UtcNow - eventLogCheckedAt >= PollInterval)
             {
                 eventLogCheckedAt = DateTimeOffset.UtcNow;
                 Isolated.Part([], "event log", () => CheckEventLog(eventLogMark));
@@ -101,7 +105,7 @@ internal sealed partial class LoginStream(ProblemReporter problems, SectionSched
                     AgentFiles.WriteState(BookmarksFile, bookmarks);
                 }
             }
-            await Task.Delay(TimeSpan.FromSeconds(1), ct);
+            await Task.Delay(PollInterval, ct);
         }
     }
 

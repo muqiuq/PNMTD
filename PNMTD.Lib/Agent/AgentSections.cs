@@ -246,7 +246,7 @@ public sealed record LoginRecord(
     string? LogonId,
     DateTimeOffset? LoggedOffAt);
 
-/// <summary>Agent → PNMTD: logins and connections, as they happen (in batches of up to a second), or buffered while offline.</summary>
+/// <summary>Agent → PNMTD: logins and connections, read from the logs every 15 seconds, or buffered while offline.</summary>
 public sealed record AccessBatch(IReadOnlyList<LoginRecord> Entries);
 
 // --- the event log (§4.8) -------------------------------------------------------------------------------------

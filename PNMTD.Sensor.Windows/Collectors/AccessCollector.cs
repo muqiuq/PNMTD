@@ -87,7 +87,7 @@ internal sealed class AccessCollector(LoginStream stream) : Collector
 
 /// <summary>
 /// <c>event-log</c> (docs/windows-sensor-plan.md §4.8): the newest 100 entries of System and Application at Critical, Error or
-/// Warning, the message rendered and capped at 2 KB. Every 5 minutes, and within about 10 s of a new entry (the login stream's
+/// Warning, the message rendered and capped at 2 KB. Every 5 minutes, and within about 15 s of a new entry (the login stream's
 /// poll asks for it).
 /// </summary>
 internal sealed class EventLogCollector : Collector

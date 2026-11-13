@@ -226,7 +226,7 @@ The **PNMT sensor service** is one Windows executable, `pnmt-sensor.exe`, built 
   |---|---|
   | **Heartbeat** | Every 60 s (`Windows:HeartbeatSeconds`) |
   | **A changed section** | When a collector finds a new hash (§4.9) |
-  | **Logins and connections** | As they happen, in batches of up to 1 s (§4.7) |
+  | **Logins and connections** | Every 15 s, read on from the logs' bookmarks (§4.7) |
   | **Every section** | Every 6 hours (`Windows:FullUpdateHours`), and after each connect |
   | **Diagnostics results** | After each run |
   | **Problems** | When they happen (§3.8) |
@@ -451,7 +451,7 @@ All of them are records in `PNMTD.Lib/Agent/`, shared by both sides. The same re
 - the count and the last time, for aggregated entries.
 
 **How nothing is missed:**
-- **Live:** an `EventLogWatcher` per log sends new entries within about a second (§3.5).
+- **Within 15 seconds:** each log is read on from its bookmark every 15 s, and new entries are sent (§3.5).
 - **Bookmarks:** each log's last read record is saved in `state\bookmarks.json`. After a restart, or a time offline, the agent reads on from there, **as long as the log still holds the records**.
 - **PNMTD stores them** in `windows_logins`, deduplicated by the log and the record id, for **180 days**.
 
@@ -474,7 +474,7 @@ All of them are records in `PNMTD.Lib/Agent/`, shared by both sides. The same re
 
 - **System and Application**, with the levels **Critical, Error and Warning**: everything except Information and Verbose. The logins and connections of §4.7 are kept separately.
 - **The newest 100 of both together:** the time, the log, the level, the source, the event id, the category, the message (rendered, capped at 2 KB), and the user.
-- **Live:** an `EventLogWatcher` sends a new entry within about 10 s.
+- **Within about 15 s:** the login stream's poll notices a new entry and the section is collected again.
 - **Optional, per server:** *Event on new Critical entries* writes **453** with the entry's source and message. It is off by default, because some servers log Critical often.
 
 ### 4.9 Changes
@@ -1012,7 +1012,7 @@ W0 needs real machines (one Windows Server 2019, one Windows 10 Pro or 11) and t
 ### W3: the rest of R1, and R19
 
 - **The agent:** `ServicesCollector` (classes by `WinVerifyTrust`, embedded and by catalog, without network; the result cached per path, size and time, so the minute's collection checks only new binaries), `RemoteAccessCollector` (the 13 features of §4.6, Telnet, WMSVC, FTP, SNMP, and 23 third-party remote tools by their services), `AccessCollector` (the six subcategories by GUID, the operational logs, the Security log's span, the last 24 hours), `EventLogCollector`, and `Access/LoginStream` (`Native/WinTrust.cs` has the signature and audit policy APIs).
-- **The login stream reads each log from its bookmark every second** with `EventLogReader`, rather than an `EventLogWatcher`: the same latency, and a missed event is impossible because the bookmark moves only after a record is handled. The bookmarks (`state/bookmarks.json`) are `EventBookmark.BookmarkXml`. The first time, it reads the last hour, not the whole log. At most 2,000 records per log and second.
+- **The login stream reads each log from its bookmark every 15 seconds** with `EventLogReader`, rather than an `EventLogWatcher`: a login reaches PNMT within 15 s, the server is spared a poll every second, and a missed event is impossible because the bookmark moves only after a record is handled. The bookmarks (`state/bookmarks.json`) are `EventBookmark.BookmarkXml`. The first time, it reads the last hour, not the whole log. At most 20,000 records per log and poll; a larger backlog is read on at the next one. The event log's new entries are noticed in the same poll.
 - **What it records** follows §4.7, with these choices: a logon is an admin's when a 4672 of the same logon id came with it (or within 10 minutes before), or when the user is a direct member of the local Administrators; nested and domain groups count through 4672 alone. The RDP sessions come from 4624 type 10 and the 1149 connections; LocalSessionManager is only checked as a log (§4.7's table), not parsed, because its 21–25 repeat 4624. A 4648 is kept when its subject or its target is an admin.
 - **Aggregation on the agent:** identical successes and failures (outcome, user, source, kind) within the window are one record whose count and last time grow; it is sent again with the same log and record id, and PNMTD updates it. A logoff updates its logon the same way.
 - **The codes for the audit policy are GUIDs** (`auditpol /set /subcategory:{0CCE9215-…} /failure:enable`): the subcategories' names are localised.
@@ -1050,7 +1050,7 @@ On one Windows Server 2019 and one Windows 10 Pro or Windows 11 machine, with th
 1. `Get-FileHash` matches the release's `.sha256`; SmartScreen's *Run anyway* works.
 2. Join from the window with a token from *Add Windows server…*: both fingerprints match the agent log; the server shows *connected*.
 3. Within a minute: 250; the overview, *Hardware*, *Network*, *Services*, *Remote access*, *Access*, *Event log* filled, without errors in the sections.
-4. A login over RDP as an admin: in *Access* within seconds, 254. A wrong password three times: an aggregate with its count; ten from one address: 454.
+4. A login over RDP as an admin: in *Access* within 15 seconds, 254. A wrong password three times: an aggregate with its count; ten from one address: 454.
 5. Stop a service set to automatic: *Services* flags it; add a local administrator: *Changes* has the line, 253.
 6. Assign a diagnostics set: *Run now* shows its result within seconds; a check against an address that doesn't answer: 452.
 7. Unplug the network for 5 minutes: the agent's log shows the reconnects; the logins of that time arrive after.
