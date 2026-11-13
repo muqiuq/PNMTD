@@ -13,5 +13,8 @@ namespace PNMTD.Models.Helper
         /// </summary>
         public bool NoAction { get; set; }
 
+        /// <summary>The sensor's effective importance: Pushover's priority (docs/ai-operations-plan.md §11.5).</summary>
+        public Lib.Models.Enum.Importance Importance { get; set; } = Lib.Models.Enum.Importance.Normal;
+
     }
 }

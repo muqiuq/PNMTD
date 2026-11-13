@@ -10,6 +10,7 @@ import SelectButton from 'primevue/selectbutton'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, keys, sensorRequest, type S } from '@/api/resources'
+import { HOST, sensorImportanceOptions } from '@/views/notifications/importance'
 import CodeTag from '@/components/CodeTag.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ErrorState from '@/components/ErrorState.vue'
@@ -198,6 +199,14 @@ async function unlink(rule: S['NotificationRuleItem']) {
   await run(() => api.sensors.unlink(id.value, rule.id), { success: `${rule.name} unlinked`, invalidate: [keys.rules] })
 }
 
+/** A rule that covers the sensor through a scope (docs/ai-operations-plan.md §11.2): an exclusion takes it out. */
+async function exclude(rule: S['NotificationRuleItem']) {
+  await run(() => api.notifications.exclude(rule.id, id.value), {
+    success: `Excluded from ${rule.name}`,
+    invalidate: [keys.rules, keys.notifications],
+  })
+}
+
 // --- actions ----------------------------------------------------------------------------------
 const rotating = ref(false)
 const rotateWrite = ref(true)
@@ -343,6 +352,17 @@ const more = computed(() =>
                   field="name"
                   :readonly="!canWrite"
                   :save="(v) => save({ name: String(v) })"
+                />
+              </dd>
+              <dt>Importance</dt>
+              <dd>
+                <InlineField
+                  :value="sensor.importance ?? HOST"
+                  type="enum"
+                  :options="sensorImportanceOptions(sensor.importance ? null : sensor.effectiveImportance)"
+                  label="Importance"
+                  :readonly="!canWrite"
+                  :save="(v) => save({ importance: v === HOST ? null : (v as S['Importance']) })"
                 />
               </dd>
               <dt>Enabled</dt>
@@ -498,9 +518,23 @@ const more = computed(() =>
                 <li v-for="rule in linked.data.value" :key="rule.id">
                   <i class="pi pi-bell muted" aria-hidden="true" />
                   <RouterLink :to="{ name: 'notification-rule', params: { id: rule.id } }">{{ rule.name }}</RouterLink>
-                  <span class="muted ellipsis">{{ humanize(rule.type) }} · {{ rule.recipient }}</span>
+                  <span class="muted ellipsis"
+                    >{{ humanize(rule.type) }} · {{ rule.recipient
+                    }}<template v-if="rule.via?.startsWith('scope')"> · {{ rule.via }}</template></span
+                  >
                   <Button
-                    v-if="canWrite"
+                    v-if="canWrite && rule.via?.startsWith('scope')"
+                    v-tooltip="'Exclude this sensor from the rule\'s scope'"
+                    icon="pi pi-minus-circle"
+                    text
+                    rounded
+                    size="small"
+                    severity="secondary"
+                    :aria-label="`Exclude this sensor from ${rule.name}`"
+                    @click="exclude(rule)"
+                  />
+                  <Button
+                    v-else-if="canWrite"
                     icon="pi pi-times"
                     text
                     rounded

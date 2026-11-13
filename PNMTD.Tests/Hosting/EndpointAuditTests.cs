@@ -199,6 +199,16 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/uplink/checks"] = Roles.Viewer,
         ["GET /api/v1/uplink/outages"] = Roles.Viewer,
         ["POST /api/v1/uplink/check"] = Roles.Admin,
+        // Importance and the Notification Manager (docs/ai-operations-plan.md §11).
+        ["PUT /api/v1/hosts/importance"] = Roles.User,
+        ["PUT /api/v1/sensors/importance"] = Roles.User,
+        ["GET /api/v1/notifications/matrix"] = Roles.Viewer,
+        ["GET /api/v1/notifications/coverage"] = Roles.Viewer,
+        ["POST /api/v1/notifications/assign"] = Roles.User,
+        ["PUT /api/v1/notification-rules/{id:guid}/scopes"] = Roles.User,
+        ["POST /api/v1/notification-rules/{id:guid}/scopes/preview"] = Roles.User,
+        ["PUT /api/v1/notification-rules/{id:guid}/exclusions/{sensorId:guid}"] = Roles.User,
+        ["DELETE /api/v1/notification-rules/{id:guid}/exclusions/{sensorId:guid}"] = Roles.User,
     };
 
     private sealed record EndpointInfo(string Key, string Method, string Pattern, RouteEndpoint Endpoint);

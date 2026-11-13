@@ -1019,6 +1019,18 @@ Where the implementation differs from the sections above, or settles what they l
   - **the latency line** is an inline SVG, without a chart library.
 - **Kept the endpoint `GET /api/v1/system/uplink`** for the dashboard and System health.
 
+### A3: importance and the Notification Manager (2026-11-13)
+
+- **The migration is `NotificationScopes`** (the scopes and exclusions); the importance columns came with A2.
+- **Bulk importance:** `PUT /api/v1/hosts/importance` and `PUT /api/v1/sensors/importance` exist. **In the UI**, sensors are set in bulk on the manager's matrix, and hosts one at a time on their page; the hosts list has an importance column and filter, but no selection.
+- **The manager is Monitoring → Notification manager** (`/notifications`), with the tabs *Matrix* and *Coverage*; Monitoring → Notification rules stays as it was.
+  - **The matrix's columns are the enabled rules.** A click on a cell links, unlinks, excludes or includes again, by what the cell shows.
+  - **A scope's preview** (`POST …/scopes/preview`) runs while the rule's scopes are being edited, before *Save*.
+- **The sensor page's notifications** list the rules that cover the sensor through a scope too (`via`), with an *Exclude* button instead of *Unlink*.
+- **System health** has a *Notifications* panel: covered sensors, and High sensors without a rule.
+- **The dashboard's problems** list the most important sensors and hosts first, then the longest-failing.
+- **Tests that create scopes delete their rules at the end:** a scope reaches every sensor of the run's database, other classes' too.
+
 ---
 
 ## Appendix: configuration and file changes

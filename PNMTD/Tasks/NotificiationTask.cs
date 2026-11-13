@@ -158,7 +158,8 @@ namespace PNMTD.Tasks
                             pnm.NotitificationRule.Recipient,
                             $"{emailSubject} ({pnm.EventEntity.Sensor.Name})",
                             messageShort,
-                            $"{messageShort}\n\n--- DATA ---\n{JsonSerializer.Serialize(eventEntityPoco)}");
+                            $"{messageShort}\n\n--- DATA ---\n{JsonSerializer.Serialize(eventEntityPoco)}",
+                            pnm.Importance);
                         notificationService.SendAsync(message, $"rule {pnm.NotitificationRule.Name}",
                             configuration.GetValue("Development:DoNotSendNotifications", false), CancellationToken.None).GetAwaiter().GetResult();
                     }

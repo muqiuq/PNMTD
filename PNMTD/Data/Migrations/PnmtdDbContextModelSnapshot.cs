@@ -888,6 +888,48 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("notificationruleevent");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.NotificationRuleExclusionEntity", b =>
+                {
+                    b.Property<Guid>("RuleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("RuleId", "SensorId");
+
+                    b.HasIndex("SensorId");
+
+                    b.ToTable("notification_rule_exclusions");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NotificationRuleScopeEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("HostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short?>("Importance")
+                        .HasColumnType("smallint");
+
+                    b.Property<short>("Kind")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("RuleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HostId");
+
+                    b.HasIndex("RuleId");
+
+                    b.ToTable("notification_rule_scopes");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.NotificationRuleSensorEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1856,6 +1898,39 @@ namespace PNMTD.Data.Migrations
                     b.Navigation("NotificationRule");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.NotificationRuleExclusionEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.NotificationRuleEntity", null)
+                        .WithMany("Exclusions")
+                        .HasForeignKey("RuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NotificationRuleScopeEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.HostEntity", "Host")
+                        .WithMany()
+                        .HasForeignKey("HostId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PNMTD.Models.Db.NotificationRuleEntity", "Rule")
+                        .WithMany("Scopes")
+                        .HasForeignKey("RuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Host");
+
+                    b.Navigation("Rule");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.NotificationRuleSensorEntity", b =>
                 {
                     b.HasOne("PNMTD.Models.Db.NotificationRuleEntity", "NotificationRule")
@@ -2005,6 +2080,10 @@ namespace PNMTD.Data.Migrations
 
             modelBuilder.Entity("PNMTD.Models.Db.NotificationRuleEntity", b =>
                 {
+                    b.Navigation("Exclusions");
+
+                    b.Navigation("Scopes");
+
                     b.Navigation("SubscribedSensors");
                 });
 

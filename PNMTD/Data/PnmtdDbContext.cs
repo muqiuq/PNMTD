@@ -25,6 +25,10 @@ namespace PNMTD.Data
 
         public DbSet<NotificationRuleSensorEntity> NotificationRuleSensor { get; set; }
 
+        // Scopes and exclusions (docs/ai-operations-plan.md §11.2).
+        public DbSet<NotificationRuleScopeEntity> NotificationRuleScopes { get; set; }
+        public DbSet<NotificationRuleExclusionEntity> NotificationRuleExclusions { get; set; }
+
         public DbSet<MailInputRuleEntity> MailInputs { get; set; }
 
         public DbSet<KeyValueEntity> KeyValues { get; set; }
@@ -194,6 +198,18 @@ namespace PNMTD.Data
             // One system sensor per key (docs/ai-operations-plan.md §4).
             modelBuilder.Entity<SensorEntity>().HasIndex(s => new { s.Type, s.Parameters }).IsUnique().HasFilter("\"Type\" = 90");
             modelBuilder.Entity<UplinkCheckEntity>().HasIndex(c => c.At);
+
+            modelBuilder.Entity<NotificationRuleScopeEntity>(e =>
+            {
+                e.HasOne(s => s.Rule).WithMany(r => r.Scopes).HasForeignKey(s => s.RuleId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(s => s.Host).WithMany().HasForeignKey(s => s.HostId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<NotificationRuleExclusionEntity>(e =>
+            {
+                e.HasKey(x => new { x.RuleId, x.SensorId });
+                e.HasOne<NotificationRuleEntity>().WithMany(r => r.Exclusions).HasForeignKey(x => x.RuleId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(x => x.SensorId).OnDelete(DeleteBehavior.Cascade);
+            });
 
             base.OnModelCreating(modelBuilder);
         }

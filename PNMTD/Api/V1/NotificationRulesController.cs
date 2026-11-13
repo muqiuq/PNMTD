@@ -8,7 +8,7 @@ namespace PNMTD.Api.V1;
 
 [Route("api/v1/notification-rules")]
 [Authorize(Policy = Policies.CanRead)]
-public sealed class NotificationRulesController(NotificationRuleService rules) : V1ControllerBase
+public sealed class NotificationRulesController(NotificationRuleService rules, NotificationManagerService manager) : V1ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<Paged<NotificationRuleItem>>> List([FromQuery] PageQuery query, CancellationToken ct) =>
@@ -54,6 +54,36 @@ public sealed class NotificationRulesController(NotificationRuleService rules) :
     public async Task<IActionResult> Unlink(Guid id, Guid sensorId, CancellationToken ct)
     {
         await rules.UnlinkAsync(id, sensorId, ct);
+        return NoContent();
+    }
+    /// <summary>Replaces the rule's scopes (docs/ai-operations-plan.md §11.2).</summary>
+    [HttpPut("{id:guid}/scopes")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Scopes(Guid id, IReadOnlyList<NotificationScopeRequest> scopes, CancellationToken ct)
+    {
+        await manager.SetScopesAsync(id, scopes, ct);
+        return NoContent();
+    }
+
+    /// <summary>What the scopes would cover now, before they are saved.</summary>
+    [HttpPost("{id:guid}/scopes/preview")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<ActionResult<NotificationScopePreview>> Preview(Guid id, IReadOnlyList<NotificationScopeRequest> scopes, CancellationToken ct) =>
+        await manager.PreviewAsync(id, scopes, ct);
+
+    [HttpPut("{id:guid}/exclusions/{sensorId:guid}")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Exclude(Guid id, Guid sensorId, CancellationToken ct)
+    {
+        await manager.ExcludeAsync(id, sensorId, exclude: true, ct);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:guid}/exclusions/{sensorId:guid}")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<IActionResult> Include(Guid id, Guid sensorId, CancellationToken ct)
+    {
+        await manager.ExcludeAsync(id, sensorId, exclude: false, ct);
         return NoContent();
     }
 }

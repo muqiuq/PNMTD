@@ -18,7 +18,13 @@ public sealed record SensorInfo(
     string Name,
     SensorType Type,
     bool Enabled,
-    bool Ignore);
+    bool Ignore,
+    Importance? Importance = null,
+    Importance HostImportance = Lib.Models.Enum.Importance.Normal)
+{
+    /// <summary>The sensor's own, or else its host's (docs/ai-operations-plan.md §11.1).</summary>
+    public Importance EffectiveImportance => Importance ?? HostImportance;
+}
 
 /// <summary>A sensor with its resolved state and its newest relevant event.</summary>
 public sealed class SensorStatus(SensorInfo info)
@@ -238,7 +244,7 @@ public sealed class MonitoringReader(PnmtdDbContext db, MonitoringQueries querie
         }
         var sensors = await query
             .Select(s => new SensorInfo(s.Id, s.ParentId, s.Parent.Name, s.Parent.Enabled, s.OlderSiblingId, s.Name, s.Type,
-                s.Enabled, s.Ignore))
+                s.Enabled, s.Ignore, s.Importance, s.Parent.Importance))
             .ToListAsync(ct);
         var latest = await queries.LatestAsync(sensors.Select(s => s.Id).ToList(), ct);
         return new MonitoringSnapshot(sensors, latest);

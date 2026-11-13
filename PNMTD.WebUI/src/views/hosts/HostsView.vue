@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import Column from 'primevue/column'
+import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
+import Tag from 'primevue/tag'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, keys, type HostState, type S } from '@/api/resources'
@@ -14,6 +16,7 @@ import UptimeBar from '@/components/UptimeBar.vue'
 import { useServerTable } from '@/composables/useServerTable'
 import { formatPercent } from '@/format'
 import { useSession } from '@/stores/session'
+import { importanceOptions, importanceSeverity, type Importance } from '@/views/notifications/importance'
 
 /** The hosts (§5.6): status, sensors by state, 30 days, the last event; quick filters, search. */
 const session = useSession()
@@ -28,7 +31,15 @@ const states = [
 ]
 const state = ref<string>(typeof route.query.state === 'string' ? route.query.state : '')
 watch(state, (value) => router.replace({ query: { ...route.query, state: value || undefined, page: undefined } }))
-const filters = computed(() => ({ state: (state.value || undefined) as HostState | undefined }))
+const importance = ref<string>(typeof route.query.importance === 'string' ? route.query.importance : '')
+watch(importance, (value) =>
+  router.replace({ query: { ...route.query, importance: value || undefined, page: undefined } }),
+)
+const importanceChoices = [{ label: 'Any importance', value: '' }, ...importanceOptions]
+const filters = computed(() => ({
+  state: (state.value || undefined) as HostState | undefined,
+  importance: (importance.value || undefined) as Importance | undefined,
+}))
 
 const table = useServerTable<S['HostListItem']>({
   key: keys.hosts,
@@ -55,7 +66,11 @@ const table = useServerTable<S['HostListItem']>({
         />
       </template>
     </PageHeader>
-    <FilterBar v-model:search="table.search.value" placeholder="Search name or location" :active="state ? 1 : 0">
+    <FilterBar
+      v-model:search="table.search.value"
+      placeholder="Search name or location"
+      :active="(state ? 1 : 0) + (importance ? 1 : 0)"
+    >
       <SelectButton
         v-model="state"
         :options="states"
@@ -64,6 +79,14 @@ const table = useServerTable<S['HostListItem']>({
         :allow-empty="false"
         size="small"
         aria-label="State"
+      />
+      <Select
+        v-model="importance"
+        :options="importanceChoices"
+        option-label="label"
+        option-value="value"
+        size="small"
+        aria-label="Importance"
       />
     </FilterBar>
     <ListTable :table="table" what="hosts" :row-class="(h) => (h.enabled ? undefined : 'row-muted')">
@@ -79,6 +102,14 @@ const table = useServerTable<S['HostListItem']>({
         <template #body="{ data }"
           ><span class="muted">{{ data.location }}</span></template
         >
+      </Column>
+      <Column header="Importance" style="width: 7rem">
+        <template #body="{ data }"
+          ><Tag
+            v-if="data.importance !== 'Normal'"
+            :value="data.importance"
+            :severity="importanceSeverity(data.importance)"
+        /></template>
       </Column>
       <Column header="Sensors" style="width: 9rem">
         <template #body="{ data }">

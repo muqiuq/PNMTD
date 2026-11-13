@@ -34,11 +34,15 @@ public sealed class HostService(PnmtdDbContext db, MonitoringReader reader)
             var active = ActiveIds(sensors);
             return new HostListItem(h.Id, h.Name, h.Location, h.Enabled, Instants.Utc(h.Created),
                 MonitoringSnapshot.HostStateOf(h.Enabled, sensors), MonitoringSnapshot.Count(sensors),
-                days.AverageOverall(active, 30), sensors.Max(s => s.LastEventAt), days.Series(days.Average(active)));
+                days.AverageOverall(active, 30), sensors.Max(s => s.LastEventAt), days.Series(days.Average(active)), h.Importance);
         });
         if (query.State is { } state)
         {
             items = items.Where(i => i.State == state);
+        }
+        if (query.Importance is { } importance)
+        {
+            items = items.Where(i => i.Importance == importance);
         }
         IOrderedEnumerable<HostListItem> sorted = field switch
         {
@@ -81,7 +85,18 @@ public sealed class HostService(PnmtdDbContext db, MonitoringReader reader)
             sensors.Where(s => s.Info.ParentSensorId is null)
                 .OrderBy(s => s.Info.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(s => s.ToSummary())
-                .ToList());
+                .ToList(), host.Importance);
+    }
+
+    /// <summary>Many hosts' importance at once (docs/ai-operations-plan.md §11.1).</summary>
+    public async Task<int> SetImportanceAsync(ImportanceRequest request, CancellationToken ct)
+    {
+        new ApiValidator()
+            .Check(request.Ids.Count is >= 1 and <= 5000, "ids", "Between 1 and 5000 hosts.")
+            .Check(request.Importance is { } i && Enum.IsDefined(i), "importance", "Low, Normal or High.")
+            .ThrowIfInvalid();
+        var ids = request.Ids.Distinct().ToList();
+        return await db.Hosts.Where(h => ids.Contains(h.Id)).ExecuteUpdateAsync(u => u.SetProperty(h => h.Importance, request.Importance!.Value), ct);
     }
 
     public async Task<HostDetail> CreateAsync(HostRequest request, CancellationToken ct)
@@ -145,6 +160,7 @@ public sealed class HostService(PnmtdDbContext db, MonitoringReader reader)
             .Check(name is { Length: >= 2 and <= 64 }, "name", "The name must have 2 to 64 characters.")
             .Check(request.Location is null || request.Location.Trim().Length <= 128, "location", "At most 128 characters.")
             .Check(request.Notes is null || request.Notes.Length <= 4000, "notes", "At most 4000 characters.")
+            .Check(Enum.IsDefined(request.Importance), "importance", "Low, Normal or High.")
             .ThrowIfInvalid();
     }
 
@@ -154,5 +170,6 @@ public sealed class HostService(PnmtdDbContext db, MonitoringReader reader)
         host.Location = Text.Trimmed(request.Location);
         host.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes;
         host.Enabled = request.Enabled;
+        host.Importance = request.Importance;
     }
 }

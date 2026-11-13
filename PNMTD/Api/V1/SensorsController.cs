@@ -76,4 +76,8 @@ public sealed class SensorsController(SensorService sensors, EventService events
         await sensors.UnlinkRuleAsync(id, ruleId, ct);
         return NoContent();
     }
+    /// <summary>Many sensors' importance at once (docs/ai-operations-plan.md §11.1): how many changed.</summary>
+    [HttpPut("importance")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<ActionResult<int>> Importance(ImportanceRequest request, CancellationToken ct) => Ok(await sensors.SetImportanceAsync(request, ct));
 }

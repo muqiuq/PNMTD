@@ -1242,6 +1242,7 @@ export interface paths {
             parameters: {
                 query?: {
                     state?: components["schemas"]["HostState"];
+                    importance?: components["schemas"]["Importance"];
                     page?: number;
                     pageSize?: number;
                     sort?: string;
@@ -1383,6 +1384,49 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hosts/importance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ImportanceRequest"];
+                    "text/json": components["schemas"]["ImportanceRequest"];
+                    "application/*+json": components["schemas"]["ImportanceRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number;
+                        "text/json": number;
+                        "text/plain": number;
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3290,6 +3334,275 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notification-rules/{id}/scopes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NotificationScopeRequest"][];
+                    "text/json": components["schemas"]["NotificationScopeRequest"][];
+                    "application/*+json": components["schemas"]["NotificationScopeRequest"][];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notification-rules/{id}/scopes/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NotificationScopeRequest"][];
+                    "text/json": components["schemas"]["NotificationScopeRequest"][];
+                    "application/*+json": components["schemas"]["NotificationScopeRequest"][];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationScopePreview"];
+                        "text/json": components["schemas"]["NotificationScopePreview"];
+                        "text/plain": components["schemas"]["NotificationScopePreview"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notification-rules/{id}/exclusions/{sensorId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    sensorId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    sensorId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/matrix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    hostId?: string;
+                    importance?: components["schemas"]["Importance"];
+                    type?: components["schemas"]["SensorType"];
+                    state?: components["schemas"]["SensorState"];
+                    uncovered?: boolean;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationMatrix"];
+                        "text/json": components["schemas"]["NotificationMatrix"];
+                        "text/plain": components["schemas"]["NotificationMatrix"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationCoverage"];
+                        "text/json": components["schemas"]["NotificationCoverage"];
+                        "text/plain": components["schemas"]["NotificationCoverage"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NotificationAssignRequest"];
+                    "text/json": components["schemas"]["NotificationAssignRequest"];
+                    "application/*+json": components["schemas"]["NotificationAssignRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationAssignResult"];
+                        "text/json": components["schemas"]["NotificationAssignResult"];
+                        "text/plain": components["schemas"]["NotificationAssignResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sensors": {
         parameters: {
             query?: never;
@@ -3303,6 +3616,7 @@ export interface paths {
                     hostId?: string;
                     type?: components["schemas"]["SensorType"];
                     state?: components["schemas"]["SensorState"];
+                    importance?: components["schemas"]["Importance"];
                     page?: number;
                     pageSize?: number;
                     sort?: string;
@@ -3676,6 +3990,49 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/importance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ImportanceRequest"];
+                    "text/json": components["schemas"]["ImportanceRequest"];
+                    "application/*+json": components["schemas"]["ImportanceRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number;
+                        "text/json": number;
+                        "text/plain": number;
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -5518,6 +5875,8 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {unknown} */
+        AssignMode: "Add" | "Remove";
         AuthLogItem: {
             /** Format: uuid */
             id: string;
@@ -5784,6 +6143,7 @@ export interface components {
             /** Format: int32 */
             eventCount: number;
             sensors: components["schemas"]["SensorSummary"][];
+            importance?: components["schemas"]["Importance"];
         };
         HostListItem: {
             /** Format: uuid */
@@ -5800,17 +6160,28 @@ export interface components {
             /** Format: date-time */
             lastEventAt: null | string;
             days: components["schemas"]["UptimeSeries"];
+            importance?: components["schemas"]["Importance"];
         };
         HostRequest: {
             name?: null | string;
             location?: null | string;
             notes?: null | string;
             enabled?: boolean;
+            importance?: components["schemas"]["Importance"];
         };
         /** @enum {unknown} */
         HostState: "Ok" | "Failing" | "NoData" | "Disabled";
         /** Format: binary */
         IFormFile: string;
+        /**
+         * @default Normal
+         * @enum {unknown}
+         */
+        Importance: "Low" | "Normal" | "High";
+        ImportanceRequest: {
+            ids?: string[];
+            importance?: null | components["schemas"]["Importance"];
+        };
         /** @enum {unknown} */
         KeyFamily: "HmacSha256" | "Aes" | "HmacSha1" | "HmacMd5";
         KeyValueItem: {
@@ -6417,6 +6788,61 @@ export interface components {
          * @enum {unknown}
          */
         MikrotikUpdateMethod: "Download" | "Install";
+        NotificationAssignRequest: {
+            ruleIds?: string[];
+            sensorIds?: string[];
+            mode?: components["schemas"]["AssignMode"];
+        };
+        NotificationAssignResult: {
+            /** Format: int32 */
+            linked: number;
+            /** Format: int32 */
+            unlinked: number;
+            /** Format: int32 */
+            excluded: number;
+            /** Format: int32 */
+            included: number;
+        };
+        NotificationCoverage: {
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            covered: number;
+            /** Format: int32 */
+            uncoveredHigh: number;
+            /** Format: int32 */
+            uncoveredNormal: number;
+            /** Format: int32 */
+            uncoveredLow: number;
+            sensors: components["schemas"]["NotificationMatrixRow"][];
+        };
+        NotificationMatrix: {
+            rules: components["schemas"]["NotificationRuleItem"][];
+            rows: components["schemas"]["NotificationMatrixRow"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        NotificationMatrixCell: {
+            /** Format: uuid */
+            ruleId: string;
+            via: string;
+            scope: null | string;
+        };
+        NotificationMatrixRow: {
+            /** Format: uuid */
+            sensorId: string;
+            sensorName: string;
+            type: components["schemas"]["SensorType"];
+            host: components["schemas"]["Ref"];
+            importance: null | components["schemas"]["Importance"];
+            effectiveImportance: components["schemas"]["Importance"];
+            state: components["schemas"]["SensorState"];
+            cells: components["schemas"]["NotificationMatrixCell"][];
+        };
         NotificationRuleDetail: {
             /** Format: uuid */
             id: string;
@@ -6426,6 +6852,8 @@ export interface components {
             type: components["schemas"]["NotificationRuleType"];
             enabled: boolean;
             sensors: components["schemas"]["LinkedSensor"][];
+            scopes?: null | components["schemas"]["NotificationScope"][];
+            exclusions?: null | components["schemas"]["LinkedSensor"][];
         };
         NotificationRuleItem: {
             /** Format: uuid */
@@ -6437,6 +6865,12 @@ export interface components {
             enabled: boolean;
             /** Format: int32 */
             sensorCount: number;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            scopeCount: number;
+            via?: null | string;
         };
         NotificationRuleRequest: {
             name?: null | string;
@@ -6449,6 +6883,25 @@ export interface components {
         NotificationRuleTypeInfo: {
             type: components["schemas"]["NotificationRuleType"];
             description: string;
+        };
+        NotificationScope: {
+            kind: components["schemas"]["NotificationScopeKind"];
+            importance: null | components["schemas"]["Importance"];
+            host: null | components["schemas"]["Ref"];
+        };
+        /** @enum {unknown} */
+        NotificationScopeKind: "Importance" | "Host" | "Everything";
+        NotificationScopePreview: {
+            /** Format: int32 */
+            sensors: number;
+            /** Format: double */
+            eventsPerDay: number;
+        };
+        NotificationScopeRequest: {
+            kind?: components["schemas"]["NotificationScopeKind"];
+            importance?: null | components["schemas"]["Importance"];
+            /** Format: uuid */
+            hostId?: null | string;
         };
         PacketField: {
             /** Format: int32 */
@@ -6742,6 +7195,8 @@ export interface components {
             notes?: null | string;
             udp?: null | components["schemas"]["UdpNodeDetail"];
             mikrotik?: null | components["schemas"]["MikrotikRouterDetail"];
+            importance?: null | components["schemas"]["Importance"];
+            effectiveImportance?: components["schemas"]["Importance"];
         };
         SensorIntegration: {
             writeToken: string;
@@ -6768,6 +7223,8 @@ export interface components {
             lastEventAt: null | string;
             /** Format: date-time */
             failingSince: null | string;
+            importance?: null | components["schemas"]["Importance"];
+            effectiveImportance?: components["schemas"]["Importance"];
         };
         SensorRef: {
             /** Format: uuid */
@@ -6793,6 +7250,7 @@ export interface components {
             notes?: null | string;
             udp?: null | components["schemas"]["UdpNodeRequest"];
             mikrotik?: null | components["schemas"]["MikrotikRouterRequest"];
+            importance?: null | components["schemas"]["Importance"];
         };
         /** @enum {unknown} */
         SensorState: "Ok" | "Failing" | "NoData" | "Ignored" | "Disabled";

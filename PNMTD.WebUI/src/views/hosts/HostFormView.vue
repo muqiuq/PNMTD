@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { ref } from 'vue'
@@ -9,6 +10,7 @@ import { ApiError } from '@/api/client'
 import { api, keys } from '@/api/resources'
 import PageHeader from '@/components/PageHeader.vue'
 import { useActions } from '@/composables/useActions'
+import { importanceOptions, type Importance } from '@/views/notifications/importance'
 
 /** A new host (§5.6); everything else is edited where it is shown, on the host's page. */
 const router = useRouter()
@@ -18,6 +20,7 @@ const name = ref('')
 const location = ref('')
 const notes = ref('')
 const enabled = ref(true)
+const importance = ref<Importance>('Normal')
 const errors = ref<Record<string, string | undefined>>({})
 const busy = ref(false)
 
@@ -33,6 +36,7 @@ async function submit() {
       location: location.value.trim() || null,
       notes: notes.value || null,
       enabled: enabled.value,
+      importance: importance.value,
     })
     await invalidate([keys.hosts])
     notify.success(`Host ${host.name} created`)
@@ -66,6 +70,17 @@ async function submit() {
       <div class="field">
         <label for="host-notes">Notes</label>
         <Textarea id="host-notes" v-model="notes" rows="3" auto-resize />
+      </div>
+      <div class="field">
+        <label for="host-importance">Importance</label>
+        <Select
+          v-model="importance"
+          input-id="host-importance"
+          :options="importanceOptions"
+          option-label="label"
+          option-value="value"
+        />
+        <small class="field-hint">Its sensors take it unless they have their own; notifications can follow it.</small>
       </div>
       <div class="switch-row">
         <ToggleSwitch v-model="enabled" input-id="host-enabled" />

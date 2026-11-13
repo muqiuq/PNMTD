@@ -61,28 +61,56 @@ public sealed class NotificationRuleService(PnmtdDbContext db)
             (_, true) => rules.OrderByDescending(r => r.Name),
             _ => rules.OrderBy(r => r.Name),
         };
-        var page = await Paging.PageAsync(rules.Select(r => new RuleRow(r.Id, r.Name, r.Recipient, r.Type, r.Enabled, r.SubscribedSensors.Count)),
+        var page = await Paging.PageAsync(rules.Select(r => new RuleRow(r.Id, r.Name, r.Recipient, r.Type, r.Enabled, r.SubscribedSensors.Count,
+                r.Scopes.Count)),
             query, ct);
         return new Paged<NotificationRuleItem>(page.Items.Select(r => ToItem(r, withSecrets)).ToList(), page.Page, page.PageSize, page.TotalCount);
     }
 
-    private sealed record RuleRow(Guid Id, string Name, string Recipient, NotificationRuleType Type, bool Enabled, int SensorCount);
+    internal sealed record RuleRow(Guid Id, string Name, string Recipient, NotificationRuleType Type, bool Enabled, int SensorCount, int ScopeCount = 0);
 
-    private static NotificationRuleItem ToItem(RuleRow r, bool withSecrets)
+    internal static NotificationRuleItem ToItem(RuleRow r, bool withSecrets, string? via = null)
     {
         var provider = NotificationProviders.Match(r.Recipient) ?? "unknown";
         return new NotificationRuleItem(r.Id, r.Name, withSecrets ? r.Recipient : NotificationProviders.Mask(r.Recipient, provider),
-            provider, r.Type, r.Enabled, r.SensorCount);
+            provider, r.Type, r.Enabled, r.SensorCount, r.ScopeCount, via);
     }
 
+    /// <summary>The rules that cover the sensor (docs/ai-operations-plan.md §11.4): linked, or through a scope.</summary>
     public async Task<IReadOnlyList<NotificationRuleItem>> ForSensorAsync(Guid sensorId, bool withSecrets, CancellationToken ct)
     {
+        var sensor = await db.Sensors.AsNoTracking().Where(s => s.Id == sensorId)
+            .Select(s => new { s.ParentId, Importance = s.Importance ?? s.Parent.Importance }).SingleOrDefaultAsync(ct);
         var rows = await db.NotificationRules.AsNoTracking()
-            .Where(r => r.SubscribedSensors.Any(l => l.SensorId == sensorId))
             .OrderBy(r => r.Name)
-            .Select(r => new RuleRow(r.Id, r.Name, r.Recipient, r.Type, r.Enabled, r.SubscribedSensors.Count))
+            .Select(r => new
+            {
+                Row = new RuleRow(r.Id, r.Name, r.Recipient, r.Type, r.Enabled, r.SubscribedSensors.Count, r.Scopes.Count),
+                Linked = r.SubscribedSensors.Any(l => l.SensorId == sensorId),
+                Excluded = r.Exclusions.Any(x => x.SensorId == sensorId),
+                Scopes = r.Scopes.Select(s => new { s.Kind, s.Importance, s.HostId, HostName = s.Host != null ? s.Host.Name : null }).ToList(),
+            })
             .ToListAsync(ct);
-        return rows.Select(r => ToItem(r, withSecrets)).ToList();
+        var items = new List<NotificationRuleItem>();
+        foreach (var r in rows)
+        {
+            if (r.Linked)
+            {
+                items.Add(ToItem(r.Row, withSecrets, "link"));
+                continue;
+            }
+            if (sensor is null || r.Excluded)
+            {
+                continue;
+            }
+            var scope = r.Scopes.FirstOrDefault(s => new NotificationRuleScopeEntity { Kind = s.Kind, Importance = s.Importance, HostId = s.HostId }
+                .Covers(sensor.ParentId, sensor.Importance));
+            if (scope is not null)
+            {
+                items.Add(ToItem(r.Row, withSecrets, "scope: " + NotificationManagerService.Label(scope.Kind, scope.Importance, scope.HostName)));
+            }
+        }
+        return items;
     }
 
     public async Task<NotificationRuleDetail> GetAsync(Guid id, bool withSecrets, CancellationToken ct)
@@ -90,9 +118,18 @@ public sealed class NotificationRuleService(PnmtdDbContext db)
         var rule = await db.NotificationRules.AsNoTracking().SingleOrDefaultAsync(r => r.Id == id, ct)
             ?? throw ApiException.NotFound("Notification rule");
         var provider = NotificationProviders.Match(rule.Recipient) ?? "unknown";
+        var scopes = await db.NotificationRuleScopes.AsNoTracking().Where(s => s.RuleId == id)
+            .OrderBy(s => s.Kind).ThenBy(s => s.Importance)
+            .Select(s => new NotificationScope(s.Kind, s.Importance, s.Host != null ? new Ref(s.Host.Id, s.Host.Name) : null))
+            .ToListAsync(ct);
+        var exclusions = await db.Sensors.AsNoTracking()
+            .Where(s => db.NotificationRuleExclusions.Any(x => x.RuleId == id && x.SensorId == s.Id))
+            .OrderBy(s => s.Parent.Name).ThenBy(s => s.Name)
+            .Select(s => new LinkedSensor(s.Id, s.Name, s.Type, s.ParentId, s.Parent.Name))
+            .ToListAsync(ct);
         return new NotificationRuleDetail(rule.Id, rule.Name,
             withSecrets ? rule.Recipient : NotificationProviders.Mask(rule.Recipient, provider), provider, rule.Type, rule.Enabled,
-            await SensorsAsync(id, ct));
+            await SensorsAsync(id, ct), scopes, exclusions);
     }
 
     public async Task<IReadOnlyList<LinkedSensor>> SensorsAsync(Guid id, CancellationToken ct)

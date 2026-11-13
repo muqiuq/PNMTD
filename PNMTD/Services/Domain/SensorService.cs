@@ -23,6 +23,7 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         var items = snapshot.Sensors.Values
             .Where(s => query.Type is not { } type || s.Info.Type == type)
             .Where(s => query.State is not { } state || s.State == state)
+            .Where(s => query.Importance is not { } importance || s.Info.EffectiveImportance == importance)
             .Where(s => Text.Contains(s.Info.Name, query.Search) || Text.Contains(s.Info.HostName, query.Search))
             .Select(ToListItem);
         IOrderedEnumerable<SensorListItem> sorted = field switch
@@ -48,7 +49,7 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
 
     private static SensorListItem ToListItem(SensorStatus s) => new(s.Info.Id, new Ref(s.Info.HostId, s.Info.HostName),
         s.Info.ParentSensorId, s.Info.Name, s.Info.Type, s.Info.Enabled, s.Info.Ignore, s.State, s.LastCode, s.LastMessage,
-        s.LastEventAt, s.FailingSince);
+        s.LastEventAt, s.FailingSince, s.Info.Importance, s.Info.EffectiveImportance);
 
     public async Task<SensorDetail> GetAsync(Guid id, bool withSecrets, CancellationToken ct)
     {
@@ -74,7 +75,19 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             hours.AverageOverall(uptimeIds, 24), days.AverageOverall(uptimeIds, 30), days.Series(days.Average(uptimeIds)),
             status.Children.OrderBy(c => c.Info.Name, StringComparer.OrdinalIgnoreCase).Select(c => c.ToSummary()).ToList(),
             integration, sensor.Notes, isUdp ? await udp.DetailAsync(id, ct) : null,
-            sensor.Type == SensorType.MIKROTIK ? await mikrotik.DetailAsync(id, ct) : null);
+            sensor.Type == SensorType.MIKROTIK ? await mikrotik.DetailAsync(id, ct) : null,
+            sensor.Importance, status.Info.EffectiveImportance);
+    }
+
+    /// <summary>Many sensors' importance at once (docs/ai-operations-plan.md §11.1); null: their hosts'.</summary>
+    public async Task<int> SetImportanceAsync(ImportanceRequest request, CancellationToken ct)
+    {
+        new ApiValidator()
+            .Check(request.Ids.Count is >= 1 and <= 5000, "ids", "Between 1 and 5000 sensors.")
+            .Check(request.Importance is null || Enum.IsDefined(request.Importance.Value), "importance", "Low, Normal, High, or null for the host's.")
+            .ThrowIfInvalid();
+        var ids = request.Ids.Distinct().ToList();
+        return await db.Sensors.Where(s => ids.Contains(s.Id)).ExecuteUpdateAsync(u => u.SetProperty(s => s.Importance, request.Importance), ct);
     }
 
     public async Task<SensorDetail> CreateAsync(SensorRequest request, CancellationToken ct)
@@ -120,6 +133,7 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             sensor.ParentId = request.HostId;
             sensor.Enabled = request.Enabled;
             sensor.Ignore = request.Ignore;
+            sensor.Importance = request.Importance;
             sensor.Notes = Text.Trimmed(request.Notes) is null ? null : request.Notes;
         }
         else if (sensor.Type == SensorType.DNS)
@@ -132,6 +146,7 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
                 $"At most {UdpNodeService.MaxNotes} characters.").ThrowIfInvalid();
             sensor.Enabled = request.Enabled;
             sensor.Ignore = request.Ignore;
+            sensor.Importance = request.Importance;
             sensor.Notes = Text.Trimmed(request.Notes) is null ? null : request.Notes;
         }
         else
@@ -255,6 +270,7 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         v.Check(request.GracePeriod is >= 0 and <= 31_536_000, "gracePeriod", "Between 0 and 31536000 seconds.");
         v.Check(request.TextId is null || request.TextId.Length <= 200, "textId", "At most 200 characters.");
         v.Check(request.Notes is null || request.Notes.Length <= UdpNodeService.MaxNotes, "notes", $"At most {UdpNodeService.MaxNotes} characters.");
+        v.Check(request.Importance is null || Enum.IsDefined(request.Importance.Value), "importance", "Low, Normal, High, or none for the host's.");
         if (request.Type == SensorType.UDP_NODE)
         {
             var node = existing is null ? null : await db.UdpNodes.AsNoTracking().SingleOrDefaultAsync(n => n.SensorId == existing.Id, ct);
@@ -325,5 +341,6 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         sensor.TextId = Text.Trimmed(request.TextId);
         // As on hosts: blank is null, otherwise exactly as typed (line breaks matter).
         sensor.Notes = Text.Trimmed(request.Notes) is null ? null : request.Notes;
+        sensor.Importance = request.Importance;
     }
 }

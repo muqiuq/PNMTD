@@ -22,6 +22,7 @@ import { typeIcon, typeLabel, useStatusCodes } from '@/composables/useLookups'
 import { useMedia } from '@/composables/useMedia'
 import { formatAbsolute, formatPercent } from '@/format'
 import { useSession } from '@/stores/session'
+import { importanceOptions } from '@/views/notifications/importance'
 
 /**
  * A host (§5.6): its state and 90 days, its properties edited in place, and every sensor with its
@@ -141,6 +142,17 @@ const more = computed(() => [{ label: 'Delete host…', icon: 'pi pi-trash', cla
                 field="location"
                 :readonly="!canWrite"
                 :save="(v) => save({ location: v ? String(v) : null })"
+              />
+            </dd>
+            <dt>Importance</dt>
+            <dd>
+              <InlineField
+                :value="host.importance ?? 'Normal'"
+                type="enum"
+                :options="importanceOptions"
+                label="Importance"
+                :readonly="!canWrite"
+                :save="(v) => save({ importance: v as S['Importance'] })"
               />
             </dd>
             <dt>Enabled</dt>

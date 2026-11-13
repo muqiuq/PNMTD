@@ -18,6 +18,7 @@ const session = useSession()
 const tasks = useQuery({ queryKey: [...keys.system, 'tasks'], queryFn: api.system.tasks, refetchInterval: 15_000 })
 const uplink = useQuery({ queryKey: [...keys.system, 'uplink'], queryFn: api.system.uplink, refetchInterval: 30_000 })
 const udp = useQuery({ queryKey: [...keys.udp, 'status'], queryFn: api.udp.status, refetchInterval: 15_000 })
+const coverage = useQuery({ queryKey: [...keys.notifications, 'coverage'], queryFn: api.notifications.coverage })
 const udpBadge = computed(() => {
   const s = udp.data.value
   if (!s) return null
@@ -59,7 +60,10 @@ const info = computed(() => session.info)
       </section>
       <div class="column">
         <section class="panel" aria-labelledby="uplink-title">
-          <div id="uplink-title" class="panel-header">Uplink</div>
+          <div id="uplink-title" class="panel-header">
+            Uplink
+            <RouterLink :to="{ name: 'uplink' }" class="more">Uplink page ›</RouterLink>
+          </div>
           <dl v-if="uplink.data.value" class="panel-body facts">
             <dt>State</dt>
             <dd>
@@ -74,6 +78,20 @@ const info = computed(() => session.info)
             <dd><RelativeTime :value="uplink.data.value.lastRun" /></dd>
             <dt>Last success</dt>
             <dd><RelativeTime :value="uplink.data.value.lastSuccessfulRun" /></dd>
+          </dl>
+        </section>
+        <section class="panel" aria-labelledby="coverage-title">
+          <div id="coverage-title" class="panel-header">
+            Notifications
+            <RouterLink :to="{ name: 'notifications', query: { tab: 'coverage' } }" class="more">Coverage ›</RouterLink>
+          </div>
+          <dl v-if="coverage.data.value" class="panel-body facts">
+            <dt>Covered</dt>
+            <dd>{{ coverage.data.value.covered }} of {{ coverage.data.value.total }} sensors</dd>
+            <dt>High, no rule</dt>
+            <dd :class="{ error: coverage.data.value.uncoveredHigh > 0 }">
+              {{ coverage.data.value.uncoveredHigh }}
+            </dd>
           </dl>
         </section>
         <section class="panel" aria-labelledby="udp-title">

@@ -37,4 +37,8 @@ public sealed class HostsController(HostService hosts) : V1ControllerBase
         await hosts.DeleteAsync(id, ct);
         return NoContent();
     }
+    /// <summary>Many hosts' importance at once (docs/ai-operations-plan.md §11.1): how many changed.</summary>
+    [HttpPut("importance")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<ActionResult<int>> Importance(ImportanceRequest request, CancellationToken ct) => Ok(await hosts.SetImportanceAsync(request, ct));
 }

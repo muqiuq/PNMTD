@@ -16,6 +16,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import { useActions } from '@/composables/useActions'
 import { humanize, typeIcon, useRuleTypes } from '@/composables/useLookups'
 import { useSession } from '@/stores/session'
+import RuleScopes from './RuleScopes.vue'
 import { providerIcon, providerLabel, recipientHint } from './ruleHelp'
 
 /**
@@ -222,11 +223,15 @@ const more = computed(() => [{ label: 'Delete rule…', icon: 'pi pi-trash', com
           </DataTable>
         </section>
       </div>
+      <RuleScopes :rule="rule" :can-write="canWrite" class="scopes" />
     </template>
   </div>
 </template>
 
 <style scoped>
+.scopes {
+  margin-top: var(--pnmt-space-3);
+}
 .center {
   display: flex;
   justify-content: center;

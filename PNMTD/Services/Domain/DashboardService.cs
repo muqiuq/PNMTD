@@ -47,18 +47,21 @@ public sealed class DashboardService(
             .ThenBy(h => h.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        // Problems: failing active sensors by host, longest-failing first.
+        // Problems: failing active sensors by host, the most important and then the longest-failing first
+        // (docs/ai-operations-plan.md §11.1).
         var failing = active.Where(s => s.State == SensorState.Failing).ToList();
         var hours = await reader.HoursAsync(failing.Select(s => s.Info.Id).ToList(), 24, ct);
         var problems = failing
             .GroupBy(s => (s.Info.HostId, s.Info.HostName))
             .Select(g => new ProblemHost(g.Key.HostId, g.Key.HostName, g
-                .OrderBy(s => s.FailingSince ?? s.LastEventAt ?? now)
+                .OrderByDescending(s => s.Info.EffectiveImportance)
+                .ThenBy(s => s.FailingSince ?? s.LastEventAt ?? now)
                 .ThenBy(s => s.Info.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(s => new ProblemSensor(s.Info.Id, s.Info.Name, s.Info.Type, s.LastCode, s.LastMessage, s.FailingSince,
                     s.LastEventAt, hours.Values(s.Info.Id)))
                 .ToList()))
-            .OrderBy(p => p.Sensors.Min(s => s.FailingSince ?? s.LastEventAt ?? now))
+            .OrderByDescending(p => failing.Where(s => s.Info.HostId == p.Id).Max(s => s.Info.EffectiveImportance))
+            .ThenBy(p => p.Sensors.Min(s => s.FailingSince ?? s.LastEventAt ?? now))
             .ThenBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 

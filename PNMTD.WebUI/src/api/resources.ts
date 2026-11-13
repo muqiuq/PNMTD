@@ -223,6 +223,33 @@ export const api = {
     myTunnelConfig: (id: Id) => call(client.GET('/api/v1/account/tunnels/{id}/config', { params: { path: { id } } })),
   },
 
+  /** The Notification Manager (docs/ai-operations-plan.md §11.3): every role reads, a User assigns. */
+  notifications: {
+    matrix: (
+      query: ListQuery & {
+        hostId?: string
+        importance?: S['Importance']
+        type?: SensorType
+        state?: SensorState
+        uncovered?: boolean
+      },
+    ) => call(client.GET('/api/v1/notifications/matrix', { params: { query } })),
+    coverage: () => call(client.GET('/api/v1/notifications/coverage')),
+    assign: (body: S['NotificationAssignRequest']) => call(client.POST('/api/v1/notifications/assign', { body })),
+    setHostImportance: (body: S['ImportanceRequest']) => call(client.PUT('/api/v1/hosts/importance', { body })),
+    setSensorImportance: (body: S['ImportanceRequest']) => call(client.PUT('/api/v1/sensors/importance', { body })),
+    setScopes: (id: Id, body: S['NotificationScopeRequest'][]) =>
+      call(client.PUT('/api/v1/notification-rules/{id}/scopes', { params: { path: { id } }, body })),
+    previewScopes: (id: Id, body: S['NotificationScopeRequest'][]) =>
+      call(client.POST('/api/v1/notification-rules/{id}/scopes/preview', { params: { path: { id } }, body })),
+    exclude: (id: Id, sensorId: Id) =>
+      call(client.PUT('/api/v1/notification-rules/{id}/exclusions/{sensorId}', { params: { path: { id, sensorId } } })),
+    include: (id: Id, sensorId: Id) =>
+      call(
+        client.DELETE('/api/v1/notification-rules/{id}/exclusions/{sensorId}', { params: { path: { id, sensorId } } }),
+      ),
+  },
+
   /** The uplink page (docs/ai-operations-plan.md §7.3): every role reads, an Admin checks now. */
   uplink: {
     get: () => call(client.GET('/api/v1/uplink')),
@@ -326,11 +353,13 @@ export const keys = {
   mikrotik: ['mikrotik'] as const,
   /** The uplink page and its checks (docs/ai-operations-plan.md §7.3). */
   uplink: ['uplink'] as const,
+  /** The Notification Manager's matrix and coverage (docs/ai-operations-plan.md §11.3). */
+  notifications: ['notifications'] as const,
 }
 
 /** The request of a resource as it is, with some fields changed: v1's PUT takes every writable field. */
 export function hostRequest(h: S['HostDetail'], patch: Partial<S['HostRequest']> = {}): S['HostRequest'] {
-  return { name: h.name, location: h.location, notes: h.notes, enabled: h.enabled, ...patch }
+  return { name: h.name, location: h.location, notes: h.notes, enabled: h.enabled, importance: h.importance, ...patch }
 }
 
 export function sensorRequest(s: S['SensorDetail'], patch: Partial<S['SensorRequest']> = {}): S['SensorRequest'] {
@@ -338,6 +367,7 @@ export function sensorRequest(s: S['SensorDetail'], patch: Partial<S['SensorRequ
     hostId: s.host.id,
     type: s.type,
     name: s.name,
+    importance: s.importance ?? null,
     enabled: s.enabled,
     ignore: s.ignore,
     interval: s.interval,

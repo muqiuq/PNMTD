@@ -94,6 +94,31 @@ namespace PNMTD.Data
                 }))
                 .ToList();
 
+            // Scopes (docs/ai-operations-plan.md §11.2): a rule covers a sensor once, however many ways; links
+            // always apply, exclusions only stop scopes.
+            if (pendingEvents.Count > 0)
+            {
+                var scoped = db.NotificationRules.Where(r => r.Scopes.Any()).Include(r => r.Scopes).Include(r => r.Exclusions).ToList();
+                foreach (var pe in pendingEvents)
+                {
+                    var importance = pe.Sensor.Importance ?? pe.Sensor.Parent.Importance;
+                    foreach (var rule in scoped)
+                    {
+                        if (pe.Sensor.SubscribedByNotifications.Any(n => n.NotificationRuleId == rule.Id)
+                            || rule.Exclusions.Any(x => x.SensorId == pe.SensorId)
+                            || !rule.Scopes.Any(scope => scope.Covers(pe.Sensor.ParentId, importance)))
+                        {
+                            continue;
+                        }
+                        pendingNotifications.Add(new PendingNotification { EventEntity = pe, NotitificationRule = rule });
+                    }
+                }
+            }
+            foreach (var pending in pendingNotifications)
+            {
+                pending.Importance = pending.EventEntity.Sensor.Importance ?? pending.EventEntity.Sensor.Parent.Importance;
+            }
+
             return pendingNotifications;
         }
     }

@@ -29,7 +29,9 @@ public sealed record SensorListItem(
     int? LastCode,
     string? LastMessage,
     DateTime? LastEventAt,
-    DateTime? FailingSince);
+    DateTime? FailingSince,
+    Importance? Importance = null,
+    Importance EffectiveImportance = Importance.Normal);
 
 /// <summary>
 /// <c>GET /sensors/{id}</c>. <see cref="Integration"/> (tokens and URLs) is null for a Viewer.
@@ -62,7 +64,9 @@ public sealed record SensorDetail(
     SensorIntegration? Integration,
     string? Notes = null,
     UdpNodeDetail? Udp = null,
-    MikrotikRouterDetail? Mikrotik = null);
+    MikrotikRouterDetail? Mikrotik = null,
+    Importance? Importance = null,
+    Importance EffectiveImportance = Importance.Normal);
 
 /// <summary>
 /// How an application reports: <c>{WriteUrl}/{code}/{message}</c> (GET) or a POST of the message to
@@ -106,6 +110,9 @@ public sealed class SensorRequest
 
     /// <summary>A MIKROTIK router's settings (docs/mikrotik-plan.md §10); ignored for other types.</summary>
     public MikrotikRouterRequest? Mikrotik { get; init; }
+
+    /// <summary>Null: the host's (docs/ai-operations-plan.md §11.1).</summary>
+    public Importance? Importance { get; init; }
 }
 
 /// <summary><c>POST /sensors/{id}/tokens/rotate</c>: which tokens get new values. The old URLs stop working at once.</summary>
@@ -133,4 +140,7 @@ public sealed class SensorQuery : PageQuery
     public SensorType? Type { get; set; }
 
     public SensorState? State { get; set; }
+
+    /// <summary>The effective importance: the sensor's own, or its host's.</summary>
+    public Importance? Importance { get; set; }
 }
