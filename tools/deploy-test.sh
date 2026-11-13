@@ -26,7 +26,16 @@ cleanup() {
 }
 trap cleanup EXIT
 
-fail() { echo "FAIL: $*" >&2; compose logs --tail 40 pnmtd >&2 || true; exit 1; }
+# The containers' state and the app's last lines, then the reason: last, where run-tests.sh's tail
+# and a CI log show it.
+fail() {
+  { compose ps -a; compose logs --tail 30 pnmtd; } >&2 2>/dev/null || true
+  echo "FAIL: $*" >&2
+  exit 1
+}
+
+# compose up --wait, its own output kept for the failure: which container, in which state.
+up_wait() { compose up -d --wait >"$dir/up.out" 2>&1; }
 
 # Podman names local images localhost/…, Docker docker.io/library/….
 if docker image inspect localhost/pnmtd:dev >/dev/null 2>&1; then image=localhost/pnmtd; else image=pnmtd; fi
@@ -40,7 +49,7 @@ env_set PNMTD_PORT "$PORT"
 env_set PNMTD_UDP_PORT "${DEPLOY_TEST_UDP_PORT:-5092}"
 env_set COMPOSE_PROJECT_NAME "$PROJECT"
 
-compose up -d --wait >/dev/null 2>&1 || fail "the stack did not come up healthy"
+up_wait || fail "the stack did not come up healthy: $(tail -3 "$dir/up.out")"
 ./info.sh --quiet || fail "info.sh --quiet says it is not healthy"
 
 # The hardened container protects itself (§3.6): the API needs a session, / and old routes are empty 404s.
@@ -106,8 +115,8 @@ sleep 6   # the sensor API's 5-second rule
 curl -fsS -o /dev/null "http://localhost:${PORT}/event/wtok-deploy/500/after-backup" || fail "event after the backup"
 [[ "$(read_raw)" == "False;after-backup" ]] || fail "read after the backup: $(read_raw)"
 
-./restore.sh "$folder" --yes >/dev/null 2>&1 || fail "restore.sh"
-compose up -d --wait >/dev/null 2>&1 || fail "not healthy after the restore"
+./restore.sh "$folder" --yes >"$dir/restore.out" 2>&1 || fail "restore.sh: $(tail -5 "$dir/restore.out")"
+up_wait || fail "not healthy after the restore: $(tail -3 "$dir/up.out")"
 [[ "$(read_raw)" == "True;before-backup" ]] || fail "read after the restore: $(read_raw)"
 [[ "$(sql 'SELECT count(*) FROM events')" == "1" ]] || fail "events after the restore"
 

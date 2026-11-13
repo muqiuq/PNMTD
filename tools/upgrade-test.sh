@@ -50,7 +50,13 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
-fail() { echo "FAIL: $*" >&2; nc logs --tail 30 pnmtd >&2 2>/dev/null || true; exit 1; }
+# The 1.0 stack's state and last lines, then the reason: last, where run-tests.sh's tail and a CI
+# log show it.
+fail() {
+  { nc ps -a; nc logs --tail 30 pnmtd; } >&2 2>/dev/null || true
+  echo "FAIL: $*" >&2
+  exit 1
+}
 
 # --- 1. the v0.12 installation -------------------------------------------------------------------
 # $$ is a literal $ for compose. The stand-in WebApp only carries the WebApp's settings.

@@ -24,9 +24,9 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         global-json-file: global.json
     - name: Restore (locked)
@@ -53,7 +53,7 @@ jobs:
   web:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Web UI and scripts
       run: ENGINE=docker ./run-tests.sh --only web,shell
 
@@ -61,16 +61,16 @@ jobs:
   sensor-contract:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         global-json-file: global.json
     - name: Replay the golden contract against the image
       run: ENGINE=docker tools/contract.sh verify
     - name: Keep the actual recording
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: sensor-contract-actual
         path: artifacts/contract/actual.json
@@ -80,18 +80,18 @@ jobs:
   stack:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0   # the v0.12.1 tag: the upgrade test builds the old release from it
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         global-json-file: global.json
     - name: deploy/, the v0.12 upgrade, the browser tests
       run: ENGINE=docker ./run-tests.sh --only deploy,upgrade,e2e
     - name: Keep the screenshots
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: screenshots
         path: PNMTD.WebUI/test-results/

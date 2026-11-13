@@ -59,8 +59,21 @@ step() {
   else
     printf 'FAILED  (%ss)\n' $(( SECONDS - start ))
     sed 's/^/      /' "$log" | tail -40
+    annotate "$name" "$log"
     failures+=("$name")
   fi
+}
+
+# On GitHub Actions, a failed step's reason as an annotation on the run's page: from the FAIL: line
+# the test scripts end with, else the log's last lines.
+annotate() {
+  [[ "${GITHUB_ACTIONS:-}" == "true" ]] || return 0
+  local name="$1" log="$2" reason
+  reason="$(sed -n '/^FAIL/,$p' "$log")"
+  [[ -n "$reason" ]] || reason="$(tail -5 "$log")"
+  reason="${reason//'%'/%25}"; reason="${reason//$'\r'/}"; reason="${reason//$'\n'/%0A}"
+  name="${name//'%'/%25}"; name="${name//:/%3A}"; name="${name//,/%2C}"
+  echo "::error title=${name}::${reason}"
 }
 
 # --- containers -------------------------------------------------------------------------------
