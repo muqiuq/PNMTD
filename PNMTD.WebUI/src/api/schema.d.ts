@@ -16816,6 +16816,7 @@ export interface components {
             wireGuard?: null | boolean;
             redmine?: null | boolean;
             zabbix?: null | boolean;
+            hiddenMenus?: null | string[];
         };
         SystemSection: {
             hostname: string;

@@ -272,6 +272,7 @@ PNMT shows the tickets of chosen Redmine projects (5.1 or later; docs/audit-redm
 - **Who sees it:** groups with Redmine *View* (tickets) or *Link* (linking them). *Viewers* get neither: tickets hold customers' and colleagues' text.
 - **A copy of the linked tickets** (number, subject, status, assignee) is refreshed every `Redmine__SyncMinutes`, so panels work when Redmine is slow or down. When it doesn't answer, or refuses the key, twice in a row, the system sensor *Redmine* writes 429.
 - **Checking it:** *Admin → System health → Integrations → Test* signs in with the key and looks for every project.
+- **Without the menu entry:** `Redmine__HideMenu=true` leaves *Redmine* out of the drawer. The tickets panels, chips and ticket pages keep working.
 
 ## Zabbix (optional)
 
@@ -286,6 +287,19 @@ PNMT reads Zabbix (6.0 or later; docs/audit-redmine-zabbix-plan.md §7): the ope
 - **Load:** one `problem.get` every `Zabbix__PollSeconds` (60) and the hosts every `Zabbix__HostSyncMinutes` (10), whatever the page views.
 - **When Zabbix doesn't answer,** Zabbix sensors keep their state and write nothing; the system sensor *Zabbix* writes 430 once. If Zabbix also mails PNMT through a mail input, both alert: retire the mail rule once the host's Zabbix sensor is in.
 - **Checking it:** *Admin → System health → Integrations → Test* reads the problems and hosts now and names the host groups it found.
+- **Without the menu entry:** `Zabbix__HideMenu=true` leaves *Zabbix* out of the drawer. Zabbix sensors keep working, and the Zabbix pages stay reachable through their links.
+
+## Menu entries
+
+A deployment that doesn't use a part of PNMT can leave its entries out of the drawer, for everybody:
+
+| Setting | Leaves out |
+|---|---|
+| `Mail__HideMenu=true` | *Mail inputs* and *Mail log* |
+| `Redmine__HideMenu=true` | *Integrations → Redmine* |
+| `Zabbix__HideMenu=true` | *Integrations → Zabbix* |
+
+Only the entries go: the features keep working, their pages stay reachable through links (a ticket chip, a Zabbix sensor's page), and rights decide who may open them, as before.
 
 ## Uploaded files
 

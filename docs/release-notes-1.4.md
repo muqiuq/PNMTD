@@ -21,6 +21,7 @@ Version 1.4.0.
   - An overview of the open problems by severity, and by host group or a tag (`class`, `component`, `scope`, …), with the hosts at a glance.
   - The problems with filters, each opening to its description and acknowledgements; the hosts, and a page per host with its problems, latest data, inventory and links into Zabbix.
   - **Zabbix hosts become sensors:** attached to a PNMT host (by hand, from the host's page, or in bulk from *Suggestions*, which match by name and address), a Zabbix sensor fails from a severity up (Average by default) and notifies like any other sensor. A PNMT host can have several; a Zabbix host is attached once.
+- **Menu entries can be hidden** for a whole deployment: `Mail__HideMenu`, `Redmine__HideMenu` and `Zabbix__HideMenu` leave *Mail inputs* and *Mail log*, *Redmine* or *Zabbix* out of the drawer. The features keep working.
 - **Two new system sensors,** *Redmine* (429) and *Zabbix* (430), on the host *PNMT*: they fail once when the integration stops answering, instead of every sensor at once. *Admin → System health* shows both integrations and tests them.
 
 ## Updating from 1.3

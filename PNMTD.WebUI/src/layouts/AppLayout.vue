@@ -58,7 +58,9 @@ async function refresh() {
   }
 }
 
-const groups = computed(() => visibleNavigation(session.allows, (f) => !!session.info?.[f]))
+const groups = computed(() =>
+  visibleNavigation(session.allows, (f) => !!session.info?.[f], session.info?.hiddenMenus ?? []),
+)
 // An editing page holds the drawer as a rail while it is open (docs/locations-knowledge-plan.md §5.9);
 // opening it then is for that page only, the stored preference stays as it was.
 const openedWhileHeld = ref(false)

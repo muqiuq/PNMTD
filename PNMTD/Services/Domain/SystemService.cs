@@ -54,8 +54,18 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         }
         return new SystemInfo(ServerInfo.Identity, ServerInfo.Version, urls.Configured, Clock.TimeZone.Id,
             configuration["Auth:TotpPolicy"] ?? "Optional", configuration.GetValue("WireGuard:Enabled", false), Redmine.RedmineSetup.Configured(configuration),
-            Zabbix.ZabbixSetup.Configured(configuration));
+            Zabbix.ZabbixSetup.Configured(configuration), HiddenMenus(configuration));
     }
+
+    /// <summary>The menus a deployment doesn't want in the drawer.</summary>
+    public static readonly string[] Menus = ["redmine", "mail", "zabbix"];
+
+    /// <summary>
+    /// Redmine__HideMenu, Mail__HideMenu, Zabbix__HideMenu: the drawer leaves their entries out (Mail: the mail inputs and the
+    /// mail log). The features keep working, and their pages stay reachable through links.
+    /// </summary>
+    public static IReadOnlyList<string> HiddenMenus(IConfiguration c) =>
+        Menus.Where(m => c.GetValue($"{char.ToUpperInvariant(m[0])}{m[1..]}:HideMenu", false)).ToList();
 
     public async Task<UplinkStatus> UplinkAsync(CancellationToken ct)
     {

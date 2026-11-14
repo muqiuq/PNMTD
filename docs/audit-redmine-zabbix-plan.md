@@ -1263,6 +1263,8 @@ None.
 - **`dev.env` isn't touched** (it is gitignored and holds a person's settings): `pnmtd dev fake-integrations` prints the lines to add.
 - **The seed** adds the Redmine links and copies only with Redmine configured, and nas-01's Zabbix sensor only with the fake Zabbix, whose host ids it knows.
 
+**Added after the plan:** `Redmine__HideMenu`, `Mail__HideMenu` and `Zabbix__HideMenu` leave *Redmine*, *Mail inputs* and *Mail log*, or *Zabbix* out of the drawer, for the whole deployment. `GET /system/info` names them in `hiddenMenus`; only the entries go, not the features, their pages or their rights.
+
 **Found and fixed on the way:** `deploy/info.sh` still asked for `users."Role"`, which G1 removes, for its warning about admins without 2FA; the global search's ticket subjects escaped wildcards with nothing instead of `\`; the Redmine client's comment claimed a pinned certificate excludes valid ones (it accepts both).
 
 **The uncommitted work on the sensor page** (`SensorNotesPanel.vue` and the overview tabs) was left as it was: this package's changes to `SensorView.vue` were committed on top of the committed file, without it. Once, early in R2, an editing script emptied that uncommitted file; it was restored from the recorded diff and compared, and later edits read the file whole before writing.

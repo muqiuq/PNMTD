@@ -9,6 +9,8 @@ export interface NavItem {
   right?: Right
   /** An integration's page: only while it is configured (§10.1). */
   feature?: 'redmine' | 'zabbix'
+  /** A menu the deployment can hide (Redmine__HideMenu, Mail__HideMenu, Zabbix__HideMenu): only the entry goes. */
+  menu?: 'redmine' | 'mail' | 'zabbix'
 }
 
 export interface NavGroup {
@@ -39,8 +41,16 @@ export const navigation: NavGroup[] = [
         to: '/mail-inputs',
         name: 'mail-inputs',
         right: ['Monitoring', 'View'],
+        menu: 'mail',
       },
-      { label: 'Mail log', icon: 'pi pi-inbox', to: '/mail-log', name: 'mail-log', right: ['Mail', 'Read'] },
+      {
+        label: 'Mail log',
+        icon: 'pi pi-inbox',
+        to: '/mail-log',
+        name: 'mail-log',
+        right: ['Mail', 'Read'],
+        menu: 'mail',
+      },
       {
         label: 'Notification rules',
         icon: 'pi pi-bell',
@@ -74,6 +84,7 @@ export const navigation: NavGroup[] = [
         name: 'redmine',
         right: ['Redmine', 'View'],
         feature: 'redmine',
+        menu: 'redmine',
       },
       {
         label: 'Zabbix',
@@ -82,6 +93,7 @@ export const navigation: NavGroup[] = [
         name: 'zabbix',
         right: ['Zabbix', 'View'],
         feature: 'zabbix',
+        menu: 'zabbix',
       },
     ],
   },
@@ -155,11 +167,17 @@ export const navigation: NavGroup[] = [
 export function visibleNavigation(
   allows: (right: Right) => boolean,
   configured: (feature: 'redmine' | 'zabbix') => boolean = () => true,
+  hiddenMenus: readonly string[] = [],
 ): NavGroup[] {
   return navigation
     .map((g) => ({
       ...g,
-      items: g.items.filter((i) => (!i.right || allows(i.right)) && (!i.feature || configured(i.feature))),
+      items: g.items.filter(
+        (i) =>
+          (!i.right || allows(i.right)) &&
+          (!i.feature || configured(i.feature)) &&
+          (!i.menu || !hiddenMenus.includes(i.menu)),
+      ),
     }))
     .filter((g) => g.items.length > 0)
 }

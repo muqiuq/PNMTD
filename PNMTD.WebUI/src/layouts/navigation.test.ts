@@ -38,4 +38,26 @@ describe('visibleNavigation', () => {
     )
     expect(groups.map((g) => g.label)).not.toContain('Integrations')
   })
+
+  it('leaves out the menus the deployment hides, and only those (Redmine__HideMenu, Mail__HideMenu, Zabbix__HideMenu)', () => {
+    const all = names(
+      visibleNavigation(
+        () => true,
+        () => true,
+      ),
+    )
+    expect(all).toEqual(expect.arrayContaining(['redmine', 'zabbix', 'mail-inputs', 'mail-log']))
+    const hidden = names(
+      visibleNavigation(
+        () => true,
+        () => true,
+        ['mail', 'zabbix'],
+      ),
+    )
+    expect(hidden).not.toContain('mail-inputs')
+    expect(hidden).not.toContain('mail-log')
+    expect(hidden).not.toContain('zabbix')
+    expect(hidden).toContain('redmine')
+    expect(all.length - hidden.length).toBe(3)
+  })
 })
