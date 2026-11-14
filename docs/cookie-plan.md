@@ -1059,3 +1059,43 @@ All under `/api/v1/cookie`. **The dashboard section needs no right; the window n
 - **the tools:** a tool outside Cookie's group's rights refuses; a sensitive page never comes back;
 - **the loop,** with a fake model: a quiet round makes no call; a bad sensor wakes it; it resumes after a restart; the budget pauses it;
 - **the endpoints** in the access matrix.
+
+### 19.8 As built (2026-11-14)
+
+**On master, package nine's server is built:** A1 c7b6da5, A2 6920418, B1 4ef9f4e, B2 3dc05e2, the seed and the operators' documentation d5c2c96, review fixes 4559e89. **The web UI (A3, B3) and the finish (B4) follow.** Where the code differs from the sections above, this says so; the rest is as planned.
+
+**The bookkeeping (A):**
+
+- **A problem case is per host, a ticket case per ticket** (§19.1). A ticket linked to the host, or to one of its bad sensors, counts as the problem's progress when PNMT's copy shows it moving (refreshed every `Redmine__SyncMinutes`), and an open one keeps the ticket duty away.
+- **Progress** is also a Zabbix acknowledgement and **a change of the host's or a member sensor's notes**. PNMT's notes are one text per object, without a time, so the case book keeps a fingerprint of each and counts a change.
+- **Zabbix problems** join their attached PNMT host's case. A problem on a Zabbix host attached to no PNMT host gets a case of its own (`zabbix:{hostid}`). The severity from which they count is on *Cases* (`Average`).
+- **A ticket's clock:** the first answer and an update are a public note or a status change by staff. Watched projects' open tickets are read every `Cookie__TicketsMinutes` (5), and a ticket's journals only when Redmine's `updated_on` moved. **An unreachable Redmine closes no ticket case.**
+- **The duties:**
+  - **Each is off until switched on,** and a duty that falls due while off is closed as *off*, so switching it on later sends nothing old.
+  - **A reminder whose deadline is due as well gives way to it** (after downtime, or when both were switched on together).
+  - **Reminders and escalations wait for working hours;** tickets and closing notes don't.
+  - **A missed first answer sends messages only;** the reminder before it is the private note.
+  - **Who:** the assignee by the contact's *Redmine name*, the project's escalation group when nobody is assigned or no contact matches, both for a missed deadline, plus whoever the recipient rules name.
+  - **Pushover** only for what is urgent, and never in a person's quiet hours (e-mail still goes).
+- **The recipient rules' location scope is the location itself,** not its sub-locations.
+- **The outbox** counts §6.1's limits per local day. What is held back stays held back; an admin sends it from the Overview, without limits, and the audit names them. **Redmine is written only with `Redmine__WriteApiKey`, and only in the projects PNMT shows;** a note's ticket is checked before writing.
+- **The code's status:** *Alert* for a problem of importance High, or 3 hosts with problems at one location; *Warning* for any other problem of normal importance or a missed ticket deadline; *Info* for minor problems or a reminder due. **A reader who can't see every case behind it gets the state, not the reason.**
+
+**Cookie (B):**
+
+- **The read tools are `PNMTD/Cookie/CookieTools.cs`** (§3.5): `cases_list`, `case_get`, `hosts_search`, `host_get`, `sensor_events`, `location_get`, `kb_search`, `kb_page`, `ticket_get` and `zabbix_problems`, each with its area and level, none that writes. Package eight's MCP server is to offer these.
+- **Screening:** Jev reads the outside text the brief carries (the members' messages) once per round, and every chat message, with a question meant for chat. **Tool results get the local scanner only** (cleaned, scanned, an obvious injection withheld, the rest wrapped and flagged). Nothing in package nine acts, so a misled Cookie can only write a wrong note. Jev on tool results comes with nine point five's actions.
+- **The privacy filter's placeholders are one mapping for the server** (`PERSON_n`, `EMAIL_n`, `PHONE_n`), handed out under a lock and kept. **Account names that are ordinary words** (admin, backup, support …) aren't masked. Tool results are masked when they are read, not at ingest; in `Code` mode that is a regular expression, so no round waits for it.
+- **A round:**
+  - the brief has the cases that changed since the last round, have no note yet, or have a deadline within the hour, in full (at most 25), and the others in one line (at most 60);
+  - **the same brief as last time is a quiet round: no call,** and Cookie's status stays valid;
+  - each case's work ends in a separate call with a strict schema and no tools, on what the model found (§14.3).
+- **Cookie's status counts while Cookie runs and is under 30 minutes old;** otherwise the code's is shown.
+- **The chat:**
+  - each message opens a request case and is answered in the next round, at most 5 a round, with the lower of the asker's rights and Cookie's, the asker's rights read from the database;
+  - **a message Jev flags never reaches the model;**
+  - at most 20 messages an hour per person; a message to a stopped Cookie is refused.
+- **The summary** is kept for 15 minutes per person in memory, so a restart writes it again.
+- **The trace** is polled (`afterId`), not streamed. It is kept 30 days; closed cases and the outbox a year.
+- **Package one's AI budget no longer counts `cookie.*`** (§19.1).
+- **Not in package nine:** the *Mute, away, suppress* and *Lessons* tabs, and *Cookie: Instruct* grants nothing more than *Use* yet.
