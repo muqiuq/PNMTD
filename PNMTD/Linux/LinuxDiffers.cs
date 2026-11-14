@@ -335,7 +335,8 @@ public static class LinuxDiffers
             {
                 changes.Add(new($"Service {service.Name}: now {ClassLabel(service.Class)} (was {ClassLabel(before.Class)})", true));
             }
-            if (!string.Equals(before.User, service.User, StringComparison.Ordinal))
+            // A unit without User= runs as root: the agent names root only while it runs, so an on-demand service would flip.
+            if (!string.Equals(before.User ?? "root", service.User ?? "root", StringComparison.Ordinal))
             {
                 changes.Add(new($"Service {service.Name}: runs as {service.User ?? "root"} (was {before.User ?? "root"})", true));
             }

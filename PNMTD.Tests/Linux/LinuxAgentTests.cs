@@ -480,6 +480,9 @@ public sealed class LinuxAgentTests
         var services = SimulatedLinux.Services();
         var cron = services with { Cron = [.. services.Cron, new CronEntry("/etc/cron.d/miner", "root", "*/5 * * * *", "/tmp/.x/run", null, "ffff0000aaaa1111")] };
         CollectionAssert.Contains(Lines(SectionNames.Services, services, cron), "Cron entry added for root: */5 * * * * /tmp/.x/run (/etc/cron.d/miner)");
+        // An on-demand service without User= is root's whether it runs or not (found in the lab: systemd-timedated flipped).
+        var stopped = services with { Services = services.Services.Select(e => e.User == "root" ? e with { User = null } : e).ToList() };
+        Assert.AreEqual(0, Lines(SectionNames.Services, services, stopped).Count(l => l.Contains("runs as", StringComparison.Ordinal)));
 
         var access = SimulatedLinux.Access();
         var volatileJournal = access with { Logging = access.Logging with { JournalPersistent = false, SshdLogLevel = "VERBOSE" } };
