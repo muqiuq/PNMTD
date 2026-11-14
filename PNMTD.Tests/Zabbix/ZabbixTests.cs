@@ -173,6 +173,7 @@ public sealed class ZabbixTests
         Assert.AreEqual(1, summary.Hosts.Unavailable);
         Assert.AreEqual(1, summary.Hosts.InMaintenance);
         Assert.AreEqual("https://zabbix.example.com/zabbix.php?action=dashboard.view", summary.DashboardUrl);
+        CollectionAssert.AreEqual(new[] { "PNMT Servers" }, summary.Groups.ToArray());
 
         var byComponent = await (await viewer.GetAsync("/api/v1/zabbix/summary?category=tag:component&suppressed=true")).ReadAsync<ZabbixSummary>();
         CollectionAssert.AreEquivalent(new[] { "storage", "cpu", ZabbixService.NoValue }, byComponent.Categories.Select(c => c.Name).ToArray());
@@ -196,6 +197,7 @@ public sealed class ZabbixTests
         Assert.AreEqual($"https://zabbix.example.com/tr_events.php?triggerid={trigger}&eventid={full.Id}", full.Url);
 
         Assert.AreEqual("/var is 95 % full", (await Problems("minSeverity=High")).Single().Name);
+        Assert.AreEqual("High CPU load", (await Problems("severity=Average")).Single().Name);
         Assert.AreEqual("High CPU load", (await Problems("tag=component:cpu")).Single().Name);
         Assert.AreEqual(2, (await Problems("tag=class")).Count);
         Assert.AreEqual("High CPU load", (await Problems("acknowledged=false")).Single().Name);

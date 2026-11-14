@@ -75,6 +75,14 @@ export const navigation: NavGroup[] = [
         right: ['Redmine', 'View'],
         feature: 'redmine',
       },
+      {
+        label: 'Zabbix',
+        icon: 'pi pi-chart-bar',
+        to: '/zabbix',
+        name: 'zabbix',
+        right: ['Zabbix', 'View'],
+        feature: 'zabbix',
+      },
     ],
   },
   {

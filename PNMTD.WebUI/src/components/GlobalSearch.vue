@@ -12,15 +12,15 @@ import { useSession } from '@/stores/session'
  * exact write or read token, which replaces v0.12's token box on the dashboard. Locations by name
  * with their paths, and pages by number, title, summary and tag; #tag searches tags only
  * (docs/locations-knowledge-plan.md §6.7, §10.4). With Redmine, #1234 finds the ticket, and text the linked tickets by
- * subject (docs/audit-redmine-zabbix-plan.md §6.6).
+ * subject (docs/audit-redmine-zabbix-plan.md §6.6); with Zabbix, its hosts by name or address (§7.6).
  */
 interface Suggestion {
-  kind: 'host' | 'sensor' | 'token' | 'location' | 'page' | 'ticket'
+  kind: 'host' | 'sensor' | 'token' | 'location' | 'page' | 'ticket' | 'zabbix-host'
   id: string
   label: string
   detail: string
   icon: string
-  /** A page's or a ticket's number: their routes are /kb/42 and /redmine/issues/1234. */
+  /** A page's, a ticket's or a Zabbix host's number: /kb/42, /redmine/issues/1234, /zabbix/hosts/10084. */
   number?: number
 }
 
@@ -93,6 +93,14 @@ async function complete(event: { query: string }) {
       detail: t.isClosed ? `ticket, ${t.status}` : t.status,
       icon: 'pi pi-ticket',
     })),
+    ...(result.zabbixHosts ?? []).map((z) => ({
+      kind: 'zabbix-host' as const,
+      id: String(z.id),
+      number: z.id,
+      label: z.name,
+      detail: `Zabbix host${z.address ? ` · ${z.address}` : ''}`,
+      icon: 'pi pi-chart-bar',
+    })),
   )
   suggestions.value = found
 }
@@ -105,10 +113,12 @@ async function open(event: { value: Suggestion }) {
       ? `/kb/${item.number}`
       : item.kind === 'ticket'
         ? { name: 'redmine-issue', params: { id: item.number } }
-        : {
-            name: item.kind === 'host' ? 'host' : item.kind === 'location' ? 'location' : 'sensor',
-            params: { id: item.id },
-          },
+        : item.kind === 'zabbix-host'
+          ? { name: 'zabbix-host', params: { hostId: item.number } }
+          : {
+              name: item.kind === 'host' ? 'host' : item.kind === 'location' ? 'location' : 'sensor',
+              params: { id: item.id },
+            },
   )
   ;(document.activeElement as HTMLElement | null)?.blur()
 }

@@ -28,18 +28,22 @@ public sealed record ZabbixHostCounts(int Total, int Monitored, int Disabled, in
 
 /// <summary>
 /// <c>GET /zabbix/summary?category=group|tag:&lt;name&gt;&amp;suppressed=</c> (§7.4): tiles per severity, the matrix by
-/// category, the tags the open problems carry, the hosts, from the snapshot as of <see cref="AsOf"/>.
+/// category, the tags the open problems carry, the hosts, from the snapshot as of <see cref="AsOf"/>; the mirror's host
+/// groups, for the filters.
 /// </summary>
 public sealed record ZabbixSummary(DateTime? AsOf, bool Stale, string? Error, string Category, IReadOnlyList<string> TagNames,
     IReadOnlyList<ZabbixSeverityCount> Severities, IReadOnlyList<ZabbixCategoryRow> Categories, ZabbixHostCounts Hosts, int Suppressed,
-    string DashboardUrl);
+    string DashboardUrl, IReadOnlyList<string> Groups);
 
 /// <summary>A Zabbix host named in a problem.</summary>
 public sealed record ZabbixHostRef(long Id, string Name);
 
-/// <summary>An open problem (§7.5): what, how bad, since when, on which host (and its PNMT host), and its page in Zabbix.</summary>
+/// <summary>
+/// An open problem (§7.5): what, how bad, since when, on which host (and the PNMT host and Zabbix sensor it is attached as),
+/// and its page in Zabbix.
+/// </summary>
 public sealed record ZabbixProblemItem(string Id, string Name, string? OperationalData, ZabbixSeverity Severity, DateTime Since, bool Acknowledged,
-    int Updates, bool Suppressed, IReadOnlyList<ZabbixTagItem> Tags, IReadOnlyList<ZabbixHostRef> Hosts, Ref? PnmtHost, string Url);
+    int Updates, bool Suppressed, IReadOnlyList<ZabbixTagItem> Tags, IReadOnlyList<ZabbixHostRef> Hosts, Ref? PnmtHost, Guid? SensorId, string Url);
 
 /// <summary>
 /// <c>GET /zabbix/problems</c>: from <c>minSeverity</c>, of a host group, with a tag (<c>component</c> or
@@ -49,6 +53,9 @@ public sealed record ZabbixProblemItem(string Id, string Name, string? Operation
 public sealed class ZabbixProblemQuery : PageQuery
 {
     public ZabbixSeverity? MinSeverity { get; set; }
+
+    /// <summary>Exactly this severity: an overview's tile or cell.</summary>
+    public ZabbixSeverity? Severity { get; set; }
 
     public string? Group { get; set; }
 

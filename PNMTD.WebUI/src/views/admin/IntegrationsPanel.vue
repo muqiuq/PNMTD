@@ -7,17 +7,26 @@ import StatusBadge from '@/components/StatusBadge.vue'
 import { useActions } from '@/composables/useActions'
 
 /**
- * System health's *Integrations* (docs/audit-redmine-zabbix-plan.md §6.1): whether Redmine is configured and answers, its
- * projects, and *Test*, which signs in with the key and looks for every configured project (an audit entry).
+ * System health's *Integrations* (docs/audit-redmine-zabbix-plan.md §6.1, §7.1, §8.5): whether Redmine and Zabbix are
+ * configured and answer, Redmine's projects, Zabbix's version and host groups, and *Test* for each (an audit entry):
+ * Redmine signs in with the key and looks for every project; Zabbix reads its problems and hosts now.
  */
 const status = useQuery({ queryKey: [...keys.redmine, 'status'], queryFn: api.redmine.status, refetchInterval: 60_000 })
+const zabbix = useQuery({ queryKey: [...keys.zabbix, 'status'], queryFn: api.zabbix.status, refetchInterval: 60_000 })
 const { run, busy } = useActions()
 const result = ref<S['RedmineTestResult'] | null>(null)
+const zabbixResult = ref<S['ZabbixTestResult'] | null>(null)
 
 async function test() {
   result.value = null
   const r = await run(() => api.redmine.test(), { failure: 'Redmine did not answer' })
   if (r) result.value = r
+}
+
+async function testZabbix() {
+  zabbixResult.value = null
+  const r = await run(() => api.zabbix.test(), { failure: 'Zabbix did not answer', invalidate: [keys.zabbix] })
+  if (r) zabbixResult.value = r
 }
 </script>
 
@@ -52,6 +61,36 @@ async function test() {
           <template v-if="result.notFound.length">
             <dt>Not found</dt>
             <dd class="error">{{ result.notFound.join(', ') }}</dd>
+          </template>
+        </template>
+      </template>
+    </dl>
+    <dl v-if="zabbix.data.value" class="panel-body facts">
+      <dt>Zabbix</dt>
+      <dd>
+        <StatusBadge v-if="!zabbix.data.value.enabled" status="Disabled" label="Not configured" />
+        <StatusBadge v-else-if="zabbix.data.value.error" status="Degraded" label="Not answering" />
+        <StatusBadge v-else status="Ok" :label="`Zabbix ${zabbix.data.value.version ?? ''}`" />
+      </dd>
+      <template v-if="zabbix.data.value.enabled">
+        <dt>Address</dt>
+        <dd class="mono">{{ zabbix.data.value.url }}</dd>
+        <dt>Host groups</dt>
+        <dd>{{ zabbix.data.value.hostGroups.join(', ') || 'all the token sees' }}</dd>
+        <template v-if="zabbix.data.value.error">
+          <dt>Error</dt>
+          <dd class="error">{{ zabbix.data.value.error }}</dd>
+        </template>
+        <dt />
+        <dd>
+          <Button label="Test" icon="pi pi-bolt" size="small" outlined :loading="busy" @click="testZabbix" />
+        </dd>
+        <template v-if="zabbixResult">
+          <dt>Sees</dt>
+          <dd>{{ zabbixResult.hosts }} hosts, {{ zabbixResult.problems }} open problems</dd>
+          <template v-if="zabbixResult.notFound.length">
+            <dt>Not found</dt>
+            <dd class="error">{{ zabbixResult.notFound.join(', ') }}</dd>
           </template>
         </template>
       </template>

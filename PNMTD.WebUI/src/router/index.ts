@@ -249,6 +249,19 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/redmine/RedmineIssueView.vue'),
     meta: { title: 'Ticket', right: ['Redmine', 'View'] },
   },
+  // Zabbix (docs/audit-redmine-zabbix-plan.md §7.4–7.6, §7.8): the overview, problems, hosts and suggestions, and a host's page.
+  {
+    path: '/zabbix/:tab(overview|problems|hosts|suggestions)?',
+    name: 'zabbix',
+    component: () => import('@/views/zabbix/ZabbixView.vue'),
+    meta: { title: 'Zabbix', right: ['Zabbix', 'View'] },
+  },
+  {
+    path: '/zabbix/hosts/:hostId(\\d+)',
+    name: 'zabbix-host',
+    component: () => import('@/views/zabbix/ZabbixHostView.vue'),
+    meta: { title: 'Zabbix host', right: ['Zabbix', 'View'] },
+  },
   // Groups and rights (docs/audit-redmine-zabbix-plan.md §5.5): admins only.
   {
     path: '/admin/groups',

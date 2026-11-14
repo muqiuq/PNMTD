@@ -11731,6 +11731,7 @@ export interface paths {
             parameters: {
                 query?: {
                     minSeverity?: components["schemas"]["ZabbixSeverity"];
+                    severity?: components["schemas"]["ZabbixSeverity"];
                     group?: string;
                     tag?: string;
                     host?: string;
@@ -17934,6 +17935,8 @@ export interface components {
             tags: components["schemas"]["ZabbixTagItem"][];
             hosts: components["schemas"]["ZabbixHostRef"][];
             pnmtHost: null | components["schemas"]["Ref"];
+            /** Format: uuid */
+            sensorId: null | string;
             url: string;
         };
         ZabbixSensorDetail: {
@@ -18008,6 +18011,7 @@ export interface components {
             /** Format: int32 */
             suppressed: number;
             dashboardUrl: string;
+            groups: string[];
         };
         ZabbixTagItem: {
             tag: string;

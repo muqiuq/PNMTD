@@ -61,7 +61,9 @@ export const typeLabel = (type: string) =>
             ? 'Windows server'
             : type === 'LINUX'
               ? 'Linux server'
-              : humanize(type)
+              : type === 'ZABBIX'
+                ? 'Zabbix host'
+                : humanize(type)
 
 /**
  * Types that report themselves and turn 460 after Interval + GracePeriod without a report, and MikroTik
@@ -101,6 +103,8 @@ export function typeIcon(type: string): string {
       return 'pi pi-server'
     case 'DIAGNOSTICS':
       return 'pi pi-check-circle'
+    case 'ZABBIX':
+      return 'pi pi-chart-bar'
     case 'ONE_WITHIN_TIMESPAN':
     case 'ALL_WITHIN_TIMESPAN':
       return 'pi pi-clock'

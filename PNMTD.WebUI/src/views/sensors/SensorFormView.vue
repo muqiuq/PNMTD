@@ -17,6 +17,7 @@ import { typeIcon, typeLabel, usesGracePeriod, useSensorTypes } from '@/composab
 import { formatDuration } from '@/format'
 import { useSession } from '@/stores/session'
 import MikrotikFields from './mikrotik/MikrotikFields.vue'
+import ZabbixFields, { type ZabbixDraft } from './zabbix/ZabbixFields.vue'
 import { draftErrors, MIKROTIK_FIELDS, mikrotikRequestFromDraft, newMikrotikDraft } from './mikrotik/mikrotikDraft'
 import UdpNodeFields from './udp/UdpNodeFields.vue'
 import { KEY_BYTES, newUdpDraft, secretError, TOKEN_BYTES, udpRequest } from './udp/udpDraft'
@@ -49,6 +50,7 @@ const presets: SensorType[] = [
   'ALL_WITHIN_TIMESPAN',
   'UDP_NODE',
   'MIKROTIK',
+  'ZABBIX',
 ]
 const presetType = presets.find((t) => t === route.query.type) ?? 'SIMPLE'
 const presetDevice = Number(route.query.deviceId)
@@ -85,13 +87,31 @@ watch(
   { immediate: true },
 )
 const errors = ref<Record<string, string | undefined>>({})
+// A Zabbix host (docs/audit-redmine-zabbix-plan.md §7.8): the sensor is named as in Zabbix unless named otherwise.
+const zabbix = ref<ZabbixDraft>({
+  host: null,
+  minSeverity: null,
+  countAcknowledged: true,
+  countSuppressed: false,
+  unavailableFails: false,
+})
+watch(
+  () => zabbix.value.host,
+  (host, before) => {
+    if (host && (!name.value.trim() || name.value === before?.name)) name.value = host.name
+  },
+)
 const busy = ref(false)
 
-const creatable = computed(() => types.list.value.filter((t) => t.canCreate))
+// Zabbix sensors only while Zabbix is configured.
+const creatable = computed(() =>
+  types.list.value.filter((t) => t.canCreate && (t.type !== 'ZABBIX' || !!session.info?.zabbix)),
+)
 const info = computed(() => types.info(type.value))
 const heartbeat = computed(() => usesGracePeriod(type.value))
 const isUdp = computed(() => type.value === 'UDP_NODE')
 const isMikrotik = computed(() => type.value === 'MIKROTIK')
+const isZabbix = computed(() => type.value === 'ZABBIX')
 const timespan = computed(() => type.value === 'ONE_WITHIN_TIMESPAN' || type.value === 'ALL_WITHIN_TIMESPAN')
 
 // Sensible defaults per type: a ping every minute, a daily heartbeat with an hour of grace, a UDP
@@ -163,6 +183,7 @@ async function submit() {
     'udp.key': isUdp.value && udp.value.manual ? (secretError(udp.value.key, KEY_BYTES) ?? undefined) : undefined,
     'udp.token': isUdp.value && udp.value.manual ? (secretError(udp.value.token, TOKEN_BYTES) ?? undefined) : undefined,
     ...(isMikrotik.value ? draftErrors(mikrotik.value) : {}),
+    'zabbix.zabbixHostId': isZabbix.value && !zabbix.value.host ? 'Pick the Zabbix host.' : undefined,
   }
   if (Object.values(errors.value).some((e) => e)) {
     return
@@ -187,6 +208,15 @@ async function submit() {
     if (isMikrotik.value) {
       request.mikrotik = mikrotikRequestFromDraft(mikrotik.value)
     }
+    if (isZabbix.value && zabbix.value.host) {
+      request.zabbix = {
+        zabbixHostId: zabbix.value.host.id,
+        minSeverity: zabbix.value.minSeverity,
+        countAcknowledged: zabbix.value.countAcknowledged,
+        countSuppressed: zabbix.value.countSuppressed,
+        unavailableFails: zabbix.value.unavailableFails,
+      }
+    }
     const sensor = await api.sensors.create(request)
     await invalidate([keys.host(hostId.value), keys.hosts, keys.udp])
     notify.success(
@@ -195,7 +225,9 @@ async function submit() {
         ? 'Its endpoint, key and token are on its page.'
         : isMikrotik.value
           ? 'Its join script is on the Setup tab: paste it on the router.'
-          : 'Its URLs are on its page.',
+          : isZabbix.value
+            ? "Its Zabbix host's problems are on its page."
+            : 'Its URLs are on its page.',
     )
     for (const warning of sensor.udp?.warnings ?? []) {
       notify.info('Note', warning)
@@ -213,6 +245,8 @@ async function submit() {
         notes: e.field('notes'),
         ...Object.fromEntries(udpFields.map((f) => [f, e.field(f)])),
         ...Object.fromEntries(MIKROTIK_FIELDS.map((f) => [f, e.field(f)])),
+        'zabbix.zabbixHostId': e.field('zabbix.zabbixHostId'),
+        'zabbix.minSeverity': e.field('zabbix.minSeverity'),
       }
     } else {
       notify.error(e, 'Not created')
@@ -320,6 +354,7 @@ async function submit() {
         :is-admin="session.can('Mikrotik', 'Manage')"
         :wire-guard="!!session.info?.wireGuard"
       />
+      <ZabbixFields v-if="isZabbix" v-model="zabbix" :errors="errors" />
       <div class="field">
         <label for="sensor-textid">Text id <span class="muted">(optional)</span></label>
         <InputText id="sensor-textid" v-model="textId" class="mono" :invalid="!!errors.textId" />

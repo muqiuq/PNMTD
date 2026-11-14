@@ -111,8 +111,10 @@ public sealed class ZabbixService(PnmtdDbContext db, ZabbixClient client, Zabbix
             })
             .OrderByDescending(r => Worst(r.Counts)).ThenByDescending(r => r.Total).ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+        var groupNames = (await db.ZabbixHosts.AsNoTracking().Where(h => h.GoneAt == null).Select(h => h.Groups).ToListAsync(ct))
+            .SelectMany(g => g).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase).ToList();
         return new ZabbixSummary(state.AsOf, Stale(state), state.Error, key, tagNames, severities, rows, await HostCountsAsync(ct),
-            all.Count(p => p.Suppressed), Links.Dashboard);
+            all.Count(p => p.Suppressed), Links.Dashboard, groupNames);
     }
 
     private static int Worst(IReadOnlyList<int> counts)
@@ -162,6 +164,10 @@ public sealed class ZabbixService(PnmtdDbContext db, ZabbixClient client, Zabbix
         if (query.MinSeverity is { } min)
         {
             problems = problems.Where(p => p.Severity >= min);
+        }
+        if (query.Severity is { } severity)
+        {
+            problems = problems.Where(p => p.Severity == severity);
         }
         if (query.Acknowledged is { } ack)
         {
@@ -219,6 +225,7 @@ public sealed class ZabbixService(PnmtdDbContext db, ZabbixClient client, Zabbix
             p.Tags.Select(t => new ZabbixTagItem(t.Tag, t.Value)).ToList(),
             p.Hosts.Select(h => new ZabbixHostRef(ZabbixPoller.Int(h.Hostid), h.Name)).ToList(),
             p.Hosts.Select(h => attached.TryGetValue(ZabbixPoller.Int(h.Hostid), out var a) ? a.Host : null).FirstOrDefault(r => r is not null),
+            p.Hosts.Select(h => attached.TryGetValue(ZabbixPoller.Int(h.Hostid), out var a) ? a.SensorId : (Guid?)null).FirstOrDefault(r => r is not null),
             links.Event(p.TriggerId, p.EventId))).ToList();
     }
 

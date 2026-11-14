@@ -15333,6 +15333,13 @@
             }
           },
           {
+            "name": "severity",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ZabbixSeverity"
+            }
+          },
+          {
             "name": "group",
             "in": "query",
             "schema": {
@@ -39844,6 +39851,7 @@
           "tags",
           "hosts",
           "pnmtHost",
+          "sensorId",
           "url"
         ],
         "type": "object",
@@ -39898,6 +39906,13 @@
                 "$ref": "#/components/schemas/Ref"
               }
             ]
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           },
           "url": {
             "type": "string"
@@ -40169,7 +40184,8 @@
           "categories",
           "hosts",
           "suppressed",
-          "dashboardUrl"
+          "dashboardUrl",
+          "groups"
         ],
         "type": "object",
         "properties": {
@@ -40219,6 +40235,12 @@
           },
           "dashboardUrl": {
             "type": "string"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

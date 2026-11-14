@@ -191,6 +191,23 @@ export const api = {
     unlink: (id: Id) => call(client.DELETE('/api/v1/redmine/links/{id}', { params: { path: { id } } })),
     test: () => call(client.POST('/api/v1/redmine/test')),
   },
+  // --- Zabbix (docs/audit-redmine-zabbix-plan.md §7, §9) --------------------------------------------
+  zabbix: {
+    status: () => call(client.GET('/api/v1/zabbix/status')),
+    summary: (category?: string, suppressed?: boolean) =>
+      call(client.GET('/api/v1/zabbix/summary', { params: { query: { category, suppressed } } })),
+    problems: (query: ListQuery & ZabbixProblemFilters) =>
+      call(client.GET('/api/v1/zabbix/problems', { params: { query } })),
+    problem: (eventId: string) =>
+      call(client.GET('/api/v1/zabbix/problems/{eventId}', { params: { path: { eventId } } })),
+    hosts: (query: ListQuery & ZabbixHostFilters) => call(client.GET('/api/v1/zabbix/hosts', { params: { query } })),
+    host: (hostId: number) => call(client.GET('/api/v1/zabbix/hosts/{hostId}', { params: { path: { hostId } } })),
+    items: (hostId: number, search?: string) =>
+      call(client.GET('/api/v1/zabbix/hosts/{hostId}/items', { params: { path: { hostId }, query: { search } } })),
+    suggestions: () => call(client.GET('/api/v1/zabbix/suggestions')),
+    attach: (items: S['ZabbixAttachItem'][]) => call(client.POST('/api/v1/zabbix/attach', { body: { items } })),
+    test: () => call(client.POST('/api/v1/zabbix/test')),
+  },
   rights: {
     catalog: () => call(client.GET('/api/v1/rights')),
     mine: () => call(client.GET('/api/v1/account/access')),
@@ -645,6 +662,27 @@ export interface RedmineFilters {
   linked?: boolean
 }
 
+/** Zabbix's problems' filters (docs/audit-redmine-zabbix-plan.md §7.5), all in the page's URL. */
+export interface ZabbixProblemFilters {
+  minSeverity?: S['ZabbixSeverity']
+  severity?: S['ZabbixSeverity']
+  group?: string
+  tag?: string
+  host?: string
+  hostId?: number
+  acknowledged?: boolean
+  suppressed?: boolean
+  olderThanMinutes?: number
+}
+
+/** The Zabbix hosts' filters (§7.6). */
+export interface ZabbixHostFilters {
+  group?: string
+  status?: 'monitored' | 'disabled' | 'maintenance'
+  availability?: S['ZabbixAvailability']
+  attached?: boolean
+}
+
 /** What a ticket can be linked to (§6.5): exactly one of them. */
 export interface RedmineTarget {
   pageId?: Id
@@ -688,6 +726,7 @@ export const keys = {
   groups: ['groups'] as const,
   rights: ['rights'] as const,
   redmine: ['redmine'] as const,
+  zabbix: ['zabbix'] as const,
   audit: ['audit'] as const,
   system: ['system'] as const,
   /** Everything UDP: the admin page's lists, a node's packets, commands and updates, the protocol examples. */
@@ -743,6 +782,23 @@ export function sensorRequest(s: S['SensorDetail'], patch: Partial<S['SensorRequ
     udp: (patch.type ?? s.type) === 'UDP_NODE' && s.udp ? udpNodeRequest(s.udp) : undefined,
     // A router's settings as they are (docs/mikrotik-plan.md §10), for the same reason.
     mikrotik: (patch.type ?? s.type) === 'MIKROTIK' && s.mikrotik ? mikrotikRequest(s.mikrotik) : undefined,
+    // A Zabbix sensor's rules as they are (docs/audit-redmine-zabbix-plan.md §7.7).
+    zabbix: (patch.type ?? s.type) === 'ZABBIX' && s.zabbix ? zabbixRequest(s.zabbix) : undefined,
+    ...patch,
+  }
+}
+
+/** A Zabbix sensor's rules for SensorRequest.zabbix, as they are, with some changed. */
+export function zabbixRequest(
+  z: S['ZabbixSensorDetail'],
+  patch: Partial<S['ZabbixSensorRequest']> = {},
+): S['ZabbixSensorRequest'] {
+  return {
+    zabbixHostId: z.zabbixHostId,
+    minSeverity: z.minSeverity,
+    countAcknowledged: z.countAcknowledged,
+    countSuppressed: z.countSuppressed,
+    unavailableFails: z.unavailableFails,
     ...patch,
   }
 }

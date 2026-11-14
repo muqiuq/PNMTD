@@ -40,6 +40,7 @@ import { useSession } from '@/stores/session'
 import KbPanel from '@/views/kb/KbPanel.vue'
 import RedminePanel from '@/views/redmine/RedminePanel.vue'
 import SensorTicket from '@/views/redmine/SensorTicket.vue'
+import ZabbixSensorTab from './zabbix/ZabbixSensorTab.vue'
 import BackupsTab from './mikrotik/BackupsTab.vue'
 import MikrotikCommandsTab from './mikrotik/CommandsTab.vue'
 import UpdatesTab from './mikrotik/UpdatesTab.vue'
@@ -122,12 +123,16 @@ const isMikrotik = computed(() => sensor.value?.type === 'MIKROTIK' && !!sensor.
 const isWindows = computed(() => sensor.value?.type === 'WINDOWS')
 const isLinux = computed(() => sensor.value?.type === 'LINUX')
 const isAgent = computed(() => isWindows.value || isLinux.value)
+// A Zabbix host's sensor (docs/audit-redmine-zabbix-plan.md §7.7): its overview, PNMT's events, its rules.
+const isZabbix = computed(() => sensor.value?.type === 'ZABBIX' && !!sensor.value.zabbix)
 const agent = useAgentServer(id, isAgent)
 const tab = computed(
   () =>
     (route.params.tab === 'history' && 'history') ||
-    ((isUdp.value || isMikrotik.value || isAgent.value) && typeof route.params.tab === 'string' && route.params.tab) ||
-    (isAgent.value ? 'overview' : 'events'),
+    ((isUdp.value || isMikrotik.value || isAgent.value || isZabbix.value) &&
+      typeof route.params.tab === 'string' &&
+      route.params.tab) ||
+    (isAgent.value || isZabbix.value ? 'overview' : 'events'),
 )
 // The Access tab's key filter, from a key's "Logins with this key" (?key=SHA256:…).
 const keyQuery = computed(() => (typeof route.query.key === 'string' ? route.query.key : null))
@@ -259,6 +264,15 @@ const plainTabs = computed(() => [
     to: { name: 'sensor', params: { id: id.value, tab: 'history' } },
   },
 ])
+const zabbixTabs = computed(() => {
+  const to = (t?: string) => ({ name: 'sensor', params: { id: id.value, tab: t } })
+  return [
+    { key: 'overview', label: 'Overview', icon: 'pi pi-chart-bar', to: to() },
+    { key: 'events', label: 'Events', icon: 'pi pi-list', to: to('events') },
+    { key: 'setup', label: 'Setup', icon: 'pi pi-cog', to: to('setup') },
+    { key: 'history', label: 'History', icon: 'pi pi-history', to: to('history') },
+  ]
+})
 const settingsOpen = ref(false)
 const secretsOpen = ref(false)
 const secretsMode = ref<'manual' | 'regenerate'>('manual')
@@ -446,9 +460,16 @@ const more = computed(() =>
         <AgentStatusStrip :server="agent.server.value" />
         <TabNav :items="agentTabs" :active="tab" label="Server pages" />
       </template>
+      <TabNav v-else-if="isZabbix" :items="zabbixTabs" :active="tab" label="Zabbix sensor pages" />
       <TabNav v-else :items="plainTabs" :active="tab" label="Sensor pages" />
 
       <AuditHistory v-if="tab === 'history'" :subject-id="sensor.id" :name="sensor.name" />
+      <ZabbixSensorTab
+        v-else-if="isZabbix && (tab === 'overview' || tab === 'setup')"
+        :sensor="sensor"
+        :tab="tab"
+        :can-write="canWrite"
+      />
       <SetupTab
         v-else-if="isMikrotik && tab === 'setup'"
         :sensor="sensor"
