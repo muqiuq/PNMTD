@@ -60,6 +60,7 @@ import WindowsAccessTab from './windows/WindowsAccessTab.vue'
 import WindowsChangesTab from './windows/WindowsChangesTab.vue'
 import WindowsDiagnosticsTab from './windows/WindowsDiagnosticsTab.vue'
 import WindowsScriptsTab from './windows/WindowsScriptsTab.vue'
+import WindowsWmiTab from './windows/WindowsWmiTab.vue'
 import WindowsEventLogTab from './windows/WindowsEventLogTab.vue'
 import WindowsRemoteAccessTab from './windows/WindowsRemoteAccessTab.vue'
 import WindowsServicesTab from './windows/WindowsServicesTab.vue'
@@ -132,6 +133,8 @@ const windowsTabs = computed(() => {
     { key: 'changes', label: 'Changes', icon: 'pi pi-history', to: to('changes') },
     // PowerShell scripts (§7.3): Admin.
     ...(isAdmin.value ? [{ key: 'scripts', label: 'Scripts', icon: 'pi pi-code', to: to('scripts') }] : []),
+    // WMI (§16): the agent's queries, their switches and timeouts, and own queries. Admin.
+    ...(isAdmin.value ? [{ key: 'wmi', label: 'WMI', icon: 'pi pi-database', to: to('wmi') }] : []),
     {
       key: 'agent',
       label: 'Agent',
@@ -420,6 +423,7 @@ const more = computed(() =>
         />
         <WindowsChangesTab v-else-if="tab === 'changes'" :server="windows.server.value" />
         <WindowsScriptsTab v-else-if="tab === 'scripts' && isAdmin" :server="windows.server.value" />
+        <WindowsWmiTab v-else-if="tab === 'wmi' && isAdmin" :server="windows.server.value" />
         <WindowsDiagnosticsTab
           v-else-if="tab === 'diagnostics'"
           :server="windows.server.value"

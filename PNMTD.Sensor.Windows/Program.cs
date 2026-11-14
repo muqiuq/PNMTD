@@ -113,6 +113,7 @@ internal static partial class Program
         services.AddSingleton<Collector, AccessCollector>();
         services.AddSingleton<Collector, EventLogCollector>();
         services.AddSingleton<Collector, Scripts.RegisteredScriptsCollector>();
+        services.AddSingleton<Collector, WmiCollector>();
         // Logins and connections (§4.7): a stream of its own, and the source of the access section's numbers.
         services.AddSingleton<Access.LoginStream>();
         services.AddSingleton<IAgentFeature>(sp => sp.GetRequiredService<Access.LoginStream>());

@@ -15,10 +15,11 @@ public static class SectionNames
     public const string Access = "access";
     public const string EventLog = "event-log";
     public const string Scripts = "scripts";
+    public const string Wmi = "wmi";
 
     public const int SchemaVersion = 1;
 
-    public static readonly IReadOnlyList<string> All = [System, Hardware, Network, Services, RemoteAccess, Access, EventLog, Scripts];
+    public static readonly IReadOnlyList<string> All = [System, Hardware, Network, Services, RemoteAccess, Access, EventLog, Scripts, Wmi];
 
     public static bool IsKnown(string? name) => name is not null && All.Contains(name);
 }

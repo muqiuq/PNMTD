@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Lib.Agent;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Api.V1;
@@ -52,6 +53,16 @@ public sealed class WindowsServersController(WindowsServerService servers) : V1C
     [HttpPost("{id:guid}/send-log")]
     [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<WindowsAgentLogFile>> SendLog(Guid id, CancellationToken ct) => await servers.SendLogAsync(id, ct);
+
+    /// <summary>WMI (§16): PNMT's settings for the server, and its queries, their state and the own queries' rows. Admin.</summary>
+    [HttpGet("{id:guid}/wmi")]
+    [Authorize(Policy = Policies.Admin)]
+    public async Task<ActionResult<WindowsWmiView>> Wmi(Guid id, CancellationToken ct) => await servers.WmiAsync(id, ct);
+
+    /// <summary>Saves the WMI settings and sends the agent its new configuration. Admin, audited.</summary>
+    [HttpPut("{id:guid}/wmi")]
+    [Authorize(Policy = Policies.Admin)]
+    public async Task<ActionResult<WindowsWmiView>> SaveWmi(Guid id, WmiConfig request, CancellationToken ct) => await servers.SaveWmiAsync(id, request, ct);
 
     /// <summary>The server's event switches (§4.7, §4.8). Audit-logged.</summary>
     [HttpPut("{id:guid}/settings")]

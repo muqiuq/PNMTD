@@ -173,6 +173,12 @@ public sealed record WindowsSectionView(
     AccessSection? Access = null,
     EventLogSection? EventLog = null);
 
+/// <summary>
+/// A server's WMI (§16): PNMT's settings for it, and what the agent last reported (its built-in queries as they ran, the own
+/// queries' rows, what is switched off on the server). <see cref="CollectedAt"/> is null until it reported.
+/// </summary>
+public sealed record WindowsWmiView(WmiConfig Settings, DateTime? CollectedAt, WmiSection? Section, bool Connected);
+
 /// <summary>A login or connection (§4.7): an aggregate when <see cref="Count"/> is above 1.</summary>
 public sealed record WindowsLoginItem(
     Guid Id,

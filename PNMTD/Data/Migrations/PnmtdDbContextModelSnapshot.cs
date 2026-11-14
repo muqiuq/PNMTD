@@ -2583,6 +2583,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<DateTime?>("UninstalledAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("WmiSettings")
+                        .HasColumnType("text");
+
                     b.HasKey("SensorId");
 
                     b.HasIndex("AgentId")

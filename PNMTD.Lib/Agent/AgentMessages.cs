@@ -56,7 +56,8 @@ public sealed record AgentConfig(
     int FullUpdateHours,
     AccessConfig Access,
     IReadOnlyList<DiagnosticsAssignment> Diagnostics,
-    string? LogLevel = null);
+    string? LogLevel = null,
+    WmiConfig? Wmi = null);
 
 /// <summary>How logins and connections are recorded (§4.7).</summary>
 public sealed record AccessConfig(int AggregateMinutes = 10, int MaxBatch = 500);

@@ -9762,6 +9762,104 @@
         }
       }
     },
+    "/api/v1/windows/servers/{id}/wmi": {
+      "get": {
+        "tags": [
+          "WindowsServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsWmiView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsWmiView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsWmiView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "WindowsServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WmiConfig"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WmiConfig"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/WmiConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsWmiView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsWmiView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsWmiView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/windows/servers/{id}/settings": {
       "put": {
         "tags": [
@@ -11923,6 +12021,127 @@
             "type": "string"
           },
           "isTotpEnabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CustomWmiQuery": {
+        "required": [
+          "id",
+          "name",
+          "namespace",
+          "wql",
+          "intervalMinutes",
+          "timeoutSeconds",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "wql": {
+            "type": "string"
+          },
+          "intervalMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "timeoutSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CustomWmiResult": {
+        "required": [
+          "id",
+          "name",
+          "namespace",
+          "wql",
+          "enabled",
+          "offBy",
+          "lastRunAt",
+          "ms",
+          "status",
+          "error",
+          "columns",
+          "rows",
+          "truncated"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "wql": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "offBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastRunAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "ms": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "status": {
+            "type": "string"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "truncated": {
             "type": "boolean"
           }
         }
@@ -25221,6 +25440,40 @@
           }
         }
       },
+      "WindowsWmiView": {
+        "required": [
+          "settings",
+          "collectedAt",
+          "section",
+          "connected"
+        ],
+        "type": "object",
+        "properties": {
+          "settings": {
+            "$ref": "#/components/schemas/WmiConfig"
+          },
+          "collectedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "section": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WmiSection"
+              }
+            ]
+          },
+          "connected": {
+            "type": "boolean"
+          }
+        }
+      },
       "WireGuardNetworkRequest": {
         "type": "object",
         "properties": {
@@ -25760,6 +26013,159 @@
           },
           "address": {
             "type": "string"
+          }
+        }
+      },
+      "WmiConfig": {
+        "required": [
+          "overrides",
+          "custom"
+        ],
+        "type": "object",
+        "properties": {
+          "overrides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WmiQueryOverride"
+            }
+          },
+          "custom": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomWmiQuery"
+            }
+          }
+        }
+      },
+      "WmiQueryOverride": {
+        "required": [
+          "id",
+          "enabled",
+          "timeoutSeconds"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "timeoutSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "WmiQueryState": {
+        "required": [
+          "id",
+          "namespace",
+          "class",
+          "wql",
+          "section",
+          "enabled",
+          "offBy",
+          "timeoutSeconds",
+          "lastRunAt",
+          "rows",
+          "ms",
+          "status",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "class": {
+            "type": "string"
+          },
+          "wql": {
+            "type": "string"
+          },
+          "section": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "offBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "timeoutSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastRunAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "rows": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "ms": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "status": {
+            "type": "string"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "WmiSection": {
+        "required": [
+          "queries",
+          "custom",
+          "locallyOff"
+        ],
+        "type": "object",
+        "properties": {
+          "queries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WmiQueryState"
+            }
+          },
+          "custom": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomWmiResult"
+            }
+          },
+          "locallyOff": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       }

@@ -146,7 +146,7 @@ public sealed class WindowsSimulator(Uri baseUrl, HttpClient http, Func<Cancella
         hostname, "Restarted for updates (planned)");
 
     private Task SendSectionsAsync(AgentSession current, IReadOnlyList<string> names, CancellationToken ct) =>
-        SimulatedSections.SendAsync(current, hostname, names, ct);
+        SimulatedSections.SendAsync(current, hostname, names, ct, LastConfig ?? current.Config);
 
     /// <summary>The last configuration received, for the tests.</summary>
     public AgentConfig? LastConfig { get; private set; }
@@ -258,6 +258,7 @@ public static class SimulatedSections
             [SectionNames.Access] = Access(),
             [SectionNames.EventLog] = EventLog(),
             [SectionNames.Scripts] = Scripts(),
+            [SectionNames.Wmi] = Wmi(),
         };
         foreach (var name in sections.Keys.ToList())
         {
@@ -272,10 +273,11 @@ public static class SimulatedSections
     public static IReadOnlyDictionary<string, string> Hashes(string hostname) =>
         All(hostname).ToDictionary(p => p.Key, p => Hash(AgentJson.ToElement(p.Value)));
 
-    public static async Task SendAsync(AgentSession session, string hostname, IReadOnlyList<string> names, CancellationToken ct)
+    public static async Task SendAsync(AgentSession session, string hostname, IReadOnlyList<string> names, CancellationToken ct, AgentConfig? config = null)
     {
-        foreach (var (name, data) in All(hostname).Where(p => names.Count == 0 || names.Contains(p.Key)))
+        foreach (var (name, canned) in All(hostname).Where(p => names.Count == 0 || names.Contains(p.Key)))
         {
+            var data = name == SectionNames.Wmi && config is not null ? Wmi(config) : canned;
             var element = AgentJson.ToElement(data);
             await session.SendAsync(AgentMessageTypes.Section, new SectionMessage(name, SectionNames.SchemaVersion, Hash(element), DateTimeOffset.UtcNow, element), ct);
         }
@@ -379,6 +381,36 @@ public static class SimulatedSections
         new EventEntry(Stamp.AddHours(-3), "Application", "Warning", "MSSQLSERVER", 833, null,
             "SQL Server has encountered 1 occurrence(s) of I/O requests taking longer than 15 seconds to complete.", null, 88123),
     ]);
+
+    /// <summary>
+    /// WMI (§16): a few built-in queries as an agent reports them, with PNMT's switches and timeouts applied, SMART not available,
+    /// and each own query answering one row with its name and query.
+    /// </summary>
+    public static WmiSection Wmi(AgentConfig? config = null)
+    {
+        var settings = config?.Wmi ?? WmiConfig.Empty;
+        WmiQueryState Query(string ns, string className, string section, int rows, double ms, string status = "ok", string? error = null)
+        {
+            var id = WmiQueries.Id(ns, className);
+            var setting = settings.Overrides.FirstOrDefault(o => string.Equals(o.Id, id, StringComparison.OrdinalIgnoreCase));
+            var on = setting?.Enabled ?? true;
+            return new WmiQueryState(id, ns, className, $"SELECT * FROM {className}", section, on, on ? null : "pnmt", setting?.TimeoutSeconds ?? WmiQueries.DefaultTimeoutSeconds,
+                Stamp, on && status == "ok" ? rows : null, on ? ms : null, on ? status : "off", on ? error : null);
+        }
+        return new WmiSection(
+        [
+            Query(@"root\cimv2", "Win32_ComputerSystem", SectionNames.System, 1, 42),
+            Query(@"root\cimv2", "SoftwareLicensingProduct", SectionNames.System, 1, 2350),
+            Query(@"root\cimv2", "Win32_Processor", SectionNames.Hardware, 2, 31),
+            Query(@"root\wmi", "MSStorageDriver_FailurePredictStatus", SectionNames.Hardware, 0, 12, "not available",
+                @"root\wmi: MSStorageDriver_FailurePredictStatus is not available here (NotSupported)"),
+            Query(@"root\cimv2", "Win32_Service", SectionNames.Services, 214, 850),
+        ],
+        settings.Custom.Select(c => c.Enabled
+            ? new CustomWmiResult(c.Id, c.Name, c.Namespace, c.Wql, true, null, Stamp, 12, "ok", null, ["Name", "Query"], [[c.Name, c.Wql]], false)
+            : new CustomWmiResult(c.Id, c.Name, c.Namespace, c.Wql, false, "pnmt", null, null, "off", null, [], [], false)).ToList(),
+        []);
+    }
 
     /// <summary>A script registered in the agent's window, with a schedule, and scripts from PNMT allowed for it.</summary>
     public const string RegisteredScriptText = """

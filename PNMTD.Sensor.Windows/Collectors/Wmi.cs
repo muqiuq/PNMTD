@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Management;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using PNMTD.Lib.Agent;
 
 namespace PNMTD.Sensor.Windows.Collectors;
 
@@ -27,11 +28,62 @@ internal static class Wmi
     /// <summary>Every query, its rows and its time, and every failure with WMI's status, at debug level (the window's Debug logging).</summary>
     public static ILogger Logger { get; set; } = NullLogger.Instance;
 
+    /// <summary>The section whose collector runs on this thread, for the WMI tabs: which section a query belongs to.</summary>
+    [ThreadStatic]
+    public static string? CurrentSection;
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, WmiQueryState> States = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// A built-in query, as PNMT and the window set it (<see cref="WmiSettings"/>): switched off, it answers no rows (the part
+    /// stays empty, as for a class this Windows doesn't have); its timeout is PNMT's when set. Each run is recorded for the WMI tabs.
+    /// </summary>
     public static List<ManagementBaseObject> Query(string scope, string wql, TimeSpan? timeout = null)
     {
-        var options = new System.Management.EnumerationOptions { Timeout = timeout ?? Timeout, ReturnImmediately = true, Rewindable = false };
-        var name = wql.Split(' ').SkipWhile(w => !w.Equals("FROM", StringComparison.OrdinalIgnoreCase)).Skip(1).FirstOrDefault();
+        var name = WmiQueries.ClassOf(wql);
+        var id = WmiQueries.Id(scope, name);
+        var (enabled, offBy, configured) = WmiSettings.For(id);
+        var limit = configured ?? timeout ?? Timeout;
+        var section = CurrentSection;
+        if (!enabled)
+        {
+            Logger.LogDebug("WMI {Scope} {Class}: switched off ({OffBy})", scope, name, offBy);
+            Record(new WmiQueryState(id, scope, name ?? "?", wql, section, false, offBy, (int)limit.TotalSeconds, DateTimeOffset.UtcNow, null, null, "off", null));
+            return [];
+        }
         var started = Stopwatch.GetTimestamp();
+        void Done(int? rows, string status, string? error) => Record(new WmiQueryState(id, scope, name ?? "?", wql, section, true, null, (int)limit.TotalSeconds,
+            DateTimeOffset.UtcNow, rows, Math.Round(Stopwatch.GetElapsedTime(started).TotalMilliseconds, 1), status, error));
+        try
+        {
+            var rows = Rows(scope, wql, limit);
+            Logger.LogDebug("WMI {Scope} {Class}: {Count} objects in {Ms:0} ms", scope, name, rows.Count, Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+            Done(rows.Count, "ok", null);
+            return rows;
+        }
+        catch (NotAvailableException e)
+        {
+            Logger.LogDebug("WMI {Scope} {Class}: {Message} after {Ms:0} ms; the query: {Wql}", scope, name, e.Message,
+                Stopwatch.GetElapsedTime(started).TotalMilliseconds, wql);
+            Done(null, "not available", e.Message);
+            throw;
+        }
+        catch (Exception e)
+        {
+            Logger.LogDebug(e, "WMI {Scope} {Class} failed after {Ms:0} ms: {Type} {Status}; the query: {Wql}", scope, name,
+                Stopwatch.GetElapsedTime(started).TotalMilliseconds, e.GetType().Name, (e as ManagementException)?.ErrorCode, wql);
+            Done(null, e is ManagementException { ErrorCode: ManagementStatus.Timedout } ? "timed out" : "error", $"{e.GetType().Name}: {e.Message.Trim()}");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// The rows of a query, unrecorded and without the settings (the own queries, which have their own). A class or namespace this
+    /// Windows doesn't have is <see cref="NotAvailableException"/>.
+    /// </summary>
+    public static List<ManagementBaseObject> Rows(string scope, string wql, TimeSpan timeout)
+    {
+        var options = new System.Management.EnumerationOptions { Timeout = timeout, ReturnImmediately = true, Rewindable = false };
         try
         {
             using var searcher = new ManagementObjectSearcher(new ManagementScope(scope), new ObjectQuery(wql), options);
@@ -43,23 +95,26 @@ internal static class Wmi
             {
                 rows.Add(row);
             }
-            Logger.LogDebug("WMI {Scope} {Class}: {Count} objects in {Ms:0} ms", scope, name, rows.Count, Stopwatch.GetElapsedTime(started).TotalMilliseconds);
             return rows;
         }
         catch (ManagementException e) when (e.ErrorCode is ManagementStatus.InvalidClass or ManagementStatus.InvalidNamespace
             or ManagementStatus.NotSupported or ManagementStatus.InvalidQuery or ManagementStatus.ProviderNotCapable or ManagementStatus.NotAvailable)
         {
-            Logger.LogDebug("WMI {Scope} {Class}: not available ({Status}: {Message}) after {Ms:0} ms; the query: {Wql}", scope, name, e.ErrorCode,
-                e.Message.Trim(), Stopwatch.GetElapsedTime(started).TotalMilliseconds, wql);
-            throw new NotAvailableException($"{scope}: {name} is not available here ({e.ErrorCode})");
-        }
-        catch (Exception e)
-        {
-            Logger.LogDebug(e, "WMI {Scope} {Class} failed after {Ms:0} ms: {Type} {Status}; the query: {Wql}", scope, name,
-                Stopwatch.GetElapsedTime(started).TotalMilliseconds, e.GetType().Name, (e as ManagementException)?.ErrorCode, wql);
-            throw;
+            throw new NotAvailableException($"{scope}: {WmiQueries.ClassOf(wql)} is not available here ({e.ErrorCode})");
         }
     }
+
+    private static void Record(WmiQueryState state) => States[state.Id] = state;
+
+    /// <summary>The built-in queries as they last ran, with today's settings (a switch takes effect at the next run, and shows at once).</summary>
+    public static IReadOnlyList<WmiQueryState> QueryStates() => States.Values
+        .Select(s =>
+        {
+            var (enabled, offBy, configured) = WmiSettings.For(s.Id);
+            return s with { Enabled = enabled, OffBy = offBy, TimeoutSeconds = configured is { } t ? (int)t.TotalSeconds : s.TimeoutSeconds };
+        })
+        .OrderBy(s => s.Section ?? "~").ThenBy(s => s.Class, StringComparer.OrdinalIgnoreCase)
+        .ToList();
 
     public static ManagementBaseObject? First(string scope, string wql) => Query(scope, wql).FirstOrDefault();
 

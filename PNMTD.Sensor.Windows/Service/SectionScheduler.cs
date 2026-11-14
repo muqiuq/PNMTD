@@ -127,6 +127,7 @@ internal sealed class SectionScheduler(IServiceProvider services, ProblemReporte
                 var thread = Thread.CurrentThread;
                 var priority = thread.Priority;
                 thread.Priority = ThreadPriority.BelowNormal;
+                Wmi.CurrentSection = collector.Name;
                 try
                 {
                     var errors = new List<string>();
@@ -140,6 +141,7 @@ internal sealed class SectionScheduler(IServiceProvider services, ProblemReporte
                 finally
                 {
                     thread.Priority = priority;
+                    Wmi.CurrentSection = null;
                 }
             }, token, TaskCreationOptions.LongRunning, TaskScheduler.Default), ct);
         var took = (DateTimeOffset.UtcNow - started).TotalMilliseconds;

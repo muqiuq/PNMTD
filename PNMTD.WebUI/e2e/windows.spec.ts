@@ -52,11 +52,13 @@ test('the admin page, Add server and every tab of a server', async ({ page }) =>
     ['Event log', 'Service Control Manager'],
     ['Diagnostics', 'branch connectivity'],
     ['Changes', 'Service AnyDesk added'],
+    ['Scripts', 'Registered on this server'],
+    ['WMI', 'MSStorageDriver_FailurePredictStatus'],
     ['Agent', "PNMTD's key"],
   ]) {
     await tab(page, name).click()
     await expect(page.getByText(text).first()).toBeVisible()
-    if (name === 'Access' || name === 'Diagnostics') {
+    if (name === 'Access' || name === 'Diagnostics' || name === 'WMI') {
       await shot(page, `windows-${name.toLowerCase()}`)
     }
   }

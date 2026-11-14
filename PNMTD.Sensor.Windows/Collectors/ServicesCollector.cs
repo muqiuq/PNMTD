@@ -76,7 +76,7 @@ internal sealed class ServicesCollector(ILogger<ServicesCollector> logger) : Col
             "not found{Slowest}; {Errors} errors", services.Count, (DateTimeOffset.UtcNow - started).TotalMilliseconds,
             string.Join(", ", services.GroupBy(s => s.Class).OrderBy(g => g.Key).Select(g => $"{g.Key} {g.Count()}")), checkedCount, checkMs, cachedCount,
             missingCount, slowest.Path is null ? "" : $"; slowest {slowest.Path} {slowest.Ms:0} ms", errors.Count);
-        if (services.Count == 0)
+        if (services.Count == 0 && WmiSettings.For(WmiQueries.Id(Wmi.Cimv2, "Win32_Service")).Enabled)
         {
             errors.Add("Win32_Service listed no services.");
         }

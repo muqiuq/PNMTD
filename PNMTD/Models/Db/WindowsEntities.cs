@@ -177,6 +177,9 @@ public class WindowsAgentEntity
 
     public bool CriticalEvents { get; set; }
 
+    /// <summary>WMI (§16): built-in queries switched off or with another timeout, and own queries, as JSON (<see cref="Lib.Agent.WmiConfig"/>).</summary>
+    public string? WmiSettings { get; set; }
+
     public DateTime? RevokedAt { get; set; }
 
     [MaxLength(500)]

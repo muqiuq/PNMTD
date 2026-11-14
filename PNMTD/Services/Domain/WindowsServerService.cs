@@ -138,6 +138,65 @@ public sealed class WindowsServerService(
 
     private static string On(bool value) => value ? "on" : "off";
 
+    // --- WMI (§16) ---------------------------------------------------------------------------------------------------
+
+    /// <summary>A server's WMI settings, and its queries and own queries' rows as the agent last reported them.</summary>
+    public async Task<WindowsWmiView> WmiAsync(Guid id, CancellationToken ct)
+    {
+        var agent = await db.WindowsAgents.AsNoTracking().Where(a => a.SensorId == id).Select(a => new { a.WmiSettings }).SingleOrDefaultAsync(ct)
+            ?? throw ApiException.NotFound("Windows server");
+        var row = await db.WindowsSections.AsNoTracking().SingleOrDefaultAsync(s => s.SensorId == id && s.Section == SectionNames.Wmi, ct);
+        return new WindowsWmiView(WindowsConfig.Wmi(agent.WmiSettings), row?.CollectedAt, row is null ? null : WindowsSections.Parse<WmiSection>(row.Content),
+            hub.IsConnected(id));
+    }
+
+    /// <summary>
+    /// Saves a server's WMI settings and sends the agent its new configuration: built-in queries off or with another timeout, and
+    /// own read-only queries (checked here and on the agent). Audited.
+    /// </summary>
+    public async Task<WindowsWmiView> SaveWmiAsync(Guid id, WmiConfig request, CancellationToken ct)
+    {
+        var agent = await db.WindowsAgents.SingleOrDefaultAsync(a => a.SensorId == id, ct) ?? throw ApiException.NotFound("Windows server");
+        var overrides = (request.Overrides ?? []).Where(o => !o.Enabled || o.TimeoutSeconds is not null)
+            .Select(o => o with { Id = o.Id?.Trim() ?? "" }).ToList();
+        var custom = (request.Custom ?? []).Select(c => c with
+        {
+            Id = c.Id == Guid.Empty ? Guid.NewGuid() : c.Id, Name = c.Name?.Trim() ?? "", Namespace = c.Namespace?.Trim() ?? "", Wql = c.Wql?.Trim() ?? "",
+        }).ToList();
+        var v = new ApiValidator()
+            .Check(overrides.Count <= 200, "overrides", "At most 200 settings.")
+            .Check(overrides.All(o => o.Id.Length is >= 3 and <= 300 && o.Id.Contains(':')), "overrides", "A query's id is its namespace and class, root\\cimv2:Win32_Service.")
+            .Check(overrides.All(o => o.TimeoutSeconds is null or (>= 1 and <= 600)), "overrides", "A timeout between 1 and 600 seconds.")
+            .Check(overrides.Select(o => o.Id.ToLowerInvariant()).Distinct().Count() == overrides.Count, "overrides", "Each query once.")
+            .Check(custom.Count <= WmiQueries.MaxCustom, "custom", $"At most {WmiQueries.MaxCustom} own queries.")
+            .Check(custom.Select(c => c.Id).Distinct().Count() == custom.Count, "custom", "Each own query once.");
+        for (var i = 0; i < custom.Count; i++)
+        {
+            var c = custom[i];
+            v.Check(c.Name.Length is >= 1 and <= 100, $"custom.{i}.name", "A name of 1 to 100 characters.")
+                .Check(custom.Count(o => string.Equals(o.Name, c.Name, StringComparison.OrdinalIgnoreCase)) == 1, $"custom.{i}.name", "Another own query has this name.")
+                .Check(c.IntervalMinutes is >= 1 and <= 1440, $"custom.{i}.intervalMinutes", "Every 1 to 1440 minutes.")
+                .Check(c.TimeoutSeconds is >= 1 and <= 600, $"custom.{i}.timeoutSeconds", "A timeout between 1 and 600 seconds.");
+            if (WmiQueries.Problem(c.Namespace, c.Wql) is { } problem)
+            {
+                v.Check(false, $"custom.{i}.wql", problem);
+            }
+        }
+        v.ThrowIfInvalid();
+        var settings = new WmiConfig(overrides, custom);
+        var before = WindowsConfig.Wmi(agent.WmiSettings);
+        agent.WmiSettings = overrides.Count == 0 && custom.Count == 0 ? null : AgentJson.Serialize(settings);
+        UdpViews.Audit(db, accessor, AuthEvents.WindowsSettingsChanged,
+            $"{await WindowsAgentLog.NameAsync(db, id, ct)}: WMI {overrides.Count(o => !o.Enabled)} built-in queries off, {overrides.Count(o => o.TimeoutSeconds is not null)} " +
+            $"with another timeout, {custom.Count} own queries ({string.Join(", ", custom.Select(c => $"{c.Name}: {c.Namespace} {c.Wql}"))})" +
+            (before.Custom.Count == custom.Count && before.Overrides.Count == overrides.Count ? "" : $"; before {before.Overrides.Count} settings, {before.Custom.Count} own"));
+        var keySettings = await keys.SettingsAsync(db, ct);
+        keySettings.ConfigVersion++;
+        await db.SaveChangesAsync(ct);
+        await hub.PushConfigAsync([id], ct);
+        return await WmiAsync(id, ct);
+    }
+
     /// <summary>Revoke (§3.4): the key goes, the connection closes, the sensor and its history stay.</summary>
     public async Task<WindowsServerDetail> RevokeAsync(Guid id, WindowsRevokeRequest request, CancellationToken ct)
     {
@@ -176,6 +235,11 @@ public sealed class WindowsServerService(
         {
             // Script texts and accounts: Admin only, through …/local-scripts.
             throw ApiException.NotFound("Section (the registered scripts: GET /api/v1/windows/servers/{id}/local-scripts, Admin)");
+        }
+        if (section == SectionNames.Wmi)
+        {
+            // Own queries' rows may hold anything WMI knows: Admin only, through …/wmi.
+            throw ApiException.NotFound("Section (WMI: GET /api/v1/windows/servers/{id}/wmi, Admin)");
         }
         if (section is SectionNames.Access or SectionNames.EventLog && !canWrite)
         {

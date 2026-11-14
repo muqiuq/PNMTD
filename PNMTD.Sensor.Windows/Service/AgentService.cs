@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using PNMTD.Lib.Agent;
+using PNMTD.Sensor.Windows.Collectors;
 using PNMTD.Sensor.Windows.Logging;
 using PNMTD.Sensor.Windows.Resilience;
 using PNMTD.Sensor.Windows.State;
@@ -291,6 +292,21 @@ internal sealed class AgentService(
     private void ApplyConfig(AgentConfig received)
     {
         sections.FullUpdate = TimeSpan.FromHours(Math.Clamp(received.FullUpdateHours, 1, 48));
+        // WMI (§16): another switch or timeout counts from the sections' next run, so they run now; new own queries run now too.
+        var wmi = received.Wmi ?? WmiConfig.Empty;
+        var before = WmiSettings.Pnmt;
+        WmiSettings.Pnmt = wmi;
+        if (!before.Overrides.SequenceEqual(wmi.Overrides))
+        {
+            logger.LogInformation("WMI: {Off} built-in queries switched off by PNMT, {Timeouts} with another timeout", wmi.Overrides.Count(o => !o.Enabled),
+                wmi.Overrides.Count(o => o.TimeoutSeconds is not null));
+            sections.Request([]);
+        }
+        else if (!before.Custom.SequenceEqual(wmi.Custom))
+        {
+            logger.LogInformation("WMI: {Count} own queries from PNMT", wmi.Custom.Count);
+            sections.Request([SectionNames.Wmi]);
+        }
         foreach (var feature in extras)
         {
             feature.Configure(received);

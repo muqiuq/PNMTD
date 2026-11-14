@@ -301,6 +301,41 @@ public sealed class WindowsAgentTests
     }
 
     [TestMethod]
+    public async Task WmiSettingsReachTheAgentAndItsQueriesComeBack()
+    {
+        var created = await WindowsHarness.TokenAsync(admin, hostId, "wmi");
+        var simulator = new WindowsSimulator(new Uri("http://localhost/"), app.Client(), ct => WindowsHarness.ConnectAsync(app, ct), TextWriter.Null);
+        var state = await simulator.JoinAsync(created.Token, null, "SIM-WMI", CancellationToken.None);
+        using var stop = new CancellationTokenSource();
+        var running = simulator.RunAsync(state, stop.Token, TimeSpan.FromSeconds(30));
+        await WindowsHarness.EventuallyAsync(() => Task.FromResult(app.Services.GetRequiredService<AgentHub>().IsConnected(state.SensorId)));
+        var url = $"/api/v1/windows/servers/{state.SensorId}/wmi";
+
+        // Only read-only SELECTs, in a namespace under root.
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await admin.PutJsonAsync(url, new WmiConfig([],
+            [new CustomWmiQuery(Guid.Empty, "bad", @"root\cimv2", "DELETE FROM Win32_Process", 5, 15, true)]))).StatusCode);
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await admin.PutJsonAsync(url, new WmiConfig([],
+            [new CustomWmiQuery(Guid.Empty, "bad", "cimv2", "SELECT * FROM Win32_Process", 5, 15, true)]))).StatusCode);
+
+        var service = WmiQueries.Id(@"root\cimv2", "Win32_Service");
+        var saved = await (await admin.PutJsonAsync(url, new WmiConfig([new WmiQueryOverride(service, false, null)],
+            [new CustomWmiQuery(Guid.Empty, "Shares", @"root\cimv2", "SELECT Name, Path FROM Win32_Share", 5, 20, true)]))).ReadAsync<WindowsWmiView>();
+        var own = saved.Settings.Custom.Single();
+        Assert.AreNotEqual(Guid.Empty, own.Id, "PNMT gives an own query its id");
+        await WindowsHarness.EventuallyAsync(() => Task.FromResult(simulator.LastConfig?.Wmi?.Custom.Count == 1));
+        Assert.IsTrue((await (await admin.PostJsonAsync($"/api/v1/windows/servers/{state.SensorId}/collect", new WindowsCollectRequest([SectionNames.Wmi])))
+            .ReadAsync<WindowsRequestResult>()).Ok);
+        var view = await WindowsHarness.EventuallyAsync(async () => await (await admin.GetAsync(url)).ReadAsync<WindowsWmiView>(),
+            v => v.Section?.Custom.Count == 1);
+        Assert.AreEqual("off", view.Section!.Queries.Single(q => q.Id == service).Status);
+        Assert.AreEqual("SELECT Name, Path FROM Win32_Share", view.Section.Custom.Single().Rows.Single()[1]);
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await app.Client(Roles.User).GetAsync(url)).StatusCode, "Admin only");
+        Assert.AreEqual(HttpStatusCode.NotFound, (await admin.GetAsync($"/api/v1/windows/servers/{state.SensorId}/sections/wmi")).StatusCode);
+        stop.Cancel();
+        await running.WaitAsync(TimeSpan.FromSeconds(10));
+    }
+
+    [TestMethod]
     public async Task SectionsAreStoredOncePerHashAndServedTyped()
     {
         var created = await WindowsHarness.TokenAsync(admin, hostId, "sections");

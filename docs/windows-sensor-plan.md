@@ -1084,6 +1084,13 @@ W0 needs real machines (one Windows Server 2019, one Windows 10 Pro or 11) and t
 - **WMI at debug level:** every query with its rows and time, every failure with WMI's status and the query, every property that couldn't be read, and every part left empty as *not available* (that is no section error, so without the debug log it would be invisible).
 - **System:** the panel shows the hostname (and the FQDN when it differs); the domain line no longer ends in a bare "·"; a stopped Windows Time service is reported as such, not as w32tm's error text as the source; with no product key installed, *Activation* says so (`No product key`).
 
+### WMI, transparent and adjustable
+
+- **Every query is visible:** `Wmi.Query` records each built-in query's last run (its id `namespace:class`, e.g. `root\cimv2:Win32_Service`, the section that ran it, the query, rows, time, status: ok, not available, timed out, error, off) and the `WmiCollector` reports them with the own queries' rows as the section `wmi` every minute (the times are left out of its hash). The window's *WMI* tab (`Ui/WmiTab.cs`) shows the same from `state\wmi-status.json`: the list, and the selected query's namespace, query, section, status, error, timeout and, for an own query, its rows.
+- **Adjustable in PNMT** (*WMI* tab of a Windows server, Admin; `GET`/`PUT /api/v1/windows/servers/{id}/wmi`, audited): each built-in query on or off and its timeout (1–600 s), and up to 20 own queries (a name, a namespace under `root`, one `SELECT … FROM class [WHERE …]`, every 1–1440 minutes, a timeout), checked by `WmiQueries.Problem` in PNMT and again on the agent. Stored per server (`windows_agents.WmiSettings`, migration `AddWindowsWmiSettings`) and sent with the configuration (`AgentConfig.Wmi`); the agent runs the sections concerned again at once. An own query's rows (at most 200, 40 columns, values as text, CIM dates as ISO 8601) show in a wide window.
+- **Adjustable on the server:** a local administrator switches any query off in the window (`state\wmi-local.json`); off on the server wins over PNMT, and PNMT shows it as *off on the server*.
+- A query switched off answers no rows: its part of the section stays empty, as for a class this Windows doesn't have. The `wmi` section is not served by `…/sections/wmi` (own queries can read anything WMI knows): Admin only, through `…/wmi`.
+
 ### The checklist per release (§13)
 
 On one Windows Server 2019 and one Windows 10 Pro or Windows 11 machine, with the release's executable:

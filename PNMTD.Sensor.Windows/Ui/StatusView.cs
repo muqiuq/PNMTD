@@ -11,7 +11,7 @@ using PNMTD.Sensor.Windows.State;
 namespace PNMTD.Sensor.Windows.Ui;
 
 /// <summary>
-/// The joined agent (docs/windows-sensor-plan.md §10.4), in three tabs. Status: the connection and the service, this server in
+/// The joined agent (docs/windows-sensor-plan.md §10.4), in four tabs (WMI: <see cref="WmiTab"/>). Status: the connection and the service, this server in
 /// PNMT with both keys, problems, diagnostics, the audit policy's gaps, and the actions. Scripts: whether PNMT may run scripts, the
 /// scripts registered here and the stored accounts (<see cref="ScriptsTab"/>). Log: the service's log file, following. Built
 /// once; every tick updates what changed and leaves inputs alone.
@@ -70,6 +70,7 @@ internal sealed class StatusView : UserControl
         tabs = new TabControl { Dock = DockStyle.Fill, Font = Theme.Body, Padding = new Point(Theme.S(16), Theme.S(5)) };
         tabs.TabPages.Add(Tab("Status", BuildStatus()));
         tabs.TabPages.Add(Tab("Scripts", new ScriptsTab(logger)));
+        tabs.TabPages.Add(Tab("WMI", new WmiTab(logger)));
         logPage = Tab("Log", BuildLog());
         tabs.TabPages.Add(logPage);
         tabs.SelectedIndexChanged += (_, _) =>

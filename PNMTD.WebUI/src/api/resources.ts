@@ -356,6 +356,9 @@ export const api = {
     deleteScript: (id: Id) => call(client.DELETE('/api/v1/windows/scripts/{id}', { params: { path: { id } } })),
     runScript: (id: Id, body: S['WindowsScriptRunRequest']) =>
       call(client.POST('/api/v1/windows/scripts/{id}/run', { params: { path: { id } }, body })),
+    wmi: (sensorId: Id) => call(client.GET('/api/v1/windows/servers/{id}/wmi', { params: { path: { id: sensorId } } })),
+    saveWmi: (sensorId: Id, body: S['WmiConfig']) =>
+      call(client.PUT('/api/v1/windows/servers/{id}/wmi', { params: { path: { id: sensorId } }, body })),
     localScripts: (sensorId: Id) =>
       call(client.GET('/api/v1/windows/servers/{id}/local-scripts', { params: { path: { id: sensorId } } })),
     runLocalScript: (sensorId: Id, body: S['WindowsLocalScriptRunRequest']) =>

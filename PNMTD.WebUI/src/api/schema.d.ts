@@ -7437,6 +7437,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/windows/servers/{id}/wmi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsWmiView"];
+                        "text/json": components["schemas"]["WindowsWmiView"];
+                        "text/plain": components["schemas"]["WindowsWmiView"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WmiConfig"];
+                    "text/json": components["schemas"]["WmiConfig"];
+                    "application/*+json": components["schemas"]["WmiConfig"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsWmiView"];
+                        "text/json": components["schemas"]["WindowsWmiView"];
+                        "text/plain": components["schemas"]["WindowsWmiView"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/windows/servers/{id}/settings": {
         parameters: {
             query?: never;
@@ -8490,6 +8558,36 @@ export interface components {
             displayName: string;
             role: string;
             isTotpEnabled: boolean;
+        };
+        CustomWmiQuery: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            namespace: string;
+            wql: string;
+            /** Format: int32 */
+            intervalMinutes: number;
+            /** Format: int32 */
+            timeoutSeconds: number;
+            enabled: boolean;
+        };
+        CustomWmiResult: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            namespace: string;
+            wql: string;
+            enabled: boolean;
+            offBy: null | string;
+            /** Format: date-time */
+            lastRunAt: null | string;
+            /** Format: double */
+            ms: null | number;
+            status: string;
+            error: null | string;
+            columns: string[];
+            rows: string[][];
+            truncated: boolean;
         };
         Dashboard: {
             /** Format: date-time */
@@ -11813,6 +11911,13 @@ export interface components {
             failedLoginThreshold: number;
             criticalEvents: boolean;
         };
+        WindowsWmiView: {
+            settings: components["schemas"]["WmiConfig"];
+            /** Format: date-time */
+            collectedAt: null | string;
+            section: null | components["schemas"]["WmiSection"];
+            connected: boolean;
+        };
         WireGuardNetworkRequest: {
             prefix?: string;
             confirmPrefix?: null | string;
@@ -11954,6 +12059,40 @@ export interface components {
             sensorId: string;
             name: string;
             address: string;
+        };
+        WmiConfig: {
+            overrides: components["schemas"]["WmiQueryOverride"][];
+            custom: components["schemas"]["CustomWmiQuery"][];
+        };
+        WmiQueryOverride: {
+            id: string;
+            enabled: boolean;
+            /** Format: int32 */
+            timeoutSeconds: null | number;
+        };
+        WmiQueryState: {
+            id: string;
+            namespace: string;
+            class: string;
+            wql: string;
+            section: null | string;
+            enabled: boolean;
+            offBy: null | string;
+            /** Format: int32 */
+            timeoutSeconds: number;
+            /** Format: date-time */
+            lastRunAt: null | string;
+            /** Format: int32 */
+            rows: null | number;
+            /** Format: double */
+            ms: null | number;
+            status: string;
+            error: null | string;
+        };
+        WmiSection: {
+            queries: components["schemas"]["WmiQueryState"][];
+            custom: components["schemas"]["CustomWmiResult"][];
+            locallyOff: string[];
         };
     };
     responses: never;
