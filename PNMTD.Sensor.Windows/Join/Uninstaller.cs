@@ -1,6 +1,5 @@
-using System.Net.WebSockets;
-using PNMTD.Lib.Agent;
 using PNMTD.Sensor.Windows.Native;
+using PNMTD.Sensor.Windows.Platform;
 using PNMTD.Sensor.Windows.Service;
 using PNMTD.Sensor.Windows.State;
 
@@ -30,7 +29,7 @@ internal static class Uninstaller
         var config = AgentFiles.ReadConfig();
         if (config is not null)
         {
-            if (await SayByeAsync(config, ct))
+            if (await AgentBye.SayByeAsync(WindowsPlatform.Instance, config, $"uninstalled by {Environment.UserDomainName}\\{Environment.UserName}", ct))
             {
                 done.Add("PNMT was told: it keeps the server and its history, marked uninstalled.");
             }
@@ -71,31 +70,5 @@ internal static class Uninstaller
             done.Add("The program is deleted at the next reboot.");
         }
         return done;
-    }
-
-    private static async Task<bool> SayByeAsync(AgentConfigFile config, CancellationToken ct)
-    {
-        try
-        {
-            using var agentKey = AgentKey.Open(config.KeyName);
-            using var pnmtdKey = AgentSigning.ImportPublicKey(config.PnmtdKey)!;
-            var url = new Uri(config.Url);
-            var socket = new ClientWebSocket();
-            socket.Options.AddSubProtocol(AgentProtocol.Subprotocol);
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeout.CancelAfter(TimeSpan.FromSeconds(20));
-            await socket.ConnectAsync(new UriBuilder(new Uri(url, AgentProtocol.WebSocketPath)) { Scheme = url.Scheme == "https" ? "wss" : "ws" }.Uri, timeout.Token);
-            var identity = new AgentIdentity(config.AgentId, agentKey, pnmtdKey, AgentSigning.Origin(url), AgentInfo.Version, AgentInfo.Architecture,
-                WindowsVersion.Read(), []);
-            await using var session = await AgentSession.HandshakeAsync(socket, identity, false, timeout.Token);
-            await session.SendAsync(AgentMessageTypes.Bye, new Bye($"uninstalled by {Environment.UserDomainName}\\{Environment.UserName}"), timeout.Token);
-            await Task.Delay(500, timeout.Token);
-            await session.CloseAsync("uninstalled", timeout.Token);
-            return true;
-        }
-        catch (Exception)
-        {
-            return false;
-        }
     }
 }

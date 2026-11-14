@@ -43,4 +43,7 @@ internal static class AgentInfo
     public static string CrashMarkerFile => Path.Combine(StateFolder, "crashed");
 
     public static string CurrentExecutable => Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, ExecutableName);
+
+    /// <summary>The same paths for the shared core (docs/linux-sensor-plan.md §3.2): <c>AgentFiles.Use(AgentInfo.Layout)</c> at start.</summary>
+    public static AgentLayout Layout => new(DataFolder, StateFolder, LogFolder, InstalledExecutable, "pnmt-sensor");
 }

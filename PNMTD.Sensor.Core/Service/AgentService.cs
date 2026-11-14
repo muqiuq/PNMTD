@@ -3,31 +3,36 @@ using System.Net.WebSockets;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using PNMTD.Lib.Agent;
-using PNMTD.Sensor.Windows.Collectors;
-using PNMTD.Sensor.Windows.Logging;
-using PNMTD.Sensor.Windows.Resilience;
-using PNMTD.Sensor.Windows.State;
+using PNMTD.Sensor.Core.Logging;
+using PNMTD.Sensor.Core.Resilience;
+using PNMTD.Sensor.Core.Rights;
+using PNMTD.Sensor.Core.State;
 
-namespace PNMTD.Sensor.Windows.Service;
+namespace PNMTD.Sensor.Core.Service;
 
 /// <summary>
-/// The service (docs/windows-sensor-plan.md §3.5, §3.8): collects, connects and reports. The connection loop never ends:
-/// any failure backs off (1 s doubling to 5 min, ±20 %) and reconnects; only a revocation (4403) stops it until the next
-/// join. A watchdog restarts the loop when no heartbeat went out for three intervals; above 300 MB the agent exits and
-/// Windows' recovery starts it again.
+/// The service (docs/windows-sensor-plan.md §3.5, §3.8; docs/linux-sensor-plan.md §3.2, §4.7): collects, connects and reports.
+/// The connection loop never ends: any failure backs off (1 s doubling to 5 min, ±20 %) and reconnects; only a revocation (4403)
+/// stops it until the next join. A watchdog restarts the loop when no heartbeat went out for three intervals; above 300 MB the
+/// agent exits and the platform's service manager (Windows' recovery, systemd's <c>Restart=always</c>) starts it again. When the
+/// server's own rights change (<see cref="IAgentRightsSource"/>), it reconnects, so the hello announces them.
 /// </summary>
-internal sealed class AgentService(
+public sealed class AgentService(
     ILogger<AgentService> logger,
+    IAgentPlatform platform,
     ProblemReporter problems,
     DailyFileLoggerProvider logs,
     SectionScheduler sections,
-    HeartbeatSampler sampler,
-    IEnumerable<IAgentFeature> features) : BackgroundService, IAgentSessionHandler
+    IHeartbeatSampler sampler,
+    IEnumerable<IAgentFeature> features,
+    IEnumerable<IAgentRightsSource> rightsSources) : BackgroundService, IAgentSessionHandler
 {
     private const long MaxWorkingSet = 300L * 1024 * 1024;
 
     private readonly DateTimeOffset startedAt = DateTimeOffset.UtcNow;
     private readonly List<IAgentFeature> extras = features.ToList();
+    private readonly IAgentRightsSource? rights = rightsSources.FirstOrDefault();
+    private AgentLayout Paths => platform.Paths;
     private AgentConfigFile? config;
     private AgentSession? session;
     private DateTimeOffset? connectedSince;
@@ -38,23 +43,23 @@ internal sealed class AgentService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var os = WindowsVersion.Read();
-        logger.LogInformation("PNMT Sensor {Version} ({Architecture}) on {Caption} {Build}", AgentInfo.Version, AgentInfo.Architecture, os.Caption, os.Build);
+        var os = platform.ReadOs();
+        logger.LogInformation("{Product} {Version} ({Architecture}) on {Caption} {Build}", platform.Product, platform.Version, platform.Architecture, os.Caption, os.Build);
         if (!os.Supported)
         {
             logger.LogWarning("{Caption} {Build} is not a supported version: the agent runs anyway (§3.9).", os.Caption, os.Build);
             problems.Report("agent", "version check", $"{os.Caption} {os.Build} ({os.Edition}) is not a supported version; the agent runs anyway.");
         }
-        var crashed = File.Exists(AgentInfo.CrashMarkerFile);
+        var crashed = File.Exists(Paths.CrashMarkerFile);
         if (crashed)
         {
-            var text = SafeRead(AgentInfo.CrashMarkerFile);
+            var text = SafeRead(Paths.CrashMarkerFile);
             problems.Report("agent", "start", $"Restarted after a crash: {text}", fatal: true);
-            TryDelete(AgentInfo.CrashMarkerFile);
+            TryDelete(Paths.CrashMarkerFile);
         }
         try
         {
-            AgentFiles.Secure();
+            platform.SecureFolders();
         }
         catch (Exception e)
         {
@@ -79,14 +84,14 @@ internal sealed class AgentService(
                 state = "not joined";
                 if (!notJoinedLogged)
                 {
-                    logger.LogWarning("Not joined: no agent.json. The window joins (or re-joins) the server; the service waits.");
+                    logger.LogWarning("Not joined: no agent.json. {Hint}; the service waits.", platform.JoinHint);
                     notJoinedLogged = true;
                 }
                 await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
                 continue;
             }
             notJoinedLogged = false;
-            logs.MinimumLevel = config.LogLevel?.Equals("Debug", StringComparison.OrdinalIgnoreCase) == true ? LogLevel.Debug : LogLevel.Information;
+            logs.MinimumLevel = platform.DebugLogging(config) ? LogLevel.Debug : LogLevel.Information;
             if (config.Config is { } known)
             {
                 ApplyConfig(known);
@@ -142,11 +147,13 @@ internal sealed class AgentService(
     private async Task<AgentSessionEnd> ConnectAndRunAsync(AgentConfigFile current, bool crashed, CancellationToken ct)
     {
         state = "connecting";
-        using var agentKey = AgentKey.Open(current.KeyName);
+        using var agentKey = platform.Keys.Open(current.KeyName);
         using var pnmtdKey = AgentSigning.ImportPublicKey(current.PnmtdKey) ?? throw new InvalidOperationException("agent.json holds no valid PNMTD key: re-join.");
         var url = new Uri(current.Url);
-        var identity = new AgentIdentity(current.AgentId, agentKey, pnmtdKey, AgentSigning.Origin(url), AgentInfo.Version, AgentInfo.Architecture,
-            WindowsVersion.Read(), Capabilities(), EncryptionKey(current.AgentId));
+        // The rights as they are now (docs/linux-sensor-plan.md §4.6); a later change reconnects (ReportAsync).
+        var rightsVersion = rights?.Version;
+        var identity = new AgentIdentity(current.AgentId, agentKey, pnmtdKey, AgentSigning.Origin(url), platform.Version, platform.Architecture,
+            platform.ReadOs(), Capabilities(), EncryptionKey(current.AgentId), platform.Platform, rights?.Current.Summary());
 
         var socket = new ClientWebSocket();
         socket.Options.AddSubProtocol(AgentProtocol.Subprotocol);
@@ -166,7 +173,7 @@ internal sealed class AgentService(
 
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(ct);
         var receiving = opened.RunAsync(this, stop.Token);
-        var reporting = ReportAsync(opened, stop.Token);
+        var reporting = ReportAsync(opened, rightsVersion, stop.Token);
         var first = await Task.WhenAny(receiving, reporting);
         stop.Cancel();
         if (first == reporting)
@@ -175,6 +182,10 @@ internal sealed class AgentService(
             try
             {
                 await reporting;
+            }
+            catch (RightsChangedException e)
+            {
+                logger.LogInformation("{Message}: reconnecting, so the hello announces them.", e.Message);
             }
             catch (Exception e) when (e is not OperationCanceledException || !ct.IsCancellationRequested)
             {
@@ -193,12 +204,12 @@ internal sealed class AgentService(
         return await receiving;
     }
 
-    /// <summary>The agent's ECDH key's public half for the hello (§3.4, W6); null when the machine store refuses it.</summary>
+    /// <summary>The agent's ECDH key's public half for the hello (§3.4, W6); null when the key store refuses it.</summary>
     private string? EncryptionKey(Guid agentId)
     {
         try
         {
-            using var key = AgentKey.EncryptionKey(agentId);
+            using var key = platform.Keys.EncryptionKey(agentId);
             return Convert.ToBase64String(key.ExportSubjectPublicKeyInfo());
         }
         catch (System.Security.Cryptography.CryptographicException e)
@@ -214,18 +225,22 @@ internal sealed class AgentService(
     private List<string> Capabilities() => [AgentCapabilities.Collect, .. extras.SelectMany(f => f.Capabilities)];
 
     /// <summary>Heartbeats, sections, problems and the features' reports, while connected.</summary>
-    private async Task ReportAsync(AgentSession current, CancellationToken ct)
+    private async Task ReportAsync(AgentSession current, int? rightsVersion, CancellationToken ct)
     {
         var interval = TimeSpan.FromSeconds(Math.Clamp(current.Config.HeartbeatSeconds, 15, 600));
         var nextHeartbeat = DateTimeOffset.UtcNow;
         var lastSent = DateTimeOffset.UtcNow;
         while (!ct.IsCancellationRequested)
         {
-            if (File.Exists(AgentInfo.CollectNowFile))
+            if (rights is not null && rights.Version != rightsVersion)
+            {
+                throw new RightsChangedException("The rights on the server changed");
+            }
+            if (File.Exists(Paths.CollectNowFile))
             {
                 // The window's Collect now (a time stamp: every section), or section names, one per line (scripts after a change).
                 var names = ReadCollectNow();
-                TryDelete(AgentInfo.CollectNowFile);
+                TryDelete(Paths.CollectNowFile);
                 sections.Request(names);
             }
             foreach (var message in sections.TakeForSending())
@@ -292,21 +307,8 @@ internal sealed class AgentService(
     private void ApplyConfig(AgentConfig received)
     {
         sections.FullUpdate = TimeSpan.FromHours(Math.Clamp(received.FullUpdateHours, 1, 48));
-        // WMI (§16): another switch or timeout counts from the sections' next run, so they run now; new own queries run now too.
-        var wmi = received.Wmi ?? WmiConfig.Empty;
-        var before = WmiSettings.Pnmt;
-        WmiSettings.Pnmt = wmi;
-        if (!before.Overrides.SequenceEqual(wmi.Overrides))
-        {
-            logger.LogInformation("WMI: {Off} built-in queries switched off by PNMT, {Timeouts} with another timeout", wmi.Overrides.Count(o => !o.Enabled),
-                wmi.Overrides.Count(o => o.TimeoutSeconds is not null));
-            sections.Request([]);
-        }
-        else if (!before.Custom.SequenceEqual(wmi.Custom))
-        {
-            logger.LogInformation("WMI: {Count} own queries from PNMT", wmi.Custom.Count);
-            sections.Request([SectionNames.Wmi]);
-        }
+        // The platform's part (Windows: WMI, §16).
+        platform.ApplyConfig(received, sections, logger);
         foreach (var feature in extras)
         {
             feature.Configure(received);
@@ -365,36 +367,25 @@ internal sealed class AgentService(
         {
             try
             {
-                // Debug logging switched in the window takes effect here, without a restart.
+                // Debug logging switched in the window (or config.yaml) takes effect here, without a restart.
                 if (AgentFiles.ReadConfig() is { } current)
                 {
-                    logs.MinimumLevel = current.LogLevel?.Equals("Debug", StringComparison.OrdinalIgnoreCase) == true ? LogLevel.Debug : LogLevel.Information;
+                    logs.MinimumLevel = platform.DebugLogging(current) ? LogLevel.Debug : LogLevel.Information;
                 }
-                AgentFiles.WriteStatus(new AgentStatusFile(DateTimeOffset.UtcNow, AgentInfo.Version, session?.IsOpen == true, connectedSince, config?.Url,
-                    lastHeartbeatAt, state, problems.Recent, extras.SelectMany(f => f.Diagnostics).ToList(), AuditGaps(), startedAt, sections.Status()));
+                AgentFiles.WriteStatus(new AgentStatusFile(DateTimeOffset.UtcNow, platform.Version, session?.IsOpen == true, connectedSince, config?.Url,
+                    lastHeartbeatAt, state, problems.Recent, extras.SelectMany(f => f.Diagnostics).ToList(), platform.StatusGaps(sections), startedAt,
+                    sections.Status()));
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
                 logger.LogDebug("status.json: {Message}", e.Message);
             }
+            platform.ServiceTick();
             await Task.Delay(TimeSpan.FromSeconds(10), ct);
         }
     }
 
-    /// <summary>What the audit policy misses, from the latest access section, for the window.</summary>
-    private List<string> AuditGaps()
-    {
-        try
-        {
-            return sections.Latest(SectionNames.Access) is { } message ? AgentJson.Deserialize<AccessSection>(message.Data)?.Gaps.ToList() ?? [] : [];
-        }
-        catch (System.Text.Json.JsonException)
-        {
-            return [];
-        }
-    }
-
-    /// <summary>Rule 6 (§3.8): above 300 MB the agent logs it, reports it and exits; Windows' recovery starts it again.</summary>
+    /// <summary>Rule 6 (§3.8): above 300 MB the agent logs it, reports it and exits; Windows' recovery (systemd) starts it again.</summary>
     private async Task WatchMemoryAsync(CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
@@ -405,7 +396,7 @@ internal sealed class AgentService(
             {
                 var message = $"The working set reached {process.WorkingSet64 / (1024 * 1024)} MB (above 300 MB): the agent restarts itself.";
                 logger.LogCritical("{Message}", message);
-                File.WriteAllText(AgentInfo.CrashMarkerFile, message);
+                File.WriteAllText(Paths.CrashMarkerFile, message);
                 Environment.Exit(3);
             }
         }
@@ -445,11 +436,11 @@ internal sealed class AgentService(
         }
     }
 
-    private static List<string> ReadCollectNow()
+    private List<string> ReadCollectNow()
     {
         try
         {
-            var lines = File.ReadAllLines(AgentInfo.CollectNowFile).Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
+            var lines = File.ReadAllLines(Paths.CollectNowFile).Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
             // Anything else (the window's time stamp) asks for every section.
             return lines.All(SectionNames.IsKnown) ? lines.Distinct().ToList() : [];
         }
@@ -471,11 +462,15 @@ internal sealed class AgentService(
     }
 }
 
+/// <summary>The server's own rights changed (docs/linux-sensor-plan.md §4.6): the loop reconnects, so the hello announces them.</summary>
+internal sealed class RightsChangedException(string message) : Exception(message);
+
 /// <summary>
-/// What the later phases plug into the service: logins and connections (W3), diagnostics (W4), scripts (W6). Each runs its
-/// own loop, reports while connected, handles its requests, and adds to status.json.
+/// What the later phases plug into the service: logins and connections (W3), diagnostics (W4), scripts (W6); on Linux config.yaml's
+/// watch (L3). Each runs its own loop, reports while connected, handles its requests, and adds to status.json. A platform registers
+/// its features as singletons of this interface; the order of registration is the order of their capabilities in the hello.
 /// </summary>
-internal interface IAgentFeature
+public interface IAgentFeature
 {
     string Name { get; }
 

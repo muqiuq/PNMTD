@@ -51,6 +51,21 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PNMTD.Lib\PNMTD.Lib.csproj" />
+    <!-- The service's loop, the scheduler, problems, the log file, the state, diagnostics and the join (docs/linux-sensor-plan.md
+         §3.2): moved there unchanged in L2; Platform/WindowsPlatform.cs is this agent's side of it. -->
+    <ProjectReference Include="..\PNMTD.Sensor.Core\PNMTD.Sensor.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- What moved to PNMTD.Sensor.Core keeps its names here: its namespaces in every file, as when they were this project's. -->
+    <Using Include="PNMTD.Sensor.Core" />
+    <Using Include="PNMTD.Sensor.Core.Collectors" />
+    <Using Include="PNMTD.Sensor.Core.Diagnostics" />
+    <Using Include="PNMTD.Sensor.Core.Join" />
+    <Using Include="PNMTD.Sensor.Core.Logging" />
+    <Using Include="PNMTD.Sensor.Core.Resilience" />
+    <Using Include="PNMTD.Sensor.Core.Service" />
+    <Using Include="PNMTD.Sensor.Core.State" />
   </ItemGroup>
 
   <ItemGroup>
@@ -58,7 +73,6 @@
     <PackageReference Include="System.Diagnostics.EventLog" />
     <PackageReference Include="System.ServiceProcess.ServiceController" />
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" />
-    <PackageReference Include="DnsClient" />
   </ItemGroup>
 
 </Project>

@@ -1,7 +1,6 @@
 using System.ServiceProcess;
 using Microsoft.Extensions.Logging;
 using PNMTD.Lib.Agent;
-using PNMTD.Sensor.Windows.Logging;
 using PNMTD.Sensor.Windows.Service;
 using PNMTD.Sensor.Windows.State;
 

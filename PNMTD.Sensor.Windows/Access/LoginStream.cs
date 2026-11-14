@@ -5,7 +5,6 @@ using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using PNMTD.Lib.Agent;
 using PNMTD.Sensor.Windows.Collectors;
-using PNMTD.Sensor.Windows.Resilience;
 using PNMTD.Sensor.Windows.Service;
 using PNMTD.Sensor.Windows.State;
 

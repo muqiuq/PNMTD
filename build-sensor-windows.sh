@@ -29,4 +29,4 @@ mkdir -p "$out"
 
 version="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props)"
 echo "PNMT Sensor ${version} → ${out}/"
-OUT="$out" ARCH="$archs" tools/agent.sh
+OUT="$out" ARCH="$archs" PLATFORM=windows tools/agent.sh

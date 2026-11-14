@@ -120,7 +120,7 @@ internal static partial class LocalScripts
         LocalSchedule? schedule, CancellationToken ct)
     {
         Directory.CreateDirectory(Folder);
-        AgentFiles.Secure();
+        Platform.WindowsPlatform.Secure();
         var file = existing?.File ?? Path.Combine(Folder, name + ".ps1");
         var copied = false;
         if (source is not null)

@@ -7,8 +7,7 @@ using Microsoft.Extensions.Logging;
 using PNMTD.Lib.Agent;
 using PNMTD.Sensor.Windows.Collectors;
 using PNMTD.Sensor.Windows.Join;
-using PNMTD.Sensor.Windows.Logging;
-using PNMTD.Sensor.Windows.Resilience;
+using PNMTD.Sensor.Windows.Platform;
 using PNMTD.Sensor.Windows.Service;
 using PNMTD.Sensor.Windows.State;
 
@@ -38,6 +37,8 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        // The shared core's files are where this agent always kept them (docs/linux-sensor-plan.md §3.2).
+        AgentFiles.Use(AgentInfo.Layout);
         if (args.Length == 0)
         {
             return Ui.WindowApp.Run();
@@ -101,6 +102,7 @@ internal static partial class Program
     /// <summary>The agent's parts, for the service and for <c>collect</c>.</summary>
     internal static void AddAgent(IServiceCollection services, DailyFileLoggerProvider logs)
     {
+        services.AddSingleton<IAgentPlatform>(WindowsPlatform.Instance);
         services.AddSingleton(logs);
         Collectors.Wmi.Logger = logs.CreateLogger("Collectors.Wmi");
         Isolated.Logger = logs.CreateLogger("Resilience.Isolated");
@@ -118,11 +120,11 @@ internal static partial class Program
         services.AddSingleton<Access.LoginStream>();
         services.AddSingleton<IAgentFeature>(sp => sp.GetRequiredService<Access.LoginStream>());
         // Diagnostics (§5.3): the agent's own schedule, and Run now.
-        services.AddSingleton<IAgentFeature, Diagnostics.DiagnosticsFeature>();
+        services.AddSingleton<IAgentFeature, DiagnosticsFeature>();
         // PowerShell scripts (§7): parsing always, running only where the window allowed it.
         services.AddSingleton<IAgentFeature, Scripts.ScriptsFeature>();
         services.AddSingleton<SectionScheduler>();
-        services.AddSingleton<HeartbeatSampler>();
+        services.AddSingleton<IHeartbeatSampler, HeartbeatSampler>();
         services.AddSingleton<AgentService>();
     }
 
@@ -205,7 +207,7 @@ internal static partial class Program
             Console.WriteLine($"Plain http://, confirmed with --allow-http. PNMT's key, as this URL answers: {fingerprint}");
             return Task.FromResult(true);
         }
-        var result = Joiner.JoinAsync(url, token, name, steps, ConfirmHttp, CancellationToken.None).GetAwaiter().GetResult();
+        var result = Joiner.JoinAsync(WindowsPlatform.Instance, url, token, name, steps, ConfirmHttp, CancellationToken.None).GetAwaiter().GetResult();
         if (!quiet)
         {
             Console.WriteLine($"Joined as {result.Grant.HostName} / {result.Grant.SensorName}.");

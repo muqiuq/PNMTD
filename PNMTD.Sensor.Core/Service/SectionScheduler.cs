@@ -3,18 +3,20 @@ using System.Net.NetworkInformation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using PNMTD.Lib.Agent;
-using PNMTD.Sensor.Windows.Collectors;
-using PNMTD.Sensor.Windows.Resilience;
-using PNMTD.Sensor.Windows.State;
+using PNMTD.Sensor.Core.Collectors;
+using PNMTD.Sensor.Core.Resilience;
+using PNMTD.Sensor.Core.State;
 
-namespace PNMTD.Sensor.Windows.Service;
+namespace PNMTD.Sensor.Core.Service;
 
 /// <summary>
-/// Runs the collectors (docs/windows-sensor-plan.md §4.1, §3.8 rule 8): one at a time, at below-normal priority, each on its
+/// Runs the collectors (docs/windows-sensor-plan.md §4.1, §3.8 rule 8; docs/linux-sensor-plan.md §5.1): one at a time, at
+/// below-normal priority (on Linux the unit's <c>Nice=10</c> does that: .NET ignores thread priorities there), each on its
 /// interval, all of them every 6 hours and on request; each with a 30 s timeout, a failure reported and the next one run.
-/// Keeps the latest section of each kind (sent again after a reconnect) and which ones changed since they were sent.
+/// Keeps the latest section of each kind (sent again after a reconnect) and which ones changed since they were sent. A network
+/// change (<see cref="NetworkChange"/>: netlink on Linux) collects the network section 5 s later.
 /// </summary>
-internal sealed class SectionScheduler(IServiceProvider services, ProblemReporter problems, ILogger<SectionScheduler> logger)
+public sealed class SectionScheduler(IServiceProvider services, IAgentPlatform platform, ProblemReporter problems, ILogger<SectionScheduler> logger)
 {
     // Resolved when first used: the access collector needs the login stream, which asks this scheduler for the event log.
     private List<Collector>? collectors;
@@ -127,7 +129,7 @@ internal sealed class SectionScheduler(IServiceProvider services, ProblemReporte
                 var thread = Thread.CurrentThread;
                 var priority = thread.Priority;
                 thread.Priority = ThreadPriority.BelowNormal;
-                Wmi.CurrentSection = collector.Name;
+                platform.OnCollectorThread(collector.Name);
                 try
                 {
                     var errors = new List<string>();
@@ -141,7 +143,7 @@ internal sealed class SectionScheduler(IServiceProvider services, ProblemReporte
                 finally
                 {
                     thread.Priority = priority;
-                    Wmi.CurrentSection = null;
+                    platform.OnCollectorThread(null);
                 }
             }, token, TaskCreationOptions.LongRunning, TaskScheduler.Default), ct);
         var took = (DateTimeOffset.UtcNow - started).TotalMilliseconds;
@@ -174,10 +176,13 @@ internal sealed class SectionScheduler(IServiceProvider services, ProblemReporte
             sent.At == default ? null : sent.At, sent.Hash is not null && sent.Hash == message?.Hash);
     }).ToList();
 
-    /// <summary>Runs every collector once and answers the sections: <c>pnmt-sensor.exe collect</c>, for support.</summary>
-    public async Task<List<SectionMessage>> CollectOnceAsync(CancellationToken ct)
+    /// <summary>
+    /// Runs every collector once (or only the named ones) and answers the sections: <c>pnmt-sensor.exe collect</c>,
+    /// <c>pnmt-agent collect [section]</c>, for support.
+    /// </summary>
+    public async Task<List<SectionMessage>> CollectOnceAsync(CancellationToken ct, IReadOnlyCollection<string>? names = null)
     {
-        foreach (var collector in all)
+        foreach (var collector in all.Where(c => names is null || names.Count == 0 || names.Contains(c.Name)))
         {
             await CollectAsync(collector, ct);
         }

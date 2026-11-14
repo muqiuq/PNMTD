@@ -1480,6 +1480,115 @@ The phases as they were built, with what differs from the plan above.
   - The tests that took `SectionNames.All` for Windows' sections take `SectionNames.Windows`. The three tests that failed after `d6a8c27` (Linux's section names, and `SensorType.LINUX` without a description) pass again.
   - **Results:** PNMTD.Tests 492 tests, 488 passed and 4 skipped (as before), in Europe/Zurich and America/New_York; the web checks green; the browser tests 25 passed, `e2e/windows.spec.ts`'s three among them (now with a Linux token too).
 
+### L2: PNMTD.Sensor.Core
+
+- **Moved, not rewritten.** `PNMTD.Sensor.Core` (net10.0) has, under `PNMTD.Sensor.Core.*`:
+  - `Service/`: `AgentService` with `IAgentFeature`, `SectionScheduler`, and `IHeartbeatSampler` (new: each platform's sampler behind it);
+  - `Collectors/Collector.cs` with `NotAvailableException`; `Resilience/Problems.cs` (`ProblemReporter`, `Isolated`); `Logging/DailyFileLogger.cs`;
+  - `State/AgentFiles.cs` with `AgentConfigFile`, `AgentStatusFile`, `SectionStatus` and `DiagnosticsStatus`; `Diagnostics/DiagnosticsFeature.cs`;
+  - `Join/Joiner.cs` (the flow of W§3.3 steps 3–9) and `Join/AgentBye.cs` (uninstall's bye);
+  - `Platform/IAgentPlatform.cs` and `Rights/AgentRights.cs` (new).
+  - **The Windows agent keeps everything else** in its own namespaces. Its files reach Core's through global usings in the project file, so they changed by a `using` line at most.
+- **`IAgentPlatform`, as built:**
+  - who and where: `Platform`, `Product`, `UserAgent`, `Version`, `Architecture`, `JoinHint`, `Paths` (`AgentLayout`: data, state and log folders, the program, the log prefix; agent.json, status.json, the collect-now flag and the crash marker derive from them);
+  - `ReadOs()`, `MachineId()`, `Names()` (host name, FQDN, domain for the join), `Keys` (`IAgentKeyStore`: create, open and delete the signing key, the encryption key on first use), `SecureFolders()`, `SystemLog()`, `Service` (`IServiceManager.InstallAndStart()`);
+  - **the service loop's hooks, with defaults that do nothing:** `ApplyConfig` (Windows: WMI's switches), `StatusGaps` (Windows: the audit policy's gaps for status.json), `OnCollectorThread` (Windows: `Wmi.CurrentSection`), `ServiceTick` (Linux: systemd's watchdog), `DebugLogging` (agent.json's level; on Linux config.yaml's too).
+  - `Platform/WindowsPlatform.cs` is Windows' side: `AgentInfo`, `WindowsVersion`, `AgentKey`, the ACL, the event log and `ServiceControl`, unchanged.
+- **Where §3.2's sketch differs:**
+  - **the heartbeat's values are a service of their own** (`IHeartbeatSampler`), not a platform member;
+  - **the rights are a service too** (`IAgentRightsSource`: `Current`, an `AgentRights`, and a `Version` that grows with each change), registered only where a file grants rights. **Windows registers none**, so its hello is as it was (`scripts-policy.json` can feed it later);
+  - no `IScriptHost` yet, and the scripts skeleton and the shared commands stay with each platform: they move with L7.
+- **`AgentFiles` stays static**, as Windows' window and scripts call it everywhere: the platform's paths are set first thing in `Main` (`AgentFiles.Use`). `Secure()` became `WindowsPlatform.Secure()`. On Linux the files are written 0600.
+- **One change outside the agents:** `AgentIdentity` (PNMTD.Lib) gained `Platform` and `Rights`, both optional, and the session puts them into the hello. Windows' hello is unchanged: it always said `Windows`.
+- **The log's components are as before** (`Service.AgentService`): the provider strips the Windows, Linux and Core prefixes.
+- **Packages:** Core has `Microsoft.Extensions.Hosting.Abstractions` 10.0.15 by `VersionOverride`, because a central `PackageVersion` would pin it transitively in PNMTD.Tests and change that lock file, and `DnsClient`. The Windows project no longer names `DnsClient` itself.
+- **Lock files:** Core's is new; Windows' gained Core and lists DnsClient as transitive. The Windows publish restores locked.
+- **Checked:** `dotnet build PNMTD.Sensor.Windows` and `./build-sensor-windows.sh` work on macOS.
+  - **The executables:** x64 53,122,846 → 53,140,133 bytes, arm64 51,879,826 → 51,897,125, built from `d6a8c27` and after the move. The difference, about 17 KB, is Core's assembly.
+  - The older ones in `dist/` were 52,957,408 and 51,714,395.
+  - **Not run on Windows:** that waits for W0, as everything since W2.
+
+### L3: the Linux agent's first version (agent side)
+
+- **`PNMTD.Sensor.Linux`** (net10.0, `pnmt-agent`), in `PNMTD.slnx` with Core:
+  - `Program.cs` (the command line) and `AgentInfo.cs` (§4.2's paths);
+  - `Platform/`: `LinuxPlatform`, `LinuxOs` (os-release, the version check, Proxmox VE), `LinuxFacts` (/proc, mounts, logind's sessions, a pending reboot, the last shutdown), `LinuxHeartbeatSampler`, `FileKeyStore`, `Systemd` (the unit, systemctl, the program), `Journal`, `Tool` (every external call), `Native` (`geteuid`, `statx`, `chown`);
+  - `Collectors/`: `SystemCollector`, `HardwareCollector`, `NetworkCollector`, `Accounts` (passwd, group, shadow, sudoers), `BlockDevices` (`lsblk`);
+  - `Rights/`: `ConfigYaml`, `LinuxRights` and the template `config.yaml`; `Update/Updater.cs`; `Join/Uninstaller.cs`; `pnmt-agent.service`.
+  - The project is marked Linux-only (`SupportedOSPlatform`). The pure parsers are static methods, ready for tests.
+- **The command line** is §4.1's:
+  - every command but `version` and `help` needs root (`geteuid`) and says so;
+  - `keys` and `keys restore` answer *not yet* (L5, L6);
+  - two hidden commands: `install-unit` writes the unit, and `update-install` is run by `update` from the new binary;
+  - errors go to stderr.
+- **`join`:**
+  - **the machine first** (§4.4 step 3): 32-bit, musl and no `/run/systemd/system` are refused with the reason, and `/var/lib/pnmt-agent` must be writable. An unsupported distribution gets a note and joins.
+  - A missing URL or token is asked for, the token without echo.
+  - **The rest is Core's flow:** the URL and token, `GET /agent/v1/join`, plain http:// only with `--allow-http` (which prints PNMT's key), the keys, the request with `Platform: Linux`, `/etc/machine-id`, `hostname -f`'s FQDN and the realm (realmd, SSSD or Samba's ADS realm), agent.json.
+  - **Then the platform:** config.yaml's template once, a running service stopped, the program copied, the unit written, `daemon-reload`, `enable`, `start`, and up to 60 s for *connected*. Exit 0 or 3.
+  - **Both fingerprints are printed even with `--quiet`**, for the logs of unattended installs.
+- **The unit is §4.3's text**, embedded in the binary. `ssh_keys.writable_paths` become **`ReadWritePaths=-/etc/pve/priv`**: with the dash, a path that doesn't exist doesn't stop the unit.
+- **The keys** are PKCS#8 PEM files, 0600, in `keys/` (0700): `agent-<id>.pem` (agent.json's `keyName`) and `encryption-<agent id>.pem`, the latter created on first use.
+- **config.yaml** follows §4.6's table, read with YamlDotNet's representation model. Stricter than the table:
+  - **the folder must be root's and not writable by group or others too**, or the file could be replaced;
+  - **duplicate keys and a second document** are not valid YAML;
+  - **only `true` and `false`** are booleans (no `yes` or `on`);
+  - **a restricting list that can't be read** (`users`, `protect`, `run_as`, `allowed_hashes`) turns its right off, as its empty value would mean "every";
+  - **`writable_paths` are only paths under /etc**, never /etc itself, `/etc/pnmt-agent` or `/etc/systemd`, so the agent can't be given its own rights or unit.
+- **Reloading config.yaml:**
+  - one inotify watch on `/etc/pnmt-agent/`, set up once the folder exists, settles 2 s, and the file is read every minute anyway;
+  - **a change in the effective rights raises the version, the service reconnects**, and the hello carries `Hello.Rights`;
+  - the log and the journal say "Rights changed on the server: key removal allowed for deploy; scripts off";
+  - a refused file is a problem;
+  - `log_level` applies at once, joined or not.
+- **Rights for features:** take **`IAgentRightsSource`** from DI and read `Current` (`AgentRights`: `Keys` with remove, users, protect and writable paths; `Scripts` with enabled, run-as, allowed hashes and the longest run; `Collect`) or `Version`. On Linux it is `LinuxRights`, registered as the source and as a feature (its watch is the feature's loop).
+- **A feature registers** as `services.AddSingleton<IAgentFeature, …>()` in `Program.AddAgent`, a collector as `AddSingleton<Collector, …>()`. L3 announces `collect.v1`, `diag.ping` and `diag.dns`.
+- **The version check** runs at every start, from os-release, `/etc/debian_version` and, on Proxmox VE, `pveversion` (read at most once an hour, as it takes a second). `AgentOs` is as documented in AgentMessages.cs, with `proxmox` as the edition on Proxmox VE.
+- **The heartbeat:**
+  - CPU from `/proc/stat`'s delta, memory from `MemAvailable`, and the fullest real file system as `df` counts it (bind mounts and files left out, ZFS by pool);
+  - the sessions from logind: `--json=short`, then `--output=json`, then the table, then one `show-session` for all; only the user classes; no bus means no sessions;
+  - a pending reboot (`/run/reboot-required` with its packages, a newer kernel in /boot);
+  - the boot time (`btime`), and the last shutdown from the previous boot's last 200 journal entries, once an hour.
+- **The sections:**
+  - **`system`:** everything of §5.2, the time from `timedatectl`, the firewall by ufw, firewalld, `nft -j` or iptables-legacy, AppArmor from securityfs, Secure Boot from efivars, needrestart's kernel verdict when installed;
+  - **`hardware`:** DMI or the device tree, `lscpu -J` in both formats (ARM's vendor when there is no model name), `dmidecode -t 17` and `smartctl -j -H` when installed, PCI display controllers with pci.ids' names;
+  - **`network`:** `ip -j`, resolved's per-link DNS or resolv.conf's, `ss -H -tulpn` with each PID's unit from its cgroup, /proc/net/tcp's states named as Windows names them, the proxy from /etc/environment and apt, and /etc/hosts without Debian's (and Podman's) defaults;
+  - **guests' ports on a bridge** (veth, tap, Proxmox's fw*) are left out, as they come and go with every container and VM;
+  - **volatile values are hashed out:** free space, charge, leases, PIDs, connection counts, sessions, apt's list times, fail2ban's counts.
+  - **Not built:** a note for policy routing (the record has no place for it), DHCP servers beyond networkd's, dhclient's and NetworkManager's lease files.
+- **`update`:**
+  - the manifest from `{url}/agent/v1/download`, verified with the pinned key (type `download-manifest`, agent id empty);
+  - this architecture's asset, only when newer or with `--force`, downloaded into `state/update/` and checked against the manifest's size and SHA-256 (plain http:// only when the join confirmed it);
+  - the new binary must answer `version`, then **it installs itself** (`update-install`): stops the service, replaces `/usr/local/sbin/pnmt-agent` atomically, writes its unit, starts it, and writes the journal.
+- **`uninstall [--purge]`:** as §4.1. The program goes last, after everything is printed and journalled.
+- **Build:** `tools/agent.sh` has `PLATFORM=windows|linux|all` (default all), `build-sensor-linux.sh` builds into `dist/`, and `build-sensor-windows.sh` passes `PLATFORM=windows`. Both new scripts are in `run-tests.sh`'s shell group, which is green.
+- **The lab:**
+  - `tools/linux-lab.sh` with `tools/linux-lab/Containerfile`: systemd, D-Bus and libpam-systemd (logind), OpenSSH with passwords, sudo, iproute2, and the user `lab`;
+  - `start`, `install` (from `dist/`, or `--from` a PNMT as the line does it), `join`, `ssh`, `shell`, `stop` and `list`.
+- **Found in the lab:**
+  - **A single-file binary loads its assemblies from its own file, by path.** `uninstall --purge` crashed after deleting the program ("Could not load file or assembly 'System.Threading'"), and an `update` that replaced its own file would have read the new file at the old offsets. So:
+    - `update` hands over to the new binary;
+    - `uninstall` deletes the program as its very last step;
+    - `join` stops a running service before it replaces the program.
+  - **The tools inherited `NOTIFY_SOCKET`:** systemd logged a notification from a child. They now run without systemd's notify and watchdog variables.
+  - **Debian 12's loginctl (systemd 252) refuses `--json=short`;** its `--output=json` answers JSON.
+  - **sudoers separates with tabs.**
+- **L0-type checks:** Debian 12 and 13, arm64 under Podman on Apple Silicon, and Ubuntu 24.04 for `collect`.
+  - **The binary:** linux-arm64 38,334,074 bytes, linux-x64 40,470,683, reproducible (the same SHA-256 on a rebuild). **Nothing is extracted at start**: no `~/.net`, and HOME isn't even set under systemd.
+  - **Start:** `pnmt-agent version` takes about 60 ms. The service is *active* (READY=1) 0.13–0.14 s after its exec.
+  - **Memory:** about 100 MB resident. The unit's peak was 160–210 MB: the bundle is decompressed at start, and `apt-get -s` runs in the cgroup.
+  - **The commands:** `version`; `status`; `config check` with no file, a good one, a typo, a group-writable one, a broken one, a duplicate key, another owner and a folder writable by others; `collect` and `collect system`; `collect-now`; `log -n` and `-f`; `update <file>` (and a refusal of `/bin/true`); `uninstall`; `uninstall --purge`.
+  - **`join`:** its first steps against the development PNMTD: the http:// refusal with PNMT's key, `--allow-http`, the key created, the unknown token refused, and the key deleted again.
+  - **`collect`:** no section errors on Debian 12, Debian 13 or Ubuntu 24.04. system takes 0.8 s (mostly `apt-get -s`), hardware 19 ms, network 24 ms, under the unit's sandbox too.
+  - **Sessions:** an SSH key login shows as one, with its address and time.
+  - **The service:** the watchdog's pings arrive (`WatchdogTimestamp`). `kill -9` was restarted by systemd after 60 s. The journal (`-t pnmt-agent`) has the starts, stops, the rights changes, the update and the uninstall. A config.yaml change was seen within 3 s with the watch, and within the minute without it.
+- **Not checked yet:**
+  - a join to the end, `Hello.Rights` and the reconnect against PNMTD (PNMTD's Linux join and downloads are being built alongside);
+  - `update` from a PNMT, and the encryption key;
+  - x64 under emulation (this Podman machine has none);
+  - real hardware: DMI, SMART, TPM and Secure Boot, which containers don't have; the sandbox's lines against them;
+  - Proxmox VE, and Ubuntu 22.04 and 26.04.
+
 ---
 
 ## Appendix: configuration and file changes

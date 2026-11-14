@@ -168,6 +168,3 @@ internal static class Wmi
         }
     }
 }
-
-/// <summary>A class, namespace or API this Windows doesn't have: the part is "not available" (§3.9).</summary>
-internal sealed class NotAvailableException(string message) : Exception(message);

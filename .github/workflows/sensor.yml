@@ -1,7 +1,10 @@
-name: Publish the Windows sensor
+name: Publish the agents
 
-# A sensor tag builds the PNMT sensor service for Windows and publishes it to the tag's GitHub release
-# (docs/windows-sensor-plan.md §11): pnmt-sensor-x64.exe and pnmt-sensor-arm64.exe with their SHA-256.
+# A sensor tag builds the PNMT agents and publishes them to the tag's GitHub release: the sensor service
+# for Windows (docs/windows-sensor-plan.md §11), pnmt-sensor-x64.exe and pnmt-sensor-arm64.exe, and the
+# agent for Linux (docs/linux-sensor-plan.md §12), pnmt-agent-linux-x64 and pnmt-agent-linux-arm64, each
+# with its SHA-256 (sha256sum's format, so the Linux install line's sha256sum -c reads it). PNMTD serves
+# the same files from its download folder, fetched from this release (docs/linux-sensor-plan.md §4.4).
 #   git tag -a sensor-1.2.0 -m "PNMT Sensor 1.2.0" && git push origin sensor-1.2.0
 # The version after "sensor-" is Directory.Build.props' (the executables report it, and PNMT's
 # Download tab links to the release sensor-{its own version}); a dash makes it a pre-release
@@ -12,7 +15,7 @@ on:
 
 jobs:
   sensor_release:
-    name: Publish the Windows sensor to the release
+    name: Publish the agents to the release
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -34,9 +37,9 @@ jobs:
         with:
           global-json-file: global.json
 
-      # Single-file and self-contained for win-x64 and win-arm64 (EnableWindowsTargeting).
-      - name: Publish pnmt-sensor
-        run: tools/agent.sh
+      # Single-file and self-contained: win-x64 and win-arm64 (EnableWindowsTargeting), linux-x64 and linux-arm64.
+      - name: Publish pnmt-sensor and pnmt-agent
+        run: PLATFORM=all tools/agent.sh
 
       - name: Create the release, or add to it
         env:
@@ -46,9 +49,11 @@ jobs:
           if ! gh release view "$tag" >/dev/null 2>&1; then
             prerelease=()
             [[ "$tag" == sensor-*-* ]] && prerelease=(--prerelease)
-            gh release create "$tag" --verify-tag --title "PNMT Sensor ${tag#sensor-}" "${prerelease[@]}" \
-              --notes "The PNMT sensor service for Windows: pnmt-sensor-x64.exe and pnmt-sensor-arm64.exe, unsigned; compare the SHA-256 with Get-FileHash."
+            gh release create "$tag" --verify-tag --title "PNMT agents ${tag#sensor-}" "${prerelease[@]}" \
+              --notes "The PNMT sensor service for Windows (pnmt-sensor-x64.exe, pnmt-sensor-arm64.exe; compare the SHA-256 with Get-FileHash) and the PNMT agent for Linux (pnmt-agent-linux-x64, pnmt-agent-linux-arm64; sha256sum -c). Unsigned. PNMT serves the same files at /agent/v1/download/."
           fi
           gh release upload "$tag" --clobber \
             artifacts/agent/pnmt-sensor-x64.exe artifacts/agent/pnmt-sensor-x64.exe.sha256 \
-            artifacts/agent/pnmt-sensor-arm64.exe artifacts/agent/pnmt-sensor-arm64.exe.sha256
+            artifacts/agent/pnmt-sensor-arm64.exe artifacts/agent/pnmt-sensor-arm64.exe.sha256 \
+            artifacts/agent/pnmt-agent-linux-x64 artifacts/agent/pnmt-agent-linux-x64.sha256 \
+            artifacts/agent/pnmt-agent-linux-arm64 artifacts/agent/pnmt-agent-linux-arm64.sha256

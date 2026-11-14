@@ -1,0 +1,22 @@
+# /etc/pnmt-agent/config.yaml: what PNMT may do on this server.
+# Only root can change this file; PNMT can't. The agent reads it at start and when it changes.
+# Check it with: pnmt-agent config check
+
+log_level: info                 # info or debug; read without a restart
+
+ssh_keys:
+  remove: false                 # PNMT may remove keys from authorized_keys files
+  users: []                     # only these accounts' keys; empty: every account
+  protect: []                   # fingerprints PNMT may never remove (break-glass keys), e.g.
+                                #   - SHA256:Kq1f9hJ0x0mRk8xPZ3oWJ6gW5p0rPj5n8l2pHq0rS2A
+  writable_paths: []            # key files under /etc the agent may rewrite, e.g. /etc/pve/priv on Proxmox VE
+
+scripts:
+  enabled: false                # PNMT may run bash scripts
+  run_as: []                    # the accounts they may run as; root must be named to be allowed, e.g. [root, deploy]
+  allowed_hashes: []            # only these scripts (SHA-256 of their text); empty: any script of PNMT's library
+  max_timeout_minutes: 60
+
+collect:
+  sudo_commands: false          # sudo's command lines in the logins (they can contain passwords)
+  cron_commands: false          # crontab lines in full (by default only the program each line runs)

@@ -1,0 +1,33 @@
+[Unit]
+Description=PNMT agent: reports this server to PNMT
+Documentation=https://github.com/muqiuq/PNMTD/blob/master/docs/linux-sensor-plan.md
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=notify
+ExecStart=/usr/local/sbin/pnmt-agent service
+Restart=always
+RestartSec=60
+WatchdogSec=5min
+TimeoutStopSec=30
+# The server comes first (W§3.8 rule 8): .NET ignores thread priorities on Linux, so the whole agent is nice.
+Nice=10
+CPUWeight=20
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+# Sandboxing that blocks no feature; L0 checks each line against every collector.
+NoNewPrivileges=yes
+ProtectSystem=full
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# Written by join and update from config.yaml's ssh_keys.writable_paths (§4.6), when it names any.
+# ReadWritePaths=/etc/pve/priv
+
+[Install]
+WantedBy=multi-user.target

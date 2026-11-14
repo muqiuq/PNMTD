@@ -131,7 +131,7 @@ internal sealed class JoinView : UserControl
         var progress = new Progress<string>(OnStep);
         try
         {
-            var result = await Task.Run(() => Joiner.JoinAsync(url.Text, token.Text, name.Text, progress, ConfirmHttpAsync, CancellationToken.None));
+            var result = await Task.Run(() => Joiner.JoinAsync(Platform.WindowsPlatform.Instance, url.Text, token.Text, name.Text, progress, ConfirmHttpAsync, CancellationToken.None));
             Write($"Joined as {result.Grant.HostName} / {result.Grant.SensorName}.");
             Write($"This server's key: {result.AgentFingerprint}");
             Write($"PNMT's key:        {result.PnmtdFingerprint}");

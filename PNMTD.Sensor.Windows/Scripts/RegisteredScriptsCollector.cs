@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using PNMTD.Lib.Agent;
 using PNMTD.Sensor.Windows.Collectors;
-using PNMTD.Sensor.Windows.Resilience;
 
 namespace PNMTD.Sensor.Windows.Scripts;
 

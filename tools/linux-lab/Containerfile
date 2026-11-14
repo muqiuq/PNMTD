@@ -1,0 +1,20 @@
+# The lab image for tools/linux-lab.sh (docs/linux-sensor-plan.md §12): a Debian or Ubuntu with systemd as
+# PID 1, D-Bus and logind (without them there are no sessions, and systemd-run fails: L0), OpenSSH with
+# password logins, sudo, and the test user "lab" (a sudoer). The package lists stay, so apt-get -s has
+# something to simulate. Root and lab have the password LAB_PASSWORD (pnmt-lab).
+ARG BASE=docker.io/library/debian:12
+FROM ${BASE}
+ARG LAB_PASSWORD=pnmt-lab
+ENV DEBIAN_FRONTEND=noninteractive container=podman
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends systemd systemd-sysv dbus libpam-systemd openssh-server sudo \
+      iproute2 procps util-linux ca-certificates openssl wget less \
+ && apt-get clean
+RUN useradd -m -s /bin/bash -G sudo lab \
+ && printf 'lab:%s\nroot:%s\n' "$LAB_PASSWORD" "$LAB_PASSWORD" | chpasswd \
+ && mkdir -p /etc/ssh/sshd_config.d \
+ && printf 'PasswordAuthentication yes\nPermitRootLogin yes\n' >/etc/ssh/sshd_config.d/lab.conf \
+ && systemctl enable ssh \
+ && systemctl mask systemd-udevd.service systemd-udevd-kernel.socket systemd-udevd-control.socket getty@tty1.service 2>/dev/null || true
+STOPSIGNAL SIGRTMIN+3
+CMD ["/sbin/init"]

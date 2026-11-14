@@ -141,7 +141,7 @@ group_deploy() {
 
 group_shell() {
   echo "shell"
-  local scripts=(start.sh stop.sh run-tests.sh build-sensor-windows.sh tools/*.sh deploy/*.sh)
+  local scripts=(start.sh stop.sh run-tests.sh build-sensor-windows.sh build-sensor-linux.sh tools/*.sh deploy/*.sh)
   step "bash -n" bash -c 'for f in "$@"; do bash -n "$f" || exit 1; done' _ "${scripts[@]}"
   step "shellcheck" "$ENGINE" run --rm -v "$PWD:/w:ro" -w /w docker.io/koalaman/shellcheck:stable \
     --severity=warning --external-sources "${scripts[@]}"

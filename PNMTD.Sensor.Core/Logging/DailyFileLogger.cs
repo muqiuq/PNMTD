@@ -3,14 +3,15 @@ using System.Globalization;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
-namespace PNMTD.Sensor.Windows.Logging;
+namespace PNMTD.Sensor.Core.Logging;
 
 /// <summary>
-/// The log file (docs/windows-sensor-plan.md §3.8): one file per day (the server's local date), the last 10 kept, at most
-/// 50 MB each (past it, lines are dropped with one note saying how many). Each line: the time with its offset, the level,
-/// the component, the message, and on errors the exception with its stack. No third-party library.
+/// The log file (docs/windows-sensor-plan.md §3.8; docs/linux-sensor-plan.md §4.2): one file per day (the server's local date),
+/// the last 10 kept, at most 50 MB each (past it, lines are dropped with one note saying how many). Each line: the time with its
+/// offset, the level, the component (the category without the agents' namespaces), the message, and on errors the exception with
+/// its stack. No third-party library.
 /// </summary>
-internal sealed class DailyFileLoggerProvider : ILoggerProvider
+public sealed class DailyFileLoggerProvider : ILoggerProvider
 {
     public const int KeepFiles = 10;
     public const long MaxBytes = 50L * 1024 * 1024;
@@ -37,9 +38,11 @@ internal sealed class DailyFileLoggerProvider : ILoggerProvider
 
     public ILogger CreateLogger(string categoryName) => loggers.GetOrAdd(categoryName, name => new DailyFileLogger(this, Short(name)));
 
-    private static string Short(string category) => category.StartsWith("PNMTD.Sensor.Windows.", StringComparison.Ordinal)
-        ? category["PNMTD.Sensor.Windows.".Length..]
-        : category;
+    /// <summary>The agents' own namespaces, left out of the component: <c>Service.AgentService</c>, not the full name.</summary>
+    private static readonly string[] Prefixes = ["PNMTD.Sensor.Windows.", "PNMTD.Sensor.Linux.", "PNMTD.Sensor.Core."];
+
+    private static string Short(string category) =>
+        Prefixes.FirstOrDefault(p => category.StartsWith(p, StringComparison.Ordinal)) is { } prefix ? category[prefix.Length..] : category;
 
     public string CurrentFile => Path.Combine(folder, $"{prefix}-{DateTime.Now:yyyy-MM-dd}.log");
 

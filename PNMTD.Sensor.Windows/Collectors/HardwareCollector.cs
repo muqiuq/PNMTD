@@ -1,6 +1,5 @@
 using PNMTD.Lib.Agent;
 using PNMTD.Sensor.Windows.Native;
-using PNMTD.Sensor.Windows.Resilience;
 
 namespace PNMTD.Sensor.Windows.Collectors;
 

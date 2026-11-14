@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The agents' platform-neutral half (docs/linux-sensor-plan.md §3.2): the service's loop, the collectors' scheduler and base,
+    problems, the daily log file, agent.json and the state, diagnostics, joining and the bye, and the rights' model. Moved out of
+    PNMTD.Sensor.Windows without changing it (L2); PNMTD.Sensor.Windows and PNMTD.Sensor.Linux build on it, each behind
+    IAgentPlatform. No OS-specific package.
+  -->
+  <PropertyGroup>
+    <RootNamespace>PNMTD.Sensor.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PNMTD.Lib\PNMTD.Lib.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- BackgroundService, logging and DI. The version the agents' hosting packages bring (10.0.15), set here and not in
+         Directory.Packages.props: a central entry would pin it transitively in PNMTD.Tests too and change its lock file. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" VersionOverride="10.0.15" />
+    <PackageReference Include="DnsClient" />
+  </ItemGroup>
+
+</Project>

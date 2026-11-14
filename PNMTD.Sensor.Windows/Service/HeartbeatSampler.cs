@@ -8,7 +8,7 @@ namespace PNMTD.Sensor.Windows.Service;
 /// The heartbeat's values (docs/windows-sensor-plan.md §3.5): CPU since the last one, memory, the fullest volume, sessions,
 /// a pending reboot, the boot time and the last shutdown. About 500 bytes.
 /// </summary>
-internal sealed class HeartbeatSampler
+internal sealed class HeartbeatSampler : IHeartbeatSampler
 {
     private long lastIdle;
     private long lastTotal;

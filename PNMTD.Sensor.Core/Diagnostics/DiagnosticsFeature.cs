@@ -6,19 +6,19 @@ using DnsClient;
 using DnsClient.Protocol;
 using Microsoft.Extensions.Logging;
 using PNMTD.Lib.Agent;
-using PNMTD.Sensor.Windows.Resilience;
-using PNMTD.Sensor.Windows.Service;
-using PNMTD.Sensor.Windows.State;
+using PNMTD.Sensor.Core.Resilience;
+using PNMTD.Sensor.Core.Service;
+using PNMTD.Sensor.Core.State;
 
-namespace PNMTD.Sensor.Windows.Diagnostics;
+namespace PNMTD.Sensor.Core.Diagnostics;
 
 /// <summary>
-/// Diagnostics on the agent (docs/windows-sensor-plan.md §5.3): scheduled assignments by the agent's own timer, so they keep
+/// Diagnostics on the agent (docs/windows-sensor-plan.md §5.3; on Linux unchanged, docs/linux-sensor-plan.md §7): scheduled assignments by the agent's own timer, so they keep
 /// running while PNMTD is away (the configuration is kept in agent.json), and Run now on request. One run at a time, its
 /// checks in order, each with its timeout; a check that throws is an error and the next one runs. Results are buffered,
 /// at most 1,000.
 /// </summary>
-internal sealed class DiagnosticsFeature(ProblemReporter problems, ILogger<DiagnosticsFeature> logger) : IAgentFeature
+public sealed class DiagnosticsFeature(ProblemReporter problems, ILogger<DiagnosticsFeature> logger) : IAgentFeature
 {
     public const int MaxBuffered = 1000;
     private const string BufferFile = "diagnostics-results.json";

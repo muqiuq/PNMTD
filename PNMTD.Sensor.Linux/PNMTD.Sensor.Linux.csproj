@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The PNMT agent for Linux (docs/linux-sensor-plan.md §4.1): pnmt-agent, one binary with .NET included, a command line and the
+    systemd service mode, on the shared core (PNMTD.Sensor.Core). Built for Debian 12 and 13; works on Proxmox VE and Ubuntu LTS.
+    tools/agent.sh publishes it single-file and self-contained for linux-x64 and linux-arm64. Globalization-invariant, so libicu
+    isn't needed; not trimmed, because AgentJson uses reflection.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
+    <AssemblyName>pnmt-agent</AssemblyName>
+    <RootNamespace>PNMTD.Sensor.Linux</RootNamespace>
+    <Product>PNMT agent</Product>
+    <Company>PNMT</Company>
+    <Description>PNMT agent for Linux</Description>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PublishTrimmed>false</PublishTrimmed>
+    <!-- As in the Windows agent: single-file publishing would turn this analyzer on, and with it an implicit ILLink package that
+         the normal build doesn't restore, so the lock file would differ between build and publish. -->
+    <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>
+  </PropertyGroup>
+
+  <!--
+    The published binary (tools/agent.sh: -p:AgentRuntime=linux-x64): single-file, self-contained, compressed. Set here, not with -r
+    and -p on the command line, which would reach PNMTD.Lib's and PNMTD.Sensor.Core's restores too and break their lock files (W5).
+  -->
+  <PropertyGroup Condition="'$(AgentRuntime)' != ''">
+    <RuntimeIdentifier>$(AgentRuntime)</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Linux only: the platform analyzer then knows the Unix file modes and the libc calls are fine. -->
+    <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">
+      <_Parameter1>linux</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The unit (§4.3) and config.yaml's template (§4.6), written by join and update. -->
+    <EmbeddedResource Include="pnmt-agent.service" LogicalName="pnmt-agent.service" />
+    <EmbeddedResource Include="Rights\config.yaml" LogicalName="config.yaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PNMTD.Lib\PNMTD.Lib.csproj" />
+    <ProjectReference Include="..\PNMTD.Sensor.Core\PNMTD.Sensor.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" />
+    <PackageReference Include="DnsClient" />
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
+</Project>

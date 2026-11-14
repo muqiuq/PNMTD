@@ -2,14 +2,14 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using PNMTD.Lib.Agent;
 
-namespace PNMTD.Sensor.Windows.Resilience;
+namespace PNMTD.Sensor.Core.Resilience;
 
 /// <summary>
 /// Rule 3 of docs/windows-sensor-plan.md §3.8: whatever fails is logged, reported to PNMTD as a problem, and the rest carries
 /// on. Deduplicated per component and message per hour; buffered while offline (at most 200, the oldest go first, which is
 /// itself reported).
 /// </summary>
-internal sealed class ProblemReporter(ILogger<ProblemReporter> logger)
+public sealed class ProblemReporter(ILogger<ProblemReporter> logger)
 {
     public const int MaxBuffered = 200;
 
@@ -104,7 +104,7 @@ internal sealed class ProblemReporter(ILogger<ProblemReporter> logger)
 }
 
 /// <summary>Rules 1 and 2 (§3.8): each unit of work in its own try/catch, with a timeout; a failure is reported, the next unit runs.</summary>
-internal static class Isolated
+public static class Isolated
 {
     /// <summary>The parts left empty because this Windows doesn't have them, at debug level.</summary>
     public static ILogger Logger { get; set; } = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;

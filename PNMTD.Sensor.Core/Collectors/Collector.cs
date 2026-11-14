@@ -4,10 +4,13 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using PNMTD.Lib.Agent;
 
-namespace PNMTD.Sensor.Windows.Collectors;
+namespace PNMTD.Sensor.Core.Collectors;
 
-/// <summary>A section's collector (docs/windows-sensor-plan.md §4.1): what it reads, how often, and which values change too often to count.</summary>
-internal abstract class Collector
+/// <summary>
+/// A section's collector (docs/windows-sensor-plan.md §4.1; docs/linux-sensor-plan.md §5.1): what it reads, how often, and which
+/// values change too often to count.
+/// </summary>
+public abstract class Collector
 {
     public abstract string Name { get; }
 
@@ -66,3 +69,9 @@ internal abstract class Collector
         }
     }
 }
+
+/// <summary>
+/// A class, namespace, file, tool or API this machine doesn't have (an older Windows; a Linux server without smartctl): the part
+/// is "not available", not an error (docs/windows-sensor-plan.md §3.9, docs/linux-sensor-plan.md §4.8).
+/// </summary>
+public sealed class NotAvailableException(string message) : Exception(message);

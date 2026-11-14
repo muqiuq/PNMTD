@@ -5,7 +5,6 @@ using System.Security.Principal;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using PNMTD.Lib.Agent;
-using PNMTD.Sensor.Windows.Resilience;
 using PNMTD.Sensor.Windows.Service;
 using PNMTD.Sensor.Windows.State;
 
