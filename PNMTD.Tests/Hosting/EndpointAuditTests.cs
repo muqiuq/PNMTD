@@ -155,6 +155,9 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/zabbix/attach"] = ("Monitoring:Edit&Zabbix:View", Roles.User),
         // Cookie (docs/cookie-plan.md §19.4): the status for everyone, the cases for Use, Admin → Cookie for Manage. Only admins had it before.
         ["GET /api/v1/cookie/status"] = ("signed-in", Roles.Viewer),
+        ["GET /api/v1/cookie/summary"] = ("signed-in", Roles.Viewer),
+        ["GET /api/v1/cookie/messages"] = ("Cookie:Use", Roles.Admin),
+        ["POST /api/v1/cookie/messages"] = ("Cookie:Use", Roles.Admin),
         ["GET /api/v1/cookie/cases"] = ("Cookie:Use", Roles.Admin),
         ["GET /api/v1/cookie/cases/{id:guid}"] = ("Cookie:Use", Roles.Admin),
         ["GET /api/v1/cookie/trace"] = ("Cookie:Use", Roles.Admin),

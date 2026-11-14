@@ -234,6 +234,52 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         return new CookiePromptPreview(key, text);
     }
 
+    // --- The summary and the chat (§8, §10.2) ---------------------------------------------------------------------------
+
+    public const int MessagesPerHour = 20;
+    public const int MaxMessageChars = 4000;
+
+    public Task<CookieSummaryItem> SummaryAsync(ClaimsPrincipal user, CancellationToken ct) =>
+        services.GetRequiredService<Summaries>().ForAsync(user, ct);
+
+    public async Task<CookieThread> MessagesAsync(ClaimsPrincipal user, long? afterId, CancellationToken ct)
+    {
+        var userId = user.UserId() ?? Guid.Empty;
+        var q = db.CookieMessages.AsNoTracking().Where(m => m.UserId == userId);
+        if (afterId is { } after)
+        {
+            q = q.Where(m => m.Id > after);
+        }
+        var messages = (await q.OrderByDescending(m => m.Id).Take(100).ToListAsync(ct)).OrderBy(m => m.Id)
+            .Select(m => new CookieMessageItem(m.Id, m.At, m.From, m.Text, m.Answered)).ToList();
+        var waiting = await db.CookieMessages.AnyAsync(m => m.UserId == userId && m.From == "person" && !m.Answered, ct);
+        var runtime = await db.CookieRuntime.AsNoTracking().SingleOrDefaultAsync(ct);
+        return new CookieThread(messages, waiting, options.CurrentValue.Enabled ? runtime?.State ?? CookieState.Stopped : CookieState.Stopped);
+    }
+
+    /// <summary>A message to Cookie: it wakes Cookie at once (§10.2). At most 20 an hour per person.</summary>
+    public async Task<CookieMessageItem> PostMessageAsync(CookieMessageRequest request, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var text = request.Text?.Trim() ?? "";
+        new ApiValidator().Check(text.Length is > 0 and <= MaxMessageChars, "text", $"1 to {MaxMessageChars:N0} characters.").ThrowIfInvalid();
+        var runtime = await db.CookieRuntime.AsNoTracking().SingleOrDefaultAsync(ct);
+        if (!options.CurrentValue.Enabled || runtime is not { Running: true })
+        {
+            throw ApiException.Conflict("cookie_stopped", "Cookie is stopped: an admin starts it on Admin → Cookie.");
+        }
+        var userId = user.UserId() ?? throw ApiException.NotFound("User");
+        var hour = Clock.UtcNow.AddHours(-1);
+        if (await db.CookieMessages.CountAsync(m => m.UserId == userId && m.From == "person" && m.At >= hour, ct) >= MessagesPerHour)
+        {
+            throw new ApiException(StatusCodes.Status429TooManyRequests, "cookie_too_many_messages", $"At most {MessagesPerHour} messages an hour.");
+        }
+        var message = new CookieMessageEntity { UserId = userId, At = Clock.UtcNow, From = "person", Text = text };
+        db.CookieMessages.Add(message);
+        await db.SaveChangesAsync(ct);
+        services.GetRequiredService<CookieSignals>().Raise($"message from {user.Identity?.Name}");
+        return new CookieMessageItem(message.Id, message.At, message.From, message.Text, false);
+    }
+
     // --- The trace (§9.2) ------------------------------------------------------------------------------------------------
 
     /// <summary>
@@ -265,7 +311,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         }
         if (!full)
         {
-            q = q.Where(t => t.CaseId != null && (t.Kind == "note" || t.Kind == "status"));
+            q = q.Where(t => t.CaseId != null && (t.Kind == "note" || t.Kind == "status" || t.Kind == "reply"));
         }
         var rows = await q.OrderByDescending(t => t.Id).Take(Math.Clamp(query.Limit, 1, 500) * 2).ToListAsync(ct);
         var caseIds = rows.Where(t => t.CaseId is not null).Select(t => t.CaseId!.Value).Distinct().ToList();

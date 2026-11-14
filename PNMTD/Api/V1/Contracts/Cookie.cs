@@ -148,3 +148,11 @@ public sealed record CookieBudgetItem(decimal Limit, decimal Spent);
 
 /// <summary>A prompt as the model receives it, with what code fills in at the time of the call shown in brackets.</summary>
 public sealed record CookiePromptPreview(string Key, string Text);
+
+/// <summary>A message of the reader's chat with Cookie (§10.2), placeholders restored.</summary>
+public sealed record CookieMessageItem(long Id, DateTime At, string From, string Text, bool Answered);
+
+/// <summary>The reader's thread: the newest messages, whether one waits for a reply, and Cookie's state.</summary>
+public sealed record CookieThread(IReadOnlyList<CookieMessageItem> Messages, bool Waiting, CookieState State);
+
+public sealed record CookieMessageRequest(string Text);

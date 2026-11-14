@@ -19,6 +19,19 @@ public sealed class CookieController(CookieService cookie) : V1ControllerBase
     [HttpGet("status")]
     public async Task<CookieStatusItem> Status(CancellationToken ct) => await cookie.StatusAsync(User, ct);
 
+    /// <summary>The reader's personal summary (§8): written when asked, kept for 15 minutes.</summary>
+    [HttpGet("summary")]
+    public async Task<CookieSummaryItem> Summary(CancellationToken ct) => await cookie.SummaryAsync(User, ct);
+
+    [HttpGet("messages")]
+    [RequireRight(Area.Cookie, Level.Use)]
+    public async Task<CookieThread> Messages([FromQuery] long? afterId, CancellationToken ct) => await cookie.MessagesAsync(User, afterId, ct);
+
+    [HttpPost("messages")]
+    [RequireRight(Area.Cookie, Level.Use)]
+    [NotAudited("a chat message, kept in the person's thread with Cookie")]
+    public async Task<CookieMessageItem> Post(CookieMessageRequest request, CancellationToken ct) => await cookie.PostMessageAsync(request, User, ct);
+
     [HttpGet("cases")]
     [RequireRight(Area.Cookie, Level.Use)]
     public async Task<Paged<CookieCaseItem>> Cases([FromQuery] CookieCaseQuery query, CancellationToken ct) => await cookie.CasesAsync(query, User, ct);

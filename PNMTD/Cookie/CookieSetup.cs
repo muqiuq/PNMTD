@@ -54,6 +54,7 @@ public static class CookieSetup
         services.AddSingleton<PrivacyFilter>();
         services.AddSingleton<CookieRound>();
         services.AddSingleton<CookieLoop>();
+        services.AddSingleton<Summaries>();
         services.AddScoped<CookieService>();
         return services;
     }

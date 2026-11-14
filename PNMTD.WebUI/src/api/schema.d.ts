@@ -2510,6 +2510,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cookie/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSummaryItem"];
+                        "text/json": components["schemas"]["CookieSummaryItem"];
+                        "text/plain": components["schemas"]["CookieSummaryItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    afterId?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieThread"];
+                        "text/json": components["schemas"]["CookieThread"];
+                        "text/plain": components["schemas"]["CookieThread"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CookieMessageRequest"];
+                    "text/json": components["schemas"]["CookieMessageRequest"];
+                    "application/*+json": components["schemas"]["CookieMessageRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieMessageItem"];
+                        "text/json": components["schemas"]["CookieMessageItem"];
+                        "text/plain": components["schemas"]["CookieMessageItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cookie/cases": {
         parameters: {
             query?: never;
@@ -14087,6 +14190,18 @@ export interface components {
             actor: string;
             actorName: null | string;
         };
+        CookieMessageItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            at: string;
+            from: string;
+            text: string;
+            answered: boolean;
+        };
+        CookieMessageRequest: {
+            text: string;
+        };
         CookieOutboxItem: {
             /** Format: int64 */
             id: number;
@@ -14187,6 +14302,23 @@ export interface components {
         CookieStatusItem: {
             overall: components["schemas"]["OverallStateItem"];
             cookie: components["schemas"]["CookieStateItem"];
+        };
+        CookieSummaryItem: {
+            lines: components["schemas"]["CookieSummaryLine"][];
+            source: string;
+            /** Format: date-time */
+            at: string;
+        };
+        CookieSummaryLine: {
+            text: string;
+            /** Format: uuid */
+            caseId: null | string;
+            needsYou: boolean;
+        };
+        CookieThread: {
+            messages: components["schemas"]["CookieMessageItem"][];
+            waiting: boolean;
+            state: components["schemas"]["CookieState"];
         };
         CookieTicketClock: {
             /** Format: int32 */
