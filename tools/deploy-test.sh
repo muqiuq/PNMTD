@@ -132,8 +132,10 @@ printf 'before the backup\n' >"$dir/before.txt"
 before_url="$(cat "$dir/url")"
 [[ "$(api GET "$before_url")" == "200" && "$(cat "$dir/body")" == "before the backup" ]] || fail "the upload read back: $(cat "$dir/body")"
 [[ "$(owner_of before.txt)" == "1654" ]] || fail "the uploaded file belongs to uid $(owner_of before.txt), not the app's 1654"
-./info.sh | grep -q '^  Files:      ./files' || fail "info.sh shows no files folder: $(./info.sh)"
-! ./info.sh | grep -q 'cannot write the files folder' || fail "info.sh: $(./info.sh)"
+# Read whole first: grep -q would stop reading early, and pipefail would take info.sh's SIGPIPE for a failure.
+info="$(./info.sh)"
+grep -q '^  Files:      ./files' <<<"$info" || fail "info.sh shows no files folder: ${info}"
+! grep -q 'cannot write the files folder' <<<"$info" || fail "info.sh: ${info}"
 
 ./backup.sh --quiet --keep 3 || fail "backup.sh"
 folder="$(ls -1d backups/pnmtd-* | tail -1)"
