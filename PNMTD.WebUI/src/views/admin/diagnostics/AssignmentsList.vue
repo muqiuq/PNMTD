@@ -30,7 +30,7 @@ const table = useServerTable<S['DiagnosticAssignmentItem']>({
 const assigning = ref(false)
 const runId = ref<string | null>(null)
 const { run, ask, done } = useActions()
-const invalidate = [keys.diagnostics, keys.windows, keys.sensors]
+const invalidate = [keys.diagnostics, keys.agents, keys.sensors]
 async function runNow(a: S['DiagnosticAssignmentItem']) {
   const started = await run(() => api.diagnostics.run(a.id), {
     success: 'Running: the result arrives in seconds',

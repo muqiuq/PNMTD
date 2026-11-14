@@ -4,30 +4,34 @@ using PNMTD.Models.Db;
 
 namespace PNMTD.Api.V1.Contracts;
 
-// PowerShell scripts (docs/windows-sensor-plan.md §7, W6). Admin only.
+// Scripts (docs/windows-sensor-plan.md §7, W6; docs/linux-sensor-plan.md §8): the library and the runs are every platform's
+// (/api/v1/agents/), PowerShell until bash comes with L7; the run-as accounts and the scripts registered on a server are
+// Windows' (/api/v1/windows/). Admin only.
 
-public sealed record WindowsScriptRequest(string Name, string? Description, string Text);
+public sealed record AgentScriptRequest(string Name, string? Description, string Text);
 
-public sealed record WindowsScriptItem(Guid Id, string Name, string? Description, int CurrentVersion, ScriptParseState ParseState, int Parameters, int Findings,
-    DateTime UpdatedAt);
+public sealed record AgentScriptItem(Guid Id, string Name, string? Description, ScriptLanguage Language, int CurrentVersion, ScriptParseState ParseState,
+    int Parameters, int Findings, DateTime UpdatedAt);
 
-public sealed record WindowsScriptVersionItem(Guid Id, int Number, string Hash, DateTime CreatedAt, string? CreatedByName, ScriptParseState ParseState,
+public sealed record AgentScriptVersionItem(Guid Id, int Number, string Hash, DateTime CreatedAt, string? CreatedByName, ScriptParseState ParseState,
     DateTime? ParsedAt, string? ParsedOn, string? ParseError);
 
 /// <summary>A script with its current version's text and what the parser found, and its versions.</summary>
-public sealed record WindowsScriptDetail(
+public sealed record AgentScriptDetail(
     Guid Id,
     string Name,
     string? Description,
+    ScriptLanguage Language,
     int CurrentVersion,
     string Text,
     string Hash,
     ScriptParseState ParseState,
     ParsedScript? Parsed,
     string? ParseError,
-    IReadOnlyList<WindowsScriptVersionItem> Versions,
+    IReadOnlyList<AgentScriptVersionItem> Versions,
     bool ParserAvailable);
 
+/// <summary>A Windows run-as account (§7.4).</summary>
 public sealed record WindowsRunAsRequest(string Name, RunAsKind Kind, string? Account, string? Description);
 
 public sealed record WindowsRunAsItem(Guid Id, string Name, RunAsKind Kind, string? Account, string? Description, DateTime CreatedAt);
@@ -36,7 +40,7 @@ public sealed record WindowsRunAsItem(Guid Id, string Name, RunAsKind Kind, stri
 /// Run a script (§7.3) on servers, as a run-as account. <see cref="SecureArguments"/> (the [securestring] parameters) and
 /// <see cref="Password"/> (for an account whose password is typed per run) are encrypted to each agent and never stored.
 /// </summary>
-public sealed record WindowsScriptRunRequest(
+public sealed record AgentScriptRunRequest(
     IReadOnlyList<Guid> SensorIds,
     Guid RunAsId,
     IReadOnlyDictionary<string, JsonElement>? Arguments,
@@ -61,7 +65,7 @@ public sealed record WindowsLocalScriptRunRequest(
     int? TimeoutSeconds,
     string? Shell);
 
-public sealed record WindowsScriptRunItem(
+public sealed record AgentScriptRunItem(
     Guid Id,
     Guid BatchId,
     Guid? ScriptId,
@@ -81,9 +85,9 @@ public sealed record WindowsScriptRunItem(
     double? DurationMs,
     bool Redacted);
 
-public sealed record WindowsScriptRunDetail(WindowsScriptRunItem Run, string? Arguments, string? Output, string Hash, int TimeoutSeconds);
+public sealed record AgentScriptRunDetail(AgentScriptRunItem Run, string? Arguments, string? Output, string Hash, int TimeoutSeconds);
 
-public sealed class WindowsScriptRunQuery : PageQuery
+public sealed class AgentScriptRunQuery : PageQuery
 {
     public Guid? ScriptId { get; set; }
 

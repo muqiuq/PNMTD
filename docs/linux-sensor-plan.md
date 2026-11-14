@@ -1427,6 +1427,61 @@ None.
 
 ---
 
+## 17. As built
+
+The phases as they were built, with what differs from the plan above.
+
+### L1: the server side generalised
+
+- **The migration `GeneraliseAgents` renames**, so a development database keeps its servers, logins and scripts:
+  - the ten tables of §3.3 (`windows_agents` → `agents`, …), and `MachineGuid` → `MachineId`;
+  - their primary keys, foreign keys and indexes (`PK_agents`, `FK_agents_sensors_SensorId`, `IX_agents_MachineId`), and **PostgreSQL 18's named NOT NULL constraints**, which a table's rename keeps (`windows_agents_Hostname_not_null` → `agents_Hostname_not_null`);
+  - **new columns:** `agents.Platform`, `agent_join_tokens.Platform`, `agent_scripts.Language`, 0 for existing rows (Windows, PowerShell);
+  - the shared audit events already in `auth_log` are renamed too (`WindowsJoined` → `AgentJoined`, …);
+  - **its Down restores package two's names.** Both directions were run on a database with rows in it, and `has-pending-model-changes` finds none.
+- **The entities** are in `Models/Db/AgentEntities.cs`: `AgentSettingsEntity`, `AgentJoinTokenEntity`, `AgentEntity`, `AgentSectionEntity`, `AgentLoginEntity`, `AgentChangeEntity`, `AgentLogEntity` (with `AgentLogKind`), `AgentScriptEntity`, `AgentScriptVersionEntity`, `AgentScriptRunEntity`. `WindowsRunAsEntity` stays in `WindowsEntities.cs`.
+- **`PNMTD/Agents/`** has what moved from `PNMTD/Windows/`:
+  - `AgentReportService`, `AgentAccessService`, `AgentChanges` (store, dispatch, codes), `AgentSections`, `AgentLog`, `AgentMaintenanceTask`, `AgentOptions`, `AgentDownloads`, `AgentConfiguration`, `AgentScriptResults`, and `AgentSetup` (`AddAgents`);
+  - `PNMTD/Windows/` keeps **`WindowsDiffers`**, unchanged, and `WindowsWmi`, the WMI settings;
+  - PNMTD's signing key keeps its Data Protection purpose (`PNMTD.Windows.AgentSigning.v1`), so it stays readable.
+- **Codes per platform: `AgentPlatformInfo`**, a small record per platform:
+  - the sensor type a join creates and its default name;
+  - the codes, 250–254 and 451–454 for Windows, 260–264 and 461–464 for Linux;
+  - the events' source (`windows-agent`, `linux-agent`), the kinds of login that page, and the heartbeat's message ("web-01: Debian GNU/Linux 12 (bookworm), kernel 6.1.0-28-amd64, agent 1.3.0").
+  - The report, access and change services and the diagnostics results take their codes from it. A connection knows its row's platform.
+  - **Linux has no differs yet:** its sections are stored and not compared (L4).
+- **The join:** a token is made for a platform, and the join's must match it. Otherwise **`wrong_platform`** (403): "This token was made for a Linux server; this agent runs on Windows. Create a token for Windows in PNMT: Add server."
+  - The refusal doesn't use the token up. It counts towards the lockout and is audited, as any failed join.
+  - A Linux token creates a **`LINUX` sensor** (interval 60, grace 120), "Linux" when the token has no name. A re-join token is of the server's own platform.
+  - **The row's platform is the token's.** A hello that names another is noted in the agent log as a warning, and changes nothing.
+- **API:** the shared endpoints are under **`/api/v1/agents/`** (`AgentControllers.cs`: `AgentServersController`, `AgentsController`, `AgentScriptsController`), with their policies as before.
+  - `GET /api/v1/windows/agent` became **`GET /api/v1/agents/downloads`**, as in §10.
+  - `GET …/servers?platform=` filters; the fleet's items and the tokens carry their platform; `POST …/join-tokens` takes `platform` (Windows when missing).
+  - `WindowsControllers.cs` keeps the sections, WMI and registered scripts under `/api/v1/windows/servers/{id}/`, and `/api/v1/windows/run-as…`. **They answer for Windows servers only**: a Linux server's are 404.
+  - The contracts are `Agent*` (`AgentServerItem`, `AgentServerDetail` with `MachineId`, `AgentJoinTokenRequest`, `AgentLoginItem`, `AgentScriptItem` with `Language`, …). `WindowsSectionView`, `WindowsWmiView`, `WindowsRunAs*` and `WindowsLocalScript*` stay.
+- **Scripts stay PowerShell until L7:** a new script's language is PowerShell, only Windows agents parse, and a run is for Windows servers only.
+- **Settings:** `Agents__*`, the same meanings and defaults. `deploy/.env.example` and `deploy/README.md` (*Servers with an agent*; the proxy notes say "agents") are updated. No start script set a `Windows__*` value.
+- **AuthEvents:** `AgentJoinTokenCreated`, `AgentJoinTokenRevoked`, `AgentJoined`, `AgentJoinFailed`, `AgentRevoked`, `AgentSettingsChanged` (the switches), `AgentScriptChanged`, `AgentScriptRun`. **`WindowsSettingsChanged` stays, for WMI.**
+- **The command line:** `pnmtd agent tokens` and `pnmtd agent simulate [--platform windows|linux]`; Linux answers *not yet*. `Cli/AgentCommand.cs`, `Cli/AgentSimulator.cs` (still a Windows agent), `Cli/DevSeedAgents.cs`.
+- **Sensors:**
+  - `HeartbeatCheckTask` treats `LINUX` like `WINDOWS`: revoked and uninstalled agents get no 460;
+  - `SystemService` describes `LINUX` and its codes, and `DIAGNOSTICS` as "assigned to a server's agent";
+  - the sensor form refuses `LINUX` and points to *Add server*; deleting a `LINUX` sensor deletes its assignments' sensors and closes its connection;
+  - **diagnostics can be assigned to an agent of either platform**, by the check types it announced.
+- **Web UI:**
+  - ***Admin → Servers*** (`/admin/servers/:tab(…)`, `views/admin/servers/`, *Servers* in the navigation), with a platform column and filter. *Join tokens* shows each token's platform.
+  - ***Add server*** asks the platform first (a toggle, Windows preselected), from the admin page and from a host's menu (*Add server…*). **A Linux token** shows the token, PNMT's URL and key, and a note that the install line comes with the Linux agent's release. *Download* says the same.
+  - **`views/sensors/agent/`:** `SectionBar`, `AgentStatusStrip`, `AgentHardwareTab`, `AgentNetworkTab`, `AgentLoginsList`, `AgentDiagnosticsTab`, `AgentChangesTab`, `AgentScriptsTab`, `AgentTab`, `useAgentServer`, `useAgentSection`. They name the platform's codes.
+  - `views/sensors/windows/` keeps the overview and its system panel, *Services*, *Remote access*, *Access* (the sessions and the audit policy, with the shared logins list), *Event log*, *WMI*, and `WindowsLocalScripts`.
+  - **A `LINUX` sensor's page** has *Events*, *Hardware*, *Network*, *Access*, *Diagnostics*, *Changes* and *Agent*. Its sections are *not reported yet* until Linux's typed sections come (L3).
+  - **Found on the way:** the sensor route lacked `wmi`, so package two's *WMI* tab opened by a click but found no page on a reload or a direct link. It is in the route now.
+- **Tests:** `PNMTD.Tests/Agents/` (`AgentTests`, `AgentHarness`) has the shared ones; `PNMTD.Tests/Windows/` the sections, WMI, differs and scripts.
+  - **New:** a Linux token makes a `LINUX` sensor whose heartbeat writes 260; a token of the other platform is refused, stays usable, and its re-join token keeps the platform.
+  - The tests that took `SectionNames.All` for Windows' sections take `SectionNames.Windows`. The three tests that failed after `d6a8c27` (Linux's section names, and `SensorType.LINUX` without a description) pass again.
+  - **Results:** PNMTD.Tests 492 tests, 488 passed and 4 skipped (as before), in Europe/Zurich and America/New_York; the web checks green; the browser tests 25 passed, `e2e/windows.spec.ts`'s three among them (now with a Linux token too).
+
+---
+
 ## Appendix: configuration and file changes
 
 | Area | New | Changed |

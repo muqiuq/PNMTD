@@ -43,10 +43,10 @@ public static class DomainServicesSetup
         services.AddScoped<MikrotikCommandService>();
         services.AddScoped<WireGuardService>();
         services.AddScoped<WireGuardTunnelService>();
-        // Windows servers (docs/windows-sensor-plan.md §9.2).
-        services.AddScoped<WindowsServerService>();
+        // Servers with an agent, Windows and Linux (docs/windows-sensor-plan.md §9.2; docs/linux-sensor-plan.md §10).
+        services.AddScoped<AgentServerService>();
         services.AddScoped<DiagnosticsSetService>();
-        services.AddScoped<WindowsScriptService>();
+        services.AddScoped<AgentScriptService>();
         return services;
     }
 }

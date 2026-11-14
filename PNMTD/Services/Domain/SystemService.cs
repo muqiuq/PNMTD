@@ -109,6 +109,10 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.WINDOWS_RESTARTED, "WINDOWS_RESTARTED", true, "A Windows server restarted (its boot time moved); the message gives the last shutdown's reason."),
         new(PNMTStatusCodes.WINDOWS_CHANGED, "WINDOWS_CHANGED", true, "Something notable changed on a Windows server: services, remote access, local administrators, addresses, the OS build, disks, the audit policy."),
         new(PNMTStatusCodes.WINDOWS_ADMIN_LOGIN, "WINDOWS_ADMIN_LOGIN", true, "An admin logged in to a Windows server by console, RDP, SSH or WinRM (optional, on by default)."),
+        new(PNMTStatusCodes.LINUX_OK, "LINUX_OK", true, "A Linux server's heartbeat: the agent is connected and its clock is right. The message names the server, its distribution, its kernel and the agent."),
+        new(PNMTStatusCodes.LINUX_RESTARTED, "LINUX_RESTARTED", true, "A Linux server restarted (its boot time moved); the message says whether the last shutdown was clean."),
+        new(PNMTStatusCodes.LINUX_CHANGED, "LINUX_CHANGED", true, "Something notable changed on a Linux server: services, remote access, administrators, addresses, the kernel, disks, SSH keys."),
+        new(PNMTStatusCodes.LINUX_ADMIN_LOGIN, "LINUX_ADMIN_LOGIN", true, "An admin (root included) logged in to a Linux server over SSH or at the console (optional, on by default)."),
         new(PNMTStatusCodes.DIAGNOSTICS_OK, "DIAGNOSTICS_OK", true, "Every check of a diagnostics set passed."),
         new(PNMTStatusCodes.DNS_FAILED, "DNS_FAILED", false, "At least one record of the DNS zone differs from what the resolvers answer."),
         new(PNMTStatusCodes.HEARTBEAT_MISSING, "HEARTBEAT_MISSING", false, "No report within the interval and the grace period."),
@@ -131,6 +135,11 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.WINDOWS_AGENT_PROBLEM, "WINDOWS_AGENT_PROBLEM", false, "A Windows server's agent has a problem: its clock is off, it reported failures in three heartbeats in a row, or its key or protocol is wrong."),
         new(PNMTStatusCodes.WINDOWS_CRITICAL_EVENT, "WINDOWS_CRITICAL_EVENT", false, "A new Critical entry in a Windows server's System or Application log (optional, off by default)."),
         new(PNMTStatusCodes.WINDOWS_LOGIN_FAILURES, "WINDOWS_LOGIN_FAILURES", false, "A burst of failed logins on a Windows server from one source or for one user, or an account locked out (optional, on by default)."),
+        new(PNMTStatusCodes.LINUX_AGENT_PROBLEM, "LINUX_AGENT_PROBLEM", false, "A Linux server's agent has a problem: its clock is off, it reported failures in three heartbeats in a row, its config.yaml is unsafe, or its key or protocol is wrong."),
+        new(PNMTStatusCodes.LINUX_SECURITY_UPDATES, "LINUX_SECURITY_UPDATES", false, "Security updates have been pending on a Linux server for longer than its days (optional, off by default)."),
+        new(PNMTStatusCodes.LINUX_CRITICAL_ENTRY, "LINUX_CRITICAL_ENTRY", false, "A new entry at emerg, alert or crit in a Linux server's journal (optional, off by default)."),
+        new(PNMTStatusCodes.LINUX_LOGIN_FAILURES, "LINUX_LOGIN_FAILURES", false, "A burst of failed logins against existing accounts on a Linux server from one source or for one user, or a lockout; invalid users never (optional, on by default)."),
+        new(PNMTStatusCodes.LINUX_KEY_ADDED, "LINUX_KEY_ADDED", false, "An SSH key that isn't registered as active appeared in an authorized_keys file on a Linux server (optional, on by default)."),
         new(PNMTStatusCodes.DIAGNOSTICS_FAILED, "DIAGNOSTICS_FAILED", false, "At least one check of a diagnostics set failed; the message names them."),
         new(PNMTStatusCodes.ERROR, "ERROR", false, "The default failure code. Any code above 399 counts as a failure."),
     ];
@@ -150,7 +159,8 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(SensorType.SYSTEM, "One of PNMT's own conditions, written by PNMT: the uplink (220, 420), the AI (220, 421), the AI budget (220, 425–427), the AI analysis (220, 221, 423, 424), the RouterOS advisories (220, 422).", null, false, false),
         new(SensorType.MIKROTIK, "A MikroTik router (RouterOS 7.13 or later) that PNMTD polls every Interval seconds over SSH, as the read-only user pnmt: 240 when it answers, 241 after a restart, 242 after an update, 244 when an update is available; 440 when unreachable for longer than the GracePeriod, 441 when access is refused.", null, true, true),
         new(SensorType.WINDOWS, "A Windows server or PC running the PNMT sensor service, added with a join token (Add server): 250 with each heartbeat, 251 after a restart, 253 for a notable change, 254 for an admin login; 451 for an agent problem, 453 for a new Critical entry, 454 for failed-login bursts; 460 after Interval + GracePeriod without a heartbeat.", null, false, true),
-        new(SensorType.DIAGNOSTICS, "A diagnostics set assigned to a Windows server, created by the assignment: 252 when every check passed, 452 when one failed; scheduled ones get 460 without a result within their interval and 2 minutes.", null, false, true),
+        new(SensorType.DIAGNOSTICS, "A diagnostics set assigned to a server's agent, created by the assignment: 252 when every check passed, 452 when one failed; scheduled ones get 460 without a result within their interval and 2 minutes.", null, false, true),
+        new(SensorType.LINUX, "A Linux server running the PNMT agent, added with a join token (Add server): 260 with each heartbeat, 261 after a restart, 263 for a notable change, 264 for an admin login; 461 for an agent problem, 462 for pending security updates, 463 for a new critical journal entry, 464 for failed-login bursts, 465 for an unregistered SSH key; 460 after Interval + GracePeriod without a heartbeat.", null, false, true),
     ];
 
     public static IReadOnlyList<NotificationRuleTypeInfo> NotificationRuleTypes() =>

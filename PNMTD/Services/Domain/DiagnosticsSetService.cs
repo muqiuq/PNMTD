@@ -10,7 +10,6 @@ using PNMTD.Lib.Agent;
 using PNMTD.Lib.Helper;
 using PNMTD.Lib.Models.Enum;
 using PNMTD.Models.Db;
-using PNMTD.Windows;
 
 namespace PNMTD.Services.Domain;
 
@@ -189,9 +188,10 @@ public sealed class DiagnosticsSetService(PnmtdDbContext db, MonitoringReader re
             .Check(Enum.IsDefined(request.Mode), "mode", "Scheduled or Manual.")
             .Check(request.Mode == DiagnosticMode.Manual || request.IntervalMinutes is >= DiagnosticsRules.MinIntervalMinutes and <= DiagnosticsRules.MaxIntervalMinutes,
                 "intervalMinutes", $"Between {DiagnosticsRules.MinIntervalMinutes} and {DiagnosticsRules.MaxIntervalMinutes} minutes.");
-        var servers = await db.WindowsAgents.AsNoTracking().Where(a => targets.Contains(a.SensorId))
+        // Any server with an agent, of either platform (docs/linux-sensor-plan.md §7): the check types decide below.
+        var servers = await db.Agents.AsNoTracking().Where(a => targets.Contains(a.SensorId))
             .Select(a => new { a.SensorId, a.Capabilities, HostId = a.Sensor.ParentId, Name = a.Sensor.Parent.Name + " / " + a.Sensor.Name }).ToListAsync(ct);
-        v.Check(servers.Count == targets.Count, "targetSensorIds", "Every target must be a Windows server.");
+        v.Check(servers.Count == targets.Count, "targetSensorIds", "Every target must be a server with an agent.");
         var existing = await db.DiagnosticAssignments.Where(a => a.SetId == request.SetId && targets.Contains(a.TargetSensorId)).Select(a => a.TargetSensorId).ToListAsync(ct);
         v.Check(existing.Count == 0, "targetSensorIds", "The set is already assigned to " + string.Join(", ", servers.Where(s => existing.Contains(s.SensorId)).Select(s => s.Name)) + ".");
         if (set is not null)

@@ -21,10 +21,10 @@ import { useActions } from '@/composables/useActions'
  * Saved settings go to the agent with its configuration; what a local administrator switched off in the agent's window wins.
  * Admin.
  */
-const props = defineProps<{ server: S['WindowsServerDetail'] }>()
+const props = defineProps<{ server: S['AgentServerDetail'] }>()
 const id = computed(() => props.server.server.sensorId)
 const wmi = useQuery({
-  queryKey: computed(() => [...keys.windowsServer(id.value), 'wmi']),
+  queryKey: computed(() => [...keys.agentServer(id.value), 'wmi']),
   queryFn: () => api.windows.wmi(id.value),
   refetchInterval: 30_000,
 })
@@ -98,18 +98,18 @@ async function save() {
     .map(([queryId, s]) => ({ id: queryId, enabled: s.enabled, timeoutSeconds: s.timeoutSeconds }))
   const v = await run(() => api.windows.saveWmi(id.value, { overrides, custom: custom.value }), {
     success: 'Saved: the agent gets it with its configuration',
-    invalidate: [keys.windowsServer(id.value)],
+    invalidate: [keys.agentServer(id.value)],
   })
   if (v) load(v)
 }
 const collect = () =>
   run(
     async () => {
-      const r = await api.windows.collect(id.value, ['wmi'])
+      const r = await api.agents.collect(id.value, ['wmi'])
       if (!r.ok) throw new Error(r.error ?? 'The agent refused.')
       return r
     },
-    { success: 'Collected', invalidate: [keys.windowsServer(id.value)] },
+    { success: 'Collected', invalidate: [keys.agentServer(id.value)] },
   )
 
 // An own query, added or changed in a dialog; saved with the rest.

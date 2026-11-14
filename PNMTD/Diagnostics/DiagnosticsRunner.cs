@@ -7,7 +7,6 @@ using PNMTD.Lib.Helper;
 using PNMTD.Lib.Models;
 using PNMTD.Models.Db;
 using PNMTD.Services.Events;
-using PNMTD.Windows;
 
 namespace PNMTD.Diagnostics;
 
@@ -58,7 +57,7 @@ public sealed class DiagnosticsRunner(IDbContextFactory<PnmtdDbContext> dbs, ILo
             if (sensor is { Enabled: true, Parent.Enabled: true })
             {
                 await SensorEventWriter.WriteAsync(db, sensor.Id, ok ? PNMTStatusCodes.DIAGNOSTICS_OK : PNMTStatusCodes.DIAGNOSTICS_FAILED, run.Summary,
-                    WindowsReportService.EventSource, ct);
+                    AgentPlatformInfo.Of(connection.Platform).EventSource, ct);
             }
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);

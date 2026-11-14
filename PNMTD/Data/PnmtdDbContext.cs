@@ -86,14 +86,14 @@ namespace PNMTD.Data
         public DbSet<AiAnalysisRunEntity> AiAnalysisRuns { get; set; }
         public DbSet<AiFindingEntity> AiFindings { get; set; }
 
-        // Windows servers and their agents (docs/windows-sensor-plan.md §8.3).
-        public DbSet<WindowsSettingsEntity> WindowsSettings { get; set; }
-        public DbSet<WindowsJoinTokenEntity> WindowsJoinTokens { get; set; }
-        public DbSet<WindowsAgentEntity> WindowsAgents { get; set; }
-        public DbSet<WindowsAgentLogEntity> WindowsAgentLog { get; set; }
-        public DbSet<WindowsSectionEntity> WindowsSections { get; set; }
-        public DbSet<WindowsLoginEntity> WindowsLogins { get; set; }
-        public DbSet<WindowsChangeEntity> WindowsChanges { get; set; }
+        // Servers with an agent, Windows and Linux (docs/windows-sensor-plan.md §8.3; docs/linux-sensor-plan.md §3.3, §9.3).
+        public DbSet<AgentSettingsEntity> AgentSettings { get; set; }
+        public DbSet<AgentJoinTokenEntity> AgentJoinTokens { get; set; }
+        public DbSet<AgentEntity> Agents { get; set; }
+        public DbSet<AgentLogEntity> AgentLog { get; set; }
+        public DbSet<AgentSectionEntity> AgentSections { get; set; }
+        public DbSet<AgentLoginEntity> AgentLogins { get; set; }
+        public DbSet<AgentChangeEntity> AgentChanges { get; set; }
 
         // Diagnostics (docs/windows-sensor-plan.md §5).
         public DbSet<DiagnosticSetEntity> DiagnosticSets { get; set; }
@@ -101,11 +101,11 @@ namespace PNMTD.Data
         public DbSet<DiagnosticAssignmentEntity> DiagnosticAssignments { get; set; }
         public DbSet<DiagnosticRunEntity> DiagnosticRuns { get; set; }
 
-        // PowerShell scripts (docs/windows-sensor-plan.md §7, W6).
-        public DbSet<WindowsScriptEntity> WindowsScripts { get; set; }
-        public DbSet<WindowsScriptVersionEntity> WindowsScriptVersions { get; set; }
+        // Scripts (docs/windows-sensor-plan.md §7, W6; docs/linux-sensor-plan.md §8); the run-as accounts are Windows'.
+        public DbSet<AgentScriptEntity> AgentScripts { get; set; }
+        public DbSet<AgentScriptVersionEntity> AgentScriptVersions { get; set; }
         public DbSet<WindowsRunAsEntity> WindowsRunAs { get; set; }
-        public DbSet<WindowsScriptRunEntity> WindowsScriptRuns { get; set; }
+        public DbSet<AgentScriptRunEntity> AgentScriptRuns { get; set; }
 
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
@@ -268,33 +268,33 @@ namespace PNMTD.Data
                 e.HasIndex(f => f.DedupeKey);
             });
 
-            // Windows servers (docs/windows-sensor-plan.md §8.3): the agent goes with its sensor, its log stays.
-            modelBuilder.Entity<WindowsJoinTokenEntity>(e =>
+            // Servers with an agent (docs/windows-sensor-plan.md §8.3): the agent goes with its sensor, its log stays.
+            modelBuilder.Entity<AgentJoinTokenEntity>(e =>
             {
                 e.HasIndex(t => t.TokenHash).IsUnique();
                 e.HasIndex(t => t.CreatedAt);
                 e.HasOne<HostEntity>().WithMany().HasForeignKey(t => t.HostId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(t => t.SensorId).OnDelete(DeleteBehavior.Cascade);
             });
-            modelBuilder.Entity<WindowsAgentEntity>(e =>
+            modelBuilder.Entity<AgentEntity>(e =>
             {
-                e.HasOne(a => a.Sensor).WithOne().HasForeignKey<WindowsAgentEntity>(a => a.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(a => a.Sensor).WithOne().HasForeignKey<AgentEntity>(a => a.SensorId).OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(a => a.AgentId).IsUnique();
-                e.HasIndex(a => a.MachineGuid);
+                e.HasIndex(a => a.MachineId);
             });
-            modelBuilder.Entity<WindowsSectionEntity>(e =>
+            modelBuilder.Entity<AgentSectionEntity>(e =>
             {
                 e.HasKey(x => new { x.SensorId, x.Section });
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(x => x.SensorId).OnDelete(DeleteBehavior.Cascade);
             });
-            modelBuilder.Entity<WindowsLoginEntity>(e =>
+            modelBuilder.Entity<AgentLoginEntity>(e =>
             {
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(l => l.SensorId).OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(l => new { l.SensorId, l.Channel, l.RecordId }).IsUnique();
                 e.HasIndex(l => new { l.SensorId, l.At });
                 e.HasIndex(l => l.At);
             });
-            modelBuilder.Entity<WindowsChangeEntity>(e =>
+            modelBuilder.Entity<AgentChangeEntity>(e =>
             {
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(c => c.SensorId).OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(c => new { c.SensorId, c.At });
@@ -319,27 +319,27 @@ namespace PNMTD.Data
                 e.HasIndex(r => new { r.AssignmentId, r.StartedAt });
                 e.HasIndex(r => r.StartedAt);
             });
-            modelBuilder.Entity<WindowsScriptEntity>(e =>
+            modelBuilder.Entity<AgentScriptEntity>(e =>
             {
                 e.HasIndex(x => x.Name).IsUnique();
                 e.HasMany(x => x.Versions).WithOne().HasForeignKey(v => v.ScriptId).OnDelete(DeleteBehavior.Cascade);
             });
-            modelBuilder.Entity<WindowsScriptVersionEntity>(e =>
+            modelBuilder.Entity<AgentScriptVersionEntity>(e =>
             {
                 e.HasIndex(v => new { v.ScriptId, v.Number }).IsUnique();
                 e.HasIndex(v => new { v.ParseState, v.Hash });
             });
             modelBuilder.Entity<WindowsRunAsEntity>().HasIndex(x => x.Name).IsUnique();
-            modelBuilder.Entity<WindowsScriptRunEntity>(e =>
+            modelBuilder.Entity<AgentScriptRunEntity>(e =>
             {
                 // The history outlives its script and its server.
-                e.HasOne<WindowsScriptEntity>().WithMany().HasForeignKey(r => r.ScriptId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<AgentScriptEntity>().WithMany().HasForeignKey(r => r.ScriptId).OnDelete(DeleteBehavior.SetNull);
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(r => r.SensorId).OnDelete(DeleteBehavior.SetNull);
                 e.HasIndex(r => r.StartedAt);
                 e.HasIndex(r => new { r.SensorId, r.StartedAt });
                 e.HasIndex(r => r.BatchId);
             });
-            modelBuilder.Entity<WindowsAgentLogEntity>(e =>
+            modelBuilder.Entity<AgentLogEntity>(e =>
             {
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(l => l.SensorId).OnDelete(DeleteBehavior.SetNull);
                 e.HasIndex(l => new { l.SensorId, l.At });

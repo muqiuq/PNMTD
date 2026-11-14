@@ -23,7 +23,7 @@ import { useMedia } from '@/composables/useMedia'
 import { formatAbsolute, formatPercent } from '@/format'
 import { useSession } from '@/stores/session'
 import { importanceOptions } from '@/views/notifications/importance'
-import AddServerDialog from '@/views/admin/windows/AddServerDialog.vue'
+import AddServerDialog from '@/views/admin/servers/AddServerDialog.vue'
 
 /**
  * A host (§5.6): its state and 90 days, its properties edited in place, and every sensor with its
@@ -70,11 +70,12 @@ async function remove() {
   }
 }
 
-// A Windows server joins with a token (docs/windows-sensor-plan.md §3.3): Admin, with this host preselected.
+// A server, Windows or Linux, joins with a token (docs/windows-sensor-plan.md §3.3; docs/linux-sensor-plan.md §11.1): Admin,
+// with this host preselected.
 const addingServer = ref(false)
 const more = computed(() => [
   ...(session.can('Admin')
-    ? [{ label: 'Add Windows server…', icon: 'pi pi-microsoft', command: () => (addingServer.value = true) }]
+    ? [{ label: 'Add server…', icon: 'pi pi-desktop', command: () => (addingServer.value = true) }]
     : []),
   { label: 'Delete host…', icon: 'pi pi-trash', class: 'danger', command: remove },
 ])

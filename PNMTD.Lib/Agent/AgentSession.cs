@@ -5,7 +5,10 @@ using System.Text.Json;
 
 namespace PNMTD.Lib.Agent;
 
-/// <summary>Who an agent is, as its session needs it: the ids, its key, PNMTD's pinned key, and what it announces.</summary>
+/// <summary>
+/// Who an agent is, as its session needs it: the ids, its key, PNMTD's pinned key, and what it announces. The platform and the
+/// rights the server's own configuration grants (docs/linux-sensor-plan.md §3.4, §4.6) go into the hello as they are.
+/// </summary>
 public sealed record AgentIdentity(
     Guid AgentId,
     ECDsa AgentKey,
@@ -15,7 +18,9 @@ public sealed record AgentIdentity(
     string Architecture,
     AgentOs Os,
     IReadOnlyList<string> Capabilities,
-    string? EncryptionKey = null);
+    string? EncryptionKey = null,
+    AgentPlatform Platform = AgentPlatform.Windows,
+    AgentRightsSummary? Rights = null);
 
 /// <summary>What the agent does with what PNMTD sends. Each call is isolated by the session: an exception is logged and answered, never fatal.</summary>
 public interface IAgentSessionHandler
@@ -96,7 +101,7 @@ public sealed class AgentSession : IAsyncDisposable
         var hello = new Hello(identity.AgentId, identity.Version, identity.Architecture, identity.Os, AgentProtocol.Version,
             identity.Capabilities, now, identity.Origin,
             AgentSigning.SignHello(identity.AgentKey, identity.Origin, identity.AgentId, challenge.Nonce, now, identity.EncryptionKey),
-            restartedAfterCrash, identity.EncryptionKey);
+            restartedAfterCrash, identity.EncryptionKey, identity.Platform, identity.Rights);
         var gate = new SemaphoreSlim(1, 1);
         await AgentFrames.SendAsync(socket, AgentFrames.Envelope(AgentMessageTypes.Hello, hello), gate, timeout.Token, compress: false);
 

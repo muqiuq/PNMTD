@@ -4,7 +4,7 @@ import Tag from 'primevue/tag'
 import { computed } from 'vue'
 import type { S } from '@/api/resources'
 import RelativeTime from '@/components/RelativeTime.vue'
-import { logKindLabel, logKindSeverity } from '@/views/admin/windows/windowsFormat'
+import { logKindLabel, logKindSeverity } from '@/views/admin/servers/agentFormat'
 import WindowsOverviewExtras from './WindowsOverviewExtras.vue'
 import WindowsSessions from './WindowsSessions.vue'
 import WindowsSystemPanel from './WindowsSystemPanel.vue'
@@ -13,7 +13,7 @@ import WindowsSystemPanel from './WindowsSystemPanel.vue'
  * A server's overview (docs/windows-sensor-plan.md §10.2): who is logged on now, the agent's recent problems, and what
  * the later sections add (remote access, logins, diagnostics, changes).
  */
-const props = defineProps<{ server: S['WindowsServerDetail']; canWrite: boolean }>()
+const props = defineProps<{ server: S['AgentServerDetail']; canWrite: boolean }>()
 const sessions = computed(() => props.server.heartbeat?.sessions ?? [])
 </script>
 

@@ -7,16 +7,16 @@ import SelectButton from 'primevue/selectbutton'
 import Tag from 'primevue/tag'
 import { computed, ref, toRef } from 'vue'
 import type { S } from '@/api/resources'
-import SectionBar from './SectionBar.vue'
-import { useWindowsSection } from './useWindowsSection'
+import SectionBar from '../agent/SectionBar.vue'
+import { useAgentSection } from '../agent/useAgentSection'
 
 /**
  * A server's services (docs/windows-sensor-plan.md §4.5): the special ones first (third-party and unsigned), with a filter
  * for everything; automatic services that don't run are flagged.
  */
-const props = defineProps<{ server: S['WindowsServerDetail']; canWrite: boolean }>()
+const props = defineProps<{ server: S['AgentServerDetail']; canWrite: boolean }>()
 const id = toRef(() => props.server.server.sensorId)
-const section = useWindowsSection(id, 'services')
+const section = useAgentSection(id, 'services')
 type Show = 'special' | 'running' | 'all'
 const show = ref<Show>('special')
 const search = ref('')

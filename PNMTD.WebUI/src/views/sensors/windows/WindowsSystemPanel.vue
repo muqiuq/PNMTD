@@ -3,16 +3,16 @@ import Tag from 'primevue/tag'
 import { computed, toRef } from 'vue'
 import type { S } from '@/api/resources'
 import RelativeTime from '@/components/RelativeTime.vue'
-import SectionBar from './SectionBar.vue'
-import { useWindowsSection } from './useWindowsSection'
+import SectionBar from '../agent/SectionBar.vue'
+import { useAgentSection } from '../agent/useAgentSection'
 
 /**
  * The <c>system</c> section on the overview (docs/windows-sensor-plan.md §4.2): Windows, the domain, the last shutdown,
  * updates and a pending reboot, time, Defender, the firewall, BitLocker, Secure Boot, the local administrators.
  */
-const props = defineProps<{ server: S['WindowsServerDetail']; canWrite: boolean }>()
+const props = defineProps<{ server: S['AgentServerDetail']; canWrite: boolean }>()
 const id = toRef(() => props.server.server.sensorId)
-const section = useWindowsSection(id, 'system')
+const section = useAgentSection(id, 'system')
 const sys = computed(() => section.data.value?.system ?? null)
 const activation = computed(() => sys.value?.os.activation ?? null)
 /** "corp.example · Member server", "workgroup WORKGROUP · Standalone workstation", or what is known of it. */

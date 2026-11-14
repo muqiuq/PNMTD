@@ -6,13 +6,13 @@ import Tag from 'primevue/tag'
 import { computed, ref, toRef } from 'vue'
 import type { S } from '@/api/resources'
 import RelativeTime from '@/components/RelativeTime.vue'
-import SectionBar from './SectionBar.vue'
-import { useWindowsSection } from './useWindowsSection'
+import SectionBar from '../agent/SectionBar.vue'
+import { useAgentSection } from '../agent/useAgentSection'
 
 /** The event log (docs/windows-sensor-plan.md §4.8): the newest 100 of System and Application at Critical, Error or Warning. */
-const props = defineProps<{ server: S['WindowsServerDetail']; canWrite: boolean }>()
+const props = defineProps<{ server: S['AgentServerDetail']; canWrite: boolean }>()
 const id = toRef(() => props.server.server.sensorId)
-const section = useWindowsSection(id, 'event-log')
+const section = useAgentSection(id, 'event-log')
 const level = ref<'all' | 'Critical' | 'Error' | 'Warning'>('all')
 const log = ref<'all' | 'System' | 'Application'>('all')
 const entries = computed(() =>

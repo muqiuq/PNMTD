@@ -4,13 +4,13 @@ import DataTable from 'primevue/datatable'
 import Tag from 'primevue/tag'
 import { computed, toRef } from 'vue'
 import type { S } from '@/api/resources'
-import SectionBar from './SectionBar.vue'
-import { useWindowsSection } from './useWindowsSection'
+import SectionBar from '../agent/SectionBar.vue'
+import { useAgentSection } from '../agent/useAgentSection'
 
 /** Remote access (docs/windows-sensor-plan.md §4.6): each way in, whether it is active, listening, and let in by the firewall. */
-const props = defineProps<{ server: S['WindowsServerDetail']; canWrite: boolean }>()
+const props = defineProps<{ server: S['AgentServerDetail']; canWrite: boolean }>()
 const id = toRef(() => props.server.server.sensorId)
-const section = useWindowsSection(id, 'remote-access')
+const section = useAgentSection(id, 'remote-access')
 const remote = computed(() => section.data.value?.remoteAccess ?? null)
 const features = computed(() =>
   [...(remote.value?.features ?? [])].sort(

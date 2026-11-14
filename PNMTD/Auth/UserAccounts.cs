@@ -77,17 +77,19 @@ public static class AuthEvents
     public const string AiBackfillStarted = "AiBackfillStarted";
     public const string AiAnalysisStarted = "AiAnalysisStarted";
 
-    // Windows servers and diagnostics (docs/windows-sensor-plan.md §9.2).
-    public const string WindowsJoinTokenCreated = "WindowsJoinTokenCreated";
-    public const string WindowsJoinTokenRevoked = "WindowsJoinTokenRevoked";
-    public const string WindowsJoined = "WindowsJoined";
-    public const string WindowsJoinFailed = "WindowsJoinFailed";
-    public const string WindowsAgentRevoked = "WindowsAgentRevoked";
+    // Servers with an agent and diagnostics (docs/windows-sensor-plan.md §9.2): Agent* for every platform since L1 of
+    // docs/linux-sensor-plan.md (§3.3; they were Windows* before), Windows* for what is Windows' own (WMI).
+    public const string AgentJoinTokenCreated = "AgentJoinTokenCreated";
+    public const string AgentJoinTokenRevoked = "AgentJoinTokenRevoked";
+    public const string AgentJoined = "AgentJoined";
+    public const string AgentJoinFailed = "AgentJoinFailed";
+    public const string AgentRevoked = "AgentRevoked";
+    public const string AgentSettingsChanged = "AgentSettingsChanged";
     public const string WindowsSettingsChanged = "WindowsSettingsChanged";
     public const string DiagnosticsSetChanged = "DiagnosticsSetChanged";
     public const string DiagnosticsAssignmentChanged = "DiagnosticsAssignmentChanged";
-    public const string WindowsScriptChanged = "WindowsScriptChanged";
-    public const string WindowsScriptRun = "WindowsScriptRun";
+    public const string AgentScriptChanged = "AgentScriptChanged";
+    public const string AgentScriptRun = "AgentScriptRun";
 
     public static readonly string[] All =
     [
@@ -101,8 +103,8 @@ public static class AuthEvents
         WireGuardNetworkChanged, WireGuardKeysRegenerated,
         WireGuardTunnelCreated, WireGuardTunnelChanged, WireGuardTunnelDeleted, WireGuardTunnelDownloaded,
         DebugNotificationSent, DebugAiTested, AiWorkRetried, AiWorkCancelled, AiBackfillStarted, AiAnalysisStarted,
-        WindowsJoinTokenCreated, WindowsJoinTokenRevoked, WindowsJoined, WindowsJoinFailed, WindowsAgentRevoked, WindowsSettingsChanged,
-        DiagnosticsSetChanged, DiagnosticsAssignmentChanged, WindowsScriptChanged, WindowsScriptRun,
+        AgentJoinTokenCreated, AgentJoinTokenRevoked, AgentJoined, AgentJoinFailed, AgentRevoked, AgentSettingsChanged, WindowsSettingsChanged,
+        DiagnosticsSetChanged, DiagnosticsAssignmentChanged, AgentScriptChanged, AgentScriptRun,
     ];
 }
 

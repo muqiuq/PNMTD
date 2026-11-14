@@ -119,10 +119,11 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
     public async Task<SensorDetail> UpdateAsync(Guid id, SensorRequest request, bool withSecrets, CancellationToken ct)
     {
         var sensor = await db.Sensors.SingleOrDefaultAsync(s => s.Id == id, ct) ?? throw ApiException.NotFound("Sensor");
-        if (sensor.Type is SensorType.SYSTEM or SensorType.WINDOWS or SensorType.DIAGNOSTICS)
+        if (sensor.Type is SensorType.SYSTEM or SensorType.WINDOWS or SensorType.LINUX or SensorType.DIAGNOSTICS)
         {
-            // PNMT owns its system sensors (docs/ai-operations-plan.md §4), a Windows server is its agent's and a
-            // diagnostics sensor its assignment's (docs/windows-sensor-plan.md §8.1): a new name, host, notes, Enabled and Ignore only.
+            // PNMT owns its system sensors (docs/ai-operations-plan.md §4), a server with an agent is its agent's and a
+            // diagnostics sensor its assignment's (docs/windows-sensor-plan.md §8.1; docs/linux-sensor-plan.md §9.1): a new name,
+            // host, notes, Enabled and Ignore only.
             var name = request.Name?.Trim();
             var v = new ApiValidator()
                 .Check(request.Type == sensor.Type, "type", $"A {sensor.Type} sensor keeps its type.")
@@ -194,7 +195,7 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             throw ApiException.Conflict("diagnostics_sensor", "A diagnostics sensor goes with its assignment: delete the assignment on Admin → Diagnostics.");
         }
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
-        if (type == SensorType.WINDOWS)
+        if (Agents.AgentPlatformInfo.IsAgentType(type))
         {
             // Its diagnostics assignments' sensors go with it (docs/windows-sensor-plan.md §5.2).
             var assignments = await db.DiagnosticAssignments.AsNoTracking().Where(a => a.TargetSensorId == id).ToListAsync(ct);
@@ -210,8 +211,8 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         udp.Changed();
         // So does a router's tunnel: the gateway drops the peer (docs/mikrotik-plan.md §4.6).
         await mikrotik.NotifyGatewayAsync(ct, always: true);
-        // And a Windows server's agent: its connection ends (docs/windows-sensor-plan.md §8.1).
-        if (type == SensorType.WINDOWS)
+        // And a server's agent: its connection ends (docs/windows-sensor-plan.md §8.1).
+        if (Agents.AgentPlatformInfo.IsAgentType(type))
         {
             await agents.DisconnectAsync(id, Lib.Agent.AgentCloseCodes.Revoked, "the server was deleted in PNMT");
         }
@@ -283,6 +284,7 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         v.Check(request.Type != SensorType.DNS, "type", "DNS sensors are created by their DNS zone.");
         v.Check(request.Type != SensorType.SYSTEM, "type", "System sensors are PNMT's own; it creates them.");
         v.Check(request.Type != SensorType.WINDOWS || existing?.Type == SensorType.WINDOWS, "type", "A Windows server joins with a token: Add server.");
+        v.Check(request.Type != SensorType.LINUX || existing?.Type == SensorType.LINUX, "type", "A Linux server joins with a token: Add server.");
         v.Check(request.Type != SensorType.DIAGNOSTICS || existing?.Type == SensorType.DIAGNOSTICS, "type", "A diagnostics sensor is created by assigning a set on Admin → Diagnostics.");
         v.Check(request.Interval is >= 0 and <= 31_536_000, "interval", "Between 0 and 31536000 seconds.");
         v.Check(request.GracePeriod is >= 0 and <= 31_536_000, "gracePeriod", "Between 0 and 31536000 seconds.");

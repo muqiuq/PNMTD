@@ -66,8 +66,8 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     // A UDP node's subpages are tabs of the same page, each with its route (docs/udp-iot-plan.md §6.2).
-    // A MikroTik router's too (docs/mikrotik-plan.md §11.1).
-    path: '/sensors/:id/:tab(last-packets|commands|firmware|protocol|setup|backups|updates|events|overview|hardware|network|services|remote-access|access|event-log|diagnostics|changes|agent|scripts)?',
+    // A MikroTik router's too (docs/mikrotik-plan.md §11.1), and a server's (docs/windows-sensor-plan.md §10.2).
+    path: '/sensors/:id/:tab(last-packets|commands|firmware|protocol|setup|backups|updates|events|overview|hardware|network|services|remote-access|access|event-log|diagnostics|changes|agent|scripts|wmi)?',
     name: 'sensor',
     component: () => import('@/views/sensors/SensorView.vue'),
     meta: { title: 'Sensor' },
@@ -200,10 +200,11 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'Diagnostics', role: 'Admin' },
   },
   {
-    path: '/admin/windows/:tab(servers|tokens|download|log|scripts|run-as)?',
-    name: 'windows',
-    component: () => import('@/views/admin/windows/WindowsView.vue'),
-    meta: { title: 'Windows servers', role: 'Admin' },
+    // Servers with an agent, Windows and Linux (docs/linux-sensor-plan.md §11.1; /admin/windows before L1).
+    path: '/admin/servers/:tab(servers|tokens|download|log|scripts|run-as)?',
+    name: 'servers',
+    component: () => import('@/views/admin/servers/ServersView.vue'),
+    meta: { title: 'Servers', role: 'Admin' },
   },
   {
     // docs/mikrotik-plan.md §11.2: the routers and the tunnel network, ?tab=network|routers.

@@ -59,7 +59,9 @@ export const typeLabel = (type: string) =>
           ? 'PNMT system'
           : type === 'WINDOWS'
             ? 'Windows server'
-            : humanize(type)
+            : type === 'LINUX'
+              ? 'Linux server'
+              : humanize(type)
 
 /**
  * Types that report themselves and turn 460 after Interval + GracePeriod without a report, and MikroTik
@@ -71,6 +73,7 @@ export const usesGracePeriod = (type: string | null | undefined) =>
   type === 'UDP_NODE' ||
   type === 'MIKROTIK' ||
   type === 'WINDOWS' ||
+  type === 'LINUX' ||
   type === 'DIAGNOSTICS'
 
 /** The PrimeIcon of a sensor type. */
@@ -94,6 +97,8 @@ export function typeIcon(type: string): string {
       return 'pi pi-cog'
     case 'WINDOWS':
       return 'pi pi-microsoft'
+    case 'LINUX':
+      return 'pi pi-server'
     case 'DIAGNOSTICS':
       return 'pi pi-check-circle'
     case 'ONE_WITHIN_TIMESPAN':

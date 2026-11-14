@@ -253,7 +253,7 @@ async function submit() {
         </Select>
         <small class="field-hint">{{ info?.description }}</small>
         <small class="field-hint"
-          >A Windows server joins with a token: <em>Add Windows server…</em> in the host's menu (Admin).</small
+          >A Windows or Linux server joins with a token: <em>Add server…</em> in the host's menu (Admin).</small
         >
       </div>
       <div class="field">

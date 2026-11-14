@@ -7,7 +7,6 @@ using PNMTD.Data;
 using PNMTD.Lib.Agent;
 using PNMTD.Lib.Helper;
 using PNMTD.Models.Db;
-using PNMTD.Windows;
 
 namespace PNMTD.Agents;
 
@@ -17,7 +16,8 @@ public sealed class AgentOfflineException(string message) : Exception(message);
 /// <summary>
 /// An authenticated agent's connection: its socket, a send gate, and the requests waiting for their answer.
 /// </summary>
-public sealed class AgentConnection(Guid sensorId, Guid agentId, string agentName, WebSocket socket, string? address, int maxMessageBytes)
+public sealed class AgentConnection(Guid sensorId, Guid agentId, string agentName, WebSocket socket, string? address, int maxMessageBytes,
+    AgentPlatform platform)
 {
     private readonly SemaphoreSlim sendGate = new(1, 1);
     private readonly ConcurrentDictionary<string, TaskCompletionSource<JsonElement>> pending = new(StringComparer.Ordinal);
@@ -27,6 +27,9 @@ public sealed class AgentConnection(Guid sensorId, Guid agentId, string agentNam
     public Guid SensorId { get; } = sensorId;
 
     public Guid AgentId { get; } = agentId;
+
+    /// <summary>The agent row's platform, from its join token (docs/linux-sensor-plan.md §3.3).</summary>
+    public AgentPlatform Platform { get; } = platform;
 
     public string AgentName { get; set; } = agentName;
 
@@ -111,14 +114,14 @@ public sealed class AgentConnection(Guid sensorId, Guid agentId, string agentNam
 }
 
 /// <summary>
-/// The agents' WebSocket (docs/windows-sensor-plan.md §3.4–§3.6) on PNMT's existing listener and port: the challenge, the
-/// signed hello within 10 s, one connection per agent, the signed welcome, then messages routed to their services. Every
-/// message is isolated: a failure is logged and the connection goes on (§3.8).
+/// The agents' WebSocket (docs/windows-sensor-plan.md §3.4–§3.6) on PNMT's existing listener and port, for every platform:
+/// the challenge, the signed hello within 10 s, one connection per agent, the signed welcome, then messages routed to their
+/// services. Every message is isolated: a failure is logged and the connection goes on (§3.8).
 /// </summary>
 public sealed class AgentHub(
     IDbContextFactory<PnmtdDbContext> dbs,
     AgentKeyStore keys,
-    IOptionsMonitor<WindowsOptions> options,
+    IOptionsMonitor<AgentOptions> options,
     IServiceProvider services,
     IConfiguration configuration,
     ILogger<AgentHub> logger)
@@ -154,7 +157,7 @@ public sealed class AgentHub(
             try
             {
                 await using var db = await dbs.CreateDbContextAsync(ct);
-                var config = await WindowsConfig.BuildAsync(db, keys, options.CurrentValue, connection.SensorId, ct);
+                var config = await AgentConfiguration.BuildAsync(db, keys, options.CurrentValue, connection.SensorId, ct);
                 var signed = await keys.SignAsync(AgentMessageTypes.Config, connection.AgentId, config, ct);
                 await connection.SendAsync(AgentMessageTypes.Config, signed, ct);
             }
@@ -196,12 +199,12 @@ public sealed class AgentHub(
         }
         catch (AgentFrameTooLargeException e)
         {
-            await LogAsync(connection, WindowsAgentLogKind.Error, $"Closed: {e.Message}");
+            await LogAsync(connection, AgentLogKind.Error, $"Closed: {e.Message}");
             await connection.CloseAsync(AgentCloseCodes.TooLarge, "message too large");
         }
         catch (AgentFrameInvalidException e)
         {
-            await LogAsync(connection, WindowsAgentLogKind.Error, $"Closed: {e.Message}");
+            await LogAsync(connection, AgentLogKind.Error, $"Closed: {e.Message}");
             await connection.CloseAsync(AgentCloseCodes.ProtocolError, "protocol error");
         }
         catch (Exception e) when (e is WebSocketException or OperationCanceledException or IOException)
@@ -214,7 +217,7 @@ public sealed class AgentHub(
         }
     }
 
-    private async Task<AgentConnection?> AuthenticateAsync(HttpContext context, WebSocket socket, string? address, WindowsOptions settings, CancellationToken ct)
+    private async Task<AgentConnection?> AuthenticateAsync(HttpContext context, WebSocket socket, string? address, AgentOptions settings, CancellationToken ct)
     {
         var nonce = AgentSigning.NewNonce();
         var gate = new SemaphoreSlim(1, 1);
@@ -247,7 +250,7 @@ public sealed class AgentHub(
         }
 
         await using var db = await dbs.CreateDbContextAsync(ct);
-        var agent = await db.WindowsAgents.Include(a => a.Sensor).ThenInclude(s => s.Parent).SingleOrDefaultAsync(a => a.AgentId == hello.AgentId, ct);
+        var agent = await db.Agents.Include(a => a.Sensor).ThenInclude(s => s.Parent).SingleOrDefaultAsync(a => a.AgentId == hello.AgentId, ct);
         if (agent is null)
         {
             logger.LogInformation("Agent {Agent} from {Address}: unknown", hello.AgentId, address);
@@ -263,21 +266,21 @@ public sealed class AgentHub(
         using var publicKey = AgentSigning.ImportPublicKey(agent.PublicKey);
         if (publicKey is null || !AgentSigning.VerifyHello(publicKey, hello, nonce))
         {
-            WindowsAgentLog.Add(db, agent.SensorId, name, WindowsAgentLogKind.AuthFailed, "The hello's signature did not verify.", address: address);
+            AgentLog.Add(db, agent.SensorId, name, AgentLogKind.AuthFailed, "The hello's signature did not verify.", address: address);
             await db.SaveChangesAsync(ct);
             await CloseAsync(socket, AgentCloseCodes.Unauthorized, "signature");
             return null;
         }
         if (settings.CheckOrigin && !OriginMatches(context, hello.Origin))
         {
-            WindowsAgentLog.Add(db, agent.SensorId, name, WindowsAgentLogKind.AuthFailed,
+            AgentLog.Add(db, agent.SensorId, name, AgentLogKind.AuthFailed,
                 $"The agent signed for {hello.Origin}, which is not this PNMT's address (PublicBaseUrl, or the Host the request came to).", address: address);
             await db.SaveChangesAsync(ct);
             await CloseAsync(socket, AgentCloseCodes.Unauthorized, "origin");
             return null;
         }
 
-        var connection = new AgentConnection(agent.SensorId, agent.AgentId, name, socket, address, settings.MaxMessageBytes)
+        var connection = new AgentConnection(agent.SensorId, agent.AgentId, name, socket, address, settings.MaxMessageBytes, agent.Platform)
         {
             Capabilities = hello.Capabilities.Take(50).Select(c => Cuts.Cut(c, 50)).ToList(),
         };
@@ -306,16 +309,22 @@ public sealed class AgentHub(
         {
             agent.EncryptionKey = encryptionKey;
         }
-        WindowsAgentLog.Add(db, agent.SensorId, name, WindowsAgentLogKind.Connected,
+        AgentLog.Add(db, agent.SensorId, name, AgentLogKind.Connected,
             $"Connected: agent {agent.AgentVersion} ({agent.Architecture}) on {agent.OsCaption} {agent.OsBuild}{(hello.Os.Supported ? "" : ", not a supported version")}.",
             new { hello.Capabilities }, address);
+        if (hello.Platform != agent.Platform)
+        {
+            // The row's platform is the token's, and authoritative; the hello's is only noted.
+            AgentLog.Add(db, agent.SensorId, name, AgentLogKind.Warning,
+                $"The agent says it runs on {hello.Platform}, but joined as a {agent.Platform} server: PNMT treats it as {agent.Platform}.", address: address);
+        }
         if (hello.RestartedAfterCrash)
         {
-            WindowsAgentLog.Add(db, agent.SensorId, name, WindowsAgentLogKind.Crashed, "The agent restarted after a crash: its problems follow.", address: address);
+            AgentLog.Add(db, agent.SensorId, name, AgentLogKind.Crashed, "The agent restarted after a crash: its problems follow.", address: address);
         }
         await db.SaveChangesAsync(ct);
 
-        var config = await WindowsConfig.BuildAsync(db, keys, settings, agent.SensorId, ct);
+        var config = await AgentConfiguration.BuildAsync(db, keys, settings, agent.SensorId, ct);
         var welcome = await keys.SignAsync(AgentMessageTypes.Welcome, agent.AgentId, config, ct);
         await connection.SendAsync(AgentMessageTypes.Welcome, welcome, ct);
         if (connection.Capabilities.Contains(AgentCapabilities.Parse))
@@ -325,7 +334,7 @@ public sealed class AgentHub(
             {
                 try
                 {
-                    await services.GetRequiredService<Windows.Scripts.ScriptResults>().ParsePendingAsync(connection, CancellationToken.None);
+                    await services.GetRequiredService<AgentScriptResults>().ParsePendingAsync(connection, CancellationToken.None);
                 }
                 catch (Exception e)
                 {
@@ -373,7 +382,7 @@ public sealed class AgentHub(
                 if (Clock.UtcNow - droppedAt > TimeSpan.FromMinutes(1))
                 {
                     droppedAt = Clock.UtcNow;
-                    await LogAsync(connection, WindowsAgentLogKind.Warning, $"Too many messages: \"{envelope.T}\" and others dropped for a minute.");
+                    await LogAsync(connection, AgentLogKind.Warning, $"Too many messages: \"{envelope.T}\" and others dropped for a minute.");
                 }
                 continue;
             }
@@ -384,7 +393,7 @@ public sealed class AgentHub(
             catch (Exception e) when (e is not OperationCanceledException && e is not WebSocketException)
             {
                 logger.LogWarning(e, "Agent {Name}: the message \"{Type}\" failed", connection.AgentName, envelope.T);
-                await LogAsync(connection, WindowsAgentLogKind.Error, $"PNMTD could not process the message \"{envelope.T}\": {e.Message}");
+                await LogAsync(connection, AgentLogKind.Error, $"PNMTD could not process the message \"{envelope.T}\": {e.Message}");
             }
         }
     }
@@ -404,7 +413,7 @@ public sealed class AgentHub(
                 await Report().SectionAsync(connection, Read<SectionMessage>(body), ct);
                 break;
             case AgentMessageTypes.Access:
-                await services.GetRequiredService<WindowsAccessService>().AccessAsync(connection, Read<AccessBatch>(body), ct);
+                await services.GetRequiredService<AgentAccessService>().AccessAsync(connection, Read<AccessBatch>(body), ct);
                 break;
             case AgentMessageTypes.DiagResult:
                 await services.GetRequiredService<Diagnostics.DiagnosticsRunner>().ResultsAsync(connection, Read<DiagnosticResultBatch>(body), ct);
@@ -413,11 +422,11 @@ public sealed class AgentHub(
                 var ack = Read<Ack>(body);
                 if (!connection.Complete(ack.RequestId, body) && !ack.Ok)
                 {
-                    await LogAsync(connection, WindowsAgentLogKind.Error, $"A request was refused: {ack.Error}");
+                    await LogAsync(connection, AgentLogKind.Error, $"A request was refused: {ack.Error}");
                 }
                 else if (!ack.Ok)
                 {
-                    await LogAsync(connection, WindowsAgentLogKind.Request, $"The agent refused a request: {ack.Error}");
+                    await LogAsync(connection, AgentLogKind.Request, $"The agent refused a request: {ack.Error}");
                 }
                 break;
             case AgentMessageTypes.Log:
@@ -425,7 +434,7 @@ public sealed class AgentHub(
                 connection.Complete(lines.RequestId, body);
                 break;
             case AgentMessageTypes.ParseResult or AgentMessageTypes.ScriptResult:
-                await services.GetRequiredService<Windows.Scripts.ScriptResults>().ResultAsync(connection, envelope.T, body, ct);
+                await services.GetRequiredService<AgentScriptResults>().ResultAsync(connection, envelope.T, body, ct);
                 break;
             case AgentMessageTypes.Bye:
                 await Report().ByeAsync(connection, Read<Bye>(body), ct);
@@ -436,7 +445,7 @@ public sealed class AgentHub(
         }
     }
 
-    private WindowsReportService Report() => services.GetRequiredService<WindowsReportService>();
+    private AgentReportService Report() => services.GetRequiredService<AgentReportService>();
 
     private static T Read<T>(JsonElement body) =>
         AgentJson.Deserialize<T>(body) ?? throw new JsonException($"An empty {typeof(T).Name}.");
@@ -451,14 +460,14 @@ public sealed class AgentHub(
         try
         {
             await using var db = await dbs.CreateDbContextAsync();
-            var agent = await db.WindowsAgents.SingleOrDefaultAsync(a => a.SensorId == connection.SensorId);
+            var agent = await db.Agents.SingleOrDefaultAsync(a => a.SensorId == connection.SensorId);
             if (agent is not null && agent.AgentId == connection.AgentId)
             {
                 agent.Connected = false;
                 agent.DisconnectedAt = Clock.UtcNow;
                 var socket = connection.Socket;
                 var reason = socket.CloseStatus is { } status ? $" ({(int)status} {socket.CloseStatusDescription})".TrimEnd() : "";
-                WindowsAgentLog.Add(db, connection.SensorId, connection.AgentName, WindowsAgentLogKind.Disconnected,
+                AgentLog.Add(db, connection.SensorId, connection.AgentName, AgentLogKind.Disconnected,
                     $"Disconnected after {Durations.Text(Clock.UtcNow - connection.ConnectedAt)}{reason}.", address: connection.Address);
                 await db.SaveChangesAsync();
             }
@@ -469,12 +478,12 @@ public sealed class AgentHub(
         }
     }
 
-    private async Task LogAsync(AgentConnection connection, WindowsAgentLogKind kind, string message)
+    private async Task LogAsync(AgentConnection connection, AgentLogKind kind, string message)
     {
         try
         {
             await using var db = await dbs.CreateDbContextAsync();
-            WindowsAgentLog.Add(db, connection.SensorId, connection.AgentName, kind, message, address: connection.Address);
+            AgentLog.Add(db, connection.SensorId, connection.AgentName, kind, message, address: connection.Address);
             await db.SaveChangesAsync();
         }
         catch (Exception e)

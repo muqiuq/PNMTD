@@ -3,8 +3,9 @@ import { shot, signIn } from './support'
 
 /**
  * Windows servers and diagnostics (docs/windows-sensor-plan.md §10) on the seed's two servers, which are stored but have no
- * agent connected: the admin page and Add server's token, every tab of a server, and Admin → Diagnostics with a run. Only
- * what the browser can break: the server side has its tests in PNMTD.Tests (§13).
+ * agent connected: Admin → Servers (docs/linux-sensor-plan.md §11.1) and Add server's tokens for both platforms, every tab
+ * of a Windows server, and Admin → Diagnostics with a run. Only what the browser can break: the server side has its tests in
+ * PNMTD.Tests (§13).
  */
 let problems: string[] = []
 test.beforeEach(({ page }) => {
@@ -25,17 +26,37 @@ const tab = (page: Page, name: string) =>
 test('the admin page, Add server and every tab of a server', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
   await signIn(page)
-  await page.goto('/pnmt-admin/admin/windows')
+  await page.goto('/pnmt-admin/admin/servers')
   await expect(page.getByRole('link', { name: 'backup-srv / Windows' })).toBeVisible()
-  await shot(page, 'windows-servers')
+  await shot(page, 'servers')
 
   await page.getByRole('button', { name: 'Add server' }).click()
   await page.getByRole('dialog').getByRole('combobox').click()
   await page.getByRole('option', { name: 'wiki', exact: true }).click()
   await page.getByRole('button', { name: 'Create token' }).click()
   await expect(page.getByLabel('Join token').first()).toHaveText(/^[a-z2-9]{4}-[a-z2-9]{4}$/)
-  await shot(page, 'windows-add-server')
+  await expect(page.getByRole('dialog')).toContainText('Get-FileHash')
+  await shot(page, 'servers-add-windows')
   await page.getByRole('button', { name: 'Done' }).click()
+
+  // The platform comes first; a Linux token waits for the Linux agent's release.
+  await page.getByRole('button', { name: 'Add server' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Linux' }).click()
+  await page.getByRole('dialog').getByRole('combobox').click()
+  await page.getByRole('option', { name: 'wiki', exact: true }).click()
+  await page.getByRole('button', { name: 'Create token' }).click()
+  await expect(page.getByLabel('Join token').first()).toHaveText(/^[a-z2-9]{4}-[a-z2-9]{4}$/)
+  await expect(page.getByRole('dialog')).toContainText("The Linux agent's install line comes with its release")
+  await page.getByRole('button', { name: 'Done' }).click()
+  await page
+    .getByRole('navigation', { name: 'Servers', exact: true })
+    .getByRole('link', { name: 'Join tokens' })
+    .click()
+  await expect(page.getByRole('cell', { name: 'Linux' }).first()).toBeVisible()
+  await page
+    .getByRole('navigation', { name: 'Servers', exact: true })
+    .getByRole('link', { name: 'Servers', exact: true })
+    .click()
 
   await page.getByRole('link', { name: 'backup-srv / Windows' }).click()
   await expect(page.getByRole('navigation', { name: 'Server pages' })).toBeVisible()
@@ -67,15 +88,15 @@ test('the admin page, Add server and every tab of a server', async ({ page }) =>
 test('scripts: a new one from the template, and the run-as accounts', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
   await signIn(page)
-  await page.goto('/pnmt-admin/admin/windows/scripts')
+  await page.goto('/pnmt-admin/admin/servers/scripts')
   await page.getByRole('button', { name: 'New script' }).click()
   await expect(page.getByLabel('PowerShell')).toHaveValue(/\[CmdletBinding\(\)\]/)
   await page.getByLabel('Name', { exact: true }).fill('e2e greeting')
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('link', { name: 'e2e greeting' })).toBeVisible()
   await expect(page.getByRole('dialog')).toBeHidden()
-  await shot(page, 'windows-scripts')
-  await page.goto('/pnmt-admin/admin/windows/run-as')
+  await shot(page, 'servers-scripts')
+  await page.goto('/pnmt-admin/admin/servers/run-as')
   await page.getByRole('button', { name: 'New account' }).click()
   await page.getByLabel('Name', { exact: true }).fill('deploy')
   await page.getByRole('textbox', { name: 'Account' }).fill('CORP\\deploy')

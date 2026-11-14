@@ -15,7 +15,7 @@ using PNMTD.Services.Domain;
 using PNMTD.Tasks;
 using PNMTD.Udp;
 using PNMTD.WireGuard;
-using PNMTD.Windows;
+using PNMTD.Agents;
 
 namespace PNMTD;
 
@@ -93,7 +93,7 @@ public partial class Program
         builder.Services.AddUdpNodes(builder.Configuration);
         builder.Services.AddMikrotik(builder.Configuration);
         builder.Services.AddWireGuard(builder.Configuration);
-        builder.Services.AddWindowsAgents(builder.Configuration);
+        builder.Services.AddAgents(builder.Configuration);
 
         // The build writes the OpenAPI document by starting the host without a database (GetDocument.Insider).
         var documentBuild = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
@@ -125,8 +125,8 @@ public partial class Program
             builder.Services.AddHostedService(sp => sp.GetRequiredService<VersionCatalog>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<AdvisoryFeed>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<BackupRetentionTask>());
-            // Windows servers (docs/windows-sensor-plan.md §8.4): expired tokens and retention.
-            builder.Services.AddHostedService(sp => sp.GetRequiredService<WindowsMaintenanceTask>());
+            // Servers with an agent (docs/windows-sensor-plan.md §8.4): expired tokens and retention.
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<AgentMaintenanceTask>());
         }
 
         // UDP nodes (docs/udp-iot-plan.md §4.4): on unless Udp:Enabled=false, not tied to the

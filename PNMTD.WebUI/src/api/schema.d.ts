@@ -4,6 +4,1008 @@
  */
 
 export interface paths {
+    "/api/v1/agents/servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    platform?: components["schemas"]["AgentPlatform"];
+                    state?: components["schemas"]["SensorState"];
+                    unsupported?: boolean;
+                    outdated?: boolean;
+                    connected?: boolean;
+                    remoteAccess?: boolean;
+                    auditGaps?: boolean;
+                    diagnosticsFailing?: boolean;
+                    hostId?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfAgentServerItem"];
+                        "text/json": components["schemas"]["PagedOfAgentServerItem"];
+                        "text/plain": components["schemas"]["PagedOfAgentServerItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/servers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentServerDetail"];
+                        "text/json": components["schemas"]["AgentServerDetail"];
+                        "text/plain": components["schemas"]["AgentServerDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/servers/{id}/logins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    outcome?: components["schemas"]["LogonOutcome"];
+                    admin?: boolean;
+                    kind?: components["schemas"]["LogonKind"];
+                    user?: string;
+                    source?: string;
+                    from?: string;
+                    to?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfAgentLoginItem"];
+                        "text/json": components["schemas"]["PagedOfAgentLoginItem"];
+                        "text/plain": components["schemas"]["PagedOfAgentLoginItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/servers/{id}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    section?: string;
+                    notable?: boolean;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfAgentChangeItem"];
+                        "text/json": components["schemas"]["PagedOfAgentChangeItem"];
+                        "text/plain": components["schemas"]["PagedOfAgentChangeItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/servers/{id}/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    kind?: components["schemas"]["AgentLogKind"];
+                    sensorId?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfAgentLogItem"];
+                        "text/json": components["schemas"]["PagedOfAgentLogItem"];
+                        "text/plain": components["schemas"]["PagedOfAgentLogItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/servers/{id}/collect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentCollectRequest"];
+                    "text/json": components["schemas"]["AgentCollectRequest"];
+                    "application/*+json": components["schemas"]["AgentCollectRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentRequestResult"];
+                        "text/json": components["schemas"]["AgentRequestResult"];
+                        "text/plain": components["schemas"]["AgentRequestResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/servers/{id}/send-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentLogFile"];
+                        "text/json": components["schemas"]["AgentLogFile"];
+                        "text/plain": components["schemas"]["AgentLogFile"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/servers/{id}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentServerSettings"];
+                    "text/json": components["schemas"]["AgentServerSettings"];
+                    "application/*+json": components["schemas"]["AgentServerSettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentServerDetail"];
+                        "text/json": components["schemas"]["AgentServerDetail"];
+                        "text/plain": components["schemas"]["AgentServerDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/servers/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentRevokeRequest"];
+                    "text/json": components["schemas"]["AgentRevokeRequest"];
+                    "application/*+json": components["schemas"]["AgentRevokeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentServerDetail"];
+                        "text/json": components["schemas"]["AgentServerDetail"];
+                        "text/plain": components["schemas"]["AgentServerDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/servers/{id}/rejoin-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentRejoinTokenRequest"];
+                    "text/json": components["schemas"]["AgentRejoinTokenRequest"];
+                    "application/*+json": components["schemas"]["AgentRejoinTokenRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentJoinTokenCreated"];
+                        "text/json": components["schemas"]["AgentJoinTokenCreated"];
+                        "text/plain": components["schemas"]["AgentJoinTokenCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/join-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    state?: components["schemas"]["AgentJoinTokenState"];
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfAgentJoinTokenItem"];
+                        "text/json": components["schemas"]["PagedOfAgentJoinTokenItem"];
+                        "text/plain": components["schemas"]["PagedOfAgentJoinTokenItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentJoinTokenRequest"];
+                    "text/json": components["schemas"]["AgentJoinTokenRequest"];
+                    "application/*+json": components["schemas"]["AgentJoinTokenRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentJoinTokenCreated"];
+                        "text/json": components["schemas"]["AgentJoinTokenCreated"];
+                        "text/plain": components["schemas"]["AgentJoinTokenCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/join-tokens/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/agent-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    kind?: components["schemas"]["AgentLogKind"];
+                    sensorId?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfAgentLogItem"];
+                        "text/json": components["schemas"]["PagedOfAgentLogItem"];
+                        "text/plain": components["schemas"]["PagedOfAgentLogItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/downloads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentDownloadLinks"];
+                        "text/json": components["schemas"]["AgentDownloadLinks"];
+                        "text/plain": components["schemas"]["AgentDownloadLinks"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/scripts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfAgentScriptItem"];
+                        "text/json": components["schemas"]["PagedOfAgentScriptItem"];
+                        "text/plain": components["schemas"]["PagedOfAgentScriptItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentScriptRequest"];
+                    "text/json": components["schemas"]["AgentScriptRequest"];
+                    "application/*+json": components["schemas"]["AgentScriptRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentScriptDetail"];
+                        "text/json": components["schemas"]["AgentScriptDetail"];
+                        "text/plain": components["schemas"]["AgentScriptDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/scripts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentScriptDetail"];
+                        "text/json": components["schemas"]["AgentScriptDetail"];
+                        "text/plain": components["schemas"]["AgentScriptDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentScriptRequest"];
+                    "text/json": components["schemas"]["AgentScriptRequest"];
+                    "application/*+json": components["schemas"]["AgentScriptRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentScriptDetail"];
+                        "text/json": components["schemas"]["AgentScriptDetail"];
+                        "text/plain": components["schemas"]["AgentScriptDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/scripts/{id}/parse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentScriptDetail"];
+                        "text/json": components["schemas"]["AgentScriptDetail"];
+                        "text/plain": components["schemas"]["AgentScriptDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/scripts/{id}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentScriptRunRequest"];
+                    "text/json": components["schemas"]["AgentScriptRunRequest"];
+                    "application/*+json": components["schemas"]["AgentScriptRunRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentScriptRunItem"][];
+                        "text/json": components["schemas"]["AgentScriptRunItem"][];
+                        "text/plain": components["schemas"]["AgentScriptRunItem"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/script-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    scriptId?: string;
+                    sensorId?: string;
+                    batchId?: string;
+                    state?: components["schemas"]["ScriptRunState"];
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfAgentScriptRunItem"];
+                        "text/json": components["schemas"]["PagedOfAgentScriptRunItem"];
+                        "text/plain": components["schemas"]["PagedOfAgentScriptRunItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/script-runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentScriptRunDetail"];
+                        "text/json": components["schemas"]["AgentScriptRunDetail"];
+                        "text/plain": components["schemas"]["AgentScriptRunDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/script-runs/{id}/redact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentScriptRunDetail"];
+                        "text/json": components["schemas"]["AgentScriptRunDetail"];
+                        "text/plain": components["schemas"]["AgentScriptRunDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai/mail/backfill": {
         parameters: {
             query?: never;
@@ -4657,582 +5659,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/windows/scripts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    page?: number;
-                    pageSize?: number;
-                    sort?: string;
-                    search?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PagedOfWindowsScriptItem"];
-                        "text/json": components["schemas"]["PagedOfWindowsScriptItem"];
-                        "text/plain": components["schemas"]["PagedOfWindowsScriptItem"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["WindowsScriptRequest"];
-                    "text/json": components["schemas"]["WindowsScriptRequest"];
-                    "application/*+json": components["schemas"]["WindowsScriptRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsScriptDetail"];
-                        "text/json": components["schemas"]["WindowsScriptDetail"];
-                        "text/plain": components["schemas"]["WindowsScriptDetail"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/scripts/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsScriptDetail"];
-                        "text/json": components["schemas"]["WindowsScriptDetail"];
-                        "text/plain": components["schemas"]["WindowsScriptDetail"];
-                    };
-                };
-            };
-        };
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["WindowsScriptRequest"];
-                    "text/json": components["schemas"]["WindowsScriptRequest"];
-                    "application/*+json": components["schemas"]["WindowsScriptRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsScriptDetail"];
-                        "text/json": components["schemas"]["WindowsScriptDetail"];
-                        "text/plain": components["schemas"]["WindowsScriptDetail"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/scripts/{id}/parse": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsScriptDetail"];
-                        "text/json": components["schemas"]["WindowsScriptDetail"];
-                        "text/plain": components["schemas"]["WindowsScriptDetail"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/scripts/{id}/run": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["WindowsScriptRunRequest"];
-                    "text/json": components["schemas"]["WindowsScriptRunRequest"];
-                    "application/*+json": components["schemas"]["WindowsScriptRunRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsScriptRunItem"][];
-                        "text/json": components["schemas"]["WindowsScriptRunItem"][];
-                        "text/plain": components["schemas"]["WindowsScriptRunItem"][];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/servers/{id}/local-scripts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsLocalScripts"];
-                        "text/json": components["schemas"]["WindowsLocalScripts"];
-                        "text/plain": components["schemas"]["WindowsLocalScripts"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/servers/{id}/local-scripts/run": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["WindowsLocalScriptRunRequest"];
-                    "text/json": components["schemas"]["WindowsLocalScriptRunRequest"];
-                    "application/*+json": components["schemas"]["WindowsLocalScriptRunRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsScriptRunItem"];
-                        "text/json": components["schemas"]["WindowsScriptRunItem"];
-                        "text/plain": components["schemas"]["WindowsScriptRunItem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/run-as": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsRunAsItem"][];
-                        "text/json": components["schemas"]["WindowsRunAsItem"][];
-                        "text/plain": components["schemas"]["WindowsRunAsItem"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["WindowsRunAsRequest"];
-                    "text/json": components["schemas"]["WindowsRunAsRequest"];
-                    "application/*+json": components["schemas"]["WindowsRunAsRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsRunAsItem"];
-                        "text/json": components["schemas"]["WindowsRunAsItem"];
-                        "text/plain": components["schemas"]["WindowsRunAsItem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/run-as/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["WindowsRunAsRequest"];
-                    "text/json": components["schemas"]["WindowsRunAsRequest"];
-                    "application/*+json": components["schemas"]["WindowsRunAsRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsRunAsItem"];
-                        "text/json": components["schemas"]["WindowsRunAsItem"];
-                        "text/plain": components["schemas"]["WindowsRunAsItem"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/script-runs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    scriptId?: string;
-                    sensorId?: string;
-                    batchId?: string;
-                    state?: components["schemas"]["ScriptRunState"];
-                    page?: number;
-                    pageSize?: number;
-                    sort?: string;
-                    search?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PagedOfWindowsScriptRunItem"];
-                        "text/json": components["schemas"]["PagedOfWindowsScriptRunItem"];
-                        "text/plain": components["schemas"]["PagedOfWindowsScriptRunItem"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/script-runs/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsScriptRunDetail"];
-                        "text/json": components["schemas"]["WindowsScriptRunDetail"];
-                        "text/plain": components["schemas"]["WindowsScriptRunDetail"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/script-runs/{id}/redact": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsScriptRunDetail"];
-                        "text/json": components["schemas"]["WindowsScriptRunDetail"];
-                        "text/plain": components["schemas"]["WindowsScriptRunDetail"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/sensors": {
         parameters: {
             query?: never;
@@ -7081,95 +7507,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/windows/servers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    state?: components["schemas"]["SensorState"];
-                    unsupported?: boolean;
-                    outdated?: boolean;
-                    connected?: boolean;
-                    remoteAccess?: boolean;
-                    auditGaps?: boolean;
-                    diagnosticsFailing?: boolean;
-                    hostId?: string;
-                    page?: number;
-                    pageSize?: number;
-                    sort?: string;
-                    search?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PagedOfWindowsServerItem"];
-                        "text/json": components["schemas"]["PagedOfWindowsServerItem"];
-                        "text/plain": components["schemas"]["PagedOfWindowsServerItem"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/servers/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsServerDetail"];
-                        "text/json": components["schemas"]["WindowsServerDetail"];
-                        "text/plain": components["schemas"]["WindowsServerDetail"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/windows/servers/{id}/sections/{section}": {
         parameters: {
             query?: never;
@@ -7204,233 +7541,6 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/servers/{id}/logins": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    outcome?: components["schemas"]["LogonOutcome"];
-                    admin?: boolean;
-                    kind?: components["schemas"]["LogonKind"];
-                    user?: string;
-                    source?: string;
-                    from?: string;
-                    to?: string;
-                    page?: number;
-                    pageSize?: number;
-                    sort?: string;
-                    search?: string;
-                };
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PagedOfWindowsLoginItem"];
-                        "text/json": components["schemas"]["PagedOfWindowsLoginItem"];
-                        "text/plain": components["schemas"]["PagedOfWindowsLoginItem"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/servers/{id}/changes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    section?: string;
-                    notable?: boolean;
-                    page?: number;
-                    pageSize?: number;
-                    sort?: string;
-                    search?: string;
-                };
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PagedOfWindowsChangeItem"];
-                        "text/json": components["schemas"]["PagedOfWindowsChangeItem"];
-                        "text/plain": components["schemas"]["PagedOfWindowsChangeItem"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/servers/{id}/log": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    kind?: components["schemas"]["WindowsAgentLogKind"];
-                    sensorId?: string;
-                    page?: number;
-                    pageSize?: number;
-                    sort?: string;
-                    search?: string;
-                };
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PagedOfWindowsAgentLogItem"];
-                        "text/json": components["schemas"]["PagedOfWindowsAgentLogItem"];
-                        "text/plain": components["schemas"]["PagedOfWindowsAgentLogItem"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/servers/{id}/collect": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["WindowsCollectRequest"];
-                    "text/json": components["schemas"]["WindowsCollectRequest"];
-                    "application/*+json": components["schemas"]["WindowsCollectRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsRequestResult"];
-                        "text/json": components["schemas"]["WindowsRequestResult"];
-                        "text/plain": components["schemas"]["WindowsRequestResult"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/servers/{id}/send-log": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsAgentLogFile"];
-                        "text/json": components["schemas"]["WindowsAgentLogFile"];
-                        "text/plain": components["schemas"]["WindowsAgentLogFile"];
-                    };
-                };
-            };
-        };
         delete?: never;
         options?: never;
         head?: never;
@@ -7505,7 +7615,155 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/windows/servers/{id}/settings": {
+    "/api/v1/windows/servers/{id}/local-scripts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsLocalScripts"];
+                        "text/json": components["schemas"]["WindowsLocalScripts"];
+                        "text/plain": components["schemas"]["WindowsLocalScripts"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/windows/servers/{id}/local-scripts/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WindowsLocalScriptRunRequest"];
+                    "text/json": components["schemas"]["WindowsLocalScriptRunRequest"];
+                    "application/*+json": components["schemas"]["WindowsLocalScriptRunRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentScriptRunItem"];
+                        "text/json": components["schemas"]["AgentScriptRunItem"];
+                        "text/plain": components["schemas"]["AgentScriptRunItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/windows/run-as": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsRunAsItem"][];
+                        "text/json": components["schemas"]["WindowsRunAsItem"][];
+                        "text/plain": components["schemas"]["WindowsRunAsItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WindowsRunAsRequest"];
+                    "text/json": components["schemas"]["WindowsRunAsRequest"];
+                    "application/*+json": components["schemas"]["WindowsRunAsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsRunAsItem"];
+                        "text/json": components["schemas"]["WindowsRunAsItem"];
+                        "text/plain": components["schemas"]["WindowsRunAsItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/windows/run-as/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -7524,9 +7782,9 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["WindowsServerSettings"];
-                    "text/json": components["schemas"]["WindowsServerSettings"];
-                    "application/*+json": components["schemas"]["WindowsServerSettings"];
+                    "application/json": components["schemas"]["WindowsRunAsRequest"];
+                    "text/json": components["schemas"]["WindowsRunAsRequest"];
+                    "application/*+json": components["schemas"]["WindowsRunAsRequest"];
                 };
             };
             responses: {
@@ -7536,189 +7794,13 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["WindowsServerDetail"];
-                        "text/json": components["schemas"]["WindowsServerDetail"];
-                        "text/plain": components["schemas"]["WindowsServerDetail"];
+                        "application/json": components["schemas"]["WindowsRunAsItem"];
+                        "text/json": components["schemas"]["WindowsRunAsItem"];
+                        "text/plain": components["schemas"]["WindowsRunAsItem"];
                     };
                 };
             };
         };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/servers/{id}/revoke": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["WindowsRevokeRequest"];
-                    "text/json": components["schemas"]["WindowsRevokeRequest"];
-                    "application/*+json": components["schemas"]["WindowsRevokeRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsServerDetail"];
-                        "text/json": components["schemas"]["WindowsServerDetail"];
-                        "text/plain": components["schemas"]["WindowsServerDetail"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/servers/{id}/rejoin-token": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["WindowsRejoinTokenRequest"];
-                    "text/json": components["schemas"]["WindowsRejoinTokenRequest"];
-                    "application/*+json": components["schemas"]["WindowsRejoinTokenRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsJoinTokenCreated"];
-                        "text/json": components["schemas"]["WindowsJoinTokenCreated"];
-                        "text/plain": components["schemas"]["WindowsJoinTokenCreated"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/join-tokens": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    state?: components["schemas"]["WindowsJoinTokenState"];
-                    page?: number;
-                    pageSize?: number;
-                    sort?: string;
-                    search?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PagedOfWindowsJoinTokenItem"];
-                        "text/json": components["schemas"]["PagedOfWindowsJoinTokenItem"];
-                        "text/plain": components["schemas"]["PagedOfWindowsJoinTokenItem"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["WindowsJoinTokenRequest"];
-                    "text/json": components["schemas"]["WindowsJoinTokenRequest"];
-                    "application/*+json": components["schemas"]["WindowsJoinTokenRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsJoinTokenCreated"];
-                        "text/json": components["schemas"]["WindowsJoinTokenCreated"];
-                        "text/plain": components["schemas"]["WindowsJoinTokenCreated"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/join-tokens/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
         post?: never;
         delete: {
             parameters: {
@@ -7740,87 +7822,6 @@ export interface paths {
                 };
             };
         };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/agent-log": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    kind?: components["schemas"]["WindowsAgentLogKind"];
-                    sensorId?: string;
-                    page?: number;
-                    pageSize?: number;
-                    sort?: string;
-                    search?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PagedOfWindowsAgentLogItem"];
-                        "text/json": components["schemas"]["PagedOfWindowsAgentLogItem"];
-                        "text/plain": components["schemas"]["PagedOfWindowsAgentLogItem"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/windows/agent": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WindowsAgentDownloads"];
-                        "text/json": components["schemas"]["WindowsAgentDownloads"];
-                        "text/plain": components["schemas"]["WindowsAgentDownloads"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -8307,6 +8308,313 @@ export interface components {
             driverVersion: null | string;
             profile: null | string;
             virtual: boolean;
+        };
+        AgentChangeItem: {
+            /** Format: uuid */
+            id: string;
+            section: string;
+            /** Format: date-time */
+            at: string;
+            summary: string;
+            notable: boolean;
+            details: null | string;
+        };
+        AgentCollectRequest: {
+            sections: null | string[];
+        };
+        AgentDownloadLink: {
+            architecture: string;
+            fileName: string;
+            url: string;
+            sha256: null | string;
+        };
+        AgentDownloadLinks: {
+            version: string;
+            files: components["schemas"]["AgentDownloadLink"][];
+            releaseUrl: null | string;
+            note: null | string;
+        };
+        AgentJoinTokenCreated: {
+            item: components["schemas"]["AgentJoinTokenItem"];
+            token: string;
+            url: string;
+            pnmtdFingerprint: string;
+            commandLine: string;
+            downloads: components["schemas"]["AgentDownloadLinks"];
+        };
+        AgentJoinTokenItem: {
+            /** Format: uuid */
+            id: string;
+            platform: components["schemas"]["AgentPlatform"];
+            prefix: string;
+            host: components["schemas"]["Ref"];
+            name: null | string;
+            rejoin: null | components["schemas"]["Ref"];
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: null | string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            usedAt: null | string;
+            usedFromAddress: null | string;
+            result: null | components["schemas"]["Ref"];
+            /** Format: date-time */
+            revokedAt: null | string;
+            state: components["schemas"]["AgentJoinTokenState"];
+        };
+        AgentJoinTokenRequest: {
+            /** Format: uuid */
+            hostId: string;
+            name: null | string;
+            /** Format: int32 */
+            validHours: null | number;
+            platform?: components["schemas"]["AgentPlatform"];
+        };
+        /** @enum {unknown} */
+        AgentJoinTokenState: "Pending" | "Used" | "Expired" | "Revoked";
+        AgentLogFile: {
+            /** Format: date-time */
+            at: string;
+            lines: string[];
+        };
+        AgentLoginItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            at: string;
+            /** Format: date-time */
+            lastAt: null | string;
+            /** Format: int32 */
+            count: number;
+            outcome: components["schemas"]["LogonOutcome"];
+            failureReason: null | string;
+            user: string;
+            domain: null | string;
+            isAdmin: boolean;
+            kind: components["schemas"]["LogonKind"];
+            authPackage: null | string;
+            sourceAddress: null | string;
+            /** Format: int32 */
+            sourcePort: null | number;
+            workstation: null | string;
+            elevated: null | boolean;
+            /** Format: date-time */
+            loggedOffAt: null | string;
+            channel: string;
+        };
+        AgentLogItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            sensorId: null | string;
+            agentName: string;
+            /** Format: date-time */
+            at: string;
+            kind: components["schemas"]["AgentLogKind"];
+            message: string;
+            details: null | string;
+            address: null | string;
+        };
+        /** @enum {unknown} */
+        AgentLogKind: "Joined" | "Connected" | "Disconnected" | "AuthFailed" | "Revoked" | "Uninstalled" | "ConfigSent" | "Request" | "Problem" | "Crashed" | "Error" | "Warning";
+        /** @enum {unknown} */
+        AgentPlatform: "Windows" | "Linux";
+        AgentRejoinTokenRequest: {
+            /** Format: int32 */
+            validHours: null | number;
+        };
+        AgentRequestResult: {
+            ok: boolean;
+            error: null | string;
+        };
+        AgentRevokeRequest: {
+            reason: null | string;
+        };
+        AgentScriptDetail: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            language: components["schemas"]["ScriptLanguage"];
+            /** Format: int32 */
+            currentVersion: number;
+            text: string;
+            hash: string;
+            parseState: components["schemas"]["ScriptParseState"];
+            parsed: null | components["schemas"]["ParsedScript"];
+            parseError: null | string;
+            versions: components["schemas"]["AgentScriptVersionItem"][];
+            parserAvailable: boolean;
+        };
+        AgentScriptItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            language: components["schemas"]["ScriptLanguage"];
+            /** Format: int32 */
+            currentVersion: number;
+            parseState: components["schemas"]["ScriptParseState"];
+            /** Format: int32 */
+            parameters: number;
+            /** Format: int32 */
+            findings: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AgentScriptRequest: {
+            name: string;
+            description: null | string;
+            text: string;
+        };
+        AgentScriptRunDetail: {
+            run: components["schemas"]["AgentScriptRunItem"];
+            arguments: null | string;
+            output: null | string;
+            hash: string;
+            /** Format: int32 */
+            timeoutSeconds: number;
+        };
+        AgentScriptRunItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            batchId: string;
+            /** Format: uuid */
+            scriptId: null | string;
+            scriptName: string;
+            /** Format: int32 */
+            versionNumber: number;
+            server: null | components["schemas"]["Ref"];
+            serverName: string;
+            runAsName: string;
+            runAsKind: components["schemas"]["RunAsKind"];
+            account: null | string;
+            requestedBy: null | string;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt: null | string;
+            state: components["schemas"]["ScriptRunState"];
+            /** Format: int32 */
+            exitCode: null | number;
+            message: null | string;
+            /** Format: double */
+            durationMs: null | number;
+            redacted: boolean;
+        };
+        AgentScriptRunRequest: {
+            sensorIds: string[];
+            /** Format: uuid */
+            runAsId: string;
+            arguments: null | Record<string, never>;
+            secureArguments: null | {
+                [key: string]: string;
+            };
+            password: null | string;
+            /** Format: int32 */
+            timeoutSeconds: null | number;
+            shell: null | string;
+        };
+        AgentScriptVersionItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            hash: string;
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: null | string;
+            parseState: components["schemas"]["ScriptParseState"];
+            /** Format: date-time */
+            parsedAt: null | string;
+            parsedOn: null | string;
+            parseError: null | string;
+        };
+        AgentSectionInfo: {
+            name: string;
+            /** Format: date-time */
+            collectedAt: string;
+            /** Format: date-time */
+            receivedAt: string;
+            errors: string[];
+        };
+        AgentServerDetail: {
+            server: components["schemas"]["AgentServerItem"];
+            /** Format: uuid */
+            agentId: string;
+            keyFingerprint: string;
+            pnmtdFingerprint: string;
+            /** Format: date-time */
+            joinedAt: string;
+            /** Format: date-time */
+            connectedAt: null | string;
+            /** Format: date-time */
+            disconnectedAt: null | string;
+            remoteAddress: null | string;
+            fqdn: null | string;
+            osEdition: null | string;
+            osDisplayVersion: null | string;
+            machineId: null | string;
+            capabilities: string[];
+            /** Format: int32 */
+            configVersion: number;
+            /** Format: int32 */
+            currentConfigVersion: number;
+            heartbeat: null | components["schemas"]["Heartbeat"];
+            settings: components["schemas"]["AgentServerSettings"];
+            recentProblems: components["schemas"]["AgentLogItem"][];
+            sameMachine: components["schemas"]["Ref"][];
+            sections: components["schemas"]["AgentSectionInfo"][];
+            revokedReason: null | string;
+            /** Format: date-time */
+            revokedAt: null | string;
+            /** Format: date-time */
+            uninstalledAt: null | string;
+            pnmtVersion: string;
+        };
+        AgentServerItem: {
+            /** Format: uuid */
+            sensorId: string;
+            host: components["schemas"]["Ref"];
+            name: string;
+            platform: components["schemas"]["AgentPlatform"];
+            state: components["schemas"]["SensorState"];
+            /** Format: int32 */
+            lastCode: null | number;
+            lastMessage: null | string;
+            hostname: string;
+            domain: null | string;
+            osCaption: null | string;
+            osBuild: null | string;
+            osSupported: boolean;
+            architecture: null | string;
+            agentVersion: null | string;
+            outdated: boolean;
+            connected: boolean;
+            /** Format: date-time */
+            lastSeenAt: null | string;
+            /** Format: date-time */
+            bootTime: null | string;
+            /** Format: int32 */
+            clockSkewSeconds: null | number;
+            revoked: boolean;
+            uninstalled: boolean;
+            /** Format: date-time */
+            lastProblemAt: null | string;
+            remoteAccess: null | string;
+            /** Format: int32 */
+            auditGaps: number;
+            /** Format: int32 */
+            diagnosticsFailing: number;
+        };
+        AgentServerSettings: {
+            adminLoginEvents: boolean;
+            failedLoginEvents: boolean;
+            /** Format: int32 */
+            failedLoginThreshold: number;
+            criticalEvents: boolean;
         };
         AiAnalysisQueued: {
             /** Format: uuid */
@@ -10081,6 +10389,69 @@ export interface components {
         };
         /** @enum {unknown} */
         PacketType: "Heartbeat" | "Data" | "Event" | "CmdResult" | "Boot" | "Join" | "Ota" | "Ack" | "Command" | "JoinAccept" | "OtaOffer" | "OtaChunk";
+        PagedOfAgentChangeItem: {
+            items: components["schemas"]["AgentChangeItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfAgentJoinTokenItem: {
+            items: components["schemas"]["AgentJoinTokenItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfAgentLoginItem: {
+            items: components["schemas"]["AgentLoginItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfAgentLogItem: {
+            items: components["schemas"]["AgentLogItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfAgentScriptItem: {
+            items: components["schemas"]["AgentScriptItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfAgentScriptRunItem: {
+            items: components["schemas"]["AgentScriptRunItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfAgentServerItem: {
+            items: components["schemas"]["AgentServerItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfAiAnalysisRunItem: {
             items: components["schemas"]["AiAnalysisRunItem"][];
             /** Format: int32 */
@@ -10324,69 +10695,6 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
-        PagedOfWindowsAgentLogItem: {
-            items: components["schemas"]["WindowsAgentLogItem"][];
-            /** Format: int32 */
-            page: number;
-            /** Format: int32 */
-            pageSize: number;
-            /** Format: int32 */
-            totalCount: number;
-        };
-        PagedOfWindowsChangeItem: {
-            items: components["schemas"]["WindowsChangeItem"][];
-            /** Format: int32 */
-            page: number;
-            /** Format: int32 */
-            pageSize: number;
-            /** Format: int32 */
-            totalCount: number;
-        };
-        PagedOfWindowsJoinTokenItem: {
-            items: components["schemas"]["WindowsJoinTokenItem"][];
-            /** Format: int32 */
-            page: number;
-            /** Format: int32 */
-            pageSize: number;
-            /** Format: int32 */
-            totalCount: number;
-        };
-        PagedOfWindowsLoginItem: {
-            items: components["schemas"]["WindowsLoginItem"][];
-            /** Format: int32 */
-            page: number;
-            /** Format: int32 */
-            pageSize: number;
-            /** Format: int32 */
-            totalCount: number;
-        };
-        PagedOfWindowsScriptItem: {
-            items: components["schemas"]["WindowsScriptItem"][];
-            /** Format: int32 */
-            page: number;
-            /** Format: int32 */
-            pageSize: number;
-            /** Format: int32 */
-            totalCount: number;
-        };
-        PagedOfWindowsScriptRunItem: {
-            items: components["schemas"]["WindowsScriptRunItem"][];
-            /** Format: int32 */
-            page: number;
-            /** Format: int32 */
-            pageSize: number;
-            /** Format: int32 */
-            totalCount: number;
-        };
-        PagedOfWindowsServerItem: {
-            items: components["schemas"]["WindowsServerItem"][];
-            /** Format: int32 */
-            page: number;
-            /** Format: int32 */
-            pageSize: number;
-            /** Format: int32 */
-            totalCount: number;
-        };
         ParsedScript: {
             parameters: components["schemas"]["ScriptParameter"][];
             help: null | components["schemas"]["ScriptHelp"];
@@ -10543,6 +10851,8 @@ export interface components {
                 [key: string]: string;
             };
         };
+        /** @enum {unknown} */
+        ScriptLanguage: "PowerShell" | "Bash";
         ScriptParameter: {
             name: string;
             type: string;
@@ -11553,88 +11863,6 @@ export interface components {
         WgPeerKind: "Router" | "Custom";
         /** @enum {unknown} */
         WgSettingSource: "Default" | "Ui" | "Environment";
-        WindowsAgentDownload: {
-            architecture: string;
-            fileName: string;
-            url: string;
-            sha256: null | string;
-        };
-        WindowsAgentDownloads: {
-            version: string;
-            files: components["schemas"]["WindowsAgentDownload"][];
-            releaseUrl: null | string;
-            note: null | string;
-        };
-        WindowsAgentLogFile: {
-            /** Format: date-time */
-            at: string;
-            lines: string[];
-        };
-        WindowsAgentLogItem: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            sensorId: null | string;
-            agentName: string;
-            /** Format: date-time */
-            at: string;
-            kind: components["schemas"]["WindowsAgentLogKind"];
-            message: string;
-            details: null | string;
-            address: null | string;
-        };
-        /** @enum {unknown} */
-        WindowsAgentLogKind: "Joined" | "Connected" | "Disconnected" | "AuthFailed" | "Revoked" | "Uninstalled" | "ConfigSent" | "Request" | "Problem" | "Crashed" | "Error" | "Warning";
-        WindowsChangeItem: {
-            /** Format: uuid */
-            id: string;
-            section: string;
-            /** Format: date-time */
-            at: string;
-            summary: string;
-            notable: boolean;
-            details: null | string;
-        };
-        WindowsCollectRequest: {
-            sections: null | string[];
-        };
-        WindowsJoinTokenCreated: {
-            item: components["schemas"]["WindowsJoinTokenItem"];
-            token: string;
-            url: string;
-            pnmtdFingerprint: string;
-            commandLine: string;
-            downloads: components["schemas"]["WindowsAgentDownloads"];
-        };
-        WindowsJoinTokenItem: {
-            /** Format: uuid */
-            id: string;
-            prefix: string;
-            host: components["schemas"]["Ref"];
-            name: null | string;
-            rejoin: null | components["schemas"]["Ref"];
-            /** Format: date-time */
-            createdAt: string;
-            createdByName: null | string;
-            /** Format: date-time */
-            expiresAt: string;
-            /** Format: date-time */
-            usedAt: null | string;
-            usedFromAddress: null | string;
-            result: null | components["schemas"]["Ref"];
-            /** Format: date-time */
-            revokedAt: null | string;
-            state: components["schemas"]["WindowsJoinTokenState"];
-        };
-        WindowsJoinTokenRequest: {
-            /** Format: uuid */
-            hostId: string;
-            name: null | string;
-            /** Format: int32 */
-            validHours: null | number;
-        };
-        /** @enum {unknown} */
-        WindowsJoinTokenState: "Pending" | "Used" | "Expired" | "Revoked";
         WindowsLocalScript: {
             script: components["schemas"]["RegisteredScript"];
             runAsName: string;
@@ -11660,42 +11888,6 @@ export interface components {
             runAs: string[];
             scripts: components["schemas"]["WindowsLocalScript"][];
         };
-        WindowsLoginItem: {
-            /** Format: uuid */
-            id: string;
-            /** Format: date-time */
-            at: string;
-            /** Format: date-time */
-            lastAt: null | string;
-            /** Format: int32 */
-            count: number;
-            outcome: components["schemas"]["LogonOutcome"];
-            failureReason: null | string;
-            user: string;
-            domain: null | string;
-            isAdmin: boolean;
-            kind: components["schemas"]["LogonKind"];
-            authPackage: null | string;
-            sourceAddress: null | string;
-            /** Format: int32 */
-            sourcePort: null | number;
-            workstation: null | string;
-            elevated: null | boolean;
-            /** Format: date-time */
-            loggedOffAt: null | string;
-            channel: string;
-        };
-        WindowsRejoinTokenRequest: {
-            /** Format: int32 */
-            validHours: null | number;
-        };
-        WindowsRequestResult: {
-            ok: boolean;
-            error: null | string;
-        };
-        WindowsRevokeRequest: {
-            reason: null | string;
-        };
         WindowsRunAsItem: {
             /** Format: uuid */
             id: string;
@@ -11711,113 +11903,6 @@ export interface components {
             kind: components["schemas"]["RunAsKind"];
             account: null | string;
             description: null | string;
-        };
-        WindowsScriptDetail: {
-            /** Format: uuid */
-            id: string;
-            name: string;
-            description: null | string;
-            /** Format: int32 */
-            currentVersion: number;
-            text: string;
-            hash: string;
-            parseState: components["schemas"]["ScriptParseState"];
-            parsed: null | components["schemas"]["ParsedScript"];
-            parseError: null | string;
-            versions: components["schemas"]["WindowsScriptVersionItem"][];
-            parserAvailable: boolean;
-        };
-        WindowsScriptItem: {
-            /** Format: uuid */
-            id: string;
-            name: string;
-            description: null | string;
-            /** Format: int32 */
-            currentVersion: number;
-            parseState: components["schemas"]["ScriptParseState"];
-            /** Format: int32 */
-            parameters: number;
-            /** Format: int32 */
-            findings: number;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        WindowsScriptRequest: {
-            name: string;
-            description: null | string;
-            text: string;
-        };
-        WindowsScriptRunDetail: {
-            run: components["schemas"]["WindowsScriptRunItem"];
-            arguments: null | string;
-            output: null | string;
-            hash: string;
-            /** Format: int32 */
-            timeoutSeconds: number;
-        };
-        WindowsScriptRunItem: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            batchId: string;
-            /** Format: uuid */
-            scriptId: null | string;
-            scriptName: string;
-            /** Format: int32 */
-            versionNumber: number;
-            server: null | components["schemas"]["Ref"];
-            serverName: string;
-            runAsName: string;
-            runAsKind: components["schemas"]["RunAsKind"];
-            account: null | string;
-            requestedBy: null | string;
-            /** Format: date-time */
-            startedAt: string;
-            /** Format: date-time */
-            finishedAt: null | string;
-            state: components["schemas"]["ScriptRunState"];
-            /** Format: int32 */
-            exitCode: null | number;
-            message: null | string;
-            /** Format: double */
-            durationMs: null | number;
-            redacted: boolean;
-        };
-        WindowsScriptRunRequest: {
-            sensorIds: string[];
-            /** Format: uuid */
-            runAsId: string;
-            arguments: null | Record<string, never>;
-            secureArguments: null | {
-                [key: string]: string;
-            };
-            password: null | string;
-            /** Format: int32 */
-            timeoutSeconds: null | number;
-            shell: null | string;
-        };
-        WindowsScriptVersionItem: {
-            /** Format: uuid */
-            id: string;
-            /** Format: int32 */
-            number: number;
-            hash: string;
-            /** Format: date-time */
-            createdAt: string;
-            createdByName: null | string;
-            parseState: components["schemas"]["ScriptParseState"];
-            /** Format: date-time */
-            parsedAt: null | string;
-            parsedOn: null | string;
-            parseError: null | string;
-        };
-        WindowsSectionInfo: {
-            name: string;
-            /** Format: date-time */
-            collectedAt: string;
-            /** Format: date-time */
-            receivedAt: string;
-            errors: string[];
         };
         WindowsSectionView: {
             name: string;
@@ -11835,81 +11920,6 @@ export interface components {
             remoteAccess?: null | components["schemas"]["RemoteAccessSection"];
             access?: null | components["schemas"]["AccessSection"];
             eventLog?: null | components["schemas"]["EventLogSection"];
-        };
-        WindowsServerDetail: {
-            server: components["schemas"]["WindowsServerItem"];
-            /** Format: uuid */
-            agentId: string;
-            keyFingerprint: string;
-            pnmtdFingerprint: string;
-            /** Format: date-time */
-            joinedAt: string;
-            /** Format: date-time */
-            connectedAt: null | string;
-            /** Format: date-time */
-            disconnectedAt: null | string;
-            remoteAddress: null | string;
-            fqdn: null | string;
-            osEdition: null | string;
-            osDisplayVersion: null | string;
-            machineGuid: null | string;
-            capabilities: string[];
-            /** Format: int32 */
-            configVersion: number;
-            /** Format: int32 */
-            currentConfigVersion: number;
-            heartbeat: null | components["schemas"]["Heartbeat"];
-            settings: components["schemas"]["WindowsServerSettings"];
-            recentProblems: components["schemas"]["WindowsAgentLogItem"][];
-            sameMachine: components["schemas"]["Ref"][];
-            sections: components["schemas"]["WindowsSectionInfo"][];
-            revokedReason: null | string;
-            /** Format: date-time */
-            revokedAt: null | string;
-            /** Format: date-time */
-            uninstalledAt: null | string;
-            pnmtVersion: string;
-        };
-        WindowsServerItem: {
-            /** Format: uuid */
-            sensorId: string;
-            host: components["schemas"]["Ref"];
-            name: string;
-            state: components["schemas"]["SensorState"];
-            /** Format: int32 */
-            lastCode: null | number;
-            lastMessage: null | string;
-            hostname: string;
-            domain: null | string;
-            osCaption: null | string;
-            osBuild: null | string;
-            osSupported: boolean;
-            architecture: null | string;
-            agentVersion: null | string;
-            outdated: boolean;
-            connected: boolean;
-            /** Format: date-time */
-            lastSeenAt: null | string;
-            /** Format: date-time */
-            bootTime: null | string;
-            /** Format: int32 */
-            clockSkewSeconds: null | number;
-            revoked: boolean;
-            uninstalled: boolean;
-            /** Format: date-time */
-            lastProblemAt: null | string;
-            remoteAccess: null | string;
-            /** Format: int32 */
-            auditGaps: number;
-            /** Format: int32 */
-            diagnosticsFailing: number;
-        };
-        WindowsServerSettings: {
-            adminLoginEvents: boolean;
-            failedLoginEvents: boolean;
-            /** Format: int32 */
-            failedLoginThreshold: number;
-            criticalEvents: boolean;
         };
         WindowsWmiView: {
             settings: components["schemas"]["WmiConfig"];

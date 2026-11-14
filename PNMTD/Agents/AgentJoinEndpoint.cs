@@ -8,12 +8,11 @@ using PNMTD.Lib.Agent;
 using PNMTD.Lib.Helper;
 using PNMTD.Lib.Models.Enum;
 using PNMTD.Models.Db;
-using PNMTD.Windows;
 
 namespace PNMTD.Agents;
 
 /// <summary>
-/// Join attempts (docs/windows-sensor-plan.md §8.7): <c>Windows:JoinRateLimitPerMinute</c> per address, and the join closes
+/// Join attempts (docs/windows-sensor-plan.md §8.7): <c>Agents:JoinRateLimitPerMinute</c> per address, and the join closes
 /// for 15 minutes after 50 failures in an hour, whatever their addresses.
 /// </summary>
 public sealed class JoinGuard
@@ -88,13 +87,14 @@ public sealed class JoinGuard
 
 /// <summary>
 /// <c>GET</c> and <c>POST /agent/v1/join</c> (§3.3, §9.1): anonymous, authenticated by the join token. The answer carries the
-/// agent's id, its sensor, PNMTD's signing key and the first configuration, signed with that key.
+/// agent's id, its sensor, PNMTD's signing key and the first configuration, signed with that key. A token is made for one
+/// platform (docs/linux-sensor-plan.md §3.3): the join's must match it, and the new sensor is of the platform's type.
 /// </summary>
 public static class AgentJoinEndpoint
 {
     private const int MaxBodyBytes = 64 * 1024;
 
-    public static async Task<IResult> InfoAsync(AgentKeyStore keys, IOptionsMonitor<WindowsOptions> options, CancellationToken ct)
+    public static async Task<IResult> InfoAsync(AgentKeyStore keys, IOptionsMonitor<AgentOptions> options, CancellationToken ct)
     {
         if (!options.CurrentValue.Enabled)
         {
@@ -105,7 +105,7 @@ public static class AgentJoinEndpoint
     }
 
     public static async Task<IResult> JoinAsync(HttpContext http, IDbContextFactory<PnmtdDbContext> dbs, AgentKeyStore keys, AgentHub hub,
-        JoinGuard guard, IOptionsMonitor<WindowsOptions> options, ILogger<AgentHub> logger, CancellationToken ct)
+        JoinGuard guard, IOptionsMonitor<AgentOptions> options, ILogger<AgentHub> logger, CancellationToken ct)
     {
         var settings = options.CurrentValue;
         if (!settings.Enabled)
@@ -160,7 +160,7 @@ public static class AgentJoinEndpoint
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var hash = JoinTokens.Hash(token);
         var now = Clock.UtcNow;
-        var row = await db.WindowsJoinTokens.SingleOrDefaultAsync(t => t.TokenHash == hash, ct);
+        var row = await db.AgentJoinTokens.SingleOrDefaultAsync(t => t.TokenHash == hash, ct);
         var host = row is null ? null : await db.Hosts.SingleOrDefaultAsync(h => h.Id == row.HostId, ct);
         if (row is null || row.UsedAt is not null || row.RevokedAt is not null || row.ExpiresAt < now || host is null)
         {
@@ -171,8 +171,16 @@ public static class AgentJoinEndpoint
             return Error(StatusCodes.Status403Forbidden, "invalid_token",
                 "This token is unknown, used, revoked or expired. Create a new one in PNMT: Add server.");
         }
+        // The token's platform decides; an agent of the other platform is refused before the token is used up.
+        if (request.Platform != row.Platform)
+        {
+            await transaction.RollbackAsync(ct);
+            await FailedAsync(dbs, guard, $"token {row.Prefix}… is for {row.Platform}, the agent runs on {request.Platform}", address, ct);
+            return Error(StatusCodes.Status403Forbidden, "wrong_platform",
+                $"This token was made for a {row.Platform} server; this agent runs on {request.Platform}. Create a token for {request.Platform} in PNMT: Add server.");
+        }
         // Single use, also against a second join in the same moment.
-        var claimed = await db.WindowsJoinTokens.Where(t => t.Id == row.Id && t.UsedAt == null)
+        var claimed = await db.AgentJoinTokens.Where(t => t.Id == row.Id && t.UsedAt == null)
             .ExecuteUpdateAsync(u => u.SetProperty(t => t.UsedAt, now).SetProperty(t => t.UsedFromAddress, Cuts.Cut(address, 100)), ct);
         if (claimed != 1)
         {
@@ -184,15 +192,16 @@ public static class AgentJoinEndpoint
         var publicKey = AgentSigning.PublicKey(agentKey);
         var fingerprint = AgentSigning.Fingerprint(publicKey);
         var signing = await keys.GetAsync(ct);
-        WindowsAgentEntity agent;
+        var platform = AgentPlatformInfo.Of(row.Platform);
+        AgentEntity agent;
         SensorEntity sensor;
         var rejoin = row.SensorId is not null;
         if (row.SensorId is { } existingId)
         {
-            sensor = await db.Sensors.SingleOrDefaultAsync(s => s.Id == existingId && s.Type == SensorType.WINDOWS, ct)
+            sensor = await db.Sensors.SingleOrDefaultAsync(s => s.Id == existingId && s.Type == platform.SensorType, ct)
                 ?? throw new InvalidOperationException("The re-join token's server is gone.");
-            agent = await db.WindowsAgents.SingleOrDefaultAsync(a => a.SensorId == existingId, ct)
-                ?? new WindowsAgentEntity { SensorId = existingId }.Also(a => db.WindowsAgents.Add(a));
+            agent = await db.Agents.SingleOrDefaultAsync(a => a.SensorId == existingId, ct)
+                ?? new AgentEntity { SensorId = existingId }.Also(a => db.Agents.Add(a));
         }
         else
         {
@@ -200,8 +209,8 @@ public static class AgentJoinEndpoint
             {
                 Id = Guid.NewGuid(),
                 ParentId = host.Id,
-                Type = SensorType.WINDOWS,
-                Name = row.Name ?? "Windows",
+                Type = platform.SensorType,
+                Name = row.Name ?? platform.Name,
                 Enabled = true,
                 Interval = Math.Clamp(settings.HeartbeatSeconds, 15, 600),
                 GracePeriod = 120,
@@ -209,9 +218,10 @@ public static class AgentJoinEndpoint
             };
             sensor.SetNewSecretToken();
             db.Sensors.Add(sensor);
-            agent = new WindowsAgentEntity { SensorId = sensor.Id };
-            db.WindowsAgents.Add(agent);
+            agent = new AgentEntity { SensorId = sensor.Id };
+            db.Agents.Add(agent);
         }
+        agent.Platform = row.Platform;
         agent.AgentId = Guid.NewGuid();
         agent.PublicKey = publicKey;
         agent.KeyFingerprint = fingerprint;
@@ -220,7 +230,7 @@ public static class AgentJoinEndpoint
         agent.RevokedReason = null;
         agent.UninstalledAt = null;
         agent.Connected = false;
-        agent.MachineGuid = Cuts.CutOrNull(request.MachineGuid, 64);
+        agent.MachineId = Cuts.CutOrNull(request.MachineGuid, 64);
         agent.Hostname = Cuts.Cut(request.Hostname.Trim(), 255);
         agent.Fqdn = Cuts.CutOrNull(request.Fqdn, 255);
         agent.Domain = Cuts.CutOrNull(request.Domain, 255);
@@ -234,21 +244,23 @@ public static class AgentJoinEndpoint
         row.ResultSensorId = sensor.Id;
 
         var name = $"{host.Name} / {sensor.Name}";
-        WindowsAgentLog.Add(db, sensor.Id, name, WindowsAgentLogKind.Joined,
+        // Windows calls the machine's id MachineGuid; Linux's is /etc/machine-id.
+        var machineIdName = row.Platform == AgentPlatform.Windows ? "MachineGuid" : "machine id";
+        AgentLog.Add(db, sensor.Id, name, AgentLogKind.Joined,
             $"{(rejoin ? "Re-joined" : "Joined")} as {agent.Hostname} ({agent.OsCaption} {agent.OsBuild}) with token {row.Prefix}…. " +
             $"The server's key: {fingerprint}. PNMTD's key: {signing.Fingerprint}.",
-            new { ServerKey = fingerprint, PnmtdKey = signing.Fingerprint, Token = row.Prefix, agent.MachineGuid }, address);
-        if (agent.MachineGuid is { } machine)
+            new { ServerKey = fingerprint, PnmtdKey = signing.Fingerprint, Token = row.Prefix, agent.MachineId }, address);
+        if (agent.MachineId is { } machine)
         {
-            var same = await db.WindowsAgents.Where(a => a.MachineGuid == machine && a.SensorId != sensor.Id)
+            var same = await db.Agents.Where(a => a.MachineId == machine && a.SensorId != sensor.Id)
                 .Select(a => new { a.SensorId, Name = a.Sensor.Parent.Name + " / " + a.Sensor.Name }).ToListAsync(ct);
             foreach (var other in same)
             {
-                WindowsAgentLog.Add(db, sensor.Id, name, WindowsAgentLogKind.Warning, $"Possibly the same machine as {other.Name} (the same MachineGuid).", address: address);
-                WindowsAgentLog.Add(db, other.SensorId, other.Name, WindowsAgentLogKind.Warning, $"Possibly the same machine as {name}, which just joined (the same MachineGuid).", address: address);
+                AgentLog.Add(db, sensor.Id, name, AgentLogKind.Warning, $"Possibly the same machine as {other.Name} (the same {machineIdName}).", address: address);
+                AgentLog.Add(db, other.SensorId, other.Name, AgentLogKind.Warning, $"Possibly the same machine as {name}, which just joined (the same {machineIdName}).", address: address);
             }
         }
-        WindowsAgentLog.Audit(db, AuthEvents.WindowsJoined, $"{name}: {agent.Hostname} joined with token {row.Prefix}… (key {fingerprint})", address);
+        AgentLog.Audit(db, AuthEvents.AgentJoined, $"{name}: {agent.Hostname} joined with token {row.Prefix}… (key {fingerprint})", address);
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
 
@@ -256,9 +268,9 @@ public static class AgentJoinEndpoint
         {
             await hub.DisconnectAsync(sensor.Id, AgentCloseCodes.Revoked, "re-joined with a new key");
         }
-        logger.LogInformation("Windows agent {Hostname} joined as {Name} from {Address}", agent.Hostname, name, address);
+        logger.LogInformation("{Platform} agent {Hostname} joined as {Name} from {Address}", row.Platform, agent.Hostname, name, address);
 
-        var config = await WindowsConfig.BuildAsync(db, keys, settings, sensor.Id, ct);
+        var config = await AgentConfiguration.BuildAsync(db, keys, settings, sensor.Id, ct);
         var grant = new JoinGrant(agent.AgentId, sensor.Id, sensor.Name, host.Name, fingerprint, config);
         var signed = AgentSigning.Sign(signing.Key, AgentMessageTypes.Join, agent.AgentId, grant, AgentProtocol.RequestLifetime);
         return Results.Json(new JoinResponse(signing.PublicKey, signing.Fingerprint, signed), AgentJson.Options);
@@ -285,7 +297,7 @@ public static class AgentJoinEndpoint
     {
         guard.Failed();
         await using var db = await dbs.CreateDbContextAsync(ct);
-        WindowsAgentLog.Audit(db, AuthEvents.WindowsJoinFailed, $"join refused: {why}", address);
+        AgentLog.Audit(db, AuthEvents.AgentJoinFailed, $"join refused: {why}", address);
         await db.SaveChangesAsync(ct);
     }
 

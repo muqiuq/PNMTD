@@ -52,20 +52,21 @@ import UdpNodePanel from './udp/UdpNodePanel.vue'
 import UdpSettingsDialog from './udp/UdpSettingsDialog.vue'
 import UdpStatusStrip from './udp/UdpStatusStrip.vue'
 import { useNodeActions } from './udp/useNodeActions'
-import { useWindowsServer } from './windows/useWindowsServer'
-import WindowsAgentTab from './windows/WindowsAgentTab.vue'
-import WindowsHardwareTab from './windows/WindowsHardwareTab.vue'
-import WindowsNetworkTab from './windows/WindowsNetworkTab.vue'
+import AgentChangesTab from './agent/AgentChangesTab.vue'
+import AgentDiagnosticsTab from './agent/AgentDiagnosticsTab.vue'
+import AgentHardwareTab from './agent/AgentHardwareTab.vue'
+import AgentLoginsList from './agent/AgentLoginsList.vue'
+import AgentNetworkTab from './agent/AgentNetworkTab.vue'
+import AgentScriptsTab from './agent/AgentScriptsTab.vue'
+import AgentStatusStrip from './agent/AgentStatusStrip.vue'
+import AgentTab from './agent/AgentTab.vue'
+import { useAgentServer } from './agent/useAgentServer'
 import WindowsAccessTab from './windows/WindowsAccessTab.vue'
-import WindowsChangesTab from './windows/WindowsChangesTab.vue'
-import WindowsDiagnosticsTab from './windows/WindowsDiagnosticsTab.vue'
-import WindowsScriptsTab from './windows/WindowsScriptsTab.vue'
-import WindowsWmiTab from './windows/WindowsWmiTab.vue'
 import WindowsEventLogTab from './windows/WindowsEventLogTab.vue'
+import WindowsOverviewTab from './windows/WindowsOverviewTab.vue'
 import WindowsRemoteAccessTab from './windows/WindowsRemoteAccessTab.vue'
 import WindowsServicesTab from './windows/WindowsServicesTab.vue'
-import WindowsOverviewTab from './windows/WindowsOverviewTab.vue'
-import WindowsStatusStrip from './windows/WindowsStatusStrip.vue'
+import WindowsWmiTab from './windows/WindowsWmiTab.vue'
 
 /**
  * A sensor (§5.6). Left: its configuration (by type), how to report to it, its notification rules.
@@ -97,16 +98,45 @@ const heartbeat = computed(() => usesGracePeriod(sensor.value?.type))
 // --- a UDP node's subpages ------------------------------------------------------------------
 const isUdp = computed(() => sensor.value?.type === 'UDP_NODE' && !!sensor.value.udp)
 const isMikrotik = computed(() => sensor.value?.type === 'MIKROTIK' && !!sensor.value.mikrotik)
-// A Windows server's pages (docs/windows-sensor-plan.md §10.2): the overview first.
+// A server's pages (docs/windows-sensor-plan.md §10.2; docs/linux-sensor-plan.md §11.2): Windows' with the overview first; a
+// Linux server's shared tabs (views/sensors/agent/), with its own tabs to come with its agent (L3, L4).
 const isWindows = computed(() => sensor.value?.type === 'WINDOWS')
-const windows = useWindowsServer(id, isWindows)
+const isLinux = computed(() => sensor.value?.type === 'LINUX')
+const isAgent = computed(() => isWindows.value || isLinux.value)
+const agent = useAgentServer(id, isAgent)
 const tab = computed(
   () =>
-    ((isUdp.value || isMikrotik.value || isWindows.value) &&
-      typeof route.params.tab === 'string' &&
-      route.params.tab) ||
+    ((isUdp.value || isMikrotik.value || isAgent.value) && typeof route.params.tab === 'string' && route.params.tab) ||
     (isWindows.value ? 'overview' : 'events'),
 )
+const agentTabs = computed(() => (isWindows.value ? windowsTabs.value : linuxTabs.value))
+const diagnosticsTab = (to: (t?: string) => object) => ({
+  key: 'diagnostics',
+  label: 'Diagnostics',
+  icon: 'pi pi-check-circle',
+  to: to('diagnostics'),
+  badge: agent.server.value?.server.diagnosticsFailing || null,
+})
+const agentTab = (to: (t?: string) => object) => ({
+  key: 'agent',
+  label: 'Agent',
+  icon: 'pi pi-cog',
+  to: to('agent'),
+  badge: agent.server.value?.server.connected === false ? '!' : null,
+})
+const linuxTabs = computed(() => {
+  const to = (t?: string) => ({ name: 'sensor', params: { id: id.value, tab: t } })
+  return [
+    { key: 'events', label: 'Events', icon: 'pi pi-list', to: to() },
+    { key: 'hardware', label: 'Hardware', icon: 'pi pi-box', to: to('hardware') },
+    { key: 'network', label: 'Network', icon: 'pi pi-sitemap', to: to('network') },
+    // Logins hold names and addresses: the User role.
+    ...(canWrite.value ? [{ key: 'access', label: 'Access', icon: 'pi pi-sign-in', to: to('access') }] : []),
+    diagnosticsTab(to),
+    { key: 'changes', label: 'Changes', icon: 'pi pi-history', to: to('changes') },
+    agentTab(to),
+  ]
+})
 const windowsTabs = computed(() => {
   const to = (t?: string) => ({ name: 'sensor', params: { id: id.value, tab: t } })
   return [
@@ -123,25 +153,13 @@ const windowsTabs = computed(() => {
           { key: 'event-log', label: 'Event log', icon: 'pi pi-exclamation-triangle', to: to('event-log') },
         ]
       : []),
-    {
-      key: 'diagnostics',
-      label: 'Diagnostics',
-      icon: 'pi pi-check-circle',
-      to: to('diagnostics'),
-      badge: windows.server.value?.server.diagnosticsFailing || null,
-    },
+    diagnosticsTab(to),
     { key: 'changes', label: 'Changes', icon: 'pi pi-history', to: to('changes') },
     // PowerShell scripts (§7.3): Admin.
     ...(isAdmin.value ? [{ key: 'scripts', label: 'Scripts', icon: 'pi pi-code', to: to('scripts') }] : []),
     // WMI (§16): the agent's queries, their switches and timeouts, and own queries. Admin.
     ...(isAdmin.value ? [{ key: 'wmi', label: 'WMI', icon: 'pi pi-database', to: to('wmi') }] : []),
-    {
-      key: 'agent',
-      label: 'Agent',
-      icon: 'pi pi-cog',
-      to: to('agent'),
-      badge: windows.server.value?.server.connected === false ? '!' : null,
-    },
+    agentTab(to),
   ]
 })
 const mikrotikTabs = computed(() => {
@@ -332,7 +350,7 @@ const more = computed(() =>
     : [
         ...udpItems.value,
         ...mikrotikItems.value,
-        ...(sensor.value?.integration && !isWindows.value
+        ...(sensor.value?.integration && !isAgent.value
           ? [{ label: 'New tokens…', icon: 'pi pi-key', command: () => (rotating.value = true) }]
           : []),
         { label: 'Delete sensor…', icon: 'pi pi-trash', command: remove },
@@ -376,9 +394,9 @@ const more = computed(() =>
         <MikrotikStatusStrip :sensor="sensor" />
         <TabNav :items="mikrotikTabs" :active="tab" label="Router pages" />
       </template>
-      <template v-else-if="isWindows">
-        <WindowsStatusStrip :server="windows.server.value" />
-        <TabNav :items="windowsTabs" :active="tab" label="Server pages" />
+      <template v-else-if="isAgent">
+        <AgentStatusStrip :server="agent.server.value" />
+        <TabNav :items="agentTabs" :active="tab" label="Server pages" />
       </template>
 
       <SetupTab
@@ -400,42 +418,46 @@ const more = computed(() =>
       <CommandsTab v-else-if="tab === 'commands'" :sensor="sensor" :can-write="canWrite" />
       <FirmwareTab v-else-if="tab === 'firmware'" :sensor="sensor" :is-admin="isAdmin" @update="updating = true" />
       <ProtocolPage v-else-if="tab === 'protocol'" :sensor-id="sensor.id" :sensor-name="sensor.name" />
-      <template v-else-if="isWindows && tab !== 'events'">
-        <div v-if="!windows.server.value" class="center"><ProgressSpinner style="width: 32px; height: 32px" /></div>
-        <WindowsOverviewTab v-else-if="tab === 'overview'" :server="windows.server.value" :can-write="canWrite" />
-        <WindowsHardwareTab v-else-if="tab === 'hardware'" :server="windows.server.value" :can-write="canWrite" />
-        <WindowsNetworkTab v-else-if="tab === 'network'" :server="windows.server.value" :can-write="canWrite" />
-        <WindowsServicesTab v-else-if="tab === 'services'" :server="windows.server.value" :can-write="canWrite" />
+      <template v-else-if="isAgent && tab !== 'events'">
+        <div v-if="!agent.server.value" class="center"><ProgressSpinner style="width: 32px; height: 32px" /></div>
+        <WindowsOverviewTab
+          v-else-if="isWindows && tab === 'overview'"
+          :server="agent.server.value"
+          :can-write="canWrite"
+        />
+        <AgentHardwareTab v-else-if="tab === 'hardware'" :server="agent.server.value" :can-write="canWrite" />
+        <AgentNetworkTab v-else-if="tab === 'network'" :server="agent.server.value" :can-write="canWrite" />
+        <WindowsServicesTab
+          v-else-if="isWindows && tab === 'services'"
+          :server="agent.server.value"
+          :can-write="canWrite"
+        />
         <WindowsRemoteAccessTab
-          v-else-if="tab === 'remote-access'"
-          :server="windows.server.value"
+          v-else-if="isWindows && tab === 'remote-access'"
+          :server="agent.server.value"
           :can-write="canWrite"
         />
         <WindowsAccessTab
-          v-else-if="tab === 'access' && canWrite"
-          :server="windows.server.value"
+          v-else-if="isWindows && tab === 'access' && canWrite"
+          :server="agent.server.value"
           :can-write="canWrite"
         />
+        <AgentLoginsList v-else-if="tab === 'access' && canWrite" :server="agent.server.value" />
         <WindowsEventLogTab
-          v-else-if="tab === 'event-log' && canWrite"
-          :server="windows.server.value"
+          v-else-if="isWindows && tab === 'event-log' && canWrite"
+          :server="agent.server.value"
           :can-write="canWrite"
         />
-        <WindowsChangesTab v-else-if="tab === 'changes'" :server="windows.server.value" />
-        <WindowsScriptsTab v-else-if="tab === 'scripts' && isAdmin" :server="windows.server.value" />
-        <WindowsWmiTab v-else-if="tab === 'wmi' && isAdmin" :server="windows.server.value" />
-        <WindowsDiagnosticsTab
+        <AgentChangesTab v-else-if="tab === 'changes'" :server="agent.server.value" />
+        <AgentScriptsTab v-else-if="isWindows && tab === 'scripts' && isAdmin" :server="agent.server.value" />
+        <WindowsWmiTab v-else-if="isWindows && tab === 'wmi' && isAdmin" :server="agent.server.value" />
+        <AgentDiagnosticsTab
           v-else-if="tab === 'diagnostics'"
-          :server="windows.server.value"
+          :server="agent.server.value"
           :can-write="canWrite"
           :is-admin="isAdmin"
         />
-        <WindowsAgentTab
-          v-else-if="tab === 'agent'"
-          :server="windows.server.value"
-          :can-write="canWrite"
-          :is-admin="isAdmin"
-        />
+        <AgentTab v-else-if="tab === 'agent'" :server="agent.server.value" :can-write="canWrite" :is-admin="isAdmin" />
       </template>
 
       <div v-else class="two-columns">
@@ -595,7 +617,7 @@ const more = computed(() =>
             </div>
           </section>
           <section
-            v-else-if="sensor.integration && !isMikrotik && !isSystem && !isWindows"
+            v-else-if="sensor.integration && !isMikrotik && !isSystem && !isAgent"
             class="panel"
             aria-labelledby="integration-title"
           >

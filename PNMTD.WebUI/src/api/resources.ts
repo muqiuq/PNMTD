@@ -295,10 +295,14 @@ export const api = {
     runAnalysis: () => call(client.POST('/api/v1/ai/analysis/run')),
   },
 
-  /** Windows servers (docs/windows-sensor-plan.md §9.2): the fleet CanRead, requests CanWrite, tokens and the agent log Admin. */
-  windows: {
+  /**
+   * Servers with an agent, Windows and Linux (docs/windows-sensor-plan.md §9.2; docs/linux-sensor-plan.md §10): the fleet
+   * CanRead, requests CanWrite, tokens, the agent log, the downloads and the scripts Admin.
+   */
+  agents: {
     servers: (
       query: ListQuery & {
+        platform?: S['AgentPlatform']
         state?: SensorState
         unsupported?: boolean
         outdated?: boolean
@@ -308,10 +312,8 @@ export const api = {
         diagnosticsFailing?: boolean
         hostId?: Id
       },
-    ) => call(client.GET('/api/v1/windows/servers', { params: { query } })),
-    server: (id: Id) => call(client.GET('/api/v1/windows/servers/{id}', { params: { path: { id } } })),
-    section: (id: Id, section: string) =>
-      call(client.GET('/api/v1/windows/servers/{id}/sections/{section}', { params: { path: { id, section } } })),
+    ) => call(client.GET('/api/v1/agents/servers', { params: { query } })),
+    server: (id: Id) => call(client.GET('/api/v1/agents/servers/{id}', { params: { path: { id } } })),
     logins: (
       id: Id,
       query: ListQuery & {
@@ -323,39 +325,50 @@ export const api = {
         from?: string
         to?: string
       },
-    ) => call(client.GET('/api/v1/windows/servers/{id}/logins', { params: { path: { id }, query } })),
+    ) => call(client.GET('/api/v1/agents/servers/{id}/logins', { params: { path: { id }, query } })),
     changes: (id: Id, query: ListQuery & { section?: string; notable?: boolean }) =>
-      call(client.GET('/api/v1/windows/servers/{id}/changes', { params: { path: { id }, query } })),
-    serverLog: (id: Id, query: ListQuery & { kind?: S['WindowsAgentLogKind'] }) =>
-      call(client.GET('/api/v1/windows/servers/{id}/log', { params: { path: { id }, query } })),
+      call(client.GET('/api/v1/agents/servers/{id}/changes', { params: { path: { id }, query } })),
+    serverLog: (id: Id, query: ListQuery & { kind?: S['AgentLogKind'] }) =>
+      call(client.GET('/api/v1/agents/servers/{id}/log', { params: { path: { id }, query } })),
     collect: (id: Id, sections: string[] = []) =>
-      call(client.POST('/api/v1/windows/servers/{id}/collect', { params: { path: { id } }, body: { sections } })),
-    sendLog: (id: Id) => call(client.POST('/api/v1/windows/servers/{id}/send-log', { params: { path: { id } } })),
-    settings: (id: Id, body: S['WindowsServerSettings']) =>
-      call(client.PUT('/api/v1/windows/servers/{id}/settings', { params: { path: { id } }, body })),
+      call(client.POST('/api/v1/agents/servers/{id}/collect', { params: { path: { id } }, body: { sections } })),
+    sendLog: (id: Id) => call(client.POST('/api/v1/agents/servers/{id}/send-log', { params: { path: { id } } })),
+    settings: (id: Id, body: S['AgentServerSettings']) =>
+      call(client.PUT('/api/v1/agents/servers/{id}/settings', { params: { path: { id } }, body })),
     revoke: (id: Id, reason: string | null) =>
-      call(client.POST('/api/v1/windows/servers/{id}/revoke', { params: { path: { id } }, body: { reason } })),
+      call(client.POST('/api/v1/agents/servers/{id}/revoke', { params: { path: { id } }, body: { reason } })),
     rejoinToken: (id: Id, validHours: number | null = null) =>
-      call(
-        client.POST('/api/v1/windows/servers/{id}/rejoin-token', { params: { path: { id } }, body: { validHours } }),
-      ),
-    tokens: (query: ListQuery & { state?: S['WindowsJoinTokenState'] }) =>
-      call(client.GET('/api/v1/windows/join-tokens', { params: { query } })),
-    createToken: (body: S['WindowsJoinTokenRequest']) => call(client.POST('/api/v1/windows/join-tokens', { body })),
-    revokeToken: (id: Id) => call(client.DELETE('/api/v1/windows/join-tokens/{id}', { params: { path: { id } } })),
-    agentLog: (query: ListQuery & { kind?: S['WindowsAgentLogKind']; sensorId?: Id }) =>
-      call(client.GET('/api/v1/windows/agent-log', { params: { query } })),
-    agent: () => call(client.GET('/api/v1/windows/agent')),
-    // --- PowerShell scripts (docs/windows-sensor-plan.md §7): Admin ---------------------------------------------
-    scripts: (query: ListQuery) => call(client.GET('/api/v1/windows/scripts', { params: { query } })),
-    script: (id: Id) => call(client.GET('/api/v1/windows/scripts/{id}', { params: { path: { id } } })),
-    createScript: (body: S['WindowsScriptRequest']) => call(client.POST('/api/v1/windows/scripts', { body })),
-    updateScript: (id: Id, body: S['WindowsScriptRequest']) =>
-      call(client.PUT('/api/v1/windows/scripts/{id}', { params: { path: { id } }, body })),
-    parseScript: (id: Id) => call(client.POST('/api/v1/windows/scripts/{id}/parse', { params: { path: { id } } })),
-    deleteScript: (id: Id) => call(client.DELETE('/api/v1/windows/scripts/{id}', { params: { path: { id } } })),
-    runScript: (id: Id, body: S['WindowsScriptRunRequest']) =>
-      call(client.POST('/api/v1/windows/scripts/{id}/run', { params: { path: { id } }, body })),
+      call(client.POST('/api/v1/agents/servers/{id}/rejoin-token', { params: { path: { id } }, body: { validHours } })),
+    tokens: (query: ListQuery & { state?: S['AgentJoinTokenState'] }) =>
+      call(client.GET('/api/v1/agents/join-tokens', { params: { query } })),
+    createToken: (body: S['AgentJoinTokenRequest']) => call(client.POST('/api/v1/agents/join-tokens', { body })),
+    revokeToken: (id: Id) => call(client.DELETE('/api/v1/agents/join-tokens/{id}', { params: { path: { id } } })),
+    agentLog: (query: ListQuery & { kind?: S['AgentLogKind']; sensorId?: Id }) =>
+      call(client.GET('/api/v1/agents/agent-log', { params: { query } })),
+    downloads: () => call(client.GET('/api/v1/agents/downloads')),
+    // --- scripts (docs/windows-sensor-plan.md §7; docs/linux-sensor-plan.md §8): Admin --------------------------
+    scripts: (query: ListQuery) => call(client.GET('/api/v1/agents/scripts', { params: { query } })),
+    script: (id: Id) => call(client.GET('/api/v1/agents/scripts/{id}', { params: { path: { id } } })),
+    createScript: (body: S['AgentScriptRequest']) => call(client.POST('/api/v1/agents/scripts', { body })),
+    updateScript: (id: Id, body: S['AgentScriptRequest']) =>
+      call(client.PUT('/api/v1/agents/scripts/{id}', { params: { path: { id } }, body })),
+    parseScript: (id: Id) => call(client.POST('/api/v1/agents/scripts/{id}/parse', { params: { path: { id } } })),
+    deleteScript: (id: Id) => call(client.DELETE('/api/v1/agents/scripts/{id}', { params: { path: { id } } })),
+    runScript: (id: Id, body: S['AgentScriptRunRequest']) =>
+      call(client.POST('/api/v1/agents/scripts/{id}/run', { params: { path: { id } }, body })),
+    scriptRuns: (query: ListQuery & { scriptId?: Id; sensorId?: Id; batchId?: Id; state?: S['ScriptRunState'] }) =>
+      call(client.GET('/api/v1/agents/script-runs', { params: { query } })),
+    scriptRun: (id: Id) => call(client.GET('/api/v1/agents/script-runs/{id}', { params: { path: { id } } })),
+    redactRun: (id: Id) => call(client.POST('/api/v1/agents/script-runs/{id}/redact', { params: { path: { id } } })),
+  },
+
+  /**
+   * What stays Windows' own (docs/linux-sensor-plan.md §3.3): a Windows server's typed sections (CanRead; access and
+   * event-log CanWrite), its WMI, the scripts registered on it, and the run-as accounts (Admin).
+   */
+  windows: {
+    section: (id: Id, section: string) =>
+      call(client.GET('/api/v1/windows/servers/{id}/sections/{section}', { params: { path: { id, section } } })),
     wmi: (sensorId: Id) => call(client.GET('/api/v1/windows/servers/{id}/wmi', { params: { path: { id: sensorId } } })),
     saveWmi: (sensorId: Id, body: S['WmiConfig']) =>
       call(client.PUT('/api/v1/windows/servers/{id}/wmi', { params: { path: { id: sensorId } }, body })),
@@ -368,10 +381,6 @@ export const api = {
     updateRunAs: (id: Id, body: S['WindowsRunAsRequest']) =>
       call(client.PUT('/api/v1/windows/run-as/{id}', { params: { path: { id } }, body })),
     deleteRunAs: (id: Id) => call(client.DELETE('/api/v1/windows/run-as/{id}', { params: { path: { id } } })),
-    scriptRuns: (query: ListQuery & { scriptId?: Id; sensorId?: Id; batchId?: Id; state?: S['ScriptRunState'] }) =>
-      call(client.GET('/api/v1/windows/script-runs', { params: { query } })),
-    scriptRun: (id: Id) => call(client.GET('/api/v1/windows/script-runs/{id}', { params: { path: { id } } })),
-    redactRun: (id: Id) => call(client.POST('/api/v1/windows/script-runs/{id}/redact', { params: { path: { id } } })),
   },
 
   /** Diagnostics (docs/windows-sensor-plan.md §5): reading CanRead, changing Admin, Run now CanWrite. */
@@ -489,9 +498,9 @@ export const keys = {
   udpNode: (id: Id) => ['udp', 'node', id] as const,
   /** MikroTik routers: the admin page's status and fleet (docs/mikrotik-plan.md §11.2). */
   mikrotik: ['mikrotik'] as const,
-  /** Windows servers and their agents (docs/windows-sensor-plan.md §10). */
-  windows: ['windows'] as const,
-  windowsServer: (id: Id) => ['windows', 'server', id] as const,
+  /** Servers with an agent, of every platform (docs/windows-sensor-plan.md §10; docs/linux-sensor-plan.md §11). */
+  agents: ['agents'] as const,
+  agentServer: (id: Id) => ['agents', 'server', id] as const,
   /** Diagnostics: sets, assignments and runs (docs/windows-sensor-plan.md §10.3). */
   diagnostics: ['diagnostics'] as const,
   /** The uplink page and its checks (docs/ai-operations-plan.md §7.3). */

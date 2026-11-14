@@ -5,22 +5,22 @@ import { computed, toRef } from 'vue'
 import { api, keys, type S } from '@/api/resources'
 import RelativeTime from '@/components/RelativeTime.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
-import { useWindowsSection } from './useWindowsSection'
+import { useAgentSection } from '../agent/useAgentSection'
 
 /** The overview's remote access, recent logins (User role) and last changes (docs/windows-sensor-plan.md §10.2). */
-const props = defineProps<{ server: S['WindowsServerDetail']; canWrite: boolean }>()
+const props = defineProps<{ server: S['AgentServerDetail']; canWrite: boolean }>()
 const id = toRef(() => props.server.server.sensorId)
-const remote = useWindowsSection(id, 'remote-access')
+const remote = useAgentSection(id, 'remote-access')
 const admins = useQuery({
-  queryKey: computed(() => [...keys.windowsServer(id.value), 'logins', 'overview-admins']),
-  queryFn: () => api.windows.logins(id.value, { admin: true, outcome: 'Success', pageSize: 5 }),
+  queryKey: computed(() => [...keys.agentServer(id.value), 'logins', 'overview-admins']),
+  queryFn: () => api.agents.logins(id.value, { admin: true, outcome: 'Success', pageSize: 5 }),
   enabled: computed(() => props.canWrite),
   refetchInterval: 30_000,
 })
 const failed = useQuery({
-  queryKey: computed(() => [...keys.windowsServer(id.value), 'logins', 'overview-failed']),
+  queryKey: computed(() => [...keys.agentServer(id.value), 'logins', 'overview-failed']),
   queryFn: () =>
-    api.windows.logins(id.value, {
+    api.agents.logins(id.value, {
       outcome: 'Failure',
       from: new Date(Date.now() - 86_400_000).toISOString(),
       pageSize: 5,
@@ -29,8 +29,8 @@ const failed = useQuery({
   refetchInterval: 30_000,
 })
 const changes = useQuery({
-  queryKey: computed(() => [...keys.windowsServer(id.value), 'changes', 'overview']),
-  queryFn: () => api.windows.changes(id.value, { pageSize: 5 }),
+  queryKey: computed(() => [...keys.agentServer(id.value), 'changes', 'overview']),
+  queryFn: () => api.agents.changes(id.value, { pageSize: 5 }),
   refetchInterval: 60_000,
 })
 const diagnostics = useQuery({
@@ -39,7 +39,7 @@ const diagnostics = useQuery({
   refetchInterval: 30_000,
 })
 const active = computed(() => (remote.data.value?.remoteAccess?.features ?? []).filter((f) => f.active))
-const who = (l: S['WindowsLoginItem']) => (l.domain ? `${l.domain}\\${l.user}` : l.user)
+const who = (l: S['AgentLoginItem']) => (l.domain ? `${l.domain}\\${l.user}` : l.user)
 </script>
 
 <template>

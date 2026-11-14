@@ -12,9 +12,10 @@ namespace PNMTD.Agents;
 public sealed record AgentSigningKey(ECDsa Key, string PublicKey, string Fingerprint);
 
 /// <summary>
-/// PNMTD's agent signing key (docs/windows-sensor-plan.md §3.4): ECDSA P-256, created on first use in windows_settings,
-/// the private key under Data Protection (purpose PNMTD.Windows.AgentSigning.v1) with the key ring on the keys volume,
-/// which backup.sh covers. It signs the join's answer, the configuration and every request; agents pin it at the join.
+/// PNMTD's agent signing key (docs/windows-sensor-plan.md §3.4), one for the agents of every platform: ECDSA P-256, created
+/// on first use in agent_settings, the private key under Data Protection (purpose PNMTD.Windows.AgentSigning.v1, kept from
+/// before L1 so the key stays readable) with the key ring on the keys volume, which backup.sh covers. It signs the join's
+/// answer, the configuration and every request; agents pin it at the join.
 /// </summary>
 public sealed class AgentKeyStore(IDbContextFactory<PnmtdDbContext> dbs, IDataProtectionProvider protection)
 {
@@ -49,10 +50,10 @@ public sealed class AgentKeyStore(IDbContextFactory<PnmtdDbContext> dbs, IDataPr
     }
 
     /// <summary>The settings row, created with the key if there is none yet.</summary>
-    public async Task<WindowsSettingsEntity> SettingsAsync(PnmtdDbContext db, CancellationToken ct)
+    public async Task<AgentSettingsEntity> SettingsAsync(PnmtdDbContext db, CancellationToken ct)
     {
         _ = await GetAsync(ct);
-        return await db.WindowsSettings.SingleAsync(s => s.Id == WindowsSettingsEntity.SingletonId, ct);
+        return await db.AgentSettings.SingleAsync(s => s.Id == AgentSettingsEntity.SingletonId, ct);
     }
 
     private async Task<AgentSigningKey> LoadOrCreateAsync(CancellationToken ct)
@@ -60,19 +61,19 @@ public sealed class AgentKeyStore(IDbContextFactory<PnmtdDbContext> dbs, IDataPr
         await using var db = await dbs.CreateDbContextAsync(ct);
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock({0})", [CreationLock], ct);
-        var settings = await db.WindowsSettings.SingleOrDefaultAsync(s => s.Id == WindowsSettingsEntity.SingletonId, ct);
+        var settings = await db.AgentSettings.SingleOrDefaultAsync(s => s.Id == AgentSettingsEntity.SingletonId, ct);
         if (settings is null)
         {
             using var created = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             var publicKey = AgentSigning.PublicKey(created);
-            settings = new WindowsSettingsEntity
+            settings = new AgentSettingsEntity
             {
                 SigningKeyProtected = protector.Protect(Convert.ToBase64String(created.ExportPkcs8PrivateKey())),
                 SigningPublicKey = publicKey,
                 SigningKeyFingerprint = AgentSigning.Fingerprint(publicKey),
                 CreatedAt = Clock.UtcNow,
             };
-            db.WindowsSettings.Add(settings);
+            db.AgentSettings.Add(settings);
             await db.SaveChangesAsync(ct);
         }
         await transaction.CommitAsync(ct);
@@ -87,7 +88,7 @@ public sealed class AgentKeyStore(IDbContextFactory<PnmtdDbContext> dbs, IDataPr
             key.Dispose();
             // A restore without the keys volume: the agents' pinned key can't be used any more. They must re-join.
             throw new InvalidOperationException(
-                "PNMTD's agent signing key can't be decrypted: the Data Protection key ring that protected it is gone. Every Windows server must re-join.", e);
+                "PNMTD's agent signing key can't be decrypted: the Data Protection key ring that protected it is gone. Every server with an agent must re-join.", e);
         }
         return new AgentSigningKey(key, settings.SigningPublicKey, settings.SigningKeyFingerprint);
     }

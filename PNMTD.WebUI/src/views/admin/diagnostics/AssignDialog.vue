@@ -20,8 +20,8 @@ const sets = useQuery({
   enabled: visible,
 })
 const servers = useQuery({
-  queryKey: [...keys.windows, 'servers', 'all'],
-  queryFn: () => api.windows.servers({ pageSize: 500 }),
+  queryKey: [...keys.agents, 'servers', 'all'],
+  queryFn: () => api.agents.servers({ pageSize: 500 }),
   enabled: visible,
 })
 const chosenSet = ref<string | null>(null)
@@ -48,7 +48,7 @@ async function assign() {
         intervalMinutes: interval.value,
         enabled: enabled.value,
       }),
-    { success: 'Assigned', invalidate: [keys.diagnostics, keys.windows, keys.sensors] },
+    { success: 'Assigned', invalidate: [keys.diagnostics, keys.agents, keys.sensors] },
   )
   if (done) visible.value = false
 }
@@ -81,7 +81,7 @@ async function assign() {
           v-model="targets"
           input-id="assign-servers"
           :options="servers.data.value?.items ?? []"
-          :option-label="(s: S['WindowsServerItem']) => `${s.host.name} / ${s.name}`"
+          :option-label="(s: S['AgentServerItem']) => `${s.host.name} / ${s.name}`"
           option-value="sensorId"
           filter
           display="chip"

@@ -5,6 +5,1492 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/v1/agents/servers": {
+      "get": {
+        "tags": [
+          "AgentServers"
+        ],
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AgentPlatform"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SensorState"
+            }
+          },
+          {
+            "name": "unsupported",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "outdated",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "connected",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "remoteAccess",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "auditGaps",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "diagnosticsFailing",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "hostId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentServerItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentServerItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentServerItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/servers/{id}": {
+      "get": {
+        "tags": [
+          "AgentServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/servers/{id}/logins": {
+      "get": {
+        "tags": [
+          "AgentServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/LogonOutcome"
+            }
+          },
+          {
+            "name": "admin",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/LogonKind"
+            }
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentLoginItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentLoginItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentLoginItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/servers/{id}/changes": {
+      "get": {
+        "tags": [
+          "AgentServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "section",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "notable",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentChangeItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentChangeItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentChangeItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/servers/{id}/log": {
+      "get": {
+        "tags": [
+          "AgentServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AgentLogKind"
+            }
+          },
+          {
+            "name": "sensorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentLogItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentLogItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentLogItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/servers/{id}/collect": {
+      "post": {
+        "tags": [
+          "AgentServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentCollectRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentCollectRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentCollectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRequestResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRequestResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRequestResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/servers/{id}/send-log": {
+      "post": {
+        "tags": [
+          "AgentServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentLogFile"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentLogFile"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentLogFile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/servers/{id}/settings": {
+      "put": {
+        "tags": [
+          "AgentServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentServerSettings"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentServerSettings"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentServerSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/servers/{id}/revoke": {
+      "post": {
+        "tags": [
+          "AgentServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRevokeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRevokeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRevokeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/servers/{id}/rejoin-token": {
+      "post": {
+        "tags": [
+          "AgentServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRejoinTokenRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRejoinTokenRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRejoinTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentJoinTokenCreated"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentJoinTokenCreated"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentJoinTokenCreated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/join-tokens": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AgentJoinTokenState"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentJoinTokenItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentJoinTokenItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentJoinTokenItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentJoinTokenRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentJoinTokenRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentJoinTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentJoinTokenCreated"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentJoinTokenCreated"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentJoinTokenCreated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/join-tokens/{id}": {
+      "delete": {
+        "tags": [
+          "Agents"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/agents/agent-log": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AgentLogKind"
+            }
+          },
+          {
+            "name": "sensorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentLogItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentLogItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentLogItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/downloads": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDownloadLinks"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDownloadLinks"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDownloadLinks"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/scripts": {
+      "get": {
+        "tags": [
+          "AgentScripts"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentScriptItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentScriptItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentScriptItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "AgentScripts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentScriptRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentScriptRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentScriptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/scripts/{id}": {
+      "get": {
+        "tags": [
+          "AgentScripts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AgentScripts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentScriptRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentScriptRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentScriptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AgentScripts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/agents/scripts/{id}/parse": {
+      "post": {
+        "tags": [
+          "AgentScripts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/scripts/{id}/run": {
+      "post": {
+        "tags": [
+          "AgentScripts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentScriptRunRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentScriptRunRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentScriptRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AgentScriptRunItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AgentScriptRunItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AgentScriptRunItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/script-runs": {
+      "get": {
+        "tags": [
+          "AgentScripts"
+        ],
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sensorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "batchId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ScriptRunState"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentScriptRunItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentScriptRunItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAgentScriptRunItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/script-runs/{id}": {
+      "get": {
+        "tags": [
+          "AgentScripts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptRunDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptRunDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptRunDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/script-runs/{id}/redact": {
+      "post": {
+        "tags": [
+          "AgentScripts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptRunDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptRunDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptRunDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ai/mail/backfill": {
       "post": {
         "tags": [
@@ -5984,780 +7470,6 @@
         }
       }
     },
-    "/api/v1/windows/scripts": {
-      "get": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsScriptItem"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsScriptItem"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsScriptItem"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsScriptRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsScriptRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsScriptRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptDetail"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptDetail"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/scripts/{id}": {
-      "get": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptDetail"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptDetail"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptDetail"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsScriptRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsScriptRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsScriptRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptDetail"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptDetail"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptDetail"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/windows/scripts/{id}/parse": {
-      "post": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptDetail"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptDetail"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/scripts/{id}/run": {
-      "post": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsScriptRunRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsScriptRunRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsScriptRunRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WindowsScriptRunItem"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WindowsScriptRunItem"
-                  }
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WindowsScriptRunItem"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/servers/{id}/local-scripts": {
-      "get": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsLocalScripts"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsLocalScripts"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsLocalScripts"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/servers/{id}/local-scripts/run": {
-      "post": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsLocalScriptRunRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsLocalScriptRunRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsLocalScriptRunRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptRunItem"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptRunItem"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptRunItem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/run-as": {
-      "get": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WindowsRunAsItem"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WindowsRunAsItem"
-                  }
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WindowsRunAsItem"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsRunAsRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsRunAsRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsRunAsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsRunAsItem"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsRunAsItem"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsRunAsItem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/run-as/{id}": {
-      "put": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsRunAsRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsRunAsRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsRunAsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsRunAsItem"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsRunAsItem"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsRunAsItem"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/windows/script-runs": {
-      "get": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "parameters": [
-          {
-            "name": "scriptId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "sensorId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "batchId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "state",
-            "in": "query",
-            "schema": {
-              "$ref": "#/components/schemas/ScriptRunState"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsScriptRunItem"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsScriptRunItem"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsScriptRunItem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/script-runs/{id}": {
-      "get": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptRunDetail"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptRunDetail"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptRunDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/script-runs/{id}/redact": {
-      "post": {
-        "tags": [
-          "WindowsScripts"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptRunDetail"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptRunDetail"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsScriptRunDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/sensors": {
       "get": {
         "tags": [
@@ -9166,164 +9878,6 @@
         }
       }
     },
-    "/api/v1/windows/servers": {
-      "get": {
-        "tags": [
-          "WindowsServers"
-        ],
-        "parameters": [
-          {
-            "name": "state",
-            "in": "query",
-            "schema": {
-              "$ref": "#/components/schemas/SensorState"
-            }
-          },
-          {
-            "name": "unsupported",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "outdated",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "connected",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "remoteAccess",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "auditGaps",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "diagnosticsFailing",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "hostId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsServerItem"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsServerItem"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsServerItem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/servers/{id}": {
-      "get": {
-        "tags": [
-          "WindowsServers"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsServerDetail"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsServerDetail"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsServerDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/windows/servers/{id}/sections/{section}": {
       "get": {
         "tags": [
@@ -9365,396 +9919,6 @@
               "text/plain": {
                 "schema": {
                   "$ref": "#/components/schemas/WindowsSectionView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/servers/{id}/logins": {
-      "get": {
-        "tags": [
-          "WindowsServers"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "outcome",
-            "in": "query",
-            "schema": {
-              "$ref": "#/components/schemas/LogonOutcome"
-            }
-          },
-          {
-            "name": "admin",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "kind",
-            "in": "query",
-            "schema": {
-              "$ref": "#/components/schemas/LogonKind"
-            }
-          },
-          {
-            "name": "user",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "source",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "from",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsLoginItem"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsLoginItem"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsLoginItem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/servers/{id}/changes": {
-      "get": {
-        "tags": [
-          "WindowsServers"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "section",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "notable",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsChangeItem"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsChangeItem"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsChangeItem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/servers/{id}/log": {
-      "get": {
-        "tags": [
-          "WindowsServers"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "kind",
-            "in": "query",
-            "schema": {
-              "$ref": "#/components/schemas/WindowsAgentLogKind"
-            }
-          },
-          {
-            "name": "sensorId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsAgentLogItem"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsAgentLogItem"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsAgentLogItem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/servers/{id}/collect": {
-      "post": {
-        "tags": [
-          "WindowsServers"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsCollectRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsCollectRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsCollectRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsRequestResult"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsRequestResult"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsRequestResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/servers/{id}/send-log": {
-      "post": {
-        "tags": [
-          "WindowsServers"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsAgentLogFile"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsAgentLogFile"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsAgentLogFile"
                 }
               }
             }
@@ -9860,227 +10024,19 @@
         }
       }
     },
-    "/api/v1/windows/servers/{id}/settings": {
-      "put": {
-        "tags": [
-          "WindowsServers"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsServerSettings"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsServerSettings"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsServerSettings"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsServerDetail"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsServerDetail"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsServerDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/servers/{id}/revoke": {
-      "post": {
-        "tags": [
-          "WindowsServers"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsRevokeRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsRevokeRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsRevokeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsServerDetail"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsServerDetail"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsServerDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/servers/{id}/rejoin-token": {
-      "post": {
-        "tags": [
-          "WindowsServers"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsRejoinTokenRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsRejoinTokenRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/WindowsRejoinTokenRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsJoinTokenCreated"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsJoinTokenCreated"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsJoinTokenCreated"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/join-tokens": {
+    "/api/v1/windows/servers/{id}/local-scripts": {
       "get": {
         "tags": [
-          "Windows"
+          "WindowsServers"
         ],
         "parameters": [
           {
-            "name": "state",
-            "in": "query",
+            "name": "id",
+            "in": "path",
+            "required": true,
             "schema": {
-              "$ref": "#/components/schemas/WindowsJoinTokenState"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -10090,17 +10046,115 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsJoinTokenItem"
+                  "$ref": "#/components/schemas/WindowsLocalScripts"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsJoinTokenItem"
+                  "$ref": "#/components/schemas/WindowsLocalScripts"
                 }
               },
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsJoinTokenItem"
+                  "$ref": "#/components/schemas/WindowsLocalScripts"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/windows/servers/{id}/local-scripts/run": {
+      "post": {
+        "tags": [
+          "WindowsServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowsLocalScriptRunRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowsLocalScriptRunRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowsLocalScriptRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptRunItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptRunItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptRunItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/windows/run-as": {
+      "get": {
+        "tags": [
+          "WindowsRunAs"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WindowsRunAsItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WindowsRunAsItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WindowsRunAsItem"
+                  }
                 }
               }
             }
@@ -10109,23 +10163,23 @@
       },
       "post": {
         "tags": [
-          "Windows"
+          "WindowsRunAs"
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WindowsJoinTokenRequest"
+                "$ref": "#/components/schemas/WindowsRunAsRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/WindowsJoinTokenRequest"
+                "$ref": "#/components/schemas/WindowsRunAsRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/WindowsJoinTokenRequest"
+                "$ref": "#/components/schemas/WindowsRunAsRequest"
               }
             }
           },
@@ -10137,17 +10191,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WindowsJoinTokenCreated"
+                  "$ref": "#/components/schemas/WindowsRunAsItem"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WindowsJoinTokenCreated"
+                  "$ref": "#/components/schemas/WindowsRunAsItem"
                 }
               },
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/WindowsJoinTokenCreated"
+                  "$ref": "#/components/schemas/WindowsRunAsItem"
                 }
               }
             }
@@ -10155,10 +10209,68 @@
         }
       }
     },
-    "/api/v1/windows/join-tokens/{id}": {
+    "/api/v1/windows/run-as/{id}": {
+      "put": {
+        "tags": [
+          "WindowsRunAs"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowsRunAsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowsRunAsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowsRunAsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsRunAsItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsRunAsItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsRunAsItem"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "tags": [
-          "Windows"
+          "WindowsRunAs"
         ],
         "parameters": [
           {
@@ -10174,111 +10286,6 @@
         "responses": {
           "200": {
             "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/windows/agent-log": {
-      "get": {
-        "tags": [
-          "Windows"
-        ],
-        "parameters": [
-          {
-            "name": "kind",
-            "in": "query",
-            "schema": {
-              "$ref": "#/components/schemas/WindowsAgentLogKind"
-            }
-          },
-          {
-            "name": "sensorId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsAgentLogItem"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsAgentLogItem"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfWindowsAgentLogItem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/windows/agent": {
-      "get": {
-        "tags": [
-          "Windows"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsAgentDownloads"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsAgentDownloads"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WindowsAgentDownloads"
-                }
-              }
-            }
           }
         }
       }
@@ -11045,6 +11052,1306 @@
             ]
           },
           "virtual": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AgentChangeItem": {
+        "required": [
+          "id",
+          "section",
+          "at",
+          "summary",
+          "notable",
+          "details"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "section": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "notable": {
+            "type": "boolean"
+          },
+          "details": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AgentCollectRequest": {
+        "required": [
+          "sections"
+        ],
+        "type": "object",
+        "properties": {
+          "sections": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AgentDownloadLink": {
+        "required": [
+          "architecture",
+          "fileName",
+          "url",
+          "sha256"
+        ],
+        "type": "object",
+        "properties": {
+          "architecture": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AgentDownloadLinks": {
+        "required": [
+          "version",
+          "files",
+          "releaseUrl",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentDownloadLink"
+            }
+          },
+          "releaseUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AgentJoinTokenCreated": {
+        "required": [
+          "item",
+          "token",
+          "url",
+          "pnmtdFingerprint",
+          "commandLine",
+          "downloads"
+        ],
+        "type": "object",
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/AgentJoinTokenItem"
+          },
+          "token": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "pnmtdFingerprint": {
+            "type": "string"
+          },
+          "commandLine": {
+            "type": "string"
+          },
+          "downloads": {
+            "$ref": "#/components/schemas/AgentDownloadLinks"
+          }
+        }
+      },
+      "AgentJoinTokenItem": {
+        "required": [
+          "id",
+          "platform",
+          "prefix",
+          "host",
+          "name",
+          "rejoin",
+          "createdAt",
+          "createdByName",
+          "expiresAt",
+          "usedAt",
+          "usedFromAddress",
+          "result",
+          "revokedAt",
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/AgentPlatform"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "host": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rejoin": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "usedFromAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "revokedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "state": {
+            "$ref": "#/components/schemas/AgentJoinTokenState"
+          }
+        }
+      },
+      "AgentJoinTokenRequest": {
+        "required": [
+          "hostId",
+          "name",
+          "validHours"
+        ],
+        "type": "object",
+        "properties": {
+          "hostId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "validHours": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/AgentPlatform"
+          }
+        }
+      },
+      "AgentJoinTokenState": {
+        "enum": [
+          "Pending",
+          "Used",
+          "Expired",
+          "Revoked"
+        ]
+      },
+      "AgentLogFile": {
+        "required": [
+          "at",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AgentLoginItem": {
+        "required": [
+          "id",
+          "at",
+          "lastAt",
+          "count",
+          "outcome",
+          "failureReason",
+          "user",
+          "domain",
+          "isAdmin",
+          "kind",
+          "authPackage",
+          "sourceAddress",
+          "sourcePort",
+          "workstation",
+          "elevated",
+          "loggedOffAt",
+          "channel"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/LogonOutcome"
+          },
+          "failureReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "user": {
+            "type": "string"
+          },
+          "domain": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/LogonKind"
+          },
+          "authPackage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sourceAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sourcePort": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "workstation": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "elevated": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "loggedOffAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "channel": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentLogItem": {
+        "required": [
+          "id",
+          "sensorId",
+          "agentName",
+          "at",
+          "kind",
+          "message",
+          "details",
+          "address"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "agentName": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AgentLogKind"
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AgentLogKind": {
+        "enum": [
+          "Joined",
+          "Connected",
+          "Disconnected",
+          "AuthFailed",
+          "Revoked",
+          "Uninstalled",
+          "ConfigSent",
+          "Request",
+          "Problem",
+          "Crashed",
+          "Error",
+          "Warning"
+        ]
+      },
+      "AgentPlatform": {
+        "enum": [
+          "Windows",
+          "Linux"
+        ]
+      },
+      "AgentRejoinTokenRequest": {
+        "required": [
+          "validHours"
+        ],
+        "type": "object",
+        "properties": {
+          "validHours": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AgentRequestResult": {
+        "required": [
+          "ok",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AgentRevokeRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AgentScriptDetail": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "language",
+          "currentVersion",
+          "text",
+          "hash",
+          "parseState",
+          "parsed",
+          "parseError",
+          "versions",
+          "parserAvailable"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "language": {
+            "$ref": "#/components/schemas/ScriptLanguage"
+          },
+          "currentVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "text": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "parseState": {
+            "$ref": "#/components/schemas/ScriptParseState"
+          },
+          "parsed": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ParsedScript"
+              }
+            ]
+          },
+          "parseError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentScriptVersionItem"
+            }
+          },
+          "parserAvailable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AgentScriptItem": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "language",
+          "currentVersion",
+          "parseState",
+          "parameters",
+          "findings",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "language": {
+            "$ref": "#/components/schemas/ScriptLanguage"
+          },
+          "currentVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parseState": {
+            "$ref": "#/components/schemas/ScriptParseState"
+          },
+          "parameters": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "findings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AgentScriptRequest": {
+        "required": [
+          "name",
+          "description",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentScriptRunDetail": {
+        "required": [
+          "run",
+          "arguments",
+          "output",
+          "hash",
+          "timeoutSeconds"
+        ],
+        "type": "object",
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/AgentScriptRunItem"
+          },
+          "arguments": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "output": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hash": {
+            "type": "string"
+          },
+          "timeoutSeconds": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AgentScriptRunItem": {
+        "required": [
+          "id",
+          "batchId",
+          "scriptId",
+          "scriptName",
+          "versionNumber",
+          "server",
+          "serverName",
+          "runAsName",
+          "runAsKind",
+          "account",
+          "requestedBy",
+          "startedAt",
+          "finishedAt",
+          "state",
+          "exitCode",
+          "message",
+          "durationMs",
+          "redacted"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "scriptId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "scriptName": {
+            "type": "string"
+          },
+          "versionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "server": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "serverName": {
+            "type": "string"
+          },
+          "runAsName": {
+            "type": "string"
+          },
+          "runAsKind": {
+            "$ref": "#/components/schemas/RunAsKind"
+          },
+          "account": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "requestedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ScriptRunState"
+          },
+          "exitCode": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "durationMs": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "redacted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AgentScriptRunRequest": {
+        "required": [
+          "sensorIds",
+          "runAsId",
+          "arguments",
+          "secureArguments",
+          "password",
+          "timeoutSeconds",
+          "shell"
+        ],
+        "type": "object",
+        "properties": {
+          "sensorIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "runAsId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "arguments": {
+            "type": [
+              "null",
+              "object"
+            ]
+          },
+          "secureArguments": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "password": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "timeoutSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "shell": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AgentScriptVersionItem": {
+        "required": [
+          "id",
+          "number",
+          "hash",
+          "createdAt",
+          "createdByName",
+          "parseState",
+          "parsedAt",
+          "parsedOn",
+          "parseError"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "parseState": {
+            "$ref": "#/components/schemas/ScriptParseState"
+          },
+          "parsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "parsedOn": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "parseError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AgentSectionInfo": {
+        "required": [
+          "name",
+          "collectedAt",
+          "receivedAt",
+          "errors"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "collectedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AgentServerDetail": {
+        "required": [
+          "server",
+          "agentId",
+          "keyFingerprint",
+          "pnmtdFingerprint",
+          "joinedAt",
+          "connectedAt",
+          "disconnectedAt",
+          "remoteAddress",
+          "fqdn",
+          "osEdition",
+          "osDisplayVersion",
+          "machineId",
+          "capabilities",
+          "configVersion",
+          "currentConfigVersion",
+          "heartbeat",
+          "settings",
+          "recentProblems",
+          "sameMachine",
+          "sections",
+          "revokedReason",
+          "revokedAt",
+          "uninstalledAt",
+          "pnmtVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "server": {
+            "$ref": "#/components/schemas/AgentServerItem"
+          },
+          "agentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "keyFingerprint": {
+            "type": "string"
+          },
+          "pnmtdFingerprint": {
+            "type": "string"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "connectedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "disconnectedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "remoteAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fqdn": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "osEdition": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "osDisplayVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "machineId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "configVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentConfigVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "heartbeat": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Heartbeat"
+              }
+            ]
+          },
+          "settings": {
+            "$ref": "#/components/schemas/AgentServerSettings"
+          },
+          "recentProblems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentLogItem"
+            }
+          },
+          "sameMachine": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ref"
+            }
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSectionInfo"
+            }
+          },
+          "revokedReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "revokedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "uninstalledAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "pnmtVersion": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentServerItem": {
+        "required": [
+          "sensorId",
+          "host",
+          "name",
+          "platform",
+          "state",
+          "lastCode",
+          "lastMessage",
+          "hostname",
+          "domain",
+          "osCaption",
+          "osBuild",
+          "osSupported",
+          "architecture",
+          "agentVersion",
+          "outdated",
+          "connected",
+          "lastSeenAt",
+          "bootTime",
+          "clockSkewSeconds",
+          "revoked",
+          "uninstalled",
+          "lastProblemAt",
+          "remoteAccess",
+          "auditGaps",
+          "diagnosticsFailing"
+        ],
+        "type": "object",
+        "properties": {
+          "sensorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "host": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/AgentPlatform"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SensorState"
+          },
+          "lastCode": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "lastMessage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hostname": {
+            "type": "string"
+          },
+          "domain": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "osCaption": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "osBuild": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "osSupported": {
+            "type": "boolean"
+          },
+          "architecture": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "agentVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "outdated": {
+            "type": "boolean"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "lastSeenAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "bootTime": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "clockSkewSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "revoked": {
+            "type": "boolean"
+          },
+          "uninstalled": {
+            "type": "boolean"
+          },
+          "lastProblemAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "remoteAccess": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "auditGaps": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "diagnosticsFailing": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AgentServerSettings": {
+        "required": [
+          "adminLoginEvents",
+          "failedLoginEvents",
+          "failedLoginThreshold",
+          "criticalEvents"
+        ],
+        "type": "object",
+        "properties": {
+          "adminLoginEvents": {
+            "type": "boolean"
+          },
+          "failedLoginEvents": {
+            "type": "boolean"
+          },
+          "failedLoginThreshold": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "criticalEvents": {
             "type": "boolean"
           }
         }
@@ -18192,6 +19499,209 @@
           "OtaChunk"
         ]
       },
+      "PagedOfAgentChangeItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentChangeItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfAgentJoinTokenItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentJoinTokenItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfAgentLoginItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentLoginItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfAgentLogItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentLogItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfAgentScriptItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentScriptItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfAgentScriptRunItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentScriptRunItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfAgentServerItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentServerItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "PagedOfAiAnalysisRunItem": {
         "required": [
           "items",
@@ -18975,209 +20485,6 @@
           }
         }
       },
-      "PagedOfWindowsAgentLogItem": {
-        "required": [
-          "items",
-          "page",
-          "pageSize",
-          "totalCount"
-        ],
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WindowsAgentLogItem"
-            }
-          },
-          "page": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalCount": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "PagedOfWindowsChangeItem": {
-        "required": [
-          "items",
-          "page",
-          "pageSize",
-          "totalCount"
-        ],
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WindowsChangeItem"
-            }
-          },
-          "page": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalCount": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "PagedOfWindowsJoinTokenItem": {
-        "required": [
-          "items",
-          "page",
-          "pageSize",
-          "totalCount"
-        ],
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WindowsJoinTokenItem"
-            }
-          },
-          "page": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalCount": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "PagedOfWindowsLoginItem": {
-        "required": [
-          "items",
-          "page",
-          "pageSize",
-          "totalCount"
-        ],
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WindowsLoginItem"
-            }
-          },
-          "page": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalCount": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "PagedOfWindowsScriptItem": {
-        "required": [
-          "items",
-          "page",
-          "pageSize",
-          "totalCount"
-        ],
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WindowsScriptItem"
-            }
-          },
-          "page": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalCount": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "PagedOfWindowsScriptRunItem": {
-        "required": [
-          "items",
-          "page",
-          "pageSize",
-          "totalCount"
-        ],
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WindowsScriptRunItem"
-            }
-          },
-          "page": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalCount": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "PagedOfWindowsServerItem": {
-        "required": [
-          "items",
-          "page",
-          "pageSize",
-          "totalCount"
-        ],
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WindowsServerItem"
-            }
-          },
-          "page": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalCount": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
       "ParsedScript": {
         "required": [
           "parameters",
@@ -19779,6 +21086,12 @@
             }
           }
         }
+      },
+      "ScriptLanguage": {
+        "enum": [
+          "PowerShell",
+          "Bash"
+        ]
       },
       "ScriptParameter": {
         "required": [
@@ -23889,362 +25202,6 @@
           "Environment"
         ]
       },
-      "WindowsAgentDownload": {
-        "required": [
-          "architecture",
-          "fileName",
-          "url",
-          "sha256"
-        ],
-        "type": "object",
-        "properties": {
-          "architecture": {
-            "type": "string"
-          },
-          "fileName": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
-          },
-          "sha256": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "WindowsAgentDownloads": {
-        "required": [
-          "version",
-          "files",
-          "releaseUrl",
-          "note"
-        ],
-        "type": "object",
-        "properties": {
-          "version": {
-            "type": "string"
-          },
-          "files": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WindowsAgentDownload"
-            }
-          },
-          "releaseUrl": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "note": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "WindowsAgentLogFile": {
-        "required": [
-          "at",
-          "lines"
-        ],
-        "type": "object",
-        "properties": {
-          "at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "lines": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "WindowsAgentLogItem": {
-        "required": [
-          "id",
-          "sensorId",
-          "agentName",
-          "at",
-          "kind",
-          "message",
-          "details",
-          "address"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "sensorId": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uuid"
-          },
-          "agentName": {
-            "type": "string"
-          },
-          "at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "kind": {
-            "$ref": "#/components/schemas/WindowsAgentLogKind"
-          },
-          "message": {
-            "type": "string"
-          },
-          "details": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "address": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "WindowsAgentLogKind": {
-        "enum": [
-          "Joined",
-          "Connected",
-          "Disconnected",
-          "AuthFailed",
-          "Revoked",
-          "Uninstalled",
-          "ConfigSent",
-          "Request",
-          "Problem",
-          "Crashed",
-          "Error",
-          "Warning"
-        ]
-      },
-      "WindowsChangeItem": {
-        "required": [
-          "id",
-          "section",
-          "at",
-          "summary",
-          "notable",
-          "details"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "section": {
-            "type": "string"
-          },
-          "at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "summary": {
-            "type": "string"
-          },
-          "notable": {
-            "type": "boolean"
-          },
-          "details": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "WindowsCollectRequest": {
-        "required": [
-          "sections"
-        ],
-        "type": "object",
-        "properties": {
-          "sections": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "WindowsJoinTokenCreated": {
-        "required": [
-          "item",
-          "token",
-          "url",
-          "pnmtdFingerprint",
-          "commandLine",
-          "downloads"
-        ],
-        "type": "object",
-        "properties": {
-          "item": {
-            "$ref": "#/components/schemas/WindowsJoinTokenItem"
-          },
-          "token": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
-          },
-          "pnmtdFingerprint": {
-            "type": "string"
-          },
-          "commandLine": {
-            "type": "string"
-          },
-          "downloads": {
-            "$ref": "#/components/schemas/WindowsAgentDownloads"
-          }
-        }
-      },
-      "WindowsJoinTokenItem": {
-        "required": [
-          "id",
-          "prefix",
-          "host",
-          "name",
-          "rejoin",
-          "createdAt",
-          "createdByName",
-          "expiresAt",
-          "usedAt",
-          "usedFromAddress",
-          "result",
-          "revokedAt",
-          "state"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "prefix": {
-            "type": "string"
-          },
-          "host": {
-            "$ref": "#/components/schemas/Ref"
-          },
-          "name": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "rejoin": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/Ref"
-              }
-            ]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "createdByName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "usedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "usedFromAddress": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "result": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/Ref"
-              }
-            ]
-          },
-          "revokedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "state": {
-            "$ref": "#/components/schemas/WindowsJoinTokenState"
-          }
-        }
-      },
-      "WindowsJoinTokenRequest": {
-        "required": [
-          "hostId",
-          "name",
-          "validHours"
-        ],
-        "type": "object",
-        "properties": {
-          "hostId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "validHours": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          }
-        }
-      },
-      "WindowsJoinTokenState": {
-        "enum": [
-          "Pending",
-          "Used",
-          "Expired",
-          "Revoked"
-        ]
-      },
       "WindowsLocalScript": {
         "required": [
           "script",
@@ -24355,161 +25312,6 @@
           }
         }
       },
-      "WindowsLoginItem": {
-        "required": [
-          "id",
-          "at",
-          "lastAt",
-          "count",
-          "outcome",
-          "failureReason",
-          "user",
-          "domain",
-          "isAdmin",
-          "kind",
-          "authPackage",
-          "sourceAddress",
-          "sourcePort",
-          "workstation",
-          "elevated",
-          "loggedOffAt",
-          "channel"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "lastAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "count": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "outcome": {
-            "$ref": "#/components/schemas/LogonOutcome"
-          },
-          "failureReason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "user": {
-            "type": "string"
-          },
-          "domain": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "isAdmin": {
-            "type": "boolean"
-          },
-          "kind": {
-            "$ref": "#/components/schemas/LogonKind"
-          },
-          "authPackage": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "sourceAddress": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "sourcePort": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "workstation": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "elevated": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "loggedOffAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "channel": {
-            "type": "string"
-          }
-        }
-      },
-      "WindowsRejoinTokenRequest": {
-        "required": [
-          "validHours"
-        ],
-        "type": "object",
-        "properties": {
-          "validHours": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          }
-        }
-      },
-      "WindowsRequestResult": {
-        "required": [
-          "ok",
-          "error"
-        ],
-        "type": "object",
-        "properties": {
-          "ok": {
-            "type": "boolean"
-          },
-          "error": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "WindowsRevokeRequest": {
-        "required": [
-          "reason"
-        ],
-        "type": "object",
-        "properties": {
-          "reason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "WindowsRunAsItem": {
         "required": [
           "id",
@@ -24575,439 +25377,6 @@
               "null",
               "string"
             ]
-          }
-        }
-      },
-      "WindowsScriptDetail": {
-        "required": [
-          "id",
-          "name",
-          "description",
-          "currentVersion",
-          "text",
-          "hash",
-          "parseState",
-          "parsed",
-          "parseError",
-          "versions",
-          "parserAvailable"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "currentVersion": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "text": {
-            "type": "string"
-          },
-          "hash": {
-            "type": "string"
-          },
-          "parseState": {
-            "$ref": "#/components/schemas/ScriptParseState"
-          },
-          "parsed": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ParsedScript"
-              }
-            ]
-          },
-          "parseError": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "versions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WindowsScriptVersionItem"
-            }
-          },
-          "parserAvailable": {
-            "type": "boolean"
-          }
-        }
-      },
-      "WindowsScriptItem": {
-        "required": [
-          "id",
-          "name",
-          "description",
-          "currentVersion",
-          "parseState",
-          "parameters",
-          "findings",
-          "updatedAt"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "currentVersion": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "parseState": {
-            "$ref": "#/components/schemas/ScriptParseState"
-          },
-          "parameters": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "findings": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "WindowsScriptRequest": {
-        "required": [
-          "name",
-          "description",
-          "text"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "text": {
-            "type": "string"
-          }
-        }
-      },
-      "WindowsScriptRunDetail": {
-        "required": [
-          "run",
-          "arguments",
-          "output",
-          "hash",
-          "timeoutSeconds"
-        ],
-        "type": "object",
-        "properties": {
-          "run": {
-            "$ref": "#/components/schemas/WindowsScriptRunItem"
-          },
-          "arguments": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "output": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "hash": {
-            "type": "string"
-          },
-          "timeoutSeconds": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "WindowsScriptRunItem": {
-        "required": [
-          "id",
-          "batchId",
-          "scriptId",
-          "scriptName",
-          "versionNumber",
-          "server",
-          "serverName",
-          "runAsName",
-          "runAsKind",
-          "account",
-          "requestedBy",
-          "startedAt",
-          "finishedAt",
-          "state",
-          "exitCode",
-          "message",
-          "durationMs",
-          "redacted"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "batchId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "scriptId": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uuid"
-          },
-          "scriptName": {
-            "type": "string"
-          },
-          "versionNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "server": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/Ref"
-              }
-            ]
-          },
-          "serverName": {
-            "type": "string"
-          },
-          "runAsName": {
-            "type": "string"
-          },
-          "runAsKind": {
-            "$ref": "#/components/schemas/RunAsKind"
-          },
-          "account": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "requestedBy": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "startedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "finishedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "state": {
-            "$ref": "#/components/schemas/ScriptRunState"
-          },
-          "exitCode": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "message": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "durationMs": {
-            "type": [
-              "null",
-              "number"
-            ],
-            "format": "double"
-          },
-          "redacted": {
-            "type": "boolean"
-          }
-        }
-      },
-      "WindowsScriptRunRequest": {
-        "required": [
-          "sensorIds",
-          "runAsId",
-          "arguments",
-          "secureArguments",
-          "password",
-          "timeoutSeconds",
-          "shell"
-        ],
-        "type": "object",
-        "properties": {
-          "sensorIds": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          "runAsId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "arguments": {
-            "type": [
-              "null",
-              "object"
-            ]
-          },
-          "secureArguments": {
-            "type": [
-              "null",
-              "object"
-            ],
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "password": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "timeoutSeconds": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "shell": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "WindowsScriptVersionItem": {
-        "required": [
-          "id",
-          "number",
-          "hash",
-          "createdAt",
-          "createdByName",
-          "parseState",
-          "parsedAt",
-          "parsedOn",
-          "parseError"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "number": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "hash": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "createdByName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "parseState": {
-            "$ref": "#/components/schemas/ScriptParseState"
-          },
-          "parsedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "parsedOn": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "parseError": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "WindowsSectionInfo": {
-        "required": [
-          "name",
-          "collectedAt",
-          "receivedAt",
-          "errors"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "collectedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "receivedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "errors": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           }
         }
       },
@@ -25111,337 +25480,6 @@
                 "$ref": "#/components/schemas/EventLogSection"
               }
             ]
-          }
-        }
-      },
-      "WindowsServerDetail": {
-        "required": [
-          "server",
-          "agentId",
-          "keyFingerprint",
-          "pnmtdFingerprint",
-          "joinedAt",
-          "connectedAt",
-          "disconnectedAt",
-          "remoteAddress",
-          "fqdn",
-          "osEdition",
-          "osDisplayVersion",
-          "machineGuid",
-          "capabilities",
-          "configVersion",
-          "currentConfigVersion",
-          "heartbeat",
-          "settings",
-          "recentProblems",
-          "sameMachine",
-          "sections",
-          "revokedReason",
-          "revokedAt",
-          "uninstalledAt",
-          "pnmtVersion"
-        ],
-        "type": "object",
-        "properties": {
-          "server": {
-            "$ref": "#/components/schemas/WindowsServerItem"
-          },
-          "agentId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "keyFingerprint": {
-            "type": "string"
-          },
-          "pnmtdFingerprint": {
-            "type": "string"
-          },
-          "joinedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "connectedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "disconnectedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "remoteAddress": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "fqdn": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "osEdition": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "osDisplayVersion": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "machineGuid": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "capabilities": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "configVersion": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "currentConfigVersion": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "heartbeat": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/Heartbeat"
-              }
-            ]
-          },
-          "settings": {
-            "$ref": "#/components/schemas/WindowsServerSettings"
-          },
-          "recentProblems": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WindowsAgentLogItem"
-            }
-          },
-          "sameMachine": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Ref"
-            }
-          },
-          "sections": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WindowsSectionInfo"
-            }
-          },
-          "revokedReason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "revokedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "uninstalledAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "pnmtVersion": {
-            "type": "string"
-          }
-        }
-      },
-      "WindowsServerItem": {
-        "required": [
-          "sensorId",
-          "host",
-          "name",
-          "state",
-          "lastCode",
-          "lastMessage",
-          "hostname",
-          "domain",
-          "osCaption",
-          "osBuild",
-          "osSupported",
-          "architecture",
-          "agentVersion",
-          "outdated",
-          "connected",
-          "lastSeenAt",
-          "bootTime",
-          "clockSkewSeconds",
-          "revoked",
-          "uninstalled",
-          "lastProblemAt",
-          "remoteAccess",
-          "auditGaps",
-          "diagnosticsFailing"
-        ],
-        "type": "object",
-        "properties": {
-          "sensorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "host": {
-            "$ref": "#/components/schemas/Ref"
-          },
-          "name": {
-            "type": "string"
-          },
-          "state": {
-            "$ref": "#/components/schemas/SensorState"
-          },
-          "lastCode": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "lastMessage": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "hostname": {
-            "type": "string"
-          },
-          "domain": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "osCaption": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "osBuild": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "osSupported": {
-            "type": "boolean"
-          },
-          "architecture": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "agentVersion": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "outdated": {
-            "type": "boolean"
-          },
-          "connected": {
-            "type": "boolean"
-          },
-          "lastSeenAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "bootTime": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "clockSkewSeconds": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "revoked": {
-            "type": "boolean"
-          },
-          "uninstalled": {
-            "type": "boolean"
-          },
-          "lastProblemAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "remoteAccess": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "auditGaps": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "diagnosticsFailing": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "WindowsServerSettings": {
-        "required": [
-          "adminLoginEvents",
-          "failedLoginEvents",
-          "failedLoginThreshold",
-          "criticalEvents"
-        ],
-        "type": "object",
-        "properties": {
-          "adminLoginEvents": {
-            "type": "boolean"
-          },
-          "failedLoginEvents": {
-            "type": "boolean"
-          },
-          "failedLoginThreshold": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "criticalEvents": {
-            "type": "boolean"
           }
         }
       },
@@ -26178,6 +26216,15 @@
   },
   "tags": [
     {
+      "name": "AgentServers"
+    },
+    {
+      "name": "Agents"
+    },
+    {
+      "name": "AgentScripts"
+    },
+    {
       "name": "Ai"
     },
     {
@@ -26244,9 +26291,6 @@
       "name": "Notifications"
     },
     {
-      "name": "WindowsScripts"
-    },
-    {
       "name": "Sensors"
     },
     {
@@ -26274,7 +26318,7 @@
       "name": "WindowsServers"
     },
     {
-      "name": "Windows"
+      "name": "WindowsRunAs"
     },
     {
       "name": "WireGuard"
