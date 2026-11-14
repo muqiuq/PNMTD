@@ -19,31 +19,34 @@
   --pnmt-drawer-width: 232px;
   --pnmt-rail-width: 56px;
 
-  --pnmt-bg: var(--p-surface-50);
+  /* Light: high contrast (preset.ts). Panels stand off a slate 100 page by a slate 300 border; muted
+     text is slate 700 (10:1 on white), status text 700 (5:1 and more). */
+  --pnmt-bg: var(--p-surface-100);
   --pnmt-panel: var(--p-surface-0);
-  --pnmt-border: var(--p-surface-200);
+  --pnmt-border: var(--p-surface-300);
   --pnmt-text: var(--p-surface-900);
-  --pnmt-muted: var(--p-surface-500);
+  --pnmt-muted: var(--p-surface-700);
 
   /* Status colours (StatusBadge, UptimeBar, CodeTag), legible on both themes. */
-  --pnmt-ok: var(--p-green-600);
+  --pnmt-ok: var(--p-green-700);
   --pnmt-ok-soft: var(--p-green-100);
-  --pnmt-fail: var(--p-red-600);
+  --pnmt-fail: var(--p-red-700);
   --pnmt-fail-soft: var(--p-red-100);
-  --pnmt-warn: var(--p-amber-600);
+  --pnmt-warn: var(--p-amber-700);
   --pnmt-warn-soft: var(--p-amber-100);
-  --pnmt-none: var(--p-surface-400);
+  --pnmt-none: var(--p-surface-500);
   --pnmt-none-soft: var(--p-surface-100);
 
   color-scheme: light;
 }
 
 :root.pnmt-dark {
+  /* Dark: a little more contrast than Aura's (preset.ts). Borders zinc 600, muted text zinc 300. */
   --pnmt-bg: var(--p-surface-950);
   --pnmt-panel: var(--p-surface-900);
-  --pnmt-border: var(--p-surface-700);
+  --pnmt-border: var(--p-surface-600);
   --pnmt-text: var(--p-surface-0);
-  --pnmt-muted: var(--p-surface-400);
+  --pnmt-muted: var(--p-surface-300);
 
   --pnmt-ok: var(--p-green-400);
   --pnmt-ok-soft: color-mix(in srgb, var(--p-green-500) 18%, transparent);
@@ -75,8 +78,12 @@ body {
   line-height: 1.43;
   color: var(--pnmt-text);
   background: var(--pnmt-bg);
-  -webkit-font-smoothing: antialiased;
   font-feature-settings: 'cv11', 'tnum';
+}
+
+/* Grayscale smoothing only for light text on dark: on light, it thins dark text on macOS. */
+:root.pnmt-dark body {
+  -webkit-font-smoothing: antialiased;
 }
 
 #app {
@@ -191,8 +198,12 @@ code,
 }
 
 .field-error {
-  color: var(--p-red-500);
+  color: var(--p-red-700);
   font-size: 0.9286rem;
+}
+
+:root.pnmt-dark .field-error {
+  color: var(--p-red-500);
 }
 
 .field-hint {
