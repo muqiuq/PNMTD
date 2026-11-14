@@ -95,14 +95,14 @@ ops_password="$(awk '/^    [A-Za-z0-9]+$/ {print $1}' "$dir/add-user.out")"
 reset_password="$(awk '/^    [A-Za-z0-9]+$/ {print $1}' "$dir/reset.out")"
 [[ "$(login ops "$ops_password")" == "401" ]] || fail "the old password still signs in after reset-password.sh"
 [[ "$(login ops "$reset_password")" == "200" ]] || fail "sign-in with reset-password.sh's password: $(cat "$dir/body")"
-./list-users.sh | grep -Eq '^ops +Viewer +active' || fail "list-users.sh: $(./list-users.sh)"
+./list-users.sh | grep -Eq '^ops +groups Viewers +active' || fail "list-users.sh: $(./list-users.sh)"
 
 # reset-totp.sh (§4.6): 2FA turned on behind the app's back (the enrollment itself is in the
 # integration tests), so the password alone no longer signs in; after the reset it does again.
 sql() { compose exec -T db psql -U pnmtd -d pnmtd -tAc "$1"; }
 sql "UPDATE users SET \"IsTotpEnabled\" = true, \"TotpSecretProtected\" = 'unreadable' WHERE \"NormalizedUsername\" = 'ops'" >/dev/null
 [[ "$(login ops "$reset_password")" == "200" ]] && grep -q '"next":"totp"' "$dir/body" || fail "no code step with 2FA on: $(cat "$dir/body")"
-./list-users.sh | grep -Eq '^ops +Viewer +active +2FA' || fail "list-users.sh shows no 2FA: $(./list-users.sh)"
+./list-users.sh | grep -Eq '^ops +groups Viewers +active +2FA' || fail "list-users.sh shows no 2FA: $(./list-users.sh)"
 ./reset-totp.sh ops >"$dir/reset-totp.out" || fail "reset-totp.sh: $(cat "$dir/reset-totp.out")"
 grep -q 'Turned 2FA off for ops' "$dir/reset-totp.out" || fail "reset-totp.sh: $(cat "$dir/reset-totp.out")"
 [[ "$(login ops "$reset_password")" == "200" ]] && grep -q '"next":"done"' "$dir/body" || fail "2FA still asked after reset-totp.sh: $(cat "$dir/body")"
