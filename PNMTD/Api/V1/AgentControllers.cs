@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Lib.Agent;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Api.V1;
@@ -12,7 +13,7 @@ namespace PNMTD.Api.V1;
 /// </summary>
 [Route("api/v1/agents/servers")]
 [Authorize(Policy = Policies.CanRead)]
-public sealed class AgentServersController(AgentServerService servers) : V1ControllerBase
+public sealed class AgentServersController(AgentServerService servers, SshKeyService keys, AgentScriptService scripts) : V1ControllerBase
 {
     /// <summary>The fleet of both platforms: state, host, OS, agent, connection, remote access, audit gaps, diagnostics.</summary>
     [HttpGet]
@@ -28,6 +29,19 @@ public sealed class AgentServersController(AgentServerService servers) : V1Contr
     [Authorize(Policy = Policies.CanWrite)]
     public async Task<ActionResult<Paged<AgentLoginItem>>> Logins(Guid id, [FromQuery] AgentLoginQuery query, CancellationToken ct) =>
         await servers.LoginsAsync(id, query, ct);
+
+    /// <summary>
+    /// A Linux server's SSH keys (docs/linux-sensor-plan.md §6.3, §10): sshd's key settings and CA keys, each file and key with its
+    /// registration, last use and whether PNMT may remove it here. The User role: key comments and accounts.
+    /// </summary>
+    [HttpGet("{id:guid}/ssh-keys")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<ActionResult<SshKeyServerView>> SshKeys(Guid id, CancellationToken ct) => await keys.ServerKeysAsync(id, ct);
+
+    /// <summary>A Linux server's accounts for the run dialog (docs/linux-sensor-plan.md §8.4), with what its config.yaml allows. Admin, as scripts are.</summary>
+    [HttpGet("{id:guid}/run-as-accounts")]
+    [Authorize(Policy = Policies.Admin)]
+    public async Task<ActionResult<LinuxRunAsAccounts>> RunAsAccounts(Guid id, CancellationToken ct) => await scripts.RunAsAccountsAsync(id, ct);
 
     /// <summary>The readable changes of the sections (§4.9).</summary>
     [HttpGet("{id:guid}/changes")]
@@ -118,13 +132,22 @@ public sealed class AgentsController(AgentServerService servers) : V1ControllerB
 [Authorize(Policy = Policies.Admin)]
 public sealed class AgentScriptsController(AgentScriptService scripts) : V1ControllerBase
 {
+    /// <summary>The library, PowerShell and bash (docs/linux-sensor-plan.md §8.1), of one language with <c>language</c>.</summary>
     [HttpGet("scripts")]
-    public async Task<ActionResult<Paged<AgentScriptItem>>> Scripts([FromQuery] PageQuery query, CancellationToken ct) => await scripts.ScriptsAsync(query, ct);
+    public async Task<ActionResult<Paged<AgentScriptItem>>> Scripts([FromQuery] AgentScriptQuery query, CancellationToken ct) => await scripts.ScriptsAsync(query, ct);
+
+    /// <summary>What a new script of a language starts from: bash from the header template of docs/linux-sensor-plan.md §8.2.</summary>
+    [HttpGet("scripts/template")]
+    public ActionResult<AgentScriptTemplate> Template([FromQuery] ScriptLanguage language = ScriptLanguage.PowerShell) => AgentScriptService.Template(language);
 
     [HttpGet("scripts/{id:guid}")]
     public async Task<ActionResult<AgentScriptDetail>> Script(Guid id, CancellationToken ct) => await scripts.ScriptAsync(id, ct);
 
-    /// <summary>A new script; a connected agent parses its parameters (§7.1).</summary>
+    /// <summary>
+    /// A new script of a language (PowerShell when missing): a connected Windows agent parses PowerShell's parameters (§7.1); a bash
+    /// script's header is read at once, its syntax checked by a Linux agent (docs/linux-sensor-plan.md §8.3). Without a text, bash starts
+    /// from the template.
+    /// </summary>
     [HttpPost("scripts")]
     public async Task<ActionResult<AgentScriptDetail>> Create(AgentScriptRequest request, CancellationToken ct) => await scripts.CreateAsync(request, ct);
 

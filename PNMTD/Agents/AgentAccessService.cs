@@ -38,6 +38,7 @@ public sealed class AgentAccessService(IDbContextFactory<PnmtdDbContext> dbs, IO
         var existing = await db.AgentLogins.Where(l => l.SensorId == agent.SensorId && channels.Contains(l.Channel) && ids.Contains(l.RecordId))
             .ToDictionaryAsync(l => (l.Channel, l.RecordId), ct);
         var fresh = new List<AgentLoginEntity>();
+        var touched = new List<AgentLoginEntity>();
         foreach (var record in records)
         {
             var key = (Cuts.Cut(record.Channel, 200), record.RecordId);
@@ -49,6 +50,12 @@ public sealed class AgentAccessService(IDbContextFactory<PnmtdDbContext> dbs, IO
                 fresh.Add(row);
             }
             Apply(row, record);
+            touched.Add(row);
+        }
+        if (agent.Platform == AgentPlatform.Linux)
+        {
+            // docs/linux-sensor-plan.md §6.3: a login with a key sets that key's last use for that account on this server.
+            await SshKeyManager.SshKeyAuthorizations.UsedAsync(db, agent.SensorId, touched, ct);
         }
 
         var now = Clock.UtcNow;
@@ -133,17 +140,24 @@ public sealed class AgentAccessService(IDbContextFactory<PnmtdDbContext> dbs, IO
 
     /// <summary>
     /// How a key is named in events and messages: "key SHA256:Kq1f9hJ0…rS2A" while it isn't registered; with the key manager
-    /// (docs/linux-sensor-plan.md §6.4, L5) "key Philipp, laptop (philipp)". The one place that words a key.
+    /// (docs/linux-sensor-plan.md §6.4) "key Philipp, laptop (philipp)". The one place that words a key, with <see cref="KeyName"/>.
     /// </summary>
-    public static string KeyText(string fingerprint, SshKeyName? name = null) =>
-        name is null ? $"key {SshKeys.Short(fingerprint)}" : $"key {name.Name}{(name.Owner is { Length: > 0 } owner ? $" ({owner})" : "")}";
+    public static string KeyText(string fingerprint, SshKeyName? name = null) => "key " + KeyName(fingerprint, name);
+
+    /// <summary>A key by its registration, without "key": "Philipp, laptop (philipp)", "Backup server bkp-01 (storage team)", or the short fingerprint.</summary>
+    public static string KeyName(string fingerprint, SshKeyName? name = null) =>
+        name is null ? SshKeys.Short(fingerprint) : $"{name.Name}{(name.Owner is { Length: > 0 } owner ? $" ({owner})" : "")}";
 
     /// <summary>
-    /// The registered names of these keys, by fingerprint: none until the key manager exists. L5 (docs/linux-sensor-plan.md
-    /// §6.4) answers them from <c>ssh_keys</c> here, and every message that names a key follows.
+    /// The registered names of these keys, by fingerprint (docs/linux-sensor-plan.md §6.4): from <c>ssh_keys</c>, joined by the
+    /// fingerprint's value, with the owner's user name, or the owner's text ("former user jdoe" once the user is deleted). Every
+    /// message that names a key comes through here, so a key registered later is named in past logins too.
     /// </summary>
-    public static Task<IReadOnlyDictionary<string, SshKeyName>> KeyNamesAsync(PnmtdDbContext db, IReadOnlyCollection<string> fingerprints, CancellationToken ct) =>
-        Task.FromResult<IReadOnlyDictionary<string, SshKeyName>>(new Dictionary<string, SshKeyName>(StringComparer.Ordinal));
+    public static async Task<IReadOnlyDictionary<string, SshKeyName>> KeyNamesAsync(PnmtdDbContext db, IReadOnlyCollection<string> fingerprints, CancellationToken ct)
+    {
+        var registered = await SshKeyManager.SshKeyRegistry.ByFingerprintAsync(db, fingerprints, ct);
+        return registered.ToDictionary(p => p.Key, p => p.Value.Naming, StringComparer.Ordinal);
+    }
 
     /// <summary>
     /// Linux's 464 (docs/linux-sensor-plan.md §5.6): the threshold of failures against existing accounts within the window from one
@@ -230,5 +244,8 @@ public sealed class AgentAccessService(IDbContextFactory<PnmtdDbContext> dbs, IO
     }
 }
 
-/// <summary>A key's registered name and owner (docs/linux-sensor-plan.md §6.4): what <see cref="AgentAccessService.KeyText"/> names it by.</summary>
-public sealed record SshKeyName(string Name, string? Owner);
+/// <summary>
+/// A key's registered name and owner (docs/linux-sensor-plan.md §6.4): what <see cref="AgentAccessService.KeyText"/> names it by. The
+/// owner is the user's name or the owner's text; <see cref="Retired"/>: registered, but retired (465 when it appears).
+/// </summary>
+public sealed record SshKeyName(string Name, string? Owner, bool Retired = false);

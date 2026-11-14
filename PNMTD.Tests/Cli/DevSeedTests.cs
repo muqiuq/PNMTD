@@ -32,6 +32,20 @@ public sealed class DevSeedTests
         Assert.IsTrue(await db.AgentLogins.AnyAsync(l => l.KeyFingerprint != null && l.Kind == Lib.Agent.LogonKind.Ssh), "SSH logins with keys");
         Assert.IsTrue(await db.AgentLogins.AnyAsync(l => l.Kind == Lib.Agent.LogonKind.Sudo && l.TargetUser == "root"), "sudo");
         Assert.IsTrue(await db.AgentLogins.AnyAsync(l => l.FailureReason == Lib.Agent.LinuxLogins.InvalidUser && l.TriedUsers != null), "the scanners");
+        // The key manager (docs/linux-sensor-plan.md §12): the demo users (the first admin before them), their keys and two services',
+        // Jan's retired key still authorized on web-01, an unregistered weak key, a key unused for 200 days, three removals, bash scripts.
+        Assert.IsTrue(await db.Users.AnyAsync(u => u.NormalizedUsername == "admin" && u.Role == global::PNMTD.Auth.Roles.Admin), "the first admin, as the app would create it");
+        Assert.IsTrue(await db.Users.AnyAsync(u => u.NormalizedUsername == "jdoe" && !u.IsActive));
+        Assert.AreEqual(5, await db.SshKeys.CountAsync());
+        Assert.AreEqual(2, await db.SshKeys.CountAsync(k => k.UserId != null && k.Name.StartsWith("Philipp")));
+        var retired = await db.SshKeys.SingleAsync(k => k.State == Models.Db.SshKeyState.Retired);
+        Assert.IsTrue(await db.SshKeyAuthorizations.AnyAsync(a => a.Fingerprint == retired.Fingerprint), "retired, still authorized");
+        Assert.IsTrue(await db.SshKeyAuthorizations.AnyAsync(a => a.Type == "ssh-rsa" && a.Bits == 1024 && !db.SshKeys.Any(k => k.Fingerprint == a.Fingerprint)),
+            "an unregistered weak key");
+        Assert.IsTrue(await db.SshKeyAuthorizations.AnyAsync(a => a.LastUsedAt < DateTime.UtcNow.AddDays(-180)), "unused for 200 days");
+        CollectionAssert.AreEquivalent(new[] { Models.Db.SshKeyRemovalState.Removed, Models.Db.SshKeyRemovalState.Refused, Models.Db.SshKeyRemovalState.Pending },
+            await db.SshKeyRemovals.Select(r => r.State).ToListAsync());
+        Assert.AreEqual(2, await db.AgentScripts.CountAsync(s => s.Language == Lib.Agent.ScriptLanguage.Bash));
         Assert.AreEqual(3, await db.DiagnosticAssignments.CountAsync());
         Assert.IsTrue(await db.DiagnosticRuns.AnyAsync(r => r.Outcome == Lib.Agent.DiagnosticOutcome.Fail), "the Basel gateway's half hour");
         Assert.IsGreaterThan(150_000, await db.Events.CountAsync());

@@ -26,10 +26,13 @@ public static class SimulatedLinux
     /// <summary>Proxmox VE 9 on Debian 13, for the seed.</summary>
     public static AgentOs ProxmoxOs { get; } = new("Debian GNU/Linux 13 (trixie)", "proxmox", "13", "6.14.11-4-pve", "trixie", true);
 
-    /// <summary>What a Linux agent announces: the ssh-keys section, and removal and scripts only where config.yaml allows them.</summary>
+    /// <summary>
+    /// What a Linux agent announces: the ssh-keys section, parsing (always: it runs nothing, §8.5), and removal and scripts only where
+    /// config.yaml allows them.
+    /// </summary>
     public static IReadOnlyList<string> Capabilities(bool keyRemoval, bool scripts) =>
     [
-        AgentCapabilities.Collect, AgentCapabilities.Access, AgentCapabilities.DiagPing, AgentCapabilities.DiagDns, AgentCapabilities.Keys,
+        AgentCapabilities.Collect, AgentCapabilities.Access, AgentCapabilities.DiagPing, AgentCapabilities.DiagDns, AgentCapabilities.Keys, AgentCapabilities.Parse,
         .. keyRemoval ? [AgentCapabilities.KeysRemove] : Array.Empty<string>(),
         .. scripts ? [AgentCapabilities.Scripts] : Array.Empty<string>(),
     ];
@@ -45,7 +48,10 @@ public static class SimulatedLinux
     /// <summary>Changes what the next sections report, for the tests of the differs: a section's data by name and host name.</summary>
     public static Func<string, string, object?>? Override { get; set; }
 
-    public static IReadOnlyDictionary<string, object> All(string hostname, bool proxmox = false, bool keyRemoval = false)
+    /// <summary>
+    /// The sections; <paramref name="removed"/>: the keys a removal took (<see cref="Place"/>), gone from the ssh-keys section.
+    /// </summary>
+    public static IReadOnlyDictionary<string, object> All(string hostname, bool proxmox = false, bool keyRemoval = false, IReadOnlySet<string>? removed = null)
     {
         var sections = new Dictionary<string, object>
         {
@@ -56,7 +62,7 @@ public static class SimulatedLinux
             [SectionNames.RemoteAccess] = RemoteAccess(proxmox),
             [SectionNames.Access] = Access(),
             [SectionNames.Journal] = Journal(),
-            [SectionNames.SshKeys] = SshKeys(hostname, proxmox, keyRemoval),
+            [SectionNames.SshKeys] = SshKeys(hostname, proxmox, keyRemoval, removed),
         };
         foreach (var name in sections.Keys.ToList())
         {
@@ -68,12 +74,13 @@ public static class SimulatedLinux
         return sections;
     }
 
-    public static IReadOnlyDictionary<string, string> Hashes(string hostname, bool keyRemoval = false) =>
-        All(hostname, keyRemoval: keyRemoval).ToDictionary(p => p.Key, p => Hash(AgentJson.ToElement(p.Value)));
+    public static IReadOnlyDictionary<string, string> Hashes(string hostname, bool keyRemoval = false, IReadOnlySet<string>? removed = null) =>
+        All(hostname, keyRemoval: keyRemoval, removed: removed).ToDictionary(p => p.Key, p => Hash(AgentJson.ToElement(p.Value)));
 
-    public static async Task SendAsync(AgentSession session, string hostname, IReadOnlyList<string> names, bool keyRemoval, CancellationToken ct)
+    public static async Task SendAsync(AgentSession session, string hostname, IReadOnlyList<string> names, bool keyRemoval, CancellationToken ct,
+        IReadOnlySet<string>? removed = null)
     {
-        foreach (var (name, data) in All(hostname, keyRemoval: keyRemoval).Where(p => names.Count == 0 || names.Contains(p.Key)))
+        foreach (var (name, data) in All(hostname, keyRemoval: keyRemoval, removed: removed).Where(p => names.Count == 0 || names.Contains(p.Key)))
         {
             var element = AgentJson.ToElement(data);
             await session.SendAsync(AgentMessageTypes.Section, new SectionMessage(name, SectionNames.SchemaVersion, Hash(element), DateTimeOffset.UtcNow, element), ct);
@@ -84,8 +91,9 @@ public static class SimulatedLinux
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(element.GetRawText())), 0, 16).ToLowerInvariant();
 
     /// <summary>A heartbeat (§5.3): the fullest real file system, a pending reboot (a newer kernel), and the last shutdown, clean.</summary>
-    public static Heartbeat Heartbeat(string hostname, int configVersion, string agentVersion, bool keyRemoval = false) => new(DateTimeOffset.UtcNow, Boot,
-        3.5 + Random.Shared.NextDouble() * 6, 38.4, "/", 61.2, [new SessionInfo("philipp", "Ssh", "active", "10.0.4.17")], true, Hashes(hostname, keyRemoval),
+    public static Heartbeat Heartbeat(string hostname, int configVersion, string agentVersion, bool keyRemoval = false, IReadOnlySet<string>? removed = null) =>
+        new(DateTimeOffset.UtcNow, Boot,
+        3.5 + Random.Shared.NextDouble() * 6, 38.4, "/", 61.2, [new SessionInfo("philipp", "Ssh", "active", "10.0.4.17")], true, Hashes(hostname, keyRemoval, removed),
         configVersion, agentVersion, 0, hostname, $"clean shutdown at {Boot.AddMinutes(-1).ToLocalTime():yyyy-MM-dd HH:mm}");
 
     // --- system (§5.2) ------------------------------------------------------------------------------------------
@@ -331,7 +339,34 @@ public static class SimulatedLinux
     /// <summary>Proxmox VE: the other node's root key, which the cluster needs (protected).</summary>
     public static SimulatedKey ClusterNode { get; } = Ed25519("pve-02", "root@pve-02");
 
-    public static SshKeysSection SshKeys(string hostname, bool proxmox = false, bool keyRemoval = false)
+    /// <summary>For the seed (docs/linux-sensor-plan.md §12): Philipp's workstation, unused for months.</summary>
+    public static SimulatedKey PhilippWorkstation { get; } = Ed25519("philipp-workstation", "philipp@ws-17");
+
+    /// <summary>For the seed: a colleague's old laptop, retired and still authorized.</summary>
+    public static SimulatedKey JanOldLaptop { get; } = Ed25519("jdoe-old-laptop", "jdoe@old-laptop");
+
+    /// <summary>A key in a file, as <see cref="SshKeys"/>' <c>removed</c> names it.</summary>
+    public static string Place(string account, string path, string fingerprint) => $"{account}\n{path}\n{fingerprint}";
+
+    /// <summary>
+    /// The ssh-keys section: root's and deploy's files on web-01 (deploy's removable where config.yaml allows it), root's cluster-wide
+    /// file on pve-01. <paramref name="removed"/>: keys a removal took (<see cref="Place"/>), gone from their files.
+    /// </summary>
+    public static SshKeysSection SshKeys(string hostname, bool proxmox = false, bool keyRemoval = false, IReadOnlySet<string>? removed = null)
+    {
+        var section = SshKeysAsReported(proxmox, keyRemoval);
+        if (removed is not { Count: > 0 })
+        {
+            return section;
+        }
+        var files = section.Files.Select(f => f with { Keys = f.Keys.Where(k => !removed.Contains(Place(f.Account, f.Path, k.Fingerprint))).ToList() })
+            .Select(f => f.Keys.Count == section.Files.Single(o => o.Path == f.Path && o.Account == f.Account).Keys.Count ? f
+                : f with { Sha256 = Hash(AgentJson.ToElement(f.Keys)) + Hash(AgentJson.ToElement(f.Path)), Size = 120L * f.Keys.Count + 40 })
+            .ToList();
+        return section with { Files = files, TotalKeys = files.Sum(f => f.Keys.Count) };
+    }
+
+    private static SshKeysSection SshKeysAsReported(bool proxmox, bool keyRemoval)
     {
         var settings = new SshdKeySettings([".ssh/authorized_keys", ".ssh/authorized_keys2"], null, null, null, null, true, proxmox ? "yes" : "prohibit-password", true,
             false, true);

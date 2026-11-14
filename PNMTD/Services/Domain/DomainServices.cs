@@ -47,6 +47,8 @@ public static class DomainServicesSetup
         services.AddScoped<AgentServerService>();
         services.AddScoped<DiagnosticsSetService>();
         services.AddScoped<AgentScriptService>();
+        // The SSH key manager (docs/linux-sensor-plan.md §6.4, §10).
+        services.AddScoped<SshKeyService>();
         return services;
     }
 }

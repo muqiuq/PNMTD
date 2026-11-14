@@ -38,7 +38,7 @@ internal static class DevSeedCommand
     /// <summary>A stretch of history with failures (uptime bars with colour).</summary>
     private sealed record Outage(string Host, string Sensor, double FromDaysAgo, double ToDaysAgo, double Probability);
 
-    public static int Run(string[] args, Func<PnmtdDbContext> database, ILogger logger)
+    public static int Run(string[] args, Func<PnmtdDbContext> database, ILogger logger, IConfiguration? configuration = null)
     {
         if (args is not ["seed"])
         {
@@ -55,6 +55,14 @@ internal static class DevSeedCommand
         {
             Console.Error.WriteLine("The database has hosts already: the seed only fills an empty one.");
             return 1;
+        }
+        // The key manager's demo owners are users (docs/linux-sensor-plan.md §12). The first admin comes first, as the app would create
+        // it at its first start (Auth:InitialAdmin:*): with users in the table, it wouldn't any more.
+        var (admin, generated) = new Auth.UserAccounts(db).SeedAsync(configuration ?? new ConfigurationBuilder().Build()).GetAwaiter().GetResult();
+        if (admin is not null)
+        {
+            Console.WriteLine(generated is null ? $"Created the first admin {admin.Username} with Auth:InitialAdmin:Password."
+                : $"Created the first admin {admin.Username} with the password {generated}. Change it at the first sign-in.");
         }
         var counts = Seed(db);
         Console.WriteLine($"Seeded {counts.Hosts} hosts, {counts.Sensors} sensors, {counts.Events:N0} events.");

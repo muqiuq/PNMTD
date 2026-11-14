@@ -94,6 +94,14 @@ public static class AuthEvents
     /// <summary>Fetch again of the agents' files (docs/linux-sensor-plan.md §4.4).</summary>
     public const string AgentDownloadsFetched = "AgentDownloadsFetched";
 
+    // The SSH key manager (docs/linux-sensor-plan.md §6.4, §6.5): registering, editing, retiring and deleting a key, and its
+    // removals from servers (asked for, and what the agent did).
+    public const string SshKeyRegistered = "SshKeyRegistered";
+    public const string SshKeyChanged = "SshKeyChanged";
+    public const string SshKeyRetired = "SshKeyRetired";
+    public const string SshKeyDeleted = "SshKeyDeleted";
+    public const string SshKeyRemoved = "SshKeyRemoved";
+
     public static readonly string[] All =
     [
         LoginSucceeded, LoginFailed, LockedOut, TotpFailed, Logout, TotpEnabled, TotpDisabled, TotpReset, PasswordChanged,
@@ -108,6 +116,7 @@ public static class AuthEvents
         DebugNotificationSent, DebugAiTested, AiWorkRetried, AiWorkCancelled, AiBackfillStarted, AiAnalysisStarted,
         AgentJoinTokenCreated, AgentJoinTokenRevoked, AgentJoined, AgentJoinFailed, AgentRevoked, AgentSettingsChanged, WindowsSettingsChanged,
         DiagnosticsSetChanged, DiagnosticsAssignmentChanged, AgentScriptChanged, AgentScriptRun, AgentDownloadsFetched,
+        SshKeyRegistered, SshKeyChanged, SshKeyRetired, SshKeyDeleted, SshKeyRemoved,
     ];
 }
 
@@ -231,12 +240,24 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
         return user;
     }
 
+    /// <summary>
+    /// Deletes a user. Their SSH keys (docs/linux-sensor-plan.md §6.4) keep their names; the owner becomes the text "former user
+    /// jdoe", and the keys stay wherever they are authorized.
+    /// </summary>
     public async Task DeleteAsync(Guid id, AuditContext audit, CancellationToken ct = default)
     {
         var user = await GetAsync(id, ct);
         await GuardLastAdminAsync(user, ct);
+        var keys = await db.SshKeys.Where(k => k.UserId == user.Id).ToListAsync(ct);
+        foreach (var key in keys)
+        {
+            key.UserId = null;
+            key.Owner = SshKeyManager.SshKeyRegistry.FormerUser(user.Username);
+            key.UpdatedAt = Clock.UtcNow;
+        }
         db.Users.Remove(user);
-        Log(AuthEvents.UserDeleted, user, audit, null);
+        Log(AuthEvents.UserDeleted, user, audit,
+            keys.Count == 0 ? null : $"{keys.Count} SSH {(keys.Count == 1 ? "key" : "keys")} now owned by \"{SshKeyManager.SshKeyRegistry.FormerUser(user.Username)}\"");
         await SaveAsync(ct);
         sessions?.Forget(user.Id);
     }

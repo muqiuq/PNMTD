@@ -12,12 +12,13 @@ using PNMTD.Models.Db;
 namespace PNMTD.Services.Domain;
 
 /// <summary>
-/// Scripts in the API (docs/windows-sensor-plan.md §7; docs/linux-sensor-plan.md §8): the library with a version per change,
-/// parsed on an agent (PowerShell, until bash comes with L7); Windows' run-as accounts (names only, never a password) and the
-/// scripts registered on a Windows server; runs on servers, signed and with secrets encrypted to each agent; the history,
-/// with arguments an Admin can redact. All Admin, all audited.
+/// Scripts in the API (docs/windows-sensor-plan.md §7; docs/linux-sensor-plan.md §8): the library with a version per change, in
+/// PowerShell (parsed on a Windows agent) or bash (its header read here at the save, its syntax checked on a Linux agent); Windows'
+/// run-as accounts (names only, never a password) and the scripts registered on a Windows server; a Linux server's accounts; runs on
+/// servers of the script's platform, signed, refused where the server's rights refuse them, and with secrets encrypted to each agent;
+/// the history, with arguments an Admin can redact. All Admin, all audited.
 /// </summary>
-public sealed class AgentScriptService(
+public sealed partial class AgentScriptService(
     PnmtdDbContext db,
     AgentHub hub,
     AgentKeyStore keys,
@@ -30,9 +31,13 @@ public sealed class AgentScriptService(
 
     // --- the library (§7.1) ---------------------------------------------------------------------------------
 
-    public async Task<Paged<AgentScriptItem>> ScriptsAsync(PageQuery query, CancellationToken ct)
+    public async Task<Paged<AgentScriptItem>> ScriptsAsync(AgentScriptQuery query, CancellationToken ct)
     {
         var q = db.AgentScripts.AsNoTracking();
+        if (query.Language is { } language)
+        {
+            q = q.Where(s => s.Language == language);
+        }
         if (Text.Pattern(query.Search) is { } pattern)
         {
             q = q.Where(s => EF.Functions.ILike(s.Name, pattern) || EF.Functions.ILike(s.Description ?? "", pattern));
@@ -60,23 +65,58 @@ public sealed class AgentScriptService(
             Parse(current.Parsed), current.ParseError,
             script.Versions.OrderByDescending(v => v.Number).Select(v => new AgentScriptVersionItem(v.Id, v.Number, v.Hash, v.CreatedAt, v.CreatedByName,
                 v.ParseState, v.ParsedAt, v.ParsedOn, v.ParseError)).ToList(),
-            results.ParserAvailable);
+            results.IsParserAvailable(script.Language));
     }
 
     private static ParsedScript? Parse(string? json) => json is null ? null : JsonSerializer.Deserialize<ParsedScript>(json, AgentJson.Options);
 
+    /// <summary>A new PowerShell script's text (§7.1's practices): help, CmdletBinding, typed parameters, strict mode.</summary>
+    public const string PowerShellTemplate = """
+        <#
+        .SYNOPSIS
+            What this script does, in one line.
+        .DESCRIPTION
+            What it changes, and what it needs. It runs as the account chosen in PNMT's run dialog.
+        .PARAMETER Target
+            What to work on.
+        #>
+        [CmdletBinding()]
+        param(
+            [Parameter(Mandatory = $true)] [string] $Target,
+            [ValidateRange(1, 365)] [int] $Days = 7,
+            [switch] $DryRun
+        )
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+
+        Write-Output "Working on $Target, $Days days"
+        if ($DryRun) { Write-Output 'Dry run: nothing changed.'; return }
+        """;
+
+    /// <summary>What a new script of a language starts from (docs/linux-sensor-plan.md §8.1): bash from <see cref="BashScriptHeader.Template"/>.</summary>
+    public static AgentScriptTemplate Template(ScriptLanguage language) =>
+        new(language, language == ScriptLanguage.Bash ? BashScriptHeader.Template : PowerShellTemplate);
+
     public async Task<AgentScriptDetail> CreateAsync(AgentScriptRequest request, CancellationToken ct)
     {
+        var language = request.Language ?? ScriptLanguage.PowerShell;
+        new ApiValidator().Check(Enum.IsDefined(language), "language", "PowerShell or Bash.").ThrowIfInvalid();
+        // §8.1: a new bash script starts from the template.
+        if (language == ScriptLanguage.Bash && string.IsNullOrWhiteSpace(request.Text))
+        {
+            request = request with { Text = BashScriptHeader.Template };
+        }
         await ValidateAsync(request, null, ct);
         var now = Clock.UtcNow;
         var script = new AgentScriptEntity
         {
-            Id = Guid.NewGuid(), Name = request.Name.Trim(), Description = Text.Trimmed(request.Description), Language = ScriptLanguage.PowerShell, CreatedAt = now,
+            Id = Guid.NewGuid(), Name = request.Name.Trim(), Description = Text.Trimmed(request.Description), Language = language, CreatedAt = now,
             UpdatedAt = now, CurrentVersion = 1,
         };
-        script.Versions.Add(Version(script.Id, 1, request.Text));
+        script.Versions.Add(Version(script.Id, 1, request.Text, language));
         db.AgentScripts.Add(script);
-        UdpViews.Audit(db, accessor, AuthEvents.AgentScriptChanged, $"script {script.Name} created (v1, {script.Versions[0].Hash[..12]})");
+        UdpViews.Audit(db, accessor, AuthEvents.AgentScriptChanged,
+            $"script {script.Name} created ({language}, v1, {script.Versions[0].Hash[..12]})");
         await db.SaveChangesAsync(ct);
         await results.ParsePendingAsync(null, ct);
         return await ScriptAsync(script.Id, ct);
@@ -86,6 +126,8 @@ public sealed class AgentScriptService(
     public async Task<AgentScriptDetail> UpdateAsync(Guid id, AgentScriptRequest request, CancellationToken ct)
     {
         var script = await db.AgentScripts.Include(s => s.Versions).SingleOrDefaultAsync(s => s.Id == id, ct) ?? throw ApiException.NotFound("Script");
+        new ApiValidator().Check(request.Language is null || request.Language == script.Language, "language",
+            $"A script's language can't change: {script.Name} is {script.Language}. Create a new script.").ThrowIfInvalid();
         await ValidateAsync(request, id, ct);
         script.Name = request.Name.Trim();
         script.Description = Text.Trimmed(request.Description);
@@ -93,7 +135,7 @@ public sealed class AgentScriptService(
         var current = script.Versions.Single(v => v.Number == script.CurrentVersion);
         if (current.Text != request.Text)
         {
-            var next = Version(script.Id, script.CurrentVersion + 1, request.Text);
+            var next = Version(script.Id, script.CurrentVersion + 1, request.Text, script.Language);
             db.AgentScriptVersions.Add(next);
             script.CurrentVersion = next.Number;
             UdpViews.Audit(db, accessor, AuthEvents.AgentScriptChanged, $"script {script.Name}: v{next.Number} ({next.Hash[..12]})");
@@ -103,12 +145,17 @@ public sealed class AgentScriptService(
         return await ScriptAsync(id, ct);
     }
 
-    /// <summary>Parses the current version again, on a connected agent.</summary>
+    /// <summary>Parses the current version again, on a connected agent; a bash script's header here first.</summary>
     public async Task<AgentScriptDetail> ReparseAsync(Guid id, CancellationToken ct)
     {
         var script = await db.AgentScripts.AsNoTracking().SingleOrDefaultAsync(s => s.Id == id, ct) ?? throw ApiException.NotFound("Script");
-        await db.AgentScriptVersions.Where(v => v.ScriptId == id && v.Number == script.CurrentVersion)
-            .ExecuteUpdateAsync(u => u.SetProperty(v => v.ParseState, ScriptParseState.Pending), ct);
+        var version = await db.AgentScriptVersions.SingleAsync(v => v.ScriptId == id && v.Number == script.CurrentVersion, ct);
+        version.ParseState = ScriptParseState.Pending;
+        if (script.Language == ScriptLanguage.Bash)
+        {
+            version.Parsed = Header(version.Text);
+        }
+        await db.SaveChangesAsync(ct);
         await results.ParsePendingAsync(null, ct);
         return await ScriptAsync(id, ct);
     }
@@ -121,11 +168,18 @@ public sealed class AgentScriptService(
         await db.SaveChangesAsync(ct);
     }
 
-    private AgentScriptVersionEntity Version(Guid scriptId, int number, string text) => new()
+    /// <summary>
+    /// A new version, pending for its agent's parse. A bash version's header is read here (docs/linux-sensor-plan.md §8.2): its
+    /// parameters are there at once, never pending; the agent's syntax check is merged in later (<see cref="AgentScriptResults"/>).
+    /// </summary>
+    private AgentScriptVersionEntity Version(Guid scriptId, int number, string text, ScriptLanguage language) => new()
     {
         Id = Guid.NewGuid(), ScriptId = scriptId, Number = number, Text = text, Hash = ScriptHashes.Of(text), CreatedAt = Clock.UtcNow,
-        CreatedByName = UdpViews.User(accessor).Name, ParseState = ScriptParseState.Pending,
+        CreatedByName = UdpViews.User(accessor).Name, ParseState = ScriptParseState.Pending, Parsed = language == ScriptLanguage.Bash ? Header(text) : null,
     };
+
+    /// <summary>A bash script's header as PNMTD reads it (<see cref="BashScriptHeader.Parse"/>), capped as the agents' parses are.</summary>
+    private static string Header(string text) => JsonSerializer.Serialize(AgentScriptResults.Capped(BashScriptHeader.Parse(text)), AgentJson.Options);
 
     private async Task ValidateAsync(AgentScriptRequest request, Guid? id, CancellationToken ct)
     {
@@ -185,74 +239,197 @@ public sealed class AgentScriptService(
 
     // --- runs (§7.3) ----------------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// Runs the current version on servers of its platform (docs/linux-sensor-plan.md §8.1): PowerShell on Windows servers as a run-as
+    /// account, bash on Linux servers as root or a local account. A Linux server whose config.yaml refuses the run (scripts off, the
+    /// account not in run_as, a timeout above its limit) gets a refused run with the line that would allow it, and nothing is sent.
+    /// </summary>
     public async Task<IReadOnlyList<AgentScriptRunItem>> RunAsync(Guid scriptId, AgentScriptRunRequest request, CancellationToken ct)
     {
         var script = await db.AgentScripts.AsNoTracking().Include(s => s.Versions).SingleOrDefaultAsync(s => s.Id == scriptId, ct)
             ?? throw ApiException.NotFound("Script");
         var version = script.Versions.Single(v => v.Number == script.CurrentVersion);
-        var parsed = Parse(version.Parsed);
-        if (version.ParseState != ScriptParseState.Parsed || parsed is null)
+        var bash = script.Language == ScriptLanguage.Bash;
+        // §8.2: a bash version's parameters come from its header, read at the save, and never wait for an agent.
+        var parsed = Parse(version.Parsed) ?? (bash ? BashScriptHeader.Parse(version.Text) : null);
+        if (parsed is null || (!bash && version.ParseState != ScriptParseState.Parsed))
         {
             throw ApiException.Conflict("parameters_pending", "The script's parameters aren't known yet: an agent parses it when one is connected.");
         }
         if (parsed.Errors.Count > 0)
         {
-            throw ApiException.Conflict("syntax_errors", $"The script has syntax errors: {parsed.Errors[0].Message} (line {parsed.Errors[0].Line}).");
+            throw ApiException.Conflict("syntax_errors",
+                $"The script has {(bash ? "errors in its header or syntax" : "syntax errors")}: {parsed.Errors[0].Message} (line {parsed.Errors[0].Line}).");
         }
-        var runAs = await db.WindowsRunAs.AsNoTracking().SingleOrDefaultAsync(r => r.Id == request.RunAsId, ct);
         var sensorIds = (request.SensorIds ?? []).Distinct().ToList();
         var arguments = request.Arguments ?? new Dictionary<string, JsonElement>();
         var secure = request.SecureArguments ?? new Dictionary<string, string>();
         var timeout = request.TimeoutSeconds ?? DefaultTimeoutSeconds;
-        var shell = request.Shell ?? "powershell";
         var v = new ApiValidator()
             .Check(sensorIds.Count is >= 1 and <= 100, "sensorIds", "Between 1 and 100 servers.")
-            .Check(runAs is not null, "runAsId", "No such run-as account.")
-            .Check(runAs?.Kind != RunAsKind.TypedPerRun || !string.IsNullOrEmpty(request.Password), "password", "This account's password is typed per run.")
-            .Check(timeout is >= 10 and <= MaxTimeoutSeconds, "timeoutSeconds", $"Between 10 and {MaxTimeoutSeconds} seconds.")
-            .Check(shell is "powershell" or "pwsh", "shell", "powershell (Windows PowerShell 5.1) or pwsh.");
+            .Check(timeout is >= 10 and <= MaxTimeoutSeconds, "timeoutSeconds", $"Between 10 and {MaxTimeoutSeconds} seconds.");
+        var platform = bash ? AgentPlatform.Linux : AgentPlatform.Windows;
+        var servers = await db.Agents.AsNoTracking().Where(a => sensorIds.Contains(a.SensorId) && AgentPlatformInfo.SensorTypes.Contains(a.Sensor.Type))
+            .Select(a => new { a.SensorId, a.Platform, a.EncryptionKey, a.Rights, a.Capabilities, Name = a.Sensor.Parent.Name + " / " + a.Sensor.Name })
+            .ToListAsync(ct);
+        v.Check(servers.Count == sensorIds.Count, "sensorIds", "No such server: scripts run on servers with an agent.");
+        foreach (var other in servers.Where(s => s.Platform != platform))
+        {
+            v.Add("sensorIds", $"{other.Name} is a {other.Platform} server: {script.Name} is a {(bash ? "bash" : "PowerShell")} script, which runs on {platform} servers only.");
+        }
+
+        WindowsRunAsEntity? runAs = null;
+        RunAsKind kind;
+        string? account;
+        string runAsName;
+        string shell;
+        if (bash)
+        {
+            // §8.4: root (the service) or a local account by name; root starts anything as anyone, so there are no passwords.
+            kind = request.RunAs ?? RunAsKind.Service;
+            account = Text.Trimmed(request.Account);
+            v.Check(kind is RunAsKind.Service or RunAsKind.User, "runAs", "Service (root) or User (a local account by name): Linux has no stored accounts or passwords.")
+                .Check(kind != RunAsKind.User || (account is not null && LinuxAccountName().IsMatch(account)), "account", "A local account's name, as in /etc/passwd.")
+                .Check(kind != RunAsKind.Service || account is null or "root", "account", "The service runs as root: no account.")
+                .Check(request.Password is null, "password", "No passwords on Linux: root starts the script as the account.")
+                .Check(request.RunAsId is null, "runAsId", "Linux servers have no run-as accounts: run as root (Service) or as a local account (User).")
+                .Check(request.Shell is null or "bash", "shell", "bash.");
+            if (kind == RunAsKind.Service)
+            {
+                account = null;
+            }
+            runAsName = kind == RunAsKind.Service ? "root (the service)" : account ?? "";
+            shell = "bash";
+        }
+        else
+        {
+            runAs = await db.WindowsRunAs.AsNoTracking().SingleOrDefaultAsync(r => r.Id == request.RunAsId, ct);
+            shell = request.Shell ?? "powershell";
+            v.Check(runAs is not null, "runAsId", "No such run-as account.")
+                .Check(runAs?.Kind != RunAsKind.TypedPerRun || !string.IsNullOrEmpty(request.Password), "password", "This account's password is typed per run.")
+                .Check(shell is "powershell" or "pwsh", "shell", "powershell (Windows PowerShell 5.1) or pwsh.");
+            kind = runAs?.Kind ?? RunAsKind.Service;
+            account = runAs?.Account;
+            runAsName = runAs?.Name ?? "";
+        }
         foreach (var problem in ScriptArguments.Check(parsed, arguments, secure.Keys.ToList()))
         {
             v.Check(false, problem.Field, problem.Message);
         }
-        // PowerShell runs on Windows servers; a script of another language on another platform comes with bash (L7).
-        var servers = await db.Agents.AsNoTracking().Where(a => sensorIds.Contains(a.SensorId) && a.Platform == AgentPlatform.Windows)
-            .Select(a => new { a.SensorId, a.EncryptionKey, Name = a.Sensor.Parent.Name + " / " + a.Sensor.Name }).ToListAsync(ct);
-        v.Check(servers.Count == sensorIds.Count, "sensorIds", "Every server must be a Windows server: the script is PowerShell.");
         v.ThrowIfInvalid();
 
         var (_, user) = UdpViews.User(accessor);
         var batch = Guid.NewGuid();
         var plain = JsonSerializer.Serialize(arguments, AgentJson.Options);
-        var rows = new List<AgentScriptRunEntity>();
+        var rows = new List<(AgentScriptRunEntity Row, string? Refused)>();
         foreach (var server in servers)
         {
             var row = new AgentScriptRunEntity
             {
                 Id = Guid.NewGuid(), BatchId = batch, ScriptId = script.Id, ScriptName = script.Name, VersionNumber = version.Number, Hash = version.Hash,
-                SensorId = server.SensorId, ServerName = server.Name, RunAsName = runAs!.Name, RunAsKind = runAs.Kind, Account = runAs.Account,
+                SensorId = server.SensorId, ServerName = server.Name, RunAsName = runAsName, RunAsKind = kind, Account = account,
                 Arguments = arguments.Count == 0 && secure.Count == 0 ? null : plain, RequestedBy = user, StartedAt = Clock.UtcNow, State = ScriptRunState.Sent,
                 TimeoutSeconds = timeout,
             };
+            var refused = bash ? LinuxRefusal(ServerRights.Read(server.Rights), server.Capabilities, server.Name, account ?? "root", timeout) : null;
+            if (refused is not null)
+            {
+                Finish(row, ScriptRunState.Refused, refused);
+            }
             db.AgentScriptRuns.Add(row);
-            rows.Add(row);
+            rows.Add((row, refused));
         }
         UdpViews.Audit(db, accessor, AuthEvents.AgentScriptRun,
-            $"script {script.Name} v{version.Number} on {string.Join(", ", servers.Select(s => s.Name))} as {runAs!.Name} ({runAs.Kind}), batch {batch}");
+            $"script {script.Name} v{version.Number} ({script.Language}) on {string.Join(", ", servers.Select(s => s.Name))} as {runAsName} ({kind}), batch {batch}"
+            + (rows.Any(r => r.Refused is not null) ? $"; refused on {string.Join(", ", rows.Where(r => r.Refused is not null).Select(r => r.Row.ServerName))}" : ""));
         await db.SaveChangesAsync(ct);
 
-        foreach (var row in rows)
+        foreach (var (row, refused) in rows.Where(r => r.Refused is null))
         {
             var server = servers.Single(s => s.SensorId == row.SensorId);
-            await SendAsync(row, server.EncryptionKey, version.Text, arguments, secure, runAs.Kind == RunAsKind.TypedPerRun ? request.Password : null, shell, ct);
+            await SendAsync(row, server.EncryptionKey, version.Text, arguments, secure, runAs?.Kind == RunAsKind.TypedPerRun ? request.Password : null, shell, platform, ct);
         }
         await db.SaveChangesAsync(ct);
-        return rows.Select(Item).ToList();
+        return rows.Select(r => Item(r.Row)).ToList();
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_.-]{0,31}\$?$")]
+    private static partial System.Text.RegularExpressions.Regex LinuxAccountName();
+
+    /// <summary>
+    /// Why a Linux server's config.yaml refuses a run (docs/linux-sensor-plan.md §8.5), with the line that would allow it: scripts off,
+    /// the account (root for the service) not in scripts.run_as, a timeout above scripts.max_timeout_minutes; or an agent that doesn't
+    /// announce scripts.v1. Null: allowed, as far as PNMT can tell (allowed_hashes is the agent's to check).
+    /// </summary>
+    public static string? LinuxRefusal(AgentRightsSummary? rights, IReadOnlyCollection<string> capabilities, string server, string? account, int timeoutSeconds)
+    {
+        if (LinuxScriptsRefusal(rights, capabilities, server) is { } off)
+        {
+            return off;
+        }
+        if (account is not null && !rights!.ScriptRunAs.Contains(account, StringComparer.Ordinal))
+        {
+            return $"{account} is not in scripts.run_as on {server}: \"run_as: [{string.Join(", ", rights.ScriptRunAs.Append(account))}]\" in /etc/pnmt-agent/config.yaml would allow it.";
+        }
+        var minutes = (timeoutSeconds + 59) / 60;
+        if (rights!.MaxScriptTimeoutMinutes > 0 && minutes > rights.MaxScriptTimeoutMinutes)
+        {
+            return $"The timeout ({minutes} min) is above scripts.max_timeout_minutes ({rights.MaxScriptTimeoutMinutes}) on {server}: "
+                + $"\"max_timeout_minutes: {minutes}\" in /etc/pnmt-agent/config.yaml would allow it, or a shorter timeout.";
+        }
+        return null;
+    }
+
+    /// <summary>Why a Linux server refuses scripts at all, or null.</summary>
+    private static string? LinuxScriptsRefusal(AgentRightsSummary? rights, IReadOnlyCollection<string> capabilities, string server)
+    {
+        if (rights is not null && ServerRights.IsRefused(rights))
+        {
+            return $"/etc/pnmt-agent/config.yaml on {server} is refused{(rights.Problem is { } problem ? $" ({problem})" : "")}: it grants PNMT nothing, scripts included.";
+        }
+        if (rights is null || !rights.Scripts)
+        {
+            return $"Scripts are off on {server}: \"scripts: enabled: true\" with the accounts in run_as, in /etc/pnmt-agent/config.yaml, would allow them.";
+        }
+        if (!capabilities.Contains(AgentCapabilities.Scripts))
+        {
+            return $"The agent on {server} doesn't announce scripts.v1, though config.yaml allows scripts: update it (pnmt-agent update).";
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// A Linux server's accounts for the run dialog (docs/linux-sensor-plan.md §8.4): root as the service and the system section's
+    /// accounts, each with whether scripts.run_as allows it; and the server's scripts rights.
+    /// </summary>
+    public async Task<LinuxRunAsAccounts> RunAsAccountsAsync(Guid sensorId, CancellationToken ct)
+    {
+        var agent = await db.Agents.AsNoTracking().Where(a => a.SensorId == sensorId && AgentPlatformInfo.SensorTypes.Contains(a.Sensor.Type))
+            .Select(a => new { a.Platform, a.Rights, a.Capabilities, Name = a.Sensor.Parent.Name + " / " + a.Sensor.Name }).SingleOrDefaultAsync(ct)
+            ?? throw ApiException.NotFound("Server");
+        if (agent.Platform != AgentPlatform.Linux)
+        {
+            throw ApiException.NotFound("Linux server (a Windows server's accounts: /api/v1/windows/run-as)");
+        }
+        var rights = ServerRights.Read(agent.Rights);
+        var off = LinuxScriptsRefusal(rights, agent.Capabilities, agent.Name);
+        var system = await AgentSections.ReadAsync<LinuxSystemSection>(db, sensorId, SectionNames.System, ct);
+        var runAs = rights?.ScriptRunAs ?? [];
+        LinuxRunAsAccount Account(string name, RunAsKind kind, LinuxAccount? a)
+        {
+            var allowed = off is null && runAs.Contains(name, StringComparer.Ordinal);
+            return new LinuxRunAsAccount(name, kind, a?.Uid ?? (name == "root" ? 0 : null), a?.Home, a?.Shell, a?.LoginShell ?? name == "root", a?.SystemAccount ?? false,
+                allowed, allowed ? null : off ?? $"{name} is not in scripts.run_as: \"run_as: [{string.Join(", ", runAs.Append(name))}]\" in /etc/pnmt-agent/config.yaml would allow it.");
+        }
+        var accounts = new List<LinuxRunAsAccount> { Account("root", RunAsKind.Service, system?.Accounts.FirstOrDefault(a => a.Name == "root")) };
+        accounts.AddRange((system?.Accounts ?? []).Where(a => a.Name != "root").OrderBy(a => a.SystemAccount).ThenBy(a => a.Name, StringComparer.Ordinal)
+            .Select(a => Account(a.Name, RunAsKind.User, a)));
+        return new LinuxRunAsAccounts(sensorId, off is null, off, runAs, rights?.MaxScriptTimeoutMinutes ?? 0, rights?.AllowedScriptHashes ?? 0, accounts);
     }
 
     /// <summary>Sends a run to its server's agent, signed, with the secrets encrypted to it; a refusal or no answer finishes the row.</summary>
     private async Task SendAsync(AgentScriptRunEntity row, string? encryptionKey, string text, IReadOnlyDictionary<string, JsonElement> arguments,
-        IReadOnlyDictionary<string, string> secure, string? password, string shell, CancellationToken ct)
+        IReadOnlyDictionary<string, string> secure, string? password, string shell, AgentPlatform platform, CancellationToken ct)
     {
         var connection = row.SensorId is { } sensorId ? hub.Connection(sensorId) : null;
         if (connection is null)
@@ -262,7 +439,9 @@ public sealed class AgentScriptService(
         }
         if (!connection.Capabilities.Contains(AgentCapabilities.Scripts))
         {
-            Finish(row, ScriptRunState.Refused, "Scripts are not allowed on this server: an administrator turns them on in the agent's window there.");
+            Finish(row, ScriptRunState.Refused, platform == AgentPlatform.Linux
+                ? "Scripts are not allowed on this server: \"scripts: enabled: true\" in /etc/pnmt-agent/config.yaml would allow them."
+                : "Scripts are not allowed on this server: an administrator turns them on in the agent's window there.");
             return;
         }
         if (encryptionKey is null && (secure.Count > 0 || password is not null))
@@ -357,7 +536,7 @@ public sealed class AgentScriptService(
         UdpViews.Audit(db, accessor, AuthEvents.AgentScriptRun,
             $"script {script.Name} registered on {server.Name} ({script.Sha256[..12]}) as {row.RunAsName}, batch {row.BatchId}");
         await db.SaveChangesAsync(ct);
-        await SendAsync(row, server.EncryptionKey, script.Text, arguments, secure, null, shell, ct);
+        await SendAsync(row, server.EncryptionKey, script.Text, arguments, secure, null, shell, AgentPlatform.Windows, ct);
         await db.SaveChangesAsync(ct);
         return Item(row);
     }

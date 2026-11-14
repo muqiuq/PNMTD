@@ -161,13 +161,13 @@ public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<Cancellati
         }
     }
 
-    public Heartbeat Heartbeat(AgentSession current) => Linux ? SimulatedLinux.Heartbeat(hostname, current.Config.ConfigVersion, AgentVersion, AllowKeyRemoval)
+    public Heartbeat Heartbeat(AgentSession current) => Linux ? SimulatedLinux.Heartbeat(hostname, current.Config.ConfigVersion, AgentVersion, AllowKeyRemoval, removedKeys)
         : new(DateTimeOffset.UtcNow, bootTime, 7.5 + Random.Shared.NextDouble() * 10, 41.2, "C:", 63.5,
             [new SessionInfo("SIM\\admin", "Rdp", "Active", "10.0.4.17")], false, SimulatedSections.Hashes(hostname), current.Config.ConfigVersion, AgentVersion, 0,
             hostname, "Restarted for updates (planned)");
 
     private Task SendSectionsAsync(AgentSession current, IReadOnlyList<string> names, CancellationToken ct) => Linux
-        ? SimulatedLinux.SendAsync(current, hostname, names, AllowKeyRemoval, ct)
+        ? SimulatedLinux.SendAsync(current, hostname, names, AllowKeyRemoval, ct, removedKeys)
         : SimulatedSections.SendAsync(current, hostname, names, ct, LastConfig ?? current.Config);
 
     /// <summary>The last configuration received, for the tests.</summary>
@@ -232,17 +232,110 @@ public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<Cancellati
         }
     }
 
+    /// <summary>The keys this (simulated) server's removals took, as <see cref="SimulatedLinux.Place"/> names them.</summary>
+    private readonly HashSet<string> removedKeys = new(StringComparer.Ordinal);
+
+    /// <summary>The secrets of the last bash run, decrypted as the agent would put them into the environment file: for the tests.</summary>
+    public IReadOnlyDictionary<string, string> LastSecrets { get; private set; } = new Dictionary<string, string>();
+
     /// <summary>
     /// What only a Linux agent answers (docs/linux-sensor-plan.md §6.5, §8): null for the shared requests (collect, diagnostics,
-    /// send-log, scripts), which the switch above answers. L6 adds <c>remove-ssh-key</c> here, refused unless
-    /// <see cref="AllowKeyRemoval"/> (as config.yaml would), and answered with a <c>key-removal</c>.
+    /// send-log), which the switch above answers.
+    /// <list type="bullet">
+    /// <item><c>remove-ssh-key</c>: refused unless <see cref="AllowKeyRemoval"/> (as config.yaml would); with it, the checks of §6.5
+    ///   step 4 that the canned data can make (deploy and www only, a protected key, the path one it reported), then the key goes from
+    ///   its file: a <c>key-removal</c> (before the ack), and the ssh-keys section again;</item>
+    /// <item><c>parse-script</c>: bash's header with PNMTD.Lib's parser, and a <c>bash -n</c> that finds nothing;</item>
+    /// <item><c>run-script</c>: with <see cref="AllowScripts"/>, as root or deploy, it echoes the environment (secrets by their length).</item>
+    /// </list>
     /// </summary>
-    private Task<Ack?> OnLinuxRequestAsync(AgentSession current, SignedContent request, CancellationToken ct) => request.Type switch
+    private async Task<Ack?> OnLinuxRequestAsync(AgentSession current, SignedContent request, CancellationToken ct)
     {
-        AgentMessageTypes.RemoveSshKey => Task.FromResult<Ack?>(new Ack(request.RequestId, false,
-            AllowKeyRemoval ? "The simulator does not remove keys yet." : "config.yaml doesn't allow PNMT to remove keys here (ssh_keys.remove: false).")),
-        _ => Task.FromResult<Ack?>(null),
-    };
+        switch (request.Type)
+        {
+            case AgentMessageTypes.RemoveSshKey:
+                if (!AllowKeyRemoval)
+                {
+                    return new Ack(request.RequestId, false, "config.yaml doesn't allow PNMT to remove keys here (ssh_keys.remove: false).");
+                }
+                var removal = AgentJson.Deserialize<RemoveSshKeyRequest>(request.Body)!;
+                var result = Remove(request.RequestId, removal);
+                Write($"Key removal {removal.RemovalId}: {result.Outcome} ({removal.Account}, {removal.Path}, {removal.Fingerprint})");
+                await current.SendAsync(AgentMessageTypes.KeyRemoval, result, ct);
+                if (result.Outcome == SshKeyRemovalOutcome.Removed)
+                {
+                    await SendSectionsAsync(current, [SectionNames.SshKeys], ct);
+                }
+                // As the agent does: the ack is ok for removed and not found, and says why for a refusal or a failure.
+                var done = result.Outcome is SshKeyRemovalOutcome.Removed or SshKeyRemovalOutcome.NotFound;
+                return new Ack(request.RequestId, done, done ? null : result.Message);
+            case AgentMessageTypes.ParseScript:
+                var parse = AgentJson.Deserialize<ParseScriptRequest>(request.Body)!;
+                // The header with the shared parser; the simulator's bash -n finds no syntax error.
+                await current.SendAsync(AgentMessageTypes.ParseResult, new ParseResultMessage(request.RequestId, parse.Hash, BashScriptHeader.Parse(parse.Text), null), ct);
+                return new Ack(request.RequestId, true);
+            case AgentMessageTypes.RunScript:
+                if (!AllowScripts)
+                {
+                    return new Ack(request.RequestId, false, "Scripts are off on this server (scripts.enabled: false in /etc/pnmt-agent/config.yaml).");
+                }
+                var script = AgentJson.Deserialize<RunScriptRequest>(request.Body)!;
+                var account = script.RunAs.Kind == RunAsKind.Service ? "root" : script.RunAs.Account ?? "";
+                var rights = SimulatedLinux.Rights(AllowKeyRemoval, AllowScripts);
+                if (script.Shell != "bash" || !rights.ScriptRunAs.Contains(account))
+                {
+                    return new Ack(request.RequestId, false, script.Shell != "bash" ? $"This server runs bash, not {script.Shell}." : $"{account} is not in scripts.run_as.");
+                }
+                var parsed = BashScriptHeader.Parse(script.Text);
+                var problems = ScriptArguments.Check(parsed, script.Arguments, script.SecureArguments.Keys.ToList()).ToList();
+                if (parsed.Errors.Count > 0 || problems.Count > 0)
+                {
+                    return new Ack(request.RequestId, false, parsed.Errors.Count > 0 ? parsed.Errors[0].Message : problems[0].Message);
+                }
+                var started = DateTimeOffset.UtcNow;
+                var secrets = script.SecureArguments.ToDictionary(p => p.Key, p => AgentSecrets.Decrypt(encryption, p.Value, script.RunId));
+                LastSecrets = secrets;
+                var environment = script.Arguments.Select(a => $"{BashScriptHeader.EnvironmentName(a.Key)}={(a.Value.ValueKind == JsonValueKind.String ? a.Value.GetString() : a.Value.GetRawText())}")
+                    .Concat(secrets.Select(p => $"{BashScriptHeader.EnvironmentName(p.Key)}=({p.Value.Length} characters, secret)")).Order(StringComparer.Ordinal);
+                var output = $"Hello from {hostname} as {account}\n" + string.Join("\n", environment);
+                await current.SendAsync(AgentMessageTypes.ScriptResult, new ScriptResultMessage(script.RunId, ScriptRunState.Done, 0, output, null, 8, started,
+                    DateTimeOffset.UtcNow), ct);
+                return new Ack(request.RequestId, true);
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>A removal against the canned section, with the agent's checks in their order (§6.5 step 4).</summary>
+    private SshKeyRemovalResult Remove(string requestId, RemoveSshKeyRequest removal)
+    {
+        SshKeyRemovalResult Answer(SshKeyRemovalOutcome outcome, string? message, int lines = 0, string? backup = null, string? hash = null) =>
+            new(requestId, removal.RemovalId, outcome, lines, backup, hash, message);
+        var rights = SimulatedLinux.Rights(AllowKeyRemoval, AllowScripts);
+        if (rights.KeyRemovalUsers.Count > 0 && !rights.KeyRemovalUsers.Contains(removal.Account))
+        {
+            return Answer(SshKeyRemovalOutcome.Refused, $"config.yaml allows removing keys only for {string.Join(", ", rights.KeyRemovalUsers)} (ssh_keys.users).");
+        }
+        var section = SimulatedLinux.SshKeys(hostname, false, AllowKeyRemoval, removedKeys);
+        var file = section.Files.FirstOrDefault(f => f.Account == removal.Account && f.Path == removal.Path);
+        if (file is null)
+        {
+            return Answer(SshKeyRemovalOutcome.Refused, $"{removal.Path} is not a key file this agent found for {removal.Account}.");
+        }
+        var keys = file.Keys.Where(k => k.Fingerprint == removal.Fingerprint).ToList();
+        if (keys.Count == 0)
+        {
+            return Answer(SshKeyRemovalOutcome.NotFound, $"The key is not in {removal.Path} (gone already).");
+        }
+        if (keys.Any(k => k.Protected))
+        {
+            return Answer(SshKeyRemovalOutcome.Refused, "The key is protected on this server (ssh_keys.protect).");
+        }
+        removedKeys.Add(SimulatedLinux.Place(removal.Account, removal.Path, removal.Fingerprint));
+        var after = SimulatedLinux.SshKeys(hostname, false, AllowKeyRemoval, removedKeys).Files.Single(f => f.Account == removal.Account && f.Path == removal.Path);
+        return Answer(SshKeyRemovalOutcome.Removed, null, keys.Count,
+            $"/var/lib/pnmt-agent/state/key-backups/{removal.Account}/{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}-{Path.GetFileName(removal.Path)}", after.Sha256);
+    }
 
     public void OnIgnored(string type, string reason) => Write($"Ignored {type}: {reason}");
 

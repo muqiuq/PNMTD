@@ -9,17 +9,17 @@ namespace PNMTD.Tests.Linux;
 [TestClass]
 public sealed class SshKeysTests
 {
-    // Generated with ssh-keygen for these tests only; the fingerprints are ssh-keygen -l's.
-    private const string Ed25519 = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILq6kAtJ1KulJF1n9P40mDL2uqwTZSntIJjTMZUCoNx9 test-ed25519@pnmt";
-    private const string Ed25519Fingerprint = "SHA256:bwW9qmkf4O+xf0OXE6Io4ilyh5Ox/o9pacDwKjfqvWs";
-    private const string Rsa2048 = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+XcEkXWjUcGPEaXCWEQ80DfNjvc7kEZ4zRcgrJh3Dt5e7xZ2VIx0c9PJL7dVb3KR2hDnqc1GyNGmNIslVaoStyxwqXe4txkifiaZrlZjtgub6xsNSsm5ApR0ei7kpGP8P6G9a+v3/LCxlTuY8T5lEnzEWwXNRx620Yo7QPUmBVA+gUfmYCKqHmEcO05a9U0aarm1omE/fzSgx9DyAD45QTrfTm+LfzeVBsWHDqeastJ9wlp1oL4m/GKtWL7MArPwPvmurmuxJnTYM8ZIXuYHMHGUZOzFcaiayYgU2I3NszMANETCMlOi4vtNeuc27hGBeHZ7iNsenAidW585zUKx7 rsa2048@pnmt";
-    private const string Rsa2048Fingerprint = "SHA256:hnQLPE+A1RfwfcdBGS/gdJCSYGAWx1Jf/vQo/YBAgg0";
-    private const string Rsa3072 = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC+Qv8+fD379CcQuFj5JAm6N0F+mYhss+Dw77343um3TN7t4smYqcxBQXvkRaXRaOMmUoeiOBxK5Q7StmUhO5Kh3YcvF0dLY+O8MGrFbAVP0XPJVz6djeUYNjSuLsF3njNaHIilipBSd7TJi5Fvs6mRvDb/heGBv8spFAlRPYmuJYo+cSSnAdbQZReZ0KL0624lllKtFLkzffQimIvYkUBKQFe1gzx3Iubj4keiHfzTXpE6LSWVHpWUf7kUXkEVfSCbwPOQ9UZAbIVPwuFrNETkn4Y6HcmIzNz/eok/r/Wa6fs73Vh1CT85mIV7tisHmJ+3J6ZbuiS5sUJtawQjgUvv2qpFYhhOrud/2jkGOMsQg2ughW3r6yMATjiNdFs5r7KptRhIQTmbbobE6WNxTq4fvP0YYgA6Syqqetdg8AuW1/pU0bLlgPBR/EbG4ncQH7ABxi6RQtauqZGHvx0JOfGR3XOervcrki/DySGdu1nmOKejbQvBFo97QXhl03L+vEc= rsa3072@pnmt";
-    private const string Rsa3072Fingerprint = "SHA256:BZczXLiyzQkhnbldLJ0nFM7FRtkc+TSxDVW4dQDoOiw";
-    private const string Ecdsa384 = "ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBF/AosXWRo0Uum4PHLJH9x3pa2aTQwUftE4Sko2DxKMldxo9kjp92pqdpZVzIrvQLyUNl2AabOFaVPZHtHpzbyDVRbWiXOMphJ6Ok6q6e0RmgYwjseCrWgQ6IN7+BE6o4w== ecdsa384@pnmt";
-    private const string Ecdsa384Fingerprint = "SHA256:gjy1yUZbUvURIs8uZD3WlQEPDEjqbj8UNpjBKmrihLc";
-    private const string Rsa1024 = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCrNMD/M/cddTMVyrkuAcOUCJI+mQlr2bJ0pXqyCcMqAGOjswqMzddGfzwm08H/LDDuYEGQNfV+OG3Qf8zpr73iqmSqKP6aeOKjw+oGgcWfHKVYw2HLeTcHKR46m6wBhoS2dkPbb4bknYKUsLpRIGarVuOrpVnKmlqNbiynm3zYjQ==";
-    private const string Rsa1024Fingerprint = "SHA256:s5KXPthdXJ7Dq+KU70XuqftKMr//YfHPBRSso2ZWgts";
+    // Generated with ssh-keygen for these tests only; the fingerprints are ssh-keygen -l's. The key manager's tests register them too.
+    internal const string Ed25519 = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILq6kAtJ1KulJF1n9P40mDL2uqwTZSntIJjTMZUCoNx9 test-ed25519@pnmt";
+    internal const string Ed25519Fingerprint = "SHA256:bwW9qmkf4O+xf0OXE6Io4ilyh5Ox/o9pacDwKjfqvWs";
+    internal const string Rsa2048 = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+XcEkXWjUcGPEaXCWEQ80DfNjvc7kEZ4zRcgrJh3Dt5e7xZ2VIx0c9PJL7dVb3KR2hDnqc1GyNGmNIslVaoStyxwqXe4txkifiaZrlZjtgub6xsNSsm5ApR0ei7kpGP8P6G9a+v3/LCxlTuY8T5lEnzEWwXNRx620Yo7QPUmBVA+gUfmYCKqHmEcO05a9U0aarm1omE/fzSgx9DyAD45QTrfTm+LfzeVBsWHDqeastJ9wlp1oL4m/GKtWL7MArPwPvmurmuxJnTYM8ZIXuYHMHGUZOzFcaiayYgU2I3NszMANETCMlOi4vtNeuc27hGBeHZ7iNsenAidW585zUKx7 rsa2048@pnmt";
+    internal const string Rsa2048Fingerprint = "SHA256:hnQLPE+A1RfwfcdBGS/gdJCSYGAWx1Jf/vQo/YBAgg0";
+    internal const string Rsa3072 = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC+Qv8+fD379CcQuFj5JAm6N0F+mYhss+Dw77343um3TN7t4smYqcxBQXvkRaXRaOMmUoeiOBxK5Q7StmUhO5Kh3YcvF0dLY+O8MGrFbAVP0XPJVz6djeUYNjSuLsF3njNaHIilipBSd7TJi5Fvs6mRvDb/heGBv8spFAlRPYmuJYo+cSSnAdbQZReZ0KL0624lllKtFLkzffQimIvYkUBKQFe1gzx3Iubj4keiHfzTXpE6LSWVHpWUf7kUXkEVfSCbwPOQ9UZAbIVPwuFrNETkn4Y6HcmIzNz/eok/r/Wa6fs73Vh1CT85mIV7tisHmJ+3J6ZbuiS5sUJtawQjgUvv2qpFYhhOrud/2jkGOMsQg2ughW3r6yMATjiNdFs5r7KptRhIQTmbbobE6WNxTq4fvP0YYgA6Syqqetdg8AuW1/pU0bLlgPBR/EbG4ncQH7ABxi6RQtauqZGHvx0JOfGR3XOervcrki/DySGdu1nmOKejbQvBFo97QXhl03L+vEc= rsa3072@pnmt";
+    internal const string Rsa3072Fingerprint = "SHA256:BZczXLiyzQkhnbldLJ0nFM7FRtkc+TSxDVW4dQDoOiw";
+    internal const string Ecdsa384 = "ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBF/AosXWRo0Uum4PHLJH9x3pa2aTQwUftE4Sko2DxKMldxo9kjp92pqdpZVzIrvQLyUNl2AabOFaVPZHtHpzbyDVRbWiXOMphJ6Ok6q6e0RmgYwjseCrWgQ6IN7+BE6o4w== ecdsa384@pnmt";
+    internal const string Ecdsa384Fingerprint = "SHA256:gjy1yUZbUvURIs8uZD3WlQEPDEjqbj8UNpjBKmrihLc";
+    internal const string Rsa1024 = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCrNMD/M/cddTMVyrkuAcOUCJI+mQlr2bJ0pXqyCcMqAGOjswqMzddGfzwm08H/LDDuYEGQNfV+OG3Qf8zpr73iqmSqKP6aeOKjw+oGgcWfHKVYw2HLeTcHKR46m6wBhoS2dkPbb4bknYKUsLpRIGarVuOrpVnKmlqNbiynm3zYjQ==";
+    internal const string Rsa1024Fingerprint = "SHA256:s5KXPthdXJ7Dq+KU70XuqftKMr//YfHPBRSso2ZWgts";
 
     [TestMethod]
     [DataRow(Ed25519, "ssh-ed25519", 256, Ed25519Fingerprint, "test-ed25519@pnmt")]

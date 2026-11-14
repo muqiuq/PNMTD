@@ -95,6 +95,11 @@ namespace PNMTD.Data
         public DbSet<AgentLoginEntity> AgentLogins { get; set; }
         public DbSet<AgentChangeEntity> AgentChanges { get; set; }
 
+        // SSH keys (docs/linux-sensor-plan.md §6.3–§6.5): the key manager, where each key is authorized, and the removals.
+        public DbSet<SshKeyEntity> SshKeys { get; set; }
+        public DbSet<SshKeyAuthorizationEntity> SshKeyAuthorizations { get; set; }
+        public DbSet<SshKeyRemovalEntity> SshKeyRemovals { get; set; }
+
         // Diagnostics (docs/windows-sensor-plan.md §5).
         public DbSet<DiagnosticSetEntity> DiagnosticSets { get; set; }
         public DbSet<DiagnosticCheckEntity> DiagnosticChecks { get; set; }
@@ -301,6 +306,29 @@ namespace PNMTD.Data
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(c => c.SensorId).OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(c => new { c.SensorId, c.At });
                 e.HasIndex(c => c.At);
+            });
+            // SSH keys (docs/linux-sensor-plan.md §9.3): joined by the fingerprint's value. A key's owner may be a user (set null
+            // when the user goes); a server's authorizations go with it.
+            modelBuilder.Entity<SshKeyEntity>(e =>
+            {
+                e.HasIndex(k => k.Fingerprint).IsUnique();
+                e.HasIndex(k => k.UserId);
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(k => k.UserId).OnDelete(DeleteBehavior.SetNull);
+            });
+            modelBuilder.Entity<SshKeyAuthorizationEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(a => a.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(a => new { a.SensorId, a.Account, a.Path, a.Fingerprint }).IsUnique();
+                e.HasIndex(a => a.Fingerprint);
+            });
+            // The removals outlive their server (docs/linux-sensor-plan.md §6.5).
+            modelBuilder.Entity<SshKeyRemovalEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(r => r.SensorId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(r => new { r.SensorId, r.State });
+                e.HasIndex(r => r.Fingerprint);
+                e.HasIndex(r => r.RequestedAt);
+                e.HasIndex(r => r.BatchId);
             });
             modelBuilder.Entity<DiagnosticSetEntity>(e =>
             {

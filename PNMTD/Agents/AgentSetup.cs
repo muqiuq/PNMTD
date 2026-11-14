@@ -20,6 +20,7 @@ public static class AgentSetup
         services.AddSingleton<AgentAccessService>();
         services.AddSingleton<Diagnostics.DiagnosticsRunner>();
         services.AddSingleton<AgentScriptResults>();
+        services.AddSingleton<SshKeyManager.SshKeyRemovals>();
         services.AddSingleton<AgentMaintenanceTask>();
         services.AddSingleton<AgentDownloads>();
         services.AddSingleton<DownloadGuard>();

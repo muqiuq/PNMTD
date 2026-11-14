@@ -82,6 +82,20 @@
             }
           },
           {
+            "name": "unregisteredKeys",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "retiredKeys",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "hostId",
             "in": "query",
             "schema": {
@@ -228,6 +242,13 @@
             }
           },
           {
+            "name": "keyOwner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "user",
             "in": "query",
             "schema": {
@@ -305,6 +326,86 @@
               "text/plain": {
                 "schema": {
                   "$ref": "#/components/schemas/PagedOfAgentLoginItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/servers/{id}/ssh-keys": {
+      "get": {
+        "tags": [
+          "AgentServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyServerView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyServerView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyServerView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/servers/{id}/run-as-accounts": {
+      "get": {
+        "tags": [
+          "AgentServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinuxRunAsAccounts"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinuxRunAsAccounts"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinuxRunAsAccounts"
                 }
               }
             }
@@ -1060,6 +1161,13 @@
         ],
         "parameters": [
           {
+            "name": "language",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ScriptLanguage"
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "schema": {
@@ -1154,6 +1262,45 @@
               "text/plain": {
                 "schema": {
                   "$ref": "#/components/schemas/AgentScriptDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/scripts/template": {
+      "get": {
+        "tags": [
+          "AgentScripts"
+        ],
+        "parameters": [
+          {
+            "name": "language",
+            "in": "query",
+            "schema": {
+              "default": "PowerShell",
+              "$ref": "#/components/schemas/ScriptLanguage"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptTemplate"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptTemplate"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentScriptTemplate"
                 }
               }
             }
@@ -8225,6 +8372,925 @@
         }
       }
     },
+    "/api/v1/ssh-keys": {
+      "get": {
+        "tags": [
+          "SshKeys"
+        ],
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SshKeyKind"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SshKeyState"
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfSshKeyItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfSshKeyItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfSshKeyItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "SshKeys"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyRegisterRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyRegisterRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyRegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SshKeyItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SshKeyItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SshKeyItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ssh-keys/summary": {
+      "get": {
+        "tags": [
+          "SshKeys"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeySummary"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeySummary"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeySummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ssh-keys/unregistered": {
+      "get": {
+        "tags": [
+          "SshKeys"
+        ],
+        "parameters": [
+          {
+            "name": "sensorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfSshKeyUnregisteredItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfSshKeyUnregisteredItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfSshKeyUnregisteredItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ssh-keys/parse": {
+      "post": {
+        "tags": [
+          "SshKeys"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyParseRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyParseRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyParseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyParseResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyParseResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyParseResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ssh-keys/{id}": {
+      "get": {
+        "tags": [
+          "SshKeys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "SshKeys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyUpdateRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyUpdateRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "SshKeys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/ssh-keys/{id}/retire": {
+      "post": {
+        "tags": [
+          "SshKeys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ssh-keys/{id}/reactivate": {
+      "post": {
+        "tags": [
+          "SshKeys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ssh-keys/{id}/removal-items": {
+      "post": {
+        "tags": [
+          "SshKeys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyRemovalPreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyRemovalPreview"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyRemovalPreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ssh-keys/users/{userId}": {
+      "get": {
+        "tags": [
+          "SshKeys"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyUserKeys"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyUserKeys"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyUserKeys"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ssh-keys/users/{userId}/removal-items": {
+      "post": {
+        "tags": [
+          "SshKeys"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyRemovalPreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyRemovalPreview"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyRemovalPreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ssh-keys/users/{userId}/offboard": {
+      "post": {
+        "tags": [
+          "SshKeys"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyOffboardRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyOffboardRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyOffboardRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyOffboardResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyOffboardResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyOffboardResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ssh-keys/remove/preview": {
+      "post": {
+        "tags": [
+          "SshKeys"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyRemovalPreviewRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyRemovalPreviewRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyRemovalPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyRemovalPreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyRemovalPreview"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyRemovalPreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ssh-keys/remove": {
+      "post": {
+        "tags": [
+          "SshKeys"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyRemoveRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyRemoveRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshKeyRemoveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyRemoveResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyRemoveResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshKeyRemoveResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ssh-keys/mine": {
+      "get": {
+        "tags": [
+          "SshKeysMine"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SshKeyMineItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SshKeyMineItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SshKeyMineItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ssh-key-removals": {
+      "get": {
+        "tags": [
+          "SshKeyRemovals"
+        ],
+        "parameters": [
+          {
+            "name": "sensorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fingerprint",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SshKeyRemovalState"
+            }
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SshKeyRemovalReason"
+            }
+          },
+          {
+            "name": "batchId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfSshKeyRemovalItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfSshKeyRemovalItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfSshKeyRemovalItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/system/info": {
       "get": {
         "tags": [
@@ -11727,6 +12793,25 @@
             "items": {
               "type": "string"
             }
+          },
+          "keyName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "keyOwner": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "keyId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -12072,6 +13157,16 @@
           },
           "text": {
             "type": "string"
+          },
+          "language": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ScriptLanguage"
+              }
+            ]
           }
         }
       },
@@ -12244,7 +13339,10 @@
             }
           },
           "runAsId": {
-            "type": "string",
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "uuid"
           },
           "arguments": {
@@ -12280,6 +13378,37 @@
               "null",
               "string"
             ]
+          },
+          "runAs": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RunAsKind"
+              }
+            ]
+          },
+          "account": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AgentScriptTemplate": {
+        "required": [
+          "language",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "language": {
+            "$ref": "#/components/schemas/ScriptLanguage"
+          },
+          "text": {
+            "type": "string"
           }
         }
       },
@@ -12720,6 +13849,20 @@
               "null",
               "boolean"
             ]
+          },
+          "unregisteredKeys": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "retiredKeysAuthorized": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -17112,6 +18255,109 @@
           "highlight": {
             "type": "boolean",
             "default": false
+          }
+        }
+      },
+      "LinuxRunAsAccount": {
+        "required": [
+          "name",
+          "kind",
+          "uid",
+          "home",
+          "shell",
+          "loginShell",
+          "systemAccount",
+          "allowed",
+          "refused"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RunAsKind"
+          },
+          "uid": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "home": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shell": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "loginShell": {
+            "type": "boolean"
+          },
+          "systemAccount": {
+            "type": "boolean"
+          },
+          "allowed": {
+            "type": "boolean"
+          },
+          "refused": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "LinuxRunAsAccounts": {
+        "required": [
+          "sensorId",
+          "scriptsAllowed",
+          "scriptsRefused",
+          "runAs",
+          "maxTimeoutMinutes",
+          "allowedScriptHashes",
+          "accounts"
+        ],
+        "type": "object",
+        "properties": {
+          "sensorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "scriptsAllowed": {
+            "type": "boolean"
+          },
+          "scriptsRefused": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "runAs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "maxTimeoutMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "allowedScriptHashes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "accounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinuxRunAsAccount"
+            }
           }
         }
       },
@@ -22160,6 +23406,93 @@
           }
         }
       },
+      "PagedOfSshKeyItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfSshKeyRemovalItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyRemovalItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfSshKeyUnregisteredItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyUnregisteredItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "PagedOfUdpCommandItem": {
         "required": [
           "items",
@@ -24215,6 +25548,1522 @@
           }
         }
       },
+      "SshKeyAuthorizationItem": {
+        "required": [
+          "id",
+          "server",
+          "hostname",
+          "connected",
+          "account",
+          "path",
+          "line",
+          "fingerprint",
+          "type",
+          "bits",
+          "comment",
+          "options",
+          "notes",
+          "clusterWide",
+          "protected",
+          "protectedBecause",
+          "firstSeenAt",
+          "lastUsedAt",
+          "lastUsedFrom",
+          "canRemove",
+          "cannotRemove"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "server": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "hostname": {
+            "type": "string"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "account": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "bits": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "clusterWide": {
+            "type": "boolean"
+          },
+          "protected": {
+            "type": "boolean"
+          },
+          "protectedBecause": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "firstSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastUsedFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "canRemove": {
+            "type": "boolean"
+          },
+          "cannotRemove": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SshKeyDeactivatedUser": {
+        "required": [
+          "user",
+          "keys",
+          "authorizations"
+        ],
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SshKeyUserRef"
+          },
+          "keys": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "authorizations": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SshKeyDetail": {
+        "required": [
+          "key",
+          "publicKey",
+          "commentsSeen",
+          "authorizations",
+          "recentLogins",
+          "history",
+          "removals"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/SshKeyItem"
+          },
+          "publicKey": {
+            "type": "string"
+          },
+          "commentsSeen": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "authorizations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyAuthorizationItem"
+            }
+          },
+          "recentLogins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyLoginItem"
+            }
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyHistoryItem"
+            }
+          },
+          "removals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyRemovalItem"
+            }
+          }
+        }
+      },
+      "SshKeyHistoryItem": {
+        "required": [
+          "at",
+          "source",
+          "text",
+          "by",
+          "server"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "by": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "server": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          }
+        }
+      },
+      "SshKeyItem": {
+        "required": [
+          "id",
+          "name",
+          "fingerprint",
+          "type",
+          "bits",
+          "comment",
+          "owner",
+          "kind",
+          "note",
+          "state",
+          "retiredAt",
+          "retiredByName",
+          "servers",
+          "accounts",
+          "lastUse",
+          "notes",
+          "weakness",
+          "createdAt",
+          "createdByName",
+          "updatedAt",
+          "updatedByName"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "bits": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "owner": {
+            "$ref": "#/components/schemas/SshKeyOwner"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SshKeyKind"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/SshKeyState"
+          },
+          "retiredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "retiredByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "servers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "accounts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastUse": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SshKeyLastUse"
+              }
+            ]
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "weakness": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SshKeyKind": {
+        "enum": [
+          "Person",
+          "Service"
+        ]
+      },
+      "SshKeyLastUse": {
+        "required": [
+          "at",
+          "server",
+          "account",
+          "from"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "server": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "account": {
+            "type": "string"
+          },
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SshKeyLineProblem": {
+        "enum": [
+          "None",
+          "Blank",
+          "TooLong",
+          "PrivateKey",
+          "Unreadable"
+        ]
+      },
+      "SshKeyLoginItem": {
+        "required": [
+          "id",
+          "server",
+          "user",
+          "kind",
+          "at",
+          "lastAt",
+          "count",
+          "sourceAddress"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "server": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "user": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/LogonKind"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sourceAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SshKeyMineItem": {
+        "required": [
+          "id",
+          "name",
+          "fingerprint",
+          "type",
+          "bits",
+          "comment",
+          "kind",
+          "state",
+          "where",
+          "lastUsedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "bits": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SshKeyKind"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SshKeyState"
+          },
+          "where": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyMinePlace"
+            }
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "SshKeyMinePlace": {
+        "required": [
+          "server",
+          "account",
+          "lastUsedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "server": {
+            "type": "string"
+          },
+          "account": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "SshKeyOffboardRequest": {
+        "required": [
+          "confirm"
+        ],
+        "type": "object",
+        "properties": {
+          "confirm": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SshKeyOffboardResult": {
+        "required": [
+          "user",
+          "retired",
+          "removal"
+        ],
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SshKeyUserRef"
+          },
+          "retired": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "removal": {
+            "$ref": "#/components/schemas/SshKeyRemoveResult"
+          }
+        }
+      },
+      "SshKeyOwner": {
+        "required": [
+          "userId",
+          "username",
+          "displayName",
+          "text",
+          "name",
+          "deactivated",
+          "formerUser"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "username": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "deactivated": {
+            "type": "boolean"
+          },
+          "formerUser": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SshKeyParseLine": {
+        "required": [
+          "line",
+          "index",
+          "fingerprint",
+          "type",
+          "bits",
+          "comment",
+          "weakness",
+          "suggestedName",
+          "registered",
+          "duplicate",
+          "servers",
+          "problem",
+          "problemText"
+        ],
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "index": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "fingerprint": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bits": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "weakness": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "suggestedName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "registered": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "duplicate": {
+            "type": "boolean"
+          },
+          "servers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "problem": {
+            "$ref": "#/components/schemas/SshKeyLineProblem"
+          },
+          "problemText": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SshKeyParseRequest": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SshKeyParseResult": {
+        "required": [
+          "lines",
+          "keys",
+          "refused",
+          "privateKey"
+        ],
+        "type": "object",
+        "properties": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyParseLine"
+            }
+          },
+          "keys": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refused": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "privateKey": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SshKeyRegisterRequest": {
+        "required": [
+          "publicKeys",
+          "name",
+          "names",
+          "userId",
+          "owner",
+          "kind",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "publicKeys": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "names": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "owner": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SshKeyKind"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SshKeyRegistration": {
+        "required": [
+          "id",
+          "name",
+          "owner",
+          "kind",
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/SshKeyOwner"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SshKeyKind"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SshKeyState"
+          }
+        }
+      },
+      "SshKeyRemovalItem": {
+        "required": [
+          "id",
+          "batchId",
+          "server",
+          "serverName",
+          "account",
+          "path",
+          "fingerprint",
+          "keyName",
+          "keyId",
+          "requestedAt",
+          "requestedByName",
+          "reason",
+          "state",
+          "sentAt",
+          "linesRemoved",
+          "backup",
+          "message",
+          "appliedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "server": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "serverName": {
+            "type": "string"
+          },
+          "account": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "keyName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "keyId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requestedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "$ref": "#/components/schemas/SshKeyRemovalReason"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SshKeyRemovalState"
+          },
+          "sentAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "linesRemoved": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "backup": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "appliedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "SshKeyRemovalPreview": {
+        "required": [
+          "items",
+          "allowed",
+          "refused",
+          "warnings",
+          "confirm"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyRemovalPreviewItem"
+            }
+          },
+          "allowed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refused": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confirm": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SshKeyRemovalPreviewItem": {
+        "required": [
+          "item",
+          "server",
+          "serverName",
+          "connected",
+          "keyName",
+          "keyId",
+          "keyOwner",
+          "comment",
+          "allowed",
+          "refused",
+          "warnings",
+          "clusterWide",
+          "clusterNodes",
+          "lastUsedAt",
+          "keysLeft"
+        ],
+        "type": "object",
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/SshKeyRemovalTarget"
+          },
+          "server": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "serverName": {
+            "type": "string"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "keyName": {
+            "type": "string"
+          },
+          "keyId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "keyOwner": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "allowed": {
+            "type": "boolean"
+          },
+          "refused": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "clusterWide": {
+            "type": "boolean"
+          },
+          "clusterNodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "keysLeft": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SshKeyRemovalPreviewRequest": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SshKeyRemovalTarget"
+            }
+          }
+        }
+      },
+      "SshKeyRemovalReason": {
+        "enum": [
+          "Server",
+          "Key",
+          "Retirement",
+          "Offboarding",
+          "Unregistered"
+        ]
+      },
+      "SshKeyRemovalState": {
+        "enum": [
+          "Pending",
+          "Sent",
+          "Removed",
+          "NotFound",
+          "Refused",
+          "Failed",
+          "Expired"
+        ]
+      },
+      "SshKeyRemovalTarget": {
+        "required": [
+          "sensorId",
+          "account",
+          "path",
+          "fingerprint"
+        ],
+        "type": "object",
+        "properties": {
+          "sensorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "account": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          }
+        }
+      },
+      "SshKeyRemoveRequest": {
+        "required": [
+          "items",
+          "reason",
+          "confirm"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SshKeyRemovalTarget"
+            }
+          },
+          "reason": {
+            "$ref": "#/components/schemas/SshKeyRemovalReason"
+          },
+          "confirm": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SshKeyRemoveResult": {
+        "required": [
+          "batchId",
+          "items",
+          "sent",
+          "pending",
+          "refused"
+        ],
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyRemovalItem"
+            }
+          },
+          "sent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pending": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refused": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SshKeyServerFile": {
+        "required": [
+          "account",
+          "path",
+          "target",
+          "exists",
+          "owner",
+          "group",
+          "mode",
+          "modifiedAt",
+          "clusterWide",
+          "problems",
+          "invalidLines",
+          "removable",
+          "notRemovable",
+          "keys"
+        ],
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "target": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "exists": {
+            "type": "boolean"
+          },
+          "owner": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "group": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "modifiedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "clusterWide": {
+            "type": "boolean"
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "invalidLines": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "removable": {
+            "type": "boolean"
+          },
+          "notRemovable": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyServerKey"
+            }
+          }
+        }
+      },
+      "SshKeyServerKey": {
+        "required": [
+          "line",
+          "type",
+          "bits",
+          "fingerprint",
+          "comment",
+          "options",
+          "notes",
+          "protected",
+          "protectedBecause",
+          "publicKey",
+          "registration",
+          "firstSeenAt",
+          "lastUsedAt",
+          "lastUsedFrom",
+          "canRemove",
+          "cannotRemove",
+          "weakness"
+        ],
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "type": {
+            "type": "string"
+          },
+          "bits": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "protected": {
+            "type": "boolean"
+          },
+          "protectedBecause": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "publicKey": {
+            "type": "string"
+          },
+          "registration": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SshKeyRegistration"
+              }
+            ]
+          },
+          "firstSeenAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastUsedFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "canRemove": {
+            "type": "boolean"
+          },
+          "cannotRemove": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "weakness": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SshKeyServerView": {
+        "required": [
+          "sensorId",
+          "collectedAt",
+          "sshd",
+          "caKeys",
+          "files",
+          "totalKeys",
+          "truncated",
+          "notes",
+          "connected",
+          "removalAllowed",
+          "removalRefused",
+          "removalUsers",
+          "unregistered",
+          "retiredAuthorized",
+          "weak"
+        ],
+        "type": "object",
+        "properties": {
+          "sensorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "collectedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "sshd": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SshdKeySettings"
+              }
+            ]
+          },
+          "caKeys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CaKey"
+            }
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyServerFile"
+            }
+          },
+          "totalKeys": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "removalAllowed": {
+            "type": "boolean"
+          },
+          "removalRefused": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "removalUsers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "unregistered": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "retiredAuthorized": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "weak": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "SshKeysSection": {
         "required": [
           "sshd",
@@ -24252,6 +27101,260 @@
             "type": "array",
             "items": {
               "type": "string"
+            }
+          }
+        }
+      },
+      "SshKeyState": {
+        "enum": [
+          "Active",
+          "Retired"
+        ]
+      },
+      "SshKeySummary": {
+        "required": [
+          "registered",
+          "active",
+          "retired",
+          "unregistered",
+          "retiredStillAuthorized",
+          "deactivatedUsersKeysAuthorized",
+          "deactivatedUsers",
+          "weak",
+          "unused180",
+          "pendingRemovals"
+        ],
+        "type": "object",
+        "properties": {
+          "registered": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "active": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "retired": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unregistered": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "retiredStillAuthorized": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deactivatedUsersKeysAuthorized": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deactivatedUsers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyDeactivatedUser"
+            }
+          },
+          "weak": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unused180": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pendingRemovals": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SshKeyUnregisteredItem": {
+        "required": [
+          "fingerprint",
+          "type",
+          "bits",
+          "publicKey",
+          "comments",
+          "servers",
+          "accounts",
+          "where",
+          "firstSeenAt",
+          "lastUse",
+          "notes",
+          "weakness"
+        ],
+        "type": "object",
+        "properties": {
+          "fingerprint": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "bits": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "publicKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "comments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "servers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "accounts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "where": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyAuthorizationItem"
+            }
+          },
+          "firstSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUse": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SshKeyLastUse"
+              }
+            ]
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "weakness": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SshKeyUpdateRequest": {
+        "required": [
+          "name",
+          "userId",
+          "owner",
+          "kind",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "owner": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SshKeyKind"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SshKeyUserKeys": {
+        "required": [
+          "user",
+          "keys",
+          "authorizations"
+        ],
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SshKeyUserRef"
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyWithAuthorizations"
+            }
+          },
+          "authorizations": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SshKeyUserRef": {
+        "required": [
+          "id",
+          "username",
+          "displayName",
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SshKeyWithAuthorizations": {
+        "required": [
+          "key",
+          "authorizations"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/SshKeyItem"
+          },
+          "authorizations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshKeyAuthorizationItem"
             }
           }
         }
@@ -27318,6 +30421,11 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "sshKeys": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
           }
         }
       },
@@ -28475,6 +31583,15 @@
     },
     {
       "name": "Sensors"
+    },
+    {
+      "name": "SshKeys"
+    },
+    {
+      "name": "SshKeysMine"
+    },
+    {
+      "name": "SshKeyRemovals"
     },
     {
       "name": "System"

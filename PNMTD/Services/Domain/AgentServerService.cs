@@ -48,6 +48,8 @@ public sealed class AgentServerService(
             .Where(i => query.DiagnosticsFailing is not { } d || i.DiagnosticsFailing > 0 == d)
             .Where(i => query.SecurityUpdates is not { } u || (i.SecurityUpdates ?? 0) > 0 == u)
             .Where(i => query.KeyRemoval is not { } k || (i.KeyRemovalAllowed ?? false) == k)
+            .Where(i => query.UnregisteredKeys is not { } uk || (i.UnregisteredKeys ?? 0) > 0 == uk)
+            .Where(i => query.RetiredKeys is not { } rk || (i.RetiredKeysAuthorized ?? 0) > 0 == rk)
             .Where(i => Text.Contains(i.Name, query.Search) || Text.Contains(i.Host.Name, query.Search) || Text.Contains(i.Hostname, query.Search)
                 || Text.Contains(i.OsCaption, query.Search) || Text.Contains(i.Distribution, query.Search));
         IOrderedEnumerable<AgentServerItem> sorted = field switch
@@ -92,7 +94,8 @@ public sealed class AgentServerService(
             extras.RemoteAccess.GetValueOrDefault(a.SensorId), extras.AuditGaps.GetValueOrDefault(a.SensorId), extras.DiagnosticsFailing.GetValueOrDefault(a.SensorId),
             // Linux (docs/linux-sensor-plan.md §10): for the fleet's columns and filters.
             linux ? a.Distribution ?? a.OsCaption : null, linux ? a.KernelRelease ?? a.OsBuild : null, linux ? a.SecurityUpdates : null,
-            linux ? rights is not null && rights.KeyRemoval && !ServerRights.IsRefused(rights) : null);
+            linux ? rights is not null && rights.KeyRemoval && !ServerRights.IsRefused(rights) : null,
+            linux ? extras.UnregisteredKeys.GetValueOrDefault(a.SensorId) : null, linux ? extras.RetiredKeys.GetValueOrDefault(a.SensorId) : null);
     }
 
     /// <summary>An agent older than PNMTD (§10.1): the release of PNMTD's version is newer.</summary>
@@ -366,6 +369,13 @@ public sealed class AgentServerService(
             var fingerprint = SshKeys.NormalizeFingerprint(query.KeyFingerprint) ?? query.KeyFingerprint.Trim();
             q = q.Where(l => l.KeyFingerprint == fingerprint);
         }
+        if (!string.IsNullOrWhiteSpace(query.KeyOwner))
+        {
+            // docs/linux-sensor-plan.md §10: by the key's registered owner (a user's id, or a text), joined by the fingerprint's value.
+            var owned = await SshKeyManager.SshKeyRegistry.OwnedBy(db, Guid.TryParse(query.KeyOwner, out var keyOwner) ? keyOwner : null, Text.Pattern(query.KeyOwner))
+                .ToListAsync(ct);
+            q = q.Where(l => l.KeyFingerprint != null && owned.Contains(l.KeyFingerprint));
+        }
         if (Text.Pattern(query.User) is { } user)
         {
             q = q.Where(l => EF.Functions.ILike(l.User, user) || EF.Functions.ILike(l.Domain ?? "", user));
@@ -386,10 +396,17 @@ public sealed class AgentServerService(
         {
             q = q.Where(l => l.At <= to.ToUniversalTime());
         }
-        return await Paging.PageAsync(q.OrderByDescending(l => l.LastAt ?? l.At).Select(l => new AgentLoginItem(l.Id, l.At, l.LastAt, l.Count, l.Outcome,
+        var page = await Paging.PageAsync(q.OrderByDescending(l => l.LastAt ?? l.At).Select(l => new AgentLoginItem(l.Id, l.At, l.LastAt, l.Count, l.Outcome,
             l.FailureReason, l.User, l.Domain, l.IsAdmin, l.Kind, l.AuthPackage, l.SourceAddress, l.SourcePort, l.Workstation, l.Elevated, l.LoggedOffAt, l.Channel,
-            l.KeyFingerprint, l.TargetUser, l.Command, l.TriedUsers)),
+            l.KeyFingerprint, l.TargetUser, l.Command, l.TriedUsers, null, null, null)),
             query, ct);
+        // The keys' names (docs/linux-sensor-plan.md §6.4), for a key registered now: past logins are named too.
+        var names = await SshKeyManager.SshKeyRegistry.ByFingerprintAsync(db, page.Items.Select(l => l.KeyFingerprint).OfType<string>(), ct);
+        return names.Count == 0 ? page : page with
+        {
+            Items = page.Items.Select(l => l.KeyFingerprint is { } f && names.TryGetValue(f, out var key) ? l with { KeyName = key.Name, KeyOwner = key.Owner, KeyId = key.Id } : l)
+                .ToList(),
+        };
     }
 
     /// <summary>The readable changes (§4.9), newest first.</summary>
@@ -616,11 +633,16 @@ public sealed class AgentServerService(
         ?? throw ApiException.NotFound("Server");
 }
 
-/// <summary>What the list shows beyond the agent row: filled in by the later phases (remote access, audit gaps, diagnostics).</summary>
+/// <summary>
+/// What the list shows beyond the agent row: filled in by the later phases (remote access, audit gaps, diagnostics; on Linux the
+/// keys found and not registered, and the retired keys still authorized, by fingerprint).
+/// </summary>
 public sealed record AgentExtras(
     IReadOnlyDictionary<Guid, string> RemoteAccess,
     IReadOnlyDictionary<Guid, int> AuditGaps,
-    IReadOnlyDictionary<Guid, int> DiagnosticsFailing)
+    IReadOnlyDictionary<Guid, int> DiagnosticsFailing,
+    IReadOnlyDictionary<Guid, int> UnregisteredKeys,
+    IReadOnlyDictionary<Guid, int> RetiredKeys)
 {
     public static async Task<AgentExtras> LoadAsync(PnmtdDbContext db, IReadOnlyCollection<Guid> sensorIds, CancellationToken ct)
     {
@@ -630,10 +652,16 @@ public sealed record AgentExtras(
         var lastRuns = await db.DiagnosticRuns.AsNoTracking().Where(r => r.Outcome != null)
             .Join(db.DiagnosticAssignments.Where(a => sensorIds.Contains(a.TargetSensorId)), r => r.AssignmentId, a => a.Id, (r, a) => new { r.AssignmentId, a.TargetSensorId, r.StartedAt, r.Outcome })
             .GroupBy(x => x.AssignmentId).Select(g => g.OrderByDescending(x => x.StartedAt).First()).ToListAsync(ct);
+        // docs/linux-sensor-plan.md §6.3, §11.1: each server's keys by their registration, joined by the fingerprint's value.
+        var keys = await db.SshKeyAuthorizations.AsNoTracking().Where(a => sensorIds.Contains(a.SensorId))
+            .Select(a => new { a.SensorId, a.Fingerprint, State = db.SshKeys.Where(k => k.Fingerprint == a.Fingerprint).Select(k => (SshKeyState?)k.State).FirstOrDefault() })
+            .Distinct().ToListAsync(ct);
         return new AgentExtras(
             agents.Where(a => a.RemoteAccessSummary != null).ToDictionary(a => a.SensorId, a => a.RemoteAccessSummary!),
             agents.ToDictionary(a => a.SensorId, a => a.AuditGaps),
-            lastRuns.Where(r => r.Outcome != Lib.Agent.DiagnosticOutcome.Pass).GroupBy(r => r.TargetSensorId).ToDictionary(g => g.Key, g => g.Count()));
+            lastRuns.Where(r => r.Outcome != Lib.Agent.DiagnosticOutcome.Pass).GroupBy(r => r.TargetSensorId).ToDictionary(g => g.Key, g => g.Count()),
+            keys.Where(k => k.State is null).GroupBy(k => k.SensorId).ToDictionary(g => g.Key, g => g.Count()),
+            keys.Where(k => k.State == SshKeyState.Retired).GroupBy(k => k.SensorId).ToDictionary(g => g.Key, g => g.Count()));
     }
 
     public static async Task<IReadOnlyList<AgentSectionInfo>> SectionsAsync(PnmtdDbContext db, Guid sensorId, CancellationToken ct) =>

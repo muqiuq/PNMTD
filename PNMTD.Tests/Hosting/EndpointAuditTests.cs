@@ -246,6 +246,9 @@ public sealed class EndpointAuditTests
         ["PUT /api/v1/agents/servers/{id:guid}/settings"] = Roles.User,
         ["POST /api/v1/agents/servers/{id:guid}/revoke"] = Roles.Admin,
         ["POST /api/v1/agents/servers/{id:guid}/rejoin-token"] = Roles.Admin,
+        // Linux (docs/linux-sensor-plan.md §6.3, §8.4): a server's SSH keys (key comments and accounts: CanWrite), its accounts for scripts.
+        ["GET /api/v1/agents/servers/{id:guid}/ssh-keys"] = Roles.User,
+        ["GET /api/v1/agents/servers/{id:guid}/run-as-accounts"] = Roles.Admin,
         ["GET /api/v1/agents/join-tokens"] = Roles.Admin,
         ["POST /api/v1/agents/join-tokens"] = Roles.Admin,
         ["DELETE /api/v1/agents/join-tokens/{id:guid}"] = Roles.Admin,
@@ -255,6 +258,7 @@ public sealed class EndpointAuditTests
         // Scripts (docs/windows-sensor-plan.md §7; docs/linux-sensor-plan.md §8): Admin only.
         ["GET /api/v1/agents/scripts"] = Roles.Admin,
         ["GET /api/v1/agents/scripts/{id:guid}"] = Roles.Admin,
+        ["GET /api/v1/agents/scripts/template"] = Roles.Admin,
         ["POST /api/v1/agents/scripts"] = Roles.Admin,
         ["PUT /api/v1/agents/scripts/{id:guid}"] = Roles.Admin,
         ["POST /api/v1/agents/scripts/{id:guid}/parse"] = Roles.Admin,
@@ -276,6 +280,26 @@ public sealed class EndpointAuditTests
         ["DELETE /api/v1/windows/run-as/{id:guid}"] = Roles.Admin,
         // Linux's own (docs/linux-sensor-plan.md §10): the typed sections; access, journal and ssh-keys check CanWrite inside.
         ["GET /api/v1/linux/servers/{id:guid}/sections/{section}"] = Roles.Viewer,
+        // The SSH key manager (docs/linux-sensor-plan.md §6.4, §6.5, §10): Admin, so nobody vouches for a key by registering it; a
+        // user's own keys for every role.
+        ["GET /api/v1/ssh-keys"] = Roles.Admin,
+        ["GET /api/v1/ssh-keys/summary"] = Roles.Admin,
+        ["GET /api/v1/ssh-keys/unregistered"] = Roles.Admin,
+        ["POST /api/v1/ssh-keys/parse"] = Roles.Admin,
+        ["POST /api/v1/ssh-keys"] = Roles.Admin,
+        ["GET /api/v1/ssh-keys/{id:guid}"] = Roles.Admin,
+        ["PUT /api/v1/ssh-keys/{id:guid}"] = Roles.Admin,
+        ["POST /api/v1/ssh-keys/{id:guid}/retire"] = Roles.Admin,
+        ["POST /api/v1/ssh-keys/{id:guid}/reactivate"] = Roles.Admin,
+        ["DELETE /api/v1/ssh-keys/{id:guid}"] = Roles.Admin,
+        ["POST /api/v1/ssh-keys/{id:guid}/removal-items"] = Roles.Admin,
+        ["GET /api/v1/ssh-keys/users/{userId:guid}"] = Roles.Admin,
+        ["POST /api/v1/ssh-keys/users/{userId:guid}/removal-items"] = Roles.Admin,
+        ["POST /api/v1/ssh-keys/users/{userId:guid}/offboard"] = Roles.Admin,
+        ["POST /api/v1/ssh-keys/remove/preview"] = Roles.Admin,
+        ["POST /api/v1/ssh-keys/remove"] = Roles.Admin,
+        ["GET /api/v1/ssh-keys/mine"] = Roles.Viewer,
+        ["GET /api/v1/ssh-key-removals"] = Roles.Admin,
         // Diagnostics (docs/windows-sensor-plan.md §9.2): reading CanRead, changing Admin, Run now CanWrite.
         ["GET /api/v1/diagnostics/sets"] = Roles.Viewer,
         ["GET /api/v1/diagnostics/sets/{id:guid}"] = Roles.Viewer,

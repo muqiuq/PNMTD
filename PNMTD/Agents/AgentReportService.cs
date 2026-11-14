@@ -178,7 +178,8 @@ public sealed class AgentReportService(IDbContextFactory<PnmtdDbContext> dbs, IO
         }
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var (row, previous) = await AgentSections.StoreAsync(db, connection.SensorId, message, ct);
-        await changes.StoredAsync(db, agent, message, previous, ct);
+        // A new hash (or the first): both times were set to the same now.
+        await changes.StoredAsync(db, agent, message, previous, row.ChangedAt == row.ReceivedAt, ct);
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         logger.LogDebug("Agent {Name}: the section {Section} stored ({Bytes} bytes, hash {Hash}, {Errors} errors, {State})", connection.AgentName, message.Name,

@@ -238,11 +238,18 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
             _ => users.OrderBy(u => u.NormalizedUsername),
         };
         var page = await Services.Domain.Paging.PageAsync(users, query, ct);
-        return new Paged<UserItem>(page.Items.Select(ToItem).ToList(), page.Page, page.PageSize, page.TotalCount);
+        var ids = page.Items.Select(u => u.Id).ToList();
+        var keys = await db.SshKeys.AsNoTracking().Where(k => k.UserId != null && ids.Contains(k.UserId.Value)).GroupBy(k => k.UserId!.Value)
+            .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(g => g.Key, g => g.Count, ct);
+        return new Paged<UserItem>(page.Items.Select(u => ToItem(u) with { SshKeys = keys.GetValueOrDefault(u.Id) }).ToList(), page.Page, page.PageSize, page.TotalCount);
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<UserItem>> Get(Guid id, CancellationToken ct) => ToItem(await accounts.GetAsync(id, ct));
+    public async Task<ActionResult<UserItem>> Get(Guid id, CancellationToken ct) => await WithKeysAsync(await accounts.GetAsync(id, ct), ct);
+
+    /// <summary>The user with their number of SSH keys (docs/linux-sensor-plan.md §6.4).</summary>
+    private async Task<UserItem> WithKeysAsync(UserEntity user, CancellationToken ct) =>
+        ToItem(user) with { SshKeys = await db.SshKeys.CountAsync(k => k.UserId == user.Id, ct) };
 
     [HttpPost]
     public async Task<ActionResult<CreatedUser>> Create(CreateUserRequest request, CancellationToken ct)
@@ -254,7 +261,7 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
 
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<UserItem>> Update(Guid id, UpdateUserRequest request, CancellationToken ct) =>
-        ToItem(await accounts.UpdateAsync(id, request.DisplayName, request.Role, request.IsActive, AuditContext.From(HttpContext), ct));
+        await WithKeysAsync(await accounts.UpdateAsync(id, request.DisplayName, request.Role, request.IsActive, AuditContext.From(HttpContext), ct), ct);
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)

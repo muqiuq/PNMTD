@@ -68,12 +68,16 @@ internal static class AgentHarness
         return await client.ConnectAsync(new Uri("ws://localhost" + AgentProtocol.WebSocketPath), ct);
     }
 
-    /// <summary>A connected session; <paramref name="rights"/>: what the hello announces of the server's config.yaml (docs/linux-sensor-plan.md §4.6).</summary>
-    public static async Task<AgentSession> OpenAsync(TestApp app, Joined joined, ECDsa? key = null, AgentRightsSummary? rights = null)
+    /// <summary>
+    /// A connected session; <paramref name="rights"/>: what the hello announces of the server's config.yaml (docs/linux-sensor-plan.md
+    /// §4.6); <paramref name="capabilities"/>: what it announces (the simulator's Windows set by default).
+    /// </summary>
+    public static async Task<AgentSession> OpenAsync(TestApp app, Joined joined, ECDsa? key = null, AgentRightsSummary? rights = null,
+        IReadOnlyList<string>? capabilities = null)
     {
         var pnmtd = AgentSigning.ImportPublicKey(joined.Response.SigningPublicKey)!;
         var identity = new AgentIdentity(joined.Grant.AgentId, key ?? joined.Key, pnmtd, "http://localhost", "1.2.0", "x64", Os(joined.Platform),
-            AgentSimulator.Capabilities, Platform: joined.Platform, Rights: rights);
+            capabilities ?? AgentSimulator.Capabilities, Platform: joined.Platform, Rights: rights);
         var socket = await ConnectAsync(app);
         try
         {

@@ -60,7 +60,7 @@ namespace PNMTD.Cli
                     ["mikrotik", .. var rest] => MikrotikCommand.Run(rest, Configuration()),
                     ["wireguard", .. var rest] => WireGuardCommand.Run(rest, Configuration()),
                     ["agent", .. var rest] => AgentCommand.Run(rest, Database),
-                    ["dev", .. var rest] => DevSeedCommand.Run(rest, Database, logger),
+                    ["dev", .. var rest] => DevSeedCommand.Run(rest, Database, logger, Configuration()),
                     _ => UsageError(args[0] is "help" or "--help" or "-h" ? null : $"Unknown command: {string.Join(' ', args)}"),
                 };
             }

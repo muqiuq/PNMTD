@@ -7,7 +7,7 @@ namespace PNMTD.Agents;
 
 /// <summary>
 /// Hourly (docs/windows-sensor-plan.md §8.4), for the agents of every platform: join tokens expired a month ago go, and the
-/// retention of the agent log, logins, changes and diagnostics runs.
+/// retention of the agent log, logins, changes and diagnostics runs; key removals waiting too long for their server expire.
 /// </summary>
 public sealed class AgentMaintenanceTask(IDbContextFactory<PnmtdDbContext> dbs, IOptionsMonitor<AgentOptions> options, ILogger<AgentMaintenanceTask> logger)
     : BackgroundService
@@ -53,6 +53,9 @@ public sealed class AgentMaintenanceTask(IDbContextFactory<PnmtdDbContext> dbs, 
             "DELETE FROM diagnostic_runs WHERE \"StartedAt\" < {0} AND \"Id\" NOT IN (SELECT \"Id\" FROM (SELECT \"Id\", row_number() OVER " +
             "(PARTITION BY \"AssignmentId\" ORDER BY \"StartedAt\" DESC) AS n FROM diagnostic_runs) recent WHERE recent.n <= 100)",
             [now.AddDays(-30)], ct);
-        return logins + changes + runs;
+        // Key removals (docs/linux-sensor-plan.md §6.5): pending ones expire after their days; the history is kept a year, beyond its servers.
+        var expired = await SshKeyManager.SshKeyRemovals.ExpireAsync(db, settings.KeyRemovalPendingDays, now, null, ct);
+        var removals = await db.SshKeyRemovals.Where(r => r.RequestedAt < now.AddDays(-Math.Max(30, settings.KeepKeyRemovalsDays))).ExecuteDeleteAsync(ct);
+        return logins + changes + runs + expired + removals;
     }
 }

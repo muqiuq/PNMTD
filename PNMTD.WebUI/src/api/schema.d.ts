@@ -24,6 +24,8 @@ export interface paths {
                     diagnosticsFailing?: boolean;
                     securityUpdates?: boolean;
                     keyRemoval?: boolean;
+                    unregisteredKeys?: boolean;
+                    retiredKeys?: boolean;
                     hostId?: string;
                     page?: number;
                     pageSize?: number;
@@ -110,6 +112,7 @@ export interface paths {
                     admin?: boolean;
                     kind?: components["schemas"]["LogonKind"];
                     keyFingerprint?: string;
+                    keyOwner?: string;
                     user?: string;
                     source?: string;
                     from?: string;
@@ -136,6 +139,84 @@ export interface paths {
                         "application/json": components["schemas"]["PagedOfAgentLoginItem"];
                         "text/json": components["schemas"]["PagedOfAgentLoginItem"];
                         "text/plain": components["schemas"]["PagedOfAgentLoginItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/servers/{id}/ssh-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SshKeyServerView"];
+                        "text/json": components["schemas"]["SshKeyServerView"];
+                        "text/plain": components["schemas"]["SshKeyServerView"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/servers/{id}/run-as-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LinuxRunAsAccounts"];
+                        "text/json": components["schemas"]["LinuxRunAsAccounts"];
+                        "text/plain": components["schemas"]["LinuxRunAsAccounts"];
                     };
                 };
             };
@@ -698,6 +779,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    language?: components["schemas"]["ScriptLanguage"];
                     page?: number;
                     pageSize?: number;
                     sort?: string;
@@ -751,6 +833,45 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/scripts/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    language?: components["schemas"]["ScriptLanguage"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentScriptTemplate"];
+                        "text/json": components["schemas"]["AgentScriptTemplate"];
+                        "text/plain": components["schemas"]["AgentScriptTemplate"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -6180,6 +6301,701 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ssh-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    owner?: string;
+                    kind?: components["schemas"]["SshKeyKind"];
+                    state?: components["schemas"]["SshKeyState"];
+                    filter?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfSshKeyItem"];
+                        "text/json": components["schemas"]["PagedOfSshKeyItem"];
+                        "text/plain": components["schemas"]["PagedOfSshKeyItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SshKeyRegisterRequest"];
+                    "text/json": components["schemas"]["SshKeyRegisterRequest"];
+                    "application/*+json": components["schemas"]["SshKeyRegisterRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SshKeyItem"][];
+                        "text/json": components["schemas"]["SshKeyItem"][];
+                        "text/plain": components["schemas"]["SshKeyItem"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ssh-keys/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SshKeySummary"];
+                        "text/json": components["schemas"]["SshKeySummary"];
+                        "text/plain": components["schemas"]["SshKeySummary"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ssh-keys/unregistered": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    sensorId?: string;
+                    filter?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfSshKeyUnregisteredItem"];
+                        "text/json": components["schemas"]["PagedOfSshKeyUnregisteredItem"];
+                        "text/plain": components["schemas"]["PagedOfSshKeyUnregisteredItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ssh-keys/parse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SshKeyParseRequest"];
+                    "text/json": components["schemas"]["SshKeyParseRequest"];
+                    "application/*+json": components["schemas"]["SshKeyParseRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SshKeyParseResult"];
+                        "text/json": components["schemas"]["SshKeyParseResult"];
+                        "text/plain": components["schemas"]["SshKeyParseResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ssh-keys/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SshKeyDetail"];
+                        "text/json": components["schemas"]["SshKeyDetail"];
+                        "text/plain": components["schemas"]["SshKeyDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SshKeyUpdateRequest"];
+                    "text/json": components["schemas"]["SshKeyUpdateRequest"];
+                    "application/*+json": components["schemas"]["SshKeyUpdateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SshKeyDetail"];
+                        "text/json": components["schemas"]["SshKeyDetail"];
+                        "text/plain": components["schemas"]["SshKeyDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ssh-keys/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SshKeyDetail"];
+                        "text/json": components["schemas"]["SshKeyDetail"];
+                        "text/plain": components["schemas"]["SshKeyDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ssh-keys/{id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SshKeyDetail"];
+                        "text/json": components["schemas"]["SshKeyDetail"];
+                        "text/plain": components["schemas"]["SshKeyDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ssh-keys/{id}/removal-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SshKeyRemovalPreview"];
+                        "text/json": components["schemas"]["SshKeyRemovalPreview"];
+                        "text/plain": components["schemas"]["SshKeyRemovalPreview"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ssh-keys/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SshKeyUserKeys"];
+                        "text/json": components["schemas"]["SshKeyUserKeys"];
+                        "text/plain": components["schemas"]["SshKeyUserKeys"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ssh-keys/users/{userId}/removal-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SshKeyRemovalPreview"];
+                        "text/json": components["schemas"]["SshKeyRemovalPreview"];
+                        "text/plain": components["schemas"]["SshKeyRemovalPreview"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ssh-keys/users/{userId}/offboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SshKeyOffboardRequest"];
+                    "text/json": components["schemas"]["SshKeyOffboardRequest"];
+                    "application/*+json": components["schemas"]["SshKeyOffboardRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SshKeyOffboardResult"];
+                        "text/json": components["schemas"]["SshKeyOffboardResult"];
+                        "text/plain": components["schemas"]["SshKeyOffboardResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ssh-keys/remove/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SshKeyRemovalPreviewRequest"];
+                    "text/json": components["schemas"]["SshKeyRemovalPreviewRequest"];
+                    "application/*+json": components["schemas"]["SshKeyRemovalPreviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SshKeyRemovalPreview"];
+                        "text/json": components["schemas"]["SshKeyRemovalPreview"];
+                        "text/plain": components["schemas"]["SshKeyRemovalPreview"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ssh-keys/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SshKeyRemoveRequest"];
+                    "text/json": components["schemas"]["SshKeyRemoveRequest"];
+                    "application/*+json": components["schemas"]["SshKeyRemoveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SshKeyRemoveResult"];
+                        "text/json": components["schemas"]["SshKeyRemoveResult"];
+                        "text/plain": components["schemas"]["SshKeyRemoveResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ssh-keys/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SshKeyMineItem"][];
+                        "text/json": components["schemas"]["SshKeyMineItem"][];
+                        "text/plain": components["schemas"]["SshKeyMineItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ssh-key-removals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    sensorId?: string;
+                    fingerprint?: string;
+                    owner?: string;
+                    state?: components["schemas"]["SshKeyRemovalState"];
+                    reason?: components["schemas"]["SshKeyRemovalReason"];
+                    batchId?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfSshKeyRemovalItem"];
+                        "text/json": components["schemas"]["PagedOfSshKeyRemovalItem"];
+                        "text/plain": components["schemas"]["PagedOfSshKeyRemovalItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/system/info": {
         parameters: {
             query?: never;
@@ -8518,6 +9334,10 @@ export interface components {
             targetUser?: null | string;
             command?: null | string;
             triedUsers?: null | string[];
+            keyName?: null | string;
+            keyOwner?: null | string;
+            /** Format: uuid */
+            keyId?: null | string;
         };
         AgentLogItem: {
             /** Format: uuid */
@@ -8601,6 +9421,7 @@ export interface components {
             name: string;
             description: null | string;
             text: string;
+            language?: null | components["schemas"]["ScriptLanguage"];
         };
         AgentScriptRunDetail: {
             run: components["schemas"]["AgentScriptRunItem"];
@@ -8641,7 +9462,7 @@ export interface components {
         AgentScriptRunRequest: {
             sensorIds: string[];
             /** Format: uuid */
-            runAsId: string;
+            runAsId: null | string;
             arguments: null | Record<string, never>;
             secureArguments: null | {
                 [key: string]: string;
@@ -8650,6 +9471,12 @@ export interface components {
             /** Format: int32 */
             timeoutSeconds: null | number;
             shell: null | string;
+            runAs?: null | components["schemas"]["RunAsKind"];
+            account?: null | string;
+        };
+        AgentScriptTemplate: {
+            language: components["schemas"]["ScriptLanguage"];
+            text: string;
         };
         AgentScriptVersionItem: {
             /** Format: uuid */
@@ -8750,6 +9577,10 @@ export interface components {
             /** Format: int32 */
             securityUpdates?: null | number;
             keyRemovalAllowed?: null | boolean;
+            /** Format: int32 */
+            unregisteredKeys?: null | number;
+            /** Format: int32 */
+            retiredKeysAuthorized?: null | number;
         };
         AgentServerSettings: {
             adminLoginEvents: boolean;
@@ -9836,6 +10667,30 @@ export interface components {
             notes: string[];
             /** @default false */
             highlight: boolean;
+        };
+        LinuxRunAsAccount: {
+            name: string;
+            kind: components["schemas"]["RunAsKind"];
+            /** Format: int32 */
+            uid: null | number;
+            home: null | string;
+            shell: null | string;
+            loginShell: boolean;
+            systemAccount: boolean;
+            allowed: boolean;
+            refused: null | string;
+        };
+        LinuxRunAsAccounts: {
+            /** Format: uuid */
+            sensorId: string;
+            scriptsAllowed: boolean;
+            scriptsRefused: null | string;
+            runAs: string[];
+            /** Format: int32 */
+            maxTimeoutMinutes: number;
+            /** Format: int32 */
+            allowedScriptHashes: number;
+            accounts: components["schemas"]["LinuxRunAsAccount"][];
         };
         LinuxSectionView: {
             name: string;
@@ -11084,6 +11939,33 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
+        PagedOfSshKeyItem: {
+            items: components["schemas"]["SshKeyItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfSshKeyRemovalItem: {
+            items: components["schemas"]["SshKeyRemovalItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfSshKeyUnregisteredItem: {
+            items: components["schemas"]["SshKeyUnregisteredItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfUdpCommandItem: {
             items: components["schemas"]["UdpCommandItem"][];
             /** Format: int32 */
@@ -11580,6 +12462,353 @@ export interface components {
             socketActivated: boolean;
             version: null | string;
         };
+        SshKeyAuthorizationItem: {
+            /** Format: uuid */
+            id: string;
+            server: components["schemas"]["Ref"];
+            hostname: string;
+            connected: boolean;
+            account: string;
+            path: string;
+            /** Format: int32 */
+            line: number;
+            fingerprint: string;
+            type: string;
+            /** Format: int32 */
+            bits: null | number;
+            comment: null | string;
+            options: string[];
+            notes: string[];
+            clusterWide: boolean;
+            protected: boolean;
+            protectedBecause: null | string;
+            /** Format: date-time */
+            firstSeenAt: string;
+            /** Format: date-time */
+            lastUsedAt: null | string;
+            lastUsedFrom: null | string;
+            canRemove: boolean;
+            cannotRemove: null | string;
+        };
+        SshKeyDeactivatedUser: {
+            user: components["schemas"]["SshKeyUserRef"];
+            /** Format: int32 */
+            keys: number;
+            /** Format: int32 */
+            authorizations: number;
+        };
+        SshKeyDetail: {
+            key: components["schemas"]["SshKeyItem"];
+            publicKey: string;
+            commentsSeen: string[];
+            authorizations: components["schemas"]["SshKeyAuthorizationItem"][];
+            recentLogins: components["schemas"]["SshKeyLoginItem"][];
+            history: components["schemas"]["SshKeyHistoryItem"][];
+            removals: components["schemas"]["SshKeyRemovalItem"][];
+        };
+        SshKeyHistoryItem: {
+            /** Format: date-time */
+            at: string;
+            source: string;
+            text: string;
+            by: null | string;
+            server: null | components["schemas"]["Ref"];
+        };
+        SshKeyItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            fingerprint: string;
+            type: string;
+            /** Format: int32 */
+            bits: null | number;
+            comment: null | string;
+            owner: components["schemas"]["SshKeyOwner"];
+            kind: components["schemas"]["SshKeyKind"];
+            note: null | string;
+            state: components["schemas"]["SshKeyState"];
+            /** Format: date-time */
+            retiredAt: null | string;
+            retiredByName: null | string;
+            /** Format: int32 */
+            servers: number;
+            /** Format: int32 */
+            accounts: number;
+            lastUse: null | components["schemas"]["SshKeyLastUse"];
+            notes: string[];
+            weakness: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: null | string;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedByName: null | string;
+        };
+        /** @enum {unknown} */
+        SshKeyKind: "Person" | "Service";
+        SshKeyLastUse: {
+            /** Format: date-time */
+            at: string;
+            server: components["schemas"]["Ref"];
+            account: string;
+            from: null | string;
+        };
+        /** @enum {unknown} */
+        SshKeyLineProblem: "None" | "Blank" | "TooLong" | "PrivateKey" | "Unreadable";
+        SshKeyLoginItem: {
+            /** Format: uuid */
+            id: string;
+            server: components["schemas"]["Ref"];
+            user: string;
+            kind: components["schemas"]["LogonKind"];
+            /** Format: date-time */
+            at: string;
+            /** Format: date-time */
+            lastAt: null | string;
+            /** Format: int32 */
+            count: number;
+            sourceAddress: null | string;
+        };
+        SshKeyMineItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            fingerprint: string;
+            type: string;
+            /** Format: int32 */
+            bits: null | number;
+            comment: null | string;
+            kind: components["schemas"]["SshKeyKind"];
+            state: components["schemas"]["SshKeyState"];
+            where: components["schemas"]["SshKeyMinePlace"][];
+            /** Format: date-time */
+            lastUsedAt: null | string;
+        };
+        SshKeyMinePlace: {
+            server: string;
+            account: string;
+            /** Format: date-time */
+            lastUsedAt: null | string;
+        };
+        SshKeyOffboardRequest: {
+            /** Format: int32 */
+            confirm: number;
+        };
+        SshKeyOffboardResult: {
+            user: components["schemas"]["SshKeyUserRef"];
+            /** Format: int32 */
+            retired: number;
+            removal: components["schemas"]["SshKeyRemoveResult"];
+        };
+        SshKeyOwner: {
+            /** Format: uuid */
+            userId: null | string;
+            username: null | string;
+            displayName: null | string;
+            text: null | string;
+            name: string;
+            deactivated: boolean;
+            formerUser: boolean;
+        };
+        SshKeyParseLine: {
+            /** Format: int32 */
+            line: number;
+            /** Format: int32 */
+            index: null | number;
+            fingerprint: null | string;
+            type: null | string;
+            /** Format: int32 */
+            bits: null | number;
+            comment: null | string;
+            weakness: null | string;
+            suggestedName: null | string;
+            registered: null | components["schemas"]["Ref"];
+            duplicate: boolean;
+            /** Format: int32 */
+            servers: number;
+            problem: components["schemas"]["SshKeyLineProblem"];
+            problemText: null | string;
+        };
+        SshKeyParseRequest: {
+            text: null | string;
+        };
+        SshKeyParseResult: {
+            lines: components["schemas"]["SshKeyParseLine"][];
+            /** Format: int32 */
+            keys: number;
+            /** Format: int32 */
+            refused: number;
+            privateKey: boolean;
+        };
+        SshKeyRegisterRequest: {
+            publicKeys: null | string;
+            name: null | string;
+            names: null | string[];
+            /** Format: uuid */
+            userId: null | string;
+            owner: null | string;
+            kind: components["schemas"]["SshKeyKind"];
+            note: null | string;
+        };
+        SshKeyRegistration: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            owner: components["schemas"]["SshKeyOwner"];
+            kind: components["schemas"]["SshKeyKind"];
+            state: components["schemas"]["SshKeyState"];
+        };
+        SshKeyRemovalItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            batchId: string;
+            server: null | components["schemas"]["Ref"];
+            serverName: string;
+            account: string;
+            path: string;
+            fingerprint: string;
+            keyName: null | string;
+            /** Format: uuid */
+            keyId: null | string;
+            /** Format: date-time */
+            requestedAt: string;
+            requestedByName: null | string;
+            reason: components["schemas"]["SshKeyRemovalReason"];
+            state: components["schemas"]["SshKeyRemovalState"];
+            /** Format: date-time */
+            sentAt: null | string;
+            /** Format: int32 */
+            linesRemoved: null | number;
+            backup: null | string;
+            message: null | string;
+            /** Format: date-time */
+            appliedAt: null | string;
+        };
+        SshKeyRemovalPreview: {
+            items: components["schemas"]["SshKeyRemovalPreviewItem"][];
+            /** Format: int32 */
+            allowed: number;
+            /** Format: int32 */
+            refused: number;
+            warnings: string[];
+            /** Format: int32 */
+            confirm: number;
+        };
+        SshKeyRemovalPreviewItem: {
+            item: components["schemas"]["SshKeyRemovalTarget"];
+            server: null | components["schemas"]["Ref"];
+            serverName: string;
+            connected: boolean;
+            keyName: string;
+            /** Format: uuid */
+            keyId: null | string;
+            keyOwner: null | string;
+            comment: null | string;
+            allowed: boolean;
+            refused: null | string;
+            warnings: string[];
+            clusterWide: boolean;
+            clusterNodes: string[];
+            /** Format: date-time */
+            lastUsedAt: null | string;
+            /** Format: int32 */
+            keysLeft: number;
+        };
+        SshKeyRemovalPreviewRequest: {
+            items: null | components["schemas"]["SshKeyRemovalTarget"][];
+        };
+        /** @enum {unknown} */
+        SshKeyRemovalReason: "Server" | "Key" | "Retirement" | "Offboarding" | "Unregistered";
+        /** @enum {unknown} */
+        SshKeyRemovalState: "Pending" | "Sent" | "Removed" | "NotFound" | "Refused" | "Failed" | "Expired";
+        SshKeyRemovalTarget: {
+            /** Format: uuid */
+            sensorId: string;
+            account: string;
+            path: string;
+            fingerprint: string;
+        };
+        SshKeyRemoveRequest: {
+            items: null | components["schemas"]["SshKeyRemovalTarget"][];
+            reason: components["schemas"]["SshKeyRemovalReason"];
+            /** Format: int32 */
+            confirm: number;
+        };
+        SshKeyRemoveResult: {
+            /** Format: uuid */
+            batchId: string;
+            items: components["schemas"]["SshKeyRemovalItem"][];
+            /** Format: int32 */
+            sent: number;
+            /** Format: int32 */
+            pending: number;
+            /** Format: int32 */
+            refused: number;
+        };
+        SshKeyServerFile: {
+            account: string;
+            path: string;
+            target: null | string;
+            exists: boolean;
+            owner: null | string;
+            group: null | string;
+            mode: null | string;
+            /** Format: date-time */
+            modifiedAt: null | string;
+            clusterWide: boolean;
+            problems: string[];
+            invalidLines: number[];
+            removable: boolean;
+            notRemovable: null | string;
+            keys: components["schemas"]["SshKeyServerKey"][];
+        };
+        SshKeyServerKey: {
+            /** Format: int32 */
+            line: number;
+            type: string;
+            /** Format: int32 */
+            bits: null | number;
+            fingerprint: string;
+            comment: null | string;
+            options: string[];
+            notes: string[];
+            protected: boolean;
+            protectedBecause: null | string;
+            publicKey: string;
+            registration: null | components["schemas"]["SshKeyRegistration"];
+            /** Format: date-time */
+            firstSeenAt: null | string;
+            /** Format: date-time */
+            lastUsedAt: null | string;
+            lastUsedFrom: null | string;
+            canRemove: boolean;
+            cannotRemove: null | string;
+            weakness: null | string;
+        };
+        SshKeyServerView: {
+            /** Format: uuid */
+            sensorId: string;
+            /** Format: date-time */
+            collectedAt: null | string;
+            sshd: null | components["schemas"]["SshdKeySettings"];
+            caKeys: components["schemas"]["CaKey"][];
+            files: components["schemas"]["SshKeyServerFile"][];
+            /** Format: int32 */
+            totalKeys: number;
+            truncated: boolean;
+            notes: string[];
+            connected: boolean;
+            removalAllowed: boolean;
+            removalRefused: null | string;
+            removalUsers: string[];
+            /** Format: int32 */
+            unregistered: number;
+            /** Format: int32 */
+            retiredAuthorized: number;
+            /** Format: int32 */
+            weak: number;
+        };
         SshKeysSection: {
             sshd: components["schemas"]["SshdKeySettings"];
             files: components["schemas"]["AuthorizedKeysFile"][];
@@ -11588,6 +12817,72 @@ export interface components {
             totalKeys: number;
             truncated: boolean;
             notes: string[];
+        };
+        /** @enum {unknown} */
+        SshKeyState: "Active" | "Retired";
+        SshKeySummary: {
+            /** Format: int32 */
+            registered: number;
+            /** Format: int32 */
+            active: number;
+            /** Format: int32 */
+            retired: number;
+            /** Format: int32 */
+            unregistered: number;
+            /** Format: int32 */
+            retiredStillAuthorized: number;
+            /** Format: int32 */
+            deactivatedUsersKeysAuthorized: number;
+            deactivatedUsers: components["schemas"]["SshKeyDeactivatedUser"][];
+            /** Format: int32 */
+            weak: number;
+            /** Format: int32 */
+            unused180: number;
+            /** Format: int32 */
+            pendingRemovals: number;
+        };
+        SshKeyUnregisteredItem: {
+            fingerprint: string;
+            type: string;
+            /** Format: int32 */
+            bits: null | number;
+            publicKey: null | string;
+            comments: string[];
+            /** Format: int32 */
+            servers: number;
+            /** Format: int32 */
+            accounts: number;
+            where: components["schemas"]["SshKeyAuthorizationItem"][];
+            /** Format: date-time */
+            firstSeenAt: string;
+            lastUse: null | components["schemas"]["SshKeyLastUse"];
+            notes: string[];
+            weakness: null | string;
+        };
+        SshKeyUpdateRequest: {
+            name: null | string;
+            /** Format: uuid */
+            userId: null | string;
+            owner: null | string;
+            kind: components["schemas"]["SshKeyKind"];
+            note: null | string;
+        };
+        SshKeyUserKeys: {
+            user: components["schemas"]["SshKeyUserRef"];
+            keys: components["schemas"]["SshKeyWithAuthorizations"][];
+            /** Format: int32 */
+            authorizations: number;
+        };
+        SshKeyUserRef: {
+            /** Format: uuid */
+            id: string;
+            username: string;
+            displayName: string;
+            isActive: boolean;
+        };
+        SshKeyWithAuthorizations: {
+            key: components["schemas"]["SshKeyItem"];
+            authorizations: components["schemas"]["SshKeyAuthorizationItem"][];
         };
         StateChange: {
             /** Format: date-time */
@@ -12357,6 +13652,11 @@ export interface components {
             lastLoginAt: null | string;
             /** Format: date-time */
             passwordChangedAt: null | string;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            sshKeys: number;
         };
         VolumeInfo: {
             mount: string;

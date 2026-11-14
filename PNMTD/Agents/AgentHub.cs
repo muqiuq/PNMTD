@@ -364,6 +364,21 @@ public sealed class AgentHub(
                 }
             });
         }
+        if (agent.Platform == AgentPlatform.Linux)
+        {
+            // docs/linux-sensor-plan.md §6.5: removals that waited for this server go now.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await services.GetRequiredService<SshKeyManager.SshKeyRemovals>().SendPendingAsync(connection, CancellationToken.None);
+                }
+                catch (Exception e)
+                {
+                    logger.LogWarning(e, "Sending the pending key removals to {Name} failed", name);
+                }
+            });
+        }
         return connection;
     }
 
@@ -454,6 +469,16 @@ public sealed class AgentHub(
             case AgentMessageTypes.Log:
                 var lines = Read<LogLines>(body);
                 connection.Complete(lines.RequestId, body);
+                break;
+            case AgentMessageTypes.KeyRemoval:
+                // docs/linux-sensor-plan.md §6.5: recorded, then (as log does for send-log) it completes the request when it came first.
+                // A refusal or failure is followed by an ack that says so, which completes the request itself and isn't logged as an error.
+                var removal = Read<SshKeyRemovalResult>(body);
+                await services.GetRequiredService<SshKeyManager.SshKeyRemovals>().ResultAsync(connection, removal, ct);
+                if (removal.Outcome is SshKeyRemovalOutcome.Removed or SshKeyRemovalOutcome.NotFound)
+                {
+                    connection.Complete(removal.RequestId, body);
+                }
                 break;
             case AgentMessageTypes.ParseResult or AgentMessageTypes.ScriptResult:
                 await services.GetRequiredService<AgentScriptResults>().ResultAsync(connection, envelope.T, body, ct);

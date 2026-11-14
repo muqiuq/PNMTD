@@ -493,6 +493,17 @@ public sealed class LinuxAgentTests
         lines = Lines(SectionNames.Network, network, moved);
         CollectionAssert.Contains(lines, "Gateway on ens18: 10.0.2.1 → 10.0.2.254");
         CollectionAssert.Contains(lines, "Proxy: direct → http://proxy:3128");
-        Assert.AreEqual(0, Lines(SectionNames.SshKeys, SimulatedLinux.SshKeys("web-01"), SimulatedLinux.SshKeys("web-01", keyRemoval: true)).Count, "L5's");
+        // The ssh-keys section's own lines (L5): a key file's mode and owner, CA keys. Whether PNMT may remove a key there is no change.
+        Assert.AreEqual(0, Lines(SectionNames.SshKeys, SimulatedLinux.SshKeys("web-01"), SimulatedLinux.SshKeys("web-01", keyRemoval: true)).Count);
+        var keys = SimulatedLinux.SshKeys("web-01");
+        var loose = keys with
+        {
+            Files = keys.Files.Select(f => f.Account == "root" ? f with { Mode = "0664", Problems = ["writable by group or others"] } : f).ToList(),
+            CaKeys = [new CaKey("/etc/ssh/ca.pub", "ssh-ed25519", 256, SimulatedLinux.ClusterNode.Fingerprint, "ca@corp")],
+        };
+        lines = Lines(SectionNames.SshKeys, keys, loose);
+        CollectionAssert.Contains(lines, "root's /root/.ssh/authorized_keys: mode 0600 → 0664");
+        CollectionAssert.Contains(lines, "root's /root/.ssh/authorized_keys: writable by group or others");
+        CollectionAssert.Contains(lines, $"CA key added: ssh-ed25519 {SshKeys.Short(SimulatedLinux.ClusterNode.Fingerprint)} 'ca@corp' (/etc/ssh/ca.pub): certificates it signs get in");
     }
 }

@@ -72,12 +72,85 @@ public static class LinuxDiffers
     };
 
     /// <summary>
-    /// The ssh-keys section (§6.3): <b>L5's</b>. Keys added and removed write 263 when they are registered as active and 465 when
-    /// they aren't (by the key manager, which needs the database: <c>SshKeyAuthorizations</c>, called from
-    /// <see cref="AgentChanges.StoredAsync"/>), and key files' permissions are notable. Until then the section is stored and
-    /// served, and compared by nobody.
+    /// The ssh-keys section's lines that don't depend on the key manager (§6.3, §5.8), all notable: a key file's mode, owner or group,
+    /// a new problem of a file (a user's symlink, writable by others), and CA keys added or removed. The keys added to and removed
+    /// from files are named by their registration, which needs the database: <see cref="SshKeyManager.SshKeyAuthorizations"/> words them
+    /// (465 for keys not registered as active, 263 for the others) from <see cref="SshKeyDeltas"/>, called by
+    /// <see cref="AgentChanges.StoredAsync"/>. Whether PNMT may remove a key there is not a change.
     /// </summary>
-    public static List<AgentChange> SshKeyChanges(SshKeysSection? a, SshKeysSection? b) => [];
+    public static List<AgentChange> SshKeyChanges(SshKeysSection? a, SshKeysSection? b)
+    {
+        var changes = new List<AgentChange>();
+        if (a is null || b is null)
+        {
+            return changes;
+        }
+        var before = a.Files.GroupBy(f => (f.Account, f.Path)).ToDictionary(g => g.Key, g => g.First());
+        foreach (var file in b.Files)
+        {
+            if (!before.TryGetValue((file.Account, file.Path), out var old) || !old.Exists || !file.Exists)
+            {
+                continue;
+            }
+            var what = $"{file.Account}'s {file.Path}";
+            if (old.Mode != file.Mode && old.Mode is not null && file.Mode is not null)
+            {
+                changes.Add(new($"{what}: mode {old.Mode} → {file.Mode}", true, old.Mode, file.Mode));
+            }
+            if ((old.Owner, old.Group) != (file.Owner, file.Group) && old.Owner is not null && file.Owner is not null)
+            {
+                changes.Add(new($"{what}: owner {old.Owner}:{old.Group} → {file.Owner}:{file.Group}", true, $"{old.Owner}:{old.Group}", $"{file.Owner}:{file.Group}"));
+            }
+            foreach (var problem in file.Problems.Except(old.Problems))
+            {
+                changes.Add(new($"{what}: {problem}", true));
+            }
+        }
+        var oldCa = a.CaKeys.Select(c => c.Fingerprint).ToHashSet(StringComparer.Ordinal);
+        var newCa = b.CaKeys.Select(c => c.Fingerprint).ToHashSet(StringComparer.Ordinal);
+        foreach (var ca in b.CaKeys.Where(c => !oldCa.Contains(c.Fingerprint)).DistinctBy(c => c.Fingerprint))
+        {
+            changes.Add(new($"CA key added: {ca.Type} {SshKeys.Short(ca.Fingerprint)}{Quoted(ca.Comment)} ({ca.Source}): certificates it signs get in", true));
+        }
+        foreach (var ca in a.CaKeys.Where(c => !newCa.Contains(c.Fingerprint)).DistinctBy(c => c.Fingerprint))
+        {
+            changes.Add(new($"CA key removed: {ca.Type} {SshKeys.Short(ca.Fingerprint)}{Quoted(ca.Comment)} ({ca.Source})", true));
+        }
+        return changes;
+    }
+
+    /// <summary>A key in a file, as <see cref="SshKeyDeltas"/> answers it.</summary>
+    public sealed record SshKeyPlace(string Account, string Path, bool ClusterWide, AuthorizedKey Key);
+
+    /// <summary>
+    /// The keys added to and removed from files (by account, path and fingerprint: a key moved to another line is no change), and
+    /// those whose options changed, from one ssh-keys section to the next. A key twice in a file counts once (its first line).
+    /// </summary>
+    public static (List<SshKeyPlace> Added, List<SshKeyPlace> Removed, List<(SshKeyPlace Before, SshKeyPlace After)> Options) SshKeyDeltas(
+        SshKeysSection? before, SshKeysSection after)
+    {
+        static Dictionary<(string, string, string), SshKeyPlace> Places(SshKeysSection? section)
+        {
+            var places = new Dictionary<(string, string, string), SshKeyPlace>();
+            foreach (var file in section?.Files ?? [])
+            {
+                foreach (var key in file.Keys)
+                {
+                    places.TryAdd((file.Account, file.Path, key.Fingerprint), new SshKeyPlace(file.Account, file.Path, file.ClusterWide, key));
+                }
+            }
+            return places;
+        }
+        var old = Places(before);
+        var now = Places(after);
+        var added = now.Where(p => !old.ContainsKey(p.Key)).Select(p => p.Value).ToList();
+        var removed = old.Where(p => !now.ContainsKey(p.Key)).Select(p => p.Value).ToList();
+        var options = now.Where(p => old.TryGetValue(p.Key, out var o) && !o.Key.Options.SequenceEqual(p.Value.Key.Options, StringComparer.Ordinal))
+            .Select(p => (old[p.Key], p.Value)).ToList();
+        return (added, removed, options);
+    }
+
+    private static string Quoted(string? comment) => string.IsNullOrEmpty(comment) ? "" : $" '{comment}'";
 
     private static T? Parse<T>(string json) where T : class
     {

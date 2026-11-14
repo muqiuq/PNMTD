@@ -54,7 +54,10 @@ public sealed class TotpDisableRequest
     public string? Code { get; init; }
 }
 
-/// <summary>A user as admins see it. LockedUntil is set while a lockout lasts.</summary>
+/// <summary>
+/// A user as admins see it. LockedUntil is set while a lockout lasts. <see cref="SshKeys"/>: the keys registered for the user in the
+/// key manager (docs/linux-sensor-plan.md §6.4).
+/// </summary>
 public sealed record UserItem(
     Guid Id,
     string Username,
@@ -68,7 +71,8 @@ public sealed record UserItem(
     int FailedLoginCount,
     DateTime CreatedAt,
     DateTime? LastLoginAt,
-    DateTime? PasswordChangedAt);
+    DateTime? PasswordChangedAt,
+    int SshKeys = 0);
 
 /// <summary><c>POST /users</c>: the new user gets a temporary password, which the response shows once.</summary>
 public sealed class CreateUserRequest

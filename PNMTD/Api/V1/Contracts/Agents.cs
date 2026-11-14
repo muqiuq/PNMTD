@@ -9,7 +9,8 @@ namespace PNMTD.Api.V1.Contracts;
 
 /// <summary>
 /// A server in the fleet list (§10.1), of either platform. Linux (docs/linux-sensor-plan.md §10) adds the distribution, the kernel,
-/// the security updates pending, and whether config.yaml allows key removal; null on Windows.
+/// the security updates pending, whether config.yaml allows key removal, and from the key manager (§6.3) the keys found there that
+/// aren't registered and the retired keys still authorized there (by fingerprint); null on Windows.
 /// </summary>
 public sealed record AgentServerItem(
     Guid SensorId,
@@ -40,7 +41,9 @@ public sealed record AgentServerItem(
     string? Distribution = null,
     string? KernelRelease = null,
     int? SecurityUpdates = null,
-    bool? KeyRemovalAllowed = null);
+    bool? KeyRemovalAllowed = null,
+    int? UnregisteredKeys = null,
+    int? RetiredKeysAuthorized = null);
 
 public sealed class AgentServerQuery : PageQuery
 {
@@ -71,6 +74,12 @@ public sealed class AgentServerQuery : PageQuery
 
     /// <summary>Linux: only servers whose config.yaml allows PNMT to remove keys.</summary>
     public bool? KeyRemoval { get; set; }
+
+    /// <summary>Linux: only servers with keys that aren't registered (docs/linux-sensor-plan.md §11.1).</summary>
+    public bool? UnregisteredKeys { get; set; }
+
+    /// <summary>Linux: only servers where retired keys are still authorized.</summary>
+    public bool? RetiredKeys { get; set; }
 
     public Guid? HostId { get; set; }
 }
@@ -240,7 +249,8 @@ public sealed record AgentLogFile(DateTime At, IReadOnlyList<string> Lines);
 
 /// <summary>
 /// A login or connection (§4.7): an aggregate when <see cref="Count"/> is above 1. On Linux (docs/linux-sensor-plan.md §5.6) the key
-/// of a key login, whom sudo or su became, sudo's command (where config.yaml sends it), and the names an "invalid user" source tried.
+/// of a key login, whom sudo or su became, sudo's command (where config.yaml sends it), and the names an "invalid user" source tried;
+/// with the key manager (§6.4) the key's registered name, owner and id, for a key registered now (past logins included).
 /// </summary>
 public sealed record AgentLoginItem(
     Guid Id,
@@ -263,7 +273,10 @@ public sealed record AgentLoginItem(
     string? KeyFingerprint = null,
     string? TargetUser = null,
     string? Command = null,
-    IReadOnlyList<string>? TriedUsers = null);
+    IReadOnlyList<string>? TriedUsers = null,
+    string? KeyName = null,
+    string? KeyOwner = null,
+    Guid? KeyId = null);
 
 public sealed class AgentLoginQuery : PageQuery
 {
@@ -276,6 +289,9 @@ public sealed class AgentLoginQuery : PageQuery
 
     /// <summary>Linux: the logins with this key (<c>SHA256:…</c>, as pasted: the prefix and padding are optional).</summary>
     public string? KeyFingerprint { get; set; }
+
+    /// <summary>Linux: the logins with a key of this owner (docs/linux-sensor-plan.md §10): a user's id, or a text (an owner's text or a user name).</summary>
+    public string? KeyOwner { get; set; }
 
     public string? User { get; set; }
 

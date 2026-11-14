@@ -6,6 +6,7 @@ using PNMTD.Lib.Models;
 using PNMTD.Lib.Models.Enum;
 using PNMTD.Models.Db;
 using PNMTD.Agents;
+using PNMTD.SshKeyManager;
 
 namespace PNMTD.Cli;
 
@@ -15,7 +16,9 @@ namespace PNMTD.Cli;
 /// diagnostics set assigned to both, with runs; and two Linux servers, <i>web-01</i> (Debian 12, on its host) and <i>pve-01</i>
 /// (Proxmox VE 9, on a host of its own), with every section, a week of SSH logins with keys, sudo and the internet's scanners,
 /// changes, and the diagnostics set assigned to web-01. No agent is connected; the heartbeat interval is a day, so the demo stays
-/// as seeded while the stack runs. The key manager's data comes with L5.
+/// as seeded while the stack runs. The key manager (§6.4, §12): the demo users philipp and jdoe (deactivated), their keys and two
+/// services' keys registered, Jan's old laptop retired and still authorized on web-01, an unregistered weak key, a key unused for 200
+/// days, three removals (done, refused, pending), and two bash scripts in the library with a run.
 /// </summary>
 internal static class DevSeedAgents
 {
@@ -31,7 +34,10 @@ internal static class DevSeedAgents
     {
         var count = 0;
         var servers = new List<(ServerPlan Plan, SensorEntity Sensor)>();
+        var owners = SeedKeyOwners(db, now);
         var linuxServers = SeedLinux(db, hosts, now, ref count);
+        count += SeedKeyManager(db, linuxServers, owners, now);
+        count += SeedBashScripts(db, linuxServers, now);
         foreach (var plan in Plans.Where(p => hosts.ContainsKey(p.Host)))
         {
             var sensor = new SensorEntity
@@ -267,7 +273,12 @@ internal static class DevSeedAgents
 
             foreach (var (section, data) in SimulatedLinux.All(plan.Hostname, plan.Proxmox, plan.KeyRemoval))
             {
-                var json = AgentJson.Serialize(section == SectionNames.System ? system with { BootTime = boot } : data);
+                var json = AgentJson.Serialize(section switch
+                {
+                    SectionNames.System => system with { BootTime = boot },
+                    SectionNames.SshKeys => SeededKeys(plan.Hostname, plan.Proxmox, plan.KeyRemoval, now),
+                    _ => data,
+                });
                 db.AgentSections.Add(new AgentSectionEntity
                 {
                     SensorId = sensor.Id, Section = section, SchemaVersion = SectionNames.SchemaVersion,
@@ -336,7 +347,7 @@ internal static class DevSeedAgents
                 AddEvent(db, sensor.Id, now.AddDays(-4), PNMTStatusCodes.LINUX_CHANGED,
                     "2 changes: Network adapter wg0 added; WireGuard enabled (port 51820, wg0: 3 peers)", source);
                 AddEvent(db, sensor.Id, now.AddHours(-3), PNMTStatusCodes.LINUX_ADMIN_LOGIN,
-                    $"root: SSH from 10.0.4.17 with {AgentAccessService.KeyText(SimulatedLinux.PhilippLaptop.Fingerprint)}", source);
+                    $"root: SSH from 10.0.4.17 with {AgentAccessService.KeyText(SimulatedLinux.PhilippLaptop.Fingerprint, LaptopName)}", source);
                 count += 4;
             }
             else
@@ -356,12 +367,281 @@ internal static class DevSeedAgents
                 AddEvent(db, sensor.Id, now.AddDays(-2), PNMTStatusCodes.LINUX_LOGIN_FAILURES, "Failed logins from 203.0.113.9: at least 10 in 10 min (users: root)", source);
                 AddEvent(db, sensor.Id, now.AddDays(-1).AddHours(-1), PNMTStatusCodes.LINUX_LOGIN_FAILURES, "www: not in sudoers (sudo on pts/2)", source);
                 AddEvent(db, sensor.Id, now.AddHours(-2), PNMTStatusCodes.LINUX_ADMIN_LOGIN,
-                    $"root: SSH from 10.0.4.17 with {AgentAccessService.KeyText(SimulatedLinux.PhilippLaptop.Fingerprint)}", source);
+                    $"root: SSH from 10.0.4.17 with {AgentAccessService.KeyText(SimulatedLinux.PhilippLaptop.Fingerprint, LaptopName)}", source);
                 count += 9;
             }
             AddEvent(db, sensor.Id, now.AddMinutes(-1), PNMTStatusCodes.LINUX_OK, $"{plan.Hostname}: {os.Caption}, kernel {os.Build}, agent {ServerInfo.Version}", source);
             count += 5;
         }
         return created;
+    }
+
+    // --- the key manager (docs/linux-sensor-plan.md §6.4, §12) ------------------------------------------------------
+
+    private static readonly SshKeyName LaptopName = new("Philipp, laptop", "philipp");
+
+    private sealed record KeyOwners(UserEntity Philipp, UserEntity Jan);
+
+    /// <summary>The demo users who own keys: philipp (an Admin) and jdoe (deactivated, so the strip offers offboarding). Unusable passwords.</summary>
+    private static KeyOwners SeedKeyOwners(PnmtdDbContext db, DateTime now)
+    {
+        UserEntity User(string username, string displayName, string role, bool active)
+        {
+            var existing = db.Users.SingleOrDefault(u => u.NormalizedUsername == username);
+            if (existing is not null)
+            {
+                return existing;
+            }
+            var user = new UserEntity
+            {
+                Id = Guid.NewGuid(), Username = username, NormalizedUsername = username, DisplayName = displayName,
+                PasswordHash = Lib.Security.PasswordHasher.Hash(Lib.Security.SecurePasswordGenerator.Generate()), Role = role, IsActive = active,
+                MustChangePassword = true, SecurityStamp = Auth.UserAccounts.NewStamp(), CreatedAt = now.AddDays(-90),
+            };
+            db.Users.Add(user);
+            return user;
+        }
+        return new KeyOwners(User("philipp", "Philipp", Auth.Roles.Admin, true), User("jdoe", "Jan Doe", Auth.Roles.User, false));
+    }
+
+    private static AuthorizedKey Authorized(int line, SimulatedKey key, string account, IReadOnlyList<string> options, DateTime now) =>
+        new(line, key.Type, key.Bits, key.Fingerprint, key.Comment, options, key.Key,
+            SshKeys.Notes(new SshPublicKey(options, key.Type, key.Key, key.Comment, key.Bits, key.Fingerprint), account, now), false);
+
+    /// <summary>The simulator's ssh-keys section, and on web-01 Jan's old laptop still in deploy's file and philipp's own file with both his keys.</summary>
+    private static SshKeysSection SeededKeys(string hostname, bool proxmox, bool keyRemoval, DateTime now)
+    {
+        var section = SimulatedLinux.SshKeys(hostname, proxmox, keyRemoval);
+        if (proxmox)
+        {
+            return section;
+        }
+        var deploy = section.Files.Single(f => f.Account == "deploy");
+        deploy = deploy with { Keys = [.. deploy.Keys, Authorized(3, SimulatedLinux.JanOldLaptop, "deploy", [], now)] };
+        var philipp = deploy with
+        {
+            Account = "philipp", Path = "/home/philipp/.ssh/authorized_keys", Owner = "philipp", Group = "philipp", Removable = false,
+            NotRemovable = "config.yaml allows removing keys only for deploy, www (ssh_keys.users)",
+            Keys = [Authorized(1, SimulatedLinux.PhilippLaptop, "philipp", [], now), Authorized(2, SimulatedLinux.PhilippWorkstation, "philipp", [], now)],
+        };
+        var files = section.Files.Select(f => f.Account == "deploy" ? deploy : f).Append(philipp).ToList();
+        return section with { Files = files, TotalKeys = files.Sum(f => f.Keys.Count) };
+    }
+
+    /// <summary>
+    /// The register, where each key is authorized with its last use, the history's lines and events, and three removals: Jan's old laptop
+    /// removed from www's file (done), the unregistered RSA key refused for root, and Jan's key pending for deploy's file (web-01 is
+    /// offline in the seed).
+    /// </summary>
+    private static int SeedKeyManager(PnmtdDbContext db, List<(HostEntity Host, SensorEntity Sensor)> servers, KeyOwners owners, DateTime now)
+    {
+        var web = servers.FirstOrDefault(s => s.Host.Name == "web-01");
+        var pve = servers.FirstOrDefault(s => s.Host.Name == "pve-01");
+        var count = 0;
+        SshKeyEntity Register(SimulatedKey key, string name, UserEntity? user, string? owner, SshKeyKind kind, int daysAgo, string? note = null)
+        {
+            var entity = new SshKeyEntity
+            {
+                Id = Guid.NewGuid(), Fingerprint = key.Fingerprint, Type = key.Type, Bits = key.Bits, PublicKey = key.Key, Comment = key.Comment, Name = name,
+                UserId = user?.Id, Owner = owner, Kind = kind, Note = note, State = SshKeyState.Active, CreatedAt = now.AddDays(-daysAgo), CreatedByName = "admin",
+                UpdatedAt = now.AddDays(-daysAgo), UpdatedByName = "admin",
+            };
+            db.SshKeys.Add(entity);
+            db.AuthLog.Add(new AuthLogEntity
+            {
+                Id = Guid.NewGuid(), CreatedAt = entity.CreatedAt, Username = "admin", EventType = Auth.AuthEvents.SshKeyRegistered, IpAddress = "10.0.4.17",
+                Detail = $"{name} ({user?.Username ?? owner}, {kind.ToString().ToLowerInvariant()}): {key.Type} {key.Fingerprint} registered",
+            });
+            count++;
+            return entity;
+        }
+        Register(SimulatedLinux.PhilippLaptop, LaptopName.Name, owners.Philipp, null, SshKeyKind.Person, 25);
+        Register(SimulatedLinux.PhilippWorkstation, "Philipp, workstation", owners.Philipp, null, SshKeyKind.Person, 25, "The desk in Zurich; replaced by the laptop?");
+        Register(SimulatedLinux.Backup, "Backup server bkp-01", null, "storage team", SshKeyKind.Service, 24, "Forced command: backup-receive only.");
+        Register(SimulatedLinux.CiRunner, "GitLab runner ci-01", null, "CI (GitLab)", SshKeyKind.Service, 24);
+        var jan = Register(SimulatedLinux.JanOldLaptop, "Jan, old laptop", owners.Jan, null, SshKeyKind.Person, 24);
+        jan.State = SshKeyState.Retired;
+        jan.RetiredAt = now.AddDays(-3).AddHours(-1);
+        jan.RetiredByName = "philipp";
+        db.AuthLog.Add(new AuthLogEntity
+        {
+            Id = Guid.NewGuid(), CreatedAt = jan.RetiredAt.Value, Username = "philipp", EventType = Auth.AuthEvents.SshKeyRetired, IpAddress = "10.0.4.17",
+            Detail = $"{jan.Name} ({jan.Fingerprint}) retired; still authorized on 1 servers",
+        });
+
+        // Where each key is authorized, as the agents' sections say, with first seen and last use.
+        void Places(SensorEntity sensor, SshKeysSection section, Action<SshKeyAuthorizationEntity> times)
+        {
+            foreach (var row in SshKeyAuthorizations.RowsFrom(sensor.Id, section, now.AddDays(-30)))
+            {
+                times(row);
+                db.SshKeyAuthorizations.Add(row);
+                count++;
+            }
+        }
+        if (web.Sensor is not null)
+        {
+            Places(web.Sensor, SeededKeys("web-01", false, true, now), row =>
+            {
+                (row.LastUsedAt, row.LastUsedFrom) = (row.Account, row.Fingerprint) switch
+                {
+                    ("root", var f) when f == SimulatedLinux.PhilippLaptop.Fingerprint => (now.AddHours(-2), "10.0.4.17"),
+                    ("philipp", var f) when f == SimulatedLinux.PhilippLaptop.Fingerprint => (now.AddHours(-4), "10.0.4.17"),
+                    ("deploy", var f) when f == SimulatedLinux.PhilippLaptop.Fingerprint => (now.AddDays(-12), "10.0.4.17"),
+                    ("deploy", var f) when f == SimulatedLinux.CiRunner.Fingerprint => (now.AddHours(-6), "10.0.5.12"),
+                    ("root", var f) when f == SimulatedLinux.Backup.Fingerprint => (now.AddHours(-21), "10.0.1.30"),
+                    ("deploy", var f) when f == SimulatedLinux.JanOldLaptop.Fingerprint => (now.AddDays(-40), "10.0.4.22"),
+                    // §12: a key unused for 200 days, found before PNMT kept its logins.
+                    ("philipp", var f) when f == SimulatedLinux.PhilippWorkstation.Fingerprint => (now.AddDays(-200), "10.0.4.31"),
+                    _ => ((DateTime?)null, (string?)null),
+                };
+                if (row.Fingerprint == SimulatedLinux.PhilippWorkstation.Fingerprint)
+                {
+                    row.FirstSeenAt = now.AddDays(-260);
+                }
+                if (row.Fingerprint == SimulatedLinux.OldRsa.Fingerprint)
+                {
+                    row.FirstSeenAt = now.AddDays(-20);
+                }
+            });
+            var source = AgentPlatformInfo.Linux.EventSource;
+            var oldRsa = $"root: unregistered key {SimulatedLinux.OldRsa.Type} {SshKeys.Short(SimulatedLinux.OldRsa.Fingerprint)} '{SimulatedLinux.OldRsa.Comment}' added to /root/.ssh/authorized_keys";
+            db.AgentChanges.Add(new AgentChangeEntity
+            {
+                Id = Guid.NewGuid(), SensorId = web.Sensor.Id, Section = SectionNames.SshKeys, At = now.AddDays(-20), Summary = oldRsa, Notable = false,
+                Details = AgentJson.Serialize(new { Key = SimulatedLinux.OldRsa.Fingerprint }),
+            });
+            AddEvent(db, web.Sensor.Id, now.AddDays(-20), PNMTStatusCodes.LINUX_KEY_ADDED, oldRsa, source);
+            var removedLine = "Jan, old laptop (jdoe) removed from www's authorized_keys by PNMT (philipp)";
+            db.AgentChanges.Add(new AgentChangeEntity
+            {
+                Id = Guid.NewGuid(), SensorId = web.Sensor.Id, Section = SectionNames.SshKeys, At = now.AddDays(-3), Summary = removedLine, Notable = true,
+                Details = AgentJson.Serialize(new { Key = SimulatedLinux.JanOldLaptop.Fingerprint }),
+            });
+            AddEvent(db, web.Sensor.Id, now.AddDays(-3), PNMTStatusCodes.LINUX_CHANGED, removedLine, source);
+
+            // The removals: done, refused (root isn't in ssh_keys.users), pending (web-01 is offline).
+            var name = $"{web.Host.Name} / {web.Sensor.Name}";
+            var batch = Guid.NewGuid();
+            SshKeyRemovalEntity Removal(string account, string path, SimulatedKey key, string keyName, SshKeyRemovalReason reason, SshKeyRemovalState state,
+                DateTime at, string? message = null) => new()
+            {
+                Id = Guid.NewGuid(), BatchId = batch, SensorId = web.Sensor.Id, ServerName = name, Account = account, Path = path, Fingerprint = key.Fingerprint,
+                KeyName = keyName, RequestedAt = at, RequestedBy = owners.Philipp.Id, RequestedByName = "philipp", Reason = reason, State = state, Message = message,
+                SentAt = state is SshKeyRemovalState.Removed ? at.AddSeconds(1) : null,
+                LinesRemoved = state is SshKeyRemovalState.Removed ? 1 : null,
+                Backup = state is SshKeyRemovalState.Removed ? $"/var/lib/pnmt-agent/state/key-backups/www/{at:yyyyMMdd-HHmmss}-authorized_keys" : null,
+                AppliedAt = state is SshKeyRemovalState.Pending ? null : at.AddSeconds(2),
+            };
+            db.SshKeyRemovals.Add(Removal("www", "/home/www/.ssh/authorized_keys", SimulatedLinux.JanOldLaptop, "Jan, old laptop (jdoe)", SshKeyRemovalReason.Retirement,
+                SshKeyRemovalState.Removed, now.AddDays(-3)));
+            batch = Guid.NewGuid();
+            db.SshKeyRemovals.Add(Removal("root", "/root/.ssh/authorized_keys", SimulatedLinux.OldRsa,
+                $"unregistered key ssh-rsa {SshKeys.Short(SimulatedLinux.OldRsa.Fingerprint)} '{SimulatedLinux.OldRsa.Comment}'", SshKeyRemovalReason.Unregistered,
+                SshKeyRemovalState.Refused, now.AddDays(-2), "config.yaml allows removing keys only for deploy, www: root in ssh_keys.users would allow it here."));
+            batch = Guid.NewGuid();
+            db.SshKeyRemovals.Add(Removal("deploy", "/home/deploy/.ssh/authorized_keys", SimulatedLinux.JanOldLaptop, "Jan, old laptop (jdoe)", SshKeyRemovalReason.Retirement,
+                SshKeyRemovalState.Pending, now.AddHours(-1)));
+            foreach (var (detail, at) in new[]
+            {
+                ($"1 removal asked for (retirement): Jan, old laptop (jdoe) ({SimulatedLinux.JanOldLaptop.Fingerprint}) from www's authorized_keys on {name}", now.AddDays(-3)),
+                ($"agent {name}: Jan, old laptop (jdoe) from www's authorized_keys: removed (1 line)", now.AddDays(-3).AddSeconds(2)),
+                ($"1 removal asked for (unregistered): 0 to send, 1 refused: {SimulatedLinux.OldRsa.Fingerprint} from root's authorized_keys on {name}", now.AddDays(-2)),
+                ($"1 removal asked for (retirement): Jan, old laptop (jdoe) ({SimulatedLinux.JanOldLaptop.Fingerprint}) from deploy's authorized_keys on {name}", now.AddHours(-1)),
+            })
+            {
+                db.AuthLog.Add(new AuthLogEntity
+                {
+                    Id = Guid.NewGuid(), CreatedAt = at, UserId = owners.Philipp.Id, Username = "philipp", EventType = Auth.AuthEvents.SshKeyRemoved, IpAddress = "10.0.4.17",
+                    Detail = detail,
+                });
+            }
+            count += 3;
+        }
+        if (pve.Sensor is not null)
+        {
+            Places(pve.Sensor, SimulatedLinux.SshKeys("pve-01", proxmox: true), row =>
+            {
+                if (row.Fingerprint == SimulatedLinux.PhilippLaptop.Fingerprint)
+                {
+                    (row.LastUsedAt, row.LastUsedFrom) = (now.AddHours(-3), "10.0.4.17");
+                }
+            });
+        }
+        return count;
+    }
+
+    // --- bash scripts (docs/linux-sensor-plan.md §8, §12) -----------------------------------------------------------
+
+    /// <summary>§8.2's example, as the library would have it.</summary>
+    public const string RotateLogsScript = """
+        #!/usr/bin/env bash
+        # pnmt:
+        #   synopsis: Rotate a site's logs and reload nginx
+        #   description: Compresses logs older than a day and deletes those older than keep_days.
+        #   parameters:
+        #     site:      { type: string, mandatory: true, set: [www, api, shop], help: "The site" }
+        #     keep_days: { type: int, default: 14, range: [1, 365] }
+        #     dry_run:   { type: bool }
+        #     api_token: { type: secret, help: "The CDN's token, to purge its cache" }
+        set -euo pipefail
+
+        echo "Rotating ${PNMT_SITE}, keeping ${PNMT_KEEP_DAYS} days"
+        [[ "${PNMT_DRY_RUN}" == true ]] && exit 0
+        find "/var/log/nginx/${PNMT_SITE}" -name '*.log' -mtime +1 -exec gzip -q {} +
+        find "/var/log/nginx/${PNMT_SITE}" -name '*.gz' -mtime +"${PNMT_KEEP_DAYS}" -delete
+        curl -fsS -X POST -H "Authorization: Bearer ${PNMT_API_TOKEN:-}" "https://cdn.example/purge/${PNMT_SITE}" >/dev/null || true
+        systemctl reload nginx
+        """;
+
+    public const string DiskReportScript = """
+        #!/usr/bin/env bash
+        # pnmt:
+        #   synopsis: Report the file systems' free space
+        #   parameters:
+        #     min_free: { type: int, default: 10, range: [1, 99], help: "Warn below this percentage" }
+        set -euo pipefail
+
+        df -P -x tmpfs -x devtmpfs | awk -v min="${PNMT_MIN_FREE}" 'NR > 1 { free = 100 - $5; print $6, free "% free" (free < min ? "  LOW" : "") }'
+        """;
+
+    /// <summary>Two bash scripts in the library, their headers read and checked on web-01, and a run of the disk report there.</summary>
+    private static int SeedBashScripts(PnmtdDbContext db, List<(HostEntity Host, SensorEntity Sensor)> servers, DateTime now)
+    {
+        var web = servers.FirstOrDefault(s => s.Host.Name == "web-01");
+        var count = 0;
+        AgentScriptEntity Script(string name, string description, string text, int daysAgo)
+        {
+            var script = new AgentScriptEntity
+            {
+                Id = Guid.NewGuid(), Language = ScriptLanguage.Bash, Name = name, Description = description, CreatedAt = now.AddDays(-daysAgo),
+                UpdatedAt = now.AddDays(-daysAgo), CurrentVersion = 1,
+            };
+            script.Versions.Add(new AgentScriptVersionEntity
+            {
+                Id = Guid.NewGuid(), ScriptId = script.Id, Number = 1, Text = text, Hash = ScriptHashes.Of(text), CreatedAt = script.CreatedAt, CreatedByName = "philipp",
+                ParseState = ScriptParseState.Parsed, Parsed = AgentJson.Serialize(BashScriptHeader.Parse(text)), ParsedAt = script.CreatedAt.AddSeconds(2),
+                ParsedOn = web.Host is null ? null : $"{web.Host.Name} / {web.Sensor.Name}",
+            });
+            db.AgentScripts.Add(script);
+            count++;
+            return script;
+        }
+        Script("rotate-logs", "Rotates a site's nginx logs and purges the CDN's cache.", RotateLogsScript, 14);
+        var disk = Script("disk-report", "The file systems' free space, with the low ones marked.", DiskReportScript, 10);
+        if (web.Sensor is not null)
+        {
+            var version = disk.Versions[0];
+            db.AgentScriptRuns.Add(new AgentScriptRunEntity
+            {
+                Id = Guid.NewGuid(), BatchId = Guid.NewGuid(), ScriptId = disk.Id, ScriptName = disk.Name, VersionNumber = 1, Hash = version.Hash, SensorId = web.Sensor.Id,
+                ServerName = $"{web.Host.Name} / {web.Sensor.Name}", RunAsName = "deploy", RunAsKind = RunAsKind.User, Account = "deploy",
+                Arguments = AgentJson.Serialize(new Dictionary<string, int> { ["min_free"] = 15 }), RequestedBy = "philipp", StartedAt = now.AddDays(-1),
+                FinishedAt = now.AddDays(-1).AddSeconds(1), State = ScriptRunState.Done, ExitCode = 0,
+                Output = "/ 39% free\n/boot/efi 98% free\n/srv/data 39% free", DurationMs = 412, TimeoutSeconds = 600,
+            });
+            count++;
+        }
+        return count;
     }
 }

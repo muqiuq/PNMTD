@@ -74,4 +74,13 @@ public sealed class AgentOptions
     public int KeepChangesDays { get; set; } = 180;
 
     public int KeepAgentLogDays { get; set; } = 365;
+
+    /// <summary>
+    /// How long a key removal waits for an offline server (docs/linux-sensor-plan.md §6.5, §9.5): sent when it connects, expired
+    /// after this many days.
+    /// </summary>
+    public int KeyRemovalPendingDays { get; set; } = 7;
+
+    /// <summary>The key removals' history (ssh_key_removals), which outlives its servers, is kept this many days.</summary>
+    public int KeepKeyRemovalsDays { get; set; } = 365;
 }
