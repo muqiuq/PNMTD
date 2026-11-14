@@ -87,7 +87,7 @@ grep -q '"mustChangePassword":true' "$dir/body" || fail "the first admin need no
 [[ "$(api GET /api/v1/hosts)" == "200" ]] || fail "hosts after the password change: $(cat "$dir/body")"
 
 # The user scripts against the running stack (§4.10).
-./add-user.sh ops --role viewer --display-name "Ops Team" >"$dir/add-user.out" || fail "add-user.sh: $(cat "$dir/add-user.out")"
+./add-user.sh ops --groups Viewers --display-name "Ops Team" >"$dir/add-user.out" || fail "add-user.sh: $(cat "$dir/add-user.out")"
 ops_password="$(awk '/^    [A-Za-z0-9]+$/ {print $1}' "$dir/add-user.out")"
 [[ -n "$ops_password" ]] || fail "add-user.sh printed no password: $(cat "$dir/add-user.out")"
 [[ "$(login ops "$ops_password")" == "200" ]] || fail "sign-in with add-user.sh's password: $(cat "$dir/body")"

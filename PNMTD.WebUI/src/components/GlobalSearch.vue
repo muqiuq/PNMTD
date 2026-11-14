@@ -39,7 +39,7 @@ async function complete(event: { query: string }) {
   }
   const found: Suggestion[] = []
   const lookup =
-    session.can('User') && q.length >= 8 && !q.includes(' ') && !q.startsWith('#')
+    session.can('Monitoring', 'Edit') && q.length >= 8 && !q.includes(' ') && !q.startsWith('#')
       ? api.sensors
           .lookup(q)
           .catch((e: unknown) => (e instanceof ApiError && e.status === 404 ? null : Promise.reject(e)))

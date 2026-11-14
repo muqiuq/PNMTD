@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { useQueryClient } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
 import Dialog from 'primevue/dialog'
 import Drawer from 'primevue/drawer'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
-import Select from 'primevue/select'
+import MultiSelect from 'primevue/multiselect'
 import Tag from 'primevue/tag'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { computed, ref, watch } from 'vue'
@@ -17,6 +17,7 @@ import FilterBar from '@/components/FilterBar.vue'
 import ListTable from '@/components/ListTable.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
+import RightsTable from '@/components/RightsTable.vue'
 import { useActions } from '@/composables/useActions'
 import { useServerTable } from '@/composables/useServerTable'
 import { formatAbsolute } from '@/format'
@@ -26,7 +27,8 @@ import type { RemovalSource } from './sshkeys/sshKeyFormat'
 import UserKeys from './sshkeys/UserKeys.vue'
 
 /**
- * Users (§4.9, §5.6): role, 2FA, last sign-in, locked or not, their SSH keys. A row opens its drawer: edit, reset
+ * Users (§4.9, §5.6): admin or their groups (docs/audit-redmine-zabbix-plan.md §5.5), 2FA, last sign-in, locked or
+ * not, their SSH keys. A user's drawer shows their effective rights and the group each comes from. A row opens its drawer: edit, reset
  * the password (a temporary one, shown once), reset 2FA, unlock, delete; their keys with where each is authorized, and
  * Remove all from every server… (docs/linux-sensor-plan.md §6.4). Deactivating a user who has keys asks whether to retire
  * them and remove them now. The server refuses to leave no active admin (409 last_admin) and says so.
@@ -34,7 +36,10 @@ import UserKeys from './sshkeys/UserKeys.vue'
 const session = useSession()
 const queryClient = useQueryClient()
 const { run, ask, notify, done } = useActions()
-const roles = ['Viewer', 'User', 'Admin'].map((r) => ({ label: r, value: r }))
+const groups = useQuery({ queryKey: keys.groups, queryFn: api.groups.list })
+const catalog = useQuery({ queryKey: keys.rights, queryFn: api.rights.catalog, staleTime: Infinity })
+const groupOptions = computed(() => (groups.data.value ?? []).map((g) => ({ value: g.id, label: g.name })))
+const access = (u: S['UserItem']) => (u.isAdmin ? 'Admin' : u.groups.map((g) => g.name).join(', ') || 'no groups')
 
 const table = useServerTable<S['UserItem']>({
   key: keys.users,
@@ -49,12 +54,35 @@ const locked = (u: S['UserItem']) => !!u.lockedUntil && Date.parse(u.lockedUntil
 // --- the drawer ---------------------------------------------------------------------------------
 const selected = ref<S['UserItem'] | null>(null)
 const open = computed({ get: () => selected.value !== null, set: (v) => !v && (selected.value = null) })
-const edit = ref({ displayName: '', role: 'User', isActive: true })
+const edit = ref<{ displayName: string; isAdmin: boolean; isActive: boolean; groupIds: string[] }>({
+  displayName: '',
+  isAdmin: false,
+  isActive: true,
+  groupIds: [],
+})
 const editErrors = ref<Record<string, string | undefined>>({})
 watch(selected, (u) => {
-  if (u) edit.value = { displayName: u.displayName, role: u.role, isActive: u.isActive }
+  if (u)
+    edit.value = {
+      displayName: u.displayName,
+      isAdmin: u.isAdmin,
+      isActive: u.isActive,
+      groupIds: u.groups.map((g) => g.id),
+    }
   editErrors.value = {}
 })
+// The selected user's effective rights, with where each comes from.
+const selectedAccess = useQuery({
+  queryKey: computed(() => [...keys.users, selected.value?.id, 'access']),
+  queryFn: () => api.users.access(selected.value!.id),
+  enabled: computed(() => !!selected.value && !selected.value.isAdmin),
+})
+const effective = computed(() =>
+  Object.fromEntries((selectedAccess.data.value?.rights ?? []).map((r) => [r.area, r.level])),
+)
+const sources = computed(() =>
+  Object.fromEntries((selectedAccess.data.value?.rights ?? []).map((r) => [r.area, r.from])),
+)
 const isSelf = computed(() => selected.value?.id === session.user?.id)
 
 async function refresh(id?: string) {
@@ -74,9 +102,19 @@ async function saveUser() {
   const deactivated = u.isActive && !edit.value.isActive
   try {
     await api.users.update(u.id, edit.value)
+    const groupsChanged =
+      [...edit.value.groupIds].sort().join() !==
+      u.groups
+        .map((g) => g.id)
+        .sort()
+        .join()
     notify.success(
       `${u.username} saved`,
-      edit.value.role !== u.role || edit.value.isActive !== u.isActive ? 'Their sessions end.' : undefined,
+      edit.value.isAdmin !== u.isAdmin || edit.value.isActive !== u.isActive
+        ? 'Their sessions end.'
+        : groupsChanged
+          ? 'Their rights change from their next request.'
+          : undefined,
     )
     await refresh(u.id)
     if (
@@ -91,7 +129,7 @@ async function saveUser() {
       offboard(u)
   } catch (e) {
     if (e instanceof ApiError && Object.keys(e.errors).length) {
-      editErrors.value = { displayName: e.field('displayName'), role: e.field('role') }
+      editErrors.value = { displayName: e.field('displayName'), groupIds: e.field('groupIds') }
     } else {
       notify.error(e, 'Not saved')
     }
@@ -153,7 +191,12 @@ async function remove() {
 
 // --- a new user ---------------------------------------------------------------------------------
 const creating = ref(false)
-const draft = ref({ username: '', displayName: '', role: 'User' })
+const draft = ref<{ username: string; displayName: string; isAdmin: boolean; groupIds: string[] }>({
+  username: '',
+  displayName: '',
+  isAdmin: false,
+  groupIds: [],
+})
 const createErrors = ref<Record<string, string | undefined>>({})
 async function create() {
   createErrors.value = { username: draft.value.username.trim() ? undefined : 'A username is needed.' }
@@ -162,10 +205,11 @@ async function create() {
     const result = await api.users.create({
       username: draft.value.username.trim(),
       displayName: draft.value.displayName.trim() || null,
-      role: draft.value.role,
+      isAdmin: draft.value.isAdmin,
+      groupIds: draft.value.groupIds,
     })
     creating.value = false
-    draft.value = { username: '', displayName: '', role: 'User' }
+    draft.value = { username: '', displayName: '', isAdmin: false, groupIds: [] }
     shown.value = {
       username: result.user.username,
       password: result.temporaryPassword.password,
@@ -174,7 +218,11 @@ async function create() {
     await queryClient.invalidateQueries({ queryKey: keys.users })
   } catch (e) {
     if (e instanceof ApiError && (Object.keys(e.errors).length || e.code === 'duplicate_key')) {
-      createErrors.value = { username: e.field('username') ?? e.message, displayName: e.field('displayName') }
+      createErrors.value = {
+        username: e.field('username') ?? (e.field('groupIds') ? undefined : e.message),
+        displayName: e.field('displayName'),
+        groupIds: e.field('groupIds'),
+      }
     } else {
       notify.error(e, 'Not created')
     }
@@ -205,10 +253,12 @@ async function create() {
           </span>
         </template>
       </Column>
-      <Column field="role" header="Role" sortable style="width: 7rem">
-        <template #body="{ data }"
-          ><Tag :value="data.role" :severity="data.role === 'Admin' ? 'info' : 'secondary'"
-        /></template>
+      <Column field="admin" header="Access" sortable style="width: 14rem">
+        <template #body="{ data }">
+          <Tag v-if="data.isAdmin" value="Admin" severity="info" />
+          <span v-else-if="data.groups.length" class="groups">{{ access(data) }}</span>
+          <span v-else class="muted">no groups</span>
+        </template>
       </Column>
       <Column header="2FA" style="width: 6rem">
         <template #body="{ data }">
@@ -236,7 +286,7 @@ async function create() {
       <template #mobile="{ item }">
         <div class="mobile-line">
           <span class="mono strong">{{ item.username }}</span>
-          <Tag :value="item.role" severity="secondary" />
+          <Tag :value="access(item)" :severity="item.isAdmin ? 'info' : 'secondary'" />
           <i v-if="item.isTotpEnabled" class="pi pi-shield on" aria-label="2FA on" />
           <RelativeTime :value="item.lastLoginAt" class="muted right" />
         </div>
@@ -276,12 +326,24 @@ async function create() {
             <InputText id="u-name" v-model="edit.displayName" :invalid="!!editErrors.displayName" />
             <small v-if="editErrors.displayName" class="field-error">{{ editErrors.displayName }}</small>
           </div>
+          <div class="switch-row">
+            <ToggleSwitch v-model="edit.isAdmin" input-id="u-admin" />
+            <label for="u-admin">Admin: every right, and users and groups</label>
+          </div>
           <div class="field">
-            <label for="u-role">Role</label>
-            <Select v-model="edit.role" input-id="u-role" :options="roles" option-label="label" option-value="value" />
-            <small class="field-hint"
-              >Viewer reads, User also changes hosts and sensors, Admin also manages users.</small
-            >
+            <label for="u-groups">Groups</label>
+            <MultiSelect
+              v-model="edit.groupIds"
+              input-id="u-groups"
+              :options="groupOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="No groups"
+              display="chip"
+              :invalid="!!editErrors.groupIds"
+            />
+            <small v-if="editErrors.groupIds" class="field-error">{{ editErrors.groupIds }}</small>
+            <small v-else class="field-hint">Their rights are the highest level any of their groups gives.</small>
           </div>
           <div class="switch-row">
             <ToggleSwitch v-model="edit.isActive" input-id="u-active" />
@@ -323,7 +385,7 @@ async function create() {
           <RouterLink
             :to="{ name: 'auth-log', query: { userId: selected.id, user: selected.username } }"
             class="log-link"
-            >Auth log ›</RouterLink
+            >Audit log ›</RouterLink
           >
           <Button
             v-if="!isSelf"
@@ -336,6 +398,17 @@ async function create() {
             @click="remove"
           />
         </div>
+        <section class="access">
+          <h3>Rights</h3>
+          <p v-if="selected.isAdmin" class="muted">Every right (admin).</p>
+          <RightsTable
+            v-else-if="catalog.data.value && selectedAccess.data.value"
+            :model-value="effective"
+            :catalog="catalog.data.value"
+            :sources="sources"
+            readonly
+          />
+        </section>
         <section class="ssh-keys">
           <h3>SSH keys</h3>
           <UserKeys :user-id="selected.id" @offboard="offboard(selected)" />
@@ -361,9 +434,26 @@ async function create() {
           <label for="nu-name">Name</label>
           <InputText id="nu-name" v-model="draft.displayName" :invalid="!!createErrors.displayName" />
         </div>
+        <div class="switch-row">
+          <ToggleSwitch v-model="draft.isAdmin" input-id="nu-admin" />
+          <label for="nu-admin">Admin: every right, and users and groups</label>
+        </div>
         <div class="field">
-          <label for="nu-role">Role</label>
-          <Select v-model="draft.role" input-id="nu-role" :options="roles" option-label="label" option-value="value" />
+          <label for="nu-groups">Groups</label>
+          <MultiSelect
+            v-model="draft.groupIds"
+            input-id="nu-groups"
+            :options="groupOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="No groups"
+            display="chip"
+            :invalid="!!createErrors.groupIds"
+          />
+          <small v-if="createErrors.groupIds" class="field-error">{{ createErrors.groupIds }}</small>
+          <small v-else-if="!draft.isAdmin && !draft.groupIds.length" class="field-hint"
+            >Without a group they can only manage their own account.</small
+          >
         </div>
         <small class="field-hint"
           >A temporary password is shown once, after creating; it must be changed at the first sign-in.</small
@@ -430,6 +520,19 @@ async function create() {
   flex-wrap: wrap;
   gap: var(--pnmt-space-2);
   align-items: center;
+  margin-top: var(--pnmt-space-4);
+  padding-top: var(--pnmt-space-4);
+  border-top: 1px solid var(--pnmt-border);
+}
+
+.groups {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.access {
   margin-top: var(--pnmt-space-4);
   padding-top: var(--pnmt-space-4);
   border-top: 1px solid var(--pnmt-border);

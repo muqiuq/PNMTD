@@ -31,7 +31,11 @@ const tabs = [
   <div class="page">
     <PageHeader title="Diagnostics" />
     <TabNav :items="tabs" :active="tab" label="Diagnostics" />
-    <AssignmentsList v-if="tab === 'assignments'" :can-write="session.can('User')" :is-admin="session.can('Admin')" />
+    <AssignmentsList
+      v-if="tab === 'assignments'"
+      :can-write="session.can('Commands', 'Run')"
+      :is-admin="session.can('Diagnostics', 'Manage')"
+    />
     <RunsTab v-else-if="tab === 'runs'" />
     <SetsTab v-else />
   </div>

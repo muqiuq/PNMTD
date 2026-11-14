@@ -11,32 +11,6 @@ using PNMTD.Api;
 
 namespace PNMTD.Auth;
 
-/// <summary>The three roles (docs/webui-migration-plan.md §4.10), stored as the role claim.</summary>
-public static class Roles
-{
-    public const string Admin = "Admin";
-    public const string User = "User";
-    public const string Viewer = "Viewer";
-
-    public static readonly string[] All = [Admin, User, Viewer];
-}
-
-/// <summary>
-/// Every v1 controller names one of these at class level, and write actions <see cref="CanWrite"/>
-/// (the endpoint audit test checks it).
-/// <list type="bullet">
-/// <item><see cref="CanRead"/>: Viewer, User, Admin.</item>
-/// <item><see cref="CanWrite"/>: User, Admin. Also what only they may see: tokens, sensor URLs, mail contents.</item>
-/// <item><see cref="Admin"/>: users, the auth log, key values, system health.</item>
-/// </list>
-/// </summary>
-public static class Policies
-{
-    public const string CanRead = "CanRead";
-    public const string CanWrite = "CanWrite";
-    public const string Admin = "Admin";
-}
-
 public static class AuthSetup
 {
     public const string CookieName = "pnmt.auth";
@@ -157,11 +131,13 @@ public static class AuthSetup
             };
         });
 
+        // Rights, not roles (docs/audit-redmine-zabbix-plan.md §5.4): [RequireRight(area, level)] and [RequireAdmin] become
+        // policies; the request's rights come from its session (SessionCache.ValidateAsync).
         services.AddAuthorizationBuilder()
-            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
-            .AddPolicy(Policies.CanRead, p => p.RequireAuthenticatedUser().RequireRole(Roles.All))
-            .AddPolicy(Policies.CanWrite, p => p.RequireAuthenticatedUser().RequireRole(Roles.Admin, Roles.User))
-            .AddPolicy(Policies.Admin, p => p.RequireAuthenticatedUser().RequireRole(Roles.Admin));
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
+        services.AddSingleton<IAuthorizationPolicyProvider, Rights.RightPolicyProvider>();
+        services.AddSingleton<IAuthorizationHandler, Rights.RightHandler>();
+        services.AddScoped<GroupService>();
 
         return services;
     }

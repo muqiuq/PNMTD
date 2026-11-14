@@ -23,6 +23,15 @@ public static class AuditEvents
     public const string RoleChanged = "RoleChanged";
     public const string UserDeleted = "UserDeleted";
 
+    // Groups and rights (docs/audit-redmine-zabbix-plan.md §5.6). RoleChanged stays for the entries from before 1.4.
+    public const string UserAdminChanged = "UserAdminChanged";
+    public const string UserGroupsChanged = "UserGroupsChanged";
+    public const string GroupCreated = "GroupCreated";
+    public const string GroupUpdated = "GroupUpdated";
+    public const string GroupRightsChanged = "GroupRightsChanged";
+    public const string GroupMembersChanged = "GroupMembersChanged";
+    public const string GroupDeleted = "GroupDeleted";
+
     // UDP nodes (docs/udp-iot-plan.md §4.3, §4.11): the security-relevant changes, never the key itself.
     public const string UdpKeyChanged = "UdpKeyChanged";
     public const string UdpCounterReset = "UdpCounterReset";
@@ -196,7 +205,10 @@ public static class AuditCatalog
         Add(AuditCategory.Auth, AuditTargets.User, AuditEvents.TotpEnabled, AuditEvents.TotpDisabled, AuditEvents.PasswordChanged,
             AuditEvents.SessionsRevoked);
         Add(AuditCategory.Users, AuditTargets.User, AuditEvents.TotpReset, AuditEvents.PasswordReset, AuditEvents.UserCreated,
-            AuditEvents.UserUpdated, AuditEvents.UserUnlocked, AuditEvents.RoleChanged, AuditEvents.UserDeleted);
+            AuditEvents.UserUpdated, AuditEvents.UserUnlocked, AuditEvents.RoleChanged, AuditEvents.UserDeleted, AuditEvents.UserAdminChanged,
+            AuditEvents.UserGroupsChanged);
+        Add(AuditCategory.Users, AuditTargets.Group, AuditEvents.GroupCreated, AuditEvents.GroupUpdated, AuditEvents.GroupRightsChanged,
+            AuditEvents.GroupMembersChanged, AuditEvents.GroupDeleted);
         Add(AuditCategory.Udp, AuditTargets.Sensor, AuditEvents.UdpKeyChanged, AuditEvents.UdpCounterReset, AuditEvents.UdpSessionReset);
         Add(AuditCategory.Udp, AuditTargets.Firmware, AuditEvents.UdpFirmwareUploaded, AuditEvents.UdpFirmwareDeleted);
         Add(AuditCategory.Udp, AuditTargets.OtaJob, AuditEvents.UdpUpdateStarted, AuditEvents.UdpUpdateCancelled);

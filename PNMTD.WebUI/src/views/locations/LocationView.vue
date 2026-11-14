@@ -49,7 +49,7 @@ const query = useQuery({
 const location = computed(() => query.data.value)
 const { query: fieldsQuery, active: fields } = useLocationFields()
 const users = computed(() => fieldsQuery.data.value?.users ?? null)
-const canWrite = computed(() => session.can('User'))
+const canWrite = computed(() => session.can('Locations', 'Edit'))
 
 const values = computed(() => new Map((location.value?.values ?? []).map((v) => [v.fieldId, v])))
 const valueOf = (fieldId: string) => values.value.get(fieldId) ?? null
@@ -139,7 +139,7 @@ const more = computed<MenuItem[]>(() => [
     : []),
   { label: 'Download as Markdown', icon: 'pi pi-download', command: download },
   { label: 'Print', icon: 'pi pi-print', command: () => window.print() },
-  ...(session.can('Admin')
+  ...(session.can('Locations', 'Manage')
     ? [{ separator: true }, { label: 'Delete…', icon: 'pi pi-trash', class: 'danger', command: remove }]
     : []),
 ])
@@ -239,7 +239,11 @@ async function fillIn() {
               v-if="!overviewFields.length"
               icon="pi pi-info-circle"
               title="Nothing on the overview yet."
-              :text="session.can('Admin') ? 'Admin → Location fields marks fields for the overview.' : undefined"
+              :text="
+                session.can('Locations', 'Manage')
+                  ? 'Admin → Location fields marks fields for the overview.'
+                  : undefined
+              "
             />
             <FieldCard
               v-for="field in overviewFields"

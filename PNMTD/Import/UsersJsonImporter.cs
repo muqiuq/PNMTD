@@ -81,7 +81,8 @@ public static class UsersJsonImporter
                 NormalizedUsername = UserAccounts.Normalize(username),
                 DisplayName = string.IsNullOrWhiteSpace(u.Name) ? username : u.Name.Trim(),
                 PasswordHash = hash,
-                Role = u.IsAdmin ? Roles.Admin : Roles.User,
+                // v0.12's admins are admins; everyone else was a User, now a member of Operators (docs/audit-redmine-zabbix-plan.md §5.3).
+                IsAdmin = u.IsAdmin,
                 IsActive = true,
                 MustChangePassword = defaultPassword,
                 SecurityStamp = UserAccounts.NewStamp(),

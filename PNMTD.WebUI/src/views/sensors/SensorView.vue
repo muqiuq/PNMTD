@@ -96,8 +96,18 @@ const query = useQuery({
   refetchInterval: 30_000,
 })
 const sensor = computed(() => query.data.value)
-const canWrite = computed(() => session.can('User'))
-const isAdmin = computed(() => session.can('Admin'))
+const canWrite = computed(() => session.can('Monitoring', 'Edit'))
+// What only the Manage of the sensor's own area may do (docs/audit-redmine-zabbix-plan.md §5.2): a router's MikroTik &
+// WireGuard, a node's UDP nodes, a server's Servers.
+const isAdmin = computed(() =>
+  isMikrotik.value
+    ? session.can('Mikrotik', 'Manage')
+    : isUdp.value
+      ? session.can('UdpNodes', 'Manage')
+      : isAgent.value
+        ? session.can('Servers', 'Manage')
+        : session.isAdmin,
+)
 const info = computed(() => types.info(sensor.value?.type))
 const heartbeat = computed(() => usesGracePeriod(sensor.value?.type))
 
@@ -141,7 +151,7 @@ const linuxTabs = computed(() => {
     { key: 'network', label: 'Network', icon: 'pi pi-sitemap', to: to('network') },
     { key: 'services', label: 'Services', icon: 'pi pi-cog', to: to('services') },
     { key: 'remote-access', label: 'Remote access', icon: 'pi pi-desktop', to: to('remote-access') },
-    // Logins, the journal and the SSH keys hold names, addresses and key comments: the User role (§11.2).
+    // Logins, the journal and the SSH keys hold names, addresses and key comments: Monitoring's Edit (§11.2).
     ...(canWrite.value
       ? [
           { key: 'access', label: 'Access', icon: 'pi pi-sign-in', to: to('access') },

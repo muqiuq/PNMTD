@@ -150,7 +150,6 @@ public sealed class MonitoringApiTests
     {
         var info = await (await viewer.GetAsync("/api/v1/system/info")).ReadAsync<SystemInfo>();
 
-        Assert.AreEqual(Roles.Viewer, info.Role);
         Assert.AreEqual(Clock.TimeZone.Id, info.TimeZone);
         Assert.AreEqual("Optional", info.TotpPolicy);
         Assert.IsFalse(string.IsNullOrEmpty(info.Version));

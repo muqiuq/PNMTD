@@ -2,17 +2,27 @@
 import Button from 'primevue/button'
 import InputOtp from 'primevue/inputotp'
 import Password from 'primevue/password'
+import { useQuery } from '@tanstack/vue-query'
 import { useConfirm } from 'primevue/useconfirm'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authApi } from '@/api/auth'
 import { ApiError } from '@/api/client'
+import { api, keys } from '@/api/resources'
 import PageHeader from '@/components/PageHeader.vue'
+import RightsTable from '@/components/RightsTable.vue'
 import { useNotify } from '@/composables/useNotify'
 import { useSession } from '@/stores/session'
 
-/** Two-factor authentication and sessions (§4.6, §4.7, §5.6). */
+/**
+ * Two-factor authentication and sessions (§4.6, §4.7, §5.6), and Your access: one's groups and effective rights
+ * (docs/audit-redmine-zabbix-plan.md §5.5).
+ */
 const session = useSession()
+const mine = useQuery({ queryKey: [...keys.rights, 'mine'], queryFn: api.rights.mine })
+const catalog = useQuery({ queryKey: keys.rights, queryFn: api.rights.catalog, staleTime: Infinity })
+const levels = computed(() => Object.fromEntries((mine.data.value?.rights ?? []).map((r) => [r.area, r.level])))
+const sources = computed(() => Object.fromEntries((mine.data.value?.rights ?? []).map((r) => [r.area, r.from])))
 const router = useRouter()
 const notify = useNotify()
 const confirm = useConfirm()
@@ -147,6 +157,28 @@ function revokeSessions() {
               @click="revokeSessions"
             />
           </div>
+        </div>
+      </section>
+      <section class="panel" aria-labelledby="access-title">
+        <div id="access-title" class="panel-header">Your access</div>
+        <div class="panel-body">
+          <p v-if="mine.data.value?.isAdmin" class="text">You are an admin: every right, and users and groups.</p>
+          <template v-else-if="mine.data.value">
+            <p class="text muted">
+              {{
+                mine.data.value.groups.length
+                  ? `Your groups: ${mine.data.value.groups.map((g) => g.name).join(', ')}.`
+                  : "You aren't in any group yet. Ask an admin."
+              }}
+            </p>
+            <RightsTable
+              v-if="catalog.data.value"
+              :model-value="levels"
+              :catalog="catalog.data.value"
+              :sources="sources"
+              readonly
+            />
+          </template>
         </div>
       </section>
     </div>

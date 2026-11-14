@@ -96,15 +96,16 @@ public sealed class AuditFilter(IDbContextFactory<PnmtdDbContext> dbs, ILogger<A
 }
 
 /// <summary>
-/// A signed-in user refused a write endpoint (403): a <c>Denied</c> entry with the endpoint's event (§3.5). Authorization
-/// runs before MVC's filters, so this decorates the middleware's result handler. A burst is capped per user: 60 entries a
+/// A signed-in user refused a write endpoint (403): a <c>Denied</c> entry with the endpoint's event and the missing right
+/// (§3.5). Authorization runs before MVC's filters, so this decorates the middleware's result handler, which then says
+/// which right is missing (<see cref="Auth.Rights.MissingRightResultHandler"/>). A burst is capped per user: 60 entries a
 /// minute, then one "and n more" per minute.
 /// </summary>
 public sealed class AuditDeniedHandler(IDbContextFactory<PnmtdDbContext> dbs, ILogger<AuditDeniedHandler> logger) : IAuthorizationMiddlewareResultHandler
 {
     public const int PerMinute = 60;
 
-    private readonly AuthorizationMiddlewareResultHandler inner = new();
+    private readonly Auth.Rights.MissingRightResultHandler inner = new();
     private readonly Dictionary<string, (long Minute, int Count)> recent = [];
     private readonly Lock gate = new();
 
@@ -141,7 +142,7 @@ public sealed class AuditDeniedHandler(IDbContextFactory<PnmtdDbContext> dbs, IL
             return;
         }
         var action = context.GetEndpoint()?.Metadata.GetMetadata<ControllerActionDescriptor>();
-        var missing = result.AuthorizationFailure?.FailedRequirements.Select(r => r.ToString()).FirstOrDefault();
+        var missing = Auth.Rights.MissingRightResultHandler.Missing(result)?.ToString();
         var detail = count == PerMinute + 1 ? "and further refusals this minute, not listed one by one" : missing is null ? null : $"missing: {missing}";
         try
         {

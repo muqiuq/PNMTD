@@ -40,7 +40,7 @@ internal sealed class UdpTestHarness : IDisposable
             all[key] = value;
         }
         App = new TestApp(settings: all);
-        Admin = App.Client(global::PNMTD.Auth.Roles.Admin);
+        Admin = App.Client(global::PNMTD.Tests.Roles.Admin);
         var state = App.Services.GetRequiredService<UdpListenerState>();
         var deadline = DateTime.UtcNow.AddSeconds(10);
         while (!state.Listening && DateTime.UtcNow < deadline)

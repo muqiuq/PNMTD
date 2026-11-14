@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# List the users: role, active or not, 2FA, lockout or a pending password change, last sign-in.
+# List the users: admin or their groups, active or not, 2FA, lockout or a pending password change, last sign-in.
 #
 #   ./list-users.sh
 set -euo pipefail

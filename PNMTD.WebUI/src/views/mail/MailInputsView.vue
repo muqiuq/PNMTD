@@ -34,7 +34,7 @@ const table = useServerTable<S['MailInputRule']>({
     <PageHeader title="Mail inputs">
       <template #actions>
         <Button
-          v-if="session.can('User')"
+          v-if="session.can('Monitoring', 'Edit')"
           label="New rule"
           icon="pi pi-plus"
           size="small"
@@ -56,7 +56,7 @@ const table = useServerTable<S['MailInputRule']>({
             :value="data.enabled"
             type="bool"
             :label="`Enabled ${data.name}`"
-            :readonly="!session.can('User')"
+            :readonly="!session.can('Monitoring', 'Edit')"
             :save="(v) => setEnabled(data, Boolean(v))"
           />
         </template>

@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Api.V1;
 
 [Route("api/v1/sensors")]
-[Authorize(Policy = Policies.CanRead)]
+[RequireRight(Area.Monitoring, Level.View)]
 public sealed class SensorsController(SensorService sensors, EventService events) : V1ControllerBase
 {
     [HttpGet]
@@ -19,7 +20,7 @@ public sealed class SensorsController(SensorService sensors, EventService events
     public async Task<ActionResult<SensorDetail>> Get(Guid id, CancellationToken ct) => await sensors.GetAsync(id, CanSeeSecrets, ct);
 
     [HttpPost]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<SensorDetail>> Create(SensorRequest request, CancellationToken ct)
     {
         var sensor = await sensors.CreateAsync(request, ct);
@@ -27,12 +28,12 @@ public sealed class SensorsController(SensorService sensors, EventService events
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<SensorDetail>> Update(Guid id, SensorRequest request, CancellationToken ct) =>
         await sensors.UpdateAsync(id, request, CanSeeSecrets, ct);
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         await sensors.DeleteAsync(id, ct);
@@ -40,12 +41,12 @@ public sealed class SensorsController(SensorService sensors, EventService events
     }
 
     [HttpPost("{id:guid}/tokens/rotate")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<SensorIntegration>> RotateTokens(Guid id, RotateTokensRequest request, CancellationToken ct) =>
         await sensors.RotateTokensAsync(id, request, ct);
 
     [HttpPost("lookup")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<TokenLookupResult>> Lookup(TokenLookupRequest request, CancellationToken ct) =>
         await sensors.LookupAsync(request, ct);
 
@@ -62,7 +63,7 @@ public sealed class SensorsController(SensorService sensors, EventService events
         Ok(await sensors.NotificationRulesAsync(id, CanSeeSecrets, ct));
 
     [HttpPut("{id:guid}/notification-rules/{ruleId:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<IActionResult> LinkRule(Guid id, Guid ruleId, CancellationToken ct)
     {
         await sensors.LinkRuleAsync(id, ruleId, ct);
@@ -70,7 +71,7 @@ public sealed class SensorsController(SensorService sensors, EventService events
     }
 
     [HttpDelete("{id:guid}/notification-rules/{ruleId:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<IActionResult> UnlinkRule(Guid id, Guid ruleId, CancellationToken ct)
     {
         await sensors.UnlinkRuleAsync(id, ruleId, ct);
@@ -78,6 +79,6 @@ public sealed class SensorsController(SensorService sensors, EventService events
     }
     /// <summary>Many sensors' importance at once (docs/ai-operations-plan.md §11.1): how many changed.</summary>
     [HttpPut("importance")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<int>> Importance(ImportanceRequest request, CancellationToken ct) => Ok(await sensors.SetImportanceAsync(request, ct));
 }

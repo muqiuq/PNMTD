@@ -404,7 +404,7 @@ public sealed class UdpNodeTests
     public async Task AViewerSeesNoKeys()
     {
         var (sensor, _) = await udp.CreateNodeAsync();
-        using var viewer = udp.App.Client(global::PNMTD.Auth.Roles.Viewer);
+        using var viewer = udp.App.Client(global::PNMTD.Tests.Roles.Viewer);
         var detail = await viewer.GetAsync($"/api/v1/sensors/{sensor.Id}").Result.ReadAsync<SensorDetail>();
         Assert.IsNull(detail.Integration);
         Assert.IsNotNull(detail.Udp);
@@ -621,7 +621,7 @@ public sealed class UdpNodeTests
         Assert.IsTrue(status.Listening);
         Assert.AreEqual(udp.Port, status.Port);
         Assert.IsGreaterThan(0, status.Accepted);
-        using var user = udp.App.Client(global::PNMTD.Auth.Roles.User);
+        using var user = udp.App.Client(global::PNMTD.Tests.Roles.User);
         Assert.AreEqual(System.Net.HttpStatusCode.Forbidden, (await user.GetAsync("/api/v1/udp/nodes")).StatusCode);
     }
 

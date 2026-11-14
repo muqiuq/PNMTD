@@ -71,7 +71,7 @@ const table = useServerTable<S['HostListItem']>({
       </template>
       <template #actions>
         <Button
-          v-if="session.can('User') && selected.length"
+          v-if="session.can('Monitoring', 'Edit') && selected.length"
           :label="`Set location… (${selected.length})`"
           icon="pi pi-map-marker"
           size="small"
@@ -80,7 +80,7 @@ const table = useServerTable<S['HostListItem']>({
           @click="settingLocation = true"
         />
         <Button
-          v-if="session.can('User')"
+          v-if="session.can('Monitoring', 'Edit')"
           label="New host"
           icon="pi pi-plus"
           size="small"
@@ -124,7 +124,7 @@ const table = useServerTable<S['HostListItem']>({
       what="hosts"
       :row-class="(h) => (h.enabled ? undefined : 'row-muted')"
     >
-      <Column v-if="session.can('User')" selection-mode="multiple" style="width: 2.5rem" />
+      <Column v-if="session.can('Monitoring', 'Edit')" selection-mode="multiple" style="width: 2.5rem" />
       <Column field="state" header="" sortable style="width: 2.5rem">
         <template #body="{ data }"><StatusBadge :status="data.state" icon-only /></template>
       </Column>

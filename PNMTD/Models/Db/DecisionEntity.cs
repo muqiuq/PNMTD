@@ -30,9 +30,8 @@ public class DecisionEntity
 
     public DecisionState State { get; set; }
 
-    /// <summary>User or Admin.</summary>
-    [MaxLength(16)]
-    public string RequiredRole { get; set; } = "User";
+    /// <summary>Only admins decide it; everyone else needs Decisions' Decide (docs/audit-redmine-zabbix-plan.md §5.3).</summary>
+    public bool AdminOnly { get; set; }
 
     [MaxLength(300)]
     public string Title { get; set; } = "";

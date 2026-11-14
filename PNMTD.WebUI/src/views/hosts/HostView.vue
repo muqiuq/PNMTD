@@ -46,7 +46,7 @@ const query = useQuery({
   refetchInterval: 30_000,
 })
 const host = computed(() => query.data.value)
-const canWrite = computed(() => session.can('User'))
+const canWrite = computed(() => session.can('Monitoring', 'Edit'))
 
 const rank: Record<string, number> = { Failing: 0, NoData: 1, Ok: 2, Ignored: 3, Disabled: 4 }
 const sensors = computed(() =>
@@ -77,7 +77,7 @@ async function remove() {
 // with this host preselected.
 const addingServer = ref(false)
 const more = computed(() => [
-  ...(session.can('Admin')
+  ...(session.can('Servers', 'Manage')
     ? [{ label: 'Add server…', icon: 'pi pi-desktop', command: () => (addingServer.value = true) }]
     : []),
   { label: 'Delete host…', icon: 'pi pi-trash', class: 'danger', command: remove },

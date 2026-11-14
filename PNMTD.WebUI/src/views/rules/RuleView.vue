@@ -33,7 +33,7 @@ const { run, ask, invalidate, done } = useActions()
 const id = computed(() => String(route.params.id))
 const query = useQuery({ queryKey: computed(() => keys.rule(id.value)), queryFn: () => api.rules.get(id.value) })
 const rule = computed(() => query.data.value)
-const canWrite = computed(() => session.can('User'))
+const canWrite = computed(() => session.can('Monitoring', 'Edit'))
 const typeOptions = computed(() => ruleTypes.list.value.map((t) => ({ label: humanize(t.type), value: t.type })))
 const description = computed(() => ruleTypes.list.value.find((t) => t.type === rule.value?.type)?.description)
 

@@ -137,7 +137,10 @@ public sealed class HostingTests
     {
         using var response = await signedIn.Client(Roles.Viewer).PostJsonAsync("/api/v1/hosts", new { name = "viewer-host" });
         Assert.AreEqual(HttpStatusCode.Forbidden, response.StatusCode);
-        Assert.AreEqual("forbidden_role", (await response.ProblemAsync()).GetProperty("code").GetString());
+        var problem = await response.ProblemAsync();
+        Assert.AreEqual(("missing_right", "Monitoring", "Edit"), (problem.GetProperty("code").GetString(), problem.GetProperty("area").GetString(),
+            problem.GetProperty("level").GetString()));
+        Assert.AreEqual("You need Monitoring: Edit.", problem.GetProperty("detail").GetString());
     }
 
     /// <summary>The sensor API keeps v0.12's headers; the API gets the security headers.</summary>

@@ -1,3 +1,4 @@
+using PNMTD.Auth.Rights;
 using System.Net;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -676,7 +677,8 @@ public sealed class MikrotikRouterService(
 
     // --- helpers ------------------------------------------------------------------------------------
 
-    private bool IsAdmin() => accessor.HttpContext is not { } http || http.User.IsInRole(Roles.Admin);
+    /// <summary>What only MikroTik & WireGuard's Manage may do (docs/audit-redmine-zabbix-plan.md §5.2); the CLI may.</summary>
+    private bool IsAdmin() => accessor.HttpContext is not { } http || http.User.Has(Area.Mikrotik, Level.Manage);
 
     internal static bool IsHost(string text) =>
         !text.Any(char.IsWhiteSpace) && (IPAddress.TryParse(text.Trim('[', ']'), out _) || Uri.CheckHostName(text) == UriHostNameType.Dns);

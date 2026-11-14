@@ -143,20 +143,21 @@ public sealed class AuthService(PnmtdDbContext db, UserAccounts accounts, TotpSe
     /// <summary>The flags the SPA acts on after sign-in and on every reload (§4.5).</summary>
     public static (bool MustChangePassword, bool TotpSetupRequired, bool TotpSetupSuggested) Flags(UserEntity user, TotpPolicy policy)
     {
-        var required = !user.IsTotpEnabled && TotpRequired(policy, user.Role);
+        var required = !user.IsTotpEnabled && TotpRequired(policy, user.IsAdmin);
         return (user.MustChangePassword, required, !user.IsTotpEnabled && !required);
     }
 
-    public static bool TotpRequired(TotpPolicy policy, string role) =>
-        policy == TotpPolicy.Required || (policy == TotpPolicy.RequiredForAdmins && role == Roles.Admin);
+    /// <summary>RequiredForAdmins means the admin flag; groups don't change it (docs/audit-redmine-zabbix-plan.md §5.2).</summary>
+    public static bool TotpRequired(TotpPolicy policy, bool isAdmin) =>
+        policy == TotpPolicy.Required || (policy == TotpPolicy.RequiredForAdmins && isAdmin);
 
     public static TotpPolicy Policy(IConfiguration configuration) =>
         Enum.TryParse<TotpPolicy>(configuration["Auth:TotpPolicy"], ignoreCase: true, out var policy) ? policy : TotpPolicy.Optional;
 }
 
 /// <summary>
-/// What a session is checked against on every request (§4.7): the user's stamp, role and active
-/// state, cached for up to a minute. The 2FA state decides whether a required setup is still pending. This server forgets an entry the moment it changes the user,
+/// What a session is checked against on every request (§4.7): the user's stamp and active state, cached for up to a
+/// minute, and what it may do: the admin flag and the levels of its groups (docs/audit-redmine-zabbix-plan.md §5.4). The 2FA state decides whether a required setup is still pending. This server forgets an entry the moment it changes the user,
 /// so its own changes end sessions at once; a `pnmtd users …` command (another process) takes up to
 /// the minute.
 /// </summary>
@@ -164,7 +165,22 @@ public sealed class SessionCache(IMemoryCache cache)
 {
     public static readonly TimeSpan CacheFor = TimeSpan.FromMinutes(1);
 
-    public sealed record Entry(string Stamp, string Role, bool IsActive, bool IsTotpEnabled);
+    public sealed record Entry(string Stamp, bool IsActive, bool IsTotpEnabled, Rights.UserRights Rights);
+
+    /// <summary>The user's entry from the database: the flag, and the highest level their groups give per area.</summary>
+    public static async Task<Entry?> LoadAsync(PnmtdDbContext db, Guid id)
+    {
+        var user = await db.Users.AsNoTracking().Where(u => u.Id == id)
+            .Select(u => new { u.SecurityStamp, u.IsActive, u.IsTotpEnabled, u.IsAdmin }).SingleOrDefaultAsync();
+        if (user is null)
+        {
+            return null;
+        }
+        var levels = await db.UserGroups.AsNoTracking().Where(m => m.UserId == id)
+            .SelectMany(m => m.Group.Rights).Select(r => new { r.Area, r.Level }).ToListAsync();
+        return new Entry(user.SecurityStamp, user.IsActive, user.IsTotpEnabled,
+            new Rights.UserRights(user.IsAdmin, Rights.UserRights.Combine(levels.Select(l => (l.Area, l.Level)))));
+    }
 
     public async Task<Entry?> GetAsync(Guid userId, Func<Task<Entry?>> load) =>
         await cache.GetOrCreateAsync(Key(userId), e =>
@@ -191,25 +207,23 @@ public sealed class SessionCache(IMemoryCache cache)
         if (userId is { } id && stamp is not null)
         {
             var services = context.HttpContext.RequestServices;
-            entry = await services.GetRequiredService<SessionCache>().GetAsync(id, () =>
-                services.GetRequiredService<PnmtdDbContext>().Users.AsNoTracking()
-                    .Where(u => u.Id == id)
-                    .Select(u => new Entry(u.SecurityStamp, u.Role, u.IsActive, u.IsTotpEnabled))
-                    .SingleOrDefaultAsync());
+            entry = await services.GetRequiredService<SessionCache>().GetAsync(id, () => LoadAsync(services.GetRequiredService<PnmtdDbContext>(), id));
         }
-        if (entry is null || !entry.IsActive || entry.Stamp != stamp || entry.Role != principal!.FindFirstValue(ClaimTypes.Role))
+        if (entry is null || !entry.IsActive || entry.Stamp != stamp)
         {
             context.RejectPrincipal();
             await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return;
         }
         var identity = (ClaimsIdentity)principal!.Identity!;
-        foreach (var claim in identity.FindAll(SessionClaims.TotpSetupPending).ToList())
+        foreach (var claim in identity.Claims.Where(c => c.Type is SessionClaims.TotpSetupPending or SessionClaims.Admin or SessionClaims.Right
+            or ClaimTypes.Role).ToList())
         {
             identity.RemoveClaim(claim);
         }
+        identity.AddClaims(entry.Rights.Claims());
         var policy = AuthService.Policy(context.HttpContext.RequestServices.GetRequiredService<IConfiguration>());
-        if (!entry.IsTotpEnabled && AuthService.TotpRequired(policy, entry.Role))
+        if (!entry.IsTotpEnabled && AuthService.TotpRequired(policy, entry.Rights.IsAdmin))
         {
             identity.AddClaim(new Claim(SessionClaims.TotpSetupPending, "true"));
         }

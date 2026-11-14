@@ -17,7 +17,7 @@ public sealed record DecisionDraft(
     Guid? Subject = null,
     string? SourceType = null,
     Guid? SourceId = null,
-    string RequiredRole = "User",
+    bool AdminOnly = false,
     bool Disputed = false,
     int Priority = 0,
     Guid? AiWorkId = null);
@@ -62,7 +62,7 @@ public sealed class DecisionBook(IDbContextFactory<PnmtdDbContext> dbs, IConfigu
         var now = Clock.UtcNow;
         var decision = new DecisionEntity
         {
-            Id = Guid.NewGuid(), Kind = draft.Kind, State = DecisionState.Open, RequiredRole = draft.RequiredRole,
+            Id = Guid.NewGuid(), Kind = draft.Kind, State = DecisionState.Open, AdminOnly = draft.AdminOnly,
             Title = Cut(draft.Title, 300), Summary = Cut(draft.Summary, 2000), Payload = JsonSerializer.Serialize(draft.Payload, Json),
             SourceType = draft.SourceType, SourceId = draft.SourceId, DedupeKey = draft.DedupeKey, Subjects = draft.Subject is { } s ? [s] : [],
             Disputed = draft.Disputed, Priority = draft.Priority, CreatedAt = now, LastSeenAt = now, ExpiresAt = now.AddDays(ExpireDays),

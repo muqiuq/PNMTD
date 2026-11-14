@@ -1,3 +1,4 @@
+using PNMTD.Auth.Rights;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -168,7 +169,8 @@ public sealed partial class MikrotikBackupService(PnmtdDbContext db, RouterPollS
         }
     }
 
-    private bool IsAdmin() => accessor.HttpContext is not { } http || http.User.IsInRole(Roles.Admin);
+    /// <summary>What only MikroTik & WireGuard's Manage may do (docs/audit-redmine-zabbix-plan.md §5.2); the CLI may.</summary>
+    private bool IsAdmin() => accessor.HttpContext is not { } http || http.User.Has(Area.Mikrotik, Level.Manage);
 
     /// <summary>The columns of the list, without the content.</summary>
     private static readonly System.Linq.Expressions.Expression<Func<MikrotikBackupEntity, MikrotikBackupEntity>> Projection = b => new MikrotikBackupEntity

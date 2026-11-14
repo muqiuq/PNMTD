@@ -33,7 +33,7 @@ const log = useServerTable<S['DnsLogEntry']>({ key: [...keys.dns, 'log'], fetch:
     <PageHeader title="DNS zones">
       <template #actions>
         <Button
-          v-if="session.can('User')"
+          v-if="session.can('Monitoring', 'Edit')"
           label="New zone"
           icon="pi pi-plus"
           size="small"

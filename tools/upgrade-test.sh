@@ -175,7 +175,7 @@ status="$(curl -s -o "$dir/login.json" -w '%{http_code}' -H 'Content-Type: appli
   -d '{"username":"ops","password":"legacy-password-1"}' "$base/api/v1/auth/login")"
 [[ "$status" == "200" ]] || fail "the WebApp user cannot sign in with the old password: $status $(cat "$dir/login.json")"
 grep -q '"mustChangePassword":false' "$dir/login.json" || fail "the old password counts as temporary: $(cat "$dir/login.json")"
-grep -q '"role":"Admin"' "$dir/login.json" || fail "IsAdmin did not become Admin: $(cat "$dir/login.json")"
+grep -q '"isAdmin":true' "$dir/login.json" || fail "IsAdmin did not become the admin flag: $(cat "$dir/login.json")"
 
 [[ "$(env_value Identity)" == "Legacy Lab" ]] || fail "Identity was not copied: $(grep Identity .env)"
 [[ "$(env_value PublicBaseUrl)" == "http://localhost:${PORT}" ]] || fail "externalApiurl did not become PublicBaseUrl"

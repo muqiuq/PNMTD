@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Data;
 using PNMTD.Files;
 using PNMTD.Knowledge;
@@ -20,7 +21,7 @@ namespace PNMTD.Api.V1;
 /// files folder on the Docker host. Uploading needs CanWrite, reading CanRead; the overview and deleting are the Admin's.
 /// </summary>
 [Route("api/v1/files")]
-[Authorize(Policy = Policies.CanRead)]
+[Authorize]
 public sealed class FilesController(FileStore store, FileAdmin admin, UploadGuard uploads, IDbContextFactory<PnmtdDbContext> dbs,
     IOptionsMonitor<KnowledgeBaseOptions> options) : V1ControllerBase
 {
@@ -31,7 +32,7 @@ public sealed class FilesController(FileStore store, FileAdmin admin, UploadGuar
     /// <c>too_many_uploads</c>. No Consumes constraint: it would decide at routing, before authorization.
     /// </summary>
     [HttpPost]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireAnyRight(Area.KnowledgeBase, Level.Edit, Area.Locations, Level.Edit)]
     [FileUploadLimit]
     [ProducesResponseType<FileItem>(StatusCodes.Status201Created)]
     public async Task<ActionResult<FileItem>> Upload([FromQuery] string? kind, [FromQuery] string? name, CancellationToken ct)
@@ -60,6 +61,7 @@ public sealed class FilesController(FileStore store, FileAdmin admin, UploadGuar
     /// The name is only there to be read; the id finds the file. 404 once it left the disk (<i>File removed</i>).
     /// </summary>
     [HttpGet("{id:guid}/{name}")]
+    [RequireAnyRight(Area.KnowledgeBase, Level.View, Area.Locations, Level.View)]
     [ProducesResponseType<FileContentResult>(StatusCodes.Status200OK, "application/octet-stream")]
     public async Task<IActionResult> Download(Guid id, string name, CancellationToken ct)
     {
@@ -84,13 +86,13 @@ public sealed class FilesController(FileStore store, FileAdmin admin, UploadGuar
 
     /// <summary>The Admin's overview (§10.6): totals, the folder, the files by size, unused ones, unknown ones on disk.</summary>
     [HttpGet]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.KnowledgeBase, Level.Manage)]
     public async Task<ActionResult<FilesOverview>> Overview([FromQuery] FileQuery query, CancellationToken ct) =>
         await admin.OverviewAsync(query, ct);
 
     /// <summary>Deletes a file at once, from the disk too (an image that shows what it shouldn't): pages show <i>File removed</i>.</summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.KnowledgeBase, Level.Manage)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         if (!await store.DeleteNowAsync(id, Actor(), ct))

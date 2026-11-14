@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Options;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Lib.Udp;
 using PNMTD.Services.Domain;
 using PNMTD.Udp;
@@ -13,22 +14,22 @@ namespace PNMTD.Api.V1;
 
 /// <summary>A UDP node's own endpoints (docs/udp-iot-plan.md §5): keys, resets, last packets, commands, updates.</summary>
 [Route("api/v1/sensors/{id:guid}/udp")]
-[Authorize(Policy = Policies.CanRead)]
+[Authorize]
 public sealed class SensorUdpController(UdpNodeService nodes, UdpCommandService commands, UdpOtaService ota) : V1ControllerBase
 {
     /// <summary>Overwrites the key or the token manually: sessions and the counter are reset.</summary>
     [HttpPut("key")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<UdpSecretsChanged>> SetKey(Guid id, UdpKeyRequest request, CancellationToken ct) =>
         await nodes.SetSecretsAsync(id, request, ct);
 
     [HttpPost("regenerate-key")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<UdpSecretsChanged>> Regenerate(Guid id, UdpRegenerateRequest request, CancellationToken ct) =>
         await nodes.RegenerateAsync(id, request, ct);
 
     [HttpPost("reset-counter")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<IActionResult> ResetCounter(Guid id, CancellationToken ct)
     {
         await nodes.ResetCounterAsync(id, ct);
@@ -36,7 +37,7 @@ public sealed class SensorUdpController(UdpNodeService nodes, UdpCommandService 
     }
 
     [HttpPost("reset-session")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<IActionResult> ResetSession(Guid id, CancellationToken ct)
     {
         await nodes.ResetSessionAsync(id, ct);
@@ -45,15 +46,18 @@ public sealed class SensorUdpController(UdpNodeService nodes, UdpCommandService 
 
     /// <summary>The last packet of each type, with its bytes and fields.</summary>
     [HttpGet("last-packets")]
+    [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<IReadOnlyList<UdpPacketView>>> LastPackets(Guid id, CancellationToken ct) =>
         Ok(await nodes.LastPacketsAsync(id, ct));
 
     /// <summary>The node's recent rejections, from memory (since the restart).</summary>
     [HttpGet("rejections")]
+    [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<IReadOnlyList<UdpRejectionView>>> Rejections(Guid id, CancellationToken ct) =>
         Ok(await nodes.RejectionsAsync(id, ct));
 
     [HttpGet("commands")]
+    [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<Paged<UdpCommandItem>>> Commands(Guid id, [FromQuery] UdpCommandQuery query, CancellationToken ct)
     {
         await nodes.EnsureNodeAsync(id, ct);
@@ -62,16 +66,17 @@ public sealed class SensorUdpController(UdpNodeService nodes, UdpCommandService 
 
     /// <summary>A command's communication, from the permanent command log, oldest first.</summary>
     [HttpGet("commands/{commandId:guid}/log")]
+    [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<IReadOnlyList<UdpLogItem>>> CommandLog(Guid id, Guid commandId, CancellationToken ct) =>
         Ok(await commands.CommandLogAsync(id, commandId, ct));
 
     [HttpPost("commands")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Commands, Level.Run)]
     public async Task<ActionResult<UdpCommandCreated>> Queue(Guid id, UdpCommandRequest request, CancellationToken ct) =>
         await commands.CreateAsync(id, request, ct);
 
     [HttpDelete("commands/{commandId:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Commands, Level.Run)]
     public async Task<IActionResult> Cancel(Guid id, Guid commandId, CancellationToken ct)
     {
         await commands.CancelAsync(id, commandId, ct);
@@ -80,6 +85,7 @@ public sealed class SensorUdpController(UdpNodeService nodes, UdpCommandService 
 
     /// <summary>The node's firmware updates, each with its command-log rows.</summary>
     [HttpGet("ota-jobs")]
+    [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<IReadOnlyList<UdpOtaJobDetail>>> Updates(Guid id, CancellationToken ct)
     {
         await nodes.EnsureNodeAsync(id, ct);
@@ -89,7 +95,7 @@ public sealed class SensorUdpController(UdpNodeService nodes, UdpCommandService 
 
 /// <summary>The admin page's endpoints (docs/udp-iot-plan.md §5, §6.6): the listener, every node, the log, firmware, updates.</summary>
 [Route("api/v1/udp")]
-[Authorize(Policy = Policies.Admin)]
+[RequireRight(Area.UdpNodes, Level.Manage)]
 public sealed class UdpController(UdpNodeService nodes, UdpCommandService commands, UdpOtaService ota) : V1ControllerBase
 {
     [HttpGet("status")]
@@ -157,7 +163,7 @@ public sealed class UdpController(UdpNodeService nodes, UdpCommandService comman
 
 /// <summary>The Protocol subpage (docs/udp-iot-plan.md §6.5): every role may read it; the node's real key only for User and Admin.</summary>
 [Route("api/v1/udp/protocol")]
-[Authorize(Policy = Policies.CanRead)]
+[RequireRight(Area.Monitoring, Level.View)]
 public sealed class UdpProtocolController(UdpProtocolDocs docs) : V1ControllerBase
 {
     [HttpGet("examples")]

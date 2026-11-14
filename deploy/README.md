@@ -60,8 +60,8 @@ Local changes to the stack go into `docker-compose.override.yml`. Git ignores th
 | `./backup.sh --no-files` | …without the uploaded files, for a host that backs up their folder itself |
 | `./restore.sh <folder>` | Restores a backup, here or into a fresh deployment |
 | `./restore.sh <folder> --force` | …and replaces what the files folder holds |
-| `./add-user.sh <name> [--role viewer\|user\|admin]` | Adds a user, and shows a temporary password once |
-| `./list-users.sh` | Lists the users: role, state, 2FA, lockout, last sign-in |
+| `./add-user.sh <name> [--groups <group,group>] [--admin]` | Adds a user, and shows a temporary password once. The rights come from the groups (*Operators* and *Viewers* to start with), or every right with `--admin` |
+| `./list-users.sh` | Lists the users: admin or their groups, state, 2FA, lockout, last sign-in |
 | `./reset-password.sh <name>` | Gives a user a new temporary password, ends their sessions and lifts a lockout |
 | `./reset-password.sh <name> --unlock-only` | Only lifts a lockout |
 | `./reset-totp.sh <name>` | Turns a user's 2FA off (a lost authenticator), ends their sessions and lifts a lockout |

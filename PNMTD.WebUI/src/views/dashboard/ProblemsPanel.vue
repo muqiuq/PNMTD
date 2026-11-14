@@ -117,7 +117,7 @@ async function ignore(host: S['ProblemHost'], sensor: S['ProblemSensor']) {
                 :height="12"
               />
               <Button
-                v-if="session.can('User')"
+                v-if="session.can('Monitoring', 'Edit')"
                 v-tooltip.left="'Ignore'"
                 icon="pi pi-eye-slash"
                 text

@@ -5,7 +5,6 @@ export type SessionFlags = Schemas['SessionFlags']
 export type LoginResponse = Schemas['LoginResponse']
 export type TotpSetup = Schemas['TotpSetup']
 export type SystemInfo = Schemas['SystemInfo']
-export type Role = 'Admin' | 'User' | 'Viewer'
 
 /** Sign-in, the session and the own account (docs/webui-migration-plan.md §4.5, §4.9). */
 export const authApi = {

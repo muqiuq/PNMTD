@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 
 namespace PNMTD.Tests.Hosting;
 
@@ -46,322 +47,333 @@ public sealed class EndpointAuditTests
     ];
 
     /// <summary>
-    /// Who may call each v1 endpoint: the lowest role (Viewer, User, Admin). Writes need User;
-    /// mail contents need User; users, the audit log, key values and task health need Admin. One's own
-    /// session and account are every role's. (The anonymous login steps are in the allowlist above.)
+    /// What each v1 endpoint needs (docs/audit-redmine-zabbix-plan.md §5.2, Appendix A): a level in an area ("Monitoring:Edit"),
+    /// either of two ("KnowledgeBase:Edit|Locations:Edit"), the admin flag ("admin"), or only a session ("signed-in": one's
+    /// own account). And who could call it before 1.4, the lowest role: Admin, User and Viewer became the admin flag and the
+    /// groups Operators and Viewers, which must still answer the same (§5.3). (The anonymous login steps are in the allowlist.)
     /// </summary>
-    private static readonly Dictionary<string, string> Matrix = new()
+    private static readonly Dictionary<string, (string Right, string Before)> Matrix = new()
     {
-        ["GET /api/v1/dashboard"] = Roles.Viewer,
-        ["GET /api/v1/search"] = Roles.Viewer,
-        ["GET /api/v1/system/uplink"] = Roles.Viewer,
-        ["GET /api/v1/system/tasks"] = Roles.Admin,
-        ["GET /api/v1/system/status-codes"] = Roles.Viewer,
-        ["GET /api/v1/system/sensor-types"] = Roles.Viewer,
-        ["GET /api/v1/system/notification-rule-types"] = Roles.Viewer,
-        ["GET /api/v1/hosts"] = Roles.Viewer,
-        ["GET /api/v1/hosts/{id:guid}"] = Roles.Viewer,
-        ["POST /api/v1/hosts"] = Roles.User,
-        ["PUT /api/v1/hosts/{id:guid}"] = Roles.User,
-        ["DELETE /api/v1/hosts/{id:guid}"] = Roles.User,
-        ["GET /api/v1/sensors"] = Roles.Viewer,
-        ["GET /api/v1/sensors/{id:guid}"] = Roles.Viewer,
-        ["POST /api/v1/sensors"] = Roles.User,
-        ["PUT /api/v1/sensors/{id:guid}"] = Roles.User,
-        ["DELETE /api/v1/sensors/{id:guid}"] = Roles.User,
-        ["POST /api/v1/sensors/{id:guid}/tokens/rotate"] = Roles.User,
-        ["POST /api/v1/sensors/lookup"] = Roles.User,
-        ["GET /api/v1/sensors/{id:guid}/events"] = Roles.Viewer,
-        ["GET /api/v1/sensors/{id:guid}/notification-rules"] = Roles.Viewer,
-        ["PUT /api/v1/sensors/{id:guid}/notification-rules/{ruleId:guid}"] = Roles.User,
-        ["DELETE /api/v1/sensors/{id:guid}/notification-rules/{ruleId:guid}"] = Roles.User,
-        ["GET /api/v1/events"] = Roles.Viewer,
-        ["GET /api/v1/events/{id:guid}"] = Roles.Viewer,
-        ["GET /api/v1/events/state-changes"] = Roles.Viewer,
-        ["GET /api/v1/notification-rules"] = Roles.Viewer,
-        ["GET /api/v1/notification-rules/{id:guid}"] = Roles.Viewer,
-        ["POST /api/v1/notification-rules"] = Roles.User,
-        ["PUT /api/v1/notification-rules/{id:guid}"] = Roles.User,
-        ["DELETE /api/v1/notification-rules/{id:guid}"] = Roles.User,
-        ["GET /api/v1/notification-rules/{id:guid}/sensors"] = Roles.Viewer,
-        ["PUT /api/v1/notification-rules/{id:guid}/sensors/{sensorId:guid}"] = Roles.User,
-        ["DELETE /api/v1/notification-rules/{id:guid}/sensors/{sensorId:guid}"] = Roles.User,
-        ["GET /api/v1/dns-zones"] = Roles.Viewer,
-        ["GET /api/v1/dns-zones/{id:guid}"] = Roles.Viewer,
-        ["POST /api/v1/dns-zones"] = Roles.User,
-        ["PUT /api/v1/dns-zones/{id:guid}"] = Roles.User,
-        ["DELETE /api/v1/dns-zones/{id:guid}"] = Roles.User,
-        ["POST /api/v1/dns-zones/{id:guid}/force-update"] = Roles.User,
-        ["PUT /api/v1/dns-zones/{id:guid}/records/{recordId:guid}"] = Roles.User,
-        ["GET /api/v1/dns-zones/{id:guid}/log"] = Roles.Viewer,
-        ["GET /api/v1/dns-zones/log"] = Roles.Viewer,
-        ["GET /api/v1/mail-input-rules"] = Roles.Viewer,
-        ["GET /api/v1/mail-input-rules/{id:guid}"] = Roles.Viewer,
-        ["POST /api/v1/mail-input-rules"] = Roles.User,
-        ["PUT /api/v1/mail-input-rules/{id:guid}"] = Roles.User,
-        ["DELETE /api/v1/mail-input-rules/{id:guid}"] = Roles.User,
-        ["GET /api/v1/mail-log"] = Roles.User,
-        ["GET /api/v1/mail-log/{id:guid}"] = Roles.User,
-        ["GET /api/v1/auth/me"] = Roles.Viewer,
-        ["POST /api/v1/auth/logout"] = Roles.Viewer,
-        ["POST /api/v1/account/password"] = Roles.Viewer,
-        ["POST /api/v1/account/sessions/revoke"] = Roles.Viewer,
-        ["POST /api/v1/account/totp/setup"] = Roles.Viewer,
-        ["POST /api/v1/account/totp/confirm"] = Roles.Viewer,
-        ["POST /api/v1/account/totp/disable"] = Roles.Viewer,
-        ["GET /api/v1/users"] = Roles.Admin,
-        ["GET /api/v1/users/{id:guid}"] = Roles.Admin,
-        ["POST /api/v1/users"] = Roles.Admin,
-        ["PUT /api/v1/users/{id:guid}"] = Roles.Admin,
-        ["DELETE /api/v1/users/{id:guid}"] = Roles.Admin,
-        ["POST /api/v1/users/{id:guid}/reset-password"] = Roles.Admin,
-        ["POST /api/v1/users/{id:guid}/reset-totp"] = Roles.Admin,
-        ["POST /api/v1/users/{id:guid}/unlock"] = Roles.Admin,
-        ["GET /api/v1/audit-log"] = Roles.Admin,
-        ["GET /api/v1/audit-log/types"] = Roles.Admin,
-        ["GET /api/v1/key-values"] = Roles.Admin,
-        ["GET /api/v1/key-values/{id:guid}"] = Roles.Admin,
-        ["POST /api/v1/key-values"] = Roles.Admin,
-        ["PUT /api/v1/key-values/{id:guid}"] = Roles.Admin,
-        ["DELETE /api/v1/key-values/{id:guid}"] = Roles.Admin,
+        ["GET /api/v1/dashboard"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/search"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/system/uplink"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/system/tasks"] = ("System:Manage", Roles.Admin),
+        ["GET /api/v1/system/status-codes"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/system/sensor-types"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/system/notification-rule-types"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/hosts"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/hosts/{id:guid}"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/hosts"] = ("Monitoring:Edit", Roles.User),
+        ["PUT /api/v1/hosts/{id:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["DELETE /api/v1/hosts/{id:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/sensors"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/sensors/{id:guid}"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/sensors"] = ("Monitoring:Edit", Roles.User),
+        ["PUT /api/v1/sensors/{id:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["DELETE /api/v1/sensors/{id:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["POST /api/v1/sensors/{id:guid}/tokens/rotate"] = ("Monitoring:Edit", Roles.User),
+        ["POST /api/v1/sensors/lookup"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/sensors/{id:guid}/events"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/sensors/{id:guid}/notification-rules"] = ("Monitoring:View", Roles.Viewer),
+        ["PUT /api/v1/sensors/{id:guid}/notification-rules/{ruleId:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["DELETE /api/v1/sensors/{id:guid}/notification-rules/{ruleId:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/events"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/events/{id:guid}"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/events/state-changes"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/notification-rules"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/notification-rules/{id:guid}"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/notification-rules"] = ("Monitoring:Edit", Roles.User),
+        ["PUT /api/v1/notification-rules/{id:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["DELETE /api/v1/notification-rules/{id:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/notification-rules/{id:guid}/sensors"] = ("Monitoring:View", Roles.Viewer),
+        ["PUT /api/v1/notification-rules/{id:guid}/sensors/{sensorId:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["DELETE /api/v1/notification-rules/{id:guid}/sensors/{sensorId:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/dns-zones"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/dns-zones/{id:guid}"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/dns-zones"] = ("Monitoring:Edit", Roles.User),
+        ["PUT /api/v1/dns-zones/{id:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["DELETE /api/v1/dns-zones/{id:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["POST /api/v1/dns-zones/{id:guid}/force-update"] = ("Monitoring:Edit", Roles.User),
+        ["PUT /api/v1/dns-zones/{id:guid}/records/{recordId:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/dns-zones/{id:guid}/log"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/dns-zones/log"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/mail-input-rules"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/mail-input-rules/{id:guid}"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/mail-input-rules"] = ("Monitoring:Edit", Roles.User),
+        ["PUT /api/v1/mail-input-rules/{id:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["DELETE /api/v1/mail-input-rules/{id:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/mail-log"] = ("Mail:Read", Roles.User),
+        ["GET /api/v1/mail-log/{id:guid}"] = ("Mail:Read", Roles.User),
+        ["GET /api/v1/auth/me"] = ("signed-in", Roles.Viewer),
+        ["POST /api/v1/auth/logout"] = ("signed-in", Roles.Viewer),
+        ["POST /api/v1/account/password"] = ("signed-in", Roles.Viewer),
+        ["POST /api/v1/account/sessions/revoke"] = ("signed-in", Roles.Viewer),
+        ["POST /api/v1/account/totp/setup"] = ("signed-in", Roles.Viewer),
+        ["POST /api/v1/account/totp/confirm"] = ("signed-in", Roles.Viewer),
+        ["POST /api/v1/account/totp/disable"] = ("signed-in", Roles.Viewer),
+        ["GET /api/v1/users"] = ("admin", Roles.Admin),
+        ["GET /api/v1/users/{id:guid}"] = ("admin", Roles.Admin),
+        ["POST /api/v1/users"] = ("admin", Roles.Admin),
+        ["PUT /api/v1/users/{id:guid}"] = ("admin", Roles.Admin),
+        ["DELETE /api/v1/users/{id:guid}"] = ("admin", Roles.Admin),
+        ["POST /api/v1/users/{id:guid}/reset-password"] = ("admin", Roles.Admin),
+        ["POST /api/v1/users/{id:guid}/reset-totp"] = ("admin", Roles.Admin),
+        ["POST /api/v1/users/{id:guid}/unlock"] = ("admin", Roles.Admin),
+        // Groups and rights (docs/audit-redmine-zabbix-plan.md §5): only admins; the catalog every signed-in user's.
+        ["GET /api/v1/groups"] = ("admin", Roles.Admin),
+        ["GET /api/v1/groups/{id:guid}"] = ("admin", Roles.Admin),
+        ["POST /api/v1/groups"] = ("admin", Roles.Admin),
+        ["PUT /api/v1/groups/{id:guid}"] = ("admin", Roles.Admin),
+        ["DELETE /api/v1/groups/{id:guid}"] = ("admin", Roles.Admin),
+        ["PUT /api/v1/groups/{id:guid}/members"] = ("admin", Roles.Admin),
+        ["GET /api/v1/rights"] = ("signed-in", Roles.Viewer),
+        ["GET /api/v1/users/{id:guid}/access"] = ("admin", Roles.Admin),
+        ["GET /api/v1/account/access"] = ("signed-in", Roles.Viewer),
+        ["GET /api/v1/audit-log"] = ("AuditLog:View", Roles.Admin),
+        ["GET /api/v1/audit-log/types"] = ("AuditLog:View", Roles.Admin),
+        ["GET /api/v1/key-values"] = ("System:Manage", Roles.Admin),
+        ["GET /api/v1/key-values/{id:guid}"] = ("System:Manage", Roles.Admin),
+        ["POST /api/v1/key-values"] = ("System:Manage", Roles.Admin),
+        ["PUT /api/v1/key-values/{id:guid}"] = ("System:Manage", Roles.Admin),
+        ["DELETE /api/v1/key-values/{id:guid}"] = ("System:Manage", Roles.Admin),
         // UDP nodes (docs/udp-iot-plan.md §5): a node's own endpoints as the sensor's, the rest Admin.
-        ["PUT /api/v1/sensors/{id:guid}/udp/key"] = Roles.User,
-        ["POST /api/v1/sensors/{id:guid}/udp/regenerate-key"] = Roles.User,
-        ["POST /api/v1/sensors/{id:guid}/udp/reset-counter"] = Roles.User,
-        ["POST /api/v1/sensors/{id:guid}/udp/reset-session"] = Roles.User,
-        ["GET /api/v1/sensors/{id:guid}/udp/last-packets"] = Roles.Viewer,
-        ["GET /api/v1/sensors/{id:guid}/udp/rejections"] = Roles.Viewer,
-        ["GET /api/v1/sensors/{id:guid}/udp/commands"] = Roles.Viewer,
-        ["GET /api/v1/sensors/{id:guid}/udp/commands/{commandId:guid}/log"] = Roles.Viewer,
-        ["POST /api/v1/sensors/{id:guid}/udp/commands"] = Roles.User,
-        ["DELETE /api/v1/sensors/{id:guid}/udp/commands/{commandId:guid}"] = Roles.User,
-        ["GET /api/v1/sensors/{id:guid}/udp/ota-jobs"] = Roles.Viewer,
+        ["PUT /api/v1/sensors/{id:guid}/udp/key"] = ("Monitoring:Edit", Roles.User),
+        ["POST /api/v1/sensors/{id:guid}/udp/regenerate-key"] = ("Monitoring:Edit", Roles.User),
+        ["POST /api/v1/sensors/{id:guid}/udp/reset-counter"] = ("Monitoring:Edit", Roles.User),
+        ["POST /api/v1/sensors/{id:guid}/udp/reset-session"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/sensors/{id:guid}/udp/last-packets"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/sensors/{id:guid}/udp/rejections"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/sensors/{id:guid}/udp/commands"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/sensors/{id:guid}/udp/commands/{commandId:guid}/log"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/sensors/{id:guid}/udp/commands"] = ("Commands:Run", Roles.User),
+        ["DELETE /api/v1/sensors/{id:guid}/udp/commands/{commandId:guid}"] = ("Commands:Run", Roles.User),
+        ["GET /api/v1/sensors/{id:guid}/udp/ota-jobs"] = ("Monitoring:View", Roles.Viewer),
         // MikroTik routers (docs/mikrotik-plan.md §10): the join script holds keys and exports reveal the network (CanWrite); the backup list is the sensor's.
-        ["GET /api/v1/sensors/{id:guid}/mikrotik/join-script"] = Roles.User,
-        ["GET /api/v1/sensors/{id:guid}/mikrotik/removal-script"] = Roles.User,
-        ["POST /api/v1/sensors/{id:guid}/mikrotik/poll"] = Roles.User,
-        ["POST /api/v1/sensors/{id:guid}/mikrotik/host-key/accept"] = Roles.Admin,
-        ["GET /api/v1/sensors/{id:guid}/mikrotik/backups"] = Roles.Viewer,
-        ["POST /api/v1/sensors/{id:guid}/mikrotik/backups"] = Roles.User,
-        ["GET /api/v1/sensors/{id:guid}/mikrotik/backups/{backupId:guid}"] = Roles.User,
-        ["GET /api/v1/sensors/{id:guid}/mikrotik/backups/{backupId:guid}/diff"] = Roles.User,
-        ["GET /api/v1/sensors/{id:guid}/mikrotik/backups/{backupId:guid}/download"] = Roles.User,
-        ["DELETE /api/v1/sensors/{id:guid}/mikrotik/backups/{backupId:guid}"] = Roles.Admin,
-        ["POST /api/v1/sensors/{id:guid}/mikrotik/regenerate-keys"] = Roles.User,
-        ["GET /api/v1/wireguard/status"] = Roles.Admin,
-        ["GET /api/v1/wireguard/network"] = Roles.Admin,
-        ["PUT /api/v1/wireguard/network"] = Roles.Admin,
-        ["GET /api/v1/wireguard/peers"] = Roles.Admin,
-        ["GET /api/v1/wireguard/tunnels"] = Roles.Admin,
-        ["POST /api/v1/wireguard/tunnels"] = Roles.Admin,
-        ["PUT /api/v1/wireguard/tunnels/{id:guid}"] = Roles.Admin,
-        ["DELETE /api/v1/wireguard/tunnels/{id:guid}"] = Roles.Admin,
-        ["POST /api/v1/wireguard/tunnels/{id:guid}/regenerate-keys"] = Roles.Admin,
-        ["GET /api/v1/wireguard/tunnels/{id:guid}/config"] = Roles.Admin,
-        ["GET /api/v1/account/tunnels"] = Roles.Viewer,
-        ["GET /api/v1/account/tunnels/{id:guid}/config"] = Roles.Viewer,
-        ["GET /api/v1/sensors/{id:guid}/mikrotik/jobs"] = Roles.Viewer,
-        ["GET /api/v1/sensors/{id:guid}/mikrotik/jobs/{jobId:guid}"] = Roles.Viewer,
-        ["GET /api/v1/sensors/{id:guid}/mikrotik/changelog"] = Roles.Viewer,
-        ["POST /api/v1/mikrotik/jobs"] = Roles.Admin,
-        ["GET /api/v1/mikrotik/jobs"] = Roles.Admin,
-        ["GET /api/v1/mikrotik/jobs/{id:guid}"] = Roles.Admin,
-        ["DELETE /api/v1/mikrotik/jobs/{id:guid}"] = Roles.Admin,
-        ["GET /api/v1/mikrotik/status"] = Roles.Admin,
-        ["GET /api/v1/mikrotik/routers"] = Roles.Admin,
-        ["GET /api/v1/mikrotik/ssh-keys"] = Roles.Admin,
-        ["POST /api/v1/mikrotik/ssh-keys/rotate"] = Roles.Admin,
-        ["POST /api/v1/mikrotik/ssh-keys/retire"] = Roles.Admin,
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/join-script"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/removal-script"] = ("Monitoring:Edit", Roles.User),
+        ["POST /api/v1/sensors/{id:guid}/mikrotik/poll"] = ("Commands:Run", Roles.User),
+        ["POST /api/v1/sensors/{id:guid}/mikrotik/host-key/accept"] = ("Mikrotik:Manage", Roles.Admin),
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/backups"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/sensors/{id:guid}/mikrotik/backups"] = ("Commands:Run", Roles.User),
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/backups/{backupId:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/backups/{backupId:guid}/diff"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/backups/{backupId:guid}/download"] = ("Monitoring:Edit", Roles.User),
+        ["DELETE /api/v1/sensors/{id:guid}/mikrotik/backups/{backupId:guid}"] = ("Mikrotik:Manage", Roles.Admin),
+        ["POST /api/v1/sensors/{id:guid}/mikrotik/regenerate-keys"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/wireguard/status"] = ("Mikrotik:Manage", Roles.Admin),
+        ["GET /api/v1/wireguard/network"] = ("Mikrotik:Manage", Roles.Admin),
+        ["PUT /api/v1/wireguard/network"] = ("Mikrotik:Manage", Roles.Admin),
+        ["GET /api/v1/wireguard/peers"] = ("Mikrotik:Manage", Roles.Admin),
+        ["GET /api/v1/wireguard/tunnels"] = ("Mikrotik:Manage", Roles.Admin),
+        ["POST /api/v1/wireguard/tunnels"] = ("Mikrotik:Manage", Roles.Admin),
+        ["PUT /api/v1/wireguard/tunnels/{id:guid}"] = ("Mikrotik:Manage", Roles.Admin),
+        ["DELETE /api/v1/wireguard/tunnels/{id:guid}"] = ("Mikrotik:Manage", Roles.Admin),
+        ["POST /api/v1/wireguard/tunnels/{id:guid}/regenerate-keys"] = ("Mikrotik:Manage", Roles.Admin),
+        ["GET /api/v1/wireguard/tunnels/{id:guid}/config"] = ("Mikrotik:Manage", Roles.Admin),
+        ["GET /api/v1/account/tunnels"] = ("signed-in", Roles.Viewer),
+        ["GET /api/v1/account/tunnels/{id:guid}/config"] = ("signed-in", Roles.Viewer),
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/jobs"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/jobs/{jobId:guid}"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/changelog"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/mikrotik/jobs"] = ("Mikrotik:Manage", Roles.Admin),
+        ["GET /api/v1/mikrotik/jobs"] = ("Mikrotik:Manage", Roles.Admin),
+        ["GET /api/v1/mikrotik/jobs/{id:guid}"] = ("Mikrotik:Manage", Roles.Admin),
+        ["DELETE /api/v1/mikrotik/jobs/{id:guid}"] = ("Mikrotik:Manage", Roles.Admin),
+        ["GET /api/v1/mikrotik/status"] = ("Mikrotik:Manage", Roles.Admin),
+        ["GET /api/v1/mikrotik/routers"] = ("Mikrotik:Manage", Roles.Admin),
+        ["GET /api/v1/mikrotik/ssh-keys"] = ("Mikrotik:Manage", Roles.Admin),
+        ["POST /api/v1/mikrotik/ssh-keys/rotate"] = ("Mikrotik:Manage", Roles.Admin),
+        ["POST /api/v1/mikrotik/ssh-keys/retire"] = ("Mikrotik:Manage", Roles.Admin),
         // Backups (docs/mikrotik-backup-plan.md §2.2): the new-router form reads the default.
-        ["GET /api/v1/mikrotik/backup-settings"] = Roles.User,
-        ["PUT /api/v1/mikrotik/backup-settings"] = Roles.Admin,
-        ["POST /api/v1/mikrotik/routers/backup-settings"] = Roles.Admin,
-        ["POST /api/v1/mikrotik/backup-keys"] = Roles.Admin,
-        ["POST /api/v1/mikrotik/backup-keys/retire"] = Roles.Admin,
+        ["GET /api/v1/mikrotik/backup-settings"] = ("Monitoring:Edit", Roles.User),
+        ["PUT /api/v1/mikrotik/backup-settings"] = ("Mikrotik:Manage", Roles.Admin),
+        ["POST /api/v1/mikrotik/routers/backup-settings"] = ("Mikrotik:Manage", Roles.Admin),
+        ["POST /api/v1/mikrotik/backup-keys"] = ("Mikrotik:Manage", Roles.Admin),
+        ["POST /api/v1/mikrotik/backup-keys/retire"] = ("Mikrotik:Manage", Roles.Admin),
         // Remote commands (§8): as pnmt for Users; as an admin for Admins, checked in the service.
-        ["POST /api/v1/mikrotik/commands"] = Roles.User,
-        ["GET /api/v1/mikrotik/commands"] = Roles.User,
-        ["GET /api/v1/mikrotik/commands/{id:guid}"] = Roles.User,
-        ["GET /api/v1/mikrotik/commands/batches/{batchId:guid}"] = Roles.User,
-        ["DELETE /api/v1/mikrotik/commands/{id:guid}"] = Roles.User,
-        ["POST /api/v1/mikrotik/commands/{id:guid}/redact"] = Roles.Admin,
-        ["GET /api/v1/udp/status"] = Roles.Admin,
-        ["GET /api/v1/udp/nodes"] = Roles.Admin,
-        ["GET /api/v1/udp/command-log"] = Roles.Admin,
-        ["GET /api/v1/udp/unknown-senders"] = Roles.Admin,
-        ["GET /api/v1/udp/firmware"] = Roles.Admin,
-        ["POST /api/v1/udp/firmware"] = Roles.Admin,
-        ["PUT /api/v1/udp/firmware/{id:guid}"] = Roles.Admin,
-        ["DELETE /api/v1/udp/firmware/{id:guid}"] = Roles.Admin,
-        ["GET /api/v1/udp/firmware/{id:guid}/content"] = Roles.Admin,
-        ["GET /api/v1/udp/ota-jobs"] = Roles.Admin,
-        ["POST /api/v1/udp/ota-jobs"] = Roles.Admin,
-        ["DELETE /api/v1/udp/ota-jobs/{id:guid}"] = Roles.Admin,
-        ["GET /api/v1/udp/protocol/examples"] = Roles.Viewer,
-        ["GET /api/v1/udp/protocol/build"] = Roles.Viewer,
+        ["POST /api/v1/mikrotik/commands"] = ("Commands:Run", Roles.User),
+        ["GET /api/v1/mikrotik/commands"] = ("Commands:Run", Roles.User),
+        ["GET /api/v1/mikrotik/commands/{id:guid}"] = ("Commands:Run", Roles.User),
+        ["GET /api/v1/mikrotik/commands/batches/{batchId:guid}"] = ("Commands:Run", Roles.User),
+        ["DELETE /api/v1/mikrotik/commands/{id:guid}"] = ("Commands:Run", Roles.User),
+        ["POST /api/v1/mikrotik/commands/{id:guid}/redact"] = ("Mikrotik:Manage", Roles.Admin),
+        ["GET /api/v1/udp/status"] = ("UdpNodes:Manage", Roles.Admin),
+        ["GET /api/v1/udp/nodes"] = ("UdpNodes:Manage", Roles.Admin),
+        ["GET /api/v1/udp/command-log"] = ("UdpNodes:Manage", Roles.Admin),
+        ["GET /api/v1/udp/unknown-senders"] = ("UdpNodes:Manage", Roles.Admin),
+        ["GET /api/v1/udp/firmware"] = ("UdpNodes:Manage", Roles.Admin),
+        ["POST /api/v1/udp/firmware"] = ("UdpNodes:Manage", Roles.Admin),
+        ["PUT /api/v1/udp/firmware/{id:guid}"] = ("UdpNodes:Manage", Roles.Admin),
+        ["DELETE /api/v1/udp/firmware/{id:guid}"] = ("UdpNodes:Manage", Roles.Admin),
+        ["GET /api/v1/udp/firmware/{id:guid}/content"] = ("UdpNodes:Manage", Roles.Admin),
+        ["GET /api/v1/udp/ota-jobs"] = ("UdpNodes:Manage", Roles.Admin),
+        ["POST /api/v1/udp/ota-jobs"] = ("UdpNodes:Manage", Roles.Admin),
+        ["DELETE /api/v1/udp/ota-jobs/{id:guid}"] = ("UdpNodes:Manage", Roles.Admin),
+        ["GET /api/v1/udp/protocol/examples"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/udp/protocol/build"] = ("Monitoring:View", Roles.Viewer),
         // The debug page (docs/ai-operations-plan.md §8).
-        ["GET /api/v1/debug"] = Roles.Admin,
-        ["POST /api/v1/debug/pushover"] = Roles.Admin,
-        ["POST /api/v1/debug/mail"] = Roles.Admin,
+        ["GET /api/v1/debug"] = ("System:Manage", Roles.Admin),
+        ["POST /api/v1/debug/pushover"] = ("System:Manage", Roles.Admin),
+        ["POST /api/v1/debug/mail"] = ("System:Manage", Roles.Admin),
         // The uplink page (docs/ai-operations-plan.md §7.3).
-        ["GET /api/v1/uplink"] = Roles.Viewer,
-        ["GET /api/v1/uplink/checks"] = Roles.Viewer,
-        ["GET /api/v1/uplink/outages"] = Roles.Viewer,
-        ["POST /api/v1/uplink/check"] = Roles.Admin,
+        ["GET /api/v1/uplink"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/uplink/checks"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/uplink/outages"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/uplink/check"] = ("System:Manage", Roles.Admin),
         // Importance and the Notification Manager (docs/ai-operations-plan.md §11).
-        ["PUT /api/v1/hosts/importance"] = Roles.User,
-        ["PUT /api/v1/sensors/importance"] = Roles.User,
-        ["GET /api/v1/notifications/matrix"] = Roles.Viewer,
-        ["GET /api/v1/notifications/coverage"] = Roles.Viewer,
-        ["POST /api/v1/notifications/assign"] = Roles.User,
-        ["PUT /api/v1/notification-rules/{id:guid}/scopes"] = Roles.User,
-        ["POST /api/v1/notification-rules/{id:guid}/scopes/preview"] = Roles.User,
-        ["PUT /api/v1/notification-rules/{id:guid}/exclusions/{sensorId:guid}"] = Roles.User,
-        ["DELETE /api/v1/notification-rules/{id:guid}/exclusions/{sensorId:guid}"] = Roles.User,
+        ["PUT /api/v1/hosts/importance"] = ("Monitoring:Edit", Roles.User),
+        ["PUT /api/v1/sensors/importance"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/notifications/matrix"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/notifications/coverage"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/notifications/assign"] = ("Monitoring:Edit", Roles.User),
+        ["PUT /api/v1/notification-rules/{id:guid}/scopes"] = ("Monitoring:Edit", Roles.User),
+        ["POST /api/v1/notification-rules/{id:guid}/scopes/preview"] = ("Monitoring:Edit", Roles.User),
+        ["PUT /api/v1/notification-rules/{id:guid}/exclusions/{sensorId:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["DELETE /api/v1/notification-rules/{id:guid}/exclusions/{sensorId:guid}"] = ("Monitoring:Edit", Roles.User),
         // The AI (docs/ai-operations-plan.md §14): Admin, because requests hold mail contents.
-        ["GET /api/v1/ai/status"] = Roles.Admin,
-        ["GET /api/v1/ai/requests"] = Roles.Admin,
-        ["GET /api/v1/ai/requests/{id:long}"] = Roles.Admin,
-        ["GET /api/v1/ai/work"] = Roles.Admin,
-        ["POST /api/v1/ai/work/{id:guid}/retry"] = Roles.Admin,
-        ["POST /api/v1/ai/work/{id:guid}/cancel"] = Roles.Admin,
-        ["POST /api/v1/debug/ai"] = Roles.Admin,
-        ["POST /api/v1/ai/mail/backfill"] = Roles.Admin,
-        ["GET /api/v1/mikrotik/releases"] = Roles.Admin,
-        ["GET /api/v1/ai/analysis"] = Roles.Viewer,
-        ["GET /api/v1/ai/analysis/{id:guid}"] = Roles.Viewer,
-        ["POST /api/v1/ai/analysis/run"] = Roles.Admin,
+        ["GET /api/v1/ai/status"] = ("Ai:Manage", Roles.Admin),
+        ["GET /api/v1/ai/requests"] = ("Ai:Manage", Roles.Admin),
+        ["GET /api/v1/ai/requests/{id:long}"] = ("Ai:Manage", Roles.Admin),
+        ["GET /api/v1/ai/work"] = ("Ai:Manage", Roles.Admin),
+        ["POST /api/v1/ai/work/{id:guid}/retry"] = ("Ai:Manage", Roles.Admin),
+        ["POST /api/v1/ai/work/{id:guid}/cancel"] = ("Ai:Manage", Roles.Admin),
+        ["POST /api/v1/debug/ai"] = ("System:Manage", Roles.Admin),
+        ["POST /api/v1/ai/mail/backfill"] = ("Ai:Manage", Roles.Admin),
+        ["GET /api/v1/mikrotik/releases"] = ("Mikrotik:Manage", Roles.Admin),
+        ["GET /api/v1/ai/analysis"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/ai/analysis/{id:guid}"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/ai/analysis/run"] = ("Ai:Manage", Roles.Admin),
         // Decisions (docs/ai-operations-plan.md §5.3): the User role, as the mail log.
-        ["GET /api/v1/decisions"] = Roles.User,
-        ["GET /api/v1/decisions/count"] = Roles.User,
-        ["GET /api/v1/decisions/{id:guid}"] = Roles.User,
-        ["POST /api/v1/decisions/{id:guid}/decide"] = Roles.User,
+        ["GET /api/v1/decisions"] = ("Decisions:Decide", Roles.User),
+        ["GET /api/v1/decisions/count"] = ("Decisions:Decide", Roles.User),
+        ["GET /api/v1/decisions/{id:guid}"] = ("Decisions:Decide", Roles.User),
+        ["POST /api/v1/decisions/{id:guid}/decide"] = ("Decisions:Decide", Roles.User),
         // Servers with an agent, of both platforms (docs/windows-sensor-plan.md §9.2; docs/linux-sensor-plan.md §10, under
         // /api/v1/windows/ before L1): the agent log, revoking and tokens are Admin, requests CanWrite.
-        ["GET /api/v1/agents/servers"] = Roles.Viewer,
-        ["GET /api/v1/agents/servers/{id:guid}"] = Roles.Viewer,
-        ["GET /api/v1/agents/servers/{id:guid}/logins"] = Roles.User,
-        ["GET /api/v1/agents/servers/{id:guid}/changes"] = Roles.Viewer,
-        ["GET /api/v1/agents/servers/{id:guid}/log"] = Roles.Admin,
-        ["POST /api/v1/agents/servers/{id:guid}/collect"] = Roles.User,
-        ["POST /api/v1/agents/servers/{id:guid}/send-log"] = Roles.Admin,
-        ["PUT /api/v1/agents/servers/{id:guid}/settings"] = Roles.User,
-        ["POST /api/v1/agents/servers/{id:guid}/revoke"] = Roles.Admin,
-        ["POST /api/v1/agents/servers/{id:guid}/rejoin-token"] = Roles.Admin,
+        ["GET /api/v1/agents/servers"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/agents/servers/{id:guid}"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/agents/servers/{id:guid}/logins"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/agents/servers/{id:guid}/changes"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/agents/servers/{id:guid}/log"] = ("Servers:Manage", Roles.Admin),
+        ["POST /api/v1/agents/servers/{id:guid}/collect"] = ("Commands:Run", Roles.User),
+        ["POST /api/v1/agents/servers/{id:guid}/send-log"] = ("Servers:Manage", Roles.Admin),
+        ["PUT /api/v1/agents/servers/{id:guid}/settings"] = ("Monitoring:Edit", Roles.User),
+        ["POST /api/v1/agents/servers/{id:guid}/revoke"] = ("Servers:Manage", Roles.Admin),
+        ["POST /api/v1/agents/servers/{id:guid}/rejoin-token"] = ("Servers:Manage", Roles.Admin),
         // Linux (docs/linux-sensor-plan.md §6.3, §8.4): a server's SSH keys (key comments and accounts: CanWrite), its accounts for scripts.
-        ["GET /api/v1/agents/servers/{id:guid}/ssh-keys"] = Roles.User,
-        ["GET /api/v1/agents/servers/{id:guid}/run-as-accounts"] = Roles.Admin,
-        ["GET /api/v1/agents/join-tokens"] = Roles.Admin,
-        ["POST /api/v1/agents/join-tokens"] = Roles.Admin,
-        ["DELETE /api/v1/agents/join-tokens/{id:guid}"] = Roles.Admin,
-        ["GET /api/v1/agents/agent-log"] = Roles.Admin,
-        ["GET /api/v1/agents/downloads"] = Roles.Admin,
-        ["POST /api/v1/agents/downloads/fetch"] = Roles.Admin,
+        ["GET /api/v1/agents/servers/{id:guid}/ssh-keys"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/agents/servers/{id:guid}/run-as-accounts"] = ("Servers:Manage", Roles.Admin),
+        ["GET /api/v1/agents/join-tokens"] = ("Servers:Manage", Roles.Admin),
+        ["POST /api/v1/agents/join-tokens"] = ("Servers:Manage", Roles.Admin),
+        ["DELETE /api/v1/agents/join-tokens/{id:guid}"] = ("Servers:Manage", Roles.Admin),
+        ["GET /api/v1/agents/agent-log"] = ("Servers:Manage", Roles.Admin),
+        ["GET /api/v1/agents/downloads"] = ("Servers:Manage", Roles.Admin),
+        ["POST /api/v1/agents/downloads/fetch"] = ("Servers:Manage", Roles.Admin),
         // Scripts (docs/windows-sensor-plan.md §7; docs/linux-sensor-plan.md §8): Admin only.
-        ["GET /api/v1/agents/scripts"] = Roles.Admin,
-        ["GET /api/v1/agents/scripts/{id:guid}"] = Roles.Admin,
-        ["GET /api/v1/agents/scripts/template"] = Roles.Admin,
-        ["POST /api/v1/agents/scripts"] = Roles.Admin,
-        ["PUT /api/v1/agents/scripts/{id:guid}"] = Roles.Admin,
-        ["POST /api/v1/agents/scripts/{id:guid}/parse"] = Roles.Admin,
-        ["DELETE /api/v1/agents/scripts/{id:guid}"] = Roles.Admin,
-        ["POST /api/v1/agents/scripts/{id:guid}/run"] = Roles.Admin,
-        ["GET /api/v1/agents/script-runs"] = Roles.Admin,
-        ["GET /api/v1/agents/script-runs/{id:guid}"] = Roles.Admin,
-        ["POST /api/v1/agents/script-runs/{id:guid}/redact"] = Roles.Admin,
+        ["GET /api/v1/agents/scripts"] = ("Servers:Manage", Roles.Admin),
+        ["GET /api/v1/agents/scripts/{id:guid}"] = ("Servers:Manage", Roles.Admin),
+        ["GET /api/v1/agents/scripts/template"] = ("Servers:Manage", Roles.Admin),
+        ["POST /api/v1/agents/scripts"] = ("Servers:Manage", Roles.Admin),
+        ["PUT /api/v1/agents/scripts/{id:guid}"] = ("Servers:Manage", Roles.Admin),
+        ["POST /api/v1/agents/scripts/{id:guid}/parse"] = ("Servers:Manage", Roles.Admin),
+        ["DELETE /api/v1/agents/scripts/{id:guid}"] = ("Servers:Manage", Roles.Admin),
+        ["POST /api/v1/agents/scripts/{id:guid}/run"] = ("Servers:Manage", Roles.Admin),
+        ["GET /api/v1/agents/script-runs"] = ("Servers:Manage", Roles.Admin),
+        ["GET /api/v1/agents/script-runs/{id:guid}"] = ("Servers:Manage", Roles.Admin),
+        ["POST /api/v1/agents/script-runs/{id:guid}/redact"] = ("Servers:Manage", Roles.Admin),
         // What stays Windows' own (docs/linux-sensor-plan.md §3.3): the typed sections, WMI, the scripts registered on a server
         // and the run-as accounts.
-        ["GET /api/v1/windows/servers/{id:guid}/sections/{section}"] = Roles.Viewer,
-        ["GET /api/v1/windows/servers/{id:guid}/wmi"] = Roles.Admin,
-        ["PUT /api/v1/windows/servers/{id:guid}/wmi"] = Roles.Admin,
-        ["GET /api/v1/windows/servers/{id:guid}/local-scripts"] = Roles.Admin,
-        ["POST /api/v1/windows/servers/{id:guid}/local-scripts/run"] = Roles.Admin,
-        ["GET /api/v1/windows/run-as"] = Roles.Admin,
-        ["POST /api/v1/windows/run-as"] = Roles.Admin,
-        ["PUT /api/v1/windows/run-as/{id:guid}"] = Roles.Admin,
-        ["DELETE /api/v1/windows/run-as/{id:guid}"] = Roles.Admin,
+        ["GET /api/v1/windows/servers/{id:guid}/sections/{section}"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/windows/servers/{id:guid}/wmi"] = ("Servers:Manage", Roles.Admin),
+        ["PUT /api/v1/windows/servers/{id:guid}/wmi"] = ("Servers:Manage", Roles.Admin),
+        ["GET /api/v1/windows/servers/{id:guid}/local-scripts"] = ("Servers:Manage", Roles.Admin),
+        ["POST /api/v1/windows/servers/{id:guid}/local-scripts/run"] = ("Servers:Manage", Roles.Admin),
+        ["GET /api/v1/windows/run-as"] = ("Servers:Manage", Roles.Admin),
+        ["POST /api/v1/windows/run-as"] = ("Servers:Manage", Roles.Admin),
+        ["PUT /api/v1/windows/run-as/{id:guid}"] = ("Servers:Manage", Roles.Admin),
+        ["DELETE /api/v1/windows/run-as/{id:guid}"] = ("Servers:Manage", Roles.Admin),
         // Linux's own (docs/linux-sensor-plan.md §10): the typed sections; access, journal and ssh-keys check CanWrite inside.
-        ["GET /api/v1/linux/servers/{id:guid}/sections/{section}"] = Roles.Viewer,
+        ["GET /api/v1/linux/servers/{id:guid}/sections/{section}"] = ("Monitoring:View", Roles.Viewer),
         // The SSH key manager (docs/linux-sensor-plan.md §6.4, §6.5, §10): Admin, so nobody vouches for a key by registering it; a
         // user's own keys for every role.
-        ["GET /api/v1/ssh-keys"] = Roles.Admin,
-        ["GET /api/v1/ssh-keys/summary"] = Roles.Admin,
-        ["GET /api/v1/ssh-keys/unregistered"] = Roles.Admin,
-        ["POST /api/v1/ssh-keys/parse"] = Roles.Admin,
-        ["POST /api/v1/ssh-keys"] = Roles.Admin,
-        ["GET /api/v1/ssh-keys/{id:guid}"] = Roles.Admin,
-        ["PUT /api/v1/ssh-keys/{id:guid}"] = Roles.Admin,
-        ["POST /api/v1/ssh-keys/{id:guid}/retire"] = Roles.Admin,
-        ["POST /api/v1/ssh-keys/{id:guid}/reactivate"] = Roles.Admin,
-        ["DELETE /api/v1/ssh-keys/{id:guid}"] = Roles.Admin,
-        ["POST /api/v1/ssh-keys/{id:guid}/removal-items"] = Roles.Admin,
-        ["GET /api/v1/ssh-keys/users/{userId:guid}"] = Roles.Admin,
-        ["POST /api/v1/ssh-keys/users/{userId:guid}/removal-items"] = Roles.Admin,
-        ["POST /api/v1/ssh-keys/users/{userId:guid}/offboard"] = Roles.Admin,
-        ["POST /api/v1/ssh-keys/remove/preview"] = Roles.Admin,
-        ["POST /api/v1/ssh-keys/remove"] = Roles.Admin,
-        ["GET /api/v1/ssh-keys/mine"] = Roles.Viewer,
-        ["GET /api/v1/ssh-key-removals"] = Roles.Admin,
+        ["GET /api/v1/ssh-keys"] = ("SshKeys:Manage", Roles.Admin),
+        ["GET /api/v1/ssh-keys/summary"] = ("SshKeys:Manage", Roles.Admin),
+        ["GET /api/v1/ssh-keys/unregistered"] = ("SshKeys:Manage", Roles.Admin),
+        ["POST /api/v1/ssh-keys/parse"] = ("SshKeys:Manage", Roles.Admin),
+        ["POST /api/v1/ssh-keys"] = ("SshKeys:Manage", Roles.Admin),
+        ["GET /api/v1/ssh-keys/{id:guid}"] = ("SshKeys:Manage", Roles.Admin),
+        ["PUT /api/v1/ssh-keys/{id:guid}"] = ("SshKeys:Manage", Roles.Admin),
+        ["POST /api/v1/ssh-keys/{id:guid}/retire"] = ("SshKeys:Manage", Roles.Admin),
+        ["POST /api/v1/ssh-keys/{id:guid}/reactivate"] = ("SshKeys:Manage", Roles.Admin),
+        ["DELETE /api/v1/ssh-keys/{id:guid}"] = ("SshKeys:Manage", Roles.Admin),
+        ["POST /api/v1/ssh-keys/{id:guid}/removal-items"] = ("SshKeys:Manage", Roles.Admin),
+        ["GET /api/v1/ssh-keys/users/{userId:guid}"] = ("SshKeys:Manage", Roles.Admin),
+        ["POST /api/v1/ssh-keys/users/{userId:guid}/removal-items"] = ("SshKeys:Manage", Roles.Admin),
+        ["POST /api/v1/ssh-keys/users/{userId:guid}/offboard"] = ("SshKeys:Manage", Roles.Admin),
+        ["POST /api/v1/ssh-keys/remove/preview"] = ("SshKeys:Manage", Roles.Admin),
+        ["POST /api/v1/ssh-keys/remove"] = ("SshKeys:Manage", Roles.Admin),
+        ["GET /api/v1/ssh-keys/mine"] = ("signed-in", Roles.Viewer),
+        ["GET /api/v1/ssh-key-removals"] = ("SshKeys:Manage", Roles.Admin),
         // Diagnostics (docs/windows-sensor-plan.md §9.2): reading CanRead, changing Admin, Run now CanWrite.
-        ["GET /api/v1/diagnostics/sets"] = Roles.Viewer,
-        ["GET /api/v1/diagnostics/sets/{id:guid}"] = Roles.Viewer,
-        ["POST /api/v1/diagnostics/sets"] = Roles.Admin,
-        ["PUT /api/v1/diagnostics/sets/{id:guid}"] = Roles.Admin,
-        ["DELETE /api/v1/diagnostics/sets/{id:guid}"] = Roles.Admin,
-        ["GET /api/v1/diagnostics/assignments"] = Roles.Viewer,
-        ["POST /api/v1/diagnostics/assignments"] = Roles.Admin,
-        ["PUT /api/v1/diagnostics/assignments/{id:guid}"] = Roles.Admin,
-        ["DELETE /api/v1/diagnostics/assignments/{id:guid}"] = Roles.Admin,
-        ["POST /api/v1/diagnostics/assignments/{id:guid}/run"] = Roles.User,
-        ["GET /api/v1/diagnostics/runs"] = Roles.Viewer,
-        ["GET /api/v1/diagnostics/runs/{id:guid}"] = Roles.Viewer,
+        ["GET /api/v1/diagnostics/sets"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/diagnostics/sets/{id:guid}"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/diagnostics/sets"] = ("Diagnostics:Manage", Roles.Admin),
+        ["PUT /api/v1/diagnostics/sets/{id:guid}"] = ("Diagnostics:Manage", Roles.Admin),
+        ["DELETE /api/v1/diagnostics/sets/{id:guid}"] = ("Diagnostics:Manage", Roles.Admin),
+        ["GET /api/v1/diagnostics/assignments"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/diagnostics/assignments"] = ("Diagnostics:Manage", Roles.Admin),
+        ["PUT /api/v1/diagnostics/assignments/{id:guid}"] = ("Diagnostics:Manage", Roles.Admin),
+        ["DELETE /api/v1/diagnostics/assignments/{id:guid}"] = ("Diagnostics:Manage", Roles.Admin),
+        ["POST /api/v1/diagnostics/assignments/{id:guid}/run"] = ("Commands:Run", Roles.User),
+        ["GET /api/v1/diagnostics/runs"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/diagnostics/runs/{id:guid}"] = ("Monitoring:View", Roles.Viewer),
         // Locations (docs/locations-knowledge-plan.md §8.1, §9): every role reads, Users write, Admins delete and define fields.
-        ["GET /api/v1/locations"] = Roles.Viewer,
-        ["GET /api/v1/locations/{id:guid}"] = Roles.Viewer,
-        ["POST /api/v1/locations"] = Roles.User,
-        ["PUT /api/v1/locations/{id:guid}"] = Roles.User,
-        ["POST /api/v1/locations/{id:guid}/move"] = Roles.User,
-        ["DELETE /api/v1/locations/{id:guid}"] = Roles.Admin,
-        ["PUT /api/v1/locations/{id:guid}/values/{fieldId:guid}"] = Roles.User,
-        ["GET /api/v1/locations/{id:guid}/history"] = Roles.Viewer,
-        ["GET /api/v1/locations/suggestions"] = Roles.User,
-        ["POST /api/v1/locations/from-text"] = Roles.User,
-        ["PUT /api/v1/hosts/location"] = Roles.User,
-        ["GET /api/v1/location-fields"] = Roles.Viewer,
-        ["POST /api/v1/location-fields"] = Roles.Admin,
-        ["PUT /api/v1/location-fields/{id:guid}"] = Roles.Admin,
-        ["PUT /api/v1/location-fields/order"] = Roles.Admin,
-        ["POST /api/v1/location-fields/{id:guid}/archive"] = Roles.Admin,
-        ["POST /api/v1/location-fields/{id:guid}/restore"] = Roles.Admin,
-        ["DELETE /api/v1/location-fields/{id:guid}"] = Roles.Admin,
+        ["GET /api/v1/locations"] = ("Locations:View", Roles.Viewer),
+        ["GET /api/v1/locations/{id:guid}"] = ("Locations:View", Roles.Viewer),
+        ["POST /api/v1/locations"] = ("Locations:Edit", Roles.User),
+        ["PUT /api/v1/locations/{id:guid}"] = ("Locations:Edit", Roles.User),
+        ["POST /api/v1/locations/{id:guid}/move"] = ("Locations:Edit", Roles.User),
+        ["DELETE /api/v1/locations/{id:guid}"] = ("Locations:Manage", Roles.Admin),
+        ["PUT /api/v1/locations/{id:guid}/values/{fieldId:guid}"] = ("Locations:Edit", Roles.User),
+        ["GET /api/v1/locations/{id:guid}/history"] = ("Locations:View", Roles.Viewer),
+        ["GET /api/v1/locations/suggestions"] = ("Locations:Edit", Roles.User),
+        ["POST /api/v1/locations/from-text"] = ("Locations:Edit", Roles.User),
+        ["PUT /api/v1/hosts/location"] = ("Locations:Edit", Roles.User),
+        ["GET /api/v1/location-fields"] = ("Locations:View", Roles.Viewer),
+        ["POST /api/v1/location-fields"] = ("Locations:Manage", Roles.Admin),
+        ["PUT /api/v1/location-fields/{id:guid}"] = ("Locations:Manage", Roles.Admin),
+        ["PUT /api/v1/location-fields/order"] = ("Locations:Manage", Roles.Admin),
+        ["POST /api/v1/location-fields/{id:guid}/archive"] = ("Locations:Manage", Roles.Admin),
+        ["POST /api/v1/location-fields/{id:guid}/restore"] = ("Locations:Manage", Roles.Admin),
+        ["DELETE /api/v1/location-fields/{id:guid}"] = ("Locations:Manage", Roles.Admin),
         // The knowledge base (docs/locations-knowledge-plan.md §8.1, §9): every role reads and counts a view; Users write, mark
         // sensitive and run AI tags; Admins delete archived pages, redact, and rename and delete tags.
-        ["GET /api/v1/kb/pages"] = Roles.Viewer,
-        ["POST /api/v1/kb/pages"] = Roles.User,
-        ["GET /api/v1/kb/pages/{number:int}"] = Roles.Viewer,
-        ["PUT /api/v1/kb/pages/{id:guid}"] = Roles.User,
-        ["POST /api/v1/kb/pages/{id:guid}/archive"] = Roles.User,
-        ["POST /api/v1/kb/pages/{id:guid}/restore"] = Roles.User,
-        ["DELETE /api/v1/kb/pages/{id:guid}"] = Roles.Admin,
-        ["POST /api/v1/kb/pages/{id:guid}/views"] = Roles.Viewer,
-        ["POST /api/v1/kb/pages/{id:guid}/editing"] = Roles.User,
-        ["GET /api/v1/kb/pages/{id:guid}/revisions"] = Roles.Viewer,
-        ["GET /api/v1/kb/pages/{id:guid}/revisions/{number:int}"] = Roles.Viewer,
-        ["GET /api/v1/kb/pages/{id:guid}/diff"] = Roles.Viewer,
-        ["POST /api/v1/kb/pages/{id:guid}/revisions/{number:int}/restore"] = Roles.User,
-        ["POST /api/v1/kb/pages/{id:guid}/redact"] = Roles.Admin,
-        ["PUT /api/v1/kb/pages/{id:guid}/sensitive"] = Roles.User,
-        ["POST /api/v1/kb/pages/{id:guid}/ai-tags"] = Roles.User,
-        ["GET /api/v1/kb/pages/{id:guid}/ai-tags/{workId:guid}"] = Roles.User,
-        ["GET /api/v1/kb/related"] = Roles.Viewer,
-        ["GET /api/v1/kb/tags"] = Roles.Viewer,
-        ["PUT /api/v1/kb/tags/{id:guid}"] = Roles.Admin,
-        ["DELETE /api/v1/kb/tags/{id:guid}"] = Roles.Admin,
+        ["GET /api/v1/kb/pages"] = ("KnowledgeBase:View", Roles.Viewer),
+        ["POST /api/v1/kb/pages"] = ("KnowledgeBase:Edit", Roles.User),
+        ["GET /api/v1/kb/pages/{number:int}"] = ("KnowledgeBase:View", Roles.Viewer),
+        ["PUT /api/v1/kb/pages/{id:guid}"] = ("KnowledgeBase:Edit", Roles.User),
+        ["POST /api/v1/kb/pages/{id:guid}/archive"] = ("KnowledgeBase:Edit", Roles.User),
+        ["POST /api/v1/kb/pages/{id:guid}/restore"] = ("KnowledgeBase:Edit", Roles.User),
+        ["DELETE /api/v1/kb/pages/{id:guid}"] = ("KnowledgeBase:Manage", Roles.Admin),
+        ["POST /api/v1/kb/pages/{id:guid}/views"] = ("KnowledgeBase:View", Roles.Viewer),
+        ["POST /api/v1/kb/pages/{id:guid}/editing"] = ("KnowledgeBase:Edit", Roles.User),
+        ["GET /api/v1/kb/pages/{id:guid}/revisions"] = ("KnowledgeBase:View", Roles.Viewer),
+        ["GET /api/v1/kb/pages/{id:guid}/revisions/{number:int}"] = ("KnowledgeBase:View", Roles.Viewer),
+        ["GET /api/v1/kb/pages/{id:guid}/diff"] = ("KnowledgeBase:View", Roles.Viewer),
+        ["POST /api/v1/kb/pages/{id:guid}/revisions/{number:int}/restore"] = ("KnowledgeBase:Edit", Roles.User),
+        ["POST /api/v1/kb/pages/{id:guid}/redact"] = ("KnowledgeBase:Manage", Roles.Admin),
+        ["PUT /api/v1/kb/pages/{id:guid}/sensitive"] = ("KnowledgeBase:Edit", Roles.User),
+        ["POST /api/v1/kb/pages/{id:guid}/ai-tags"] = ("KnowledgeBase:Edit", Roles.User),
+        ["GET /api/v1/kb/pages/{id:guid}/ai-tags/{workId:guid}"] = ("KnowledgeBase:Edit", Roles.User),
+        ["GET /api/v1/kb/related"] = ("KnowledgeBase:View", Roles.Viewer),
+        ["GET /api/v1/kb/tags"] = ("KnowledgeBase:View", Roles.Viewer),
+        ["PUT /api/v1/kb/tags/{id:guid}"] = ("KnowledgeBase:Manage", Roles.Admin),
+        ["DELETE /api/v1/kb/tags/{id:guid}"] = ("KnowledgeBase:Manage", Roles.Admin),
         // Uploaded files (docs/locations-knowledge-plan.md §9): uploading is a write, reading every role's, the overview and deleting the Admin's.
-        ["POST /api/v1/files"] = Roles.User,
-        ["GET /api/v1/files/{id:guid}/{name}"] = Roles.Viewer,
-        ["GET /api/v1/files"] = Roles.Admin,
-        ["DELETE /api/v1/files/{id:guid}"] = Roles.Admin,
+        ["POST /api/v1/files"] = ("KnowledgeBase:Edit|Locations:Edit", Roles.User),
+        ["GET /api/v1/files/{id:guid}/{name}"] = ("KnowledgeBase:View|Locations:View", Roles.Viewer),
+        ["GET /api/v1/files"] = ("KnowledgeBase:Manage", Roles.Admin),
+        ["DELETE /api/v1/files/{id:guid}"] = ("KnowledgeBase:Manage", Roles.Admin),
     };
 
     private sealed record EndpointInfo(string Key, string Method, string Pattern, RouteEndpoint Endpoint);
@@ -391,30 +403,33 @@ public sealed class EndpointAuditTests
             "Anonymous: " + string.Join(", ", anonymous));
     }
 
-    [TestMethod]
-    public void EveryV1EndpointNamesItsPolicy()
+    /// <summary>The right an endpoint's attributes ask for, in the matrix's notation: the action's own, else the controller's.</summary>
+    private static string RightOf(RouteEndpoint endpoint)
     {
-        var known = new[] { Policies.CanRead, Policies.CanWrite, Policies.Admin };
-        var v1 = Endpoints().Where(e => e.Pattern.StartsWith("/api/v1/", StringComparison.Ordinal) && !e.Pattern.Contains("{**rest}")).ToList();
-        Assert.IsGreaterThan(30, v1.Count);
-        foreach (var e in v1.Where(e => e.Key != "GET /api/v1/system/info"))
+        var policies = endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>().Select(a => a.Policy).Where(p => p is not null).ToList();
+        if (policies.LastOrDefault() is not { } last)
         {
-            var policies = e.Endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>().Select(a => a.Policy).ToList();
-            Assert.IsTrue(policies.Count > 0 && policies.All(p => known.Contains(p)), $"{e.Key}: policies {string.Join(",", policies)}");
-            // Writes need CanWrite, except one's own session and account, which every role manages, and a page's view, which
-            // every role counts (docs/locations-knowledge-plan.md §6.6).
-            var selfService = e.Pattern.StartsWith("/api/v1/auth/", StringComparison.Ordinal)
-                || e.Pattern.StartsWith("/api/v1/account/", StringComparison.Ordinal)
-                || e.Key == "POST /api/v1/kb/pages/{id:guid}/views";
-            if (e.Method != "GET" && !selfService)
-            {
-                Assert.IsTrue(policies.Contains(Policies.CanWrite) || policies.Contains(Policies.Admin), $"{e.Key} writes without CanWrite");
-            }
+            return "signed-in";
         }
+        return last == "admin" ? "admin" : last["right:".Length..];
     }
 
     [TestMethod]
-    public void TheRoleMatrixCoversEveryV1Endpoint()
+    public void EveryV1EndpointNamesTheRightOfTheMatrix()
+    {
+        var v1 = Endpoints().Where(e => e.Pattern.StartsWith("/api/v1/", StringComparison.Ordinal) && !e.Pattern.Contains("{**rest}")
+            && Matrix.ContainsKey(e.Key)).ToList();
+        Assert.IsGreaterThan(250, v1.Count);
+        var wrong = v1.Where(e => RightOf(e.Endpoint) != Matrix[e.Key].Right).Select(e => $"{e.Key}: {RightOf(e.Endpoint)}, the matrix says {Matrix[e.Key].Right}");
+        Assert.AreEqual("", string.Join("\n", wrong));
+        // A write needs a right, except one's own session and account (§5.1).
+        var selfService = v1.Where(e => e.Method != "GET" && Matrix[e.Key].Right == "signed-in").Select(e => e.Key).ToList();
+        Assert.IsTrue(selfService.All(k => k.Contains("/api/v1/auth/", StringComparison.Ordinal) || k.Contains("/api/v1/account/", StringComparison.Ordinal)),
+            "writes with no right: " + string.Join(", ", selfService));
+    }
+
+    [TestMethod]
+    public void TheMatrixCoversEveryV1Endpoint()
     {
         var v1 = Endpoints()
             .Where(e => e.Pattern.StartsWith("/api/v1/", StringComparison.Ordinal) && !e.Pattern.Contains("{**rest}")
@@ -427,44 +442,96 @@ public sealed class EndpointAuditTests
     }
 
     /// <summary>
-    /// Every endpoint × signed out, Viewer, User, Admin: 401, 403, or anything else for a role that
-    /// may. Ids are random and bodies empty, so the allowed calls end in 404 or 400 and change nothing.
+    /// Every endpoint × who (§5.4): signed out 401; a user with every level but the one it needs 403; one with exactly that
+    /// level, and an admin, through. Ids are random and bodies empty, so the allowed calls end in 404 or 400 and change
+    /// nothing.
     /// </summary>
     [TestMethod]
-    public async Task EveryV1EndpointAnswersEachRoleAsTheMatrixSays()
+    public async Task EveryV1EndpointAnswersAsItsRightSays()
     {
-        var rank = new Dictionary<string, int> { [Roles.Viewer] = 1, [Roles.User] = 2, [Roles.Admin] = 3 };
         var failures = new List<string>();
-        foreach (var (key, minimum) in Matrix)
+        foreach (var (key, (right, _)) in Matrix)
         {
-            var method = key[..key.IndexOf(' ')];
-            // A long id (an AI request's) and a page's number need a number to match their route.
-            var path = System.Text.RegularExpressions.Regex.Replace(key[(key.IndexOf(' ') + 1)..], @"\{[^}]+\}",
-                m => m.Value.EndsWith(":long}", StringComparison.Ordinal) ? Random.Shared.NextInt64(1L << 40, 1L << 50).ToString()
-                    : m.Value.EndsWith(":int}", StringComparison.Ordinal) ? Random.Shared.Next(1 << 24, int.MaxValue).ToString()
-                    : Guid.NewGuid().ToString());
-            foreach (var role in new string?[] { null, Roles.Viewer, Roles.User, Roles.Admin })
+            var cases = new List<(string Who, string? Rights, bool Anonymous, string Expected)> { ("anonymous", null, true, "401"), ("an admin", "admin", false, "allowed") };
+            if (right == "signed-in")
             {
-                using var request = new HttpRequestMessage(new HttpMethod(method), path);
-                if (method is "POST" or "PUT")
+                cases.Add(("no rights", "", false, "allowed"));
+            }
+            else if (right == "admin")
+            {
+                cases.Add(("every right but the flag", Everything(), false, "403"));
+            }
+            else
+            {
+                var options = right.Split('|');
+                cases.Add(("every right but this", Everything(except: options), false, "403"));
+                cases.AddRange(options.Select(o => ($"exactly {o}", o, false, "allowed")));
+            }
+            foreach (var (who, rights, anonymous, expected) in cases)
+            {
+                var status = await CallAsync(key, anonymous ? null : app.ClientWithRights(rights!));
+                if (!Meets(status, expected))
                 {
-                    request.Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
-                }
-                using var response = await app.Client(role).SendAsync(request);
-                var status = response.StatusCode;
-                var expected = role is null ? "401" : rank[role] >= rank[minimum] ? "allowed" : "403";
-                var ok = expected switch
-                {
-                    "401" => status == HttpStatusCode.Unauthorized,
-                    "403" => status == HttpStatusCode.Forbidden,
-                    _ => status is not (HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden) && (int)status < 500,
-                };
-                if (!ok)
-                {
-                    failures.Add($"{key} as {role ?? "anonymous"}: {(int)status}, expected {expected}");
+                    failures.Add($"{key} with {who}: {(int)status}, expected {expected}");
                 }
             }
         }
         Assert.AreEqual(0, failures.Count, string.Join("\n", failures));
     }
+
+    /// <summary>
+    /// The update changes nobody's access (§5.3): the admin flag, Operators and Viewers answer every endpoint as Admin, User
+    /// and Viewer did before 1.4.
+    /// </summary>
+    [TestMethod]
+    public async Task TheFormerRolesStillGetWhatTheyGot()
+    {
+        var rank = new Dictionary<string, int> { [Roles.Viewer] = 1, [Roles.User] = 2, [Roles.Admin] = 3 };
+        var failures = new List<string>();
+        foreach (var (key, (_, before)) in Matrix)
+        {
+            foreach (var role in Roles.All)
+            {
+                var status = await CallAsync(key, app.Client(role));
+                var expected = rank[role] >= rank[before] ? "allowed" : "403";
+                if (!Meets(status, expected))
+                {
+                    failures.Add($"{key} as {role}: {(int)status}, expected {expected}");
+                }
+            }
+        }
+        Assert.AreEqual(0, failures.Count, string.Join("\n", failures));
+    }
+
+    /// <summary>Every area at its highest level, but those named, which get none ("Monitoring:Edit" withholds Monitoring).</summary>
+    private static string Everything(params string[] except)
+    {
+        var withheld = except.Select(e => e.Split(':')[0]).ToHashSet();
+        return string.Join(",", RightsCatalog.Areas.Where(a => !withheld.Contains(a.Area.ToString()))
+            .Select(a => RightsCatalog.Name(a.Area, a.Levels[^1].Level)));
+    }
+
+    private static async Task<HttpStatusCode> CallAsync(string key, HttpClient? client)
+    {
+        var method = key[..key.IndexOf(' ')];
+        // A long id (an AI request's) and a page's number need a number to match their route.
+        var path = System.Text.RegularExpressions.Regex.Replace(key[(key.IndexOf(' ') + 1)..], @"\{[^}]+\}",
+            m => m.Value.EndsWith(":long}", StringComparison.Ordinal) ? Random.Shared.NextInt64(1L << 40, 1L << 50).ToString()
+                : m.Value.EndsWith(":int}", StringComparison.Ordinal) ? Random.Shared.Next(1 << 24, int.MaxValue).ToString()
+                : Guid.NewGuid().ToString());
+        using var request = new HttpRequestMessage(new HttpMethod(method), path);
+        if (method is "POST" or "PUT")
+        {
+            request.Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
+        }
+        using var response = await (client ?? app.Client()).SendAsync(request);
+        return response.StatusCode;
+    }
+
+    private static bool Meets(HttpStatusCode status, string expected) => expected switch
+    {
+        "401" => status == HttpStatusCode.Unauthorized,
+        "403" => status == HttpStatusCode.Forbidden,
+        _ => status is not (HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden) && (int)status < 500,
+    };
 }

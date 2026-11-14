@@ -114,7 +114,7 @@ async function redact() {
     )
   }
 }
-const writable = computed(() => session.can('User') && !page.value?.archivedAt)
+const writable = computed(() => session.can('KnowledgeBase', 'Edit') && !page.value?.archivedAt)
 </script>
 
 <template>
@@ -139,7 +139,7 @@ const writable = computed(() => session.can('User') && !page.value?.archivedAt)
         </template>
         <template #actions>
           <Button
-            v-if="session.can('Admin')"
+            v-if="session.can('KnowledgeBase', 'Manage')"
             label="Redact a text…"
             icon="pi pi-eraser"
             size="small"

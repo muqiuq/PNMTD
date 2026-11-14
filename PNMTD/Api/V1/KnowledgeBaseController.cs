@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Knowledge;
 
 namespace PNMTD.Api.V1;
@@ -12,7 +13,7 @@ namespace PNMTD.Api.V1;
 /// pages, redact, and look after the tags. A page is read by its number (<c>KB-42</c>), changed by its id.
 /// </summary>
 [Route("api/v1/kb")]
-[Authorize(Policy = Policies.CanRead)]
+[RequireRight(Area.KnowledgeBase, Level.View)]
 public sealed class KnowledgeBaseController(KbPageService pages, KbPageList lists, KbTags tags, KbAiTags aiTags) : V1ControllerBase
 {
     /// <summary>The list and the content search (§6.6, §6.7).</summary>
@@ -21,7 +22,7 @@ public sealed class KnowledgeBaseController(KbPageService pages, KbPageList list
         await lists.ListAsync(query, ct);
 
     [HttpPost("pages")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.KnowledgeBase, Level.Edit)]
     public async Task<ActionResult<KbSaveResult>> Create(KbPageRequest request, CancellationToken ct)
     {
         var saved = await pages.CreateAsync(request, ct);
@@ -34,21 +35,21 @@ public sealed class KnowledgeBaseController(KbPageService pages, KbPageList list
 
     /// <summary>A save, from the revision it started from: 409 <c>edit_conflict</c>; the answer says whether the AI question follows.</summary>
     [HttpPut("pages/{id:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.KnowledgeBase, Level.Edit)]
     public async Task<ActionResult<KbSaveResult>> Update(Guid id, KbPageRequest request, CancellationToken ct) =>
         await pages.UpdateAsync(id, request, ct);
 
     [HttpPost("pages/{id:guid}/archive")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.KnowledgeBase, Level.Edit)]
     public async Task<ActionResult<KbPageDetail>> Archive(Guid id, CancellationToken ct) => await pages.ArchiveAsync(id, true, ct);
 
     [HttpPost("pages/{id:guid}/restore")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.KnowledgeBase, Level.Edit)]
     public async Task<ActionResult<KbPageDetail>> Unarchive(Guid id, CancellationToken ct) => await pages.ArchiveAsync(id, false, ct);
 
     /// <summary>Archived pages only (409 <c>not_archived</c>), by an Admin (§6.2).</summary>
     [HttpDelete("pages/{id:guid}")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.KnowledgeBase, Level.Manage)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         await pages.DeleteAsync(id, ct);
@@ -65,7 +66,7 @@ public sealed class KnowledgeBaseController(KbPageService pages, KbPageList list
 
     /// <summary>An open editor's report every 30 seconds: who else is editing (§5.7).</summary>
     [HttpPost("pages/{id:guid}/editing")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.KnowledgeBase, Level.Edit)]
     public async Task<ActionResult<IReadOnlyList<KbEditor>>> Editing(Guid id, KbEditingRequest? request, CancellationToken ct) =>
         Ok(await pages.EditingAsync(id, request, ct));
 
@@ -81,19 +82,19 @@ public sealed class KnowledgeBaseController(KbPageService pages, KbPageList list
         await pages.DiffAsync(id, from, to, ct);
 
     [HttpPost("pages/{id:guid}/revisions/{number:int}/restore")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.KnowledgeBase, Level.Edit)]
     public async Task<ActionResult<KbPageDetail>> RestoreRevision(Guid id, int number, CancellationToken ct) =>
         await pages.RestoreRevisionAsync(id, number, ct);
 
     /// <summary>A leaked text out of every revision (§6.3): Admins.</summary>
     [HttpPost("pages/{id:guid}/redact")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.KnowledgeBase, Level.Manage)]
     public async Task<ActionResult<KbRedactResult>> Redact(Guid id, KbRedactRequest request, CancellationToken ct) =>
         await pages.RedactAsync(id, request, ct);
 
     /// <summary>Marking takes effect at once; unmarking needs both statements (§7.1).</summary>
     [HttpPut("pages/{id:guid}/sensitive")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.KnowledgeBase, Level.Edit)]
     public async Task<ActionResult<KbPageDetail>> Sensitive(Guid id, KbSensitiveRequest request, CancellationToken ct) =>
         await pages.SetSensitiveAsync(id, request, ct);
 
@@ -102,12 +103,12 @@ public sealed class KnowledgeBaseController(KbPageService pages, KbPageList list
     /// <c>ai_unavailable</c> or <c>ai_budget_spent</c>; 422 <c>looks_like_credential</c> with the line numbers.
     /// </summary>
     [HttpPost("pages/{id:guid}/ai-tags")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.KnowledgeBase, Level.Edit)]
     public async Task<ActionResult<KbAiTagsStatus>> StartAiTags(Guid id, KbAiTagsRequest request, CancellationToken ct) =>
         Accepted(await aiTags.StartAsync(id, request, ct));
 
     [HttpGet("pages/{id:guid}/ai-tags/{workId:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.KnowledgeBase, Level.Edit)]
     public async Task<ActionResult<KbAiTagsStatus>> AiTagsStatus(Guid id, Guid workId, CancellationToken ct) => await aiTags.StatusAsync(id, workId, ct);
 
     /// <summary>The Knowledge base panels of a location, a host or a sensor (§6.5): exactly one of the three.</summary>
@@ -121,12 +122,12 @@ public sealed class KnowledgeBaseController(KbPageService pages, KbPageList list
 
     /// <summary>Renames a tag; an existing tag's name merges the two (§6.4).</summary>
     [HttpPut("tags/{id:guid}")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.KnowledgeBase, Level.Manage)]
     public async Task<ActionResult<KbTagChange>> RenameTag(Guid id, KbTagRequest request, CancellationToken ct) => await tags.RenameAsync(id, request, ct);
 
     /// <summary>Removes the tag from every page, as a revision of each (§6.4).</summary>
     [HttpDelete("tags/{id:guid}")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.KnowledgeBase, Level.Manage)]
     public async Task<IActionResult> DeleteTag(Guid id, CancellationToken ct)
     {
         await tags.DeleteAsync(id, ct);

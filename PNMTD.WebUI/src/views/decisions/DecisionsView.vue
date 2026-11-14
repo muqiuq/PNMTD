@@ -218,7 +218,7 @@ function choose(option: S['DecisionOption']) {
                 </li>
                 <li v-if="d.ai.flags.length">The scan: {{ d.ai.flags.join(', ') }}</li>
                 <li v-if="d.ai.verdict">The verification model: {{ d.ai.verdict }}</li>
-                <li v-if="session.can('Admin') && d.ai.requestIds.length">
+                <li v-if="session.can('Ai', 'Manage') && d.ai.requestIds.length">
                   <RouterLink :to="{ name: 'ai', params: { tab: 'requests' } }"
                     >{{ d.ai.requestIds.length }} AI request(s)</RouterLink
                   >

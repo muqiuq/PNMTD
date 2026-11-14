@@ -114,6 +114,7 @@ public sealed class AuditLogTests
         Assert.AreEqual(AuditEvents.HostUpdated, denied.EventType);
         Assert.AreEqual(TestUsers.Viewer, denied.UserId);
         Assert.AreEqual("403", denied.Error);
+        Assert.AreEqual("missing: Monitoring:Edit", denied.Detail, "the right it lacked (docs/audit-redmine-zabbix-plan.md §5.4)");
     }
 
     [TestMethod]

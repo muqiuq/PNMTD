@@ -5,7 +5,7 @@ import { useSession } from '@/stores/session'
 
 /**
  * The PNMT-UDP reference without a node (docs/udp-iot-plan.md §6.5): the reference key and the
- * specification's test vectors. Every role may read it; the Documentation page links it.
+ * specification's test vectors. Everyone who sees monitoring may read it; the Documentation page links it.
  */
 const session = useSession()
 </script>
@@ -15,7 +15,7 @@ const session = useSession()
     <PageHeader
       title="UDP protocol"
       :crumbs="
-        session.can('Admin')
+        session.can('UdpNodes', 'Manage')
           ? [{ label: 'UDP nodes', to: { name: 'udp-nodes' } }]
           : [{ label: 'Documentation', to: { name: 'docs' } }]
       "

@@ -39,7 +39,7 @@ const table = useServerTable<S['NotificationRuleItem']>({
     <PageHeader title="Notification rules">
       <template #actions>
         <Button
-          v-if="session.can('User')"
+          v-if="session.can('Monitoring', 'Edit')"
           label="New rule"
           icon="pi pi-plus"
           size="small"
@@ -74,7 +74,7 @@ const table = useServerTable<S['NotificationRuleItem']>({
             :value="data.enabled"
             type="bool"
             :label="`Enabled ${data.name}`"
-            :readonly="!session.can('User')"
+            :readonly="!session.can('Monitoring', 'Edit')"
             :save="(v) => setEnabled(data, Boolean(v))"
           />
         </template>

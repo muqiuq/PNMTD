@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Api.V1;
 
 [Route("api/v1/events")]
-[Authorize(Policy = Policies.CanRead)]
+[RequireRight(Area.Monitoring, Level.View)]
 public sealed class EventsController(EventService events) : V1ControllerBase
 {
     [HttpGet]

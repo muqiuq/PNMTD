@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Api.V1;
 
 [Route("api/v1/key-values")]
-[Authorize(Policy = Policies.Admin)]
+[RequireRight(Area.System, Level.Manage)]
 public sealed class KeyValuesController(KeyValueService values) : V1ControllerBase
 {
     [HttpGet]

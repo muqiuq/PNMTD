@@ -3,13 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Api.V1;
 
 /// <summary>Admin → AI (docs/ai-operations-plan.md §14, §15): Admin only, because requests hold mail contents.</summary>
 [Route("api/v1/ai")]
-[Authorize(Policy = Policies.Admin)]
+[RequireRight(Area.Ai, Level.Manage)]
 public sealed class AiController(AiService ai, PNMTD.Decisions.DecisionBook decisions, PNMTD.Ai.AiWorkQueue queue) : V1ControllerBase
 {
     /// <summary>The unmatched mails of the last days (§6.2): <c>dryRun</c> (the default) counts them first.</summary>
@@ -46,7 +47,7 @@ public sealed class AiController(AiService ai, PNMTD.Decisions.DecisionBook deci
 
 /// <summary>Admin → Debug → Test the AI (§8.4).</summary>
 [Route("api/v1/debug/ai")]
-[Authorize(Policy = Policies.Admin)]
+[RequireRight(Area.System, Level.Manage)]
 public sealed class DebugAiController(AiService ai) : V1ControllerBase
 {
     [HttpPost]
@@ -59,16 +60,18 @@ public sealed class DebugAiController(AiService ai) : V1ControllerBase
 /// real names; a run on demand for Admins.
 /// </summary>
 [Route("api/v1/ai/analysis")]
-[Authorize(Policy = Policies.CanRead)]
+[Authorize]
 public sealed class AiAnalysisController(AiAnalysisService analysis) : V1ControllerBase
 {
     [HttpGet]
+    [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<Paged<AiAnalysisRunItem>>> List([FromQuery] AiAnalysisQuery query, CancellationToken ct) => await analysis.ListAsync(query, ct);
 
     [HttpGet("{id:guid}")]
+    [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<AiAnalysisRunDetail>> Detail(Guid id, CancellationToken ct) => await analysis.DetailAsync(id, ct);
 
     [HttpPost("run")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.Ai, Level.Manage)]
     public async Task<ActionResult<AiAnalysisQueued>> Run(CancellationToken ct) => Accepted(await analysis.RunAsync(ct));
 }

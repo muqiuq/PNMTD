@@ -21,8 +21,13 @@ const session = useSession()
             <dd class="mono">{{ session.user?.username }}</dd>
             <dt>Name</dt>
             <dd>{{ session.user?.displayName }}</dd>
-            <dt>Role</dt>
-            <dd><Tag :value="session.role ?? ''" severity="secondary" /></dd>
+            <dt>Access</dt>
+            <dd>
+              <Tag v-if="session.isAdmin" value="Admin" severity="info" />
+              <RouterLink v-else :to="{ name: 'account-security', hash: '#access-title' }"
+                >Your groups and rights ›</RouterLink
+              >
+            </dd>
             <dt>Two-factor</dt>
             <dd>
               <span v-if="session.user?.isTotpEnabled" class="on"><i class="pi pi-shield" /> On</span>

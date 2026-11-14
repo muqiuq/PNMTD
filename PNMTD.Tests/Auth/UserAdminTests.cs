@@ -25,17 +25,19 @@ public sealed class UserAdminTests
     private static string NewName() => $"n{Guid.NewGuid():N}"[..18];
 
     private static async Task<CreatedUser> CreateAsync(string role, string? name = null) =>
-        await (await admin.PostJsonAsync("/api/v1/users", new { username = name ?? NewName(), displayName = "Some One", role })).ReadAsync<CreatedUser>();
+        await (await admin.PostJsonAsync("/api/v1/users", new { username = name ?? NewName(), displayName = "Some One", isAdmin = Roles.IsAdmin(role),
+            groupIds = Roles.GroupIds(role) })).ReadAsync<CreatedUser>();
 
     [TestMethod]
     public async Task CreateShowsTheTemporaryPasswordOnce()
     {
         var name = NewName();
-        using var response = await admin.PostJsonAsync("/api/v1/users", new { username = name, role = "viewer" });
+        using var response = await admin.PostJsonAsync("/api/v1/users", new { username = name, groupIds = Roles.GroupIds(Roles.Viewer) });
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
         var created = await response.ReadAsync<CreatedUser>();
-        Assert.AreEqual((name, Roles.Viewer, true, "Some One"), (created.User.Username, created.User.Role, created.User.MustChangePassword, "Some One"));
+        Assert.AreEqual((name, Roles.Viewer, true, "Some One"), (created.User.Username, Roles.Of(created.User), created.User.MustChangePassword, "Some One"));
+        Assert.AreEqual("Viewers", created.User.Groups.Single().Name);
         Assert.AreEqual(name, created.User.DisplayName, "defaults to the username");
         var item = await (await admin.GetAsync($"/api/v1/users/{created.User.Id}")).Content.ReadAsStringAsync();
         Assert.IsFalse(item.Contains(created.TemporaryPassword.Password, StringComparison.Ordinal));
@@ -48,14 +50,14 @@ public sealed class UserAdminTests
         var name = NewName();
         await CreateAsync(Roles.User, name);
 
-        using var duplicate = await admin.PostJsonAsync("/api/v1/users", new { username = name.ToUpperInvariant(), role = "user" });
+        using var duplicate = await admin.PostJsonAsync("/api/v1/users", new { username = name.ToUpperInvariant() });
         Assert.AreEqual(HttpStatusCode.Conflict, duplicate.StatusCode);
         Assert.AreEqual("duplicate_key", (await duplicate.ProblemAsync()).GetProperty("code").GetString());
 
-        using var invalid = await admin.PostJsonAsync("/api/v1/users", new { username = "with space", role = "owner" });
-        var errors = (await invalid.ProblemAsync()).GetProperty("errors");
-        Assert.IsTrue(errors.TryGetProperty("username", out _));
-        Assert.IsTrue(errors.TryGetProperty("role", out _));
+        using var invalid = await admin.PostJsonAsync("/api/v1/users", new { username = "with space" });
+        Assert.IsTrue((await invalid.ProblemAsync()).GetProperty("errors").TryGetProperty("username", out _));
+        using var unknownGroup = await admin.PostJsonAsync("/api/v1/users", new { username = NewName(), groupIds = new[] { Guid.NewGuid() } });
+        Assert.IsTrue((await unknownGroup.ProblemAsync()).GetProperty("errors").TryGetProperty("groupIds", out _));
     }
 
     /// <summary>Nobody could manage users any more: the last active admin stays one.</summary>
@@ -65,15 +67,15 @@ public sealed class UserAdminTests
         var last = await CreateAsync(Roles.Admin);
         await using var db = app.NewDb();
         // Every other admin inactive for the test, the seeded test-admin included.
-        var others = await db.Users.Where(u => u.Role == Roles.Admin && u.IsActive && u.Id != last.User.Id).Select(u => u.Id).ToListAsync();
+        var others = await db.Users.Where(u => u.IsAdmin && u.IsActive && u.Id != last.User.Id).Select(u => u.Id).ToListAsync();
         await db.Users.Where(u => others.Contains(u.Id)).ExecuteUpdateAsync(u => u.SetProperty(x => x.IsActive, false));
         try
         {
             foreach (var request in new Func<Task<HttpResponseMessage>>[]
                      {
                          () => admin.DeleteAsync($"/api/v1/users/{last.User.Id}"),
-                         () => admin.PutJsonAsync($"/api/v1/users/{last.User.Id}", new { displayName = "x", role = "User", isActive = true }),
-                         () => admin.PutJsonAsync($"/api/v1/users/{last.User.Id}", new { displayName = "x", role = "Admin", isActive = false }),
+                         () => admin.PutJsonAsync($"/api/v1/users/{last.User.Id}", new { displayName = "x", isAdmin = false, isActive = true }),
+                         () => admin.PutJsonAsync($"/api/v1/users/{last.User.Id}", new { displayName = "x", isActive = false }),
                      })
             {
                 using var response = await request();
@@ -82,7 +84,7 @@ public sealed class UserAdminTests
             }
             // Renaming is fine.
             Assert.AreEqual(HttpStatusCode.OK,
-                (await admin.PutJsonAsync($"/api/v1/users/{last.User.Id}", new { displayName = "Renamed", role = "Admin", isActive = true })).StatusCode);
+                (await admin.PutJsonAsync($"/api/v1/users/{last.User.Id}", new { displayName = "Renamed", isActive = true })).StatusCode);
         }
         finally
         {
@@ -101,10 +103,10 @@ public sealed class UserAdminTests
         await CreateAsync(Roles.Admin, $"{tag}-a");
 
         var byName = await (await admin.GetAsync($"/api/v1/users?search={tag}")).ReadAsync<Paged<UserItem>>();
-        var byRole = await (await admin.GetAsync($"/api/v1/users?search={tag}&sort=-role")).ReadAsync<Paged<UserItem>>();
+        var byAdmin = await (await admin.GetAsync($"/api/v1/users?search={tag}&sort=-admin")).ReadAsync<Paged<UserItem>>();
 
         CollectionAssert.AreEqual(new[] { $"{tag}-a", $"{tag}-b" }, byName.Items.Select(u => u.Username).ToArray());
-        CollectionAssert.AreEqual(new[] { Roles.Viewer, Roles.Admin }, byRole.Items.Select(u => u.Role).ToArray());
+        CollectionAssert.AreEqual(new[] { Roles.Admin, Roles.Viewer }, byAdmin.Items.Select(Roles.Of).ToArray());
     }
 
     [TestMethod]

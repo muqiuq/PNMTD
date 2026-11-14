@@ -40,7 +40,7 @@ const query = useQuery({
   refetchInterval: computed(() => (polling.value ? 2_000 : 30_000)),
 })
 const zone = computed(() => query.data.value)
-const canWrite = computed(() => session.can('User'))
+const canWrite = computed(() => session.can('Monitoring', 'Edit'))
 const state = computed(() => (zone.value ? zoneStatus(zone.value) : null))
 
 const mismatches = computed(() => zone.value?.records.filter((r) => !r.isMatch && !r.ignore) ?? [])

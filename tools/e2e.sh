@@ -60,7 +60,7 @@ echo "Starting ${NAME} on port ${PORT}…"
 ./start.sh >"$log" 2>&1 || { cat "$log" >&2; exit 1; }
 
 user="e2e-$(od -An -N4 -tx1 /dev/urandom | tr -d ' \n')"
-"$ENGINE" exec "$NAME" pnmtd users add "$user" --role admin --display-name "E2E Admin" >"$log" 2>&1 \
+"$ENGINE" exec "$NAME" pnmtd users add "$user" --admin --display-name "E2E Admin" >"$log" 2>&1 \
   || { cat "$log" >&2; exit 1; }
 password="$(awk '/^    [A-Za-z0-9]+$/ {print $1}' "$log")"
 [[ -n "$password" ]] || { cat "$log" >&2; echo "users add printed no temporary password" >&2; exit 1; }
@@ -68,9 +68,9 @@ password="$(awk '/^    [A-Za-z0-9]+$/ {print $1}' "$log")"
 # Another admin and a viewer with passwords of their own, for the page tests (no forced change).
 admin_password="e2e-admin-$(od -An -N6 -tx1 /dev/urandom | tr -d ' \n')"
 viewer_password="e2e-viewer-$(od -An -N6 -tx1 /dev/urandom | tr -d ' \n')"
-echo "$admin_password" | "$ENGINE" exec -i "$NAME" pnmtd users add e2e-admin --role admin --display-name "Ada Admin" --password-stdin >"$log" 2>&1 \
+echo "$admin_password" | "$ENGINE" exec -i "$NAME" pnmtd users add e2e-admin --admin --display-name "Ada Admin" --password-stdin >"$log" 2>&1 \
   || { cat "$log" >&2; exit 1; }
-echo "$viewer_password" | "$ENGINE" exec -i "$NAME" pnmtd users add e2e-viewer --role viewer --display-name "Vera Viewer" --password-stdin >"$log" 2>&1 \
+echo "$viewer_password" | "$ENGINE" exec -i "$NAME" pnmtd users add e2e-viewer --groups Viewers --display-name "Vera Viewer" --password-stdin >"$log" 2>&1 \
   || { cat "$log" >&2; exit 1; }
 
 # node_modules (with @playwright/test) are those of tools/npm.sh: installed if the lock changed.

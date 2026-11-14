@@ -2,13 +2,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Api.V1;
 
 /// <summary>The tunnel network on the admin page (docs/mikrotik-plan.md §10, §11.2). Admin only.</summary>
 [Route("api/v1/wireguard")]
-[Authorize(Policy = Policies.Admin)]
+[RequireRight(Area.Mikrotik, Level.Manage)]
 public sealed class WireGuardController(WireGuardService wireGuard, WireGuardTunnelService tunnels) : V1ControllerBase
 {
     /// <summary>The gateway, the endpoint in effect with the source of each part, peers up out of all, and warnings.</summary>
@@ -57,7 +58,7 @@ public sealed class WireGuardController(WireGuardService wireGuard, WireGuardTun
 
 /// <summary>A user's own custom tunnels (§3.5, §11.3): any role, only the tunnels an Admin gave them.</summary>
 [Route("api/v1/account/tunnels")]
-[Authorize(Policy = Policies.CanRead)]
+[Authorize]
 public sealed class AccountTunnelsController(WireGuardTunnelService tunnels) : V1ControllerBase
 {
     [HttpGet]

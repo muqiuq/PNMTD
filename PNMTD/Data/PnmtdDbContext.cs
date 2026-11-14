@@ -41,6 +41,11 @@ namespace PNMTD.Data
 
         public DbSet<UserEntity> Users { get; set; }
 
+        // Groups and rights (docs/audit-redmine-zabbix-plan.md §5).
+        public DbSet<GroupEntity> Groups { get; set; }
+        public DbSet<GroupRightEntity> GroupRights { get; set; }
+        public DbSet<UserGroupEntity> UserGroups { get; set; }
+
         public DbSet<AuditLogEntity> AuditLog { get; set; }
 
         // UDP nodes (docs/udp-iot-plan.md §4.3).
@@ -174,6 +179,22 @@ namespace PNMTD.Data
             modelBuilder.Entity<EventEntity>().HasIndex(e => e.Created);
 
             modelBuilder.Entity<UserEntity>().HasIndex(u => u.NormalizedUsername).IsUnique();
+            // Groups (docs/audit-redmine-zabbix-plan.md §5.1): levels as text, so a renamed enum member can't shift them.
+            modelBuilder.Entity<GroupEntity>().HasIndex(g => g.NormalizedName).IsUnique();
+            modelBuilder.Entity<GroupRightEntity>(e =>
+            {
+                e.HasKey(r => new { r.GroupId, r.Area });
+                e.Property(r => r.Area).HasConversion<string>().HasMaxLength(32);
+                e.Property(r => r.Level).HasConversion<string>().HasMaxLength(16);
+                e.HasOne<GroupEntity>().WithMany(g => g.Rights).HasForeignKey(r => r.GroupId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<UserGroupEntity>(e =>
+            {
+                e.HasKey(m => new { m.UserId, m.GroupId });
+                e.HasOne<UserEntity>().WithMany(u => u.Groups).HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(m => m.Group).WithMany(g => g.Members).HasForeignKey(m => m.GroupId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(m => m.GroupId);
+            });
             // The audit log (docs/audit-redmine-zabbix-plan.md §3.2): text for the enums, so that later actors need no migration.
             modelBuilder.Entity<AuditLogEntity>(e =>
             {

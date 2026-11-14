@@ -281,7 +281,7 @@ public sealed class SshKeyManagerTests
     [TestMethod]
     public async Task ADeletedUsersKeysBecomeFormerUsersAndMineAnswersOnlyTheCallersKeys()
     {
-        var created = await (await admin.PostJsonAsync("/api/v1/users", new CreateUserRequest { Username = $"leaver{Random.Shared.Next(100_000)}", Role = Roles.User }))
+        var created = await (await admin.PostJsonAsync("/api/v1/users", new CreateUserRequest { Username = $"leaver{Random.Shared.Next(100_000)}", GroupIds = Roles.GroupIds(Roles.User) }))
             .ReadAsync<CreatedUser>();
         var leaver = created.User;
         var key = NewKey("leaver@laptop");
@@ -293,7 +293,7 @@ public sealed class SshKeyManagerTests
         Assert.AreEqual(registered.Id, keys.Keys.Single().Key.Id);
 
         // Deactivated: the strip names the user while their keys are authorized somewhere; deleted: the names stay, the owner becomes a text.
-        Assert.AreEqual(HttpStatusCode.OK, (await admin.PutJsonAsync($"/api/v1/users/{leaver.Id}", new UpdateUserRequest { DisplayName = "Leaver", Role = Roles.User, IsActive = false }))
+        Assert.AreEqual(HttpStatusCode.OK, (await admin.PutJsonAsync($"/api/v1/users/{leaver.Id}", new UpdateUserRequest { DisplayName = "Leaver", IsActive = false }))
             .StatusCode);
         var item = (await (await admin.GetAsync($"/api/v1/ssh-keys?owner={leaver.Id}")).ReadAsync<Paged<SshKeyItem>>()).Items.Single();
         CollectionAssert.Contains(item.Notes.ToList(), "ownerDeactivated");

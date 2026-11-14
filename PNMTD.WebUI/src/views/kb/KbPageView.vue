@@ -53,7 +53,7 @@ const query = useQuery({
   refetchInterval: 30_000,
 })
 const page = computed(() => query.data.value)
-const canWrite = computed(() => session.can('User'))
+const canWrite = computed(() => session.can('KnowledgeBase', 'Edit'))
 const archived = computed(() => !!page.value?.archivedAt)
 const writable = computed(() => canWrite.value && !archived.value)
 
@@ -208,7 +208,7 @@ const more = computed(() => {
             : { label: 'Archive', icon: 'pi pi-inbox', command: () => archive(true) },
         ]
       : []),
-    ...(session.can('Admin') && archived.value
+    ...(session.can('KnowledgeBase', 'Manage') && archived.value
       ? [
           {
             label: 'Delete…',

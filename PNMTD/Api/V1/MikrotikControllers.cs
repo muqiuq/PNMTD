@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Models.Enums;
 using PNMTD.Services.Domain;
 
@@ -9,11 +10,12 @@ namespace PNMTD.Api.V1;
 
 /// <summary>A router's own endpoints (docs/mikrotik-plan.md §10): its scripts, the host key, poll now, its backups.</summary>
 [Route("api/v1/sensors/{id:guid}/mikrotik")]
-[Authorize(Policy = Policies.CanRead)]
+[Authorize]
 public sealed class SensorMikrotikController(MikrotikRouterService routers, MikrotikBackupService backups, MikrotikJobService jobs) : V1ControllerBase
 {
     /// <summary>The router's update jobs, newest first (§7).</summary>
     [HttpGet("jobs")]
+    [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<Paged<MikrotikJobItem>>> Jobs(Guid id, [FromQuery] MikrotikJobQuery query, CancellationToken ct)
     {
         await routers.EnsureRouterAsync(id, ct);
@@ -23,10 +25,12 @@ public sealed class SensorMikrotikController(MikrotikRouterService routers, Mikr
 
     /// <summary>A job of the router, with its log.</summary>
     [HttpGet("jobs/{jobId:guid}")]
+    [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<MikrotikJobDetail>> Job(Guid id, Guid jobId, CancellationToken ct) => await jobs.GetAsync(jobId, id, ct);
 
     /// <summary>The changelog of a release (by default the newest of the router's channel), from MikroTik's update server.</summary>
     [HttpGet("changelog")]
+    [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<MikrotikChangelog>> Changelog(Guid id, [FromQuery] string version, CancellationToken ct) =>
         await jobs.ChangelogAsync(version, ct);
 
@@ -35,58 +39,59 @@ public sealed class SensorMikrotikController(MikrotikRouterService routers, Mikr
     /// WireGuard modes it holds the router's private key; every view is audit-logged.
     /// </summary>
     [HttpGet("join-script")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<MikrotikScript>> JoinScript(Guid id, CancellationToken ct) =>
         await routers.ScriptAsync(id, removal: false, ct);
 
     /// <summary>The script that removes everything PNMT created on the router (§4.6).</summary>
     [HttpGet("removal-script")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<MikrotikScript>> RemovalScript(Guid id, CancellationToken ct) =>
         await routers.ScriptAsync(id, removal: true, ct);
 
     /// <summary>Polls the router now, and answers when the poll is done.</summary>
     [HttpPost("poll")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Commands, Level.Run)]
     public async Task<ActionResult<MikrotikRouterDetail>> Poll(Guid id, CancellationToken ct) =>
         await routers.PollNowAsync(id, ct);
 
     /// <summary>New tunnel keys (§3.2): every copy of the join script stops working, and so does the router until it gets the new one. Audit-logged.</summary>
     [HttpPost("regenerate-keys")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<MikrotikRouterDetail>> RegenerateKeys(Guid id, CancellationToken ct) =>
         await routers.RegenerateKeysAsync(id, ct);
 
     /// <summary>Accepts the host key the router presented instead of the pinned one (§4.4). Audit-logged.</summary>
     [HttpPost("host-key/accept")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.Mikrotik, Level.Manage)]
     public async Task<ActionResult<MikrotikRouterDetail>> AcceptHostKey(Guid id, CancellationToken ct) =>
         await routers.AcceptHostKeyAsync(id, ct);
 
     /// <summary>The stored versions, newest first, without their content (§6.3).</summary>
     [HttpGet("backups")]
+    [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<Paged<MikrotikBackupItem>>> Backups(Guid id, [FromQuery] MikrotikBackupQuery query, CancellationToken ct) =>
         await backups.ListAsync(id, query, ct);
 
     /// <summary>Exports now (§6.1): a new version when the configuration changed, else nothing new.</summary>
     [HttpPost("backups")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Commands, Level.Run)]
     public async Task<ActionResult<MikrotikBackupResult>> BackUp(Guid id, CancellationToken ct) => await backups.BackupNowAsync(id, ct);
 
     /// <summary>An export's text. One with secrets needs Admin, and the view is audit-logged (§6.6).</summary>
     [HttpGet("backups/{backupId:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<MikrotikBackupContent>> Backup(Guid id, Guid backupId, CancellationToken ct) =>
         await backups.ContentAsync(id, backupId, ct);
 
     /// <summary>The changes to this version from <paramref name="against"/>, by default from the version before (§6.4).</summary>
     [HttpGet("backups/{backupId:guid}/diff")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<MikrotikBackupDiff>> Diff(Guid id, Guid backupId, [FromQuery] Guid? against, CancellationToken ct) =>
         await backups.DiffAsync(id, backupId, against, ct);
 
     [HttpGet("backups/{backupId:guid}/download")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     [ProducesResponseType<FileContentResult>(StatusCodes.Status200OK, "text/plain", "application/octet-stream")]
     public async Task<IActionResult> Download(Guid id, Guid backupId, CancellationToken ct)
     {
@@ -95,7 +100,7 @@ public sealed class SensorMikrotikController(MikrotikRouterService routers, Mikr
     }
 
     [HttpDelete("backups/{backupId:guid}")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.Mikrotik, Level.Manage)]
     public async Task<IActionResult> DeleteBackup(Guid id, Guid backupId, CancellationToken ct)
     {
         await backups.DeleteAsync(id, backupId, ct);
@@ -105,7 +110,7 @@ public sealed class SensorMikrotikController(MikrotikRouterService routers, Mikr
 
 /// <summary>The admin page's endpoints (§11.2): the overview and the fleet.</summary>
 [Route("api/v1/mikrotik")]
-[Authorize(Policy = Policies.Admin)]
+[RequireRight(Area.Mikrotik, Level.Manage)]
 public sealed class MikrotikController(MikrotikRouterService routers, MikrotikJobService jobs) : V1ControllerBase
 {
     /// <summary>The releases with a security fix and the routers behind each (docs/ai-operations-plan.md §10.4).</summary>
@@ -159,32 +164,33 @@ public sealed class MikrotikController(MikrotikRouterService routers, MikrotikJo
 /// needs CanWrite (the new-router form starts with them), changing them and many routers at once needs Admin.
 /// </summary>
 [Route("api/v1/mikrotik")]
-[Authorize(Policy = Policies.CanWrite)]
+[Authorize]
 public sealed class MikrotikBackupSettingsController(MikrotikBackupSettingsService settings) : V1ControllerBase
 {
     [HttpGet("backup-settings")]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<MikrotikBackupSettings>> BackupSettings(CancellationToken ct) => await settings.GetAsync(ct);
 
     [HttpPut("backup-settings")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.Mikrotik, Level.Manage)]
     public async Task<ActionResult<MikrotikBackupSettings>> UpdateBackupSettings(MikrotikBackupSettingsRequest request, CancellationToken ct) =>
         await settings.UpdateAsync(request, ct);
 
     /// <summary>The backup schedule of many routers at once.</summary>
     [HttpPost("routers/backup-settings")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.Mikrotik, Level.Manage)]
     public async Task<ActionResult<MikrotikRouterBackupResult>> ApplyBackupSettings(MikrotikRouterBackupRequest request, CancellationToken ct) =>
         await settings.ApplyAsync(request, ct);
 
     /// <summary>The public key new backups are encrypted with (docs/mikrotik-backup-plan.md §3.5). HTTPS only; audit-logged.</summary>
     [HttpPost("backup-keys")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.Mikrotik, Level.Manage)]
     public async Task<ActionResult<MikrotikBackupSettings>> SetBackupKey(MikrotikBackupKeyRequest request, CancellationToken ct) =>
         await settings.SetKeyAsync(request, ct);
 
     /// <summary>Encryption off: the key is retired, and every router's backups are plaintext again. Audit-logged.</summary>
     [HttpPost("backup-keys/retire")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.Mikrotik, Level.Manage)]
     public async Task<ActionResult<MikrotikBackupSettings>> RetireBackupKey(CancellationToken ct) => await settings.RetireKeyAsync(ct);
 }
 
@@ -193,7 +199,7 @@ public sealed class MikrotikBackupSettingsController(MikrotikBackupSettingsServi
 /// service). Admin runs are seen by Admins only. Starting, cancelling and redacting are audit-logged.
 /// </summary>
 [Route("api/v1/mikrotik/commands")]
-[Authorize(Policy = Policies.CanWrite)]
+[Authorize]
 public sealed class MikrotikCommandsController(MikrotikCommandService commands) : V1ControllerBase
 {
     /// <summary>
@@ -201,23 +207,28 @@ public sealed class MikrotikCommandsController(MikrotikCommandService commands) 
     /// plain HTTP and checks the credentials on every router first; the answer lists the routers refused.
     /// </summary>
     [HttpPost]
+    [RequireRight(Area.Commands, Level.Run)]
     public async Task<ActionResult<MikrotikCommandsCreated>> Run(MikrotikCommandRequest request, CancellationToken ct) =>
         await commands.CreateAsync(request, ct);
 
     [HttpGet]
+    [RequireRight(Area.Commands, Level.Run)]
     public async Task<ActionResult<Paged<MikrotikCommandItem>>> List([FromQuery] MikrotikCommandQuery query, CancellationToken ct) =>
         await commands.ListAsync(query, ct);
 
     /// <summary>A command on one router, with its output, its log and what it changed.</summary>
     [HttpGet("{id:guid}")]
+    [RequireRight(Area.Commands, Level.Run)]
     public async Task<ActionResult<MikrotikCommandDetail>> Get(Guid id, CancellationToken ct) => await commands.GetAsync(id, ct);
 
     /// <summary>A batch's results grouped by outcome and output (§8.3).</summary>
     [HttpGet("batches/{batchId:guid}")]
+    [RequireRight(Area.Commands, Level.Run)]
     public async Task<ActionResult<MikrotikCommandBatch>> Batch(Guid batchId, CancellationToken ct) => await commands.BatchAsync(batchId, ct);
 
     /// <summary>Cancels a queued or running command: one's own, or any as an Admin.</summary>
     [HttpDelete("{id:guid}")]
+    [RequireRight(Area.Commands, Level.Run)]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
     {
         await commands.CancelAsync(id, ct);
@@ -226,6 +237,6 @@ public sealed class MikrotikCommandsController(MikrotikCommandService commands) 
 
     /// <summary>Replaces the text and output with who redacted them and when (§8.3).</summary>
     [HttpPost("{id:guid}/redact")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.Mikrotik, Level.Manage)]
     public async Task<ActionResult<MikrotikCommandItem>> Redact(Guid id, CancellationToken ct) => await commands.RedactAsync(id, ct);
 }

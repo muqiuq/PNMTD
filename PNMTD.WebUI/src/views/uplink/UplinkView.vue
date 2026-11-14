@@ -23,7 +23,7 @@ import { useSession } from '@/stores/session'
  * last hours as a bar, the outages and every check. Every role reads it; an Admin checks now.
  */
 const session = useSession()
-const isAdmin = computed(() => session.can('Admin'))
+const isAdmin = computed(() => session.can('System', 'Manage'))
 const queryClient = useQueryClient()
 const overview = useQuery({ queryKey: [...keys.uplink], queryFn: api.uplink.get, refetchInterval: 15_000 })
 const o = computed(() => overview.data.value)

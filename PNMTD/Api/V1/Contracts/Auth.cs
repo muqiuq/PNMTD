@@ -1,3 +1,4 @@
+using PNMTD.Auth.Rights;
 namespace PNMTD.Api.V1.Contracts;
 
 /// <summary><c>POST /auth/login</c>.</summary>
@@ -20,8 +21,12 @@ public sealed class TotpCodeRequest
 /// </summary>
 public sealed record LoginResponse(string Next, CurrentUser? User, SessionFlags? Flags);
 
-/// <summary><c>GET /auth/me</c>: who is signed in. It also issues the XSRF-TOKEN cookie for unsafe calls.</summary>
-public sealed record CurrentUser(Guid Id, string Username, string DisplayName, string Role, bool IsTotpEnabled);
+/// <summary>
+/// <c>GET /auth/me</c>: who is signed in, and what they may do: the admin flag, or the level per area their groups give
+/// (docs/audit-redmine-zabbix-plan.md §5.4). It also issues the XSRF-TOKEN cookie for unsafe calls.
+/// </summary>
+public sealed record CurrentUser(Guid Id, string Username, string DisplayName, bool IsAdmin, IReadOnlyDictionary<Area, Level> Rights,
+    bool IsTotpEnabled);
 
 /// <summary>
 /// What the SPA must do before anything else: change the password (every other call is 403
@@ -62,7 +67,8 @@ public sealed record UserItem(
     Guid Id,
     string Username,
     string DisplayName,
-    string Role,
+    bool IsAdmin,
+    IReadOnlyList<Ref> Groups,
     bool IsActive,
     bool IsTotpEnabled,
     bool MustChangePassword,
@@ -81,7 +87,9 @@ public sealed class CreateUserRequest
 
     public string? DisplayName { get; init; }
 
-    public string? Role { get; init; } = Auth.Roles.User;
+    public bool IsAdmin { get; init; }
+
+    public List<Guid>? GroupIds { get; init; }
 }
 
 /// <summary><c>PUT /users/{id}</c>. The username stays.</summary>
@@ -89,9 +97,13 @@ public sealed class UpdateUserRequest
 {
     public string? DisplayName { get; init; }
 
-    public string? Role { get; init; }
+    /// <summary>Unchanged when missing.</summary>
+    public bool? IsAdmin { get; init; }
 
     public bool IsActive { get; init; } = true;
+
+    /// <summary>Unchanged when missing.</summary>
+    public List<Guid>? GroupIds { get; init; }
 }
 
 /// <summary>A temporary password: shown once, valid until <see cref="ExpiresAt"/>, changed at the next sign-in.</summary>
@@ -100,3 +112,9 @@ public sealed record TemporaryPassword(string Password, DateTime ExpiresAt);
 public sealed record CreatedUser(UserItem User, TemporaryPassword TemporaryPassword);
 
 
+
+/// <summary><c>GET /users</c>: newest sign-in, admins, and members of a group.</summary>
+public sealed class UserQuery : PageQuery
+{
+    public Guid? GroupId { get; set; }
+}

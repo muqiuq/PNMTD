@@ -2,13 +2,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Api.V1;
 
 /// <summary>Monitoring → Decisions (docs/ai-operations-plan.md §5.3): the User role, as the mail log.</summary>
 [Route("api/v1/decisions")]
-[Authorize(Policy = Policies.CanWrite)]
+[RequireRight(Area.Decisions, Level.Decide)]
 public sealed class DecisionsController(DecisionService decisions) : V1ControllerBase
 {
     [HttpGet]

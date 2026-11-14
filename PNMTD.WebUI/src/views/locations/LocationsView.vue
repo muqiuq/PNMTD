@@ -91,7 +91,7 @@ const open = (i: LocationItem) => router.push({ name: 'location', params: { id: 
         <span class="muted">{{ items.length }}</span>
       </template>
       <template #actions>
-        <template v-if="session.can('User')">
+        <template v-if="session.can('Locations', 'Edit')">
           <Button
             label="From the hosts' texts…"
             icon="pi pi-sparkles"
@@ -129,7 +129,13 @@ const open = (i: LocationItem) => router.push({ name: 'location', params: { id: 
       text="A location is a site, a building or a room: its hosts, its information, its pages."
       class="panel"
     >
-      <Button v-if="session.can('User')" label="From the hosts' texts…" size="small" text @click="fromTexts = true" />
+      <Button
+        v-if="session.can('Locations', 'Edit')"
+        label="From the hosts' texts…"
+        size="small"
+        text
+        @click="fromTexts = true"
+      />
     </EmptyState>
     <DataTable
       v-else-if="searching"

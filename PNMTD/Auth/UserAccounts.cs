@@ -30,6 +30,9 @@ public sealed record AuditContext(string? IpAddress, string? UserAgent, string? 
 /// </summary>
 public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = null)
 {
+    /// <summary>For the CLI, which looks groups up by name.</summary>
+    internal PnmtdDbContext Db => db;
+
     public static readonly TimeSpan TemporaryPasswordLifetime = TimeSpan.FromDays(7);
 
     private static readonly Regex UsernamePattern = new("^[A-Za-z0-9._@-]{2,64}$", RegexOptions.CultureInvariant);
@@ -37,10 +40,6 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
     public static string Normalize(string username) => username.Trim().ToLowerInvariant();
 
     public static string NewStamp() => Guid.NewGuid().ToString("N");
-
-    /// <summary>"admin", "User", … to the role's canonical name; null if there is no such role.</summary>
-    public static string? ParseRole(string? role) =>
-        Roles.All.FirstOrDefault(r => string.Equals(r, role?.Trim(), StringComparison.OrdinalIgnoreCase));
 
     public Task<UserEntity?> FindAsync(string username, CancellationToken ct = default)
     {
@@ -55,14 +54,12 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
     /// A new user. Without <paramref name="password"/> one is generated: a temporary password that
     /// is shown once, expires after 7 days and must be changed at the first sign-in.
     /// </summary>
-    public async Task<(UserEntity User, string? TemporaryPassword)> CreateAsync(string? username, string? displayName, string? role,
-        string? password, AuditContext audit, CancellationToken ct = default)
+    public async Task<(UserEntity User, string? TemporaryPassword)> CreateAsync(string? username, string? displayName, bool isAdmin,
+        IReadOnlyCollection<Guid>? groupIds, string? password, AuditContext audit, CancellationToken ct = default)
     {
         var name = username?.Trim() ?? "";
-        var canonicalRole = ParseRole(role);
         var v = new ApiValidator()
             .Check(UsernamePattern.IsMatch(name), "username", "2 to 64 letters, digits or . _ @ -.")
-            .Check(canonicalRole is not null, "role", "Admin, User or Viewer.")
             .Check(displayName is null || displayName.Trim().Length <= 128, "displayName", "At most 128 characters.");
         if (password is not null && PasswordHasher.PolicyViolation(password) is { } violation)
         {
@@ -73,6 +70,7 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
         {
             throw ApiException.Conflict(ApiErrorCodes.DuplicateKey, $"The username {name} is taken.");
         }
+        var groups = await GroupsAsync(groupIds, ct);
 
         var now = Clock.UtcNow;
         var temporary = password is null ? SecurePasswordGenerator.Generate() : null;
@@ -83,7 +81,7 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
             NormalizedUsername = Normalize(name),
             DisplayName = string.IsNullOrWhiteSpace(displayName) ? name : displayName.Trim(),
             PasswordHash = PasswordHasher.Hash(password ?? temporary!),
-            Role = canonicalRole!,
+            IsAdmin = isAdmin,
             IsActive = true,
             MustChangePassword = temporary is not null,
             TemporaryPasswordExpiresAt = temporary is not null ? now + TemporaryPasswordLifetime : null,
@@ -91,31 +89,36 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
             CreatedAt = now,
             PasswordChangedAt = now,
         };
+        user.Groups.AddRange(groups.Select(g => new UserGroupEntity { UserId = user.Id, GroupId = g.Id }));
         db.Users.Add(user);
-        Log(AuditEvents.UserCreated, user, audit, $"role {user.Role}");
+        Log(AuditEvents.UserCreated, user, audit, Access(isAdmin, groups.Select(g => g.Name)));
         await SaveAsync(ct);
         return (user, temporary);
     }
 
-    /// <summary>Display name, role and active state. A role or active change ends the user's sessions.</summary>
-    public async Task<UserEntity> UpdateAsync(Guid id, string? displayName, string? role, bool isActive, AuditContext audit,
-        CancellationToken ct = default)
+    /// <summary>
+    /// Display name, admin flag, active state and groups (docs/audit-redmine-zabbix-plan.md §5.1). A change of the flag or
+    /// of the active state ends the user's sessions; groups apply from the next request, without a sign-out (§5.4).
+    /// <paramref name="isAdmin"/> and <paramref name="groupIds"/> null: unchanged.
+    /// </summary>
+    public async Task<UserEntity> UpdateAsync(Guid id, string? displayName, bool? isAdmin, bool isActive, IReadOnlyCollection<Guid>? groupIds,
+        AuditContext audit, CancellationToken ct = default)
     {
-        var user = await GetAsync(id, ct);
-        var canonicalRole = ParseRole(role);
+        var user = await db.Users.Include(u => u.Groups).ThenInclude(m => m.Group).SingleOrDefaultAsync(u => u.Id == id, ct)
+            ?? throw ApiException.NotFound("User");
         new ApiValidator()
-            .Check(canonicalRole is not null, "role", "Admin, User or Viewer.")
             .Check(!string.IsNullOrWhiteSpace(displayName) && displayName.Trim().Length <= 128, "displayName", "1 to 128 characters.")
             .ThrowIfInvalid();
-        if (canonicalRole != Roles.Admin || !isActive)
+        var groups = groupIds is null ? null : await GroupsAsync(groupIds, ct);
+        if (isAdmin == false || !isActive)
         {
             await GuardLastAdminAsync(user, ct);
         }
         user.DisplayName = displayName!.Trim();
-        if (user.Role != canonicalRole)
+        if (isAdmin is { } admin && user.IsAdmin != admin)
         {
-            Log(AuditEvents.RoleChanged, user, audit, $"{user.Role} → {canonicalRole}");
-            user.Role = canonicalRole!;
+            Log(AuditEvents.UserAdminChanged, user, audit, admin ? "now an admin" : "no longer an admin");
+            user.IsAdmin = admin;
             user.SecurityStamp = NewStamp();
         }
         if (user.IsActive != isActive)
@@ -124,9 +127,43 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
             user.IsActive = isActive;
             user.SecurityStamp = NewStamp();
         }
+        if (groups is not null)
+        {
+            var before = user.Groups.Select(m => m.Group.Name).Order(StringComparer.OrdinalIgnoreCase).ToList();
+            var after = groups.Select(g => g.Name).Order(StringComparer.OrdinalIgnoreCase).ToList();
+            if (!before.SequenceEqual(after))
+            {
+                Log(AuditEvents.UserGroupsChanged, user, audit, $"{Names(before)} → {Names(after)}");
+                user.Groups.RemoveAll(m => !groups.Any(g => g.Id == m.GroupId));
+                user.Groups.AddRange(groups.Where(g => user.Groups.All(m => m.GroupId != g.Id))
+                    .Select(g => new UserGroupEntity { UserId = user.Id, GroupId = g.Id }));
+            }
+        }
         await SaveAsync(ct);
         sessions?.Forget(user.Id);
         return user;
+    }
+
+    /// <summary>"admin", "groups Operators, Viewers", "no groups": what a user may do, for the audit.</summary>
+    public static string Access(bool isAdmin, IEnumerable<string> groups)
+    {
+        var names = groups.ToList();
+        return isAdmin ? "admin" + (names.Count > 0 ? $", groups {string.Join(", ", names)}" : "") : names.Count > 0 ? $"groups {string.Join(", ", names)}" : "no groups";
+    }
+
+    private static string Names(IReadOnlyCollection<string> names) => names.Count == 0 ? "none" : string.Join(", ", names);
+
+    /// <summary>The groups of a request: each must exist (422 groupIds otherwise).</summary>
+    private async Task<List<GroupEntity>> GroupsAsync(IReadOnlyCollection<Guid>? ids, CancellationToken ct)
+    {
+        if (ids is not { Count: > 0 })
+        {
+            return [];
+        }
+        var distinct = ids.Distinct().ToList();
+        var groups = await db.Groups.Where(g => distinct.Contains(g.Id)).ToListAsync(ct);
+        new ApiValidator().Check(groups.Count == distinct.Count, "groupIds", "Unknown group.").ThrowIfInvalid();
+        return groups;
     }
 
     /// <summary>
@@ -257,8 +294,8 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
         var username = configuration["Auth:InitialAdmin:Username"];
         var password = configuration["Auth:InitialAdmin:Password"];
         var generated = string.IsNullOrEmpty(password) ? SecurePasswordGenerator.Generate() : null;
-        var (user, _) = await CreateAsync(string.IsNullOrWhiteSpace(username) ? "admin" : username, null, Roles.Admin, password ?? generated,
-            new AuditContext(null, null, "seed"), ct);
+        var (user, _) = await CreateAsync(string.IsNullOrWhiteSpace(username) ? "admin" : username, null, isAdmin: true, groupIds: null,
+            password ?? generated, new AuditContext(null, null, "seed"), ct);
         // Known to whoever reads .env or the log: changed at the first sign-in, but it does not expire.
         user.MustChangePassword = true;
         await SaveAsync(ct);
@@ -271,11 +308,11 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
     /// </summary>
     private async Task GuardLastAdminAsync(UserEntity user, CancellationToken ct)
     {
-        if (user.Role != Roles.Admin || !user.IsActive)
+        if (!user.IsAdmin || !user.IsActive)
         {
             return;
         }
-        if (!await db.Users.AnyAsync(u => u.Id != user.Id && u.Role == Roles.Admin && u.IsActive, ct))
+        if (!await db.Users.AnyAsync(u => u.Id != user.Id && u.IsAdmin && u.IsActive, ct))
         {
             throw ApiException.Conflict("last_admin", "This is the last active admin.");
         }
@@ -325,6 +362,15 @@ public static class SessionClaims
     /// </summary>
     public const string TotpSetupPending = "pnmt:totp_setup_pending";
 
+    /// <summary>
+    /// The admin flag and the rights (docs/audit-redmine-zabbix-plan.md §5.4), like <see cref="TotpSetupPending"/> never in
+    /// the cookie: added on every request from the user's groups, so a group's change applies to open sessions at once.
+    /// </summary>
+    public const string Admin = "pnmt:admin";
+
+    /// <summary>One per area: "Monitoring:Edit".</summary>
+    public const string Right = "pnmt:right";
+
     public static ClaimsPrincipal Create(UserEntity user)
     {
         var claims = new List<Claim>
@@ -332,7 +378,6 @@ public static class SessionClaims
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.Username),
             new(DisplayName, user.DisplayName),
-            new(ClaimTypes.Role, user.Role),
             new(SecurityStamp, user.SecurityStamp),
         };
         if (user.MustChangePassword)

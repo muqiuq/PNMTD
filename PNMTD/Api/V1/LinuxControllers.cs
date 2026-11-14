@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Api.V1;
@@ -11,7 +12,7 @@ namespace PNMTD.Api.V1;
 /// are under /api/v1/agents/ (AgentControllers.cs); a Windows server's sections under /api/v1/windows/ (WindowsControllers.cs).
 /// </summary>
 [Route("api/v1/linux/servers")]
-[Authorize(Policy = Policies.CanRead)]
+[RequireRight(Area.Monitoring, Level.View)]
 public sealed class LinuxServersController(AgentServerService servers) : V1ControllerBase
 {
     /// <summary>A section, typed by Linux's records (§5). <c>access</c>, <c>journal</c> and <c>ssh-keys</c> need the User role. 404 for a Windows server.</summary>

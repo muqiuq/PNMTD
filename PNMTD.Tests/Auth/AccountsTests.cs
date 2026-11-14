@@ -60,7 +60,7 @@ public sealed class AccountsTests
         var (admin, generated) = await new UserAccounts(db).SeedAsync(config);
         var (again, _) = await new UserAccounts(db).SeedAsync(config);
 
-        Assert.AreEqual(("root", Roles.Admin, true), (admin!.Username, admin.Role, admin.MustChangePassword));
+        Assert.AreEqual(("root", true, true), (admin!.Username, admin.IsAdmin, admin.MustChangePassword));
         Assert.IsNull(admin.TemporaryPasswordExpiresAt, "init.sh's password does not expire before the first sign-in");
         Assert.IsNull(generated);
         Assert.IsNull(again);
@@ -108,10 +108,13 @@ public sealed class AccountsTests
         Assert.IsTrue(report.Succeeded, report.ToText());
         CollectionAssert.AreEqual(new[]
         {
-            "Philipp (Admin): keeps its password",
-            "pnmt (Admin): must change the default password pnmt",
-            "ops (User): keeps its password",
+            "Philipp (admin): keeps its password",
+            "pnmt (admin): must change the default password pnmt",
+            "ops (Operators): keeps its password",
         }, report.Users);
+        // v0.12's non-admins were Users: members of Operators now (docs/audit-redmine-zabbix-plan.md §5.3).
+        var ops = await db.Users.SingleAsync(u => u.Username == "ops");
+        Assert.IsTrue(await db.UserGroups.AnyAsync(m => m.UserId == ops.Id && m.GroupId == Models.Db.GroupEntity.Operators));
         var users = await db.Users.OrderBy(u => u.NormalizedUsername).ToListAsync();
         Assert.AreEqual(adminId, users.Single(u => u.Username == "Philipp").Id, "ids are kept");
         Assert.AreEqual("Philipp A.", users.Single(u => u.Username == "Philipp").DisplayName);
@@ -162,7 +165,7 @@ public sealed class AccountsTests
 
         Assert.IsTrue(report.Succeeded, report.ToText());
         var user = await db.Users.SingleAsync();
-        Assert.AreEqual(("pnmt", "pnmt", Roles.Admin, false), (user.Username, user.DisplayName, user.Role, user.MustChangePassword));
+        Assert.AreEqual(("pnmt", "pnmt", true, false), (user.Username, user.DisplayName, user.IsAdmin, user.MustChangePassword));
         Assert.AreNotEqual(Guid.Empty, user.Id);
     }
 
@@ -212,24 +215,24 @@ public sealed class AccountsTests
     public async Task TheUsersCommandAddsResetsUnlocksAndListsUsers()
     {
         var name = $"c{Guid.NewGuid():N}"[..14];
-        var (exit, output) = Cli(null, "users", "add", name, "--role", "viewer", "--display-name", "Command Line");
+        var (exit, output) = Cli(null, "users", "add", name, "--groups", "viewers", "--display-name", "Command Line");
         Assert.AreEqual(0, exit, output);
         var temporary = output.Split('\n').Single(l => l.StartsWith("    ", StringComparison.Ordinal)).Trim();
 
         await using var db = Data.PnmtdDbContext.Create(Data.DatabaseSettings.ConnectionString(TestDefaults.Configuration));
         var auth = new AuthService(db, new UserAccounts(db), TestUsers.TotpSecrets);
         var login = await auth.LoginAsync(name, temporary, AuditContext.Cli);
-        Assert.AreEqual((LoginStatus.Success, Roles.Viewer, true), (login.Status, login.User!.Role, login.User.MustChangePassword));
+        Assert.AreEqual((LoginStatus.Success, Roles.Viewer, true), (login.Status, Roles.Of(login.User!, db), login.User.MustChangePassword));
 
         Assert.AreEqual(0, Cli("chosen-password-123", "users", "reset-password", name, "--password-stdin").Exit);
         db.ChangeTracker.Clear();
         login = await auth.LoginAsync(name, "chosen-password-123", AuditContext.Cli);
         Assert.AreEqual((LoginStatus.Success, false), (login.Status, login.User!.MustChangePassword), "a chosen password is not temporary");
 
-        Assert.AreEqual(0, Cli(null, "users", "set-role", name, "ADMIN").Exit);
+        Assert.AreEqual(0, Cli(null, "users", "admin", name, "on").Exit);
         await db.Users.Where(u => u.Username == name).ExecuteUpdateAsync(u => u.SetProperty(x => x.LockoutEnd, DateTime.UtcNow.AddHours(1)));
         var (_, list) = Cli(null, "users", "list");
-        StringAssert.Matches(list, new System.Text.RegularExpressions.Regex($@"{name}\s+Admin\s+active\s+-\s+locked until"));
+        StringAssert.Matches(list, new System.Text.RegularExpressions.Regex($@"{name}\s+admin, groups Viewers\s+active\s+-\s+locked until"));
         Assert.AreEqual(0, Cli(null, "users", "unlock", name).Exit);
         db.ChangeTracker.Clear();
         Assert.IsNull(await db.Users.Where(u => u.Username == name).Select(u => u.LockoutEnd).SingleAsync());

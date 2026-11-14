@@ -153,7 +153,7 @@ export const api = {
   },
 
   users: {
-    list: (query: ListQuery) => call(client.GET('/api/v1/users', { params: { query } })),
+    list: (query: ListQuery & { groupId?: Id }) => call(client.GET('/api/v1/users', { params: { query } })),
     create: (body: S['CreateUserRequest']) => call(client.POST('/api/v1/users', { body })),
     update: (id: Id, body: S['UpdateUserRequest']) =>
       call(client.PUT('/api/v1/users/{id}', { params: { path: { id } }, body })),
@@ -161,6 +161,23 @@ export const api = {
     resetPassword: (id: Id) => call(client.POST('/api/v1/users/{id}/reset-password', { params: { path: { id } } })),
     resetTotp: (id: Id) => call(client.POST('/api/v1/users/{id}/reset-totp', { params: { path: { id } } })),
     unlock: (id: Id) => call(client.POST('/api/v1/users/{id}/unlock', { params: { path: { id } } })),
+    access: (id: Id) => call(client.GET('/api/v1/users/{id}/access', { params: { path: { id } } })),
+  },
+
+  // --- groups and rights (docs/audit-redmine-zabbix-plan.md §5): admins; the catalog and one's own access everyone's ----
+  groups: {
+    list: () => call(client.GET('/api/v1/groups')),
+    get: (id: Id) => call(client.GET('/api/v1/groups/{id}', { params: { path: { id } } })),
+    create: (body: S['GroupRequest']) => call(client.POST('/api/v1/groups', { body })),
+    update: (id: Id, body: S['GroupRequest']) =>
+      call(client.PUT('/api/v1/groups/{id}', { params: { path: { id } }, body })),
+    remove: (id: Id) => call(client.DELETE('/api/v1/groups/{id}', { params: { path: { id } } })),
+    members: (id: Id, userIds: Id[]) =>
+      call(client.PUT('/api/v1/groups/{id}/members', { params: { path: { id } }, body: { userIds } })),
+  },
+  rights: {
+    catalog: () => call(client.GET('/api/v1/rights')),
+    mine: () => call(client.GET('/api/v1/account/access')),
   },
 
   // --- the audit log (docs/audit-redmine-zabbix-plan.md §4.2) ------------------------------------
@@ -608,6 +625,8 @@ export const keys = {
   mail: ['mail'] as const,
   keyValues: ['key-values'] as const,
   users: ['users'] as const,
+  groups: ['groups'] as const,
+  rights: ['rights'] as const,
   audit: ['audit'] as const,
   system: ['system'] as const,
   /** Everything UDP: the admin page's lists, a node's packets, commands and updates, the protocol examples. */

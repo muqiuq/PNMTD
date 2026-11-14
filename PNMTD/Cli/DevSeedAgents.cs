@@ -385,7 +385,7 @@ internal static class DevSeedAgents
     /// <summary>The demo users who own keys: philipp (an Admin) and jdoe (deactivated, so the strip offers offboarding). Unusable passwords.</summary>
     private static KeyOwners SeedKeyOwners(PnmtdDbContext db, DateTime now)
     {
-        UserEntity User(string username, string displayName, string role, bool active)
+        UserEntity User(string username, string displayName, bool admin, bool active)
         {
             var existing = db.Users.SingleOrDefault(u => u.NormalizedUsername == username);
             if (existing is not null)
@@ -395,13 +395,17 @@ internal static class DevSeedAgents
             var user = new UserEntity
             {
                 Id = Guid.NewGuid(), Username = username, NormalizedUsername = username, DisplayName = displayName,
-                PasswordHash = Lib.Security.PasswordHasher.Hash(Lib.Security.SecurePasswordGenerator.Generate()), Role = role, IsActive = active,
+                PasswordHash = Lib.Security.PasswordHasher.Hash(Lib.Security.SecurePasswordGenerator.Generate()), IsAdmin = admin, IsActive = active,
                 MustChangePassword = true, SecurityStamp = Auth.UserAccounts.NewStamp(), CreatedAt = now.AddDays(-90),
             };
+            if (!admin)
+            {
+                user.Groups.Add(new UserGroupEntity { UserId = user.Id, GroupId = GroupEntity.Operators });
+            }
             db.Users.Add(user);
             return user;
         }
-        return new KeyOwners(User("philipp", "Philipp", Auth.Roles.Admin, true), User("jdoe", "Jan Doe", Auth.Roles.User, false));
+        return new KeyOwners(User("philipp", "Philipp", admin: true, true), User("jdoe", "Jan Doe", admin: false, false));
     }
 
     private static AuthorizedKey Authorized(int line, SimulatedKey key, string account, IReadOnlyList<string> options, DateTime now) =>

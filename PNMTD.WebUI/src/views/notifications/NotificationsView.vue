@@ -29,7 +29,7 @@ import { HOST, importanceOptions, importanceSeverity, type Importance } from './
  * read; Users click cells and assign in bulk. Coverage lists the sensors no enabled rule reaches.
  */
 const session = useSession()
-const canWrite = computed(() => session.can('User'))
+const canWrite = computed(() => session.can('Monitoring', 'Edit'))
 const route = useRoute()
 const queryClient = useQueryClient()
 const tab = computed(() => (route.query.tab === 'coverage' ? 'coverage' : 'matrix'))

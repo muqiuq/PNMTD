@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Api.V1;
@@ -12,7 +13,7 @@ namespace PNMTD.Api.V1;
 /// key by registering it themselves. A user's own keys are <c>…/mine</c> (<see cref="SshKeysMineController"/>).
 /// </summary>
 [Route("api/v1/ssh-keys")]
-[Authorize(Policy = Policies.Admin)]
+[RequireRight(Area.SshKeys, Level.Manage)]
 public sealed class SshKeysController(SshKeyService keys) : V1ControllerBase
 {
     /// <summary>The registered keys, each with where it is authorized (counts), last use and notes. Search: name, fingerprint, comment, owner, or a pasted public key.</summary>
@@ -91,7 +92,7 @@ public sealed class SshKeysController(SshKeyService keys) : V1ControllerBase
 
 /// <summary>Every signed-in user's own keys (docs/linux-sensor-plan.md §6.4): names, where each is authorized, last use. Read-only.</summary>
 [Route("api/v1/ssh-keys/mine")]
-[Authorize(Policy = Policies.CanRead)]
+[Authorize]
 public sealed class SshKeysMineController(SshKeyService keys) : V1ControllerBase
 {
     [HttpGet]
@@ -100,7 +101,7 @@ public sealed class SshKeysMineController(SshKeyService keys) : V1ControllerBase
 
 /// <summary>The removals' history (docs/linux-sensor-plan.md §6.5, §11.4): permanent, it outlives its servers. Admin.</summary>
 [Route("api/v1/ssh-key-removals")]
-[Authorize(Policy = Policies.Admin)]
+[RequireRight(Area.SshKeys, Level.Manage)]
 public sealed class SshKeyRemovalsController(SshKeyService keys) : V1ControllerBase
 {
     [HttpGet]

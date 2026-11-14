@@ -1,10 +1,9 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { authApi, type CurrentUser, type Role, type SessionFlags, type SystemInfo } from '@/api/auth'
+import { authApi, type CurrentUser, type SessionFlags, type SystemInfo } from '@/api/auth'
 import { ApiError } from '@/api/client'
+import { holds, type Area, type Level, type Right } from '@/api/rights'
 import { clearBackupKey } from '@/composables/useBackupKey'
-
-const rank: Record<Role, number> = { Viewer: 1, User: 2, Admin: 3 }
 
 /**
  * Who is signed in, with what flags (docs/webui-migration-plan.md §4.5), and what the instance is
@@ -17,12 +16,19 @@ export const useSession = defineStore('session', () => {
   const info = ref<SystemInfo | null>(null)
   const loaded = ref(false)
 
-  const role = computed(() => (user.value?.role as Role | undefined) ?? null)
   const identity = computed(() => info.value?.identity ?? '')
 
-  /** At least this role (Viewer < User < Admin). */
-  function can(minimum: Role): boolean {
-    return role.value !== null && rank[role.value] >= rank[minimum]
+  /** The admin flag: every right, and users and groups (docs/audit-redmine-zabbix-plan.md §5.1). */
+  const isAdmin = computed(() => user.value?.isAdmin ?? false)
+
+  /** This level in this area, or more (§5.2), from the rights /auth/me returned. */
+  function can(area: Area, level: Level): boolean {
+    return user.value !== null && holds(user.value.isAdmin, user.value.rights, area, level)
+  }
+
+  /** A route's, a drawer entry's or a button's right. */
+  function allows(right: Right): boolean {
+    return right === 'admin' ? isAdmin.value : can(right[0], right[1])
   }
 
   function set(next: CurrentUser | null, nextFlags: SessionFlags | null) {
@@ -69,5 +75,5 @@ export const useSession = defineStore('session', () => {
     set(null, null)
   }
 
-  return { user, flags, info, loaded, role, identity, can, set, load, loadInfo, logout }
+  return { user, flags, info, loaded, identity, isAdmin, can, allows, set, load, loadInfo, logout }
 })

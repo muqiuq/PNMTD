@@ -67,7 +67,7 @@ const api = computed(() => [
 ])
 const visibleApi = computed(() => api.value.filter((a) => has(a.title, a.text, a.code)))
 
-// The endpoint devices send to, from the protocol examples (every role may read them).
+// The endpoint devices send to, from the protocol examples (everyone who sees monitoring may read them).
 const protocol = useQuery({
   queryKey: [...keys.udp, 'protocol', 'examples', 'reference'],
   queryFn: () => v1.udp.examples(),

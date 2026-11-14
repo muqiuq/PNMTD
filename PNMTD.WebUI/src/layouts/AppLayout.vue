@@ -37,7 +37,7 @@ const decisions = useQuery({
   queryKey: [...keys.decisions, 'count'],
   queryFn: api.decisions.count,
   refetchInterval: 30_000,
-  enabled: computed(() => session.can('User')),
+  enabled: computed(() => session.can('Decisions', 'Decide')),
 })
 const openDecisions = computed(() => decisions.data.value?.open ?? 0)
 const updatedAt = computed(() =>
@@ -58,7 +58,7 @@ async function refresh() {
   }
 }
 
-const groups = computed(() => visibleNavigation(session.can))
+const groups = computed(() => visibleNavigation(session.allows))
 // An editing page holds the drawer as a rail while it is open (docs/locations-knowledge-plan.md §5.9);
 // opening it then is for that page only, the stored preference stays as it was.
 const openedWhileHeld = ref(false)

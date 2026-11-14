@@ -1853,6 +1853,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccessItem"];
+                        "text/json": components["schemas"]["AccessItem"];
+                        "text/plain": components["schemas"]["AccessItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/account/password": {
         parameters: {
             query?: never;
@@ -2050,6 +2087,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    groupId?: string;
                     page?: number;
                     pageSize?: number;
                     sort?: string;
@@ -2191,6 +2229,45 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccessItem"];
+                        "text/json": components["schemas"]["AccessItem"];
+                        "text/plain": components["schemas"]["AccessItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3597,6 +3674,239 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GroupItem"][];
+                        "text/json": components["schemas"]["GroupItem"][];
+                        "text/plain": components["schemas"]["GroupItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GroupRequest"];
+                    "text/json": components["schemas"]["GroupRequest"];
+                    "application/*+json": components["schemas"]["GroupRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GroupDetail"];
+                        "text/json": components["schemas"]["GroupDetail"];
+                        "text/plain": components["schemas"]["GroupDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/groups/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GroupDetail"];
+                        "text/json": components["schemas"]["GroupDetail"];
+                        "text/plain": components["schemas"]["GroupDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GroupRequest"];
+                    "text/json": components["schemas"]["GroupRequest"];
+                    "application/*+json": components["schemas"]["GroupRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GroupDetail"];
+                        "text/json": components["schemas"]["GroupDetail"];
+                        "text/plain": components["schemas"]["GroupDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/groups/{id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GroupMembersRequest"];
+                    "text/json": components["schemas"]["GroupMembersRequest"];
+                    "application/*+json": components["schemas"]["GroupMembersRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GroupDetail"];
+                        "text/json": components["schemas"]["GroupDetail"];
+                        "text/plain": components["schemas"]["GroupDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RightsAreaItem"][];
+                        "text/json": components["schemas"]["RightsAreaItem"][];
+                        "text/plain": components["schemas"]["RightsAreaItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -10831,6 +11141,16 @@ export interface components {
             /** Format: int32 */
             lockouts: number;
         };
+        AccessItem: {
+            isAdmin: boolean;
+            groups: components["schemas"]["Ref"][];
+            rights: components["schemas"]["AccessLevel"][];
+        };
+        AccessLevel: {
+            area: components["schemas"]["Area"];
+            level: components["schemas"]["Level"];
+            from: string[];
+        };
         AccessSection: {
             sessions: components["schemas"]["SessionInfo"][];
             auditPolicy: components["schemas"]["AuditSetting"][];
@@ -11469,6 +11789,8 @@ export interface components {
             complaining: number;
         };
         /** @enum {unknown} */
+        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog";
+        /** @enum {unknown} */
         AssignMode: "Add" | "Remove";
         /** @enum {unknown} */
         AuditActor: "User" | "Cli" | "Agent" | "System";
@@ -11595,7 +11917,8 @@ export interface components {
         CreateUserRequest: {
             username?: null | string;
             displayName?: null | string;
-            role?: null | string;
+            isAdmin?: boolean;
+            groupIds?: null | string[];
         };
         CronEntry: {
             file: string;
@@ -11610,7 +11933,10 @@ export interface components {
             id: string;
             username: string;
             displayName: string;
-            role: string;
+            isAdmin: boolean;
+            rights: {
+                [key: string]: components["schemas"]["Level"];
+            };
             isTotpEnabled: boolean;
         };
         CustomWmiQuery: {
@@ -11758,7 +12084,7 @@ export interface components {
             /** Format: int32 */
             occurrences: number;
             disputed: boolean;
-            requiredRole: string;
+            adminOnly: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -12213,6 +12539,45 @@ export interface components {
             /** Format: int64 */
             memoryBytes: null | number;
         };
+        GroupDetail: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            rights: {
+                [key: string]: components["schemas"]["Level"];
+            };
+            members: components["schemas"]["Ref"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        GroupItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            rights: {
+                [key: string]: components["schemas"]["Level"];
+            };
+            /** Format: int32 */
+            members: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        GroupMembersRequest: {
+            userIds?: null | string[];
+        };
+        GroupRequest: {
+            name?: null | string;
+            description?: null | string;
+            rights?: null | {
+                [key: string]: components["schemas"]["Level"];
+            };
+        };
         HardwareSection: {
             machine: components["schemas"]["MachineInfo"];
             tpm: null | components["schemas"]["TpmInfo"];
@@ -12642,6 +13007,8 @@ export interface components {
             note?: null | string;
             enabled?: boolean;
         };
+        /** @enum {unknown} */
+        Level: "None" | "View" | "Edit" | "Manage" | "Run" | "Read" | "Decide" | "Link" | "Details";
         LinkedSensor: {
             /** Format: uuid */
             sensorId: string;
@@ -14430,6 +14797,15 @@ export interface components {
             firewallProfiles: string[];
             notes: string[];
         };
+        RightsAreaItem: {
+            area: components["schemas"]["Area"];
+            label: string;
+            levels: components["schemas"]["RightsLevelItem"][];
+        };
+        RightsLevelItem: {
+            level: components["schemas"]["Level"];
+            allows: string;
+        };
         RotateTokensRequest: {
             write?: boolean;
             read?: boolean;
@@ -15247,7 +15623,6 @@ export interface components {
             publicBaseUrl?: null | string;
             timeZone?: null | string;
             totpPolicy?: null | string;
-            role?: null | string;
             wireGuard?: null | boolean;
         };
         SystemSection: {
@@ -15850,8 +16225,9 @@ export interface components {
         };
         UpdateUserRequest: {
             displayName?: null | string;
-            role?: null | string;
+            isAdmin?: null | boolean;
             isActive?: boolean;
+            groupIds?: null | string[];
         };
         UplinkBucket: {
             /** Format: date-time */
@@ -15957,7 +16333,8 @@ export interface components {
             id: string;
             username: string;
             displayName: string;
-            role: string;
+            isAdmin: boolean;
+            groups: components["schemas"]["Ref"][];
             isActive: boolean;
             isTotpEnabled: boolean;
             mustChangePassword: boolean;

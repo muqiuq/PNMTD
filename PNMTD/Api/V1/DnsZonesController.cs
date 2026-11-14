@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Api.V1;
 
 [Route("api/v1/dns-zones")]
-[Authorize(Policy = Policies.CanRead)]
+[RequireRight(Area.Monitoring, Level.View)]
 public sealed class DnsZonesController(DnsZoneService zones) : V1ControllerBase
 {
     [HttpGet]
@@ -18,7 +19,7 @@ public sealed class DnsZonesController(DnsZoneService zones) : V1ControllerBase
     public async Task<ActionResult<DnsZoneDetail>> Get(Guid id, CancellationToken ct) => await zones.GetAsync(id, ct);
 
     [HttpPost]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<DnsZoneDetail>> Create(DnsZoneRequest request, CancellationToken ct)
     {
         var zone = await zones.CreateAsync(request, ct);
@@ -26,12 +27,12 @@ public sealed class DnsZonesController(DnsZoneService zones) : V1ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<DnsZoneDetail>> Update(Guid id, DnsZoneRequest request, CancellationToken ct) =>
         await zones.UpdateAsync(id, request, ct);
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         await zones.DeleteAsync(id, ct);
@@ -39,7 +40,7 @@ public sealed class DnsZonesController(DnsZoneService zones) : V1ControllerBase
     }
 
     [HttpPost("{id:guid}/force-update")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<IActionResult> ForceUpdate(Guid id, CancellationToken ct)
     {
         await zones.ForceUpdateAsync(id, ct);
@@ -47,7 +48,7 @@ public sealed class DnsZonesController(DnsZoneService zones) : V1ControllerBase
     }
 
     [HttpPut("{id:guid}/records/{recordId:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<DnsRecord>> UpdateRecord(Guid id, Guid recordId, DnsRecordRequest request, CancellationToken ct) =>
         await zones.UpdateRecordAsync(id, recordId, request, ct);
 

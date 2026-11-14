@@ -21,8 +21,13 @@ public class UserEntity
     /// <summary><c>pbkdf2-sha256$iterations$salt$key</c> (PasswordHasher).</summary>
     public required string PasswordHash { get; set; }
 
-    /// <summary>Admin, User or Viewer (PNMTD.Auth.Roles).</summary>
-    public required string Role { get; set; }
+    /// <summary>
+    /// Every right, always (docs/audit-redmine-zabbix-plan.md §5.1); only admins manage users and groups. Everyone else
+    /// has what their groups give.
+    /// </summary>
+    public bool IsAdmin { get; set; }
+
+    public List<UserGroupEntity> Groups { get; set; } = [];
 
     public bool IsActive { get; set; } = true;
 
@@ -31,7 +36,7 @@ public class UserEntity
     /// <summary>A temporary password (reset, new user) stops working at this time.</summary>
     public DateTime? TemporaryPasswordExpiresAt { get; set; }
 
-    /// <summary>Rotated on a password, 2FA, role or active change: every session carrying the old one ends.</summary>
+    /// <summary>Rotated on a password, 2FA, admin flag or active change: every session carrying the old one ends.</summary>
     public required string SecurityStamp { get; set; }
 
     // TOTP (phase 4). The secrets are encrypted with Data Protection.

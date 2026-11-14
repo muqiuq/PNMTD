@@ -1138,6 +1138,9 @@ namespace PNMTD.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("AdminOnly")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid?>("AiWorkId")
                         .HasColumnType("uuid");
 
@@ -1195,11 +1198,6 @@ namespace PNMTD.Data.Migrations
 
                     b.Property<int>("Priority")
                         .HasColumnType("integer");
-
-                    b.Property<string>("RequiredRole")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
 
                     b.Property<string>("Result")
                         .HasColumnType("jsonb");
@@ -1629,6 +1627,59 @@ namespace PNMTD.Data.Migrations
                         {
                             t.HasCheckConstraint("CK_file_uses_one_owner", "num_nonnulls(\"PageId\", \"LocationId\") = 1");
                         });
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.GroupEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.ToTable("groups");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.GroupRightEntity", b =>
+                {
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Area")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("GroupId", "Area");
+
+                    b.ToTable("group_rights");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.HostEntity", b =>
@@ -3833,6 +3884,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsTotpEnabled")
                         .HasColumnType("boolean");
 
@@ -3865,10 +3919,6 @@ namespace PNMTD.Data.Migrations
                     b.Property<string>("PendingTotpSecretProtected")
                         .HasColumnType("text");
 
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("SecurityStamp")
                         .IsRequired()
                         .HasColumnType("text");
@@ -3892,6 +3942,21 @@ namespace PNMTD.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("users");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.UserGroupEntity", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("UserId", "GroupId");
+
+                    b.HasIndex("GroupId");
+
+                    b.ToTable("user_groups");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.WgNetworkEntity", b =>
@@ -4313,6 +4378,15 @@ namespace PNMTD.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.GroupRightEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.GroupEntity", null)
+                        .WithMany("Rights")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.HostEntity", b =>
                 {
                     b.HasOne("PNMTD.Models.Db.LocationEntity", "AssignedLocation")
@@ -4672,6 +4746,23 @@ namespace PNMTD.Data.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.UserGroupEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.GroupEntity", "Group")
+                        .WithMany("Members")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PNMTD.Models.Db.UserEntity", null)
+                        .WithMany("Groups")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.WgPeerAccessEntity", b =>
                 {
                     b.HasOne("PNMTD.Models.Db.WgPeerEntity", null)
@@ -4734,6 +4825,13 @@ namespace PNMTD.Data.Migrations
                     b.Navigation("NotificationRuleEvents");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.GroupEntity", b =>
+                {
+                    b.Navigation("Members");
+
+                    b.Navigation("Rights");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.HostEntity", b =>
                 {
                     b.Navigation("Sensors");
@@ -4758,6 +4856,11 @@ namespace PNMTD.Data.Migrations
             modelBuilder.Entity("PNMTD.Models.Db.SensorEntity", b =>
                 {
                     b.Navigation("SubscribedByNotifications");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.UserEntity", b =>
+                {
+                    b.Navigation("Groups");
                 });
 #pragma warning restore 612, 618
         }

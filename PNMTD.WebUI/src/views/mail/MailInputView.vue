@@ -29,7 +29,7 @@ const session = useSession()
 const { ask, invalidate, notify, done } = useActions()
 
 const id = computed(() => (route.params.id ? String(route.params.id) : null))
-const canWrite = computed(() => session.can('User'))
+const canWrite = computed(() => session.can('Monitoring', 'Edit'))
 const existing = useQuery({
   queryKey: computed(() => [...keys.mail, 'rule', id.value]),
   queryFn: () => api.mail.rule(id.value!),

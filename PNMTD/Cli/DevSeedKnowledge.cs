@@ -131,8 +131,9 @@ internal static class DevSeedKnowledge
                     db.Users.Add(new UserEntity
                     {
                         Id = Guid.NewGuid(), Username = username, NormalizedUsername = username, DisplayName = name,
-                        PasswordHash = Lib.Security.PasswordHasher.Hash(Lib.Security.SecurePasswordGenerator.Generate()), Role = Roles.User, IsActive = true,
+                        PasswordHash = Lib.Security.PasswordHasher.Hash(Lib.Security.SecurePasswordGenerator.Generate()), IsActive = true,
                         MustChangePassword = true, SecurityStamp = UserAccounts.NewStamp(), CreatedAt = now.AddDays(-100),
+                        Groups = { new UserGroupEntity { GroupId = GroupEntity.Operators } },
                     });
                 }
             }
@@ -142,7 +143,7 @@ internal static class DevSeedKnowledge
                 users[user.NormalizedUsername] = user;
             }
             // "admin": the first admin, whatever Auth:InitialAdmin:Username named it.
-            users["admin"] = db.Users.AsNoTracking().Where(u => u.Role == Roles.Admin && u.NormalizedUsername != "philipp").OrderBy(u => u.CreatedAt).First();
+            users["admin"] = db.Users.AsNoTracking().Where(u => u.IsAdmin && u.NormalizedUsername != "philipp").OrderBy(u => u.CreatedAt).First();
             sensors = db.Sensors.AsNoTracking().Include(s => s.Parent).ToList()
                 .GroupBy(s => (s.Parent.Name, s.Name)).ToDictionary(g => g.Key, g => g.First().Id);
         }

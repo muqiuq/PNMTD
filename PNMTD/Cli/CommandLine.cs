@@ -10,7 +10,7 @@ namespace PNMTD.Cli
     /// </summary>
     public static class CommandLine
     {
-        private static readonly string[] Commands = ["db", "import-sqlite", "users", "udp", "mikrotik", "wireguard", "agent", "dev", "help", "--help", "-h"];
+        private static readonly string[] Commands = ["db", "import-sqlite", "users", "groups", "udp", "mikrotik", "wireguard", "agent", "dev", "help", "--help", "-h"];
 
         public static bool IsCommand(string arg) => Commands.Contains(arg);
 
@@ -23,15 +23,19 @@ namespace PNMTD.Cli
                   [--source-time-zone <IANA zone>]  the zone v0.12 wrote its timestamps in (default: UTC)
                   [--reset]                         replace what an earlier import wrote (rehearsals)
 
-              users list                            every user: role, state, 2FA, lockout, last sign-in
-              users add <name> [--role admin|user|viewer] [--display-name <text>] [--password-stdin]
-                                                    a new user (default role: user)
+              users list                            every user: admin or groups, state, 2FA, lockout, last sign-in
+              users add <name> [--admin] [--groups <group,group>] [--display-name <text>] [--password-stdin]
+                                                    a new user: an admin (every right), or with the rights of
+                                                    their groups; without either, only their own account
               users reset-password <name> [--password-stdin]
                                                     a new password; ends the user's sessions, lifts a lockout
               users reset-totp <name>               turns 2FA off (a lost authenticator); ends the sessions,
                                                     lifts a lockout; the next sign-in offers the setup again
               users unlock <name>                   lifts a lockout
-              users set-role <name> <admin|user|viewer>
+              users admin <name> <on|off>           the admin flag; ends the user's sessions
+              users groups <name> <group,group|none>
+                                                    the user's groups, from their next request on
+              groups list                           every group: its members and rights
 
               dev seed                              Development only: demo data (50 hosts, 300 sensors,
                                                     90 days of events, UDP nodes, locations, knowledge base
@@ -57,6 +61,7 @@ namespace PNMTD.Cli
                     ["db", "migrate"] => Migrate(logger),
                     ["import-sqlite", .. var rest] => ImportSqlite(rest, loggerFactory),
                     ["users", .. var rest] => UsersCommand.Run(rest, Database, logger),
+                    ["groups", "list"] => UsersCommand.Groups(Database, logger),
                     ["udp", .. var rest] => UdpCommand.Run(rest, Database),
                     ["mikrotik", .. var rest] => MikrotikCommand.Run(rest, Configuration()),
                     ["wireguard", .. var rest] => WireGuardCommand.Run(rest, Configuration()),

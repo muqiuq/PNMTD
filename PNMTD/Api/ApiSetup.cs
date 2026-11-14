@@ -161,6 +161,6 @@ public sealed class ApiExceptionFilterAttribute : ExceptionFilterAttribute
 [Auth.CsrfProtection]
 public abstract class V1ControllerBase : ControllerBase
 {
-    /// <summary>User and Admin see tokens, sensor URLs and mail contents; a Viewer does not (§4.10).</summary>
-    protected bool CanSeeSecrets => User.IsInRole(Auth.Roles.Admin) || User.IsInRole(Auth.Roles.User);
+    /// <summary>Tokens and sensor URLs: Monitoring's Edit (docs/audit-redmine-zabbix-plan.md §5.2).</summary>
+    protected bool CanSeeSecrets => Auth.Rights.RightsExtensions.Has(User, Auth.Rights.Area.Monitoring, Auth.Rights.Level.Edit);
 }

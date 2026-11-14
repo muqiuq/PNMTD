@@ -34,7 +34,7 @@ public sealed class DevSeedTests
         Assert.IsTrue(await db.AgentLogins.AnyAsync(l => l.FailureReason == Lib.Agent.LinuxLogins.InvalidUser && l.TriedUsers != null), "the scanners");
         // The key manager (docs/linux-sensor-plan.md §12): the demo users (the first admin before them), their keys and two services',
         // Jan's retired key still authorized on web-01, an unregistered weak key, a key unused for 200 days, three removals, bash scripts.
-        Assert.IsTrue(await db.Users.AnyAsync(u => u.NormalizedUsername == "admin" && u.Role == global::PNMTD.Auth.Roles.Admin), "the first admin, as the app would create it");
+        Assert.IsTrue(await db.Users.AnyAsync(u => u.NormalizedUsername == "admin" && u.IsAdmin), "the first admin, as the app would create it");
         Assert.IsTrue(await db.Users.AnyAsync(u => u.NormalizedUsername == "jdoe" && !u.IsActive));
         Assert.AreEqual(5, await db.SshKeys.CountAsync());
         Assert.AreEqual(2, await db.SshKeys.CountAsync(k => k.UserId != null && k.Name.StartsWith("Philipp")));

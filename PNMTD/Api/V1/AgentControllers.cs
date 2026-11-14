@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Lib.Agent;
 using PNMTD.Services.Domain;
 
@@ -12,21 +13,23 @@ namespace PNMTD.Api.V1;
 /// and a server's agent. Under /api/v1/windows/ before L1; a Windows server's typed sections and WMI stay there.
 /// </summary>
 [Route("api/v1/agents/servers")]
-[Authorize(Policy = Policies.CanRead)]
+[Authorize]
 public sealed class AgentServersController(AgentServerService servers, SshKeyService keys, AgentScriptService scripts) : V1ControllerBase
 {
     /// <summary>The fleet of both platforms: state, host, OS, agent, connection, remote access, audit gaps, diagnostics.</summary>
     [HttpGet]
+    [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<Paged<AgentServerItem>>> List([FromQuery] AgentServerQuery query, CancellationToken ct) =>
         await servers.ListAsync(query, ct);
 
     /// <summary>A server's agent: its connection, key, last heartbeat, switches and recent problems.</summary>
     [HttpGet("{id:guid}")]
+    [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<AgentServerDetail>> Get(Guid id, CancellationToken ct) => await servers.DetailAsync(id, ct);
 
     /// <summary>Logins and connections (§4.7): every admin login, failures aggregated. The User role: names and addresses.</summary>
     [HttpGet("{id:guid}/logins")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<Paged<AgentLoginItem>>> Logins(Guid id, [FromQuery] AgentLoginQuery query, CancellationToken ct) =>
         await servers.LoginsAsync(id, query, ct);
 
@@ -35,58 +38,59 @@ public sealed class AgentServersController(AgentServerService servers, SshKeySer
     /// registration, last use and whether PNMT may remove it here. The User role: key comments and accounts.
     /// </summary>
     [HttpGet("{id:guid}/ssh-keys")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<SshKeyServerView>> SshKeys(Guid id, CancellationToken ct) => await keys.ServerKeysAsync(id, ct);
 
     /// <summary>A Linux server's accounts for the run dialog (docs/linux-sensor-plan.md §8.4), with what its config.yaml allows. Admin, as scripts are.</summary>
     [HttpGet("{id:guid}/run-as-accounts")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.Servers, Level.Manage)]
     public async Task<ActionResult<LinuxRunAsAccounts>> RunAsAccounts(Guid id, CancellationToken ct) => await scripts.RunAsAccountsAsync(id, ct);
 
     /// <summary>The readable changes of the sections (§4.9).</summary>
     [HttpGet("{id:guid}/changes")]
+    [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<Paged<AgentChangeItem>>> Changes(Guid id, [FromQuery] AgentChangeQuery query, CancellationToken ct) =>
         await servers.ChangesAsync(id, query, ct);
 
     /// <summary>The agent log of this server, with its problems (§3.8). Admin.</summary>
     [HttpGet("{id:guid}/log")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.Servers, Level.Manage)]
     public async Task<ActionResult<Paged<AgentLogItem>>> Log(Guid id, [FromQuery] AgentLogQuery query, CancellationToken ct) =>
         await servers.LogAsync(id, query, ct);
 
     /// <summary>Asks the agent to collect sections now (§6); 409 when it is offline.</summary>
     [HttpPost("{id:guid}/collect")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Commands, Level.Run)]
     public async Task<ActionResult<AgentRequestResult>> Collect(Guid id, AgentCollectRequest request, CancellationToken ct) =>
         await servers.CollectAsync(id, request, ct);
 
     /// <summary>The last 500 lines of the agent's log file (§3.8). Admin.</summary>
     [HttpPost("{id:guid}/send-log")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.Servers, Level.Manage)]
     public async Task<ActionResult<AgentLogFile>> SendLog(Guid id, CancellationToken ct) => await servers.SendLogAsync(id, ct);
 
     /// <summary>The server's event switches (§4.7, §4.8). Audit-logged.</summary>
     [HttpPut("{id:guid}/settings")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<AgentServerDetail>> Settings(Guid id, AgentServerSettings request, CancellationToken ct) =>
         await servers.SettingsAsync(id, request, ct);
 
     /// <summary>Revokes the agent's key and closes its connection (§3.4); the sensor and its history stay. Audit-logged.</summary>
     [HttpPost("{id:guid}/revoke")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.Servers, Level.Manage)]
     public async Task<ActionResult<AgentServerDetail>> Revoke(Guid id, AgentRevokeRequest request, CancellationToken ct) =>
         await servers.RevokeAsync(id, request, ct);
 
     /// <summary>A token bound to this server, of its platform: joining with it replaces the key and keeps the history (§3.3). Shown once.</summary>
     [HttpPost("{id:guid}/rejoin-token")]
-    [Authorize(Policy = Policies.Admin)]
+    [RequireRight(Area.Servers, Level.Manage)]
     public async Task<ActionResult<AgentJoinTokenCreated>> RejoinToken(Guid id, AgentRejoinTokenRequest request, CancellationToken ct) =>
         await servers.RejoinTokenAsync(id, request, ct);
 }
 
 /// <summary>Join tokens, the agents' log and the agents' downloads (§9.2). Admin.</summary>
 [Route("api/v1/agents")]
-[Authorize(Policy = Policies.Admin)]
+[RequireRight(Area.Servers, Level.Manage)]
 public sealed class AgentsController(AgentServerService servers) : V1ControllerBase
 {
     [HttpGet("join-tokens")]
@@ -129,7 +133,7 @@ public sealed class AgentsController(AgentServerService servers) : V1ControllerB
 
 /// <summary>Scripts (docs/windows-sensor-plan.md §7, W6; docs/linux-sensor-plan.md §8): the library, runs and their history. Admin, audited.</summary>
 [Route("api/v1/agents")]
-[Authorize(Policy = Policies.Admin)]
+[RequireRight(Area.Servers, Level.Manage)]
 public sealed class AgentScriptsController(AgentScriptService scripts) : V1ControllerBase
 {
     /// <summary>The library, PowerShell and bash (docs/linux-sensor-plan.md §8.1), of one language with <c>language</c>.</summary>

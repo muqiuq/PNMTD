@@ -230,12 +230,13 @@ namespace PNMTD.Import
             foreach (var (user, note) in users)
             {
                 using var command = new NpgsqlCommand("""
-                    INSERT INTO users ("Id", "Username", "NormalizedUsername", "DisplayName", "PasswordHash", "Role", "IsActive",
+                    INSERT INTO users ("Id", "Username", "NormalizedUsername", "DisplayName", "PasswordHash", "IsAdmin", "IsActive",
                         "MustChangePassword", "SecurityStamp", "IsTotpEnabled", "FailedLoginCount", "LockoutCount", "CreatedAt")
-                    VALUES (@id, @username, @normalized, @display, @hash, @role, TRUE, @mustChange, @stamp, FALSE, 0, 0, @created);
+                    VALUES (@id, @username, @normalized, @display, @hash, @admin, TRUE, @mustChange, @stamp, FALSE, 0, 0, @created);
+                    INSERT INTO user_groups ("UserId", "GroupId") SELECT @id, @operators WHERE NOT @admin AND EXISTS (SELECT 1 FROM groups WHERE "Id" = @operators);
                     INSERT INTO audit_log ("Id", "CreatedAt", "Username", "EventType", "Category", "Actor", "Outcome", "Detail",
                         "TargetType", "TargetId", "TargetName", "Subjects")
-                    VALUES (@logId, @created, '', 'UserCreated', 'Users', 'Cli', 'Succeeded', 'import of users.json: ' || @role,
+                    VALUES (@logId, @created, '', 'UserCreated', 'Users', 'Cli', 'Succeeded', 'import of users.json: ' || @access,
                         'User', @id::text, @username, ARRAY[@id]::uuid[]);
                     """, connection, transaction);
                 command.Parameters.AddWithValue("id", user.Id);
@@ -243,13 +244,15 @@ namespace PNMTD.Import
                 command.Parameters.AddWithValue("normalized", user.NormalizedUsername);
                 command.Parameters.AddWithValue("display", user.DisplayName);
                 command.Parameters.AddWithValue("hash", user.PasswordHash);
-                command.Parameters.AddWithValue("role", user.Role);
+                command.Parameters.AddWithValue("admin", user.IsAdmin);
+                command.Parameters.AddWithValue("operators", Models.Db.GroupEntity.Operators);
+                command.Parameters.AddWithValue("access", user.IsAdmin ? "admin" : "group Operators");
                 command.Parameters.AddWithValue("mustChange", user.MustChangePassword);
                 command.Parameters.AddWithValue("stamp", user.SecurityStamp);
                 command.Parameters.AddWithValue("created", user.CreatedAt);
                 command.Parameters.AddWithValue("logId", Guid.NewGuid());
                 command.ExecuteNonQuery();
-                report.Users.Add($"{user.Username} ({user.Role}): {note}");
+                report.Users.Add($"{user.Username} ({(user.IsAdmin ? "admin" : "Operators")}): {note}");
             }
             // Read back: every user, with the hash it was given.
             var stored = new Dictionary<Guid, string>();

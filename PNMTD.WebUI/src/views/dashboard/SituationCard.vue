@@ -24,7 +24,7 @@ const run = computed(() => latest.data.value?.items[0])
   <section v-if="run" class="panel situation" aria-labelledby="situation-title">
     <header class="panel-header">
       <span id="situation-title">Situation <span class="muted">(AI)</span></span>
-      <RouterLink v-if="session.can('Admin')" :to="{ name: 'ai', params: { tab: 'analysis' } }" class="all"
+      <RouterLink v-if="session.can('Ai', 'Manage')" :to="{ name: 'ai', params: { tab: 'analysis' } }" class="all"
         >Details <i class="pi pi-angle-right"
       /></RouterLink>
     </header>

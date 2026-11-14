@@ -160,7 +160,7 @@ public sealed class TwoFactorService(PnmtdDbContext db, UserAccounts accounts, T
         {
             throw ApiException.Conflict("totp_not_enabled", "Two-factor authentication is off.");
         }
-        if (AuthService.TotpRequired(AuthService.Policy(configuration), user.Role))
+        if (AuthService.TotpRequired(AuthService.Policy(configuration), user.IsAdmin))
         {
             throw ApiException.Conflict("totp_required", "Two-factor authentication is required for your account (Auth:TotpPolicy).");
         }

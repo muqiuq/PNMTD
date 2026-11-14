@@ -29,7 +29,8 @@ internal static class UsersCommand
                 ["reset-password", var name, .. var rest] => ResetPassword(accounts, name, new CommandLine.Options(rest)),
                 ["reset-totp", var name] => ResetTotp(accounts, name),
                 ["unlock", var name] => Unlock(accounts, name),
-                ["set-role", var name, var role] => SetRole(accounts, name, role),
+                ["admin", var name, var onOff] => SetAdmin(accounts, name, onOff),
+                ["groups", var name, var groups] => SetGroups(accounts, db, name, groups),
                 _ => throw new CommandLineException($"Unknown users command: {string.Join(' ', args)}"),
             };
         }
@@ -46,19 +47,19 @@ internal static class UsersCommand
 
     private static int List(PnmtdDbContext db)
     {
-        var users = db.Users.AsNoTracking().OrderBy(u => u.NormalizedUsername).ToList();
+        var users = db.Users.AsNoTracking().Include(u => u.Groups).ThenInclude(m => m.Group).OrderBy(u => u.NormalizedUsername).ToList();
         var now = Clock.UtcNow;
         var rows = users.Select(u => new[]
         {
             u.Username,
-            u.Role,
+            UserAccounts.Access(u.IsAdmin, u.Groups.Select(m => m.Group.Name).Order(StringComparer.OrdinalIgnoreCase)),
             u.IsActive ? "active" : "inactive",
             u.IsTotpEnabled ? "2FA" : "-",
             u.LockoutEnd is { } end && end > now ? $"locked until {end:yyyy-MM-dd HH:mm} UTC" : u.MustChangePassword ? "must change password" : "-",
             u.LastLoginAt is { } last ? $"{last:yyyy-MM-dd HH:mm} UTC" : "never",
             u.DisplayName,
         }).ToList();
-        var header = new[] { "USERNAME", "ROLE", "STATE", "2FA", "NOTE", "LAST SIGN-IN", "NAME" };
+        var header = new[] { "USERNAME", "ACCESS", "STATE", "2FA", "NOTE", "LAST SIGN-IN", "NAME" };
         var widths = header.Select((h, i) => rows.Select(r => r[i].Length).Append(h.Length).Max()).ToArray();
         foreach (var row in rows.Prepend(header))
         {
@@ -70,13 +71,19 @@ internal static class UsersCommand
 
     private static int Add(UserAccounts accounts, string name, CommandLine.Options options)
     {
-        var role = options.Optional("--role") ?? Roles.User;
+        var admin = options.Flag("--admin");
+        var groupNames = options.Optional("--groups");
         var displayName = options.Optional("--display-name");
         var fromStdin = options.Flag("--password-stdin");
         options.EnsureAllUsed();
-        var (user, temporary) = accounts.CreateAsync(name, displayName, role, fromStdin ? ReadPassword() : null, AuditContext.Cli)
-            .GetAwaiter().GetResult();
-        Console.WriteLine($"Created {user.Username} ({user.Role}).");
+        var groups = GroupIds(accounts.Db, groupNames);
+        var (user, temporary) = accounts.CreateAsync(name, displayName, admin, groups.Select(g => g.Id).ToList(), fromStdin ? ReadPassword() : null,
+            AuditContext.Cli).GetAwaiter().GetResult();
+        Console.WriteLine($"Created {user.Username} ({UserAccounts.Access(admin, groups.Select(g => g.Name))}).");
+        if (!admin && groups.Count == 0)
+        {
+            Console.WriteLine("No groups: they can sign in and manage their own account, nothing else, until an admin adds them to a group.");
+        }
         PrintTemporary(user, temporary);
         return 0;
     }
@@ -110,12 +117,63 @@ internal static class UsersCommand
         return 0;
     }
 
-    private static int SetRole(UserAccounts accounts, string name, string role)
+    private static int SetAdmin(UserAccounts accounts, string name, string onOff)
+    {
+        var admin = onOff switch
+        {
+            "on" => true,
+            "off" => false,
+            _ => throw new CommandLineException("users admin <name> on|off"),
+        };
+        var user = Find(accounts, name);
+        accounts.UpdateAsync(user.Id, user.DisplayName, admin, user.IsActive, null, AuditContext.Cli).GetAwaiter().GetResult();
+        Console.WriteLine(admin ? $"{user.Username} is an admin now; their sessions end." : $"{user.Username} is no longer an admin; their sessions end.");
+        return 0;
+    }
+
+    private static int SetGroups(UserAccounts accounts, PnmtdDbContext db, string name, string groupNames)
     {
         var user = Find(accounts, name);
-        var updated = accounts.UpdateAsync(user.Id, user.DisplayName, role, user.IsActive, AuditContext.Cli).GetAwaiter().GetResult();
-        Console.WriteLine($"{updated.Username} is {updated.Role} now; their sessions end.");
+        var groups = groupNames == "none" ? [] : GroupIds(db, groupNames);
+        accounts.UpdateAsync(user.Id, user.DisplayName, null, user.IsActive, groups.Select(g => g.Id).ToList(), AuditContext.Cli).GetAwaiter().GetResult();
+        Console.WriteLine($"{user.Username}: {UserAccounts.Access(user.IsAdmin, groups.Select(g => g.Name))}, from their next request on.");
         return 0;
+    }
+
+    /// <summary>`pnmtd groups list`: every group, its members and its rights.</summary>
+    public static int Groups(Func<PnmtdDbContext> database, ILogger logger)
+    {
+        using var db = database();
+        DatabaseMigrator.Migrate(db, logger);
+        var groups = db.Groups.AsNoTracking().Include(g => g.Rights).OrderBy(g => g.NormalizedName).ToList();
+        foreach (var group in groups)
+        {
+            var members = db.UserGroups.AsNoTracking().Where(m => m.GroupId == group.Id).Join(db.Users, m => m.UserId, u => u.Id, (m, u) => u.Username)
+                .OrderBy(n => n).ToList();
+            var rights = Auth.Rights.RightsCatalog.Areas.Where(a => group.Rights.Any(r => r.Area == a.Area))
+                .Select(a => $"{a.Label} {group.Rights.First(r => r.Area == a.Area).Level}");
+            Console.WriteLine($"{group.Name}: {(members.Count == 0 ? "no members" : string.Join(", ", members))}");
+            Console.WriteLine($"    {string.Join(", ", rights.DefaultIfEmpty("no rights"))}");
+        }
+        Console.WriteLine($"{groups.Count} group(s). Admins have every right, whatever their groups.");
+        return 0;
+    }
+
+    /// <summary>"Operators,Viewers" to the groups; an unknown name is an error.</summary>
+    private static List<GroupEntity> GroupIds(PnmtdDbContext db, string? names)
+    {
+        if (string.IsNullOrWhiteSpace(names))
+        {
+            return [];
+        }
+        var wanted = names.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(GroupService.Normalize).ToList();
+        var groups = db.Groups.Where(g => wanted.Contains(g.NormalizedName)).ToList();
+        var unknown = wanted.Where(w => groups.All(g => g.NormalizedName != w)).ToList();
+        if (unknown.Count > 0)
+        {
+            throw new CommandLineException($"No such group: {string.Join(", ", unknown)} (pnmtd groups list shows them).");
+        }
+        return groups;
     }
 
     private static UserEntity Find(UserAccounts accounts, string name) =>

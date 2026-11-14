@@ -1,3 +1,4 @@
+using PNMTD.Auth.Rights;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
@@ -70,6 +71,15 @@ public sealed class TestApp(bool testSignIn = true, IReadOnlyDictionary<string, 
         return client;
     }
 
+    /// <summary>A client signed in as the Viewer's user, with exactly these rights ("Monitoring:Edit,Mail:Read", "admin", "").</summary>
+    public HttpClient ClientWithRights(string rights)
+    {
+        var client = Client(Roles.Viewer);
+        client.DefaultRequestHeaders.Add(TestSignIn.RightsHeader, rights);
+        client.DefaultRequestHeaders.Add(TestSignIn.NameHeader, $"rights-{Guid.NewGuid():N}");
+        return client;
+    }
+
     public PnmtdDbContext NewDb() => Services.GetRequiredService<IDbContextFactory<PnmtdDbContext>>().CreateDbContext();
 
     public void ClearDashboardCache() => Services.GetRequiredService<PNMTD.Services.Domain.DashboardCache>().Invalidate();
@@ -89,8 +99,8 @@ public static class TestUsers
 
     public static Guid IdOf(string role) => role switch
     {
-        global::PNMTD.Auth.Roles.Admin => Admin,
-        global::PNMTD.Auth.Roles.User => User,
+        Roles.Admin => Admin,
+        Roles.User => User,
         _ => Viewer,
     };
 
@@ -103,19 +113,24 @@ public static class TestUsers
     internal static void Seed(PnmtdDbContext db)
     {
         var hash = Lib.Security.PasswordHasher.Hash(Password);
-        foreach (var role in global::PNMTD.Auth.Roles.All)
+        foreach (var role in Roles.All)
         {
-            db.Users.Add(new Models.Db.UserEntity
+            var user = new Models.Db.UserEntity
             {
                 Id = IdOf(role),
                 Username = NameOf(role),
                 NormalizedUsername = NameOf(role),
                 DisplayName = $"Test {role}",
                 PasswordHash = hash,
-                Role = role,
+                IsAdmin = role == Roles.Admin,
                 SecurityStamp = global::PNMTD.Auth.UserAccounts.NewStamp(),
                 CreatedAt = Lib.Helper.Clock.UtcNow,
-            });
+            };
+            if (Roles.GroupOf(role) is { } group)
+            {
+                user.Groups.Add(new Models.Db.UserGroupEntity { UserId = user.Id, GroupId = group });
+            }
+            db.Users.Add(user);
         }
         db.SaveChanges();
     }
@@ -127,7 +142,14 @@ public sealed class TestSignIn(IOptionsMonitor<AuthenticationSchemeOptions> opti
 {
     public const string Scheme = "Test";
 
+    /// <summary>One of <see cref="Roles"/>: signs in as that seeded user, with its rights.</summary>
     public const string RoleHeader = "X-Test-Role";
+
+    /// <summary>Exactly these rights instead ("Monitoring:Edit,Mail:Read", or "admin", or "" for none), as the role's user.</summary>
+    public const string RightsHeader = "X-Test-Rights";
+
+    /// <summary>Another name for the user (rate limits count per name).</summary>
+    public const string NameHeader = "X-Test-Name";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -135,8 +157,10 @@ public sealed class TestSignIn(IOptionsMonitor<AuthenticationSchemeOptions> opti
         {
             return Task.FromResult(AuthenticateResult.NoResult());
         }
+        var rights = Request.Headers.TryGetValue(RightsHeader, out var explicitRights) ? Roles.Parse(explicitRights.ToString()) : Roles.RightsOf(role!);
         var identity = new ClaimsIdentity(
-            [new Claim(ClaimTypes.NameIdentifier, TestUsers.IdOf(role!).ToString()), new Claim(ClaimTypes.Name, TestUsers.NameOf(role!)), new Claim(ClaimTypes.Role, role!)],
+            [new Claim(ClaimTypes.NameIdentifier, TestUsers.IdOf(role!).ToString()),
+                new Claim(ClaimTypes.Name, Request.Headers.TryGetValue(NameHeader, out var name) ? name.ToString() : TestUsers.NameOf(role!)), .. rights.Claims()],
             Scheme);
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme)));
     }
@@ -171,5 +195,71 @@ public static class ApiJson
         Assert.AreEqual("application/problem+json", response.Content.Headers.ContentType?.MediaType,
             $"{(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         return JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+    }
+}
+
+/// <summary>
+/// The tests' three kinds of user, named as the roles were before 1.4 (docs/audit-redmine-zabbix-plan.md §5.3): an admin,
+/// a member of Operators (what User could do) and a member of Viewers (what Viewer could). PNMT itself has no roles.
+/// </summary>
+public static class Roles
+{
+    public const string Admin = "Admin";
+    public const string User = "User";
+    public const string Viewer = "Viewer";
+
+    public static readonly string[] All = [Admin, User, Viewer];
+
+    /// <summary>Operators' and Viewers' rights, as the update creates them.</summary>
+    public static readonly IReadOnlyDictionary<Area, Level> Operators = new Dictionary<Area, Level>
+    {
+        [Area.Monitoring] = Level.Edit, [Area.Commands] = Level.Run, [Area.Mail] = Level.Read, [Area.Decisions] = Level.Decide,
+        [Area.Locations] = Level.Edit, [Area.KnowledgeBase] = Level.Edit, [Area.Redmine] = Level.Link, [Area.Zabbix] = Level.Details,
+    };
+
+    public static readonly IReadOnlyDictionary<Area, Level> Viewers = new Dictionary<Area, Level>
+    {
+        [Area.Monitoring] = Level.View, [Area.Locations] = Level.View, [Area.KnowledgeBase] = Level.View, [Area.Zabbix] = Level.View,
+    };
+
+    public static Guid? GroupOf(string role) => role switch
+    {
+        User => Models.Db.GroupEntity.Operators,
+        Viewer => Models.Db.GroupEntity.Viewers,
+        _ => null,
+    };
+
+    public static UserRights RightsOf(string role) => role switch
+    {
+        Admin => new UserRights(true, new Dictionary<Area, Level>()),
+        User => new UserRights(false, Operators),
+        _ => new UserRights(false, Viewers),
+    };
+
+    public static bool IsAdmin(string role) => role == Admin;
+
+    /// <summary>The groups a request gives a new user of this kind.</summary>
+    public static List<Guid> GroupIds(string role) => GroupOf(role) is { } g ? [g] : [];
+
+    /// <summary>What a user of the API amounts to: the flag, else Operators or Viewers.</summary>
+    public static string Of(global::PNMTD.Api.V1.Contracts.UserItem user) =>
+        user.IsAdmin ? Admin : user.Groups.Any(g => g.Id == Models.Db.GroupEntity.Operators) ? User : Viewer;
+
+    public static string Of(global::PNMTD.Api.V1.Contracts.CurrentUser user) =>
+        user.IsAdmin ? Admin : user.Rights.GetValueOrDefault(Area.Monitoring) == Level.Edit ? User : Viewer;
+
+    public static string Of(Models.Db.UserEntity user, global::PNMTD.Data.PnmtdDbContext db) => user.IsAdmin ? Admin
+        : db.UserGroups.Any(m => m.UserId == user.Id && m.GroupId == Models.Db.GroupEntity.Operators) ? User : Viewer;
+
+    /// <summary>"Monitoring:Edit,Mail:Read", "admin", or "" (none).</summary>
+    public static UserRights Parse(string value)
+    {
+        if (value == "admin")
+        {
+            return new UserRights(true, new Dictionary<Area, Level>());
+        }
+        var levels = value.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(v => RightsCatalog.TryParse(v.Trim(), out var a, out var l) ? (a, l) : throw new ArgumentException($"No such right: {v}"));
+        return new UserRights(false, UserRights.Combine(levels));
     }
 }

@@ -1,3 +1,4 @@
+using PNMTD.Auth.Rights;
 using System.Net;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +29,7 @@ public sealed class LoginTests
         var name = $"u{Guid.NewGuid():N}"[..20];
         var password = $"pw-{Guid.NewGuid():N}";
         await using var db = app.NewDb();
-        var (user, _) = await new UserAccounts(db).CreateAsync(name, null, role, password, AuditContext.Cli);
+        var (user, _) = await new UserAccounts(db).CreateAsync(name, null, Roles.IsAdmin(role), Roles.GroupIds(role), password, AuditContext.Cli);
         return (user.Id, name, password);
     }
 
@@ -47,7 +48,7 @@ public sealed class LoginTests
         var login = await browser.LoginAsync(name.ToUpperInvariant(), password);
 
         Assert.AreEqual("done", login.Next);
-        Assert.AreEqual((id, Roles.User), (login.User!.Id, login.User.Role));
+        Assert.AreEqual((id, Roles.User), (login.User!.Id, Roles.Of(login.User)));
         Assert.AreEqual(new SessionFlags(false, false, true), login.Flags);
         var session = browser.LastSetCookies.Single(c => c.StartsWith("pnmt.auth=", StringComparison.Ordinal)).ToLowerInvariant();
         StringAssert.Contains(session, "httponly");
@@ -60,7 +61,7 @@ public sealed class LoginTests
         var me = await (await browser.GetAsync("/api/v1/auth/me")).ReadAsync<MeResponse>();
         Assert.AreEqual(name, me.User.Username);
         var info = await (await browser.GetAsync("/api/v1/system/info")).ReadAsync<SystemInfo>();
-        Assert.AreEqual(Roles.User, info.Role);
+        Assert.AreEqual(Roles.User, Roles.Of(me.User));
         CollectionAssert.Contains(await AuditAsync(id), "LoginSucceeded:");
     }
 
@@ -176,7 +177,7 @@ public sealed class LoginTests
     public async Task ATemporaryPasswordMustBeChangedBeforeAnythingElse()
     {
         using var adminApp = new TestApp();
-        var created = await (await adminApp.Client(Roles.Admin).PostJsonAsync("/api/v1/users", new { username = $"t{Guid.NewGuid():N}"[..16], role = "viewer" }))
+        var created = await (await adminApp.Client(Roles.Admin).PostJsonAsync("/api/v1/users", new { username = $"t{Guid.NewGuid():N}"[..16], groupIds = Roles.GroupIds(Roles.Viewer) }))
             .ReadAsync<CreatedUser>();
         Assert.AreEqual(20, created.TemporaryPassword.Password.Length);
         var browser = new Browser(app);
@@ -267,21 +268,46 @@ public sealed class LoginTests
         Assert.IsTrue(login.Flags!.MustChangePassword);
     }
 
+    /// <summary>The admin flag is a change of the stamp: the user's sessions end (docs/audit-redmine-zabbix-plan.md §5.4).</summary>
     [TestMethod]
-    public async Task ARoleChangeEndsTheSession()
+    public async Task TheAdminFlagEndsTheSession()
     {
         var (id, name, password) = await NewUserAsync(Roles.User);
         var browser = new Browser(app);
         await browser.LoginAsync(name, password);
         using var admin = new TestApp();
 
-        var updated = await (await admin.Client(Roles.Admin).PutJsonAsync($"/api/v1/users/{id}", new { displayName = name, role = "Viewer", isActive = true }))
+        var updated = await (await admin.Client(Roles.Admin).PutJsonAsync($"/api/v1/users/{id}", new { displayName = name, isAdmin = true, isActive = true }))
             .ReadAsync<UserItem>();
 
-        Assert.AreEqual(Roles.Viewer, updated.Role);
+        Assert.IsTrue(updated.IsAdmin);
         Assert.AreEqual(HttpStatusCode.Unauthorized, (await browser.GetAsync("/api/v1/hosts")).StatusCode);
-        Assert.AreEqual(Roles.Viewer, (await new Browser(app).LoginAsync(name, password)).User!.Role);
-        CollectionAssert.Contains(await AuditAsync(id), "RoleChanged:User → Viewer");
+        Assert.IsTrue((await new Browser(app).LoginAsync(name, password)).User!.IsAdmin);
+        CollectionAssert.Contains(await AuditAsync(id), "UserAdminChanged:now an admin");
+    }
+
+    /// <summary>Groups need no sign-out: a session has its new rights from its next request (§5.4).</summary>
+    [TestMethod]
+    public async Task AGroupChangeAppliesToTheOpenSession()
+    {
+        var (id, name, password) = await NewUserAsync(Roles.User);
+        var browser = new Browser(app);
+        var login = await browser.LoginAsync(name, password);
+        Assert.AreEqual(Level.Read, login.User!.Rights[Area.Mail]);
+        using var admin = new TestApp();
+
+        await (await admin.Client(Roles.Admin).PutJsonAsync($"/api/v1/users/{id}", new { displayName = name, isActive = true,
+            groupIds = Roles.GroupIds(Roles.Viewer) })).ReadAsync<UserItem>();
+
+        var refused = await browser.GetAsync("/api/v1/mail-log");
+        Assert.AreEqual(HttpStatusCode.Forbidden, refused.StatusCode, "the session is open, with the Viewers' rights");
+        var problem = await refused.ProblemAsync();
+        Assert.AreEqual(("missing_right", "Mail", "Read"), (problem.GetProperty("code").GetString(), problem.GetProperty("area").GetString(),
+            problem.GetProperty("level").GetString()));
+        Assert.AreEqual(HttpStatusCode.OK, (await browser.GetAsync("/api/v1/hosts")).StatusCode);
+        var me = await (await browser.GetAsync("/api/v1/auth/me")).ReadAsync<MeResponse>();
+        Assert.AreEqual(Roles.Viewer, Roles.Of(me.User));
+        CollectionAssert.Contains(await AuditAsync(id), "UserGroupsChanged:Operators → Viewers");
     }
 
     /// <summary>A hash from the WebApp's WebAppUser.SetPassword (10,000 iterations) signs in and is upgraded.</summary>
@@ -325,7 +351,7 @@ public sealed class LoginTests
     public async Task TheSeededTestAdminSignsIn()
     {
         var login = await new Browser(app).LoginAsync(TestUsers.NameOf(Roles.Admin), TestUsers.Password);
-        Assert.AreEqual(Roles.Admin, login.User!.Role);
+        Assert.IsTrue(login.User!.IsAdmin);
     }
 }
 

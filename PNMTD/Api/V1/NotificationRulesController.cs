@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Api.V1;
 
 [Route("api/v1/notification-rules")]
-[Authorize(Policy = Policies.CanRead)]
+[RequireRight(Area.Monitoring, Level.View)]
 public sealed class NotificationRulesController(NotificationRuleService rules, NotificationManagerService manager) : V1ControllerBase
 {
     [HttpGet]
@@ -18,7 +19,7 @@ public sealed class NotificationRulesController(NotificationRuleService rules, N
     public async Task<ActionResult<NotificationRuleDetail>> Get(Guid id, CancellationToken ct) => await rules.GetAsync(id, CanSeeSecrets, ct);
 
     [HttpPost]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<NotificationRuleDetail>> Create(NotificationRuleRequest request, CancellationToken ct)
     {
         var rule = await rules.CreateAsync(request, ct);
@@ -26,12 +27,12 @@ public sealed class NotificationRulesController(NotificationRuleService rules, N
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<NotificationRuleDetail>> Update(Guid id, NotificationRuleRequest request, CancellationToken ct) =>
         await rules.UpdateAsync(id, request, ct);
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         await rules.DeleteAsync(id, ct);
@@ -42,7 +43,7 @@ public sealed class NotificationRulesController(NotificationRuleService rules, N
     public async Task<ActionResult<IReadOnlyList<LinkedSensor>>> Sensors(Guid id, CancellationToken ct) => Ok(await rules.SensorsAsync(id, ct));
 
     [HttpPut("{id:guid}/sensors/{sensorId:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<IActionResult> Link(Guid id, Guid sensorId, CancellationToken ct)
     {
         await rules.LinkAsync(id, sensorId, ct);
@@ -50,7 +51,7 @@ public sealed class NotificationRulesController(NotificationRuleService rules, N
     }
 
     [HttpDelete("{id:guid}/sensors/{sensorId:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<IActionResult> Unlink(Guid id, Guid sensorId, CancellationToken ct)
     {
         await rules.UnlinkAsync(id, sensorId, ct);
@@ -58,7 +59,7 @@ public sealed class NotificationRulesController(NotificationRuleService rules, N
     }
     /// <summary>Replaces the rule's scopes (docs/ai-operations-plan.md §11.2).</summary>
     [HttpPut("{id:guid}/scopes")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<IActionResult> Scopes(Guid id, IReadOnlyList<NotificationScopeRequest> scopes, CancellationToken ct)
     {
         await manager.SetScopesAsync(id, scopes, ct);
@@ -67,12 +68,12 @@ public sealed class NotificationRulesController(NotificationRuleService rules, N
 
     /// <summary>What the scopes would cover now, before they are saved.</summary>
     [HttpPost("{id:guid}/scopes/preview")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<NotificationScopePreview>> Preview(Guid id, IReadOnlyList<NotificationScopeRequest> scopes, CancellationToken ct) =>
         await manager.PreviewAsync(id, scopes, ct);
 
     [HttpPut("{id:guid}/exclusions/{sensorId:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<IActionResult> Exclude(Guid id, Guid sensorId, CancellationToken ct)
     {
         await manager.ExcludeAsync(id, sensorId, exclude: true, ct);
@@ -80,7 +81,7 @@ public sealed class NotificationRulesController(NotificationRuleService rules, N
     }
 
     [HttpDelete("{id:guid}/exclusions/{sensorId:guid}")]
-    [Authorize(Policy = Policies.CanWrite)]
+    [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<IActionResult> Include(Guid id, Guid sensorId, CancellationToken ct)
     {
         await manager.ExcludeAsync(id, sensorId, exclude: false, ct);

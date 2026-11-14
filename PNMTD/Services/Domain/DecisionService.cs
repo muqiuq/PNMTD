@@ -1,3 +1,4 @@
+using PNMTD.Auth.Rights;
 using Microsoft.EntityFrameworkCore;
 using PNMTD.Ai;
 using PNMTD.Api;
@@ -17,10 +18,10 @@ namespace PNMTD.Services.Domain;
 /// </summary>
 public sealed class DecisionService(PnmtdDbContext db, IEnumerable<IDecisionKind> kinds, MailService mail, AiWorkQueue queue, IHttpContextAccessor accessor)
 {
-    private bool IsAdmin => accessor.HttpContext?.User.IsInRole(Roles.Admin) ?? false;
+    private bool IsAdmin => accessor.HttpContext?.User.IsAdmin() ?? false;
 
     private IQueryable<DecisionEntity> Visible() =>
-        IsAdmin ? db.Decisions.AsNoTracking() : db.Decisions.AsNoTracking().Where(d => d.RequiredRole == Roles.User);
+        IsAdmin ? db.Decisions.AsNoTracking() : db.Decisions.AsNoTracking().Where(d => !d.AdminOnly);
 
     public async Task<Paged<DecisionItem>> ListAsync(DecisionQuery query, CancellationToken ct)
     {
@@ -55,7 +56,7 @@ public sealed class DecisionService(PnmtdDbContext db, IEnumerable<IDecisionKind
     public async Task<DecisionDetail> DecideAsync(Guid id, DecideRequest request, CancellationToken ct)
     {
         var decision = await db.Decisions.SingleOrDefaultAsync(d => d.Id == id, ct) ?? throw ApiException.NotFound("Decision");
-        if (decision.RequiredRole == Roles.Admin && !IsAdmin)
+        if (decision.AdminOnly && !IsAdmin)
         {
             throw ApiException.NotFound("Decision");
         }
@@ -131,6 +132,6 @@ public sealed class DecisionService(PnmtdDbContext db, IEnumerable<IDecisionKind
     }
 
     private static DecisionItem Item(DecisionEntity d) =>
-        new(d.Id, d.Kind, d.State, d.Title, d.Summary, d.Occurrences, d.Disputed, d.RequiredRole, Instants.Utc(d.CreatedAt), Instants.Utc(d.LastSeenAt),
+        new(d.Id, d.Kind, d.State, d.Title, d.Summary, d.Occurrences, d.Disputed, d.AdminOnly, Instants.Utc(d.CreatedAt), Instants.Utc(d.LastSeenAt),
             d.ExpiresAt is { } e ? Instants.Utc(e) : null, d.DecidedAt is { } a ? Instants.Utc(a) : null, d.DecidedByName, d.Choice);
 }

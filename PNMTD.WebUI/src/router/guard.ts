@@ -1,10 +1,11 @@
-import type { Role, SessionFlags } from '@/api/auth'
+import type { SessionFlags } from '@/api/auth'
+import type { Right } from '@/api/rights'
 
 /** What the guard needs to know about the session. */
 export interface GuardState {
   signedIn: boolean
   flags: SessionFlags | null
-  can: (role: Role) => boolean
+  allows: (right: Right) => boolean
 }
 
 /** What the guard needs to know about the target route. */
@@ -12,7 +13,8 @@ export interface GuardTarget {
   name: string | symbol | null | undefined
   fullPath: string
   public?: boolean
-  role?: Role
+  /** What the route needs (docs/audit-redmine-zabbix-plan.md §5.4). */
+  right?: Right
 }
 
 export type GuardResult = true | { name: string; query?: Record<string, string> }
@@ -34,7 +36,7 @@ export function safeReturnUrl(value: unknown): string | null {
 /**
  * Where a navigation may go (§3.6 is the server's protection; this only spares the user dead ends):
  * signed out → login; a password to change → that screen first; 2FA required and not set up → its
- * setup; a role too low → the dashboard.
+ * setup; a right it lacks → the dashboard.
  */
 export function decide(to: GuardTarget, state: GuardState): GuardResult {
   const returnUrl = { returnUrl: to.fullPath }
@@ -55,7 +57,7 @@ export function decide(to: GuardTarget, state: GuardState): GuardResult {
   if (state.flags?.totpSetupRequired) {
     return to.name === 'setup-2fa' ? true : { name: 'setup-2fa', query: safeReturnUrl(to.fullPath) ? returnUrl : {} }
   }
-  if (to.role && !state.can(to.role)) {
+  if (to.right && !state.allows(to.right)) {
     return { name: 'dashboard' }
   }
   return true

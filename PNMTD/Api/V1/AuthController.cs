@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Data;
 using PNMTD.Lib.Helper;
 using PNMTD.Models.Db;
@@ -14,7 +15,7 @@ namespace PNMTD.Api.V1;
 
 /// <summary>Sign-in and sign-out (docs/webui-migration-plan.md §4.5, §4.9).</summary>
 [Route("api/v1/auth")]
-[Authorize(Policy = Policies.CanRead)]
+[Authorize]
 public sealed class AuthController(AuthService auth, UserAccounts accounts, TotpSecrets secrets, PnmtdDbContext db,
     IConfiguration configuration) : V1ControllerBase
 {
@@ -114,7 +115,7 @@ public sealed class AuthController(AuthService auth, UserAccounts accounts, Totp
             throw new ApiException(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Not signed in.");
         }
         CsrfTokens.Issue(HttpContext);
-        return new MeResponse(ToCurrentUser(user), Flags(user));
+        return new MeResponse(ToCurrentUser(user, User.Rights()), Flags(user));
     }
 
     private async Task<LoginResponse> SignInAsync(UserEntity user)
@@ -125,7 +126,8 @@ public sealed class AuthController(AuthService auth, UserAccounts accounts, Totp
         // The request tokens are bound to the user: issued for the new session, not the anonymous one.
         HttpContext.User = principal;
         CsrfTokens.Issue(HttpContext);
-        return new LoginResponse("done", ToCurrentUser(user), Flags(user));
+        var rights = (await SessionCache.LoadAsync(db, user.Id))?.Rights ?? UserRights.None;
+        return new LoginResponse("done", ToCurrentUser(user, rights), Flags(user));
     }
 
     private SessionFlags Flags(UserEntity user)
@@ -134,15 +136,19 @@ public sealed class AuthController(AuthService auth, UserAccounts accounts, Totp
         return new SessionFlags(mustChange, totpRequired, totpSuggested);
     }
 
-    internal static CurrentUser ToCurrentUser(UserEntity user) =>
-        new(user.Id, user.Username, user.DisplayName, user.Role, user.IsTotpEnabled);
+    internal static CurrentUser ToCurrentUser(UserEntity user, UserRights rights) =>
+        new(user.Id, user.Username, user.DisplayName, user.IsAdmin, rights.Levels, user.IsTotpEnabled);
 }
 
 /// <summary>The signed-in user's own account (§4.9).</summary>
 [Route("api/v1/account")]
-[Authorize(Policy = Policies.CanRead)]
+[Authorize]
 public sealed class AccountController(UserAccounts accounts, TwoFactorService twoFactor) : V1ControllerBase
 {
+    /// <summary>One's own groups and effective rights (docs/audit-redmine-zabbix-plan.md §5.5).</summary>
+    [HttpGet("access")]
+    public async Task<AccessItem> Access([FromServices] GroupService groups, CancellationToken ct) => await groups.AccessAsync(User.UserId()!.Value, ct);
+
     /// <summary>Ends the user's other sessions; this one continues with a fresh cookie.</summary>
     [HttpPost("password")]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest request, CancellationToken ct)
@@ -211,25 +217,29 @@ public sealed class AccountController(UserAccounts accounts, TwoFactorService tw
 
 /// <summary>User administration (§4.9, §4.10). The last active admin cannot be deleted, demoted or deactivated.</summary>
 [Route("api/v1/users")]
-[Authorize(Policy = Policies.Admin)]
+[RequireAdmin]
 public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : V1ControllerBase
 {
-    private static readonly string[] SortFields = ["username", "role", "lastlogin", "created"];
+    private static readonly string[] SortFields = ["username", "admin", "lastlogin", "created"];
 
-    /// <summary>Sort: username (default), role, lastLogin, created. Search: username and display name.</summary>
+    /// <summary>Sort: username (default), admin, lastLogin, created. Search: username and display name. A group: its members.</summary>
     [HttpGet]
-    public async Task<ActionResult<Paged<UserItem>>> List([FromQuery] PageQuery query, CancellationToken ct)
+    public async Task<ActionResult<Paged<UserItem>>> List([FromQuery] UserQuery query, CancellationToken ct)
     {
         var (field, descending) = Services.Domain.Paging.Sort(query.Sort, "username", SortFields);
-        var users = db.Users.AsNoTracking();
+        var users = db.Users.AsNoTracking().Include(u => u.Groups).ThenInclude(m => m.Group).AsQueryable();
+        if (query.GroupId is { } groupId)
+        {
+            users = users.Where(u => u.Groups.Any(m => m.GroupId == groupId));
+        }
         if (Services.Domain.Text.Pattern(query.Search) is { } pattern)
         {
             users = users.Where(u => EF.Functions.ILike(u.Username, pattern, @"\") || EF.Functions.ILike(u.DisplayName, pattern, @"\"));
         }
         users = (field, descending) switch
         {
-            ("role", false) => users.OrderBy(u => u.Role).ThenBy(u => u.NormalizedUsername),
-            ("role", true) => users.OrderByDescending(u => u.Role).ThenBy(u => u.NormalizedUsername),
+            ("admin", false) => users.OrderBy(u => u.IsAdmin).ThenBy(u => u.NormalizedUsername),
+            ("admin", true) => users.OrderByDescending(u => u.IsAdmin).ThenBy(u => u.NormalizedUsername),
             ("lastlogin", false) => users.OrderBy(u => u.LastLoginAt).ThenBy(u => u.NormalizedUsername),
             ("lastlogin", true) => users.OrderByDescending(u => u.LastLoginAt).ThenBy(u => u.NormalizedUsername),
             ("created", false) => users.OrderBy(u => u.CreatedAt),
@@ -245,23 +255,33 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<UserItem>> Get(Guid id, CancellationToken ct) => await WithKeysAsync(await accounts.GetAsync(id, ct), ct);
+    public async Task<ActionResult<UserItem>> Get(Guid id, CancellationToken ct) => await WithKeysAsync(id, ct);
 
-    /// <summary>The user with their number of SSH keys (docs/linux-sensor-plan.md §6.4).</summary>
-    private async Task<UserItem> WithKeysAsync(UserEntity user, CancellationToken ct) =>
-        ToItem(user) with { SshKeys = await db.SshKeys.CountAsync(k => k.UserId == user.Id, ct) };
+    /// <summary>A user's effective rights, with the group each level comes from (§5.5).</summary>
+    [HttpGet("{id:guid}/access")]
+    public async Task<AccessItem> Access(Guid id, [FromServices] GroupService groups, CancellationToken ct) => await groups.AccessAsync(id, ct);
+
+    /// <summary>The user with their groups and number of SSH keys (docs/linux-sensor-plan.md §6.4).</summary>
+    private async Task<UserItem> WithKeysAsync(Guid id, CancellationToken ct)
+    {
+        var user = await db.Users.AsNoTracking().Include(u => u.Groups).ThenInclude(m => m.Group).SingleOrDefaultAsync(u => u.Id == id, ct)
+            ?? throw ApiException.NotFound("User");
+        return ToItem(user) with { SshKeys = await db.SshKeys.CountAsync(k => k.UserId == user.Id, ct) };
+    }
 
     [HttpPost]
     public async Task<ActionResult<CreatedUser>> Create(CreateUserRequest request, CancellationToken ct)
     {
-        var (user, temporary) = await accounts.CreateAsync(request.Username, request.DisplayName, request.Role, null, AuditContext.From(HttpContext), ct);
+        var (user, temporary) = await accounts.CreateAsync(request.Username, request.DisplayName, request.IsAdmin, request.GroupIds, null,
+            AuditContext.From(HttpContext), ct);
         return CreatedAtAction(nameof(Get), new { id = user.Id },
-            new CreatedUser(ToItem(user), new TemporaryPassword(temporary!, user.TemporaryPasswordExpiresAt!.Value)));
+            new CreatedUser(await WithKeysAsync(user.Id, ct), new TemporaryPassword(temporary!, user.TemporaryPasswordExpiresAt!.Value)));
     }
 
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<UserItem>> Update(Guid id, UpdateUserRequest request, CancellationToken ct) =>
-        await WithKeysAsync(await accounts.UpdateAsync(id, request.DisplayName, request.Role, request.IsActive, AuditContext.From(HttpContext), ct), ct);
+        await WithKeysAsync((await accounts.UpdateAsync(id, request.DisplayName, request.IsAdmin, request.IsActive, request.GroupIds,
+            AuditContext.From(HttpContext), ct)).Id, ct);
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
@@ -294,7 +314,9 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
         return NoContent();
     }
 
-    internal static UserItem ToItem(UserEntity u) => new(u.Id, u.Username, u.DisplayName, u.Role, u.IsActive, u.IsTotpEnabled,
+    internal static UserItem ToItem(UserEntity u) => new(u.Id, u.Username, u.DisplayName, u.IsAdmin,
+        u.Groups.Where(m => m.Group is not null).Select(m => new Ref(m.GroupId, m.Group.Name)).OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase).ToList(),
+        u.IsActive, u.IsTotpEnabled,
         u.MustChangePassword, u.TemporaryPasswordExpiresAt, u.LockoutEnd is { } end && end > Clock.UtcNow ? end : null,
         u.FailedLoginCount, u.CreatedAt, u.LastLoginAt, u.PasswordChangedAt);
 }

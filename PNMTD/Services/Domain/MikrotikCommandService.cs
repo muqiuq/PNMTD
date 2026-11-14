@@ -1,3 +1,4 @@
+using PNMTD.Auth.Rights;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -271,7 +272,8 @@ public sealed class MikrotikCommandService(
         RedactedBy = j.RedactedBy,
     });
 
-    private bool IsAdmin() => accessor.HttpContext is not { } http || http.User.IsInRole(Roles.Admin);
+    /// <summary>What only MikroTik & WireGuard's Manage may do (docs/audit-redmine-zabbix-plan.md §5.2); the CLI may.</summary>
+    private bool IsAdmin() => accessor.HttpContext is not { } http || http.User.Has(Area.Mikrotik, Level.Manage);
 
     public static MikrotikCommandItem Item(MikrotikJobEntity j) => new(j.Id, j.BatchId, j.SensorId, j.RouterName, j.State, j.Step, j.RequestedByName,
         Instants.Utc(j.CreatedAt), UdpViews.NullableUtc(j.StartedAt), UdpViews.NullableUtc(j.FinishedAt), j.Command, j.RunAs ?? RouterPoll.UserName,

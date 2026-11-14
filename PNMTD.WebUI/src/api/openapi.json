@@ -2527,6 +2527,35 @@
         }
       }
     },
+    "/api/v1/account/access": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/account/password": {
       "post": {
         "tags": [
@@ -2670,6 +2699,14 @@
           "Users"
         ],
         "parameters": [
+          {
+            "name": "groupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
           {
             "name": "page",
             "in": "query",
@@ -2887,6 +2924,46 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/access": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessItem"
+                }
+              }
+            }
           }
         }
       }
@@ -4773,6 +4850,308 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/groups": {
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/groups/{id}": {
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Groups"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Groups"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/groups/{id}/members": {
+      "put": {
+        "tags": [
+          "Groups"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupMembersRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupMembersRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupMembersRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rights": {
+      "get": {
+        "tags": [
+          "Rights"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RightsAreaItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RightsAreaItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RightsAreaItem"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -14195,6 +14574,53 @@
           }
         }
       },
+      "AccessItem": {
+        "required": [
+          "isAdmin",
+          "groups",
+          "rights"
+        ],
+        "type": "object",
+        "properties": {
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ref"
+            }
+          },
+          "rights": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessLevel"
+            }
+          }
+        }
+      },
+      "AccessLevel": {
+        "required": [
+          "area",
+          "level",
+          "from"
+        ],
+        "type": "object",
+        "properties": {
+          "area": {
+            "$ref": "#/components/schemas/Area"
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level"
+          },
+          "from": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "AccessSection": {
         "required": [
           "sessions",
@@ -16895,6 +17321,26 @@
           }
         }
       },
+      "Area": {
+        "enum": [
+          "Monitoring",
+          "Commands",
+          "Mail",
+          "Decisions",
+          "Locations",
+          "KnowledgeBase",
+          "Redmine",
+          "Zabbix",
+          "UdpNodes",
+          "Mikrotik",
+          "Servers",
+          "SshKeys",
+          "Diagnostics",
+          "Ai",
+          "System",
+          "AuditLog"
+        ]
+      },
       "AssignMode": {
         "enum": [
           "Add",
@@ -17501,11 +17947,18 @@
               "string"
             ]
           },
-          "role": {
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "groupIds": {
             "type": [
               "null",
-              "string"
-            ]
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
@@ -17548,7 +18001,8 @@
           "id",
           "username",
           "displayName",
-          "role",
+          "isAdmin",
+          "rights",
           "isTotpEnabled"
         ],
         "type": "object",
@@ -17563,8 +18017,14 @@
           "displayName": {
             "type": "string"
           },
-          "role": {
-            "type": "string"
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "rights": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Level"
+            }
           },
           "isTotpEnabled": {
             "type": "boolean"
@@ -18172,7 +18632,7 @@
           "summary",
           "occurrences",
           "disputed",
-          "requiredRole",
+          "adminOnly",
           "createdAt",
           "lastSeenAt",
           "expiresAt",
@@ -18205,8 +18665,8 @@
           "disputed": {
             "type": "boolean"
           },
-          "requiredRole": {
-            "type": "string"
+          "adminOnly": {
+            "type": "boolean"
           },
           "createdAt": {
             "type": "string",
@@ -20001,6 +20461,139 @@
           }
         }
       },
+      "GroupDetail": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "rights",
+          "members",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rights": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Level"
+            }
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ref"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "GroupItem": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "rights",
+          "members",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rights": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Level"
+            }
+          },
+          "members": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "GroupMembersRequest": {
+        "type": "object",
+        "properties": {
+          "userIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "GroupRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rights": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Level"
+            }
+          }
+        }
+      },
       "HardwareSection": {
         "required": [
           "machine",
@@ -21645,6 +22238,19 @@
             "type": "boolean"
           }
         }
+      },
+      "Level": {
+        "enum": [
+          "None",
+          "View",
+          "Edit",
+          "Manage",
+          "Run",
+          "Read",
+          "Decide",
+          "Link",
+          "Details"
+        ]
       },
       "LinkedSensor": {
         "required": [
@@ -28879,6 +29485,43 @@
           }
         }
       },
+      "RightsAreaItem": {
+        "required": [
+          "area",
+          "label",
+          "levels"
+        ],
+        "type": "object",
+        "properties": {
+          "area": {
+            "$ref": "#/components/schemas/Area"
+          },
+          "label": {
+            "type": "string"
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RightsLevelItem"
+            }
+          }
+        }
+      },
+      "RightsLevelItem": {
+        "required": [
+          "level",
+          "allows"
+        ],
+        "type": "object",
+        "properties": {
+          "level": {
+            "$ref": "#/components/schemas/Level"
+          },
+          "allows": {
+            "type": "string"
+          }
+        }
+      },
       "RotateTokensRequest": {
         "type": "object",
         "properties": {
@@ -32366,12 +33009,6 @@
               "string"
             ]
           },
-          "role": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
           "wireGuard": {
             "type": [
               "null",
@@ -34805,14 +35442,24 @@
               "string"
             ]
           },
-          "role": {
+          "isAdmin": {
             "type": [
               "null",
-              "string"
+              "boolean"
             ]
           },
           "isActive": {
             "type": "boolean"
+          },
+          "groupIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
@@ -35203,7 +35850,8 @@
           "id",
           "username",
           "displayName",
-          "role",
+          "isAdmin",
+          "groups",
           "isActive",
           "isTotpEnabled",
           "mustChangePassword",
@@ -35226,8 +35874,14 @@
           "displayName": {
             "type": "string"
           },
-          "role": {
-            "type": "string"
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ref"
+            }
           },
           "isActive": {
             "type": "boolean"
@@ -36402,6 +37056,12 @@
     },
     {
       "name": "Files"
+    },
+    {
+      "name": "Groups"
+    },
+    {
+      "name": "Rights"
     },
     {
       "name": "Hosts"

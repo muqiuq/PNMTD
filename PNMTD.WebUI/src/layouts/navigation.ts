@@ -1,11 +1,12 @@
-import type { Role } from '@/api/auth'
+import type { Right } from '@/api/rights'
 
 export interface NavItem {
   label: string
   icon: string
   to: string
   name: string
-  role?: Role
+  /** What its page needs (docs/audit-redmine-zabbix-plan.md §10.1); without, every signed-in user's. */
+  right?: Right
 }
 
 export interface NavGroup {
@@ -13,63 +14,112 @@ export interface NavGroup {
   items: NavItem[]
 }
 
-/** The drawer (§5.4): the groups of today, minus what the role cannot use. */
+/** The drawer (§5.4): the groups of today, minus what the user lacks the right for (docs/audit-redmine-zabbix-plan.md §10.1). */
 export const navigation: NavGroup[] = [
   {
     label: 'Monitoring',
     items: [
       { label: 'Dashboard', icon: 'pi pi-th-large', to: '/', name: 'dashboard' },
-      { label: 'Decisions', icon: 'pi pi-inbox', to: '/decisions', name: 'decisions', role: 'User' },
-      { label: 'Hosts', icon: 'pi pi-server', to: '/hosts', name: 'hosts' },
-      { label: 'Locations', icon: 'pi pi-map-marker', to: '/locations', name: 'locations' },
-      { label: 'Events', icon: 'pi pi-list', to: '/events', name: 'events' },
-      { label: 'DNS zones', icon: 'pi pi-globe', to: '/dns-zones', name: 'dns-zones' },
-      { label: 'Mail inputs', icon: 'pi pi-envelope', to: '/mail-inputs', name: 'mail-inputs' },
-      { label: 'Mail log', icon: 'pi pi-inbox', to: '/mail-log', name: 'mail-log', role: 'User' },
-      { label: 'Notification rules', icon: 'pi pi-bell', to: '/notification-rules', name: 'notification-rules' },
-      { label: 'Notification manager', icon: 'pi pi-th-large', to: '/notifications', name: 'notifications' },
-      { label: 'Uplink', icon: 'pi pi-cloud', to: '/uplink', name: 'uplink' },
+      { label: 'Decisions', icon: 'pi pi-inbox', to: '/decisions', name: 'decisions', right: ['Decisions', 'Decide'] },
+      { label: 'Hosts', icon: 'pi pi-server', to: '/hosts', name: 'hosts', right: ['Monitoring', 'View'] },
+      {
+        label: 'Locations',
+        icon: 'pi pi-map-marker',
+        to: '/locations',
+        name: 'locations',
+        right: ['Locations', 'View'],
+      },
+      { label: 'Events', icon: 'pi pi-list', to: '/events', name: 'events', right: ['Monitoring', 'View'] },
+      { label: 'DNS zones', icon: 'pi pi-globe', to: '/dns-zones', name: 'dns-zones', right: ['Monitoring', 'View'] },
+      {
+        label: 'Mail inputs',
+        icon: 'pi pi-envelope',
+        to: '/mail-inputs',
+        name: 'mail-inputs',
+        right: ['Monitoring', 'View'],
+      },
+      { label: 'Mail log', icon: 'pi pi-inbox', to: '/mail-log', name: 'mail-log', right: ['Mail', 'Read'] },
+      {
+        label: 'Notification rules',
+        icon: 'pi pi-bell',
+        to: '/notification-rules',
+        name: 'notification-rules',
+        right: ['Monitoring', 'View'],
+      },
+      {
+        label: 'Notification manager',
+        icon: 'pi pi-th-large',
+        to: '/notifications',
+        name: 'notifications',
+        right: ['Monitoring', 'View'],
+      },
+      { label: 'Uplink', icon: 'pi pi-cloud', to: '/uplink', name: 'uplink', right: ['Monitoring', 'View'] },
     ],
   },
   {
     // The knowledge base (docs/locations-knowledge-plan.md §10.1).
     label: 'Knowledge',
-    items: [{ label: 'Knowledge base', icon: 'pi pi-book', to: '/kb', name: 'kb' }],
+    items: [{ label: 'Knowledge base', icon: 'pi pi-book', to: '/kb', name: 'kb', right: ['KnowledgeBase', 'View'] }],
   },
   {
     label: 'Admin',
     items: [
-      { label: 'Key values', icon: 'pi pi-key', to: '/admin/key-values', name: 'key-values', role: 'Admin' },
-      { label: 'Users', icon: 'pi pi-users', to: '/admin/users', name: 'users', role: 'Admin' },
-      { label: 'Auth log', icon: 'pi pi-history', to: '/admin/auth-log', name: 'auth-log', role: 'Admin' },
-      { label: 'UDP nodes', icon: 'pi pi-wifi', to: '/admin/udp-nodes', name: 'udp-nodes', role: 'Admin' },
-      { label: 'MikroTik & WireGuard', icon: 'pi pi-server', to: '/admin/mikrotik', name: 'mikrotik', role: 'Admin' },
-      { label: 'Servers', icon: 'pi pi-desktop', to: '/admin/servers', name: 'servers', role: 'Admin' },
-      { label: 'SSH keys', icon: 'pi pi-key', to: '/admin/ssh-keys', name: 'ssh-keys', role: 'Admin' },
+      {
+        label: 'Key values',
+        icon: 'pi pi-key',
+        to: '/admin/key-values',
+        name: 'key-values',
+        right: ['System', 'Manage'],
+      },
+      { label: 'Users', icon: 'pi pi-users', to: '/admin/users', name: 'users', right: 'admin' },
+      { label: 'Groups', icon: 'pi pi-sitemap', to: '/admin/groups', name: 'groups', right: 'admin' },
+      {
+        label: 'Auth log',
+        icon: 'pi pi-history',
+        to: '/admin/auth-log',
+        name: 'auth-log',
+        right: ['AuditLog', 'View'],
+      },
+      {
+        label: 'UDP nodes',
+        icon: 'pi pi-wifi',
+        to: '/admin/udp-nodes',
+        name: 'udp-nodes',
+        right: ['UdpNodes', 'Manage'],
+      },
+      {
+        label: 'MikroTik & WireGuard',
+        icon: 'pi pi-server',
+        to: '/admin/mikrotik',
+        name: 'mikrotik',
+        right: ['Mikrotik', 'Manage'],
+      },
+      { label: 'Servers', icon: 'pi pi-desktop', to: '/admin/servers', name: 'servers', right: ['Servers', 'Manage'] },
+      { label: 'SSH keys', icon: 'pi pi-key', to: '/admin/ssh-keys', name: 'ssh-keys', right: ['SshKeys', 'Manage'] },
       {
         label: 'Diagnostics',
         icon: 'pi pi-check-circle',
         to: '/admin/diagnostics',
         name: 'diagnostics',
-        role: 'Admin',
+        right: ['Diagnostics', 'Manage'],
       },
       {
         label: 'Location fields',
         icon: 'pi pi-list-check',
         to: '/admin/location-fields',
         name: 'location-fields',
-        role: 'Admin',
+        right: ['Locations', 'Manage'],
       },
       {
         label: 'Knowledge base',
         icon: 'pi pi-book',
         to: '/admin/knowledge-base',
         name: 'kb-admin',
-        role: 'Admin',
+        right: ['KnowledgeBase', 'Manage'],
       },
-      { label: 'System health', icon: 'pi pi-heart', to: '/admin/system', name: 'system', role: 'Admin' },
-      { label: 'AI', icon: 'pi pi-sparkles', to: '/admin/ai', name: 'ai', role: 'Admin' },
-      { label: 'Debug', icon: 'pi pi-wrench', to: '/admin/debug', name: 'debug', role: 'Admin' },
+      { label: 'System health', icon: 'pi pi-heart', to: '/admin/system', name: 'system', right: ['System', 'Manage'] },
+      { label: 'AI', icon: 'pi pi-sparkles', to: '/admin/ai', name: 'ai', right: ['Ai', 'Manage'] },
+      { label: 'Debug', icon: 'pi pi-wrench', to: '/admin/debug', name: 'debug', right: ['System', 'Manage'] },
     ],
   },
   {
@@ -78,8 +128,8 @@ export const navigation: NavGroup[] = [
   },
 ]
 
-export function visibleNavigation(can: (role: Role) => boolean): NavGroup[] {
+export function visibleNavigation(allows: (right: Right) => boolean): NavGroup[] {
   return navigation
-    .map((g) => ({ ...g, items: g.items.filter((i) => !i.role || can(i.role)) }))
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.right || allows(i.right)) }))
     .filter((g) => g.items.length > 0)
 }

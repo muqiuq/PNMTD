@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
+import EmptyState from '@/components/EmptyState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import { useDashboard } from '@/composables/useDashboard'
 import { useMedia } from '@/composables/useMedia'
+import { useSession } from '@/stores/session'
 import HostsPanel from './HostsPanel.vue'
 import ProblemsPanel from './ProblemsPanel.vue'
 import RecentChanges from './RecentChanges.vue'
@@ -17,6 +19,7 @@ import SummaryStrip from './SummaryStrip.vue'
  */
 const dashboard = useDashboard()
 const phone = useMedia('(max-width: 599px)')
+const session = useSession()
 </script>
 
 <template>
@@ -25,7 +28,14 @@ const phone = useMedia('(max-width: 599px)')
     <Message v-if="dashboard.data.value && dashboard.isError.value" severity="warn" :closable="false" class="lost">
       Connection lost, retrying. The data below is from the last successful update.
     </Message>
-    <template v-if="dashboard.data.value">
+    <EmptyState
+      v-if="!session.can('Monitoring', 'View')"
+      icon="pi pi-lock"
+      title="You don't have access to anything yet."
+      text="Ask an admin to add you to a group. Your account is under Account and Security."
+      class="no-access"
+    />
+    <template v-else-if="dashboard.data.value">
       <SummaryStrip :summary="dashboard.data.value.summary" class="summary" />
       <div class="left">
         <SituationCard />
@@ -48,6 +58,10 @@ const phone = useMedia('(max-width: 599px)')
 </template>
 
 <style scoped>
+.no-access {
+  grid-column: 1 / -1;
+}
+
 .dashboard {
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);

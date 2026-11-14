@@ -11,7 +11,7 @@ public sealed record DecisionItem(
     string Summary,
     int Occurrences,
     bool Disputed,
-    string RequiredRole,
+    bool AdminOnly,
     DateTime CreatedAt,
     DateTime LastSeenAt,
     DateTime? ExpiresAt,

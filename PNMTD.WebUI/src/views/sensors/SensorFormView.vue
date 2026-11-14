@@ -77,8 +77,8 @@ watch(
       mikrotik.value = {
         ...mikrotik.value,
         backupIntervalHours: settings.defaultBackupIntervalHours ?? null,
-        // An Admin sees the default as the switch; for a User the server applies it.
-        encryptBackups: session.can('Admin') ? settings.defaultEncryptBackups : null,
+        // MikroTik & WireGuard's Manage sees the default as the switch; for others the server applies it.
+        encryptBackups: session.can('Mikrotik', 'Manage') ? settings.defaultEncryptBackups : null,
       }
     }
   },
@@ -111,7 +111,7 @@ watch(type, (t) => {
 const status = useQuery({
   queryKey: [...keys.udp, 'status'],
   queryFn: api.udp.status,
-  enabled: computed(() => isUdp.value && session.can('Admin')),
+  enabled: computed(() => isUdp.value && session.can('UdpNodes', 'Manage')),
 })
 const listenerOff = computed(() => {
   const s = status.data.value
@@ -317,7 +317,7 @@ async function submit() {
         v-if="isMikrotik"
         v-model="mikrotik"
         :errors="errors"
-        :is-admin="session.can('Admin')"
+        :is-admin="session.can('Mikrotik', 'Manage')"
         :wire-guard="!!session.info?.wireGuard"
       />
       <div class="field">

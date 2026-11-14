@@ -139,7 +139,13 @@ function newPage() {
         <span class="muted">{{ total }}</span>
       </template>
       <template #actions>
-        <Button v-if="session.can('User')" label="New page" icon="pi pi-plus" size="small" @click="newPage" />
+        <Button
+          v-if="session.can('KnowledgeBase', 'Edit')"
+          label="New page"
+          icon="pi pi-plus"
+          size="small"
+          @click="newPage"
+        />
       </template>
     </PageHeader>
 

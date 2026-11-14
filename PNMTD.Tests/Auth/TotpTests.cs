@@ -150,7 +150,8 @@ public sealed class TwoFactorLoginTests
         var name = $"f{Guid.NewGuid():N}"[..20];
         var password = $"pw-{Guid.NewGuid():N}";
         await using var db = on.NewDb();
-        var (user, generated) = await new UserAccounts(db).CreateAsync(name, null, role, temporary ? null : password, AuditContext.Cli);
+        var (user, generated) = await new UserAccounts(db).CreateAsync(name, null, Roles.IsAdmin(role), Roles.GroupIds(role), temporary ? null : password,
+            AuditContext.Cli);
         return (user.Id, name, generated ?? password);
     }
 

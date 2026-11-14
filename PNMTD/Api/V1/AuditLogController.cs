@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Auth.Rights;
 using PNMTD.Data;
 using PNMTD.Lib.Helper;
 
@@ -11,7 +12,7 @@ namespace PNMTD.Api.V1;
 
 /// <summary>The audit log (docs/audit-redmine-zabbix-plan.md §4.2). It was the auth log until 1.4.</summary>
 [Route("api/v1/audit-log")]
-[Authorize(Policy = Policies.Admin)]
+[RequireRight(Area.AuditLog, Level.View)]
 public sealed class AuditLogController(PnmtdDbContext db) : V1ControllerBase
 {
     [HttpGet]

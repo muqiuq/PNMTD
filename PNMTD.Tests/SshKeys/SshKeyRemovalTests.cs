@@ -242,7 +242,7 @@ public sealed class SshKeyRemovalTests
     [TestMethod]
     public async Task OffboardingRetiresAUsersKeysAndRemovesThemFromEveryServerAndAccount()
     {
-        var created = await (await admin.PostJsonAsync("/api/v1/users", new CreateUserRequest { Username = $"offboarded{Random.Shared.Next(100_000)}", Role = Roles.User }))
+        var created = await (await admin.PostJsonAsync("/api/v1/users", new CreateUserRequest { Username = $"offboarded{Random.Shared.Next(100_000)}", GroupIds = Roles.GroupIds(Roles.User) }))
             .ReadAsync<CreatedUser>();
         var user = created.User;
         var key = NewKey("offboarded@laptop");
@@ -258,7 +258,7 @@ public sealed class SshKeyRemovalTests
         await SendKeysAsync(app, session, joined.Grant.SensorId, Section(Root(key, other), Deploy(key)));
 
         // Deactivated: the strip offers offboarding while the keys are authorized.
-        await admin.PutJsonAsync($"/api/v1/users/{user.Id}", new UpdateUserRequest { DisplayName = "Offboarded", Role = Roles.User, IsActive = false });
+        await admin.PutJsonAsync($"/api/v1/users/{user.Id}", new UpdateUserRequest { DisplayName = "Offboarded", IsActive = false });
         var summary = await (await admin.GetAsync("/api/v1/ssh-keys/summary")).ReadAsync<SshKeySummary>();
         Assert.AreEqual((1, 2), (summary.DeactivatedUsers.Single(d => d.User.Id == user.Id).Keys, summary.DeactivatedUsers.Single(d => d.User.Id == user.Id).Authorizations));
 

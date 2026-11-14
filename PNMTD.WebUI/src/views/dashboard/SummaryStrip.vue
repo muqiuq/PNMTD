@@ -26,7 +26,7 @@ const headline = computed(() => {
   }
   return degraded.value ? 'Hosts OK, health degraded' : `All ${h.total - h.disabled} hosts OK`
 })
-const admin = computed(() => session.can('Admin'))
+const admin = computed(() => session.can('System', 'Manage'))
 const tasks = computed(() => props.summary.tasks)
 </script>
 
@@ -69,7 +69,7 @@ const tasks = computed(() => props.summary.tasks)
         ></span
       >
     </RouterLink>
-    <component :is="session.can('User') ? 'RouterLink' : 'div'" :to="{ name: 'mail-log' }" class="tile">
+    <component :is="session.can('Mail', 'Read') ? 'RouterLink' : 'div'" :to="{ name: 'mail-log' }" class="tile">
       <span class="label">Mail</span>
       <span v-if="!summary.mail.configured" class="muted">not configured</span>
       <span v-else>checked <RelativeTime :value="summary.mail.lastCheckAt" /></span>

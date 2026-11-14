@@ -76,7 +76,7 @@ defineExpose({ count: computed(() => own.value.length) })
       Knowledge base
       <span v-if="own.length" class="muted count">{{ own.length }}</span>
       <Button
-        v-if="session.can('User')"
+        v-if="session.can('KnowledgeBase', 'Edit')"
         label="New page"
         icon="pi pi-plus"
         size="small"
@@ -86,7 +86,7 @@ defineExpose({ count: computed(() => own.value.length) })
       />
     </div>
     <div :class="{ 'panel-body': !bare }">
-      <div v-if="bare && session.can('User')" class="bare-actions">
+      <div v-if="bare && session.can('KnowledgeBase', 'Edit')" class="bare-actions">
         <Button label="New page" icon="pi pi-plus" size="small" @click="newPage" />
       </div>
       <p v-if="related.isSuccess.value && !own.length && !via.length" class="muted none">No pages linked yet.</p>

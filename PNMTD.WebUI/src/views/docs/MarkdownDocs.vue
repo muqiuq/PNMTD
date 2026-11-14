@@ -223,7 +223,7 @@ flowchart LR
 \`\`\`
 `
 const tryText = ref(example)
-const canUpload = computed(() => session.can('User'))
+const canUpload = computed(() => session.can('KnowledgeBase', 'Edit'))
 const tryVisible = computed(() =>
   has('try it editor visual markdown paste upload image attach preview switch textarea plain text'),
 )
@@ -267,7 +267,7 @@ function onSave(_save: MarkdownSave) {
         <p class="muted">
           The real editor, with the switch, Preview and uploads<template v-if="canUpload">
             (pasted files are uploaded, and removed after a day, since no page uses them)</template
-          ><template v-else> (uploads need the User role)</template>. Nothing typed here is saved.
+          ><template v-else> (uploads need the knowledge base's Edit)</template>. Nothing typed here is saved.
         </p>
         <MarkdownEditor
           v-model="tryText"

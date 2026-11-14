@@ -41,14 +41,14 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         !string.IsNullOrEmpty(c["UplinkCheck:SharedKey"])
         && Enumerable.Range(1, 3).Count(i => c[$"UplinkCheck:Url{i}"] is { } url && (url.StartsWith("http://") || url.StartsWith("https://"))) >= 2;
 
-    public SystemInfo Info(string? role)
+    public SystemInfo Info(bool signedIn)
     {
-        if (role is null)
+        if (!signedIn)
         {
             return new SystemInfo(ServerInfo.Identity);
         }
         return new SystemInfo(ServerInfo.Identity, ServerInfo.Version, urls.Configured, Clock.TimeZone.Id,
-            configuration["Auth:TotpPolicy"] ?? "Optional", role, configuration.GetValue("WireGuard:Enabled", false));
+            configuration["Auth:TotpPolicy"] ?? "Optional", configuration.GetValue("WireGuard:Enabled", false));
     }
 
     public async Task<UplinkStatus> UplinkAsync(CancellationToken ct)
