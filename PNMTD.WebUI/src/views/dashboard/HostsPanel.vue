@@ -145,7 +145,10 @@ const disabled = computed(() => sorted(matching.value.filter((h) => !h.enabled))
               :label="host.state === 'Failing' ? `${host.failingCount} failing` : undefined"
             />
             <span class="name ellipsis" :title="host.assignedLocation?.path ?? host.location ?? ''"
-              >{{ host.name }}<span v-if="where(host)" class="where muted"> {{ where(host) }}</span></span
+              >{{ host.name
+              }}<span v-if="where(host)" class="where muted"
+                ><span class="sr-only">, </span>{{ where(host) }}</span
+              ></span
             >
             <span class="percent">{{ formatPercent(host.uptime30Days) }}</span>
             <UptimeBar :values="host.days.values ?? []" :start="host.days.start" :height="14" class="bar" />
@@ -157,7 +160,9 @@ const disabled = computed(() => sorted(matching.value.filter((h) => !h.enabled))
         <li v-for="host in enabled" :key="host.id">
           <RouterLink :to="{ name: 'host', params: { id: host.id } }" class="tile" :class="`state-${host.state}`">
             <span class="name ellipsis">{{ host.name }}</span>
-            <span v-if="where(host)" class="where muted ellipsis">{{ where(host) }}</span>
+            <span v-if="where(host)" class="where muted ellipsis"
+              ><span class="sr-only">, </span>{{ where(host) }}</span
+            >
             <span class="meta">
               <span>{{ formatPercent(host.uptime30Days) }}</span>
               <span v-if="host.failingCount" class="fail">{{ host.failingCount }} failing</span>
@@ -175,7 +180,10 @@ const disabled = computed(() => sorted(matching.value.filter((h) => !h.enabled))
             <RouterLink :to="{ name: 'host', params: { id: host.id } }" class="row">
               <StatusBadge status="Disabled" icon-only />
               <span class="name ellipsis"
-                >{{ host.name }}<span v-if="where(host)" class="where muted"> {{ where(host) }}</span></span
+                >{{ host.name
+                }}<span v-if="where(host)" class="where muted"
+                  ><span class="sr-only">, </span>{{ where(host) }}</span
+                ></span
               >
               <span class="percent">{{ formatPercent(host.uptime30Days) }}</span>
               <UptimeBar :values="host.days.values ?? []" :start="host.days.start" :height="14" class="bar" />
@@ -240,6 +248,16 @@ const disabled = computed(() => sorted(matching.value.filter((h) => !h.enabled))
 
 .row .where {
   margin-left: var(--pnmt-space-2);
+}
+
+/* Vue drops a leading space inside an element, so a screen reader read "fw-01Rack B4": a comma only it hears. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .scroller {
