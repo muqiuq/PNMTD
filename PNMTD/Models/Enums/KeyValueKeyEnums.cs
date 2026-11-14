@@ -39,6 +39,9 @@
         LAST_ZABBIX_POLL = 280,
         LAST_ZABBIX_HOST_SYNC = 281,
 
+        // Cookie's case book (docs/cookie-plan.md §19.3).
+        LAST_COOKIE_CASEBOOK = 290,
+
         UNUSED = 999,
     }
 }

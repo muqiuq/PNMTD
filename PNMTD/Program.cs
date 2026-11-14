@@ -101,6 +101,8 @@ public partial class Program
         builder.Services.AddAudit(builder.Configuration);
         builder.Services.AddRedmine(builder.Configuration);
         builder.Services.AddZabbix(builder.Configuration);
+        // Cookie, the assistant (docs/cookie-plan.md §19).
+        PNMTD.Cookie.CookieSetup.AddCookie(builder.Services, builder.Configuration);
 
         // The build writes the OpenAPI document by starting the host without a database (GetDocument.Insider).
         var documentBuild = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
@@ -144,6 +146,8 @@ public partial class Program
             // Zabbix's open problems and its hosts' mirror (docs/audit-redmine-zabbix-plan.md §7.3).
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Zabbix.ZabbixPoller>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Zabbix.ZabbixHostSync>());
+            // Cookie's case book (docs/cookie-plan.md §19.3), with Cookie:Enabled=true.
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CaseBookTask>());
         }
 
         // UDP nodes (docs/udp-iot-plan.md §4.4): on unless Udp:Enabled=false, not tied to the

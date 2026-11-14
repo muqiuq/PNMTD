@@ -2473,6 +2473,778 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cookie/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieStatusItem"];
+                        "text/json": components["schemas"]["CookieStatusItem"];
+                        "text/plain": components["schemas"]["CookieStatusItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    open?: boolean;
+                    kind?: components["schemas"]["CookieCaseKind"];
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfCookieCaseItem"];
+                        "text/json": components["schemas"]["PagedOfCookieCaseItem"];
+                        "text/plain": components["schemas"]["PagedOfCookieCaseItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/cases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieCaseDetail"];
+                        "text/json": components["schemas"]["CookieCaseDetail"];
+                        "text/plain": components["schemas"]["CookieCaseDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieAdminOverview"];
+                        "text/json": components["schemas"]["CookieAdminOverview"];
+                        "text/plain": components["schemas"]["CookieAdminOverview"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieAllSettings"];
+                        "text/json": components["schemas"]["CookieAllSettings"];
+                        "text/plain": components["schemas"]["CookieAllSettings"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieDefaults"];
+                        "text/json": components["schemas"]["CookieDefaults"];
+                        "text/plain": components["schemas"]["CookieDefaults"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/redmine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieRedmineLookups"];
+                        "text/json": components["schemas"]["CookieRedmineLookups"];
+                        "text/plain": components["schemas"]["CookieRedmineLookups"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/settings/identity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["IdentitySettings"];
+                    "text/json": components["schemas"]["IdentitySettings"];
+                    "application/*+json": components["schemas"]["IdentitySettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSaved"];
+                        "text/json": components["schemas"]["CookieSaved"];
+                        "text/plain": components["schemas"]["CookieSaved"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/settings/prompts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PromptSettings"];
+                    "text/json": components["schemas"]["PromptSettings"];
+                    "application/*+json": components["schemas"]["PromptSettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSaved"];
+                        "text/json": components["schemas"]["CookieSaved"];
+                        "text/plain": components["schemas"]["CookieSaved"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/settings/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CaseSettings"];
+                    "text/json": components["schemas"]["CaseSettings"];
+                    "application/*+json": components["schemas"]["CaseSettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSaved"];
+                        "text/json": components["schemas"]["CookieSaved"];
+                        "text/plain": components["schemas"]["CookieSaved"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/settings/hours": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["HoursSettings"];
+                    "text/json": components["schemas"]["HoursSettings"];
+                    "application/*+json": components["schemas"]["HoursSettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSaved"];
+                        "text/json": components["schemas"]["CookieSaved"];
+                        "text/plain": components["schemas"]["CookieSaved"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/settings/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NotificationSettings"];
+                    "text/json": components["schemas"]["NotificationSettings"];
+                    "application/*+json": components["schemas"]["NotificationSettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSaved"];
+                        "text/json": components["schemas"]["CookieSaved"];
+                        "text/plain": components["schemas"]["CookieSaved"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/settings/redmine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CookieRedmineSettings"];
+                    "text/json": components["schemas"]["CookieRedmineSettings"];
+                    "application/*+json": components["schemas"]["CookieRedmineSettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSaved"];
+                        "text/json": components["schemas"]["CookieSaved"];
+                        "text/plain": components["schemas"]["CookieSaved"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/settings/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ActionSettings"];
+                    "text/json": components["schemas"]["ActionSettings"];
+                    "application/*+json": components["schemas"]["ActionSettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSaved"];
+                        "text/json": components["schemas"]["CookieSaved"];
+                        "text/plain": components["schemas"]["CookieSaved"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/settings/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ModelSettings"];
+                    "text/json": components["schemas"]["ModelSettings"];
+                    "application/*+json": components["schemas"]["ModelSettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSaved"];
+                        "text/json": components["schemas"]["CookieSaved"];
+                        "text/plain": components["schemas"]["CookieSaved"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/settings/rights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CookieRightsSettings"];
+                    "text/json": components["schemas"]["CookieRightsSettings"];
+                    "application/*+json": components["schemas"]["CookieRightsSettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSaved"];
+                        "text/json": components["schemas"]["CookieSaved"];
+                        "text/plain": components["schemas"]["CookieSaved"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/settings/{section}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    section: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSettingsVersion"][];
+                        "text/json": components["schemas"]["CookieSettingsVersion"][];
+                        "text/plain": components["schemas"]["CookieSettingsVersion"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/settings/{section}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    section: string;
+                    version: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JsonElement"];
+                        "text/json": components["schemas"]["JsonElement"];
+                        "text/plain": components["schemas"]["JsonElement"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/settings/{section}/rollback/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    section: string;
+                    version: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSaved"];
+                        "text/json": components["schemas"]["CookieSaved"];
+                        "text/plain": components["schemas"]["CookieSaved"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/debug": {
         parameters: {
             query?: never;
@@ -12085,6 +12857,10 @@ export interface components {
             last24Hours: null | components["schemas"]["AccessCounts"];
             gaps: string[];
         };
+        ActionSettings: {
+            duties?: components["schemas"]["DutySwitches"];
+            limits?: components["schemas"]["OutputLimits"];
+        };
         ActivationInfo: {
             status: string;
             product: null | string;
@@ -12715,13 +13491,13 @@ export interface components {
             complaining: number;
         };
         /** @enum {unknown} */
-        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog";
+        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie";
         /** @enum {unknown} */
         AssignMode: "Add" | "Remove";
         /** @enum {unknown} */
-        AuditActor: "User" | "Cli" | "Agent" | "System";
+        AuditActor: "User" | "Cli" | "Agent" | "System" | "Cookie";
         /** @enum {unknown} */
-        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix";
+        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix" | "Cookie";
         AuditChange: {
             object: null | string;
             field: string;
@@ -12827,6 +13603,31 @@ export interface components {
             fingerprint: string;
             comment: null | string;
         };
+        CaseMember: {
+            type: string;
+            id: string;
+            name: string;
+            /** Format: date-time */
+            since: string;
+            /** Format: int32 */
+            code?: null | number;
+            message?: null | string;
+            severity?: null | string;
+            /** @default false */
+            acknowledged: boolean;
+            importance?: null | string;
+            notesHash?: null | string;
+            ref?: null | string;
+        };
+        CaseSettings: {
+            zabbixMinSeverity?: components["schemas"]["ZabbixSeverity"];
+            /** Format: double */
+            unresolvedHours?: number;
+            instructions?: {
+                [key: string]: string;
+            };
+            scoped?: components["schemas"]["ScopedInstruction"][];
+        };
         ChangePasswordRequest: {
             currentPassword?: null | string;
             newPassword?: null | string;
@@ -12835,6 +13636,205 @@ export interface components {
             name: string;
             installed: boolean;
             running: boolean;
+        };
+        CookieAdminOverview: {
+            status: components["schemas"]["CookieStatusItem"];
+            codeReason: string;
+            codeState: components["schemas"]["OverallState"];
+            /** Format: date-time */
+            caseBookAt: null | string;
+            /** Format: date-time */
+            ticketsAt: null | string;
+            caseBookError: null | string;
+            /** Format: int32 */
+            openProblems: number;
+            /** Format: int32 */
+            openTickets: number;
+            /** Format: int32 */
+            dutiesDue: number;
+            redmineConfigured: boolean;
+            redmineWritable: boolean;
+            aiUsable: boolean;
+            duties: components["schemas"]["CookieDutyCount"][];
+        };
+        CookieAllSettings: {
+            identity: components["schemas"]["IdentitySettings"];
+            prompts: components["schemas"]["PromptSettings"];
+            cases: components["schemas"]["CaseSettings"];
+            hours: components["schemas"]["HoursSettings"];
+            notifications: components["schemas"]["NotificationSettings"];
+            redmine: components["schemas"]["CookieRedmineSettings"];
+            actions: components["schemas"]["ActionSettings"];
+            models: components["schemas"]["ModelSettings"];
+            rights: components["schemas"]["CookieRightsSettings"];
+        };
+        CookieCaseDetail: {
+            case: components["schemas"]["CookieCaseItem"];
+            members: components["schemas"]["CaseMember"][];
+            entries: components["schemas"]["CookieEntryItem"][];
+            duties: components["schemas"]["CookieDutyItem"][];
+            ticket: null | components["schemas"]["CookieTicketClock"];
+            ownIssueUrl: null | string;
+        };
+        CookieCaseItem: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["CookieCaseKind"];
+            open: boolean;
+            title: string;
+            importance: components["schemas"]["Importance"];
+            /** Format: date-time */
+            openedAt: string;
+            /** Format: date-time */
+            closedAt: null | string;
+            /** Format: date-time */
+            changedAt: string;
+            /** Format: date-time */
+            progressAt: string;
+            /** Format: uuid */
+            hostId: null | string;
+            /** Format: uuid */
+            locationId: null | string;
+            /** Format: int32 */
+            issueId: null | number;
+            cookieNote: null | string;
+            cookieUrgency: null | string;
+            /** Format: date-time */
+            nextDueAt: null | string;
+            nextDue: null | components["schemas"]["CookieDutyKind"];
+        };
+        /** @enum {unknown} */
+        CookieCaseKind: "Problem" | "Ticket" | "Request";
+        CookieCaseRef: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+        };
+        CookieContact: {
+            /** Format: uuid */
+            userId: string;
+            email: null | string;
+            pushoverKey: null | string;
+            redmineName: null | string;
+            quietFrom: null | string;
+            quietTo: null | string;
+        };
+        CookieDefaults: {
+            prompts: components["schemas"]["CookiePromptItem"][];
+            caseKinds: components["schemas"]["CookiePromptItem"][];
+            ceilings: components["schemas"]["OutputLimits"];
+            limits: components["schemas"]["OutputLimits"];
+        };
+        CookieDutyCount: {
+            kind: components["schemas"]["CookieDutyKind"];
+            on: boolean;
+            /** Format: int32 */
+            due: number;
+            /** Format: int32 */
+            done: number;
+            /** Format: int32 */
+            heldBack: number;
+            /** Format: int32 */
+            off: number;
+            /** Format: int32 */
+            failed: number;
+        };
+        CookieDutyItem: {
+            /** Format: int64 */
+            id: number;
+            kind: components["schemas"]["CookieDutyKind"];
+            key: string;
+            /** Format: date-time */
+            dueAt: string;
+            state: components["schemas"]["CookieDutyState"];
+            /** Format: date-time */
+            doneAt: null | string;
+            outcome: null | string;
+        };
+        /** @enum {unknown} */
+        CookieDutyKind: "FirstAnswerReminder" | "FirstAnswerMissed" | "UpdateReminder" | "UpdateMissed" | "ProblemTicket" | "ClosingNote" | null;
+        /** @enum {unknown} */
+        CookieDutyState: "Due" | "Done" | "HeldBack" | "Off" | "NotPossible" | "Failed";
+        CookieEntryItem: {
+            /** Format: date-time */
+            at: string;
+            kind: string;
+            text: string;
+            actor: string;
+            actorName: null | string;
+        };
+        CookiePromptItem: {
+            key: string;
+            label: string;
+            usedFor: string;
+            text: string;
+            required: string[];
+        };
+        CookieRedmineLookups: {
+            configured: boolean;
+            writable: boolean;
+            projects: components["schemas"]["RedmineNamed"][];
+            roles: components["schemas"]["RedmineNamed"][];
+            statuses: components["schemas"]["RedmineNamed"][];
+            trackers: components["schemas"]["RedmineNamed"][];
+            error: null | string;
+        };
+        CookieRedmineSettings: {
+            projects?: components["schemas"]["WatchedProject"][];
+            /** Format: int32 */
+            ticketProjectId?: null | number;
+            /** Format: int32 */
+            ticketTrackerId?: null | number;
+        };
+        CookieRightsSettings: {
+            /** Format: uuid */
+            groupId?: null | string;
+        };
+        CookieSaved: {
+            section: string;
+            /** Format: int32 */
+            version: number;
+        };
+        CookieSettingsVersion: {
+            /** Format: int32 */
+            version: number;
+            /** Format: date-time */
+            changedAt: string;
+            changedBy: string;
+            note: null | string;
+        };
+        /** @enum {unknown} */
+        CookieState: "Stopped" | "Sleeping" | "Working" | "Paused";
+        CookieStateItem: {
+            enabled: boolean;
+            running: boolean;
+            state: components["schemas"]["CookieState"];
+            reason: null | string;
+            /** Format: date-time */
+            lastRoundAt: null | string;
+            /** Format: date-time */
+            nextRoundAt: null | string;
+        };
+        CookieStatusItem: {
+            overall: components["schemas"]["OverallStateItem"];
+            cookie: components["schemas"]["CookieStateItem"];
+        };
+        CookieTicketClock: {
+            /** Format: int32 */
+            issueId: number;
+            author: null | string;
+            authorIsStaff: boolean;
+            assignee: null | string;
+            status: null | string;
+            /** Format: date-time */
+            createdAt: null | string;
+            /** Format: date-time */
+            firstAnswerAt: null | string;
+            /** Format: date-time */
+            lastStaffUpdateAt: null | string;
+            /** Format: int32 */
+            ownIssueId: null | number;
+            issueUrl: null | string;
         };
         CreatedUser: {
             user: components["schemas"]["UserItem"];
@@ -12926,6 +13926,12 @@ export interface components {
             dns: components["schemas"]["DnsSummary"];
             mail: components["schemas"]["MailSummary"];
         };
+        DayHours: {
+            day: components["schemas"]["DayOfWeek"];
+            periods: components["schemas"]["HoursPeriod"][];
+        };
+        /** @enum {unknown} */
+        DayOfWeek: "Sunday" | "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday";
         DebugAiResult: {
             role: components["schemas"]["AiRole"];
             model: string;
@@ -13281,6 +14287,20 @@ export interface components {
         };
         /** @enum {unknown} */
         DnsZoneResourceType: "A" | "AAAA" | "CNAME" | "TXT" | "MX" | "SOA" | "PTR" | "SRV" | "NS";
+        DutySwitches: {
+            /** @default false */
+            firstAnswerReminder: boolean;
+            /** @default false */
+            firstAnswerMissed: boolean;
+            /** @default false */
+            updateReminder: boolean;
+            /** @default false */
+            updateMissed: boolean;
+            /** @default false */
+            problemTicket: boolean;
+            /** @default false */
+            closingNote: boolean;
+        };
         EncryptedVolume: {
             device: string;
             mount: null | string;
@@ -13539,6 +14559,12 @@ export interface components {
             hostname?: null | string;
             lastShutdown?: null | string;
         };
+        Holiday: {
+            /** Format: date */
+            date: string;
+            name: string;
+            periods: components["schemas"]["HoursPeriod"][];
+        };
         HostCounts: {
             /** Format: int32 */
             total: number;
@@ -13609,22 +14635,36 @@ export interface components {
         };
         /** @enum {unknown} */
         HostState: "Ok" | "Failing" | "NoData" | "Disabled";
+        HoursPeriod: {
+            from: string;
+            to: string;
+        };
+        HoursSettings: {
+            week?: components["schemas"]["DayHours"][];
+            holidays?: components["schemas"]["Holiday"][];
+        };
         HypervisorInfo: {
             present: boolean;
             vendor: null | string;
             model: null | string;
         };
+        IdentitySettings: {
+            name?: string;
+            creator?: string;
+            organisation?: string;
+            tone?: string;
+            language?: string;
+        };
         /** Format: binary */
         IFormFile: string;
-        /**
-         * @default Normal
-         * @enum {unknown}
-         */
+        /** @enum {unknown} */
         Importance: "Low" | "Normal" | "High";
         ImportanceRequest: {
             ids?: string[];
             importance?: null | components["schemas"]["Importance"];
         };
+        /** @enum {unknown} */
+        InstructionScope: "Location" | "Host" | "Project" | "SensorType";
         /**
          * @default Any
          * @enum {unknown}
@@ -13934,7 +14974,7 @@ export interface components {
             enabled?: boolean;
         };
         /** @enum {unknown} */
-        Level: "None" | "View" | "Edit" | "Manage" | "Run" | "Read" | "Decide" | "Link" | "Details";
+        Level: "None" | "View" | "Edit" | "Manage" | "Run" | "Read" | "Decide" | "Link" | "Details" | "Use" | "Instruct";
         LinkedSensor: {
             /** Format: uuid */
             sensorId: string;
@@ -15086,6 +16126,20 @@ export interface components {
          * @enum {unknown}
          */
         MikrotikUpdateMethod: "Download" | "Install";
+        ModelSettings: {
+            model?: null | string;
+            providers?: null | string;
+            triageEffort?: string;
+            workEffort?: string;
+            /** Format: int32 */
+            sleepMinutes?: number;
+            /** Format: int32 */
+            maxCasesPerRound?: number;
+            /** Format: int32 */
+            maxToolCalls?: number;
+            /** Format: double */
+            budgetUsd?: null | number;
+        };
         NetworkSection: {
             adapters: components["schemas"]["AdapterInfo"][];
             teams: components["schemas"]["TeamInfo"][];
@@ -15214,6 +16268,10 @@ export interface components {
             /** Format: uuid */
             hostId?: null | string;
         };
+        NotificationSettings: {
+            contacts?: components["schemas"]["CookieContact"][];
+            rules?: components["schemas"]["RecipientRule"][];
+        };
         OperationalLog: {
             name: string;
             purpose: string;
@@ -15236,6 +16294,73 @@ export interface components {
             supported: boolean;
             productType: null | string;
             activation?: null | components["schemas"]["ActivationInfo"];
+        };
+        OutputLimits: {
+            /**
+             * Format: int32
+             * @default 3
+             */
+            pushoverPerPersonDay: number;
+            /**
+             * Format: int32
+             * @default 1
+             */
+            pushoverPerPersonHour: number;
+            /**
+             * Format: int32
+             * @default 10
+             */
+            emailPerPersonDay: number;
+            /**
+             * Format: int32
+             * @default 30
+             */
+            messagesPerDay: number;
+            /**
+             * Format: int32
+             * @default 5
+             */
+            ticketsPerDay: number;
+            /**
+             * Format: int32
+             * @default 2
+             */
+            notesPerTicketDay: number;
+            /**
+             * Format: int32
+             * @default 30
+             */
+            redmineNotesPerDay: number;
+            /**
+             * Format: int32
+             * @default 10
+             */
+            publicAnswersPerDay: number;
+            /**
+             * Format: int32
+             * @default 50
+             */
+            objectNotesPerDay: number;
+            /**
+             * Format: int32
+             * @default 10
+             */
+            bigBrotherPerDay: number;
+            /**
+             * Format: int32
+             * @default 2
+             */
+            bigBrotherPerCaseDay: number;
+        };
+        /** @enum {unknown} */
+        OverallState: "AllFine" | "Info" | "Warning" | "Alert";
+        OverallStateItem: {
+            state: components["schemas"]["OverallState"];
+            reason: string;
+            source: string;
+            /** Format: date-time */
+            at: null | string;
+            cases: components["schemas"]["CookieCaseRef"][];
         };
         PacketField: {
             /** Format: int32 */
@@ -15339,6 +16464,15 @@ export interface components {
         };
         PagedOfAuditLogItem: {
             items: components["schemas"]["AuditLogItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfCookieCaseItem: {
+            items: components["schemas"]["CookieCaseItem"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */
@@ -15705,12 +16839,36 @@ export interface components {
             /** Format: int32 */
             maxClockMhz: null | number;
         };
+        PromptSettings: {
+            texts?: {
+                [key: string]: string;
+            };
+        };
         ProxmoxInfo: {
             version: null | string;
             clusterName: null | string;
             node: null | string;
             nodes: string[];
         };
+        /** @enum {unknown} */
+        RecipientChannel: "Dashboard" | "Email" | "Pushover";
+        RecipientRule: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            scope: components["schemas"]["RecipientScope"];
+            /** @description The location's or host's id, the Redmine project's number, or the kind of case (problem, ticket) */
+            value: null | string;
+            minUrgency: components["schemas"]["Urgency"];
+            when: components["schemas"]["RecipientWhen"];
+            users: string[];
+            groups: string[];
+            channels: components["schemas"]["RecipientChannel"][];
+        };
+        /** @enum {unknown} */
+        RecipientScope: "Everything" | "Location" | "Host" | "Project" | "CaseKind";
+        /** @enum {unknown} */
+        RecipientWhen: "Always" | "WorkingHours" | "OutsideWorkingHours";
         RedmineAttachmentItem: {
             /** Format: int32 */
             id: number;
@@ -16010,6 +17168,14 @@ export interface components {
             lastResult: null | number;
             /** Format: date-time */
             nextRun: null | string;
+        };
+        ScopedInstruction: {
+            /** Format: uuid */
+            id: string;
+            scope: components["schemas"]["InstructionScope"];
+            value: string;
+            label: string;
+            text: string;
         };
         ScriptFinding: {
             rule: string;
@@ -17521,6 +18687,8 @@ export interface components {
             start: string;
             values: (null | number)[];
         };
+        /** @enum {unknown} */
+        Urgency: "Info" | "Important" | "Urgent";
         UserItem: {
             /** Format: uuid */
             id: string;
@@ -17558,6 +18726,22 @@ export interface components {
             /** Format: int64 */
             freeBytes: null | number;
             encryption: null | string;
+        };
+        WatchedProject: {
+            /** Format: int32 */
+            projectId: number;
+            /** Format: double */
+            firstAnswerHours: number;
+            /** Format: double */
+            firstAnswerReminderHours: number;
+            /** Format: int32 */
+            updateDays: number;
+            /** Format: int32 */
+            updateReminderDays: number;
+            /** Format: uuid */
+            escalationGroupId: null | string;
+            staffRoleIds: number[];
+            stopStatusIds: number[];
         };
         /** @enum {unknown} */
         WgPeerKind: "Router" | "Custom";

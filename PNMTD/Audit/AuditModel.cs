@@ -5,7 +5,7 @@ using PNMTD.Auth;
 namespace PNMTD.Audit;
 
 /// <summary>Who did it (docs/audit-redmine-zabbix-plan.md §3.2). Packages eight to ten add Mcp, Cookie and Seraph.</summary>
-public enum AuditActor { User, Cli, Agent, System }
+public enum AuditActor { User, Cli, Agent, System, Cookie }
 
 /// <summary>How it ended (§3.5).</summary>
 public enum AuditOutcome { Succeeded, Failed, Denied }
@@ -19,6 +19,9 @@ public sealed record AuditWho(AuditActor Actor, Guid? UserId, string Username, s
     public static readonly AuditWho Cli = new(AuditActor.Cli, null, "", null, null, null);
 
     public static readonly AuditWho System = new(AuditActor.System, null, "", null, null, null);
+
+    /// <summary>Cookie (docs/cookie-plan.md §3.1): its duties and actions, <see cref="ActorRef"/> "code" or "cookie".</summary>
+    public static AuditWho Cookie(string reference) => new(AuditActor.Cookie, null, "cookie", reference, null, null);
 
     public static AuditWho Agent(string? address, string? reference = null) => new(AuditActor.Agent, null, "agent", reference, address, null);
 

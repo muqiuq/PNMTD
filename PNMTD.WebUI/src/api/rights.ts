@@ -25,6 +25,7 @@ export const levelOrder: Record<Area, readonly Level[]> = {
   Ai: ['Manage'],
   System: ['Manage'],
   AuditLog: ['View'],
+  Cookie: ['Use', 'Instruct', 'Manage'],
 }
 
 /** Whether these rights (the admin flag, or the levels per area) include the level asked for. */

@@ -37,6 +37,8 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         // docs/audit-redmine-zabbix-plan.md §7.3, §8.5: the problems every Zabbix:PollSeconds (60), the hosts every Zabbix:HostSyncMinutes (10).
         new("Zabbix problems", KeyValueKeyEnums.LAST_ZABBIX_POLL, 60, c => Zabbix.ZabbixSetup.Configured(c)),
         new("Zabbix hosts", KeyValueKeyEnums.LAST_ZABBIX_HOST_SYNC, 600, c => Zabbix.ZabbixSetup.Configured(c)),
+        // docs/cookie-plan.md §19.3: the case book every 30 seconds, with Cookie__Enabled=true.
+        new("Cookie's case book", KeyValueKeyEnums.LAST_COOKIE_CASEBOOK, 30, c => c.GetValue("Cookie:Enabled", false)),
     ];
 
     public static bool MailboxConfigured(IConfiguration c) =>

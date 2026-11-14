@@ -1,0 +1,324 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using PNMTD.Lib.Models.Enum;
+
+namespace PNMTD.Models.Db;
+
+/// <summary>Cookie's own state (docs/cookie-plan.md §4.1).</summary>
+public enum CookieState { Stopped, Sleeping, Working, Paused }
+
+/// <summary>The overall state on the dashboard (docs/cookie-plan.md §8).</summary>
+public enum OverallState { AllFine, Info, Warning, Alert }
+
+/// <summary>What a case is about (docs/cookie-plan.md §4.3, §19.1).</summary>
+public enum CookieCaseKind { Problem, Ticket, Request }
+
+/// <summary>A deadline's step (docs/cookie-plan.md §7, §19.1).</summary>
+public enum CookieDutyKind { FirstAnswerReminder, FirstAnswerMissed, UpdateReminder, UpdateMissed, ProblemTicket, ClosingNote }
+
+/// <summary>What came of a duty: still due, done, held back by a limit, switched off, not possible, or failed.</summary>
+public enum CookieDutyState { Due, Done, HeldBack, Off, NotPossible, Failed }
+
+/// <summary>How something left PNMT (docs/cookie-plan.md §6.1).</summary>
+public enum CookieChannel { Email, Pushover, RedmineNote, RedminePrivateNote, RedmineTicket }
+
+public enum CookieOutboxState { Sent, HeldBack, Failed, Simulated }
+
+/// <summary>
+/// One version of one section of Admin → Cookie (docs/cookie-plan.md §9.3, §19.2): the newest is in force, a rollback
+/// saves an old one again.
+/// </summary>
+[Table("cookie_settings")]
+[NotAudited("every version is kept here; each save is in the audit log as CookieSettingsChanged")]
+public class CookieSettingEntity
+{
+    [Key]
+    public long Id { get; set; }
+
+    [MaxLength(32)]
+    public string Section { get; set; } = "";
+
+    public int Version { get; set; }
+
+    /// <summary>The section as JSON.</summary>
+    public string Json { get; set; } = "{}";
+
+    public DateTime ChangedAt { get; set; }
+
+    public Guid? ChangedById { get; set; }
+
+    [MaxLength(200)]
+    public string ChangedByName { get; set; } = "";
+
+    /// <summary>"Rolled back to version 3".</summary>
+    [MaxLength(300)]
+    public string? Note { get; set; }
+}
+
+/// <summary>Cookie's running state and the two statuses (docs/cookie-plan.md §4.1, §8), in one row.</summary>
+[Table("cookie_runtime")]
+[NotAudited("Cookie's running state; starting and stopping it are in the audit log")]
+public class CookieRuntimeEntity
+{
+    public const int Id = 1;
+
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.None)]
+    public int SingletonId { get; set; } = Id;
+
+    /// <summary>An admin started it; it resumes after a restart (§9.3).</summary>
+    public bool Running { get; set; }
+
+    public DateTime? StartedAt { get; set; }
+
+    [MaxLength(200)]
+    public string? StartedBy { get; set; }
+
+    public DateTime? StoppedAt { get; set; }
+
+    [MaxLength(200)]
+    public string? StoppedBy { get; set; }
+
+    public CookieState State { get; set; } = CookieState.Stopped;
+
+    [MaxLength(500)]
+    public string? StateReason { get; set; }
+
+    public DateTime? LastRoundAt { get; set; }
+
+    public DateTime? NextRoundAt { get; set; }
+
+    /// <summary>The state code computes from sensors, cases and deadlines (§3.4 A).</summary>
+    public OverallState CodeStatus { get; set; }
+
+    [MaxLength(500)]
+    public string CodeReason { get; set; } = "";
+
+    public List<Guid> CodeCases { get; set; } = [];
+
+    public DateTime? CodeStatusAt { get; set; }
+
+    /// <summary>Cookie's state, which replaces the code's while Cookie is running (§8).</summary>
+    public OverallState? CookieStatus { get; set; }
+
+    [MaxLength(500)]
+    public string? CookieReason { get; set; }
+
+    public List<Guid> CookieCases { get; set; } = [];
+
+    public DateTime? CookieStatusAt { get; set; }
+
+    /// <summary>The case book's last run, and the last time it read the watched tickets.</summary>
+    public DateTime? CaseBookAt { get; set; }
+
+    public DateTime? TicketsAt { get; set; }
+
+    [MaxLength(500)]
+    public string? CaseBookError { get; set; }
+}
+
+/// <summary>
+/// A case (docs/cookie-plan.md §4.3, §19.1): a host's problems, a watched ticket, or a person's request. Code opens and
+/// closes it.
+/// </summary>
+[Table("cookie_cases")]
+[NotAudited("Cookie's case book, kept by code from the monitoring state and the watched tickets")]
+public class CookieCaseEntity
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    public CookieCaseKind Kind { get; set; }
+
+    /// <summary>"host:{id}", "zabbix:{hostid}", "ticket:{number}", "request:{id}": one open case per key.</summary>
+    [MaxLength(100)]
+    public string Key { get; set; } = "";
+
+    public bool Open { get; set; } = true;
+
+    [MaxLength(300)]
+    public string Title { get; set; } = "";
+
+    public Guid? HostId { get; set; }
+
+    public Guid? LocationId { get; set; }
+
+    public long? ZabbixHostId { get; set; }
+
+    /// <summary>The ticket of a ticket case.</summary>
+    public int? IssueId { get; set; }
+
+    public int? ProjectId { get; set; }
+
+    public Importance Importance { get; set; } = Importance.Normal;
+
+    public DateTime OpenedAt { get; set; }
+
+    public DateTime? ClosedAt { get; set; }
+
+    /// <summary>The last change Cookie should know of: a member, progress, a ticket's update.</summary>
+    public DateTime ChangedAt { get; set; }
+
+    /// <summary>The last progress (§7.1); the opening when there was none.</summary>
+    public DateTime ProgressAt { get; set; }
+
+    /// <summary>A problem case's members as JSON: its bad sensors and Zabbix problems.</summary>
+    public string Members { get; set; } = "[]";
+
+    /// <summary>The notes of the host and the members' sensors when last looked at: a change is progress.</summary>
+    [MaxLength(64)]
+    public string? NotesHash { get; set; }
+
+    // A ticket case's clock (§7.2).
+    public int? AuthorId { get; set; }
+
+    [MaxLength(200)]
+    public string? AuthorName { get; set; }
+
+    public bool AuthorIsStaff { get; set; }
+
+    public int? AssigneeId { get; set; }
+
+    [MaxLength(200)]
+    public string? AssigneeName { get; set; }
+
+    public int? StatusId { get; set; }
+
+    [MaxLength(100)]
+    public string? StatusName { get; set; }
+
+    public DateTime? TicketCreatedAt { get; set; }
+
+    /// <summary>Redmine's updated_on when its journals were last read.</summary>
+    public DateTime? TicketUpdatedOn { get; set; }
+
+    public DateTime? FirstAnswerAt { get; set; }
+
+    public DateTime? LastStaffUpdateAt { get; set; }
+
+    /// <summary>The ticket opened for a problem case (§7.1).</summary>
+    public int? OwnIssueId { get; set; }
+
+    // Cookie (package nine, B).
+    [MaxLength(2000)]
+    public string? CookieNote { get; set; }
+
+    [MaxLength(16)]
+    public string? CookieUrgency { get; set; }
+
+    public DateTime? CookieNoteAt { get; set; }
+
+    /// <summary>The areas its sources come from (Monitoring, Zabbix, Redmine): only readers with all of them see it (§9.2).</summary>
+    public List<string> Areas { get; set; } = [];
+
+    /// <summary>A request case's asker.</summary>
+    public Guid? UserId { get; set; }
+}
+
+/// <summary>A line of a case's timeline: what happened, when, by whom (code, Cookie, a person).</summary>
+[Table("cookie_case_entries")]
+[NotAudited("a case's timeline, written by code and Cookie")]
+public class CookieCaseEntryEntity
+{
+    [Key]
+    public long Id { get; set; }
+
+    public Guid CaseId { get; set; }
+
+    public DateTime At { get; set; }
+
+    /// <summary>opened, bad, ok, progress, closed, ticket, reminder, escalation, note, held-back, failed.</summary>
+    [MaxLength(32)]
+    public string Kind { get; set; } = "";
+
+    [MaxLength(2000)]
+    public string Text { get; set; } = "";
+
+    /// <summary>code, cookie or person.</summary>
+    [MaxLength(16)]
+    public string Actor { get; set; } = "code";
+
+    [MaxLength(200)]
+    public string? ActorName { get; set; }
+}
+
+/// <summary>
+/// A deadline's step for a case (docs/cookie-plan.md §7, §19.2), due at a time. Its key makes it happen once: "first-answer:reminder",
+/// "update:missed@202611141030", "problem:ticket".
+/// </summary>
+[Table("cookie_duties")]
+[NotAudited("deadlines computed by the case book; what they send is in the outbox and the audit log")]
+public class CookieDutyEntity
+{
+    [Key]
+    public long Id { get; set; }
+
+    public Guid CaseId { get; set; }
+
+    [MaxLength(64)]
+    public string Key { get; set; } = "";
+
+    public CookieDutyKind Kind { get; set; }
+
+    public DateTime DueAt { get; set; }
+
+    public CookieDutyState State { get; set; } = CookieDutyState.Due;
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime? DoneAt { get; set; }
+
+    [MaxLength(500)]
+    public string? Outcome { get; set; }
+}
+
+/// <summary>
+/// Everything that went out, or was held back by a limit (docs/cookie-plan.md §6.1, §19.1): a message, a note, a ticket.
+/// The limits are counted here.
+/// </summary>
+[Table("cookie_outbox")]
+[NotAudited("the outbox itself; what is sent is in the audit log as Cookie's")]
+public class CookieOutboxEntity
+{
+    [Key]
+    public long Id { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public Guid? CaseId { get; set; }
+
+    public long? DutyId { get; set; }
+
+    public CookieChannel Channel { get; set; }
+
+    /// <summary>The PNMT user a message is for.</summary>
+    public Guid? UserId { get; set; }
+
+    /// <summary>Who, for people: a name; never shown as an address to anyone but admins.</summary>
+    [MaxLength(300)]
+    public string Recipient { get; set; } = "";
+
+    /// <summary>The ticket a note is on, or the ticket created.</summary>
+    public int? IssueId { get; set; }
+
+    [MaxLength(300)]
+    public string Subject { get; set; } = "";
+
+    public string Body { get; set; } = "";
+
+    public CookieOutboxState State { get; set; }
+
+    [MaxLength(500)]
+    public string? Detail { get; set; }
+
+    /// <summary>code or cookie.</summary>
+    [MaxLength(16)]
+    public string Source { get; set; } = "code";
+
+    public DateTime? SentAt { get; set; }
+
+    public Guid? SentById { get; set; }
+
+    [MaxLength(200)]
+    public string? SentByName { get; set; }
+}

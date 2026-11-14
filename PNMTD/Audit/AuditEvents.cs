@@ -130,6 +130,17 @@ public static class AuditEvents
     public const string RedmineLinkRemoved = "RedmineLinkRemoved";
     public const string RedmineTested = "RedmineTested";
 
+    // Cookie (docs/cookie-plan.md §9.3, §19): its configuration, start and stop, and what it sends.
+    public const string CookieSettingsChanged = "CookieSettingsChanged";
+    public const string CookieSettingsRolledBack = "CookieSettingsRolledBack";
+    public const string CookieStarted = "CookieStarted";
+    public const string CookieStopped = "CookieStopped";
+    public const string CookieRunRequested = "CookieRunRequested";
+    public const string CookieTicketCreated = "CookieTicketCreated";
+    public const string CookieNoteAdded = "CookieNoteAdded";
+    public const string CookieMessageSent = "CookieMessageSent";
+    public const string CookieHeldBackSent = "CookieHeldBackSent";
+
     // Zabbix (docs/audit-redmine-zabbix-plan.md §7.8): the connection's test, and attaching hosts in bulk.
     public const string ZabbixTested = "ZabbixTested";
     public const string ZabbixHostsAttached = "ZabbixHostsAttached";
@@ -201,7 +212,7 @@ public static class AuditEvents
 public enum AuditCategory
 {
     Auth, Users, Hosts, Sensors, Notifications, Locations, Knowledge, Files, Udp, Mikrotik, WireGuard, Agents, SshKeys,
-    Diagnostics, Dns, Mail, Ai, Decisions, System, Redmine, Zabbix,
+    Diagnostics, Dns, Mail, Ai, Decisions, System, Redmine, Zabbix, Cookie,
 }
 
 /// <summary>The colour of an event's tag.</summary>
@@ -240,6 +251,7 @@ public static class AuditTargets
     public const string AiWork = "AiWork";
     public const string RedmineTicket = "RedmineTicket";
     public const string ZabbixHost = "ZabbixHost";
+    public const string CookieCase = "CookieCase";
 }
 
 /// <summary>An event type of the catalog: its category, a label for people, the tone of its tag, what it is about.</summary>
@@ -318,6 +330,10 @@ public static class AuditCatalog
         Add(AuditCategory.Redmine, null, AuditEvents.RedmineTested);
         Add(AuditCategory.Zabbix, AuditTargets.ZabbixHost, AuditEvents.ZabbixHostsAttached);
         Add(AuditCategory.Zabbix, null, AuditEvents.ZabbixTested);
+        Add(AuditCategory.Cookie, null, AuditEvents.CookieSettingsChanged, AuditEvents.CookieSettingsRolledBack, AuditEvents.CookieStarted,
+            AuditEvents.CookieStopped, AuditEvents.CookieRunRequested);
+        Add(AuditCategory.Cookie, AuditTargets.CookieCase, AuditEvents.CookieTicketCreated, AuditEvents.CookieNoteAdded, AuditEvents.CookieMessageSent,
+            AuditEvents.CookieHeldBackSent);
         Add(AuditCategory.Hosts, AuditTargets.Host, AuditEvents.HostsImportanceChanged, AuditEvents.HostsLocationChanged);
         Add(AuditCategory.Sensors, AuditTargets.Sensor, AuditEvents.SensorCreated, AuditEvents.SensorUpdated, AuditEvents.SensorDeleted, AuditEvents.SensorTokensRotated, AuditEvents.SensorsImportanceChanged);
         Add(AuditCategory.Notifications, AuditTargets.NotificationRule, AuditEvents.NotificationRuleCreated, AuditEvents.NotificationRuleUpdated, AuditEvents.NotificationRuleDeleted, AuditEvents.NotificationRuleSensorLinked, AuditEvents.NotificationRuleSensorUnlinked, AuditEvents.NotificationRuleScopesChanged, AuditEvents.NotificationRuleExclusionAdded, AuditEvents.NotificationRuleExclusionRemoved);

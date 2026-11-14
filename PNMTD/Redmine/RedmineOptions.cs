@@ -27,6 +27,14 @@ public sealed class RedmineOptions
 
     public bool ShowPrivateNotes { get; set; }
 
+    /// <summary>
+    /// Cookie's key for writing (docs/cookie-plan.md §19.1): creating tickets and adding notes. Separate from <see cref="ApiKey"/>,
+    /// which only reads; without it, nothing is written.
+    /// </summary>
+    public string? WriteApiKey { get; set; }
+
+    public bool CanWrite => Enabled && !string.IsNullOrWhiteSpace(WriteApiKey);
+
     /// <summary>How often the copy of linked tickets is refreshed.</summary>
     public int SyncMinutes { get; set; } = 10;
 

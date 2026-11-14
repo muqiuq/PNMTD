@@ -3,20 +3,21 @@ using System.Security.Claims;
 namespace PNMTD.Auth.Rights;
 
 /// <summary>
-/// What a group gives rights in (docs/audit-redmine-zabbix-plan.md §5.2): 16 areas, fixed in code. Users and groups
+/// What a group gives rights in (docs/audit-redmine-zabbix-plan.md §5.2): 17 areas, fixed in code (Cookie since
+/// docs/cookie-plan.md §10.1). Users and groups
 /// themselves are no area: only the admin flag manages them (§5.1).
 /// </summary>
 public enum Area
 {
     Monitoring, Commands, Mail, Decisions, Locations, KnowledgeBase, Redmine, Zabbix, UdpNodes, Mikrotik, Servers, SshKeys,
-    Diagnostics, Ai, System, AuditLog,
+    Diagnostics, Ai, System, AuditLog, Cookie,
 }
 
 /// <summary>
 /// The levels, by name. Each area has its own ordered list of them (<see cref="RightsCatalog"/>); a level includes the
 /// ones before it in its area's list.
 /// </summary>
-public enum Level { None, View, Edit, Manage, Run, Read, Decide, Link, Details }
+public enum Level { None, View, Edit, Manage, Run, Read, Decide, Link, Details, Use, Instruct }
 
 /// <summary>An area, its levels in order, and what each allows (the text of §5.2, for the group page and Your access).</summary>
 public sealed record AreaInfo(Area Area, string Label, IReadOnlyList<(Level Level, string Allows)> Levels)
@@ -62,6 +63,10 @@ public static class RightsCatalog
         new(Area.System, "System", [
             (Level.Manage, "Key values, system health and task health, the debug page and its tests, checking the uplink now.")]),
         new(Area.AuditLog, "Audit log", [(Level.View, "Admin → Audit log and its export.")]),
+        new(Area.Cookie, "Cookie", [
+            (Level.Use, "Cookie's window: the cases, the trace (within the person's other rights), and the chat with Cookie."),
+            (Level.Instruct, "Use, plus temporary instructions and asking the big brother (package nine point five)."),
+            (Level.Manage, "Instruct, plus Admin → Cookie: the configuration, start, stop and run now.")]),
     ];
 
     private static readonly Dictionary<Area, AreaInfo> ByArea = Areas.ToDictionary(a => a.Area);

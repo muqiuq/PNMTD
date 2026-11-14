@@ -1,0 +1,261 @@
+using System.Security.Claims;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using PNMTD.Ai;
+using PNMTD.Api;
+using PNMTD.Api.V1.Contracts;
+using PNMTD.Audit;
+using PNMTD.Auth;
+using PNMTD.Auth.Rights;
+using PNMTD.Data;
+using PNMTD.Lib.Helper;
+using PNMTD.Models.Db;
+using PNMTD.Redmine;
+
+namespace PNMTD.Cookie;
+
+/// <summary>
+/// Who may see what Cookie writes (docs/cookie-plan.md §9.2): a case, a note or a summary carries the areas its sources came
+/// from, and only a reader with every one of them sees it.
+/// </summary>
+public static class CookieAccess
+{
+    public static (Area Area, Level Level)? RightOf(string area) => area switch
+    {
+        "Monitoring" => (Area.Monitoring, Level.View),
+        "Zabbix" => (Area.Zabbix, Level.View),
+        "Redmine" => (Area.Redmine, Level.View),
+        "Mail" => (Area.Mail, Level.Read),
+        "KnowledgeBase" => (Area.KnowledgeBase, Level.View),
+        "Locations" => (Area.Locations, Level.View),
+        _ => null,
+    };
+
+    public static bool CanSee(UserRights rights, IEnumerable<string> areas) =>
+        areas.All(a => RightOf(a) is { } r ? rights.Has(r.Area, r.Level) : rights.IsAdmin);
+
+    public static bool CanSee(UserRights rights, Guid? userId, CookieCaseEntity c) => c.Kind == CookieCaseKind.Request
+        ? c.UserId == userId || rights.Has(Area.Cookie, Level.Manage)
+        : CanSee(rights, c.Areas);
+}
+
+/// <summary>Cookie's API (docs/cookie-plan.md §19.4): the status, the cases, and Admin → Cookie.</summary>
+public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IOptionsMonitor<CookieOptions> options, IOptionsMonitor<AiOptions> ai,
+    IOptionsMonitor<RedmineOptions> redmineOptions, IServiceProvider services)
+{
+    /// <summary>Cookie's status counts while it is this fresh; older, the code's is shown (§8).</summary>
+    public static readonly TimeSpan CookieStatusFor = TimeSpan.FromMinutes(30);
+
+    public async Task<CookieStatusItem> StatusAsync(ClaimsPrincipal user, CancellationToken ct)
+    {
+        var runtime = await db.CookieRuntime.AsNoTracking().SingleOrDefaultAsync(ct) ?? new CookieRuntimeEntity();
+        var useCookie = runtime.Running && runtime.CookieStatus is not null && runtime.CookieStatusAt > Clock.UtcNow - CookieStatusFor;
+        var (state, reason, ids, at, source) = useCookie
+            ? (runtime.CookieStatus!.Value, runtime.CookieReason ?? "", runtime.CookieCases, runtime.CookieStatusAt, "cookie")
+            : (runtime.CodeStatus, runtime.CodeReason, runtime.CodeCases, runtime.CodeStatusAt, "code");
+        var rights = user.Rights();
+        var cases = await db.CookieCases.AsNoTracking().Where(c => ids.Contains(c.Id)).ToListAsync(ct);
+        var visible = cases.Where(c => CookieAccess.CanSee(rights, user.UserId(), c)).ToList();
+        if (visible.Count < cases.Count)
+        {
+            // The reason names hosts and tickets: only for those who may see them all.
+            reason = state == OverallState.AllFine ? reason : $"{cases.Count - visible.Count} of the cases behind this are outside your rights.";
+        }
+        var o = options.CurrentValue;
+        var overall = new OverallStateItem(state, reason, source, at,
+            visible.OrderBy(c => ids.IndexOf(c.Id)).Select(c => new CookieCaseRef(c.Id, c.Title)).ToList());
+        return new CookieStatusItem(overall, new CookieStateItem(o.Enabled, runtime.Running, o.Enabled ? runtime.State : CookieState.Stopped,
+            o.Enabled ? runtime.StateReason : "Cookie__Enabled is not set.", runtime.LastRoundAt, runtime.NextRoundAt));
+    }
+
+    public async Task<Paged<CookieCaseItem>> CasesAsync(CookieCaseQuery query, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var size = Math.Clamp(query.PageSize, 1, 200);
+        var page = Math.Max(1, query.Page);
+        IQueryable<CookieCaseEntity> q = db.CookieCases.AsNoTracking();
+        if (query.Open is { } open)
+        {
+            q = q.Where(c => c.Open == open);
+        }
+        if (query.Kind is { } kind)
+        {
+            q = q.Where(c => c.Kind == kind);
+        }
+        // Rights are filtered in code: few cases are open at a time, and closed ones are read a page at a time.
+        var all = await q.OrderByDescending(c => c.Open).ThenByDescending(c => c.Importance).ThenByDescending(c => c.ChangedAt).Take(2000).ToListAsync(ct);
+        var rights = user.Rights();
+        var visible = all.Where(c => CookieAccess.CanSee(rights, user.UserId(), c)).ToList();
+        var items = visible.Skip((page - 1) * size).Take(size).ToList();
+        var next = await NextDutiesAsync(items.Select(c => c.Id).ToList(), ct);
+        return new Paged<CookieCaseItem>(items.Select(c => Item(c, next.GetValueOrDefault(c.Id))).ToList(), page, size, visible.Count);
+    }
+
+    public async Task<CookieCaseDetail> CaseAsync(Guid id, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var c = await db.CookieCases.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct);
+        if (c is null || !CookieAccess.CanSee(user.Rights(), user.UserId(), c))
+        {
+            throw ApiException.NotFound("Case");
+        }
+        var entries = await db.CookieCaseEntries.AsNoTracking().Where(e => e.CaseId == id).OrderByDescending(e => e.At).ThenByDescending(e => e.Id)
+            .Take(500).Select(e => new CookieEntryItem(e.At, e.Kind, e.Text, e.Actor, e.ActorName)).ToListAsync(ct);
+        var duties = await db.CookieDuties.AsNoTracking().Where(d => d.CaseId == id).OrderBy(d => d.DueAt)
+            .Select(d => new CookieDutyItem(d.Id, d.Kind, d.Key, d.DueAt, d.State, d.DoneAt, d.Outcome)).ToListAsync(ct);
+        var members = JsonSerializer.Deserialize<List<CaseMember>>(c.Members, CookieSettings.Json) ?? [];
+        var next = duties.Where(d => d.State == CookieDutyState.Due).OrderBy(d => d.DueAt).FirstOrDefault();
+        var o = redmineOptions.CurrentValue;
+        string? Url(int? issue) => issue is { } i && o.Enabled ? $"{o.BrowserUrl}/issues/{i}" : null;
+        var ticket = c.Kind == CookieCaseKind.Ticket && c.IssueId is { } issueId
+            ? new CookieTicketClock(issueId, c.AuthorName, c.AuthorIsStaff, c.AssigneeName, c.StatusName, c.TicketCreatedAt, c.FirstAnswerAt,
+                c.LastStaffUpdateAt, c.OwnIssueId, Url(issueId))
+            : null;
+        return new CookieCaseDetail(Item(c, next is null ? null : (next.DueAt, next.Kind)), members, entries, duties, ticket, Url(c.OwnIssueId));
+    }
+
+    private async Task<Dictionary<Guid, (DateTime DueAt, CookieDutyKind Kind)>> NextDutiesAsync(List<Guid> ids, CancellationToken ct) =>
+        (await db.CookieDuties.AsNoTracking().Where(d => ids.Contains(d.CaseId) && d.State == CookieDutyState.Due)
+            .Select(d => new { d.CaseId, d.DueAt, d.Kind }).ToListAsync(ct))
+        .GroupBy(d => d.CaseId).ToDictionary(g => g.Key, g => g.OrderBy(d => d.DueAt).Select(d => (d.DueAt, d.Kind)).First());
+
+    private static CookieCaseItem Item(CookieCaseEntity c, (DateTime DueAt, CookieDutyKind Kind)? next) => new(c.Id, c.Kind, c.Open, c.Title, c.Importance,
+        c.OpenedAt, c.ClosedAt, c.ChangedAt, c.ProgressAt, c.HostId, c.LocationId, c.IssueId ?? c.OwnIssueId, c.CookieNote, c.CookieUrgency,
+        next?.DueAt, next?.Kind);
+
+    // --- Admin → Cookie ------------------------------------------------------------------------------------------------
+
+    public async Task<CookieAdminOverview> OverviewAsync(ClaimsPrincipal user, CancellationToken ct)
+    {
+        var status = await StatusAsync(user, ct);
+        var runtime = await db.CookieRuntime.AsNoTracking().SingleOrDefaultAsync(ct) ?? new CookieRuntimeEntity();
+        var now = Clock.UtcNow;
+        var week = now.AddDays(-7);
+        var open = await db.CookieCases.AsNoTracking().Where(c => c.Open).GroupBy(c => c.Kind).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(ct);
+        var duties = await db.CookieDuties.AsNoTracking().Where(d => d.State == CookieDutyState.Due || d.DoneAt >= week)
+            .GroupBy(d => new { d.Kind, d.State }).Select(g => new { g.Key.Kind, g.Key.State, Count = g.Count() }).ToListAsync(ct);
+        var due = await db.CookieDuties.CountAsync(d => d.State == CookieDutyState.Due && d.DueAt <= now, ct);
+        var switches = (await settings.GetAsync<ActionSettings>(ct)).Duties;
+        int Count(CookieDutyKind k, CookieDutyState s) => duties.Where(d => d.Kind == k && d.State == s).Sum(d => d.Count);
+        var counts = Enum.GetValues<CookieDutyKind>().Select(k => new CookieDutyCount(k, switches.On(k), Count(k, CookieDutyState.Due),
+            Count(k, CookieDutyState.Done), Count(k, CookieDutyState.HeldBack), Count(k, CookieDutyState.Off),
+            Count(k, CookieDutyState.Failed) + Count(k, CookieDutyState.NotPossible))).ToList();
+        var r = redmineOptions.CurrentValue;
+        return new CookieAdminOverview(status, runtime.CodeReason, runtime.CodeStatus, runtime.CaseBookAt, runtime.TicketsAt, runtime.CaseBookError,
+            open.Where(o => o.Key == CookieCaseKind.Problem).Sum(o => o.Count), open.Where(o => o.Key == CookieCaseKind.Ticket).Sum(o => o.Count),
+            due, r.Enabled, r.CanWrite, ai.CurrentValue.Usable, counts);
+    }
+
+    public async Task<CookieAllSettings> SettingsAsync(CancellationToken ct) => new(
+        await settings.GetAsync<IdentitySettings>(ct), await settings.GetAsync<PromptSettings>(ct), await settings.GetAsync<CaseSettings>(ct),
+        await settings.GetAsync<HoursSettings>(ct), await settings.GetAsync<NotificationSettings>(ct), await settings.GetAsync<CookieRedmineSettings>(ct),
+        await settings.GetAsync<ActionSettings>(ct), await settings.GetAsync<ModelSettings>(ct), await settings.GetAsync<CookieRightsSettings>(ct));
+
+    public async Task<CookieSaved> SaveAsync<T>(T value, ClaimsPrincipal user, CancellationToken ct) where T : class, ICookieSection, new()
+    {
+        await CheckAsync(value, ct);
+        var version = await settings.SaveAsync(value, user.UserId(), user.Identity?.Name ?? "", null, ct);
+        AuditLog.Summary($"Admin → Cookie, {Label(T.Section)}: version {version}");
+        return new CookieSaved(T.Section, version);
+    }
+
+    public Task<IReadOnlyList<CookieSettingsVersion>> VersionsAsync(string section, CancellationToken ct) =>
+        settings.VersionsAsync(Known(section), ct);
+
+    public async Task<JsonElement> VersionAsync(string section, int version, CancellationToken ct)
+    {
+        var json = await settings.JsonAsync(Known(section), version, ct) ?? throw ApiException.NotFound("Version");
+        return JsonDocument.Parse(json).RootElement.Clone();
+    }
+
+    public async Task<CookieSaved> RollbackAsync(string section, int version, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var saved = await settings.RollbackAsync(Known(section), version, user.UserId(), user.Identity?.Name ?? "", ct);
+        AuditLog.Summary($"Admin → Cookie, {Label(section)}: version {saved}, the values of version {version}");
+        return new CookieSaved(section, saved);
+    }
+
+    public CookieDefaults Defaults() => new(
+        CookiePrompts.Defaults.Select(p => new CookiePromptItem(p.Key, p.Value.Label, p.Value.UsedFor, p.Value.Text, CookiePrompts.Required(p.Key))).ToList(),
+        CookiePrompts.CaseKinds.Select(p => new CookiePromptItem(p.Key, p.Value.Label, p.Value.UsedFor, p.Value.Text, [])).ToList(),
+        OutputLimits.Ceilings, new OutputLimits());
+
+    public async Task<CookieRedmineLookups> RedmineLookupsAsync(CancellationToken ct)
+    {
+        var o = redmineOptions.CurrentValue;
+        if (!o.Enabled)
+        {
+            return new CookieRedmineLookups(false, false, [], [], [], [], null);
+        }
+        try
+        {
+            var redmine = services.GetRequiredService<RedmineService>();
+            var client = services.GetRequiredService<RedmineClient>();
+            var lookups = await redmine.LookupsAsync(ct);
+            IReadOnlyList<RmRef> roles;
+            try
+            {
+                roles = (await client.GetAsync<RmRoles>("/roles.json", ct)).Roles;
+            }
+            catch (RedmineException)
+            {
+                roles = [];
+            }
+            return new CookieRedmineLookups(true, o.CanWrite,
+                lookups.Projects.Where(p => lookups.Allowed.Contains(p.Id)).Select(p => new RedmineNamed(p.Id, p.Name)).ToList(),
+                roles.Select(r => new RedmineNamed(r.Id, r.Name ?? $"#{r.Id}")).ToList(),
+                lookups.Statuses.Select(s => new RedmineNamed(s.Id, s.Name)).ToList(),
+                lookups.Trackers.Select(t => new RedmineNamed(t.Id, t.Name ?? $"#{t.Id}")).ToList(), null);
+        }
+        catch (RedmineException e)
+        {
+            return new CookieRedmineLookups(true, o.CanWrite, [], [], [], [], e.Message);
+        }
+    }
+
+    /// <summary>The checks that need the database: the users, groups and projects a section names exist.</summary>
+    private async Task CheckAsync<T>(T value, CancellationToken ct)
+    {
+        var v = new ApiValidator();
+        switch (value)
+        {
+            case NotificationSettings n:
+            {
+                var users = n.Contacts.Select(c => c.UserId).Concat(n.Rules.SelectMany(r => r.Users)).Distinct().ToList();
+                var known = await db.Users.Where(u => users.Contains(u.Id)).Select(u => u.Id).ToListAsync(ct);
+                v.Check(users.All(known.Contains), "contacts", "A user that doesn't exist.");
+                var groups = n.Rules.SelectMany(r => r.Groups).Distinct().ToList();
+                var knownGroups = await db.Groups.Where(g => groups.Contains(g.Id)).Select(g => g.Id).ToListAsync(ct);
+                v.Check(groups.All(knownGroups.Contains), "rules", "A group that doesn't exist.");
+                break;
+            }
+            case CookieRedmineSettings r:
+            {
+                var groups = r.Projects.Where(p => p.EscalationGroupId is not null).Select(p => p.EscalationGroupId!.Value).Distinct().ToList();
+                var known = await db.Groups.Where(g => groups.Contains(g.Id)).Select(g => g.Id).ToListAsync(ct);
+                v.Check(groups.All(known.Contains), "projects", "An escalation group that doesn't exist.");
+                break;
+            }
+            case CookieRightsSettings { GroupId: { } groupId }:
+                v.Check(await db.Groups.AnyAsync(g => g.Id == groupId, ct), "groupId", "No such group.");
+                break;
+        }
+        v.ThrowIfInvalid();
+    }
+
+    private static string Known(string section) =>
+        CookieSettings.Sections.Contains(section) ? section : throw ApiException.NotFound("Section");
+
+    public static string Label(string section) => section switch
+    {
+        "identity" => "Identity",
+        "prompts" => "Prompts",
+        "cases" => "Cases",
+        "hours" => "Working hours",
+        "notifications" => "Notifications",
+        "redmine" => "Redmine",
+        "actions" => "Actions",
+        "models" => "Models",
+        "rights" => "Rights",
+        _ => section,
+    };
+}

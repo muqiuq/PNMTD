@@ -68,10 +68,12 @@ public sealed record RmTrackers(IReadOnlyList<RmRef> Trackers);
 
 public sealed record RmPriorities([property: JsonPropertyName("issue_priorities")] IReadOnlyList<RmPriority> IssuePriorities);
 
-public sealed record RmMembership(RmRef? User);
+public sealed record RmMembership(RmRef? User, RmRef? Project = null, IReadOnlyList<RmRef>? Roles = null);
 
 public sealed record RmMemberships(IReadOnlyList<RmMembership> Memberships, [property: JsonPropertyName("total_count")] int TotalCount);
 
 public sealed record RmUser(int Id, string Login, string? Firstname, string? Lastname);
 
 public sealed record RmUserEnvelope(RmUser User);
+
+public sealed record RmRoles(IReadOnlyList<RmRef> Roles);

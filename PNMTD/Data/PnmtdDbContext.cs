@@ -145,6 +145,14 @@ namespace PNMTD.Data
         public DbSet<FileEntity> Files { get; set; }
         public DbSet<FileUseEntity> FileUses { get; set; }
 
+        // Cookie (docs/cookie-plan.md §19.2): its settings' versions, its state, the case book, the duties and the outbox.
+        public DbSet<CookieSettingEntity> CookieSettings { get; set; }
+        public DbSet<CookieRuntimeEntity> CookieRuntime { get; set; }
+        public DbSet<CookieCaseEntity> CookieCases { get; set; }
+        public DbSet<CookieCaseEntryEntity> CookieCaseEntries { get; set; }
+        public DbSet<CookieDutyEntity> CookieDuties { get; set; }
+        public DbSet<CookieOutboxEntity> CookieOutbox { get; set; }
+
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
         }
@@ -479,6 +487,7 @@ namespace PNMTD.Data
             ConfigureLocations(modelBuilder);
             ConfigureKnowledgeBase(modelBuilder);
             ConfigureFiles(modelBuilder);
+            ConfigureCookie(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
         }
@@ -638,6 +647,50 @@ namespace PNMTD.Data
                 e.HasIndex(u => new { u.PageId, u.FileId }).IsUnique().HasFilter("\"PageId\" IS NOT NULL");
                 e.HasIndex(u => new { u.LocationId, u.FileId }).IsUnique().HasFilter("\"LocationId\" IS NOT NULL");
                 e.HasIndex(u => u.FileId);
+            });
+        }
+
+        /// <summary>Cookie (docs/cookie-plan.md §19.2): enums as text, one open case per key, a duty once per case and key.</summary>
+        private static void ConfigureCookie(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<CookieSettingEntity>().HasIndex(s => new { s.Section, s.Version }).IsUnique();
+            modelBuilder.Entity<CookieRuntimeEntity>(e =>
+            {
+                e.Property(r => r.State).HasConversion<string>().HasMaxLength(16);
+                e.Property(r => r.CodeStatus).HasConversion<string>().HasMaxLength(16);
+                e.Property(r => r.CookieStatus).HasConversion<string>().HasMaxLength(16);
+            });
+            modelBuilder.Entity<CookieCaseEntity>(e =>
+            {
+                e.Property(c => c.Kind).HasConversion<string>().HasMaxLength(16);
+                e.Property(c => c.Importance).HasConversion<string>().HasMaxLength(16);
+                e.HasIndex(c => c.Key).IsUnique().HasFilter("\"Open\"");
+                e.HasIndex(c => new { c.Open, c.Kind });
+                e.HasIndex(c => c.IssueId);
+                e.HasIndex(c => c.HostId);
+                e.HasIndex(c => c.ClosedAt);
+            });
+            modelBuilder.Entity<CookieCaseEntryEntity>(e =>
+            {
+                e.HasOne<CookieCaseEntity>().WithMany().HasForeignKey(x => x.CaseId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(x => new { x.CaseId, x.At });
+            });
+            modelBuilder.Entity<CookieDutyEntity>(e =>
+            {
+                e.Property(d => d.Kind).HasConversion<string>().HasMaxLength(32);
+                e.Property(d => d.State).HasConversion<string>().HasMaxLength(16);
+                e.HasOne<CookieCaseEntity>().WithMany().HasForeignKey(d => d.CaseId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(d => new { d.CaseId, d.Key }).IsUnique();
+                e.HasIndex(d => new { d.State, d.DueAt });
+            });
+            modelBuilder.Entity<CookieOutboxEntity>(e =>
+            {
+                e.Property(o => o.Channel).HasConversion<string>().HasMaxLength(32);
+                e.Property(o => o.State).HasConversion<string>().HasMaxLength(16);
+                e.HasOne<CookieCaseEntity>().WithMany().HasForeignKey(o => o.CaseId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(o => o.CreatedAt);
+                e.HasIndex(o => new { o.Channel, o.UserId, o.CreatedAt });
+                e.HasIndex(o => new { o.IssueId, o.CreatedAt });
             });
         }
 
