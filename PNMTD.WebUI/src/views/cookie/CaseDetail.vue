@@ -1,23 +1,39 @@
 <script setup lang="ts">
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import Button from 'primevue/button'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
+import Dialog from 'primevue/dialog'
+import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import Tag from 'primevue/tag'
-import { computed } from 'vue'
+import Textarea from 'primevue/textarea'
+import { computed, ref, watch } from 'vue'
+import { ApiError } from '@/api/client'
 import { api, keys, type S } from '@/api/resources'
 import CodeTag from '@/components/CodeTag.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
+import { useNotify } from '@/composables/useNotify'
 import { formatAbsolute } from '@/format'
 import { useSession } from '@/stores/session'
 import { importanceSeverity } from '@/views/notifications/importance'
 import ZabbixSeverityTag from '@/views/zabbix/ZabbixSeverityTag.vue'
-import { actorLabel, dutyName, dutyStateName, dutyStateSeverity } from './cookieFormat'
+import {
+  actorLabel,
+  dutyName,
+  dutyStateName,
+  dutyStateSeverity,
+  entryKindLabel,
+  entryKindSeverity,
+  personKinds,
+} from './cookieFormat'
 
 /**
- * A case (docs/cookie-plan.md §4.3, §7): what is bad in it (a host's bad sensors and its Zabbix problems), its timeline,
- * its duties with what came of them, and for a ticket the clock of §7.2. Refreshed with the list.
+ * A case (docs/cookie-plan.md §4.3, §7): what is bad in it (a host's bad sensors and its Zabbix problems), its timeline
+ * with people's comments, its duties with what came of them, and for a ticket the clock of §7.2. Refreshed with the list.
+ * Cookie: Use comments (Cookie reads it in its next round); Cookie: Instruct stops a case (Don't go on with this, saying
+ * why) and lets Cookie go on with it. A stopped case stays open and visible, marked, with who, when and why.
  */
 const props = defineProps<{ id: string }>()
 const session = useSession()
@@ -33,6 +49,78 @@ const canLocations = computed(() => session.can('Locations', 'View'))
 const canRedmine = computed(() => session.can('Redmine', 'View'))
 
 const zabbixSeverity = (m: S['CaseMember']) => m.severity as S['ZabbixSeverity']
+const byPerson = (e: S['CookieEntryItem']) => (personKinds as readonly string[]).includes(e.kind)
+
+// --- comments, Stop and Go on (§4.3) --------------------------------------------------------------------------------
+const queryClient = useQueryClient()
+const notify = useNotify()
+const busy = ref(false)
+const comment = ref('')
+const commentError = ref<string | undefined>()
+const dialog = ref<'stop' | 'go-on' | null>(null)
+const dialogText = ref('')
+const dialogError = ref<string | undefined>()
+const dialogOpen = computed({ get: () => dialog.value !== null, set: (v) => !v && (dialog.value = null) })
+const dialogTitle = computed(() => (dialog.value === 'stop' ? "Don't go on with this" : 'Let Cookie go on'))
+watch(
+  () => props.id,
+  () => {
+    comment.value = ''
+    commentError.value = undefined
+    dialog.value = null
+  },
+)
+
+watch(dialogText, () => (dialogError.value = undefined))
+watch(comment, () => (commentError.value = undefined))
+
+async function postComment() {
+  const text = comment.value.trim()
+  commentError.value = text ? undefined : 'Write something first.'
+  if (!text) return
+  busy.value = true
+  try {
+    await api.cookie.comment(props.id, text)
+    comment.value = ''
+    notify.success('Comment added', 'Cookie reads it in its next round.')
+    await queryClient.invalidateQueries({ queryKey: keys.cookie })
+  } catch (e) {
+    if (e instanceof ApiError && e.field('text')) commentError.value = e.field('text')
+    else notify.error(e, 'Comment not added')
+  } finally {
+    busy.value = false
+  }
+}
+
+function ask(kind: 'stop' | 'go-on') {
+  dialog.value = kind
+  dialogText.value = ''
+  dialogError.value = undefined
+}
+
+async function confirm() {
+  const kind = dialog.value
+  if (!kind) return
+  const text = dialogText.value.trim()
+  dialogError.value = kind === 'stop' && !text ? 'Say why.' : undefined
+  if (dialogError.value) return
+  busy.value = true
+  try {
+    if (kind === 'stop') await api.cookie.stopCase(props.id, text)
+    else await api.cookie.goOn(props.id, text || null)
+    dialog.value = null
+    notify.success(
+      kind === 'stop' ? 'Stopped' : 'Cookie goes on with it',
+      kind === 'stop' ? 'Cookie leaves the case alone, and its duties stop.' : undefined,
+    )
+    await queryClient.invalidateQueries({ queryKey: keys.cookie })
+  } catch (e) {
+    if (e instanceof ApiError && e.field('text')) dialogError.value = e.field('text')
+    else notify.error(e, kind === 'stop' ? 'Not stopped' : 'Not done')
+  } finally {
+    busy.value = false
+  }
+}
 </script>
 
 <template>
@@ -43,12 +131,33 @@ const zabbixSeverity = (m: S['CaseMember']) => m.severity as S['ZabbixSeverity']
       <Tag :value="c.kind" severity="secondary" />
       <Tag :value="c.open ? 'open' : 'closed'" :severity="c.open ? 'info' : 'secondary'" />
       <Tag :value="c.importance" :severity="importanceSeverity(c.importance)" />
+      <Tag v-if="c.stopped" value="stopped" severity="warn" />
       <RouterLink :to="{ name: 'cookie', params: { tab: 'trace' }, query: { case: c.id } }" class="trace-link"
         >Trace of this case <i class="pi pi-angle-right" aria-hidden="true"
       /></RouterLink>
     </div>
     <div class="panel-body body">
       <h2 class="title">{{ c.title }}</h2>
+      <Message v-if="c.stopped" severity="warn" :closable="false" class="stopped">
+        <div>
+          <strong>Stopped</strong> by {{ c.stopped.by ?? 'someone' }}, {{ formatAbsolute(c.stopped.at)
+          }}<template v-if="c.stopped.comment">: “{{ c.stopped.comment }}”</template>
+        </div>
+        <div class="small">
+          Cookie leaves the case alone and its duties stop. It goes on when someone lets it, when the case closes, or
+          when something new fails.
+        </div>
+        <Button
+          v-if="d.canStop"
+          label="Go on…"
+          icon="pi pi-play"
+          size="small"
+          severity="secondary"
+          class="go-on"
+          :disabled="busy"
+          @click="ask('go-on')"
+        />
+      </Message>
       <p v-if="c.cookieNote" class="note">{{ c.cookieNote }}</p>
       <dl class="facts">
         <dt>Opened</dt>
@@ -90,6 +199,18 @@ const zabbixSeverity = (m: S['CaseMember']) => m.severity as S['ZabbixSeverity']
           </dd>
         </template>
       </dl>
+      <div v-if="d.canStop && !c.stopped" class="case-actions">
+        <Button
+          label="Stop…"
+          icon="pi pi-ban"
+          size="small"
+          severity="secondary"
+          outlined
+          :disabled="busy"
+          @click="ask('stop')"
+        />
+        <span class="muted small">Don't go on with this: Cookie leaves it alone, and its duties stop.</span>
+      </div>
 
       <template v-if="d.ticket">
         <h3 class="sub">The ticket's clock</h3>
@@ -190,17 +311,69 @@ const zabbixSeverity = (m: S['CaseMember']) => m.severity as S['ZabbixSeverity']
       </template>
 
       <h3 class="sub">Timeline</h3>
+      <form v-if="d.canComment" class="comment" novalidate @submit.prevent="postComment">
+        <Textarea
+          v-model="comment"
+          rows="2"
+          auto-resize
+          maxlength="1000"
+          placeholder="A comment for the people on this case, and for Cookie"
+          aria-label="Comment"
+          :invalid="!!commentError"
+        />
+        <div class="comment-actions">
+          <Button type="submit" label="Comment" icon="pi pi-comment" size="small" :loading="busy" />
+          <small v-if="commentError" class="field-error">{{ commentError }}</small>
+          <small v-else class="muted">Cookie reads it in its next round.</small>
+        </div>
+      </form>
       <p v-if="!d.entries.length" class="muted">Nothing yet.</p>
       <ol v-else class="timeline">
-        <li v-for="(e, i) in d.entries" :key="i">
+        <li v-for="(e, i) in d.entries" :key="i" :class="{ person: byPerson(e) }">
           <div class="entry-head small">
             <span class="nowrap">{{ formatAbsolute(e.at) }}</span>
-            <Tag :value="e.kind" severity="secondary" />
-            <span class="muted">{{ actorLabel(e) }}</span>
+            <Tag :value="entryKindLabel(e.kind)" :severity="entryKindSeverity(e.kind)" />
+            <span :class="byPerson(e) ? 'actor' : 'muted'">{{ actorLabel(e) }}</span>
           </div>
           <div class="wrap">{{ e.text }}</div>
         </li>
       </ol>
+
+      <Dialog v-model:visible="dialogOpen" :header="dialogTitle" modal :style="{ width: 'min(30rem, 95vw)' }">
+        <form id="case-dialog" class="form" novalidate @submit.prevent="confirm">
+          <p class="text">
+            <template v-if="dialog === 'stop'"
+              >Cookie leaves “{{ c.title }}” alone: no triage, no work, no notes. What is due closes as stopped, and
+              nothing new falls due. The case stays open, marked stopped, and PNMT's notification rules still
+              fire.</template
+            >
+            <template v-else>Cookie works on “{{ c.title }}” again, and its duties are planned again.</template>
+          </p>
+          <div class="field">
+            <label for="case-dialog-text">{{ dialog === 'stop' ? 'Why' : 'A comment (if you like)' }}</label>
+            <Textarea
+              id="case-dialog-text"
+              v-model="dialogText"
+              rows="3"
+              auto-resize
+              maxlength="1000"
+              autofocus
+              :invalid="!!dialogError"
+            />
+            <small v-if="dialogError" class="field-error">{{ dialogError }}</small>
+          </div>
+        </form>
+        <template #footer>
+          <Button label="Cancel" severity="secondary" text @click="dialog = null" />
+          <Button
+            type="submit"
+            form="case-dialog"
+            :label="dialog === 'stop' ? 'Stop' : 'Go on'"
+            :severity="dialog === 'stop' ? 'warn' : undefined"
+            :loading="busy"
+          />
+        </template>
+      </Dialog>
     </div>
   </template>
 </template>
@@ -279,6 +452,48 @@ const zabbixSeverity = (m: S['CaseMember']) => m.severity as S['ZabbixSeverity']
 .timeline li {
   border-left: 2px solid var(--pnmt-border);
   padding-left: var(--pnmt-space-2);
+}
+
+.timeline li.person {
+  border-left-color: var(--p-primary-color);
+}
+
+.actor {
+  font-weight: 600;
+}
+
+.stopped :deep(.p-message-text) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pnmt-space-1);
+}
+
+.go-on {
+  margin-top: var(--pnmt-space-1);
+}
+
+.case-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pnmt-space-2);
+}
+
+.comment {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-1);
+}
+
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--pnmt-space-2);
+}
+
+.text {
+  margin-top: 0;
 }
 
 .entry-head {

@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-/** The documentation of Cookie, PNMT's assistant (docs/cookie-plan.md, package nine): what it does in this release. */
+/**
+ * The documentation of Cookie, PNMT's assistant (docs/cookie-plan.md, package nine and revision 7): what it does in this
+ * release. The availability plan has a section of its own (AvailabilityDocs).
+ */
 const props = defineProps<{ search: string }>()
 const has = (...texts: string[]) => {
   const q = props.search.trim().toLowerCase()
@@ -10,7 +13,8 @@ const has = (...texts: string[]) => {
 const cookieText =
   'cookie assistant ai case book cases deadlines tickets first answer update duties reminders escalation outbox held back limits ' +
   'dashboard card summary window trace chat rights use instruct manage admin start stop run privacy placeholders person email phone ' +
-  'budget Cookie__Enabled Cookie__BudgetUsd Redmine__WriteApiKey working hours notifications prompts'
+  'budget Cookie__Enabled Cookie__BudgetUsd Redmine__WriteApiKey working hours prompts comment stop go on stopped ' +
+  'contact details account pushover key send a test redmine user availability plan responsible fallback'
 const show = computed(() => has(cookieText))
 </script>
 
@@ -37,7 +41,7 @@ const show = computed(() => has(cookieText))
         <li>
           <strong>The dashboard's card</strong>, for everyone: the overall state (All fine, Info, Warning, Alert) with
           its reason and the cases behind it, Cookie's own state (Stopped, Sleeping, Working, Paused), and your personal
-          summary, what needs you first. It only names what you may see.
+          summary, what needs you first. It only names what you may see. The same card heads Cookie's window.
         </li>
         <li>
           <strong>Cookie's window</strong> (Overview → Cookie): the cases with their timelines, deadlines and duties;
@@ -46,20 +50,44 @@ const show = computed(() => has(cookieText))
           has every right Cookie's group has.
         </li>
         <li>
+          <strong>Comments on a case:</strong> with Cookie: Use, write a comment on a case you may see. It goes into the
+          case's timeline with your name, and Cookie reads it in its next round, screened and with names replaced.
+        </li>
+        <li>
+          <strong>Stopping a case</strong> (Cookie: Instruct): <em>Stop</em> on a case says
+          <em>Don't go on with this</em>, with a comment that says why. Cookie leaves the case alone, its due duties
+          close as stopped and nothing new falls due, and it raises the overall state to Info at most. The case stays
+          open and marked <em>stopped</em>, with who, when and why. It goes on with <em>Go on</em>, when the case
+          closes, or, for a problem, when something new fails on the host. PNMT's notification rules still fire.
+          Comments, stops and Go on are in the audit log.
+        </li>
+        <li>
           <strong>The chat:</strong> a message wakes Cookie, and it answers in the same thread with the lower of your
           rights and its own. At most 20 messages an hour; nothing while Cookie is stopped.
         </li>
         <li>
-          <strong>Rights</strong>, in the area <em>Cookie</em>: <em>Use</em> opens the window and the chat;
-          <em>Instruct</em> adds temporary instructions, which come with a later release; <em>Manage</em> adds Admin →
-          Cookie, and starting and stopping it. The card needs no right.
+          <strong>Rights</strong>, in the area <em>Cookie</em>: <em>Use</em> opens the window, the chat and comments;
+          <em>Instruct</em> adds stopping a case and letting Cookie go on (temporary instructions come with a later
+          release); <em>Manage</em> adds Admin → Cookie, and starting and stopping it. The card needs no right.
         </li>
         <li>
           <strong>Admin → Cookie</strong> (Cookie: Manage): Start, Stop and Run now, the last rounds, the budget, the
           duties and the outbox; who Cookie is and its prompts, each with its default; the instructions for each kind of
-          case; working hours and holidays; contacts and who gets what; the watched Redmine projects; the duties and the
-          output limits; the models; and Cookie's group, whose rights it reads with, never the admin flag. Every save is
-          a version that can be viewed and rolled back. Cookie itself can't reach any of it.
+          case; the watched Redmine projects with their escalation groups; the duties and the output limits; the models;
+          and Cookie's group, whose rights it reads with, never the admin flag. Every save is a version that can be
+          viewed and rolled back. Cookie itself can't reach any of it. The working hours and holidays are in the
+          availability plan's settings.
+        </li>
+        <li>
+          <strong>Who gets what</strong> follows the availability plan: a ticket's reminder goes to its assignee (found
+          by the Redmine user on their PNMT user), or to the project's escalation group when nobody is assigned or the
+          assignee doesn't work that day; a missed deadline also reaches whoever is responsible that day. Important
+          messages go by e-mail, urgent ones by Pushover too, and only in working hours.
+        </li>
+        <li>
+          <strong>Your contact details</strong> are on <em>Account</em>: your e-mail address and Pushover user key, each
+          with <em>Send a test</em>. Admins set them under Admin → Users too, and only admins set the Redmine user. The
+          notification rules keep their own recipients.
         </li>
         <li>
           <strong>Cookie is stopped until an admin starts it</strong>; after a restart it resumes. Stopped, the case

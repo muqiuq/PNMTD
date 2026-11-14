@@ -4,7 +4,7 @@ import { collectProblems, shot, signIn } from './support'
 /**
  * Cookie (docs/cookie-plan.md §9, §19.5) on a stack with Cookie__Enabled=true, Cookie stopped as after a fresh
  * installation: Admin → Cookie saves the models (the sleep between rounds) as a new version and a duty switched on; the
- * dashboard shows the card; Cookie's window lists the cases the case book opened for the seed's
+ * dashboard shows the card, and Cookie's window too; the window lists the cases the case book opened for the seed's
  * failing sensors, with the trace and the chat. Skipped without Cookie. The working hours are the availability plan's
  * since revision 7 (availability.spec.ts).
  */
@@ -78,6 +78,8 @@ test("Admin → Cookie saves a version and a duty; the card; the window's cases,
     .toBeGreaterThan(0)
   await page.goto('/pnmt-admin/cookie')
   await expect(page.getByRole('heading', { level: 1, name: 'Cookie' })).toBeVisible()
+  // The dashboard's card heads the window (revision 7).
+  await expect(page.getByRole('region', { name: 'Cookie' })).toContainText('computed by PNMT')
   const firstCase = page.getByRole('row').nth(1)
   await expect(firstCase).toBeVisible()
   await firstCase.click()

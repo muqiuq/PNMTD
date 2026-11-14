@@ -17,7 +17,7 @@ import { caseKinds, dutyName } from './cookieFormat'
 /**
  * The case book (docs/cookie-plan.md §4.3, §19.1): a problem per host, a ticket per watched Redmine ticket, open ones
  * first, the most important on top. The server leaves out the cases outside the reader's rights. A case opens beside
- * the list, and its id stays in the query (?case=).
+ * the list, and its id stays in the query (?case=). A stopped case is marked (§4.3).
  */
 const route = useRoute()
 const router = useRouter()
@@ -41,6 +41,9 @@ const shows = [
   { label: 'All', value: 'all' },
 ]
 const kindOptions = [{ label: 'Every kind', value: null }, ...caseKinds.map((k) => ({ label: k, value: k }))]
+/** A stopped case (§4.3): Cookie leaves it alone; who stopped it and why. */
+const stoppedTitle = (c: S['CookieCaseItem']) =>
+  `Stopped by ${c.stopped?.by ?? 'someone'}${c.stopped?.comment ? `: ${c.stopped.comment}` : ''}`
 </script>
 
 <template>
@@ -79,6 +82,7 @@ const kindOptions = [{ label: 'Every kind', value: null }, ...caseKinds.map((k) 
             <div class="line">
               <Tag :value="data.kind" severity="secondary" />
               <Tag :value="data.importance" :severity="importanceSeverity(data.importance)" />
+              <Tag v-if="data.stopped" value="stopped" severity="warn" :title="stoppedTitle(data)" />
               <Tag v-if="!data.open" value="closed" severity="secondary" />
             </div>
           </template>
@@ -101,8 +105,8 @@ const kindOptions = [{ label: 'Every kind', value: null }, ...caseKinds.map((k) 
         <template #mobile="{ item }">
           <div class="ellipsis">{{ item.title }}</div>
           <div class="muted small">
-            {{ item.kind }} · {{ item.importance
-            }}<template v-if="item.next?.dueAt">
+            {{ item.kind }} · {{ item.importance }}<template v-if="item.stopped"> · stopped</template
+            ><template v-if="item.next?.dueAt">
               · {{ dutyName(item.next?.kind) }} <RelativeTime :value="item.next?.dueAt"
             /></template>
           </div>

@@ -11,8 +11,10 @@ import { cookieStateSeverity, overallLabel, overallSeverity, sourceLabel } from 
  * Cookie on the dashboard (docs/cookie-plan.md §9.1), for every signed-in user while Cookie is enabled: the overall state
  * with its reason and the cases behind it (Cookie's while it runs, PNMT's own otherwise), Cookie's own state, and the
  * reader's personal summary, what needs them first. The cases open in Cookie's window for those with Cookie's Use; the
- * server leaves out what the reader may not see. Without Cookie__Enabled, nothing shows.
+ * server leaves out what the reader may not see. Without Cookie__Enabled, nothing shows. It heads Cookie's window too
+ * (inWindow: without the link to it).
  */
+const props = defineProps<{ inWindow?: boolean }>()
 const session = useSession()
 const status = useQuery({
   queryKey: [...keys.cookie, 'status'],
@@ -44,7 +46,9 @@ const caseLink = (id: string) => ({ name: 'cookie', query: { case: id } })
       <span v-else-if="s.cookie.state === 'Sleeping' && s.cookie.nextRoundAt" class="muted normal small"
         >next round <RelativeTime :value="s.cookie.nextRoundAt"
       /></span>
-      <RouterLink v-if="canUse" :to="{ name: 'cookie' }" class="all">Open <i class="pi pi-angle-right" /></RouterLink>
+      <RouterLink v-if="canUse && !props.inWindow" :to="{ name: 'cookie' }" class="all"
+        >Open <i class="pi pi-angle-right"
+      /></RouterLink>
     </header>
     <div class="body">
       <div class="line">
