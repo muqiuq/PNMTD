@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Revision 3, for review.** Nothing is built. The answers of the review of revision 2 are in §14.1, and no question is open |
+| Status | **Built: K0–K7, on master** (§15 *As built*). Before 1.3.0: the checks of §15's last list (real pastes, Docker on Debian, the search at scale, a real AI provider) |
 | Date | 2026-11-14 |
 | Revision | 3: **the review of revision 2 applied** (§14.1):<ul><li>**Files live in a folder on the Docker host**, a bind mount, not a volume. The database holds only their metadata.</li><li>**Any kind of file can be uploaded**, not only images.</li><li>**Only the editors that are used are built.** Where they can't run, standard HTML fields take over.</li><li>**The AI question:** always on new pages, and on about 10 % of saved edits, **with two checkboxes**.</li><li>**A location can be the child of another location.**</li><li>**Editing is a page of its own**, using the whole window: not a dialog, not a side panel.</li><li>**Decided:** only Admins delete locations; new pages start as *Published*; Viewers see sensitive pages; notification rules by location are out of scope.</li></ul>2: **diagrams added** (§5.8): a ` ```mermaid ` block is rendered as a diagram or chart, as in VS Code's preview, and the code editor gets a preview beside it (§5.3).<br>1: the first plan |
 | Scope | Package five of docs/ideas2.md:<ul><li>**Locations as objects:** a location has many hosts and can be part of another location (a room in a building on a site). A host keeps its location text and can be assigned to a location.</li><li>**A page per location:** its hosts on the left, the most important information on the right.</li><li>**Location fields:** an Admin defines what is stored per location, with the common field types and, above all, Markdown.</li><li>**One Markdown editor for everything:**<ul><li>a WYSIWYG editor, powerful but simple, where a pasted image or file is uploaded at once (images at most 2 MB, other files at most 25 MB);</li><li>a code editor like VS Code's;</li><li>a switch between the two;</li><li>**diagrams and charts** from Mermaid blocks, rendered when reading and while editing.</li></ul></li><li>**The knowledge base:** pages with a title, tags, a status and an edit history (who, when, what changed). Pages can be archived and linked to locations, hosts and sensors. Only an Admin can delete them.</li><li>**Search:** the global search finds pages by title and meta information. The knowledge base searches their content.</li><li>**Lists:** the newest pages first; also the most viewed, the most edited, and pages by tag.</li><li>**AI tags:**<ul><li>a button; the question on every new page, and on about one in ten saved edits;</li><li>the person checks off that there are no credentials, personal data or confidential information in the page, or marks it **sensitive**. A sensitive page never reaches an AI or MCP;</li><li>a scan adds at most 10 tags.</li></ul></li></ul> |
@@ -1338,6 +1338,237 @@ The editors' feel, pasting from Office and phones, and the folder on a real host
 ### 14.2 Open questions
 
 None.
+
+---
+
+## 15. As built
+
+**K0–K7 are on master** (2026-11-14): 29 commits from 89f0b28 to ae51b12. The work was done by several agents in parallel: the server foundation, the web foundation, locations, the knowledge base, and the finish. An independent review of the security-critical paths followed. Where the code differs from the sections above, this section says so; the rest is as planned. Nothing is pushed or tagged, and the version isn't bumped.
+
+### K0: what was checked, and what wasn't
+
+**Checked in the production image, under its CSP, with no violations in any check:**
+
+- **Crepe:**
+  - The theme works in light and dark.
+  - Pasting works:
+    - a PNG is uploaded and shown;
+    - a PDF becomes a link;
+    - in pasted HTML, a `data:` image is uploaded and an external image becomes *external image: …*;
+    - a 7.6 MB PNG is stored as a 1.0 MB WebP, and the person is told.
+  - A `mermaid` block shows its diagram under the code.
+- **Monaco:**
+  - Its worker loads as a module from `/pnmt-admin/assets/`, and its font loads.
+  - JetBrains Mono, F1, the preview beside it, and file paste work.
+- **The round trip of 30 documents through Crepe:**
+  - **12 documents are rewritten, 36 of 164 lines;** none changes what it says. The rewrites:
+    - `*` and `+` lists become `-`;
+    - tables are padded;
+    - `~~~` fences and indented code become fenced blocks;
+    - reference links become inline;
+    - setext headings and `***` rules change form;
+    - needless escapes are dropped.
+
+    The switch's dialog (§5.4) names them.
+  - **Crepe's own image block would have lost every alt text** (`![1.00](url "caption")`); PNMT's extended schema keeps the alt text and the title.
+- **What Monaco highlights inside fences:** bash/sh/shell, YAML, JSON, PowerShell, SQL, Python, C#, XML/HTML, INI/TOML, Dockerfile and JavaScript. **Not** diff, nginx or RouterOS; Crepe's code blocks and the reading view do highlight those.
+- **Mermaid with `htmlLabels: false`:**
+  - **25 diagram types draw without `foreignObject`.** `journey` needed it by default and now draws its texts as SVG text.
+  - `foreignObject` stays off. **`eventmodeling` (a beta type) needs it, and its box texts are lost.**
+  - `usecase-beta` and `railroad-beta` weren't drawn: the samples were wrong.
+  - **At the limits:** 500 edges draw in 524 ms, 48,284 characters in 1,055 ms, and 501 edges are refused as *too large*.
+- **The fallback:**
+  - With the editors' chunks blocked, the textarea, uploads, Ctrl/⌘ S and the preview work.
+  - On a phone, the Markdown mode is the textarea.
+- **The editing page:**
+  - The drawer is a rail while it is open, and the stored preference is unchanged.
+  - The page doesn't scroll; the editor does.
+- **The bundle:**
+
+  | Chunk | Size | Gzip |
+  |---|---|---|
+  | Monaco | 3,230 kB | 824 kB |
+  | Monaco's worker, font, CSS | 304, 153, 134 kB | – |
+  | Crepe | 679 kB | 210 kB |
+  | Crepe's CodeMirror languages | 116 files, 1.18 MB, loaded per language | – |
+  | The renderer (`MarkdownView`) | 352 kB | 110 kB |
+  | Mermaid with its diagram chunks | 5.0 MB on disk | 1.45 MB |
+
+  - Of Mermaid's chunks, ELK (1.5 MB), KaTeX (259 kB) and Cytoscape (442 kB) load only when a diagram needs them.
+  - Nothing new is in the main chunk.
+  - The web UI grew from 3.5 MB to 16 MB, and the image from 341 to 363 MB.
+- **The files folder, with Podman on macOS:**
+  - A folder under `/Users` appears to the container as owned by whichever uid looks at it. uid 1654 writes there in the read-only container with no capabilities. `chown` has no effect on virtiofs, so `start.sh` changes the owner only on Linux.
+  - **The `backup.sh`/`restore.sh` round trip** with the app image (the deploy group): files keep uid 1654; `--no-files` writes no tar; a restore into a full folder is refused; `--force` restores; a backup from before this package restores too.
+
+**Not checked:**
+
+- **Pasting** from real macOS and Windows screenshots, Word and Outlook, and in Firefox and Safari. Only Chromium was used, with synthetic clipboard events.
+- **The folder with Docker on a Linux host** (Debian): the owner set by `init.sh` and `update.sh`.
+- **The full-text search on 5,000 pages:** its query times and `ts_headline`. The seed's 21 pages are fast.
+- **The AI tag scan against a real provider.** It was tested against a fake one, and in the browser against an unreachable one.
+- **The colours of pie charts.** Those of bar and line charts were too faint and were fixed (bf6420c).
+
+### K1: the server foundation
+
+**The schema** (89f0b28), with three migrations (AddLocations, AddKnowledgeBase, AddFiles). Beyond §8.2:
+
+- **More author columns:** `CreatedByName`, `UpdatedBy` and `UpdatedByName` on locations; `ArchivedByName` on pages; `CreatedByName` on files.
+- **`kb_revisions.IsEdit`**, which "most edited" counts.
+- **The search vector reads at most the first 200,000 characters of the plain text.** PostgreSQL refuses a `tsvector` over 1 MB.
+- **`file_uses`** has a key of its own and a check that exactly one owner is set.
+- **`location_history.FieldId` cascades**, so deleting a field removes its history rows.
+- **`Number` is an identity BY DEFAULT.**
+
+**Files, the helpers and deployment** (bb8d493, eff1766, ecf01a1, f923793, 1dea06a):
+
+- **Files that leave the disk:**
+  - a file that leaves the disk loses its row too, so a missing row is what *File removed* means;
+  - an upload of stored bytes brings back a deleted copy that is still on disk, and restores a live file that went missing from the folder.
+- **What uploads answer:**
+  - **201 with the `FileItem`**;
+  - **413 `too_large`** for too many pixels, and **503 `file_storage_unavailable`** for a missing or unwritable folder;
+  - the codes are in `FileErrors`.
+- **Images:**
+  - bytes after an image's end are dropped;
+  - markup anywhere in an image (HTML, SVG, script) refuses it as a polyglot;
+  - new ids are UUIDv7.
+- **Serving:** the `{name}` in the GET route is ignored.
+- **The *File storage* sensor:**
+  - it has importance High;
+  - **unknown files alone don't give 428**; they are listed and counted;
+  - the weekly hash check and the last report are kept in memory.
+- **`MaxAttempts` and the budget:** with `MaxAttempts`, a spent budget fails the work, with the budget message, instead of waiting for the next period.
+- **The scrubber's phone numbers** are on only when asked (`PhoneNumbers = true`); the situation analysis keeps its numbers.
+- **SELinux:** the README recommends **`:z`, not `:Z`**. A private label would lock out the containers that `backup.sh` and `restore.sh` run against the same folder.
+- **`backup.sh` and `restore.sh`** reach the folder through the `pnmtd` service itself, as the app's user, so `PNMTD_FILES_DIR` and any override apply. `restore.sh` uses `--no-overwrite-dir`.
+
+### K1: the web foundation
+
+82416dc, 1a9d761, 7e2f074, c7558e7, bd7ca42 and 79a4423:
+
+- **Licences:**
+  - **the package check allows EPL-2.0**, for elkjs ("EPL-2.0 OR GPL-3.0-or-later"), which Mermaid's ELK layout needs;
+  - **khroma 2.1.0 is recorded as MIT** by its licence file, since its package.json names none.
+- **Direct dependencies beyond §10.2,** all needed for imports: highlight.js, `@codemirror/language`, `@codemirror/language-data`, `@codemirror/view`, `@lezer/highlight`, `@types/hast`, `@types/mdast`.
+- **Crepe:**
+  - an image resized in Crepe is back to full width after saving, because Markdown has no size;
+  - it writes `-` lists and `---` rules.
+- **Mermaid:** SVG `<use>` is allowed, limited to `#id` references; sequence and C4 diagrams draw their symbols with it.
+- **The credentials scan runs on the server only;** the view shows its findings.
+- **Uploads:**
+  - they use `XMLHttpRequest`, for progress. A 401 says *your session has ended* without client.ts's redirect to the sign-in;
+  - **uploads in *Try it*** (the documentation's sandbox) are real; the cleanup removes them after a day.
+- **Ctrl/⌘ K inside Monaco** starts VS Code's chords; the global search opens from outside the editor.
+- **Two bugs the knowledge base agent found were fixed** (79a4423):
+  - **A save right after typing lost the last keystrokes:** Milkdown reports changes 200 ms late. Saves, drafts, dialogs and switches now read the active editor directly.
+  - **Text typed while Crepe was starting went nowhere:** the text is now shown read-only until it is ready.
+
+### K2 and K3: locations
+
+8ddbc98, 578f8cd, 27da67d, c9c1c17 and 8c75a3d:
+
+- **The API:**
+  - **A host's location is `assignedLocation { id, name, path }`**, not `location`, which stays the free text. Existing clients don't break.
+  - **`GET /location-fields` returns `{ items, typical, users }`.** *Add typical fields…* creates each one through `POST`. `users` is there because the users list is Admin-only, and Users need it to fill a *PNMT user* field.
+  - **Additions:** `LocationDetail.files`, and `HostQuery.noLocation` for the filter's *None*.
+  - **The credentials scan applies to Markdown and Text values too:** 422 `looks_like_credential`, unless acknowledged.
+  - **A location's detail carries no pages;** `GET /kb/related` supplies them.
+- ***Download as Markdown*** runs in the browser.
+- **State:** *Failing* if any enabled host fails, otherwise *Ok* if any is, otherwise *No data*.
+- **Deleting a host** clears the *Host* values that named it.
+- **A Markdown value's diff** in a location's history uses `DiffView`, not Monaco.
+- **Shared components changed:** `ListTable` gained a selection model, and `HostsPanel` gained a title, a base location, a row menu and an actions slot.
+
+### K4–K6: the knowledge base
+
+7b477af, e2bb9aa, 21427cc and 6a04404:
+
+- **Saving:**
+  - **The credentials warning** comes only for credential-looking lines that weren't in the revision the edit started from. The save request carries `acknowledgeCredentials` and `markSensitive`.
+  - **Unconfirmed AI tags** travel as `aiTags` in the save request; any other tag becomes manual.
+  - **Links** in requests are `{ kind, id }`.
+- **Revisions:**
+  - **A save that changes nothing makes no revision**, so a note alone isn't recorded.
+  - Renaming and merging tags make no revisions; deleting a tag makes one per page.
+  - Restoring a revision has no conflict check.
+- **The AI scan:**
+  - **A task's own yes/no guard questions now stop the scan** as the injection question does (`AiPipeline`); no earlier caller passed any.
+  - The statements travel with the work item.
+  - The budget is checked first.
+  - A scan that has waited more than 15 minutes is dropped.
+  - A credential in the title or summary is reported as line 0.
+  - The vocabulary counts only tags of pages machines may read.
+- **`MachineAccess`:**
+  - it resolves inherited values itself;
+  - it filters files with SQL over the `jsonb` values.
+- **Two small changes outside the knowledge base:**
+  - the role matrix's "writes need CanWrite" test has one exception: `POST …/views`, the one write every role makes;
+  - `ApiError` keeps the problem's body.
+
+### K7: the finish
+
+96918de, 5fb4c33, bf6420c, f2ff9be, 757ee59, d44faf7 and ae51b12:
+
+- **The seed:**
+  - Zurich DC with Cage B (and Rack B4 in it) and the Meet-me room;
+  - a second site, Zurich office, made with *From the hosts' texts…*;
+  - fields with inherited, overridden and sensitive values;
+  - **21 pages:** all statuses, links, revisions with notes, a sensitive and an archived page, and views over 90 days;
+  - an image, a PDF and three diagrams, all stored in the files folder through `FileStore`.
+
+  About 6 seconds, on an empty database only.
+- **The browser tests:**
+  - `e2e/locations.spec.ts` (3 tests) and `e2e/knowledge.spec.ts` (4 tests), plus the new pages in `pages.spec.ts`;
+  - every test fails on a script error, a CSP violation or a Vue warning;
+  - **The Overview field isn't inherited,** so a pasted image is checked on the sub-location's page; the parent's page is checked for its sub-location's host instead (§12).
+  - **The fallback test edits a seeded page.** It answers the AI question, which comes after about one edit in ten, when the save says so.
+- **Upgrades:**
+  - **`./update.sh` creates a missing files folder** for uid 1654 before the containers start; Docker would otherwise create it as root.
+  - **`./info.sh`** gives the right command for a missing, unmounted or unwritable folder. It used to suggest `./init.sh --force`, which rewrites `.env`.
+  - **`backup.sh`** no longer fails when the old container has no files mount.
+  - `tools/contract.sh` and `tools/upgrade-test.sh` take `IMAGE`.
+- **Release notes:** **docs/release-notes-1.3.md** covers the files folder and its owner, `files.tar`, `--no-files`, and the 32 MB proxy limit.
+
+### The review
+
+An independent review of the files, rendering, AI and authorisation paths found 7 defects. **All are fixed, with tests** (6a04404, 50ab587):
+
+- **Redact missed text in two places:** the revisions' lists of what changed, and the AI request log. It now cleans both.
+- **Images now get the blocked-extension check too.** An image is stored and served under its detected type's extension (`invoice.cmd` holding a JPEG is refused; `invoice.txt` becomes `invoice.jpg`).
+- **The cleanup could delete a file that an upload or a save had just revived.** Rows are now deleted conditionally before the bytes, and reviving is a conditional update.
+- **A file used only in a footnote wasn't recorded.** `MarkdownText` now reads footnotes, and also finds every `/api/v1/files/{id}` anywhere in the raw text.
+- **`backup.sh`'s tar** now tolerates files removed or changed during the backup.
+- **The check** no longer reports a missing file that was already marked deleted.
+- **Deduplication:** pasting as an image bytes already stored as an attachment promotes that row to an image.
+- **Every running scan of a page is cancelled,** by the sensitive mark and by redact. Concurrent starts make one scan.
+
+**Nothing serious was found in:** paths, serving, the body limits, the sanitizer and Mermaid's settings, `MachineAccess`, the statements, the role matrix, the edit conflicts, the tree's checks and inheritance.
+
+### The checks at the end
+
+**`./run-tests.sh` at d44faf7**, which includes the review's fixes, was green in every group:
+
+- web: Vitest, 364 tests;
+- dotnet: 712 tests in Europe/Zurich and in America/New_York;
+- contract;
+- deploy, with the files folder, backup and restore;
+- upgrade;
+- e2e: 37 tests in 9 files;
+- shell.
+
+ae51b12 changed one view after that; its web checks passed.
+
+### Before 1.3.0
+
+1. **Pasting** from real clients: a macOS screenshot, the Windows Snipping Tool, Word, Outlook. In Chromium, Firefox and Safari.
+2. **A deployment with Docker on Debian:** a new install with `./init.sh`, and an update from 1.2 with `./update.sh`. The folder's owner, `./info.sh`, and a backup and restore.
+3. **The content search** on a few thousand pages: its times, and the snippets.
+4. **A tag scan with the real OpenRouter key:** the request log, the tags, *Undo*.
+5. **deploy/nginx-reverse-proxy.md:** the admin UI's `client_max_body_size` from 20m to 32m.
+6. **The version:** `Directory.Build.props`, `package.json` and the deploy image tags, in the release commit.
+
+**Known, outside this package:** after `pnmtd users reset-password` (and likely `reset-totp`) from the command line, a sign-in within about a minute gets a 401. `SessionCache` keeps the old security stamp for a minute, and the CLI can't clear the server's cache.
 
 ---
 
