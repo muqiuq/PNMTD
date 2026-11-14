@@ -123,7 +123,7 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             // 2. Triage (a short call, no tools).
             var messages = new JsonArray(Message("system", system), Message("user", CookiePrompts.Fill(await brain.PromptAsync("triage", ct), values)));
             var triageTurn = await model.CompleteAsync("triage", messages, null, (nameof(TriageAnswer), AiJson.SchemaFor<TriageAnswer>()), models.TriageEffort,
-                provider, 1500, ct);
+                provider, 4000, ct);
             calls++;
             cost += triageTurn.Cost;
             provider ??= triageTurn.Provider;
@@ -169,7 +169,7 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 for (var step = 0; step < 12; step++)
                 {
                     var allowTools = models.MaxToolCalls == 0 || toolCalls < models.MaxToolCalls;
-                    var turn = await model.CompleteAsync("work", work, allowTools ? definitions : null, null, models.WorkEffort, provider, 1500, ct);
+                    var turn = await model.CompleteAsync("work", work, allowTools ? definitions : null, null, models.WorkEffort, provider, 6000, ct);
                     calls++;
                     cost += turn.Cost;
                     provider ??= turn.Provider;
@@ -205,7 +205,7 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                     Message("assistant", string.IsNullOrWhiteSpace(findings) ? "(I found nothing more.)" : findings),
                     Message("user", "Now write your case note."));
                 var noteTurn = await model.CompleteAsync("note", noteMessages, null, (nameof(CaseNoteAnswer), AiJson.SchemaFor<CaseNoteAnswer>()),
-                    models.WorkEffort, provider, 800, ct);
+                    models.WorkEffort, provider, 3000, ct);
                 calls++;
                 cost += noteTurn.Cost;
                 var note = Parse<CaseNoteAnswer>(noteTurn);
@@ -231,7 +231,7 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 };
                 var statusTurn = await model.CompleteAsync("status", new JsonArray(Message("system", system),
                         Message("user", CookiePrompts.Fill(await brain.PromptAsync("status", ct), statusValues))), null,
-                    (nameof(StatusAnswer), AiJson.SchemaFor<StatusAnswer>()), models.TriageEffort, provider, 400, ct);
+                    (nameof(StatusAnswer), AiJson.SchemaFor<StatusAnswer>()), models.TriageEffort, provider, 2000, ct);
                 calls++;
                 cost += statusTurn.Cost;
                 reason = Parse<StatusAnswer>(statusTurn).Reason;
@@ -336,7 +336,7 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 for (var step = 0; step < 8; step++)
                 {
                     var allowTools = models.MaxToolCalls == 0 || toolCalls < models.MaxToolCalls;
-                    var turn = await model.CompleteAsync("chat", work, allowTools ? allowed : null, null, models.WorkEffort, null, 1500, ct);
+                    var turn = await model.CompleteAsync("chat", work, allowTools ? allowed : null, null, models.WorkEffort, null, 6000, ct);
                     calls++;
                     cost += turn.Cost;
                     if (!string.IsNullOrWhiteSpace(turn.Reasoning))

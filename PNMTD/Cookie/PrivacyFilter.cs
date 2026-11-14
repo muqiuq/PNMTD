@@ -25,6 +25,13 @@ public sealed partial class PrivacyFilter(IDbContextFactory<PnmtdDbContext> dbs,
 
     public bool Off => options.CurrentValue.PrivacyOff;
 
+    /// <summary>Account names that are ordinary words: masked, they would turn every "admin" or "backup" in a text into a person.</summary>
+    public static readonly IReadOnlySet<string> AccountWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "admin", "administrator", "root", "test", "tester", "user", "users", "operator", "operators", "viewer", "viewers", "guest", "system", "service",
+        "support", "backup", "monitor", "monitoring", "pnmt", "pnmtd", "cookie", "seraph", "redmine", "zabbix", "helpdesk", "it", "noc", "ops",
+    };
+
     /// <summary>A filter for one round or request, with the names known now.</summary>
     public async Task<Pseudonyms> OpenAsync(CancellationToken ct)
     {
@@ -47,7 +54,7 @@ public sealed partial class PrivacyFilter(IDbContextFactory<PnmtdDbContext> dbs,
         {
             names.AddRange(byValue.Where(p => p.Key.Kind == "PERSON").Select(p => byPlaceholder[p.Value]));
         }
-        var list = names.Select(n => n.Trim()).Where(n => n.Length >= 3 && !n.All(char.IsDigit)).Distinct(StringComparer.OrdinalIgnoreCase)
+        var list = names.Select(n => n.Trim()).Where(n => n.Length >= 3 && !n.All(char.IsDigit) && !AccountWords.Contains(n)).Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderByDescending(n => n.Length).ToList();
         var regex = list.Count == 0 ? null
             : new Regex($@"(?<![\w.-])(?:{string.Join("|", list.Select(Regex.Escape))})(?![\w-])", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(500));
