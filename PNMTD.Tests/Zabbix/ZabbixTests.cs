@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PNMTD.Api.V1.Contracts;
@@ -38,6 +40,37 @@ public sealed class ZabbixTests
     [TestInitialize]
     public async Task Reset() => await UseVersion("70");
 
+    /// <summary>
+    /// The sensors, hosts and system sensor events of a test go with it: the database is shared, and the dashboard's tests
+    /// count on their own changes being among the recent ones.
+    /// </summary>
+    [TestCleanup]
+    public async Task CleanUp()
+    {
+        await using var db = app.NewDb();
+        await db.Sensors.Where(x => x.Type == PNMTD.Lib.Models.Enum.SensorType.ZABBIX).ExecuteDeleteAsync();
+        await db.Events.Where(e => e.Sensor.Type == PNMTD.Lib.Models.Enum.SensorType.SYSTEM && e.Sensor.Name == "Zabbix").ExecuteDeleteAsync();
+        List<Guid> hosts;
+        lock (created)
+        {
+            hosts = [.. created];
+            created.Clear();
+        }
+        await db.Hosts.Where(h => hosts.Contains(h.Id)).ExecuteDeleteAsync();
+    }
+
+    private static readonly List<Guid> created = [];
+
+    private static async Task<HostDetail> CreateHostAsync(string name)
+    {
+        var host = await (await user.PostAsJsonAsync("/api/v1/hosts", new { name })).ReadAsync<HostDetail>();
+        lock (created)
+        {
+            created.Add(host.Id);
+        }
+        return host;
+    }
+
     /// <summary>A version's Zabbix, as after a restart: its fixtures, no version known, no snapshot, an empty mirror.</summary>
     private static async Task UseVersion(string version)
     {
@@ -47,6 +80,7 @@ public sealed class ZabbixTests
         app.Services.GetRequiredService<ZabbixClient>().ForgetVersion();
         app.Services.GetRequiredService<ZabbixSnapshot>().Clear();
         await using var db = app.NewDb();
+        await db.Sensors.Where(x => x.Type == PNMTD.Lib.Models.Enum.SensorType.ZABBIX).ExecuteDeleteAsync();
         await db.ZabbixHosts.ExecuteDeleteAsync();
         await db.KeyValues.Where(k => k.Key == "last_zabbix_host_sync").ExecuteDeleteAsync();
         await app.Services.GetRequiredService<ZabbixGroups>().ResolveAsync(true, CancellationToken.None);
@@ -293,5 +327,172 @@ public sealed class ZabbixTests
         await using var db = app.NewDb();
         var entry = await db.AuditLog.OrderByDescending(e => e.CreatedAt).FirstAsync(e => e.EventType == "ZabbixTested");
         StringAssert.Contains(entry.Detail, "4 hosts");
+    }
+
+    // --- the Zabbix sensor (§7.7, §7.8) ----------------------------------------------------------------------------------
+
+    private static async Task<List<EventEntity>> EventsAsync(Guid sensorId)
+    {
+        await using var db = app.NewDb();
+        return await db.Events.AsNoTracking().Where(e => e.SensorId == sensorId).OrderBy(e => e.Created).ToListAsync();
+    }
+
+    private static Task PollAsync() => app.Services.GetRequiredService<ZabbixPoller>().RunAsync(CancellationToken.None);
+
+    private static void RemoveProblem(string name) =>
+        zabbix.Problems.Remove(zabbix.Problems.Single(p => p!["name"]!.GetValue<string>() == name));
+
+    [TestMethod]
+    public async Task ASensorWritesAnEventOnlyWhenItsProblemsChange()
+    {
+        await (await user.GetAsync("/api/v1/zabbix/hosts")).ReadAsync<Paged<ZabbixHostItem>>();
+        var host = await CreateHostAsync($"zx-{Guid.NewGuid():N}"[..20]);
+        var web01 = long.Parse(zabbix.HostId("web01.example.com"));
+        var created = await user.PostAsJsonAsync("/api/v1/sensors", new { hostId = host.Id, type = "ZABBIX", name = "Web 01", zabbix = new { zabbixHostId = web01 } });
+        Assert.AreEqual(HttpStatusCode.Created, created.StatusCode, await created.Content.ReadAsStringAsync());
+        var sensor = await created.ReadAsync<SensorDetail>();
+        Assert.AreEqual(ZabbixSeverity.Average, sensor.Zabbix!.MinSeverity, "Zabbix__MinSeverity");
+        Assert.AreEqual((0, 0), (sensor.Interval, sensor.GracePeriod), "not a heartbeat");
+        Assert.AreEqual(2, sensor.Zabbix.Problems.Count(p => p.Counted));
+        Assert.AreEqual("https://zabbix.example.com/zabbix.php?action=host.view&filter_set=1&filter_host=web01.example.com", sensor.Zabbix.Links!.Open);
+        var events = await EventsAsync(sensor.Id);
+        Assert.AreEqual(PNMTStatusCodes.ZABBIX_PROBLEM, events.Single().Code, "at once, from the snapshot");
+        Assert.AreEqual("2 problems: High: /var is 95 % full; Average: High CPU load", events.Single().Message);
+
+        await PollAsync();
+        Assert.AreEqual(1, (await EventsAsync(sensor.Id)).Count, "the same problems: no event");
+
+        RemoveProblem("High CPU load");
+        await PollAsync();
+        events = await EventsAsync(sensor.Id);
+        Assert.AreEqual(2, events.Count, "one problem less: an event");
+        Assert.AreEqual((PNMTStatusCodes.ZABBIX_PROBLEM, "1 problem: High: /var is 95 % full"), (events[^1].Code, events[^1].Message));
+
+        zabbix.Down = true;
+        await PollAsync();
+        await PollAsync();
+        Assert.AreEqual(2, (await EventsAsync(sensor.Id)).Count, "no events while Zabbix doesn't answer");
+        var down = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}")).ReadAsync<SensorDetail>();
+        StringAssert.StartsWith(down.Zabbix!.Error, "Zabbix not reached since");
+        zabbix.Down = false;
+
+        RemoveProblem("/var is 95 % full");
+        await PollAsync();
+        events = await EventsAsync(sensor.Id);
+        Assert.AreEqual((PNMTStatusCodes.ZABBIX_OK, "No problems at Average or above"), (events[^1].Code, events[^1].Message));
+
+        var hosts = await (await user.GetAsync("/api/v1/zabbix/hosts?attached=true")).ReadAsync<Paged<ZabbixHostItem>>();
+        Assert.AreEqual((host.Id, sensor.Id), (hosts.Items.Single().PnmtHost!.Id, hosts.Items.Single().SensorId!.Value));
+        Assert.AreEqual(3, (await (await user.GetAsync("/api/v1/zabbix/hosts?attached=false")).ReadAsync<Paged<ZabbixHostItem>>()).TotalCount);
+        Assert.AreEqual(1, (await (await user.GetAsync("/api/v1/zabbix/summary")).ReadAsync<ZabbixSummary>()).Hosts.Attached);
+
+        var twice = await user.PostAsJsonAsync("/api/v1/zabbix/attach", new { items = new[] { new { zabbixHostId = web01, hostId = host.Id } } });
+        Assert.AreEqual(HttpStatusCode.Conflict, twice.StatusCode);
+        Assert.AreEqual("zabbix_host_attached", (await twice.ProblemAsync()).GetProperty("code").GetString());
+
+        var stricter = await user.PutAsJsonAsync($"/api/v1/sensors/{sensor.Id}", new
+        {
+            hostId = host.Id, type = "ZABBIX", name = "Web 01", zabbix = new { zabbixHostId = web01, minSeverity = "Disaster", unavailableFails = true },
+        });
+        Assert.AreEqual(HttpStatusCode.OK, stricter.StatusCode, await stricter.Content.ReadAsStringAsync());
+        Assert.AreEqual(ZabbixSeverity.Disaster, (await stricter.ReadAsync<SensorDetail>()).Zabbix!.MinSeverity);
+        Assert.AreEqual("No problems at Disaster or above", (await EventsAsync(sensor.Id))[^1].Message, "new rules: their state at once");
+        var otherHost = await user.PutAsJsonAsync($"/api/v1/sensors/{sensor.Id}", new
+        {
+            hostId = host.Id, type = "ZABBIX", name = "Web 01", zabbix = new { zabbixHostId = web01 + 1 },
+        });
+        Assert.AreEqual(HttpStatusCode.BadRequest, otherHost.StatusCode, "a sensor keeps its Zabbix host");
+
+        Assert.AreEqual(HttpStatusCode.NoContent, (await user.DeleteAsync($"/api/v1/sensors/{sensor.Id}")).StatusCode);
+        await using var db = app.NewDb();
+        Assert.IsFalse(await db.ZabbixSensors.AnyAsync(z => z.SensorId == sensor.Id), "the row goes with the sensor");
+    }
+
+    [TestMethod]
+    public async Task SuggestionsMatchByNameAndAddressAndAttachInBulk()
+    {
+        // Names and an address of their own: the test database has other tests' hosts and ping sensors.
+        var u = $"z{Guid.NewGuid():N}"[..7];
+        JsonNode HostNode(string technical) => zabbix.Hosts.Single(h => h!["host"]!.GetValue<string>() == technical)!;
+        void Rename(string technical, string name)
+        {
+            HostNode(technical)["host"] = u + technical;
+            HostNode(u + technical)["name"] = name;
+        }
+        Rename("web01.example.com", $"{u} Web 01");
+        Rename("db02", u + "db02");
+        Rename("old01", u + "old01");
+        var address = $"10.{Random.Shared.Next(100, 250)}.{Random.Shared.Next(1, 250)}.{Random.Shared.Next(1, 250)}";
+        HostNode("nas01")["interfaces"]![0]!["ip"] = address;
+        await (await user.GetAsync("/api/v1/zabbix/hosts")).ReadAsync<Paged<ZabbixHostItem>>();
+
+        Task<HostDetail> Host(string name) => CreateHostAsync(name);
+        var web = await Host(u + "web01");
+        var db02 = await Host(u + "DB02");
+        var nas = await Host(u + "storage");
+        Assert.AreEqual(HttpStatusCode.Created, (await user.PostAsJsonAsync("/api/v1/sensors", new { hostId = nas.Id, type = "PING", name = "ping", interval = 60, parameters = address })).StatusCode);
+        await Host(u + "old01");
+        await Host(u + "OLD01.lan");
+
+        var suggestions = await (await user.GetAsync("/api/v1/zabbix/suggestions")).ReadAsync<List<ZabbixSuggestion>>();
+        ZabbixSuggestion Of(string technical) => suggestions.Single(s => s.Host.TechnicalName == technical);
+        Assert.AreEqual(web.Id, Of(u + "web01.example.com").Suggested);
+        Assert.AreEqual($"{u}web01 = {u}web01.example.com", Of(u + "web01.example.com").Candidates.Single().Reason);
+        Assert.AreEqual((db02.Id, "same name"), (Of(u + "db02").Suggested!.Value, Of(u + "db02").Candidates.Single().Reason));
+        Assert.AreEqual((nas.Id, $"ping target {address}"), (Of("nas01").Suggested!.Value, Of("nas01").Candidates.Single().Reason));
+        Assert.AreEqual(2, Of(u + "old01").Candidates.Count);
+        Assert.IsNull(Of(u + "old01").Suggested, "two candidates: none is picked");
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await viewer.GetAsync("/api/v1/zabbix/suggestions")).StatusCode, "Monitoring's Edit too");
+
+        var newName = u + "-nas";
+        var attach = await user.PostAsJsonAsync("/api/v1/zabbix/attach", new
+        {
+            items = new object[]
+            {
+                new { zabbixHostId = Of(u + "web01.example.com").Host.Id, hostId = web.Id },
+                new { zabbixHostId = Of(u + "db02").Host.Id, hostId = db02.Id, minSeverity = "Warning" },
+                new { zabbixHostId = Of("nas01").Host.Id, newHostName = newName },
+            },
+        });
+        Assert.AreEqual(HttpStatusCode.OK, attach.StatusCode, await attach.Content.ReadAsStringAsync());
+        var attached = await attach.ReadAsync<List<ZabbixAttached>>();
+        Assert.AreEqual(3, attached.Count);
+        Assert.AreEqual(newName, attached.Single(a => a.Name == "nas01").Host.Name, "a new host, named as asked");
+        lock (created)
+        {
+            created.Add(attached.Single(a => a.Name == "nas01").Host.Id);
+        }
+        await using (var db = app.NewDb())
+        {
+            var entry = await db.AuditLog.OrderByDescending(e => e.CreatedAt).FirstAsync(e => e.EventType == "ZabbixHostsAttached");
+            Assert.AreEqual(3, entry.Subjects.Count(s => attached.Any(a => a.SensorId == s)), "each sensor's History has it");
+            StringAssert.Contains(entry.Detail, "3 Zabbix hosts attached");
+            Assert.AreEqual(ZabbixSeverity.Warning, (await db.ZabbixSensors.SingleAsync(z => z.SensorId == attached[1].SensorId)).MinSeverity);
+        }
+        var db02Events = await EventsAsync(attached[1].SensorId);
+        Assert.AreEqual(PNMTStatusCodes.ZABBIX_OK, db02Events.Single().Code, "its problem is suppressed: in maintenance");
+
+        var one = await user.PostAsJsonAsync("/api/v1/zabbix/attach", new { items = new[] { new { zabbixHostId = Of(u + "old01").Host.Id, hostId = web.Id } } });
+        Assert.AreEqual(HttpStatusCode.OK, one.StatusCode);
+        var oldSensor = (await one.ReadAsync<List<ZabbixAttached>>()).Single().SensorId;
+        await using (var db = app.NewDb())
+        {
+            var entry = await db.AuditLog.OrderByDescending(e => e.CreatedAt).FirstAsync(e => e.Subjects.Contains(oldSensor));
+            Assert.AreEqual(("SensorCreated", $"{u}web01 / {u}old01"), (entry.EventType, entry.TargetName));
+        }
+        Assert.AreEqual(PNMTStatusCodes.ZABBIX_HOST_MISSING, (await EventsAsync(oldSensor)).Single().Code, "old01 is disabled in Zabbix");
+
+        // Gone from Zabbix: kept in the mirror while attached, for its name.
+        zabbix.Hosts.Remove(HostNode(u + "old01"));
+        await app.Services.GetRequiredService<ZabbixHostSync>().RunAsync(CancellationToken.None);
+        var oldId = Of(u + "old01").Host.Id;
+        await using (var db = app.NewDb())
+        {
+            await db.ZabbixHosts.Where(h => h.HostId == oldId).ExecuteUpdateAsync(x => x.SetProperty(h => h.GoneAt, DateTime.UtcNow.AddDays(-8)));
+        }
+        await app.Services.GetRequiredService<ZabbixHostSync>().RunAsync(CancellationToken.None);
+        var detail = await (await user.GetAsync($"/api/v1/sensors/{oldSensor}")).ReadAsync<SensorDetail>();
+        Assert.IsTrue(detail.Zabbix!.Gone);
+        Assert.AreEqual(u + "old01", detail.Zabbix.TechnicalName);
     }
 }

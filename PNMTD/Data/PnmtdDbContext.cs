@@ -47,6 +47,7 @@ namespace PNMTD.Data
 
         // Zabbix (docs/audit-redmine-zabbix-plan.md §7.3): the hosts' mirror.
         public DbSet<ZabbixHostEntity> ZabbixHosts { get; set; }
+        public DbSet<ZabbixSensorEntity> ZabbixSensors { get; set; }
 
         // Groups and rights (docs/audit-redmine-zabbix-plan.md §5).
         public DbSet<GroupEntity> Groups { get; set; }
@@ -191,6 +192,13 @@ namespace PNMTD.Data
             {
                 e.HasIndex(h => h.TechnicalName);
                 e.HasIndex(h => h.VisibleName);
+            });
+            // A Zabbix host is attached at most once (§7.7); the sensor's row goes with it.
+            modelBuilder.Entity<ZabbixSensorEntity>(e =>
+            {
+                e.HasOne(z => z.Sensor).WithOne().HasForeignKey<ZabbixSensorEntity>(z => z.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(z => z.ZabbixHostId).IsUnique();
+                e.Property(z => z.MinSeverity).HasConversion<string>().HasMaxLength(16);
             });
 
             // Redmine's links (docs/audit-redmine-zabbix-plan.md §6.5): exactly one target, removed with it; a ticket once per target.

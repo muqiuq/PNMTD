@@ -141,8 +141,9 @@ public sealed class ZabbixService(PnmtdDbContext db, ZabbixClient client, Zabbix
             await AttachedCountAsync(ct));
     }
 
-    /// <summary>Zabbix hosts with a sensor in PNMT: none until the Zabbix sensor (Z2).</summary>
-    private static Task<int> AttachedCountAsync(CancellationToken ct) => Task.FromResult(0);
+    /// <summary>Zabbix hosts with a sensor in PNMT.</summary>
+    private Task<int> AttachedCountAsync(CancellationToken ct) =>
+        db.ZabbixHosts.AsNoTracking().CountAsync(h => h.GoneAt == null && db.ZabbixSensors.Any(z => z.ZabbixHostId == h.HostId), ct);
 
     private async Task<Dictionary<long, List<string>>> GroupsOfAsync(IEnumerable<long> hostIds, CancellationToken ct)
     {
@@ -206,24 +207,29 @@ public sealed class ZabbixService(PnmtdDbContext db, ZabbixClient client, Zabbix
         var size = Math.Clamp(query.PageSize, 1, 200);
         var page = Math.Max(1, query.Page);
         var ordered = list.OrderByDescending(p => p.Severity).ThenByDescending(p => p.Since).ToList();
-        return new Paged<ZabbixProblemItem>(await ItemsAsync(ordered.Skip((page - 1) * size).Take(size), ct), page, size, ordered.Count);
+        return new Paged<ZabbixProblemItem>(await ProblemItemsAsync(ordered.Skip((page - 1) * size).Take(size), ct), page, size, ordered.Count);
     }
 
-    private async Task<IReadOnlyList<ZabbixProblemItem>> ItemsAsync(IEnumerable<ZabbixProblem> problems, CancellationToken ct)
+    public async Task<IReadOnlyList<ZabbixProblemItem>> ProblemItemsAsync(IEnumerable<ZabbixProblem> problems, CancellationToken ct)
     {
         var list = problems.ToList();
-        var attached = await AttachedHostsAsync(list.SelectMany(p => p.Hosts.Select(h => ZabbixPoller.Int(h.Hostid))), ct);
+        var attached = await AttachedAsync(list.SelectMany(p => p.Hosts.Select(h => ZabbixPoller.Int(h.Hostid))), ct);
         var links = Links;
         return list.Select(p => new ZabbixProblemItem(p.EventId, p.Name, p.OperationalData, p.Severity, p.Since, p.Acknowledged, p.Updates, p.Suppressed,
             p.Tags.Select(t => new ZabbixTagItem(t.Tag, t.Value)).ToList(),
             p.Hosts.Select(h => new ZabbixHostRef(ZabbixPoller.Int(h.Hostid), h.Name)).ToList(),
-            p.Hosts.Select(h => attached.GetValueOrDefault(ZabbixPoller.Int(h.Hostid))).FirstOrDefault(r => r is not null),
+            p.Hosts.Select(h => attached.TryGetValue(ZabbixPoller.Int(h.Hostid), out var a) ? a.Host : null).FirstOrDefault(r => r is not null),
             links.Event(p.TriggerId, p.EventId))).ToList();
     }
 
-    /// <summary>The PNMT hosts the Zabbix hosts are attached to: none until the Zabbix sensor (Z2).</summary>
-    private static Task<Dictionary<long, Ref>> AttachedHostsAsync(IEnumerable<long> hostIds, CancellationToken ct) =>
-        Task.FromResult(new Dictionary<long, Ref>());
+    /// <summary>The PNMT hosts the Zabbix hosts are attached to, and the sensors.</summary>
+    private async Task<Dictionary<long, (Ref Host, Guid SensorId)>> AttachedAsync(IEnumerable<long> hostIds, CancellationToken ct)
+    {
+        var ids = hostIds.Distinct().ToList();
+        return await db.ZabbixSensors.AsNoTracking().Where(z => ids.Contains(z.ZabbixHostId))
+            .Select(z => new { z.ZabbixHostId, z.SensorId, z.Sensor.ParentId, z.Sensor.Parent.Name })
+            .ToDictionaryAsync(z => z.ZabbixHostId, z => (new Ref(z.ParentId, z.Name), z.SensorId), ct);
+    }
 
     /// <summary>A row opened (§7.5): the trigger's description, and with Details the updates with their messages.</summary>
     public async Task<ZabbixProblemDetail> ProblemAsync(string eventId, bool details, CancellationToken ct)
@@ -319,7 +325,7 @@ public sealed class ZabbixService(PnmtdDbContext db, ZabbixClient client, Zabbix
         {
             hosts = hosts.Where(h => h.Availability == availability);
         }
-        hosts = await FilterAttachedAsync(hosts, query.Attached, ct);
+        hosts = FilterAttached(hosts, query.Attached);
         var size = Math.Clamp(query.PageSize, 1, PageQuery.MaxPageSize);
         var page = Math.Max(1, query.Page);
         var total = await hosts.CountAsync(ct);
@@ -327,20 +333,24 @@ public sealed class ZabbixService(PnmtdDbContext db, ZabbixClient client, Zabbix
         return new Paged<ZabbixHostItem>(await HostItemsAsync(rows, ct), page, size, total);
     }
 
-    /// <summary>Attached or not: every host is unattached until the Zabbix sensor (Z2).</summary>
-    private static Task<IQueryable<ZabbixHostEntity>> FilterAttachedAsync(IQueryable<ZabbixHostEntity> hosts, bool? attached, CancellationToken ct) =>
-        Task.FromResult(attached == true ? hosts.Where(_ => false) : hosts);
+    private IQueryable<ZabbixHostEntity> FilterAttached(IQueryable<ZabbixHostEntity> hosts, bool? attached) => attached switch
+    {
+        true => hosts.Where(h => db.ZabbixSensors.Any(z => z.ZabbixHostId == h.HostId)),
+        false => hosts.Where(h => !db.ZabbixSensors.Any(z => z.ZabbixHostId == h.HostId)),
+        _ => hosts,
+    };
 
-    private async Task<IReadOnlyList<ZabbixHostItem>> HostItemsAsync(IReadOnlyList<ZabbixHostEntity> rows, CancellationToken ct)
+    public async Task<IReadOnlyList<ZabbixHostItem>> HostItemsAsync(IReadOnlyList<ZabbixHostEntity> rows, CancellationToken ct)
     {
         var problems = ProblemsByHost();
-        var attached = await AttachedHostsAsync(rows.Select(r => r.HostId), ct);
+        var attached = await AttachedAsync(rows.Select(r => r.HostId), ct);
         return rows.Select(r =>
         {
             var mine = problems.GetValueOrDefault(r.HostId);
             return new ZabbixHostItem(r.HostId, r.VisibleName, r.TechnicalName, r.Monitored, r.InMaintenance, r.Groups, r.Addresses,
                 JsonSerializer.Deserialize<List<ZabbixInterfaceItem>>(r.Interfaces, ZabbixClient.Json) ?? [], r.Availability,
-                mine?.Count ?? 0, mine?.Max(p => p.Severity), attached.GetValueOrDefault(r.HostId), null, r.GoneAt is not null);
+                mine?.Count ?? 0, mine?.Max(p => p.Severity), attached.TryGetValue(r.HostId, out var a) ? a.Host : null,
+                attached.TryGetValue(r.HostId, out var b) ? b.SensorId : null, r.GoneAt is not null);
         }).ToList();
     }
 
@@ -412,11 +422,11 @@ public sealed class ZabbixService(PnmtdDbContext db, ZabbixClient client, Zabbix
     private async Task<IReadOnlyList<ZabbixProblemItem>> HostProblemsAsync(long hostId, CancellationToken ct)
     {
         var id = hostId.ToString(CultureInfo.InvariantCulture);
-        return await ItemsAsync(snapshot.Current.Problems.Where(p => p.Hosts.Any(h => h.Hostid == id))
+        return await ProblemItemsAsync(snapshot.Current.Problems.Where(p => p.Hosts.Any(h => h.Hostid == id))
             .OrderByDescending(p => p.Severity).ThenByDescending(p => p.Since), ct);
     }
 
-    private ZabbixHostLinks HostLinks(string technicalName, string id)
+    public ZabbixHostLinks HostLinks(string technicalName, string id)
     {
         var links = Links;
         return new ZabbixHostLinks(links.HostView(technicalName), links.HostDashboards(id), links.HostProblems(id), links.HostLatest(id),

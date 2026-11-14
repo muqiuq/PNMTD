@@ -64,6 +64,15 @@ namespace PNMTD.Lib.Models
         /// <summary>Zabbix (docs/audit-redmine-zabbix-plan.md §8.5): it didn't answer, or refused the token, twice in a row.</summary>
         public const int ZABBIX_FAILING = 430;
 
+        /// <summary>
+        /// A Zabbix host attached as a sensor (docs/audit-redmine-zabbix-plan.md §7.7): no problem from its severity up, a problem,
+        /// the host gone from Zabbix (deleted, disabled, out of the token's groups), an interface unavailable (when that fails it).
+        /// </summary>
+        public const int ZABBIX_OK = 290;
+        public const int ZABBIX_PROBLEM = 490;
+        public const int ZABBIX_HOST_MISSING = 491;
+        public const int ZABBIX_HOST_UNAVAILABLE = 492;
+
         /// <summary>Windows servers (docs/windows-sensor-plan.md §8.2): the heartbeat, a restart, a notable change, admin logins; the agent's problems, critical entries, login failures.</summary>
         public const int WINDOWS_OK = 250;
         public const int WINDOWS_RESTARTED = 251;

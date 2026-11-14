@@ -151,6 +151,8 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/zabbix/hosts/{hostId:long}"] = ("Zabbix:View", Roles.Viewer),
         ["GET /api/v1/zabbix/hosts/{hostId:long}/items"] = ("Zabbix:View", Roles.Viewer),
         ["POST /api/v1/zabbix/test"] = ("System:Manage", Roles.Admin),
+        ["GET /api/v1/zabbix/suggestions"] = ("Monitoring:Edit&Zabbix:View", Roles.User),
+        ["POST /api/v1/zabbix/attach"] = ("Monitoring:Edit&Zabbix:View", Roles.User),
         ["GET /api/v1/audit-log"] = ("AuditLog:View", Roles.Admin),
         ["GET /api/v1/audit-log/types"] = ("AuditLog:View", Roles.Admin),
         ["GET /api/v1/audit-log/export"] = ("AuditLog:View", Roles.Admin),
@@ -430,6 +432,12 @@ public sealed class EndpointAuditTests
     /// <summary>The right an endpoint's attributes ask for, in the matrix's notation: the action's own, else the controller's.</summary>
     private static string RightOf(RouteEndpoint endpoint)
     {
+        // Rights of two areas on one action are both needed: "Monitoring:Edit&Zabbix:View".
+        var rights = endpoint.Metadata.GetOrderedMetadata<RequireRightAttribute>().ToList();
+        if (rights.Select(r => r.Area).Distinct().Count() > 1)
+        {
+            return string.Join("&", rights.Select(r => RightsCatalog.Name(r.Area, r.Level)));
+        }
         var policies = endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>().Select(a => a.Policy).Where(p => p is not null).ToList();
         if (policies.LastOrDefault() is not { } last)
         {
@@ -484,6 +492,13 @@ public sealed class EndpointAuditTests
             else if (right == "admin")
             {
                 cases.Add(("every right but the flag", Everything(), false, "403"));
+            }
+            else if (right.Contains('&'))
+            {
+                var all = right.Split('&');
+                cases.AddRange(all.Select(r => ($"every right but {r}", (string?)Everything(except: r), false, "403")));
+                cases.AddRange(all.Select(r => ($"only {r}", (string?)r, false, "403")));
+                cases.Add(("all of them", string.Join(",", all), false, "allowed"));
             }
             else
             {

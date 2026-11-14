@@ -11935,6 +11935,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/zabbix/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ZabbixSuggestion"][];
+                        "text/json": components["schemas"]["ZabbixSuggestion"][];
+                        "text/plain": components["schemas"]["ZabbixSuggestion"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/zabbix/attach": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ZabbixAttachRequest"];
+                    "text/json": components["schemas"]["ZabbixAttachRequest"];
+                    "application/*+json": components["schemas"]["ZabbixAttachRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ZabbixAttached"][];
+                        "text/json": components["schemas"]["ZabbixAttached"][];
+                        "text/plain": components["schemas"]["ZabbixAttached"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/zabbix/test": {
         parameters: {
             query?: never;
@@ -16097,6 +16177,7 @@ export interface components {
             mikrotik?: null | components["schemas"]["MikrotikRouterDetail"];
             importance?: null | components["schemas"]["Importance"];
             effectiveImportance?: components["schemas"]["Importance"];
+            zabbix?: null | components["schemas"]["ZabbixSensorDetail"];
         };
         SensorIntegration: {
             writeToken: string;
@@ -16151,6 +16232,7 @@ export interface components {
             udp?: null | components["schemas"]["UdpNodeRequest"];
             mikrotik?: null | components["schemas"]["MikrotikRouterRequest"];
             importance?: null | components["schemas"]["Importance"];
+            zabbix?: null | components["schemas"]["ZabbixSensorRequest"];
         };
         /** @enum {unknown} */
         SensorState: "Ok" | "Failing" | "NoData" | "Ignored" | "Disabled";
@@ -16173,7 +16255,7 @@ export interface components {
             childCount: number;
         };
         /** @enum {unknown} */
-        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN" | "UDP_NODE" | "MIKROTIK" | "SYSTEM" | "WINDOWS" | "DIAGNOSTICS" | "LINUX";
+        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN" | "UDP_NODE" | "MIKROTIK" | "SYSTEM" | "WINDOWS" | "DIAGNOSTICS" | "LINUX" | "ZABBIX";
         SensorTypeInfo: {
             type: components["schemas"]["SensorType"];
             description: string;
@@ -17720,8 +17802,33 @@ export interface components {
             custom: components["schemas"]["CustomWmiResult"][];
             locallyOff: string[];
         };
+        ZabbixAttached: {
+            /** Format: uuid */
+            sensorId: string;
+            host: components["schemas"]["Ref"];
+            /** Format: int64 */
+            zabbixHostId: number;
+            name: string;
+        };
+        ZabbixAttachItem: {
+            /** Format: int64 */
+            zabbixHostId?: number;
+            /** Format: uuid */
+            hostId?: null | string;
+            newHostName?: null | string;
+            minSeverity?: null | components["schemas"]["ZabbixSeverity"];
+        };
+        ZabbixAttachRequest: {
+            items?: components["schemas"]["ZabbixAttachItem"][];
+        };
         /** @enum {unknown} */
         ZabbixAvailability: "Unknown" | "Available" | "Unavailable";
+        ZabbixCandidate: {
+            /** Format: uuid */
+            hostId: string;
+            name: string;
+            reason: string;
+        };
         ZabbixCategoryRow: {
             name: string;
             counts: number[];
@@ -17829,6 +17936,38 @@ export interface components {
             pnmtHost: null | components["schemas"]["Ref"];
             url: string;
         };
+        ZabbixSensorDetail: {
+            /** Format: int64 */
+            zabbixHostId: number;
+            name: string;
+            technicalName: string;
+            gone: boolean;
+            monitored: boolean;
+            inMaintenance: boolean;
+            availability: components["schemas"]["ZabbixAvailability"];
+            interfaces: components["schemas"]["ZabbixInterfaceItem"][];
+            minSeverity: components["schemas"]["ZabbixSeverity"];
+            countAcknowledged: boolean;
+            countSuppressed: boolean;
+            unavailableFails: boolean;
+            problems: components["schemas"]["ZabbixSensorProblem"][];
+            links: null | components["schemas"]["ZabbixHostLinks"];
+            /** Format: date-time */
+            asOf: null | string;
+            error: null | string;
+        };
+        ZabbixSensorProblem: {
+            problem: components["schemas"]["ZabbixProblemItem"];
+            counted: boolean;
+        };
+        ZabbixSensorRequest: {
+            /** Format: int64 */
+            zabbixHostId?: number;
+            minSeverity?: null | components["schemas"]["ZabbixSeverity"];
+            countAcknowledged?: boolean;
+            countSuppressed?: boolean;
+            unavailableFails?: boolean;
+        };
         /** @enum {unknown} */
         ZabbixSeverity: "NotClassified" | "Information" | "Warning" | "Average" | "High" | "Disaster";
         ZabbixSeverityCount: {
@@ -17849,6 +17988,12 @@ export interface components {
             /** Format: date-time */
             hostsSyncedAt: null | string;
             error: null | string;
+        };
+        ZabbixSuggestion: {
+            host: components["schemas"]["ZabbixHostItem"];
+            candidates: components["schemas"]["ZabbixCandidate"][];
+            /** Format: uuid */
+            suggested: null | string;
         };
         ZabbixSummary: {
             /** Format: date-time */

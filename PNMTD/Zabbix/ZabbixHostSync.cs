@@ -14,8 +14,8 @@ namespace PNMTD.Zabbix;
 /// token sees) into <c>zabbix_hosts</c>: names, status, maintenance, groups, interfaces and their availability. A host
 /// Zabbix no longer returns is marked gone, and removed a week later unless a sensor is attached to it.
 /// </summary>
-public sealed class ZabbixHostSync(ZabbixClient client, ZabbixGroups groups, ZabbixHealth health, IServiceScopeFactory scopes,
-    IOptionsMonitor<ZabbixOptions> options, ILogger<ZabbixHostSync> logger) : BackgroundService
+public sealed class ZabbixHostSync(ZabbixClient client, ZabbixGroups groups, ZabbixHealth health, ZabbixSensors sensors,
+    IServiceScopeFactory scopes, IOptionsMonitor<ZabbixOptions> options, ILogger<ZabbixHostSync> logger) : BackgroundService
 {
     public static readonly TimeSpan KeepGone = TimeSpan.FromDays(7);
 
@@ -116,6 +116,8 @@ public sealed class ZabbixHostSync(ZabbixClient client, ZabbixGroups groups, Zab
         var cutoff = now - KeepGone;
         await ZabbixSetup.DeleteGoneAsync(db, cutoff, ct);
         db.UpdateKeyValueTimestampToNow(KeyValueKeyEnums.LAST_ZABBIX_HOST_SYNC);
+        // A host gone or disabled: its sensor's 491 now, not at the next poll.
+        await sensors.EvaluateAsync(null, ct);
         if (scope.NotFound.Count > 0)
         {
             await health.FailedAsync($"Not found in Zabbix: {string.Join(", ", scope.NotFound)} (Zabbix__HostGroups).", ct);

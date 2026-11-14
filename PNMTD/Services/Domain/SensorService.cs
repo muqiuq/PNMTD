@@ -11,7 +11,7 @@ using PNMTD.Models.Db;
 namespace PNMTD.Services.Domain;
 
 public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, PublicUrls urls, NotificationRuleService rules, UdpNodeService udp,
-    MikrotikRouterService mikrotik, Agents.AgentHub agents)
+    MikrotikRouterService mikrotik, Agents.AgentHub agents, Zabbix.ZabbixSensorService zabbix)
 {
     private static readonly string[] SortFields = ["name", "host", "state", "type", "lastevent"];
 
@@ -76,7 +76,8 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             status.Children.OrderBy(c => c.Info.Name, StringComparer.OrdinalIgnoreCase).Select(c => c.ToSummary()).ToList(),
             integration, sensor.Notes, isUdp ? await udp.DetailAsync(id, ct) : null,
             sensor.Type == SensorType.MIKROTIK ? await mikrotik.DetailAsync(id, ct) : null,
-            sensor.Importance, status.Info.EffectiveImportance);
+            sensor.Importance, status.Info.EffectiveImportance,
+            sensor.Type == SensorType.ZABBIX ? await zabbix.DetailAsync(id, ct) : null);
     }
 
     /// <summary>Many sensors' importance at once (docs/ai-operations-plan.md §11.1); null: their hosts'.</summary>
@@ -114,9 +115,17 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         {
             await mikrotik.ApplyAsync(sensor, request.Mikrotik, ct);
         }
+        if (sensor.Type == SensorType.ZABBIX)
+        {
+            await zabbix.ApplyAsync(sensor, request.Zabbix, ct);
+        }
         await db.SaveChangesAsync(ct);
         udp.Changed();
         await mikrotik.NotifyGatewayAsync(ct);
+        if (sensor.Type == SensorType.ZABBIX)
+        {
+            await zabbix.EvaluateAsync(sensor.Id, ct);
+        }
         return await GetAsync(sensor.Id, withSecrets: true, ct);
     }
 
@@ -160,6 +169,7 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         {
             var wasUdp = sensor.Type == SensorType.UDP_NODE;
             var wasMikrotik = sensor.Type == SensorType.MIKROTIK;
+            var wasZabbix = sensor.Type == SensorType.ZABBIX;
             await ValidateAsync(request, sensor, ct);
             Apply(sensor, request);
             if (sensor.Type == SensorType.UDP_NODE)
@@ -178,11 +188,23 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             {
                 await mikrotik.RemoveAsync(sensor.Id, ct);
             }
+            if (sensor.Type == SensorType.ZABBIX)
+            {
+                await zabbix.ApplyAsync(sensor, request.Zabbix, ct);
+            }
+            else if (wasZabbix)
+            {
+                await zabbix.RemoveAsync(sensor.Id, ct);
+            }
         }
         await db.SaveChangesAsync(ct);
         udp.Changed();
         // A router's tunnel follows its sensor's Enabled and its mode.
         await mikrotik.NotifyGatewayAsync(ct, always: sensor.Type == SensorType.MIKROTIK);
+        if (sensor.Type == SensorType.ZABBIX)
+        {
+            await zabbix.EvaluateAsync(sensor.Id, ct);
+        }
         return await GetAsync(id, withSecrets, ct);
     }
 
@@ -314,6 +336,13 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             mikrotik.Validate(request.Mikrotik, router, v);
             v.Check(request.Interval >= Mikrotik.RouterPoller.MinimumIntervalSeconds, "interval",
                 $"A MikroTik router is polled at most every {Mikrotik.RouterPoller.MinimumIntervalSeconds} seconds: an interval of {Mikrotik.RouterPoller.MinimumIntervalSeconds} or more.");
+        }
+        if (request.Type == SensorType.ZABBIX)
+        {
+            var row = existing is null || existing.Type != SensorType.ZABBIX
+                ? null
+                : await db.ZabbixSensors.AsNoTracking().SingleOrDefaultAsync(z => z.SensorId == existing.Id, ct);
+            await zabbix.ValidateAsync(request.Zabbix, row, v, ct);
         }
         if (request.Type is SensorType.HEARTBEAT or SensorType.HEARTBEAT_VALUECHECK or SensorType.PING or SensorType.UDP_NODE)
         {

@@ -4342,6 +4342,46 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("zabbix_hosts");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.ZabbixSensorEntity", b =>
+                {
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("CountAcknowledged")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CountSuppressed")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("LastCode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LastProblemIds")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("MinSeverity")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<bool>("UnavailableFails")
+                        .HasColumnType("boolean");
+
+                    b.Property<long>("ZabbixHostId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("SensorId");
+
+                    b.HasIndex("ZabbixHostId")
+                        .IsUnique();
+
+                    b.ToTable("zabbix_sensors");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.AgentChangeEntity", b =>
                 {
                     b.HasOne("PNMTD.Models.Db.SensorEntity", null)
@@ -4992,6 +5032,17 @@ namespace PNMTD.Data.Migrations
                         .HasForeignKey("PNMTD.Models.Db.WgPeerStatusEntity", "PeerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ZabbixSensorEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", "Sensor")
+                        .WithOne()
+                        .HasForeignKey("PNMTD.Models.Db.ZabbixSensorEntity", "SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sensor");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.AgentScriptEntity", b =>

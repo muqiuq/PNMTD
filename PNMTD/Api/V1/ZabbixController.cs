@@ -14,7 +14,7 @@ namespace PNMTD.Api.V1;
 /// </summary>
 [Route("api/v1/zabbix")]
 [Authorize]
-public sealed class ZabbixController(ZabbixService zabbix) : V1ControllerBase
+public sealed class ZabbixController(ZabbixService zabbix, ZabbixSensorService sensors) : V1ControllerBase
 {
     /// <summary>Whether Zabbix is on, its version, where browsers open it: every signed-in user, for the drawer.</summary>
     [HttpGet("status")]
@@ -53,6 +53,20 @@ public sealed class ZabbixController(ZabbixService zabbix) : V1ControllerBase
     [RequireRight(Area.Zabbix, Level.View)]
     public async Task<IReadOnlyList<ZabbixItemItem>> Items(long hostId, [FromQuery] string? search, CancellationToken ct) =>
         await Call(() => zabbix.ItemsOfHostAsync(hostId, search, ct));
+
+    /// <summary>Unattached Zabbix hosts with the PNMT hosts they match (§7.8).</summary>
+    [HttpGet("suggestions")]
+    [RequireRight(Area.Monitoring, Level.Edit)]
+    [RequireRight(Area.Zabbix, Level.View)]
+    public async Task<IReadOnlyList<ZabbixSuggestion>> Suggestions(CancellationToken ct) => await Call(() => sensors.SuggestionsAsync(ct));
+
+    /// <summary>Zabbix hosts attached as sensors (§7.8), all or none: one is a SensorCreated, several a ZabbixHostsAttached.</summary>
+    [HttpPost("attach")]
+    [RequireRight(Area.Monitoring, Level.Edit)]
+    [RequireRight(Area.Zabbix, Level.View)]
+    [Audit(AuditEvents.SensorCreated, AuditEvents.ZabbixHostsAttached)]
+    public async Task<IReadOnlyList<ZabbixAttached>> Attach(ZabbixAttachRequest request, CancellationToken ct) =>
+        await Call(() => sensors.AttachAsync(request, ct));
 
     /// <summary>The connection's test (§8.5): the version, a poll and a host sync now, the host groups found and not found.</summary>
     [HttpPost("test")]

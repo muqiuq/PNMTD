@@ -20,11 +20,13 @@ public static class ZabbixSetup
         services.AddSingleton<ZabbixHealth>();
         services.AddSingleton<ZabbixPoller>();
         services.AddSingleton<ZabbixHostSync>();
+        services.AddSingleton<ZabbixSensors>();
         services.AddScoped<ZabbixService>();
+        services.AddScoped<ZabbixSensorService>();
         return services;
     }
 
-    /// <summary>The mirror's hosts gone for longer than a week.</summary>
+    /// <summary>The mirror's hosts gone for longer than a week, unless a sensor is attached to them (it shows 491 with the name).</summary>
     internal static Task<int> DeleteGoneAsync(PnmtdDbContext db, DateTime cutoff, CancellationToken ct) =>
-        db.ZabbixHosts.Where(h => h.GoneAt != null && h.GoneAt < cutoff).ExecuteDeleteAsync(ct);
+        db.ZabbixHosts.Where(h => h.GoneAt != null && h.GoneAt < cutoff && !db.ZabbixSensors.Any(z => z.ZabbixHostId == h.HostId)).ExecuteDeleteAsync(ct);
 }

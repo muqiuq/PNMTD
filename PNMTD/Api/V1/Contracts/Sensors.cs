@@ -66,7 +66,8 @@ public sealed record SensorDetail(
     UdpNodeDetail? Udp = null,
     MikrotikRouterDetail? Mikrotik = null,
     Importance? Importance = null,
-    Importance EffectiveImportance = Importance.Normal);
+    Importance EffectiveImportance = Importance.Normal,
+    ZabbixSensorDetail? Zabbix = null);
 
 /// <summary>
 /// How an application reports: <c>{WriteUrl}/{code}/{message}</c> (GET) or a POST of the message to
@@ -113,6 +114,9 @@ public sealed class SensorRequest
 
     /// <summary>Null: the host's (docs/ai-operations-plan.md §11.1).</summary>
     public Importance? Importance { get; init; }
+
+    /// <summary>A ZABBIX sensor's Zabbix host and rules (docs/audit-redmine-zabbix-plan.md §7.7); ignored for other types.</summary>
+    public ZabbixSensorRequest? Zabbix { get; init; }
 }
 
 /// <summary><c>POST /sensors/{id}/tokens/rotate</c>: which tokens get new values. The old URLs stop working at once.</summary>

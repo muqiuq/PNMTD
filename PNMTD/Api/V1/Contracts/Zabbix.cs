@@ -111,3 +111,62 @@ public sealed record ZabbixItemItem(string Id, string Name, string Key, string? 
 
 /// <summary><c>POST /zabbix/test</c>: the version, what the token sees, the host groups found and not found.</summary>
 public sealed record ZabbixTestResult(string Version, int Hosts, int Problems, IReadOnlyList<string> HostGroups, IReadOnlyList<string> NotFound);
+
+/// <summary>
+/// A ZABBIX sensor's settings (§7.7): its Zabbix host (fixed once attached), the severity it fails from (default
+/// Zabbix__MinSeverity), whether acknowledged and suppressed problems count, and whether an unavailable interface fails it.
+/// </summary>
+public sealed class ZabbixSensorRequest
+{
+    public long ZabbixHostId { get; init; }
+
+    public ZabbixSeverity? MinSeverity { get; init; }
+
+    public bool CountAcknowledged { get; init; } = true;
+
+    public bool CountSuppressed { get; init; }
+
+    public bool UnavailableFails { get; init; }
+}
+
+/// <summary>
+/// A ZABBIX sensor's page (§7.7): its Zabbix host from the mirror, its rules, the host's open problems (each with whether it
+/// counts), the links into Zabbix, and since when Zabbix isn't reached, if it isn't.
+/// </summary>
+public sealed record ZabbixSensorDetail(long ZabbixHostId, string Name, string TechnicalName, bool Gone, bool Monitored, bool InMaintenance,
+    ZabbixAvailability Availability, IReadOnlyList<ZabbixInterfaceItem> Interfaces, ZabbixSeverity MinSeverity, bool CountAcknowledged,
+    bool CountSuppressed, bool UnavailableFails, IReadOnlyList<ZabbixSensorProblem> Problems, ZabbixHostLinks? Links, DateTime? AsOf,
+    string? Error);
+
+/// <summary>An open problem of the sensor's host, and whether the sensor's rules count it.</summary>
+public sealed record ZabbixSensorProblem(ZabbixProblemItem Problem, bool Counted);
+
+/// <summary>A PNMT host a Zabbix host may belong to, and why: "same name", "web01 = web01.example.com", "ping target 10.0.4.17".</summary>
+public sealed record ZabbixCandidate(Guid HostId, string Name, string Reason);
+
+/// <summary>
+/// <c>GET /zabbix/suggestions</c> (§7.8): an unattached Zabbix host with the PNMT hosts it matches; <see cref="Suggested"/> only
+/// when exactly one does.
+/// </summary>
+public sealed record ZabbixSuggestion(ZabbixHostItem Host, IReadOnlyList<ZabbixCandidate> Candidates, Guid? Suggested);
+
+/// <summary>One Zabbix host to attach: to a PNMT host, or to a new one with this name; the severity, or Zabbix__MinSeverity.</summary>
+public sealed class ZabbixAttachItem
+{
+    public long ZabbixHostId { get; init; }
+
+    public Guid? HostId { get; init; }
+
+    public string? NewHostName { get; init; }
+
+    public ZabbixSeverity? MinSeverity { get; init; }
+}
+
+/// <summary><c>POST /zabbix/attach</c>: one Zabbix host or many (§7.8), all or none.</summary>
+public sealed class ZabbixAttachRequest
+{
+    public List<ZabbixAttachItem> Items { get; init; } = [];
+}
+
+/// <summary>The sensors created, with their hosts.</summary>
+public sealed record ZabbixAttached(Guid SensorId, Ref Host, long ZabbixHostId, string Name);

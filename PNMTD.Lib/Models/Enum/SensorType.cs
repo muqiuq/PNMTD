@@ -24,7 +24,9 @@ namespace PNMTD.Lib.Models.Enum
         /// <summary>A diagnostics set assigned to a server's agent (docs/windows-sensor-plan.md §5.2); created by the assignment.</summary>
         DIAGNOSTICS = 101,
         /// <summary>A Linux server running the PNMT agent for Linux (docs/linux-sensor-plan.md §9.1); created by its join, with heartbeat semantics.</summary>
-        LINUX = 102
+        LINUX = 102,
+        /// <summary>A Zabbix host attached to a PNMT host (docs/audit-redmine-zabbix-plan.md §7.7): its open problems from a severity up fail it.</summary>
+        ZABBIX = 110
     }
 }
 

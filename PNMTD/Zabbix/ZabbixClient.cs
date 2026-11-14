@@ -27,7 +27,8 @@ public sealed class ZabbixClient(IHttpClientFactory http, IOptionsMonitor<Zabbix
 
     public const long MaxBytes = 20 * 1024 * 1024;
 
-    internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    /// <summary>Zabbix's answers, and the mirror's JSON (enums by name).</summary>
+    internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } };
 
     private volatile ZabbixVersion? version;
 

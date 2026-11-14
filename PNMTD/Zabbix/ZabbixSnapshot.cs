@@ -121,11 +121,11 @@ public sealed class ZabbixHealth(SystemSensors systemSensors, ILogger<ZabbixHeal
 
 /// <summary>
 /// Every Zabbix__PollSeconds (§7.3): the open problems in one <c>problem.get</c>, the hosts of triggers not seen before in
-/// one <c>trigger.get</c> (Zabbix's problems don't name their host), into the snapshot. A failure keeps the snapshot and
-/// writes no sensor event (§7.7); it goes to the system sensor.
+/// one <c>trigger.get</c> (Zabbix's problems don't name their host), into the snapshot; then the ZABBIX sensors' state. A
+/// failure keeps the snapshot and writes no sensor event (§7.7); it goes to the system sensor.
 /// </summary>
 public sealed class ZabbixPoller(ZabbixClient client, ZabbixGroups groups, ZabbixSnapshot snapshot, ZabbixHealth health,
-    IServiceScopeFactory scopes, IOptionsMonitor<ZabbixOptions> options, ILogger<ZabbixPoller> logger) : BackgroundService
+    ZabbixSensors sensors, IServiceScopeFactory scopes, IOptionsMonitor<ZabbixOptions> options, ILogger<ZabbixPoller> logger) : BackgroundService
 {
     public const int MaxProblems = 10_000;
 
@@ -222,6 +222,7 @@ public sealed class ZabbixPoller(ZabbixClient client, ZabbixGroups groups, Zabbi
                 s.ServiceProvider.GetRequiredService<PnmtdDbContext>().UpdateKeyValueTimestampToNow(KeyValueKeyEnums.LAST_ZABBIX_POLL);
             }
             await health.SucceededAsync(ct);
+            await sensors.EvaluateAsync(null, ct);
         }
         catch (ZabbixException e) when (e.Failure != ZabbixFailure.NotConfigured)
         {
