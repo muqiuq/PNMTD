@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using PNMTD.Api.V1.Contracts;
+using PNMTD.Audit;
 using PNMTD.Auth;
 using PNMTD.Auth.Rights;
 using PNMTD.Data;
@@ -211,6 +212,43 @@ public sealed class AccountController(UserAccounts accounts, TwoFactorService tw
         return NoContent();
     }
 
+    /// <summary>One's own contact details (docs/cookie-plan.md §8.1), and how the availability plan shows one.</summary>
+    [HttpGet("contact")]
+    public async Task<AccountContactItem> Contact(CancellationToken ct)
+    {
+        var u = await accounts.GetAsync(User.UserId() ?? throw ApiException.NotFound("User"), ct);
+        return new AccountContactItem(u.Email, u.PushoverKey, u.RedmineName, u.InPlan, u.ShortCode, u.Color);
+    }
+
+    /// <summary>One's own e-mail address and Pushover key. The Redmine user is set by admins.</summary>
+    [HttpPut("contact")]
+    [Audit(AuditEvents.ContactChanged)]
+    public async Task<AccountContactItem> SaveContact(AccountContactRequest request, [FromServices] PnmtdDbContext db, CancellationToken ct)
+    {
+        var id = User.UserId() ?? throw ApiException.NotFound("User");
+        var v = new ApiValidator();
+        People.ValidateContact(v, request.Email, request.PushoverKey);
+        v.ThrowIfInvalid();
+        var u = await db.Users.SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw ApiException.NotFound("User");
+        u.Email = People.Clean(request.Email, 254);
+        u.PushoverKey = People.Clean(request.PushoverKey, 30);
+        await db.SaveChangesAsync(ct);
+        return new AccountContactItem(u.Email, u.PushoverKey, u.RedmineName, u.InPlan, u.ShortCode, u.Color);
+    }
+
+    /// <summary><i>Send a test</i>: a message to one's own address or key, by e-mail or Pushover.</summary>
+    [HttpPost("contact/test")]
+    [Audit(AuditEvents.ContactTested)]
+    public async Task<ContactTestResult> TestContact(ContactTestRequest request, [FromServices] PNMTD.Notifications.NotificationService notifications,
+        [FromServices] IConfiguration configuration, CancellationToken ct)
+    {
+        var u = await accounts.GetAsync(User.UserId() ?? throw ApiException.NotFound("User"), ct);
+        var result = await People.TestAsync(notifications, u, request.Channel, configuration.GetValue("Development:DoNotSendNotifications", false), ct);
+        PNMTD.Audit.AuditLog.Summary($"A test {(string.Equals(request.Channel, "pushover", StringComparison.OrdinalIgnoreCase) ? "Pushover" : "e-mail")}: " +
+            (result.Ok ? "sent" : "failed"));
+        return new ContactTestResult(result.Ok, result.Detail);
+    }
+
     private async Task RenewSessionAsync(Guid id, CancellationToken ct)
     {
         // Cookie sessions only: the tests' sign-in has no cookie to renew.
@@ -326,6 +364,26 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
     {
         await accounts.UnlockAsync(id, AuditContext.From(HttpContext), ct);
         return NoContent();
+    }
+
+    /// <summary>The person's contact details and their place in the availability plan (docs/cookie-plan.md §8.1).</summary>
+    [HttpGet("{id:guid}/profile")]
+    public async Task<PersonProfile> Profile(Guid id, CancellationToken ct) => People.Of(await accounts.GetAsync(id, ct));
+
+    [HttpPut("{id:guid}/profile")]
+    [Audit(AuditEvents.UserUpdated)]
+    public async Task<PersonProfile> SaveProfile(Guid id, UserProfileRequest request, CancellationToken ct)
+    {
+        var u = await db.Users.SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw ApiException.NotFound("User");
+        var v = new ApiValidator();
+        People.ValidateContact(v, request.Email, request.PushoverKey);
+        v.Check((request.RedmineName ?? "").Trim().Length <= 200, "redmineName", "At most 200 characters.");
+        u.Email = People.Clean(request.Email, 254);
+        u.PushoverKey = People.Clean(request.PushoverKey, 30);
+        u.RedmineName = People.Clean(request.RedmineName, 200);
+        await People.ApplyPlanAsync(db, u, request.InPlan, request.ShortCode, request.Color, request.DefaultWeek, request.PlanOrder, v, ct);
+        await db.SaveChangesAsync(ct);
+        return People.Of(u);
     }
 
     internal static UserItem ToItem(UserEntity u) => new(u.Id, u.Username, u.DisplayName, u.IsAdmin,

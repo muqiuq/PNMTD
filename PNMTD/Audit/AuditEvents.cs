@@ -140,6 +140,17 @@ public static class AuditEvents
     public const string CookieNoteAdded = "CookieNoteAdded";
     public const string CookieMessageSent = "CookieMessageSent";
     public const string CookieHeldBackSent = "CookieHeldBackSent";
+    public const string CookieCaseCommented = "CookieCaseCommented";
+    public const string CookieCaseStopped = "CookieCaseStopped";
+    public const string CookieCaseGoOn = "CookieCaseGoOn";
+
+    // The person and the availability plan (docs/cookie-plan.md §8.1, §8.2).
+    public const string ContactChanged = "ContactChanged";
+    public const string ContactTested = "ContactTested";
+    public const string AvailabilityChanged = "AvailabilityChanged";
+    public const string AvailabilityFilled = "AvailabilityFilled";
+    public const string AvailabilityPeopleChanged = "AvailabilityPeopleChanged";
+    public const string AvailabilitySettingsChanged = "AvailabilitySettingsChanged";
 
     // Zabbix (docs/audit-redmine-zabbix-plan.md §7.8): the connection's test, and attaching hosts in bulk.
     public const string ZabbixTested = "ZabbixTested";
@@ -212,7 +223,7 @@ public static class AuditEvents
 public enum AuditCategory
 {
     Auth, Users, Hosts, Sensors, Notifications, Locations, Knowledge, Files, Udp, Mikrotik, WireGuard, Agents, SshKeys,
-    Diagnostics, Dns, Mail, Ai, Decisions, System, Redmine, Zabbix, Cookie,
+    Diagnostics, Dns, Mail, Ai, Decisions, System, Redmine, Zabbix, Cookie, Availability,
 }
 
 /// <summary>The colour of an event's tag.</summary>
@@ -333,7 +344,10 @@ public static class AuditCatalog
         Add(AuditCategory.Cookie, null, AuditEvents.CookieSettingsChanged, AuditEvents.CookieSettingsRolledBack, AuditEvents.CookieStarted,
             AuditEvents.CookieStopped, AuditEvents.CookieRunRequested);
         Add(AuditCategory.Cookie, AuditTargets.CookieCase, AuditEvents.CookieTicketCreated, AuditEvents.CookieNoteAdded, AuditEvents.CookieMessageSent,
-            AuditEvents.CookieHeldBackSent);
+            AuditEvents.CookieHeldBackSent, AuditEvents.CookieCaseCommented, AuditEvents.CookieCaseStopped, AuditEvents.CookieCaseGoOn);
+        Add(AuditCategory.Users, AuditTargets.User, AuditEvents.ContactChanged, AuditEvents.ContactTested);
+        Add(AuditCategory.Availability, null, AuditEvents.AvailabilityChanged, AuditEvents.AvailabilityFilled, AuditEvents.AvailabilityPeopleChanged,
+            AuditEvents.AvailabilitySettingsChanged);
         Add(AuditCategory.Hosts, AuditTargets.Host, AuditEvents.HostsImportanceChanged, AuditEvents.HostsLocationChanged);
         Add(AuditCategory.Sensors, AuditTargets.Sensor, AuditEvents.SensorCreated, AuditEvents.SensorUpdated, AuditEvents.SensorDeleted, AuditEvents.SensorTokensRotated, AuditEvents.SensorsImportanceChanged);
         Add(AuditCategory.Notifications, AuditTargets.NotificationRule, AuditEvents.NotificationRuleCreated, AuditEvents.NotificationRuleUpdated, AuditEvents.NotificationRuleDeleted, AuditEvents.NotificationRuleSensorLinked, AuditEvents.NotificationRuleSensorUnlinked, AuditEvents.NotificationRuleScopesChanged, AuditEvents.NotificationRuleExclusionAdded, AuditEvents.NotificationRuleExclusionRemoved);

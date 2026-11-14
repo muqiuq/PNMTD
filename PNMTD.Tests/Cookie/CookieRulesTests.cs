@@ -142,16 +142,6 @@ public sealed class CookieRulesTests
     }
 
     [TestMethod]
-    public void Quiet_hours_may_span_midnight()
-    {
-        var c = new CookieContact(Guid.NewGuid(), null, null, null, "22:00", "07:00");
-        Assert.IsTrue(c.IsQuiet(new TimeOnly(23, 30)));
-        Assert.IsTrue(c.IsQuiet(new TimeOnly(6, 59)));
-        Assert.IsFalse(c.IsQuiet(new TimeOnly(7, 0)));
-        Assert.IsFalse((c with { QuietFrom = null }).IsQuiet(new TimeOnly(23, 30)));
-    }
-
-    [TestMethod]
     public void Every_default_prompt_keeps_the_parts_code_fills_in()
     {
         foreach (var (key, prompt) in CookiePrompts.Defaults)

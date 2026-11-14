@@ -990,6 +990,147 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("audit_log");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.AvailabilityDayEntity", b =>
+                {
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ChangedBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("FallbackId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ResponsibleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Date");
+
+                    b.HasIndex("FallbackId");
+
+                    b.HasIndex("ResponsibleId");
+
+                    b.ToTable("availability_days");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AvailabilityEntryEntity", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("Filled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("SetAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SetBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("TypeId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("UserId", "Date");
+
+                    b.HasIndex("Date");
+
+                    b.HasIndex("TypeId");
+
+                    b.ToTable("availability_entries");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AvailabilitySettingsEntity", b =>
+                {
+                    b.Property<int>("SingletonId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ChangedBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Json")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("SingletonId");
+
+                    b.ToTable("availability_settings");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AvailabilityTypeEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<bool>("Compensation")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Holiday")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("HomeOffice")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDayOff")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<bool>("OnSite")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Retired")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Vacation")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("WorkTravel")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("availability_types");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.CookieCaseEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1097,6 +1238,20 @@ namespace PNMTD.Data.Migrations
                     b.Property<string>("StatusName")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("StopComment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("StoppedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("StoppedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("StoppedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime?>("TicketCreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -4477,15 +4632,29 @@ namespace PNMTD.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Color")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DefaultWeek")
+                        .HasColumnType("text");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Email")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)");
+
                     b.Property<int>("FailedLoginCount")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("InPlan")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -4525,9 +4694,24 @@ namespace PNMTD.Data.Migrations
                     b.Property<string>("PendingTotpSecretProtected")
                         .HasColumnType("text");
 
+                    b.Property<int>("PlanOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PushoverKey")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("RedmineName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("SecurityStamp")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("ShortCode")
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
 
                     b.Property<DateTime?>("TemporaryPasswordExpiresAt")
                         .HasColumnType("timestamp with time zone");
@@ -4545,6 +4729,9 @@ namespace PNMTD.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedUsername")
+                        .IsUnique();
+
+                    b.HasIndex("ShortCode")
                         .IsUnique();
 
                     b.ToTable("users");
@@ -4956,6 +5143,34 @@ namespace PNMTD.Data.Migrations
                         .WithMany()
                         .HasForeignKey("WorkId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AvailabilityDayEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("FallbackId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ResponsibleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AvailabilityEntryEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.AvailabilityTypeEntity", null)
+                        .WithMany()
+                        .HasForeignKey("TypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PNMTD.Models.Db.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.CookieCaseEntryEntity", b =>

@@ -38,8 +38,13 @@ public sealed class DutiesTests
             Id = Guid.NewGuid(), Username = V1.Unique(name), NormalizedUsername = V1.Unique(name).ToLowerInvariant(), DisplayName = name,
             PasswordHash = "x", SecurityStamp = Guid.NewGuid().ToString(),
         };
+        // The contact details are on the user (docs/cookie-plan.md §8.1); Anna is the assignee by her Redmine user.
         var a = User("Anna");
+        a.Email = "anna@example.com";
+        a.PushoverKey = "uQiRzpo4DXghDmr9QzzfQu27cmVRsG";
+        a.RedmineName = "Anna Muster";
         var b = User("Bob");
+        b.Email = "bob@example.com";
         db.Users.AddRange(a, b);
         var group = new GroupEntity { Id = Guid.NewGuid(), Name = V1.Unique("Service desk"), NormalizedName = V1.Unique("service desk") };
         db.Groups.Add(group);
@@ -47,22 +52,14 @@ public sealed class DutiesTests
         db.UserGroups.Add(new UserGroupEntity { UserId = b.Id, GroupId = group.Id });
         await db.SaveChangesAsync();
         (anna, bob, team) = (a.Id, b.Id, group.Id);
-        await SaveAsync("hours", new HoursSettings { Week = [] });
-        await SaveAsync("notifications", new NotificationSettings
-        {
-            Contacts =
-            [
-                new CookieContact(anna, "anna@example.com", "uQiRzpo4DXghDmr9QzzfQu27cmVRsG", "Anna Muster", null, null),
-                new CookieContact(bob, "bob@example.com", null, null, null, null),
-            ],
-        });
+        // Always working hours: the tests run at any hour, on any day.
+        await V1.AvailabilityHoursAsync(admin, []);
     }
 
     [ClassCleanup]
     public static async Task Stop()
     {
-        await SaveAsync("hours", new HoursSettings());
-        await SaveAsync("notifications", new NotificationSettings());
+        await V1.AvailabilityHoursAsync(admin, null);
         await SaveAsync("redmine", new CookieRedmineSettings());
         await SaveAsync("actions", new ActionSettings());
         app.Dispose();
@@ -72,14 +69,14 @@ public sealed class DutiesTests
 
     private static DutyRunner Runner => app.Services.GetRequiredService<DutyRunner>();
 
-    /// <summary>A ticket of IT Support, assigned to Anna, written by a requester this long ago.</summary>
-    private static int Ticket(TimeSpan age)
+    /// <summary>A ticket of IT Support, assigned to Anna (or someone else), written by a requester this long ago.</summary>
+    private static int Ticket(TimeSpan age, string assignee = "Anna Muster")
     {
         var id = redmine.Issues.Keys.Max() + 1;
         var at = DateTime.UtcNow.Subtract(age).ToString("yyyy-MM-ddTHH:mm:ssZ");
         redmine.Issues[id] = JsonNode.Parse($$"""
             {"id":{{id}},"project":{"id":1,"name":"IT Support"},"tracker":{"id":1,"name":"Bug"},"status":{"id":1,"name":"New","is_closed":false},
-             "priority":{"id":2,"name":"Normal"},"author":{"id":7,"name":"Requester"},"assigned_to":{"id":5,"name":"Anna Muster"},
+             "priority":{"id":2,"name":"Normal"},"author":{"id":7,"name":"Requester"},"assigned_to":{"id":5,"name":"{{assignee}}"},
              "subject":"The printer in 204","description":"It doesn't print.","is_private":false,"created_on":"{{at}}","updated_on":"{{at}}"}
             """)!.AsObject();
         return id;
@@ -218,19 +215,43 @@ public sealed class DutiesTests
         await SaveAsync("actions", new ActionSettings());
     }
 
+
     [TestMethod]
-    public void Recipient_rules_match_scope_urgency_and_time()
+    public async Task An_assignee_who_doesnt_work_today_leaves_the_reminder_to_the_escalation_group()
     {
-        var rule = new RecipientRule(Guid.NewGuid(), "Network at night", RecipientScope.Project, "3", Urgency.Urgent, RecipientWhen.OutsideWorkingHours,
-            [anna], [], [RecipientChannel.Pushover]);
-        Assert.IsTrue(Recipients.Matches(rule, new Recipients.Subject(CookieCaseKind.Ticket, null, null, 3, Urgency.Urgent, false)));
-        Assert.IsFalse(Recipients.Matches(rule, new Recipients.Subject(CookieCaseKind.Ticket, null, null, 3, Urgency.Important, false)), "too little urgent");
-        Assert.IsFalse(Recipients.Matches(rule, new Recipients.Subject(CookieCaseKind.Ticket, null, null, 3, Urgency.Urgent, true)), "in working hours");
-        Assert.IsFalse(Recipients.Matches(rule, new Recipients.Subject(CookieCaseKind.Ticket, null, null, 1, Urgency.Urgent, false)), "another project");
-        var everyone = rule with { Scope = RecipientScope.Everything, Users = [], Groups = [team], When = RecipientWhen.Always };
-        var found = Recipients.FromRules(new NotificationSettings { Rules = [everyone] },
-            new Recipients.Subject(CookieCaseKind.Problem, null, null, null, Urgency.Urgent, true), new Dictionary<Guid, List<Guid>> { [team] = [bob] });
-        CollectionAssert.AreEqual(new[] { bob }, found.Keys.ToArray());
+        await SaveAsync("redmine", new CookieRedmineSettings { Projects = [WatchedProject.Default(1) with { EscalationGroupId = team }] });
+        await SaveAsync("actions", new ActionSettings { Duties = new DutySwitches(FirstAnswerReminder: true) });
+        var clara = Guid.NewGuid();
+        var today = DateOnly.FromDateTime(Clock.LocalNow);
+        await using (var db = app.NewDb())
+        {
+            var vacation = await db.AvailabilityTypes.SingleAsync(t => t.Code == "VACA");
+            db.Users.Add(new UserEntity
+            {
+                Id = clara, Username = V1.Unique("clara"), NormalizedUsername = V1.Unique("clara"), DisplayName = "Clara", PasswordHash = "x",
+                SecurityStamp = Guid.NewGuid().ToString(), Email = "clara@example.com", RedmineName = "Clara Away", InPlan = true, ShortCode = "CLA",
+            });
+            await db.SaveChangesAsync();
+            db.AvailabilityEntries.Add(new AvailabilityEntryEntity { UserId = clara, Date = today, TypeId = vacation.Id, SetAt = Clock.UtcNow, SetBy = "test" });
+            await db.SaveChangesAsync();
+        }
+        try
+        {
+            var issue = Ticket(TimeSpan.FromHours(3.5), "Clara Away");
+            await Book.RunAsync(true, CancellationToken.None);
+            await Runner.RunAsync(CancellationToken.None);
+            var reminder = (await DutiesAsync(issue)).Single(d => d.Kind == CookieDutyKind.FirstAnswerReminder);
+            Assert.AreEqual(CookieDutyState.Done, reminder.State, reminder.Outcome);
+            StringAssert.Contains(reminder.Outcome, "Clara doesn't work today");
+            CollectionAssert.AreEqual(new[] { "Bob" }, (await OutboxAsync(reminder.CaseId)).Where(o => o.Channel == CookieChannel.Email).Select(o => o.Recipient).ToArray(),
+                "the escalation group stands in for her");
+        }
+        finally
+        {
+            await using var db = app.NewDb();
+            await db.Users.Where(u => u.Id == clara).ExecuteUpdateAsync(u => u.SetProperty(x => x.InPlan, false).SetProperty(x => x.ShortCode, (string?)null));
+            await SaveAsync("actions", new ActionSettings());
+        }
     }
 
     private static async Task<int> SaveAsync<T>(string section, T value)

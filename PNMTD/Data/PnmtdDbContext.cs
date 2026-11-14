@@ -142,6 +142,10 @@ namespace PNMTD.Data
         public DbSet<FileUseEntity> FileUses { get; set; }
 
         // Cookie (docs/cookie-plan.md §19.2): its settings' versions, its state, the case book, the duties and the outbox.
+        public DbSet<AvailabilityTypeEntity> AvailabilityTypes { get; set; }
+        public DbSet<AvailabilityEntryEntity> AvailabilityEntries { get; set; }
+        public DbSet<AvailabilityDayEntity> AvailabilityDays { get; set; }
+        public DbSet<AvailabilitySettingsEntity> AvailabilitySettings { get; set; }
         public DbSet<CookieSettingEntity> CookieSettings { get; set; }
         public DbSet<CookieRuntimeEntity> CookieRuntime { get; set; }
         public DbSet<CookieCaseEntity> CookieCases { get; set; }
@@ -195,6 +199,7 @@ namespace PNMTD.Data
             modelBuilder.Entity<EventEntity>().HasIndex(e => e.Created);
 
             modelBuilder.Entity<UserEntity>().HasIndex(u => u.NormalizedUsername).IsUnique();
+            modelBuilder.Entity<UserEntity>().HasIndex(u => u.ShortCode).IsUnique();
             // Zabbix's hosts (docs/audit-redmine-zabbix-plan.md §7.3): found by their names.
             modelBuilder.Entity<ZabbixHostEntity>(e =>
             {
@@ -477,6 +482,7 @@ namespace PNMTD.Data
             ConfigureKnowledgeBase(modelBuilder);
             ConfigureFiles(modelBuilder);
             ConfigureCookie(modelBuilder);
+            ConfigureAvailability(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
         }
@@ -640,6 +646,23 @@ namespace PNMTD.Data
         }
 
         /// <summary>Cookie (docs/cookie-plan.md §19.2): enums as text, one open case per key, a duty once per case and key.</summary>
+        /// <summary>The availability plan (docs/cookie-plan.md §8.2): a cell per person and day, a row per day.</summary>
+        private static void ConfigureAvailability(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<AvailabilityEntryEntity>(e =>
+            {
+                e.HasKey(x => new { x.UserId, x.Date });
+                e.HasIndex(x => x.Date);
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<AvailabilityTypeEntity>().WithMany().HasForeignKey(x => x.TypeId).OnDelete(DeleteBehavior.Restrict);
+            });
+            modelBuilder.Entity<AvailabilityDayEntity>(e =>
+            {
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.ResponsibleId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.FallbackId).OnDelete(DeleteBehavior.SetNull);
+            });
+        }
+
         private static void ConfigureCookie(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<CookieSettingEntity>().HasIndex(s => new { s.Section, s.Version }).IsUnique();

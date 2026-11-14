@@ -9,7 +9,7 @@ namespace PNMTD.Cli;
 
 /// <summary>
 /// The seed's Cookie (docs/cookie-plan.md §19.6, B4): a group <i>Cookie</i> to read with (Monitoring, Zabbix, Redmine, the
-/// knowledge base and locations, all at their lowest level), the first admin's contact, and with Redmine the project IT
+/// knowledge base, locations and the availability plan, all at their lowest level), the first admin's contact and column in the plan, and with Redmine the project IT
 /// Support watched, with Operators as its escalation group and Network for Cookie's tickets. The duties stay off, as on a
 /// fresh installation, and Cookie stays stopped.
 /// </summary>
@@ -30,7 +30,7 @@ internal static class DevSeedCookie
                 Description = "What Cookie, the assistant, reads with (Admin → Cookie → Rights).",
             };
             foreach (var (area, level) in new[] { (Area.Monitoring, Level.View), (Area.Zabbix, Level.View), (Area.Redmine, Level.View),
-                (Area.KnowledgeBase, Level.View), (Area.Locations, Level.View) })
+                (Area.KnowledgeBase, Level.View), (Area.Locations, Level.View), (Area.Availability, Level.View) })
             {
                 group.Rights.Add(new GroupRightEntity { GroupId = group.Id, Area = area, Level = level });
             }
@@ -45,7 +45,22 @@ internal static class DevSeedCookie
         Save(new CookieRightsSettings { GroupId = group.Id });
         if (admin is not null)
         {
-            Save(new NotificationSettings { Contacts = [new CookieContact(admin.Id, "admin@example.com", null, "Redmine Admin", "22:00", "07:00")] });
+            // The first admin's contact details and column in the availability plan (§8.1, §8.2), responsible for the next two
+            // weeks' working days; the plan's nightly fill writes their cells.
+            var person = db.Users.Single(u => u.Id == admin.Id);
+            person.Email ??= "admin@example.com";
+            person.RedmineName ??= "Redmine Admin";
+            person.InPlan = true;
+            person.ShortCode ??= "ADM";
+            person.Color ??= "#fde68a";
+            var today = DateOnly.FromDateTime(PNMTD.Lib.Helper.Clock.LocalNow);
+            for (var day = today; day < today.AddDays(14); day = day.AddDays(1))
+            {
+                if (day.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday) && !db.AvailabilityDays.Any(d => d.Date == day))
+                {
+                    db.AvailabilityDays.Add(new AvailabilityDayEntity { Date = day, ResponsibleId = admin.Id, ChangedAt = now, ChangedBy = "seed" });
+                }
+            }
         }
         var redmine = Redmine.RedmineSetup.Configured(configuration);
         if (redmine)

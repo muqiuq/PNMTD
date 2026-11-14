@@ -40,6 +40,35 @@ public sealed class CookieController(CookieService cookie) : V1ControllerBase
     [RequireRight(Area.Cookie, Level.Use)]
     public async Task<CookieCaseDetail> Case(Guid id, CancellationToken ct) => await cookie.CaseAsync(id, User, ct);
 
+    /// <summary>A comment on a case (§4.3): in its timeline, and for Cookie in its next round.</summary>
+    [HttpPost("cases/{id:guid}/comments")]
+    [RequireRight(Area.Cookie, Level.Use)]
+    [Audit(AuditEvents.CookieCaseCommented)]
+    public async Task<IActionResult> Comment(Guid id, CookieCaseCommentRequest request, CancellationToken ct)
+    {
+        await cookie.CommentAsync(id, request, User, ct);
+        return NoContent();
+    }
+
+    /// <summary><i>Don't go on with this</i> (§4.3), with a comment that says why.</summary>
+    [HttpPost("cases/{id:guid}/stop")]
+    [RequireRight(Area.Cookie, Level.Instruct)]
+    [Audit(AuditEvents.CookieCaseStopped)]
+    public async Task<IActionResult> Stop(Guid id, CookieCaseCommentRequest request, CancellationToken ct)
+    {
+        await cookie.StopAsync(id, request, User, ct);
+        return NoContent();
+    }
+
+    [HttpPost("cases/{id:guid}/go-on")]
+    [RequireRight(Area.Cookie, Level.Instruct)]
+    [Audit(AuditEvents.CookieCaseGoOn)]
+    public async Task<IActionResult> GoOn(Guid id, CookieCaseCommentRequest request, CancellationToken ct)
+    {
+        await cookie.GoOnAsync(id, request, User, ct);
+        return NoContent();
+    }
+
     /// <summary>The trace by the reader's rights (§9.2); <c>afterId</c> for polling while a round runs.</summary>
     [HttpGet("trace")]
     [RequireRight(Area.Cookie, Level.Use)]
@@ -104,14 +133,6 @@ public sealed class CookieAdminController(CookieService cookie) : V1ControllerBa
     [HttpPut("settings/cases")]
     [Audit(AuditEvents.CookieSettingsChanged)]
     public async Task<CookieSaved> SaveCases(CaseSettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);
-
-    [HttpPut("settings/hours")]
-    [Audit(AuditEvents.CookieSettingsChanged)]
-    public async Task<CookieSaved> SaveHours(HoursSettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);
-
-    [HttpPut("settings/notifications")]
-    [Audit(AuditEvents.CookieSettingsChanged)]
-    public async Task<CookieSaved> SaveNotifications(NotificationSettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);
 
     [HttpPut("settings/redmine")]
     [Audit(AuditEvents.CookieSettingsChanged)]

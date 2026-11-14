@@ -103,6 +103,7 @@ public partial class Program
         builder.Services.AddZabbix(builder.Configuration);
         // Cookie, the assistant (docs/cookie-plan.md §19).
         PNMTD.Cookie.CookieSetup.AddCookie(builder.Services, builder.Configuration);
+        PNMTD.Availability.AvailabilitySetup.AddAvailability(builder.Services);
 
         // The build writes the OpenAPI document by starting the host without a database (GetDocument.Insider).
         var documentBuild = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
@@ -148,6 +149,8 @@ public partial class Program
             // Cookie's case book (docs/cookie-plan.md §19.3), with Cookie:Enabled=true.
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CaseBookTask>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CookieLoop>());
+            // The availability plan stays filled for the next 365 days (docs/cookie-plan.md §8.2).
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Availability.AvailabilityFillTask>());
         }
 
         // UDP nodes (docs/udp-iot-plan.md §4.4): on unless Udp:Enabled=false, not tied to the

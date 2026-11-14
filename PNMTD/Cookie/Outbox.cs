@@ -129,11 +129,11 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
         {
             throw Api.ApiException.Conflict("cookie_not_held_back", "Only what a limit held back can be sent.");
         }
-        var notification = await settings.GetAsync<NotificationSettings>(ct);
+        var person = row.UserId is { } u ? await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == u, ct) : null;
         var address = row.Channel switch
         {
-            CookieChannel.Email => row.UserId is { } u ? notification.ContactOf(u)?.Email : null,
-            CookieChannel.Pushover => row.UserId is { } u ? notification.ContactOf(u)?.PushoverKey : null,
+            CookieChannel.Email => person?.Email,
+            CookieChannel.Pushover => person?.PushoverKey,
             _ => null,
         };
         var redmineSettings = await settings.GetAsync<CookieRedmineSettings>(ct);
@@ -158,7 +158,7 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
                     if (string.IsNullOrWhiteSpace(r.Address))
                     {
                         row.State = CookieOutboxState.Failed;
-                        row.Detail = r.Channel == CookieChannel.Email ? "No e-mail address in the contact." : "No Pushover key in the contact.";
+                        row.Detail = r.Channel == CookieChannel.Email ? "The person has no e-mail address." : "The person has no Pushover key.";
                         return;
                     }
                     var recipient = r.Channel == CookieChannel.Pushover ? $"pushover://{r.Address.Trim()}" : r.Address.Trim();

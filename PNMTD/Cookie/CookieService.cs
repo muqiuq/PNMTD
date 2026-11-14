@@ -111,8 +111,105 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
             ? new CookieTicketClock(issueId, c.AuthorName, c.AuthorIsStaff, c.AssigneeName, c.StatusName, c.TicketCreatedAt, c.FirstAnswerAt,
                 c.LastStaffUpdateAt, c.OwnIssueId, Url(issueId))
             : null;
+        var rights = user.Rights();
         return new CookieCaseDetail(Item(c, next is null ? null : (next.DueAt, next.Kind), await NamesAsync([c], ct)), members, entries, duties, ticket,
-            Url(c.OwnIssueId));
+            Url(c.OwnIssueId), c.Open && rights.Has(Area.Cookie, Level.Use), c.Open && c.Kind != CookieCaseKind.Request && rights.Has(Area.Cookie, Level.Instruct));
+    }
+
+    /// <summary>A person's comment on a case (§4.3): in its timeline, and in Cookie's next round, screened.</summary>
+    public async Task CommentAsync(Guid id, CookieCaseCommentRequest request, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var c = await OpenCaseAsync(id, user, ct);
+        var text = CommentText(request.Text, required: true);
+        CaseBook.Entry(db, c.Id, Clock.UtcNow, "comment", text, "person", user.Identity?.Name);
+        c.ChangedAt = Clock.UtcNow;
+        await db.SaveChangesAsync(ct);
+        services.GetRequiredService<CookieSignals>().Raise("a comment on a case");
+        AuditLog.Summary($"A comment on \"{c.Title}\"");
+    }
+
+    /// <summary>
+    /// <i>Don't go on with this</i> (§4.3): Cookie leaves the case alone, its due duties close as stopped, nothing new falls due.
+    /// The comment says why.
+    /// </summary>
+    public async Task StopAsync(Guid id, CookieCaseCommentRequest request, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var c = await OpenCaseAsync(id, user, ct);
+        if (c.Kind == CookieCaseKind.Request)
+        {
+            throw ApiException.Conflict("cookie_case_request", "A person's request can't be stopped.");
+        }
+        if (c.StoppedAt is not null)
+        {
+            throw ApiException.Conflict("cookie_case_stopped", "The case is stopped already.");
+        }
+        var text = CommentText(request.Text, required: true);
+        var now = Clock.UtcNow;
+        var name = CaseBook.Cut(user.Identity?.Name ?? "someone", 200);
+        c.StoppedAt = now;
+        c.StoppedById = user.UserId();
+        c.StoppedByName = name;
+        c.StopComment = text;
+        c.ChangedAt = now;
+        foreach (var duty in await db.CookieDuties.Where(d => d.CaseId == c.Id && d.State == CookieDutyState.Due).ToListAsync(ct))
+        {
+            duty.State = CookieDutyState.Stopped;
+            duty.Outcome = $"Stopped with its case by {name}.";
+            duty.DoneAt = now;
+        }
+        CaseBook.Entry(db, c.Id, now, "stopped", $"Cookie doesn't go on with it: {text}", "person", name);
+        await db.SaveChangesAsync(ct);
+        AuditLog.Summary($"Stopped \"{c.Title}\": {text}");
+    }
+
+    /// <summary><i>Go on</i>: Cookie works the case again, and its duties are planned again.</summary>
+    public async Task GoOnAsync(Guid id, CookieCaseCommentRequest request, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var c = await OpenCaseAsync(id, user, ct);
+        if (c.StoppedAt is null)
+        {
+            throw ApiException.Conflict("cookie_case_not_stopped", "The case isn't stopped.");
+        }
+        var text = CommentText(request.Text, required: false);
+        var now = Clock.UtcNow;
+        c.StoppedAt = null;
+        c.StoppedById = null;
+        c.StoppedByName = null;
+        c.StopComment = null;
+        c.ChangedAt = now;
+        await db.CookieDuties.Where(d => d.CaseId == c.Id && d.State == CookieDutyState.Stopped).ExecuteDeleteAsync(ct);
+        CaseBook.Entry(db, c.Id, now, "go-on", text is null ? "Cookie goes on with it." : $"Cookie goes on with it: {text}", "person", user.Identity?.Name);
+        await db.SaveChangesAsync(ct);
+        services.GetRequiredService<CookieSignals>().Raise("a case goes on");
+        AuditLog.Summary($"Cookie goes on with \"{c.Title}\"{(text is null ? "" : ": " + text)}");
+    }
+
+    private async Task<CookieCaseEntity> OpenCaseAsync(Guid id, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var c = await db.CookieCases.SingleOrDefaultAsync(x => x.Id == id, ct);
+        if (c is null || !CookieAccess.CanSee(user.Rights(), user.UserId(), c))
+        {
+            throw ApiException.NotFound("Case");
+        }
+        if (!c.Open)
+        {
+            throw ApiException.Conflict("cookie_case_closed", "The case is closed.");
+        }
+        return c;
+    }
+
+    private static string? CommentText(string? text, bool required)
+    {
+        var t = text?.Trim() ?? "";
+        if (required && t.Length == 0)
+        {
+            throw ApiException.Invalid("text", "Say why.");
+        }
+        if (t.Length > 1000)
+        {
+            throw ApiException.Invalid("text", "At most 1,000 characters.");
+        }
+        return t.Length == 0 ? null : t;
     }
 
     private async Task<Dictionary<Guid, (DateTime DueAt, CookieDutyKind Kind)>> NextDutiesAsync(List<Guid> ids, CancellationToken ct) =>
@@ -124,7 +221,8 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         (Dictionary<Guid, string> Hosts, Dictionary<Guid, string> Locations) names) => new(c.Id, c.Kind, c.Open, c.Title, c.Importance,
         c.OpenedAt, c.ClosedAt, c.ChangedAt, c.ProgressAt, c.HostId, c.LocationId, c.IssueId ?? c.OwnIssueId,
         c.HostId is { } h ? names.Hosts.GetValueOrDefault(h) : null, c.LocationId is { } l ? names.Locations.GetValueOrDefault(l) : null, c.CookieNote,
-        c.CookieUrgency, next is { } n ? new CookieNextDuty(n.Kind, n.DueAt) : null);
+        c.CookieUrgency, next is { } n ? new CookieNextDuty(n.Kind, n.DueAt) : null,
+        c.StoppedAt is { } at ? new CookieStop(at, c.StoppedByName, c.StopComment) : null);
 
     private async Task<(Dictionary<Guid, string> Hosts, Dictionary<Guid, string> Locations)> NamesAsync(IReadOnlyList<CookieCaseEntity> cases, CancellationToken ct)
     {
@@ -376,7 +474,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
 
     public async Task<CookieAllSettings> SettingsAsync(CancellationToken ct) => new(
         await settings.GetAsync<IdentitySettings>(ct), await settings.GetAsync<PromptSettings>(ct), await settings.GetAsync<CaseSettings>(ct),
-        await settings.GetAsync<HoursSettings>(ct), await settings.GetAsync<NotificationSettings>(ct), await settings.GetAsync<CookieRedmineSettings>(ct),
+        await settings.GetAsync<CookieRedmineSettings>(ct),
         await settings.GetAsync<ActionSettings>(ct), await settings.GetAsync<ModelSettings>(ct), await settings.GetAsync<CookieRightsSettings>(ct));
 
     public async Task<CookieSaved> SaveAsync<T>(T value, ClaimsPrincipal user, CancellationToken ct) where T : class, ICookieSection, new()
@@ -454,16 +552,6 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         var v = new ApiValidator();
         switch (value)
         {
-            case NotificationSettings n:
-            {
-                var users = n.Contacts.Select(c => c.UserId).Concat(n.Rules.SelectMany(r => r.Users)).Distinct().ToList();
-                var known = await db.Users.Where(u => users.Contains(u.Id)).Select(u => u.Id).ToListAsync(ct);
-                v.Check(users.All(known.Contains), "contacts", "A user that doesn't exist.");
-                var groups = n.Rules.SelectMany(r => r.Groups).Distinct().ToList();
-                var knownGroups = await db.Groups.Where(g => groups.Contains(g.Id)).Select(g => g.Id).ToListAsync(ct);
-                v.Check(groups.All(knownGroups.Contains), "rules", "A group that doesn't exist.");
-                break;
-            }
             case CookieRedmineSettings r:
             {
                 var groups = r.Projects.Where(p => p.EscalationGroupId is not null).Select(p => p.EscalationGroupId!.Value).Distinct().ToList();
@@ -486,8 +574,6 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         "identity" => "Identity",
         "prompts" => "Prompts",
         "cases" => "Cases",
-        "hours" => "Working hours",
-        "notifications" => "Notifications",
         "redmine" => "Redmine",
         "actions" => "Actions",
         "models" => "Models",

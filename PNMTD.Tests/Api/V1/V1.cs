@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Lib.Models.Enum;
@@ -25,6 +26,21 @@ internal static class V1
             new { hostId, type, name = name ?? Unique("sensor"), parameters, interval, enabled, ignore });
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode, await response.Content.ReadAsStringAsync());
         return await response.ReadAsync<SensorDetail>();
+    }
+
+    /// <summary>
+    /// The availability plan's working hours (docs/cookie-plan.md §7.3): <c>[]</c> is always open, null the default week. The
+    /// types and the other settings stay as they are.
+    /// </summary>
+    public static async Task AvailabilityHoursAsync(HttpClient admin, List<PNMTD.Cookie.DayHours>? week)
+    {
+        var current = await (await admin.GetAsync("/api/v1/availability/settings")).ReadAsync<AvailabilitySettingsItem>();
+        var types = current.Types.Where(t => !t.Retired)
+            .Select(t => new AvailabilityTypeInput(t.Id, t.Name, t.Code, t.Color, t.Flags, t.IsDefault, t.IsDayOff)).ToList();
+        var settings = current.Settings with { Week = week ?? [.. PNMTD.Cookie.WorkingCalendar.DefaultWeek] };
+        using var response = await admin.PutAsJsonAsync("/api/v1/availability/settings", new AvailabilitySettingsRequest(types, settings),
+            PNMTD.Availability.AvailabilitySettings.Json);
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>Events with set times, as the sensor API would have stored them.</summary>

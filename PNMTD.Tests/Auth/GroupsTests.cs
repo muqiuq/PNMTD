@@ -92,7 +92,7 @@ public sealed class GroupsTests
     public async Task TheCatalogListsEveryAreaWithItsLevels()
     {
         var catalog = await (await app.Client(Roles.Viewer).GetAsync("/api/v1/rights")).ReadAsync<List<RightsAreaItem>>();
-        Assert.AreEqual(17, catalog.Count, "16, and Cookie since docs/cookie-plan.md §10.1");
+        Assert.AreEqual(18, catalog.Count, "16, Cookie since docs/cookie-plan.md §10.1, and Availability since §9.4");
         CollectionAssert.AreEqual(new[] { Level.View, Level.Edit, Level.Manage },
             catalog.Single(a => a.Area == Area.KnowledgeBase).Levels.Select(l => l.Level).ToArray());
         CollectionAssert.AreEqual(new[] { Level.Use, Level.Instruct, Level.Manage },

@@ -10,50 +10,48 @@ using PNMTD.Redmine;
 
 namespace PNMTD.Cookie;
 
-/// <summary>Who is told what (docs/cookie-plan.md §8, §19.1): the recipient rules of Admin → Cookie → Notifications.</summary>
+/// <summary>
+/// Who is told what (docs/cookie-plan.md §8.3): the assignee by their Redmine user, the project's escalation group, and whoever
+/// the availability plan makes responsible. People who don't work that day are skipped; the channel follows the urgency.
+/// </summary>
 public static class Recipients
 {
-    /// <summary>What a message is about, for the rules' scope, urgency and time.</summary>
-    public sealed record Subject(CookieCaseKind Kind, Guid? HostId, Guid? LocationId, int? ProjectId, Urgency Urgency, bool WorkingNow);
-
-    public static bool Matches(RecipientRule rule, Subject s)
+    /// <summary>The active PNMT user whose Redmine user is <paramref name="assigneeName"/>.</summary>
+    public static async Task<UserEntity?> AssigneeAsync(PnmtdDbContext db, string? assigneeName, CancellationToken ct)
     {
-        if (s.Urgency < rule.MinUrgency)
+        if (string.IsNullOrWhiteSpace(assigneeName))
         {
-            return false;
+            return null;
         }
-        if (rule.When == RecipientWhen.WorkingHours && !s.WorkingNow || rule.When == RecipientWhen.OutsideWorkingHours && s.WorkingNow)
-        {
-            return false;
-        }
-        var value = rule.Value?.Trim() ?? "";
-        return rule.Scope switch
-        {
-            RecipientScope.Everything => true,
-            RecipientScope.Location => s.LocationId is { } l && string.Equals(value, l.ToString(), StringComparison.OrdinalIgnoreCase),
-            RecipientScope.Host => s.HostId is { } h && string.Equals(value, h.ToString(), StringComparison.OrdinalIgnoreCase),
-            RecipientScope.Project => s.ProjectId is { } p && value == p.ToString(CultureInfo.InvariantCulture),
-            RecipientScope.CaseKind => string.Equals(value, s.Kind.ToString(), StringComparison.OrdinalIgnoreCase),
-            _ => false,
-        };
+        var name = assigneeName.Trim().ToLowerInvariant();
+        return await db.Users.AsNoTracking().Where(u => u.IsActive && u.RedmineName != null && u.RedmineName.ToLower() == name).FirstOrDefaultAsync(ct);
     }
 
-    /// <summary>The people the matching rules name, directly or through their groups, with the rules' channels.</summary>
-    public static Dictionary<Guid, HashSet<RecipientChannel>> FromRules(NotificationSettings n, Subject s, IReadOnlyDictionary<Guid, List<Guid>> members)
+    /// <summary>
+    /// The people a ticket's duty names (§8.3): a reminder goes to the assignee, or to the escalation group when nobody is
+    /// assigned or the assignee doesn't work today; a missed deadline to the assignee, the group and whoever is responsible.
+    /// Without an escalation group, or when none of its members works, whoever is responsible stands in for it.
+    /// </summary>
+    public static IReadOnlyCollection<Guid> ForTicket(Guid? assignee, IReadOnlyList<Guid> group, bool hasGroup, bool missed, PNMTD.Availability.PlanSnapshot snapshot,
+        DateOnly today, DateTime now)
     {
-        var result = new Dictionary<Guid, HashSet<RecipientChannel>>();
-        foreach (var rule in n.Rules.Where(r => Matches(r, s)))
+        var named = new HashSet<Guid>();
+        var assigneeWorks = assignee is { } a && snapshot.Works(a, today);
+        if (assigneeWorks)
         {
-            foreach (var user in rule.Users.Concat(rule.Groups.SelectMany(g => members.GetValueOrDefault(g) ?? [])))
-            {
-                if (!result.TryGetValue(user, out var channels))
-                {
-                    result[user] = channels = [];
-                }
-                channels.UnionWith(rule.Channels);
-            }
+            named.Add(assignee!.Value);
         }
-        return result;
+        var responsible = snapshot.ResponsibleAt(now).UserIds;
+        if (!assigneeWorks || missed)
+        {
+            var working = hasGroup ? group.Where(u => snapshot.Works(u, today)).ToList() : [];
+            named.UnionWith(working.Count > 0 ? working : responsible);
+        }
+        if (missed)
+        {
+            named.UnionWith(responsible);
+        }
+        return named;
     }
 }
 
@@ -63,7 +61,7 @@ public static class Recipients
 /// outside working hours waits for the next working period; a reminder whose deadline is due as well gives way to it.
 /// </summary>
 public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings settings, Outbox outbox, IOptionsMonitor<RedmineOptions> redmineOptions,
-    IConfiguration configuration, ILogger<DutyRunner> logger)
+    IConfiguration configuration, PNMTD.Availability.AvailabilityPlan plan, ILogger<DutyRunner> logger)
 {
     public const int PerRun = 50;
     private static readonly JsonSerializerOptions Json = CookieSettings.Json;
@@ -92,7 +90,7 @@ public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSett
             return 0;
         }
         var actions = await settings.GetAsync<ActionSettings>(ct);
-        var calendar = (await settings.GetAsync<HoursSettings>(ct)).Calendar();
+        var calendar = await plan.CalendarAsync(ct);
         var working = calendar.IsWorking(now);
         var caseIds = due.Select(d => d.CaseId).Distinct().ToList();
         var cases = await db.CookieCases.Where(c => caseIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id, ct);
@@ -102,6 +100,12 @@ public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSett
         {
             if (!cases.TryGetValue(duty.CaseId, out var c))
             {
+                continue;
+            }
+            if (c.StoppedAt is not null)
+            {
+                Close(duty, CookieDutyState.Stopped, $"Stopped with its case by {c.StoppedByName}.", now);
+                done++;
                 continue;
             }
             if (!actions.Duties.On(duty.Kind))
@@ -129,7 +133,7 @@ public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSett
                 {
                     CookieDutyKind.ProblemTicket => await TicketAsync(db, c, duty, ct),
                     CookieDutyKind.ClosingNote => await ClosingNoteAsync(db, c, duty, ct),
-                    _ => await TicketDutyAsync(db, c, duty, calendar, working, ct),
+                    _ => await TicketDutyAsync(db, c, duty, ct),
                 };
                 Close(duty, state, outcome, now);
                 CaseBook.Entry(db, c.Id, now, EntryKind(duty.Kind), outcome);
@@ -182,11 +186,9 @@ public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSett
 
     // --- A ticket's reminders and escalations (§7.2) --------------------------------------------------------------------
 
-    private async Task<(CookieDutyState, string)> TicketDutyAsync(PnmtdDbContext db, CookieCaseEntity c, CookieDutyEntity duty, WorkingCalendar calendar,
-        bool working, CancellationToken ct)
+    private async Task<(CookieDutyState, string)> TicketDutyAsync(PnmtdDbContext db, CookieCaseEntity c, CookieDutyEntity duty, CancellationToken ct)
     {
         var redmineSettings = await settings.GetAsync<CookieRedmineSettings>(ct);
-        var notification = await settings.GetAsync<NotificationSettings>(ct);
         var identity = await settings.GetAsync<IdentitySettings>(ct);
         var project = c.ProjectId is { } p ? redmineSettings.Of(p) : null;
         if (project is null || c.IssueId is not { } issueId)
@@ -212,72 +214,40 @@ public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSett
             }
         }
 
-        // Who the duty names: the assignee, or the escalation group when nobody is assigned or no contact matches;
-        // a missed deadline tells both.
-        var named = new HashSet<Guid>();
-        var assignee = string.IsNullOrWhiteSpace(c.AssigneeName) ? null
-            : notification.Contacts.FirstOrDefault(x => string.Equals(x.RedmineName?.Trim(), c.AssigneeName.Trim(), StringComparison.OrdinalIgnoreCase));
-        if (assignee is not null)
+        // Who the duty names (§8.3): the assignee, the escalation group, whoever the plan makes responsible.
+        var assignee = await Recipients.AssigneeAsync(db, c.AssigneeName, ct);
+        var group = project.EscalationGroupId is { } g ? (await MembersAsync(db, [g], ct)).GetValueOrDefault(g) ?? [] : [];
+        var today = DateOnly.FromDateTime(Clock.LocalNow);
+        var snapshot = await plan.DayAsync(today, ct, [.. group, .. assignee is null ? Array.Empty<Guid>() : [assignee.Id]]);
+        var named = Recipients.ForTicket(assignee?.Id, group, project.EscalationGroupId is not null, missed, snapshot, today, Clock.UtcNow);
+        if (assignee is not null && !named.Contains(assignee.Id))
         {
-            named.Add(assignee.UserId);
+            notes.Add($"{assignee.DisplayName} doesn't work today");
         }
-        var groupIds = notification.Rules.SelectMany(r => r.Groups).Append(project.EscalationGroupId ?? Guid.Empty).Distinct().ToList();
-        var members = await MembersAsync(db, groupIds, ct);
-        if ((assignee is null || missed) && project.EscalationGroupId is { } group)
+        var users = await db.Users.AsNoTracking().Where(u => named.Contains(u.Id) && u.IsActive).OrderBy(u => u.DisplayName).ToListAsync(ct);
+        foreach (var user in users)
         {
-            named.UnionWith(members.GetValueOrDefault(group) ?? []);
-        }
-        var local = TimeOnly.FromDateTime(Clock.LocalNow);
-        var channels = named.ToDictionary(u => u, u =>
-        {
-            var contact = notification.ContactOf(u);
-            var set = new HashSet<RecipientChannel>();
-            if (!string.IsNullOrWhiteSpace(contact?.Email))
+            // The channel follows the urgency (§8.3): e-mail, and Pushover too for what is urgent.
+            if (!string.IsNullOrWhiteSpace(user.Email))
             {
-                set.Add(RecipientChannel.Email);
+                rows.Add(await outbox.SendAsync(new OutboxRequest(CookieChannel.Email, text.Subject, text.Message, c.Id, duty.Id, user.Id, user.DisplayName,
+                    user.Email, issueId, Urgency: urgency), ct));
             }
-            if (urgency == Urgency.Urgent && !string.IsNullOrWhiteSpace(contact?.PushoverKey))
+            if (urgency == Urgency.Urgent && !string.IsNullOrWhiteSpace(user.PushoverKey))
             {
-                set.Add(RecipientChannel.Pushover);
+                rows.Add(await outbox.SendAsync(new OutboxRequest(CookieChannel.Pushover, text.Subject, text.Short, c.Id, duty.Id, user.Id, user.DisplayName,
+                    user.PushoverKey, issueId, Urgency: urgency), ct));
             }
-            return set;
-        });
-        var subject = new Recipients.Subject(CookieCaseKind.Ticket, null, null, c.ProjectId, urgency, working);
-        foreach (var (user, ruleChannels) in Recipients.FromRules(notification, subject, members))
-        {
-            if (!channels.TryGetValue(user, out var set))
+            if (string.IsNullOrWhiteSpace(user.Email) && (urgency != Urgency.Urgent || string.IsNullOrWhiteSpace(user.PushoverKey)))
             {
-                channels[user] = set = [];
-            }
-            set.UnionWith(ruleChannels);
-        }
-        var users = await db.Users.AsNoTracking().Where(u => channels.Keys.Contains(u.Id) && u.IsActive).ToDictionaryAsync(u => u.Id, u => u.DisplayName, ct);
-        foreach (var (user, set) in channels.Where(x => users.ContainsKey(x.Key)))
-        {
-            var contact = notification.ContactOf(user);
-            if (set.Contains(RecipientChannel.Email) && !string.IsNullOrWhiteSpace(contact?.Email))
-            {
-                rows.Add(await outbox.SendAsync(new OutboxRequest(CookieChannel.Email, text.Subject, text.Message, c.Id, duty.Id, user, users[user],
-                    contact.Email, issueId, Urgency: urgency), ct));
-            }
-            if (set.Contains(RecipientChannel.Pushover) && !string.IsNullOrWhiteSpace(contact?.PushoverKey))
-            {
-                if (contact.IsQuiet(local))
-                {
-                    notes.Add($"no Pushover to {users[user]}: quiet hours");
-                }
-                else
-                {
-                    rows.Add(await outbox.SendAsync(new OutboxRequest(CookieChannel.Pushover, text.Subject, text.Short, c.Id, duty.Id, user, users[user],
-                        contact.PushoverKey, issueId, Urgency: urgency), ct));
-                }
+                notes.Add($"{user.DisplayName} has no e-mail address");
             }
         }
         if (users.Count == 0)
         {
-            notes.Add(project.EscalationGroupId is null && assignee is null
-                ? "nobody to tell: no contact matches the assignee, and the project has no escalation group"
-                : "nobody to tell: no contact with an address");
+            notes.Add(assignee is null && c.AssigneeName is { Length: > 0 }
+                ? $"nobody to tell: no PNMT user has the Redmine user {c.AssigneeName}, and nobody stands in"
+                : "nobody to tell: nobody works who could stand in (the escalation group, the availability plan)");
         }
         return Summarise(rows, notes);
     }

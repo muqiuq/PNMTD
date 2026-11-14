@@ -34,7 +34,7 @@ public sealed record CookieSummaryItem(IReadOnlyList<CookieSummaryLine> Lines, s
 /// </summary>
 public sealed partial class Summaries(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings settings, CookieModel model, CookieBrain brain,
     PrivacyFilter privacy, CookieRound round, IMemoryCache cache, IOptionsMonitor<CookieOptions> options, IOptionsMonitor<AiOptions> ai,
-    ILogger<Summaries> logger)
+    PNMTD.Availability.AvailabilityPlan plan, ILogger<Summaries> logger)
 {
     public static readonly TimeSpan KeepFor = TimeSpan.FromMinutes(15);
     public const int MaxCases = 30;
@@ -62,15 +62,13 @@ public sealed partial class Summaries(IDbContextFactory<PnmtdDbContext> dbs, Coo
         await using var db = await dbs.CreateDbContextAsync(ct);
         var open = (await db.CookieCases.AsNoTracking().Where(c => c.Open && c.Kind != CookieCaseKind.Request).ToListAsync(ct))
             .Where(c => CookieAccess.CanSee(reader, c.Areas)).ToList();
-        var notification = await settings.GetAsync<NotificationSettings>(ct);
-        var redmineName = notification.ContactOf(userId)?.RedmineName?.Trim();
-        var groups = await db.UserGroups.AsNoTracking().Where(m => m.UserId == userId).Select(m => m.GroupId).ToListAsync(ct);
-        var calendar = (await settings.GetAsync<HoursSettings>(ct)).Calendar();
-        var working = calendar.IsWorking(Clock.UtcNow);
-        bool NeedsYou(CookieCaseEntity c) =>
-            (redmineName is { Length: > 0 } && string.Equals(c.AssigneeName?.Trim(), redmineName, StringComparison.OrdinalIgnoreCase))
-            || notification.Rules.Any(r => (r.Users.Contains(userId) || r.Groups.Any(groups.Contains)) && r.MinUrgency <= Urgency.Important
-                && Recipients.Matches(r, new Recipients.Subject(c.Kind, c.HostId, c.LocationId, c.ProjectId, Urgency.Important, working)));
+        // "Needs you" (§8.5): the tickets assigned to the reader, and the open problems while the reader is responsible today.
+        var redmineName = (await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.RedmineName).FirstOrDefaultAsync(ct))?.Trim();
+        var today = DateOnly.FromDateTime(Clock.LocalNow);
+        var responsible = (await plan.DayAsync(today, ct)).ResponsibleOn(today).UserIds.Contains(userId);
+        bool NeedsYou(CookieCaseEntity c) => c.StoppedAt is null
+            && ((redmineName is { Length: > 0 } && string.Equals(c.AssigneeName?.Trim(), redmineName, StringComparison.OrdinalIgnoreCase))
+                || (responsible && c.Kind == CookieCaseKind.Problem));
         var ordered = open.OrderByDescending(NeedsYou).ThenByDescending(c => c.Importance).ThenByDescending(c => c.ChangedAt).Take(MaxCases).ToList();
 
         var running = (await db.CookieRuntime.AsNoTracking().SingleOrDefaultAsync(ct))?.Running == true;

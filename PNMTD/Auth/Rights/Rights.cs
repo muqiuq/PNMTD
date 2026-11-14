@@ -10,7 +10,7 @@ namespace PNMTD.Auth.Rights;
 public enum Area
 {
     Monitoring, Commands, Mail, Decisions, Locations, KnowledgeBase, Redmine, Zabbix, UdpNodes, Mikrotik, Servers, SshKeys,
-    Diagnostics, Ai, System, AuditLog, Cookie,
+    Diagnostics, Ai, System, AuditLog, Cookie, Availability,
 }
 
 /// <summary>
@@ -64,9 +64,13 @@ public static class RightsCatalog
             (Level.Manage, "Key values, system health and task health, the debug page and its tests, checking the uplink now.")]),
         new(Area.AuditLog, "Audit log", [(Level.View, "Admin → Audit log and its export.")]),
         new(Area.Cookie, "Cookie", [
-            (Level.Use, "Cookie's window: the cases, the trace (within the person's other rights), and the chat with Cookie."),
-            (Level.Instruct, "Use, plus temporary instructions and asking the big brother (package nine point five)."),
+            (Level.Use, "Cookie's window: the cases and comments on them, the trace (within the person's other rights), and the chat with Cookie."),
+            (Level.Instruct, "Use, plus stopping a case and letting Cookie go on with it, mute and suppress, and asking the big brother."),
             (Level.Manage, "Instruct, plus Admin → Cookie: the configuration, start, stop and run now.")]),
+        new(Area.Availability, "Availability plan", [
+            (Level.View, "The availability plan: who is responsible, who works and where. Everyone in the plan sees it and edits their own column."),
+            (Level.Edit, "View, plus every column, the past, the responsible, the fallback, the comments, and Fill for everyone."),
+            (Level.Manage, "Edit, plus the plan's people and settings: the types, the count columns, the working hours and holidays, the global fallback.")]),
     ];
 
     private static readonly Dictionary<Area, AreaInfo> ByArea = Areas.ToDictionary(a => a.Area);

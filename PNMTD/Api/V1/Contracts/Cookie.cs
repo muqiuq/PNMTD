@@ -39,7 +39,14 @@ public sealed record CookieCaseItem(
     string? LocationName,
     string? CookieNote,
     string? CookieUrgency,
-    CookieNextDuty? Next);
+    CookieNextDuty? Next,
+    CookieStop? Stopped = null);
+
+/// <summary>A person stopped the case (§4.3): who, when, why.</summary>
+public sealed record CookieStop(DateTime At, string? By, string? Comment);
+
+/// <summary><c>POST cases/{id}/comments</c>, <c>…/stop</c> (the comment is required), <c>…/go-on</c> (optional).</summary>
+public sealed record CookieCaseCommentRequest(string? Text);
 
 /// <summary>A case's next deadline.</summary>
 public sealed record CookieNextDuty(CookieDutyKind Kind, DateTime DueAt);
@@ -67,7 +74,9 @@ public sealed record CookieCaseDetail(
     IReadOnlyList<CookieEntryItem> Entries,
     IReadOnlyList<CookieDutyItem> Duties,
     CookieTicketClock? Ticket,
-    string? OwnIssueUrl);
+    string? OwnIssueUrl,
+    bool CanComment = false,
+    bool CanStop = false);
 
 /// <summary>Admin → Cookie → Overview (§9.3).</summary>
 public sealed record CookieAdminOverview(
@@ -96,8 +105,6 @@ public sealed record CookieAllSettings(
     IdentitySettings Identity,
     PromptSettings Prompts,
     CaseSettings Cases,
-    HoursSettings Hours,
-    NotificationSettings Notifications,
     CookieRedmineSettings Redmine,
     ActionSettings Actions,
     ModelSettings Models,

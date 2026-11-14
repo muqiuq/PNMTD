@@ -16,8 +16,8 @@ public enum CookieCaseKind { Problem, Ticket, Request }
 /// <summary>A deadline's step (docs/cookie-plan.md §7, §19.1).</summary>
 public enum CookieDutyKind { FirstAnswerReminder, FirstAnswerMissed, UpdateReminder, UpdateMissed, ProblemTicket, ClosingNote }
 
-/// <summary>What came of a duty: still due, done, held back by a limit, switched off, not possible, or failed.</summary>
-public enum CookieDutyState { Due, Done, HeldBack, Off, NotPossible, Failed }
+/// <summary>What came of a duty: still due, done, held back by a limit, switched off, not possible, failed, or stopped with its case.</summary>
+public enum CookieDutyState { Due, Done, HeldBack, Off, NotPossible, Failed, Stopped }
 
 /// <summary>How something left PNMT (docs/cookie-plan.md §6.1).</summary>
 public enum CookieChannel { Email, Pushover, RedmineNote, RedminePrivateNote, RedmineTicket }
@@ -225,6 +225,20 @@ public class CookieCaseEntity
 
     /// <summary>A request case's asker.</summary>
     public Guid? UserId { get; set; }
+
+    /// <summary>
+    /// A person stopped the case (docs/cookie-plan.md §4.3): Cookie leaves it alone, its duties stop, it raises the state to
+    /// <i>Info</i> at most. It goes on when someone lets it, or, for a problem, when a new member joins.
+    /// </summary>
+    public DateTime? StoppedAt { get; set; }
+
+    public Guid? StoppedById { get; set; }
+
+    [MaxLength(200)]
+    public string? StoppedByName { get; set; }
+
+    [MaxLength(1000)]
+    public string? StopComment { get; set; }
 }
 
 /// <summary>A line of a case's timeline: what happened, when, by whom (code, Cookie, a person).</summary>
@@ -239,7 +253,7 @@ public class CookieCaseEntryEntity
 
     public DateTime At { get; set; }
 
-    /// <summary>opened, bad, ok, progress, closed, ticket, reminder, escalation, note, held-back, failed.</summary>
+    /// <summary>opened, bad, ok, progress, closed, ticket, reminder, escalation, note, held-back, failed, comment, stopped, go-on.</summary>
     [MaxLength(32)]
     public string Kind { get; set; } = "";
 

@@ -165,6 +165,57 @@ public sealed class CaseBookTests
     }
 
     [TestMethod]
+    public async Task A_stopped_case_has_no_duties_raises_Info_at_most_and_goes_on_when_it_grows()
+    {
+        var host = await V1.CreateHostAsync(admin, V1.Unique("copier"));
+        var first = await V1.CreateSensorAsync(admin, host.Id, name: "toner");
+        V1.AddEvents(app, first.Id, (Back.AddDays(-3), 500, "toner empty"));
+        await Book.RunAsync(false, CancellationToken.None);
+        var c = (await OpenCaseAsync($"host:{host.Id}"))!;
+
+        using (var comment = await admin.PostAsJsonAsync($"/api/v1/cookie/cases/{c.Id}/comments", new CookieCaseCommentRequest("Ordered, arrives Monday.")))
+        {
+            Assert.AreEqual(HttpStatusCode.NoContent, comment.StatusCode, await comment.Content.ReadAsStringAsync());
+        }
+        using (var noReason = await admin.PostAsJsonAsync($"/api/v1/cookie/cases/{c.Id}/stop", new CookieCaseCommentRequest(" ")))
+        {
+            Assert.AreEqual(HttpStatusCode.BadRequest, noReason.StatusCode, "a stop says why");
+        }
+        using (var use = await app.ClientWithRights("Cookie:Use,Monitoring:View").PostAsJsonAsync($"/api/v1/cookie/cases/{c.Id}/stop",
+            new CookieCaseCommentRequest("no")))
+        {
+            Assert.AreEqual(HttpStatusCode.Forbidden, use.StatusCode, "stopping needs Instruct");
+        }
+        using (var stop = await admin.PostAsJsonAsync($"/api/v1/cookie/cases/{c.Id}/stop", new CookieCaseCommentRequest("Known: the vendor replaces it.")))
+        {
+            Assert.AreEqual(HttpStatusCode.NoContent, stop.StatusCode, await stop.Content.ReadAsStringAsync());
+        }
+        await Book.RunAsync(false, CancellationToken.None);
+        await using (var db = app.NewDb())
+        {
+            Assert.IsFalse(await db.CookieDuties.AnyAsync(d => d.CaseId == c.Id && d.State == CookieDutyState.Due), "nothing falls due");
+            Assert.IsTrue(await db.CookieDuties.AnyAsync(d => d.CaseId == c.Id && d.State == CookieDutyState.Stopped), "the 2-day ticket closed as stopped");
+        }
+        var stopped = (await OpenCaseAsync($"host:{host.Id}"))!;
+        var status = CookieStatusRules.Compute([stopped], [], new Dictionary<Guid, string>());
+        Assert.AreEqual(OverallState.Info, status.State, status.Reason);
+        var detail = await (await admin.GetAsync($"/api/v1/cookie/cases/{c.Id}")).ReadAsync<CookieCaseDetail>();
+        Assert.AreEqual("Known: the vendor replaces it.", detail.Case.Stopped?.Comment);
+        Assert.IsTrue(detail.Entries.Any(e => e.Kind == "comment" && e.Text == "Ordered, arrives Monday."));
+
+        var second = await V1.CreateSensorAsync(admin, host.Id, name: "drum");
+        V1.AddEvents(app, second.Id, (Back, 500, "drum worn"));
+        await Book.RunAsync(false, CancellationToken.None);
+        var grown = (await OpenCaseAsync($"host:{host.Id}"))!;
+        Assert.IsNull(grown.StoppedAt, "a new member: Cookie goes on by itself");
+        await using (var db = app.NewDb())
+        {
+            Assert.IsTrue(await db.CookieCaseEntries.AnyAsync(e => e.CaseId == c.Id && e.Kind == "go-on"));
+            Assert.IsTrue(await db.AuditLog.AnyAsync(l => l.EventType == "CookieCaseStopped" && l.Detail!.Contains("vendor")));
+        }
+    }
+
+    [TestMethod]
     public async Task An_unreachable_Redmine_closes_no_ticket_case()
     {
         await SaveAsync("redmine", new CookieRedmineSettings { Projects = [WatchedProject.Default(1)] });
@@ -187,23 +238,22 @@ public sealed class CaseBookTests
     [TestMethod]
     public async Task Settings_are_versioned_checked_and_rolled_back()
     {
-        var hours = new HoursSettings { Week = [new DayHours(DayOfWeek.Monday, [new HoursPeriod("09:00", "12:00"), new HoursPeriod("11:00", "17:00")])] };
-        using (var bad = await admin.PutAsJsonAsync("/api/v1/cookie/admin/settings/hours", hours, CookieSettings.Json))
+        using (var bad = await admin.PutAsJsonAsync("/api/v1/cookie/admin/settings/models", new ModelSettings { SleepMinutes = 0 }, CookieSettings.Json))
         {
-            Assert.AreEqual(HttpStatusCode.BadRequest, bad.StatusCode, "overlapping periods");
+            Assert.AreEqual(HttpStatusCode.BadRequest, bad.StatusCode, "0 minutes of sleep");
         }
-        var first = await SaveAsync("hours", new HoursSettings { Week = [new DayHours(DayOfWeek.Monday, [new HoursPeriod("09:00", "12:00")])] });
-        var second = await SaveAsync("hours", new HoursSettings());
+        var first = await SaveAsync("models", new ModelSettings { SleepMinutes = 7 });
+        var second = await SaveAsync("models", new ModelSettings());
         Assert.AreEqual(first + 1, second);
-        using var rollback = await admin.PostAsync($"/api/v1/cookie/admin/settings/hours/rollback/{first}", null);
+        using var rollback = await admin.PostAsync($"/api/v1/cookie/admin/settings/models/rollback/{first}", null);
         Assert.AreEqual(HttpStatusCode.OK, rollback.StatusCode, await rollback.Content.ReadAsStringAsync());
         var all = await (await admin.GetAsync("/api/v1/cookie/admin/settings")).ReadAsync<CookieAllSettings>();
-        Assert.AreEqual(1, all.Hours.Week.Count, "the values of the first version again");
-        var versions = await (await admin.GetAsync("/api/v1/cookie/admin/settings/hours/versions")).ReadAsync<List<CookieSettingsVersion>>();
+        Assert.AreEqual(7, all.Models.SleepMinutes, "the values of the first version again");
+        var versions = await (await admin.GetAsync("/api/v1/cookie/admin/settings/models/versions")).ReadAsync<List<CookieSettingsVersion>>();
         Assert.AreEqual($"Rolled back to version {first}", versions[0].Note);
         await using var db = app.NewDb();
-        Assert.IsTrue(await db.AuditLog.AnyAsync(l => l.EventType == "CookieSettingsRolledBack" && l.Detail!.Contains("Working hours")));
-        await SaveAsync("hours", new HoursSettings());
+        Assert.IsTrue(await db.AuditLog.AnyAsync(l => l.EventType == "CookieSettingsRolledBack" && l.Detail!.Contains("Models")));
+        await SaveAsync("models", new ModelSettings());
     }
 
     [TestMethod]

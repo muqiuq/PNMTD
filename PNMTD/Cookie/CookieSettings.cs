@@ -105,128 +105,8 @@ public sealed record CaseSettings : ICookieSection
     }
 }
 
-/// <summary>Working hours (§7.3): each weekday's periods, and holidays with their own.</summary>
-public sealed record HoursSettings : ICookieSection
-{
-    public static string Section => "hours";
-
-    public List<DayHours> Week { get; init; } = [.. WorkingCalendar.DefaultWeek];
-
-    public List<Holiday> Holidays { get; init; } = [];
-
-    public WorkingCalendar Calendar() => new(Week, Holidays);
-
-    public void Validate(ApiValidator v)
-    {
-        v.Check(Week.Select(d => d.Day).Distinct().Count() == Week.Count, "week", "Each day once.");
-        foreach (var day in Week)
-        {
-            Periods(v, $"week.{day.Day}", day.Periods);
-        }
-        v.Check(Holidays.Select(h => h.Date).Distinct().Count() == Holidays.Count, "holidays", "Each date once.");
-        v.Check(Holidays.Count <= 500, "holidays", "At most 500.");
-        foreach (var holiday in Holidays)
-        {
-            v.Check(holiday.Name.Length <= 100, $"holidays.{holiday.Date:yyyy-MM-dd}", "At most 100 characters.");
-            Periods(v, $"holidays.{holiday.Date:yyyy-MM-dd}", holiday.Periods);
-        }
-    }
-
-    private static void Periods(ApiValidator v, string field, IReadOnlyList<HoursPeriod> periods)
-    {
-        v.Check(periods.Count <= 6, field, "At most 6 periods a day.");
-        var parsed = new List<(TimeOnly From, TimeOnly To)>();
-        foreach (var p in periods)
-        {
-            if (!p.TryParse(out var from, out var to))
-            {
-                v.Add(field, $"{p.From}–{p.To}: from and to as HH:mm, from before to.");
-                continue;
-            }
-            parsed.Add((from, to));
-        }
-        var ordered = parsed.OrderBy(p => p.From).ToList();
-        v.Check(ordered.Zip(ordered.Skip(1)).All(pair => pair.First.To <= pair.Second.From), field, "Periods may not overlap.");
-    }
-}
-
 /// <summary>How urgent something is (§8): info, important, urgent.</summary>
 public enum Urgency { Info, Important, Urgent }
-
-/// <summary>When a recipient rule applies (§8).</summary>
-public enum RecipientWhen { Always, WorkingHours, OutsideWorkingHours }
-
-/// <summary>What a recipient rule covers (§8).</summary>
-public enum RecipientScope { Everything, Location, Host, Project, CaseKind }
-
-/// <summary>Where a person is told (§8).</summary>
-public enum RecipientChannel { Dashboard, Email, Pushover }
-
-/// <summary>A person's contact details (§8): Cookie's own, since PNMT's users have neither an address nor a Pushover key.</summary>
-public sealed record CookieContact(Guid UserId, string? Email, string? PushoverKey, string? RedmineName, string? QuietFrom, string? QuietTo)
-{
-    /// <summary>Whether <paramref name="localTime"/> is in the person's quiet hours (which may span midnight).</summary>
-    public bool IsQuiet(TimeOnly localTime)
-    {
-        if (!TimeOnly.TryParse(QuietFrom, System.Globalization.CultureInfo.InvariantCulture, out var from)
-            || !TimeOnly.TryParse(QuietTo, System.Globalization.CultureInfo.InvariantCulture, out var to) || from == to)
-        {
-            return false;
-        }
-        return from < to ? localTime >= from && localTime < to : localTime >= from || localTime < to;
-    }
-}
-
-/// <summary>Who gets what (§8): a scope, an urgency from which it applies, when, who, and by which channels.</summary>
-public sealed record RecipientRule(
-    Guid Id,
-    string Name,
-    RecipientScope Scope,
-    [property: Description("The location's or host's id, the Redmine project's number, or the kind of case (problem, ticket)")] string? Value,
-    Urgency MinUrgency,
-    RecipientWhen When,
-    List<Guid> Users,
-    List<Guid> Groups,
-    List<RecipientChannel> Channels);
-
-/// <summary>Notifications (§8, §9.3): the contact details, and who gets what.</summary>
-public sealed record NotificationSettings : ICookieSection
-{
-    public static string Section => "notifications";
-
-    public List<CookieContact> Contacts { get; init; } = [];
-
-    public List<RecipientRule> Rules { get; init; } = [];
-
-    public CookieContact? ContactOf(Guid userId) => Contacts.FirstOrDefault(c => c.UserId == userId);
-
-    public void Validate(ApiValidator v)
-    {
-        v.Check(Contacts.Select(c => c.UserId).Distinct().Count() == Contacts.Count, "contacts", "One contact per user.");
-        foreach (var c in Contacts)
-        {
-            var field = $"contacts.{c.UserId}";
-            v.Check(string.IsNullOrWhiteSpace(c.Email) || System.Net.Mail.MailAddress.TryCreate(c.Email.Trim(), out _), field, "Not an e-mail address.");
-            v.Check(string.IsNullOrWhiteSpace(c.PushoverKey) || System.Text.RegularExpressions.Regex.IsMatch(c.PushoverKey.Trim(), "^[A-Za-z0-9]{30}$"),
-                field, "A Pushover user key has 30 letters and digits.");
-            v.Check((c.RedmineName ?? "").Length <= 200, field, "At most 200 characters.");
-            v.Check(Quiet(c.QuietFrom) && Quiet(c.QuietTo), field, "Quiet hours as HH:mm.");
-        }
-        v.Check(Rules.Count <= 200, "rules", "At most 200.");
-        foreach (var r in Rules)
-        {
-            var field = $"rules.{r.Id}";
-            v.Check(r.Name.Trim().Length is > 0 and <= 100, field, "A name of 1 to 100 characters.");
-            v.Check(r.Scope == RecipientScope.Everything || !string.IsNullOrWhiteSpace(r.Value), field, "Choose what the rule covers.");
-            v.Check(r.Users.Count + r.Groups.Count > 0, field, "Choose at least one user or group.");
-            v.Check(r.Channels.Count > 0, field, "Choose at least one channel.");
-        }
-    }
-
-    private static bool Quiet(string? value) =>
-        string.IsNullOrWhiteSpace(value) || TimeOnly.TryParseExact(value, "HH:mm", System.Globalization.CultureInfo.InvariantCulture,
-            System.Globalization.DateTimeStyles.None, out _);
-}
 
 /// <summary>A watched Redmine project and its ticket rules (§7.2, §9.3).</summary>
 public sealed record WatchedProject(
@@ -395,8 +275,8 @@ public sealed class CookieSettings(IDbContextFactory<PnmtdDbContext> dbs, IMemor
 
     public static readonly IReadOnlyList<string> Sections =
     [
-        IdentitySettings.Section, PromptSettings.Section, CaseSettings.Section, HoursSettings.Section, NotificationSettings.Section,
-        CookieRedmineSettings.Section, ActionSettings.Section, ModelSettings.Section, CookieRightsSettings.Section,
+        IdentitySettings.Section, PromptSettings.Section, CaseSettings.Section, CookieRedmineSettings.Section, ActionSettings.Section,
+        ModelSettings.Section, CookieRightsSettings.Section,
     ];
 
     private static string Key(string section) => $"cookie-settings:{section}";

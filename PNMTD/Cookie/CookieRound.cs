@@ -20,7 +20,8 @@ public sealed record RoundResult(long RoundId, string Outcome, int Cases, int Ca
 /// note; then the status line. Every step goes into the trace, as the model saw it (masked), with its sources' areas.
 /// </summary>
 public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceProvider services, CookieSettings settings, CookieModel model,
-    CookieBrain brain, PrivacyFilter privacy, DecisionClient guard, Microsoft.Extensions.Options.IOptionsMonitor<AiOptions> ai, ILogger<CookieRound> logger)
+    CookieBrain brain, PrivacyFilter privacy, DecisionClient guard, Microsoft.Extensions.Options.IOptionsMonitor<AiOptions> ai,
+    PNMTD.Availability.AvailabilityPlan plan, ILogger<CookieRound> logger)
 {
     public const int OthersInBrief = 60;
     private static readonly JsonSerializerOptions Json = AiJson.Options;
@@ -64,8 +65,11 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             cost += replies.Cost;
 
             // 1. The brief: open cases Cookie may see, those that changed or are due in full, the rest as one line each.
-            var open = (await db.CookieCases.Where(c => c.Open && c.Kind != CookieCaseKind.Request).ToListAsync(ct))
+            var visible = (await db.CookieCases.Where(c => c.Open && c.Kind != CookieCaseKind.Request).ToListAsync(ct))
                 .Where(c => CookieAccess.CanSee(rights, c.Areas)).ToList();
+            // A stopped case (§4.3): Cookie leaves it alone, and the brief lists it in one line, with why.
+            var stopped = visible.Where(c => c.StoppedAt is not null).ToList();
+            var open = visible.Where(c => c.StoppedAt is null).ToList();
             var openIds = open.Select(c => c.Id).ToList();
             var due = (await db.CookieDuties.AsNoTracking().Where(d => openIds.Contains(d.CaseId) && d.State == CookieDutyState.Due).ToListAsync(ct))
                 .GroupBy(d => d.CaseId).ToDictionary(g => g.Key, g => g.OrderBy(d => d.DueAt).First());
@@ -73,8 +77,13 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             var soon = now.AddHours(1);
             var focus = open.Where(c => c.ChangedAt > since || c.CookieNoteAt is null || (due.TryGetValue(c.Id, out var d) && d.DueAt <= soon))
                 .OrderByDescending(c => c.Importance).ThenByDescending(c => c.ChangedAt).Take(25).ToList();
-            var hash = Hash(string.Join("\n", open.OrderBy(c => c.Id).Select(c => $"{c.Id}|{c.ChangedAt:O}|{(due.TryGetValue(c.Id, out var d) ? d.Key : "")}"))
-                + $"|{runtime.CodeStatus}");
+            var hash = Hash(string.Join("\n", visible.OrderBy(c => c.Id).Select(c => $"{c.Id}|{c.ChangedAt:O}|{c.StoppedAt:O}|{(due.TryGetValue(c.Id, out var d) ? d.Key : "")}"))
+                + $"|{runtime.CodeStatus}|{runtime.CodeReason}");
+            // People's comments on the cases in focus (§4.3): untrusted, screened with the rest.
+            var focusIds = focus.Select(c => c.Id).ToList();
+            var commentSince = now.AddDays(-14);
+            var comments = (await db.CookieCaseEntries.AsNoTracking().Where(e => focusIds.Contains(e.CaseId) && e.Kind == "comment" && e.At >= commentSince)
+                .OrderByDescending(e => e.At).ToListAsync(ct)).GroupBy(e => e.CaseId).ToDictionary(g => g.Key, g => g.Take(5).Reverse().ToList());
             if (!force && hash == runtime.BriefHash && runtime.CookieStatus is not null)
             {
                 // Nothing changed: no call, and Cookie's status stays as it was (§3.3).
@@ -85,7 +94,8 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             // 2. Screening (§4.2, §13.1): Jev on the outside text the brief carries; flagged, every message is withheld this round.
             var withheld = false;
             var untrusted = focus.SelectMany(c => (JsonSerializer.Deserialize<List<CaseMember>>(c.Members, CookieSettings.Json) ?? [])
-                .Select(m => m.Message)).Where(m => !string.IsNullOrWhiteSpace(m)).Select(m => p.Mask(InputSanitizer.Clean(m, 300).Text)).Distinct().Take(30).ToList();
+                .Select(m => m.Message)).Concat(comments.Values.SelectMany(l => l.Select(e => e.Text)))
+                .Where(m => !string.IsNullOrWhiteSpace(m)).Select(m => p.Mask(InputSanitizer.Clean(m, 300).Text)).Distinct().Take(40).ToList();
             if (untrusted.Count > 0)
             {
                 var o = ai.CurrentValue;
@@ -107,15 +117,18 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             }
 
             var values = await brain.ValuesAsync(ct);
-            var calendar = (await settings.GetAsync<HoursSettings>(ct)).Calendar();
+            var calendar = await plan.CalendarAsync(ct);
             values["working_hours_state"] = calendar.IsWorking(now) ? "It is within working hours" : "It is outside working hours";
             values["max_cases"] = models.MaxCasesPerRound.ToString(System.Globalization.CultureInfo.InvariantCulture);
             var brief = new
             {
                 StateByCode = runtime.CodeStatus, ReasonByCode = p.Mask(runtime.CodeReason),
-                ChangedOrDue = focus.Select(c => Summary(c, due.GetValueOrDefault(c.Id), p, full: true, withheld)),
+                ChangedOrDue = focus.Select(c => Summary(c, due.GetValueOrDefault(c.Id), p, full: true, withheld, comments.GetValueOrDefault(c.Id))),
                 Others = open.Except(focus).Take(OthersInBrief).Select(c => Summary(c, due.GetValueOrDefault(c.Id), p, full: false)),
                 OthersLeftOut = Math.Max(0, open.Count - focus.Count - OthersInBrief),
+                StoppedByPeople = stopped.Take(OthersInBrief).Select(c =>
+                    $"{c.Id} · {p.Mask(c.Title)} · stopped by {p.Mask(c.StoppedByName)}: <untrusted source=\"comment\">{p.Mask(InputSanitizer.Clean(c.StopComment, 300).Text)}</untrusted>"),
+                Staffing = rights.Has(Auth.Rights.Area.Availability, Auth.Rights.Level.View) ? await CookieStaffing.TodayAsync(plan, db, p, ct) : null,
             };
             values["brief"] = CookieBrain.Json(brief);
             var system = await brain.BaseAsync(values, ct);
@@ -421,7 +434,8 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
     }
 
     /// <summary>A case as the brief gives it: masked, outside text wrapped.</summary>
-    private static object Summary(CookieCaseEntity c, CookieDutyEntity? next, Pseudonyms p, bool full, bool withheld = false)
+    private static object Summary(CookieCaseEntity c, CookieDutyEntity? next, Pseudonyms p, bool full, bool withheld = false,
+        IReadOnlyList<CookieCaseEntryEntity>? comments = null)
     {
         if (!full)
         {
@@ -445,6 +459,12 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             },
             NextDeadline = next is null ? null : $"{next.Kind} at {next.DueAt:u}",
             YourLastNote = p.Mask(c.CookieNote),
+            PeoplesComments = comments?.Select(e => new
+            {
+                e.At, By = p.Mask(e.ActorName),
+                Text = withheld ? "<untrusted source=\"comment\" withheld=\"the guard flagged this round's messages\"></untrusted>"
+                    : $"<untrusted source=\"comment\">{p.Mask(InputSanitizer.Clean(e.Text, 500).Text)}</untrusted>",
+            }),
         };
     }
 

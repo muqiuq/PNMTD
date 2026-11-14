@@ -25,7 +25,8 @@ public sealed record CaseBookResult(int Opened, int Changed, int Closed, int Ope
 /// whether Cookie is started or not; it only needs <c>Cookie__Enabled=true</c>.
 /// </summary>
 public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScopeFactory scopes, CookieSettings settings, ZabbixSnapshot zabbix,
-    RedmineClient redmine, IOptionsMonitor<RedmineOptions> redmineOptions, IMemoryCache cache, CookieSignals signals, ILogger<CaseBook> logger)
+    RedmineClient redmine, IOptionsMonitor<RedmineOptions> redmineOptions, IMemoryCache cache, CookieSignals signals,
+    PNMTD.Availability.AvailabilityPlan plan, ILogger<CaseBook> logger)
 {
     public const int MaxTicketPages = 10;
     public static readonly TimeSpan StaffFor = TimeSpan.FromHours(1);
@@ -186,6 +187,16 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
             {
                 Entry(db, c.Id, now, "bad", Describe(m));
                 changed = true;
+            }
+            // A stopped problem that grows goes on by itself (§4.3): something new is failing that the stop didn't cover.
+            if (c.StoppedAt is not null && members.Any(m => before.All(b => b.Ref != m.Ref)))
+            {
+                Entry(db, c.Id, now, "go-on", $"Cookie goes on with it: something new is failing (stopped by {c.StoppedByName} on " +
+                    $"{Clock.ToLocal(c.StoppedAt.Value):d MMM})");
+                c.StoppedAt = null;
+                c.StoppedById = null;
+                c.StoppedByName = null;
+                c.StopComment = null;
             }
             foreach (var b in before.Where(b => members.All(m => m.Ref != b.Ref)))
             {
@@ -432,7 +443,7 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
     private async Task DutiesAsync(PnmtdDbContext db, CaseSettings caseSettings, DateTime now, DateTime lastRun, Counts counts, CancellationToken ct)
     {
         var redmineSettings = await settings.GetAsync<CookieRedmineSettings>(ct);
-        var calendar = (await settings.GetAsync<HoursSettings>(ct)).Calendar();
+        var calendar = await plan.CalendarAsync(ct);
         var closedSince = now.AddDays(-1);
         var cases = await db.CookieCases.AsNoTracking()
             .Where(c => c.Open || (c.Kind == CookieCaseKind.Problem && c.OwnIssueId != null && c.ClosedAt >= closedSince)).ToListAsync(ct);
@@ -445,7 +456,12 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
         var plans = new Dictionary<Guid, IReadOnlyList<DutyPlan>>();
         foreach (var c in cases)
         {
-            if (c.Kind == CookieCaseKind.Ticket && c.ProjectId is { } p && redmineSettings.Of(p) is { } project)
+            if (c.StoppedAt is not null)
+            {
+                // A stopped case (§4.3): nothing new falls due; what was due was closed as stopped.
+                plans[c.Id] = [];
+            }
+            else if (c.Kind == CookieCaseKind.Ticket && c.ProjectId is { } p && redmineSettings.Of(p) is { } project)
             {
                 plans[c.Id] = CaseRules.TicketDuties(c, project, calendar);
             }
@@ -465,17 +481,17 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
         var byKey = existing.ToDictionary(d => (d.CaseId, d.Key));
         foreach (var (caseId, list) in plans)
         {
-            foreach (var plan in list)
+            foreach (var step in list)
             {
-                if (byKey.TryGetValue((caseId, plan.Key), out var duty))
+                if (byKey.TryGetValue((caseId, step.Key), out var duty))
                 {
-                    if (duty.State == CookieDutyState.Due && duty.DueAt != plan.DueAt)
+                    if (duty.State == CookieDutyState.Due && duty.DueAt != step.DueAt)
                     {
-                        duty.DueAt = plan.DueAt;
+                        duty.DueAt = step.DueAt;
                     }
                     continue;
                 }
-                db.CookieDuties.Add(new CookieDutyEntity { CaseId = caseId, Key = plan.Key, Kind = plan.Kind, DueAt = plan.DueAt, CreatedAt = now });
+                db.CookieDuties.Add(new CookieDutyEntity { CaseId = caseId, Key = step.Key, Kind = step.Kind, DueAt = step.DueAt, CreatedAt = now });
             }
         }
         var planned = plans.SelectMany(p => p.Value.Select(d => (p.Key, d.Key))).ToHashSet();
@@ -488,6 +504,34 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
 
     // --- The code's status ---------------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// Today's staffing as the plan says it, when it is short (§8.4): on a working day, nobody responsible who works, or a
+    /// count below its minimum.
+    /// </summary>
+    private async Task<string?> StaffingAsync(CancellationToken ct)
+    {
+        var today = DateOnly.FromDateTime(Clock.LocalNow);
+        var day = await plan.DayAsync(today, ct);
+        if (day.Closed(today) || day.People.Count == 0)
+        {
+            return null;
+        }
+        var parts = new List<string>();
+        if (day.ResponsibleOn(today).UserIds.Count == 0)
+        {
+            parts.Add("nobody responsible works today");
+        }
+        foreach (var column in day.Settings.CountColumns.Where(c => c.Shown && c.Minimum is > 0))
+        {
+            var count = day.Count(column, today);
+            if (count < column.Minimum)
+            {
+                parts.Add($"{column.Name}: {count} today, the minimum is {column.Minimum}");
+            }
+        }
+        return parts.Count == 0 ? null : string.Join("; ", parts);
+    }
+
     private async Task StatusAsync(PnmtdDbContext db, DateTime now, bool ticketsRead, string? error, CancellationToken ct)
     {
         var open = await db.CookieCases.AsNoTracking().Where(c => c.Open && c.Kind != CookieCaseKind.Request).ToListAsync(ct);
@@ -495,7 +539,7 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
         var duties = await db.CookieDuties.AsNoTracking().Where(d => openIds.Contains(d.CaseId) && d.DueAt <= now
             && d.Kind != CookieDutyKind.ProblemTicket && d.Kind != CookieDutyKind.ClosingNote).ToListAsync(ct);
         var locations = await db.Locations.AsNoTracking().Select(l => new { l.Id, l.Name }).ToDictionaryAsync(l => l.Id, l => l.Name, ct);
-        var status = CookieStatusRules.Compute(open, duties, locations);
+        var status = CookieStatusRules.Compute(open, duties, locations, await StaffingAsync(ct));
         var runtime = await RuntimeAsync(db, ct);
         runtime.CodeStatus = status.State;
         runtime.CodeReason = status.Reason;
@@ -536,8 +580,14 @@ public static class CookieStatusRules
     /// Alert: a problem of importance High, or 3 hosts with problems at one location. Warning: any other problem of normal
     /// importance, or a ticket's deadline missed. Info: only minor problems, or a ticket's reminder due. All fine otherwise.
     /// </summary>
-    public static Result Compute(IReadOnlyList<CookieCaseEntity> open, IReadOnlyList<CookieDutyEntity> passed, IReadOnlyDictionary<Guid, string> locations)
+    public static Result Compute(IReadOnlyList<CookieCaseEntity> all, IReadOnlyList<CookieDutyEntity> passed, IReadOnlyDictionary<Guid, string> locations,
+        string? staffing = null)
     {
+        // A stopped case raises the state to Info at most (§4.3); the plan's staffing gives Info too (§8.4).
+        var stopped = all.Where(c => c.StoppedAt is not null).ToList();
+        var stoppedIds = stopped.Select(c => c.Id).ToHashSet();
+        var open = all.Where(c => c.StoppedAt is null).ToList();
+        passed = [.. passed.Where(d => !stoppedIds.Contains(d.CaseId))];
         var problems = open.Where(c => c.Kind == CookieCaseKind.Problem).OrderByDescending(c => c.Importance).ThenBy(c => c.OpenedAt).ToList();
         var missed = passed.Where(d => d.Kind is CookieDutyKind.FirstAnswerMissed or CookieDutyKind.UpdateMissed).Select(d => d.CaseId).Distinct().ToList();
         var reminders = passed.Where(d => d.Kind is CookieDutyKind.FirstAnswerReminder or CookieDutyKind.UpdateReminder).Select(d => d.CaseId)
@@ -572,9 +622,13 @@ public static class CookieStatusRules
             }
             return new(OverallState.Warning, string.Join("; ", parts), [.. normal.Select(c => c.Id).Concat(missed).Take(10)]);
         }
-        if (problems.Count > 0 || reminders.Count > 0)
+        if (problems.Count > 0 || reminders.Count > 0 || stopped.Count > 0 || staffing is not null)
         {
             var parts = new List<string>();
+            if (staffing is not null)
+            {
+                parts.Add(staffing);
+            }
             if (problems.Count > 0)
             {
                 parts.Add(problems.Count == 1 ? $"minor: {problems[0].Title}" : $"{problems.Count} minor problems");
@@ -583,7 +637,11 @@ public static class CookieStatusRules
             {
                 parts.Add(reminders.Count == 1 ? "a ticket waits for an answer" : $"{reminders.Count} tickets wait for an answer");
             }
-            return new(OverallState.Info, string.Join("; ", parts), [.. problems.Select(c => c.Id).Concat(reminders).Take(10)]);
+            if (stopped.Count > 0)
+            {
+                parts.Add(stopped.Count == 1 ? $"stopped: {stopped[0].Title}" : $"{stopped.Count} stopped cases");
+            }
+            return new(OverallState.Info, string.Join("; ", parts), [.. problems.Select(c => c.Id).Concat(reminders).Concat(stoppedIds).Take(10)]);
         }
         return new(OverallState.AllFine, "Nothing needs attention.", []);
     }

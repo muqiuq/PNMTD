@@ -98,6 +98,10 @@ public static class CookieTools
             Params(("number", "integer", "The ticket's number", true)), Auth.Rights.Area.Redmine, Level.View, false, TicketAsync),
         new("zabbix_problems", "Zabbix's open problems, the most severe first, for one Zabbix host or all: name, severity, since, acknowledged, host.",
             Params(("zabbixHostId", "integer", "One Zabbix host's id; all when left out", false)), Auth.Rights.Area.Zabbix, Level.View, false, ZabbixAsync),
+        new("availability_get", "The availability plan for some days (at most 14): who is responsible, who works and where (on site, work travel, home " +
+            "office), who is away and why, the counts below their minimum, the day's comment. People are placeholders.",
+            Params(("from", "string", "The first day, yyyy-MM-dd; today when left out", false), ("days", "integer", "How many days, 1 to 14; 1 when left out", false)),
+            Auth.Rights.Area.Availability, Level.View, false, AvailabilityAsync),
     ];
 
     /// <summary>The tools these rights allow; never one that writes (§3.5).</summary>
@@ -166,6 +170,20 @@ public static class CookieTools
     private static string TextOf(JsonElement args, string name) =>
         args.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String && v.GetString()!.Trim().Length >= 2 ? v.GetString()!.Trim()
             : throw new ToolException($"{name} needs at least 2 characters.");
+
+    // --- The availability plan (§8.4) -------------------------------------------------------------------------------------
+
+    private static async Task<object> AvailabilityAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
+    {
+        var from = args.TryGetProperty("from", out var f) && f.ValueKind == JsonValueKind.String
+            ? DateOnly.TryParseExact(f.GetString(), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None,
+                out var d) ? d : throw new ToolException("from must be a date as yyyy-MM-dd.")
+            : DateOnly.FromDateTime(Clock.LocalNow);
+        var days = Math.Clamp(IntOf(args, "days", 1), 1, CookieStaffing.MaxDays);
+        ctx.Areas.Add(nameof(Auth.Rights.Area.Availability));
+        var plan = ctx.Services.GetRequiredService<PNMTD.Availability.AvailabilityPlan>();
+        return await CookieStaffing.DescribeAsync(plan, db, from, from.AddDays(days - 1), ctx.Privacy, ct);
+    }
 
     // --- Cases ------------------------------------------------------------------------------------------------------------
 

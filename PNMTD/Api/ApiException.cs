@@ -31,6 +31,12 @@ public sealed class ApiException(int status, string code, string detail, IDictio
         new(StatusCodes.Status409Conflict, ApiErrorCodes.EditConflict, detail,
             extensions: new Dictionary<string, object?> { ["revision"] = revision, ["by"] = by, ["at"] = at });
 
+    /// <summary>403 <c>forbidden_role</c>: a right the caller lacks, where an attribute can't say it (one's own column, say).</summary>
+    public static ApiException Forbidden(string detail) => new(StatusCodes.Status403Forbidden, ApiErrorCodes.ForbiddenRole, detail);
+
+    /// <summary>400 <c>validation_failed</c> without a field.</summary>
+    public static ApiException BadRequest(string detail) => new(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationFailed, detail);
+
     public static ApiException Invalid(string field, string message) =>
         new(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationFailed, "One or more fields are invalid.",
             new Dictionary<string, string[]> { [field] = [message] });

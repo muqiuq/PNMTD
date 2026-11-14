@@ -161,6 +161,25 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/cookie/cases"] = ("Cookie:Use", Roles.Admin),
         ["GET /api/v1/cookie/cases/{id:guid}"] = ("Cookie:Use", Roles.Admin),
         ["GET /api/v1/cookie/trace"] = ("Cookie:Use", Roles.Admin),
+        ["POST /api/v1/cookie/cases/{id:guid}/comments"] = ("Cookie:Use", Roles.Admin),
+        ["POST /api/v1/cookie/cases/{id:guid}/stop"] = ("Cookie:Instruct", Roles.Admin),
+        ["POST /api/v1/cookie/cases/{id:guid}/go-on"] = ("Cookie:Instruct", Roles.Admin),
+        // The person and the availability plan (docs/cookie-plan.md §8.1, §8.2): one's own contact details and column for
+        // everyone (the plan's code checks the column), the rest by the area Availability; a user's profile for admins.
+        ["GET /api/v1/account/contact"] = ("signed-in", Roles.Viewer),
+        ["PUT /api/v1/account/contact"] = ("signed-in", Roles.Viewer),
+        ["POST /api/v1/account/contact/test"] = ("signed-in", Roles.Viewer),
+        ["GET /api/v1/users/{id:guid}/profile"] = ("admin", Roles.Admin),
+        ["PUT /api/v1/users/{id:guid}/profile"] = ("admin", Roles.Admin),
+        ["GET /api/v1/availability/plan"] = ("signed-in", Roles.Viewer),
+        ["PUT /api/v1/availability/entries"] = ("signed-in", Roles.Viewer),
+        ["POST /api/v1/availability/fill/mine"] = ("signed-in", Roles.Viewer),
+        ["PUT /api/v1/availability/days"] = ("Availability:Edit", Roles.Admin),
+        ["POST /api/v1/availability/fill"] = ("Availability:Edit", Roles.Admin),
+        ["GET /api/v1/availability/people"] = ("Availability:Manage", Roles.Admin),
+        ["PUT /api/v1/availability/people/{id:guid}"] = ("Availability:Manage", Roles.Admin),
+        ["GET /api/v1/availability/settings"] = ("Availability:Manage", Roles.Admin),
+        ["PUT /api/v1/availability/settings"] = ("Availability:Manage", Roles.Admin),
         ["POST /api/v1/cookie/admin/start"] = ("Cookie:Manage", Roles.Admin),
         ["POST /api/v1/cookie/admin/stop"] = ("Cookie:Manage", Roles.Admin),
         ["POST /api/v1/cookie/admin/run"] = ("Cookie:Manage", Roles.Admin),
@@ -176,8 +195,6 @@ public sealed class EndpointAuditTests
         ["PUT /api/v1/cookie/admin/settings/identity"] = ("Cookie:Manage", Roles.Admin),
         ["PUT /api/v1/cookie/admin/settings/prompts"] = ("Cookie:Manage", Roles.Admin),
         ["PUT /api/v1/cookie/admin/settings/cases"] = ("Cookie:Manage", Roles.Admin),
-        ["PUT /api/v1/cookie/admin/settings/hours"] = ("Cookie:Manage", Roles.Admin),
-        ["PUT /api/v1/cookie/admin/settings/notifications"] = ("Cookie:Manage", Roles.Admin),
         ["PUT /api/v1/cookie/admin/settings/redmine"] = ("Cookie:Manage", Roles.Admin),
         ["PUT /api/v1/cookie/admin/settings/actions"] = ("Cookie:Manage", Roles.Admin),
         ["PUT /api/v1/cookie/admin/settings/models"] = ("Cookie:Manage", Roles.Admin),
@@ -485,7 +502,9 @@ public sealed class EndpointAuditTests
         Assert.AreEqual("", string.Join("\n", wrong));
         // A write needs a right, except one's own session and account (§5.1).
         var selfService = v1.Where(e => e.Method != "GET" && Matrix[e.Key].Right == "signed-in").Select(e => e.Key).ToList();
-        Assert.IsTrue(selfService.All(k => k.Contains("/api/v1/auth/", StringComparison.Ordinal) || k.Contains("/api/v1/account/", StringComparison.Ordinal)),
+        // The availability plan's own column (docs/cookie-plan.md §8.2): its code lets each person edit only their own.
+        Assert.IsTrue(selfService.All(k => k.Contains("/api/v1/auth/", StringComparison.Ordinal) || k.Contains("/api/v1/account/", StringComparison.Ordinal)
+            || k is "PUT /api/v1/availability/entries" or "POST /api/v1/availability/fill/mine"),
             "writes with no right: " + string.Join(", ", selfService));
     }
 
