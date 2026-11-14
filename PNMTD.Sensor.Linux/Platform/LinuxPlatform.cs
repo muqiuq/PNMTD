@@ -126,28 +126,47 @@ internal sealed class LinuxPlatform : IAgentPlatform
 
     public IAgentKeyStore Keys { get; } = new FileKeyStore(AgentInfo.KeysFolder);
 
-    /// <summary>/var/lib/pnmt-agent with state/ and keys/, and /var/log/pnmt-agent: root's, 0700.</summary>
+    /// <summary>
+    /// /var/lib/pnmt-agent with state/ and keys/, and /var/log/pnmt-agent: root's, 0700. The data folder is 0711: a script's account passes
+    /// through it to its own run folder (§8.4) and can list nothing; everything in it is 0600 or 0700.
+    /// </summary>
     public void SecureFolders()
     {
-        foreach (var folder in new[] { AgentInfo.DataFolder, AgentInfo.StateFolder, AgentInfo.KeysFolder, AgentInfo.LogFolder })
+        SecureFolder(AgentInfo.DataFolder, traverse: true);
+        foreach (var folder in new[] { AgentInfo.StateFolder, AgentInfo.KeysFolder, AgentInfo.LogFolder })
         {
             SecureFolder(folder);
         }
     }
 
-    public static void SecureFolder(string folder)
+    public static void SecureFolder(string folder, bool traverse = false)
     {
+        var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
+                   | (traverse ? UnixFileMode.GroupExecute | UnixFileMode.OtherExecute : UnixFileMode.None);
         Directory.CreateDirectory(folder, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         if (Native.Stat(folder, followLinks: false) is { } facts && (facts.Uid != 0 || facts.Gid != 0))
         {
             Native.ChownToRoot(folder);
         }
-        File.SetUnixFileMode(folder, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        File.SetUnixFileMode(folder, mode);
     }
 
     public void SystemLog(string message, bool warning = false) => Journal.Write(message, warning);
 
     public IServiceManager Service { get; } = new Systemd();
+
+    /// <summary>The logging check's gaps (§5.6) for status.json and <c>pnmt-agent status</c>, from the latest access section.</summary>
+    public IReadOnlyList<string> StatusGaps(Core.Service.SectionScheduler sections)
+    {
+        try
+        {
+            return sections.Latest(SectionNames.Access) is { } message ? AgentJson.Deserialize<LinuxAccessSection>(message.Data)?.Gaps.ToList() ?? [] : [];
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return [];
+        }
+    }
 
     /// <summary>systemd's watchdog (<c>WatchdogSec=5min</c>): told every 10 s that the service is alive.</summary>
     public void ServiceTick()

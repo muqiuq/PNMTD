@@ -138,9 +138,12 @@ internal static partial class Accounts
     }
 
     /// <summary>Every rule that gives ALL, following the includes (sudo ignores files in an includedir with a dot or ending in ~).</summary>
-    public static List<SudoRule> ReadSudoRules()
+    public static List<SudoRule> ReadSudoRules() => SudoersFiles().SelectMany(f => ParseSudoers(f.Text, f.File).Rules).ToList();
+
+    /// <summary>/etc/sudoers and every file it includes, in sudo's order, with their text.</summary>
+    public static List<(string File, string Text)> SudoersFiles()
     {
-        var rules = new List<SudoRule>();
+        var files = new List<(string, string)>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var queue = new Queue<string>([Path.Combine("/etc", "sudoers")]);
         while (queue.Count > 0 && seen.Count < 200)
@@ -150,8 +153,8 @@ internal static partial class Accounts
             {
                 continue;
             }
-            var (found, includes) = ParseSudoers(text, file);
-            rules.AddRange(found);
+            files.Add((file, text));
+            var (_, includes) = ParseSudoers(text, file);
             foreach (var (path, folder) in includes)
             {
                 if (!folder)
@@ -168,7 +171,7 @@ internal static partial class Accounts
                 }
             }
         }
-        return rules;
+        return files;
     }
 
     /// <summary>

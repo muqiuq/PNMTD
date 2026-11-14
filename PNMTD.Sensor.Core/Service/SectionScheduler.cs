@@ -49,6 +49,19 @@ public sealed class SectionScheduler(IServiceProvider services, IAgentPlatform p
         wake.Release();
     }
 
+    /// <summary>
+    /// Collects these sections soon, and sends them only when they changed (docs/linux-sensor-plan.md §6.2, §5.7: a key file changed, a new
+    /// journal entry at warning). <see cref="Request"/> sends them anyway.
+    /// </summary>
+    public void CollectSoon(IReadOnlyCollection<string> names)
+    {
+        foreach (var collector in all.Where(c => names.Contains(c.Name)))
+        {
+            due[collector.Name] = DateTimeOffset.MinValue;
+        }
+        wake.Release();
+    }
+
     /// <summary>After a reconnect: every section's latest goes out again (§3.5).</summary>
     public void ResendAll()
     {

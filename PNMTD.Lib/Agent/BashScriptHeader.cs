@@ -23,7 +23,8 @@ public static partial class BashScriptHeader
     [GeneratedRegex("^[a-z][a-z0-9_]{0,39}$")]
     private static partial Regex NamePattern();
 
-    [GeneratedRegex(@"\$\{?PNMT_([A-Z0-9_]+)")]
+    // $PNMT_X, ${PNMT_X}, ${PNMT_X:-…}, ${#PNMT_X} (its length) and ${!PNMT_X} (indirection) are all uses.
+    [GeneratedRegex(@"\$(?:\{[#!]?)?PNMT_([A-Z0-9_]+)")]
     private static partial Regex EnvironmentUse();
 
     [GeneratedRegex(@"(^|[\s;|&(])eval\s")]

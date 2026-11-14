@@ -41,6 +41,8 @@
     <AssemblyAttribute Include="System.Runtime.Versioning.SupportedOSPlatformAttribute">
       <_Parameter1>linux</_Parameter1>
     </AssemblyAttribute>
+    <!-- The journal-line parsers' tests (docs/linux-sensor-plan.md §14): pure functions, internal like the rest. -->
+    <InternalsVisibleTo Include="PNMTD.Tests" />
   </ItemGroup>
 
   <ItemGroup>

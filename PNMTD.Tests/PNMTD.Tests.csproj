@@ -18,5 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PNMTD.Lib\PNMTD.Lib.csproj" />
     <ProjectReference Include="..\PNMTD\PNMTD.csproj" />
+    <!-- The Linux agent's journal-line parsers (docs/linux-sensor-plan.md §14): pure functions, the only agent code tested. -->
+    <ProjectReference Include="..\PNMTD.Sensor.Linux\PNMTD.Sensor.Linux.csproj" />
   </ItemGroup>
 </Project>

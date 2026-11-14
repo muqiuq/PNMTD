@@ -105,6 +105,14 @@ public sealed class BashScriptHeaderTests
     }
 
     [TestMethod]
+    public void A_length_or_an_indirection_counts_as_a_use()
+    {
+        var parsed = BashScriptHeader.Parse("#!/usr/bin/env bash\n# pnmt:\n#   parameters:\n#     name: { type: string }\n#     ref: { type: string }\nset -euo pipefail\n(( ${#PNMT_NAME} > 3 )) && echo \"${!PNMT_REF}\"\n");
+
+        Assert.AreEqual(0, parsed.Findings.Count, string.Join("; ", parsed.Findings.Select(f => f.Message)));
+    }
+
+    [TestMethod]
     public void The_environment_file_quotes_every_value()
     {
         var text = BashScriptHeader.EnvironmentFile(new Dictionary<string, string>

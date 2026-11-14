@@ -1659,6 +1659,164 @@ The phases as they were built, with what differs from the plan above.
   - the *unregistered keys* column of the fleet (L5);
   - the compose file's mount for the download folder (L8, above).
 
+### L4–L7: the Linux agent's features
+
+- **Five collectors and three features more** in `PNMTD.Sensor.Linux`, registered in `Program.AddAgent`:
+  - `Collectors/`: `ServicesCollector` with `Cron`, `RemoteAccessCollector` with `FirewallVerdict`, `Sshd` (`sshd -T` and its files, shared by four sections), `AccessCollector`, and `JournalCollector` with `JournalFacts`;
+  - `Access/`: **`JournalLines`** (the pure parsers), **`JournalLogins`** (pairing, aggregation and the day's counts, pure of I/O) and **`JournalStream`** (the feature);
+  - `Keys/`: `SshKeysCollector`, `KeyFiles` (inspecting and reading), `KeyWatch` (inotify), `KeysFeature`, `KeyRemoval`, `KeyRewrite` and `KeyBackups`;
+  - `Scripts/`: `BashScripts` and `ScriptsFeature`;
+  - `Platform/NativeFiles.cs`: opening without following a symlink, `statx` on a descriptor, `openat` and `renameat`, a thread's own file rights, inotify and `poll`.
+- **The hello's capabilities**, in this order: `collect.v1`, `access.v1`, `diag.ping`, `diag.dns`, `keys.v1`, **`keys.remove.v1` only while `ssh_keys.remove` is true**, `parse.v1`, **`scripts.v1` only while `scripts.enabled` is true**. A change of config.yaml reconnects (L3), so the hello always says what the file grants.
+
+**Services, timers and cron (§5.4)**
+
+- **The services:** `list-units --type=service --all` and the unit files that aren't loaded (templates and aliases left out), their details from one `systemctl show` per 400 units. JSON from systemd 249 on, the plain table otherwise.
+- **The program** is ExecStart's. **For an interpreter it is the script it runs** (`/usr/bin/python3 /opt/app/main.py` → `/opt/app/main.py`), so an app in /opt is *unpackaged*, not Debian's python. A tool named without a folder is found on the PATH.
+- **The package:** `dpkg -S` in one call for the paths not cached, tried with and without /usr (merged /usr) and through a symlink, **cached per path, size and time**; the unit file's package when the program has none.
+- **The origin, every 15 minutes:** `apt-cache policy` maps each source to its Release file's `o=` (Debian, Ubuntu, Proxmox, Docker …), and `apt-cache policy <packages>` names the sources of each installed version.
+  - **Found in the lab:** an installed version that was superseded is listed under `/var/lib/dpkg/status` only (Ubuntu 26.04's libc-bin). It is then the archive's that has other versions of the package (`Ubuntu (superseded)`, the distribution's); **`local`** (a `.deb` by hand, third-party) only when no archive has the package.
+- **Snaps** by `snap list`'s publisher (Canonical's are the distribution's), **the agent's own unit `Pnmt`**, masked units without a program `Unknown`. The special ones first, as on Windows.
+- **The flags:**
+  - *enabled but not running*, except one-shot and D-Bus-activated services, socket- and timer-activated ones (`TriggeredBy`), and starts whose conditions failed (`ConditionResult=no` once checked; a unit never started is flagged);
+  - *failed*.
+- **Timers** from `list-timers --all --output=json` (µs), or `show` with `TZ=UTC` without it.
+- **Cron:** /etc/crontab, `/etc/cron.d/` (run-parts' names only), the users' crontabs, and the scripts of the period folders.
+  - **The program only:** the first part that isn't a test, a `cd` or a variable, after `nice`, `flock -n <file>`, `timeout 60`, `sudo -u <user>` and the shell's `if … then`. `cd / && run-parts --report /etc/cron.hourly` → `run-parts`; `PGPASSWORD=… pg_dump …` → `pg_dump`.
+  - The command only with `collect.cron_commands`. `LineHash` is the first 16 hex digits of the line's SHA-256 (of a period folder's script, its text's).
+- Every minute; PIDs and the timers' times are volatile.
+
+**Remote access (§5.5)**
+
+- **sshd:** `sshd -T`, the Match blocks from sshd_config and what it includes, the version (`sshd -V`; 9.2 prints `OpenSSH_9.2`), and `ssh.socket`'s `Listen=` ports.
+- **§5.5's table** by units and sockets (one `list-units` and one `list-unit-files` for both types) and the listeners of `ss -H -tulpn`. **Listening means beyond localhost**; a port on localhost only is a note.
+- **The notes:** root's login, passwords, forwarding, AllowUsers, the CA and the command; Proxmox VE's realms and their two-factor (`/etc/pve/domains.cfg`); SNMP's communities counted, never named; Samba's shares and SMB1; NFS's exports to `*`; Docker's TCP API with or without TLS (highlighted); WireGuard's interfaces and `wg show`'s ports; fail2ban's jails; the remote tools by their services (highlighted).
+- **The firewall's verdict** (`FirewallVerdict`), per port:
+  - **ufw:** the rules in order, the first that matches wins; OpenSSH's and nginx's and Apache's profiles are known, another profile makes it *unknown*;
+  - **nftables:** the base chains that hook input, per family (inet and ip for IPv4, inet and ip6 for IPv6): accept and drop on ports, sets and ranges, `ct state`, `iifname lo`, and jumps into regular chains. **Anything else is *unknown***: iptables-nft's `xt` matches, named sets, marks, verdict maps;
+  - **iptables-legacy:** INPUT's policy and rules, interfaces other than lo and custom chains *unknown*;
+  - firewalld and **Proxmox VE's firewall when it is on** (`enable: 1` in cluster.fw) are *unknown*; no firewall is *open*.
+  - **Deviation:** a rule that lets only some sources in makes the port *filtered*, with a note: "The firewall lets 8006 in only from 10.0.0.0/8".
+- The summary: "SSH (root: key only) · Proxmox UI · WireGuard". Every 5 minutes.
+
+**Logins and elevations (§5.6)**
+
+- **`JournalStream`** (`access.v1`), every 15 s: `journalctl -o json -q --output-fields=… --after-cursor=…`, the first time `--since=@<an hour ago>`.
+  - **The eight identifiers' matches are ORed (`+`) with `PRIORITY=0` … `4`**, so the same poll notices new entries at warning and above (of the other identifiers) and has `journal` collected soon.
+  - **It is read as a stream and stopped after 20,000 entries** (`Tool.Stream`): `-n` keeps the newest, not the first after a cursor.
+  - **The cursor goes to `state/bookmarks.json` after the poll's entries are handled.** A cursor journalctl refuses (a journal vacuumed or reset) is a problem, and the last hour is read again.
+- **`JournalLines`**, pure: `Parse(identifier, message, time, pid)` → a `JournalEvent`, or null. Known noise is `Ignored`, so **null means unmatched**. `ParseJson` reads a byte-array MESSAGE as UTF-8, and the first of several values.
+- **`JournalLogins`:**
+  - **an accepted SSH login waits up to 5 s for VERBOSE's `Starting session:`**: an SFTP session or a forced command is a file transfer, aggregated per user and source; anything else is a session of its own, every one. **While sshd logs at INFO** (read every 15 minutes) that line never comes, and the login goes at once;
+  - **sessions are paired by the connection's address and port** (the privilege-separated child writes `Disconnected from user …`) **and by the sshd PID** (`pam_unix(sshd:session): session closed`). `LogonId` is the PID of the `Accepted` line;
+  - failures are aggregated per user, source, kind **and reason** within `AggregateMinutes`, the record id the first entry's;
+  - **a key refused (`Failed publickey`, VERBOSE) only counts when its connection didn't log in** (clients offer several keys): at the connection's preauth end, or after 2 minutes;
+  - **invalid users per source**, with `User` and `FailureReason` `invalid user` and the first 10 names. A connection counts once, and again for each attempt after its first;
+  - **sudo:** the summary line (sudo-rs: two spaces after the colon) is a success, with whom it became, the terminal in `Workstation`, `Elevated` for root, the command with `collect.sudo_commands`. **Wrong passwords are counted by PAM's `pam_unix(sudo:auth): authentication failure` per PID, and the summary's "N incorrect password attempts" only for what PAM didn't count**: sudo's are counted once, sudo-rs' (PAM only) too. `not in sudoers`, `command not allowed` and `password required` are their own reasons;
+  - **su:** `(to T) U on tty` is a success, its PAM session's close its end; `FAILED SU` a failure. **Console:** login's PAM session or `LOGIN ON`, whichever comes first, with the terminal; `FAILED LOGIN`; `TOO MANY LOGIN TRIES` is a lockout. pam_faillock's lockouts by their service; `maximum authentication attempts exceeded` has the reason `locked`;
+  - **Proxmox VE:** root's SSH from a cluster node's address (corosync's `ring*_addr`) is a file transfer;
+  - **never recorded:** entries of `pnmt-script-*` units. cron's and systemd's own sessions come with other identifiers, and logind's `manager` sessions make no record.
+- **The last 24 hours in hourly buckets**, kept in `state/login-counts.json`, so a restart and `pnmt-agent collect access` know the day.
+- **Unmatched lines are counted per identifier and reported once an hour.** Their text is in the log at debug level only: a password typed as a user name is in such lines.
+- Admins as the system section has them (uid 0, sudo, admin and wheel, sudoers' ALL rules), read every 15 minutes. Buffered while offline, at most 5,000, sent in `AccessBatch`es of `MaxBatch`.
+
+**The access and journal sections (§5.6, §5.7)**
+
+- **`access`:** the sessions; **the logging check:**
+  - journald's `Storage=` from journald.conf and its drop-ins, and `/var/log/journal`;
+  - **the oldest entry from `journalctl --header`'s head timestamps** (their µs, in hex), the size from `--disk-usage`;
+  - sshd's LogLevel; sudoers' `!syslog`, `!log_allowed` and `!log_denied`;
+  - each gap a `LoggingFix` with its command: a journald drop-in for `Storage=volatile`, §5.6's mkdir otherwise; **`/etc/ssh/sshd_config.d/00-pnmt-loglevel.conf` with `sshd -t && systemctl try-reload-or-restart ssh`** where sshd_config includes the folder, else the line in sshd_config; `visudo -f` for sudo;
+  - `Gaps` as short strings, also in `status.json` and `pnmt-agent status`; and the 24 hours.
+- **`journal`:** `journalctl -p 0..4 -b 0` and `-b -1`, 1,000 entries each with only the fields needed, the login sources left out, the newest 100, messages capped at 2 KB.
+  - **Found:** without a boot before, systemd 252 says "is not available" and 257 on "No journal boot entry found": both mean none.
+
+**SSH keys (§6.1, §6.2)**
+
+- **sshd's view.** With Match blocks, **`sshd -T -C user=<account>,host=,addr=` per account** (empty host and address work), and the Match blocks' own AuthorizedKeysFile patterns as candidates for every account, listed where the file exists. `%h`, `%u`, `%U` and `%%`.
+- **Every account of /etc/passwd. Only the files that exist are listed** (and users' symlinks), not every account's two default names.
+- **`KeyFiles`:**
+  - **a symlink is followed when every link of its chain and its target are root's** and no folder holding them is writable by others;
+  - **a user's symlink, or a folder on the path that is a user's symlink (`~/.ssh` → `/root/.ssh`, found in the lab), is never followed and never read**;
+  - **a file in a user's home is read with that user's rights:** a thread of its own takes the user's fsuid, fsgid and groups (setfsuid and setfsgid are per thread; the groups by the raw `setgroups` system call, as glibc's would change every thread's), opens with `O_NOFOLLOW|O_NONBLOCK`, and reports the descriptor's facts. A root symlink's target in a user's home is read with the user's rights too; root's own and /etc's files as root;
+  - per file the owner, group, mode, size, time, SHA-256 and problems: StrictModes on the file and on the folders up to the home (sshd's `auth_secure_path`), too large, unreadable, a private key in a line (by number, never shown).
+- **Per key:** `SshKeys.ParseLine` and `Notes`, *twice in this file (lines 1, 4)*, a cluster node's key, and `Protected` with why (`ssh_keys.protect`, or a node's own key).
+- **Proxmox VE:** `/etc/pve/` is *cluster-wide*. **A cluster node's own key** is one whose comment is `root@<node>` for a node in /etc/pve/nodes, or this node's `/root/.ssh/id_*.pub`.
+  - **Deviation:** the nodes' `ssh_known_hosts` hold host keys, not user keys, so they don't tell which authorized key is a node's.
+- **`Removable` and `NotRemovable`** per file from the rights and the file: §6.5 step 4's items 1, 2, 5 and 6.
+- **The watch** (`KeyWatch`, in `KeysFeature`'s loop): **one inotify instance** over the key folders, every home's .ssh (or the home, for a .ssh to come), /etc/ssh and sshd_config.d, and /etc for passwd and group only, set again after each scan. **A change collects `ssh-keys` 3 s after it went quiet**, sent when it changed (`SectionScheduler.CollectSoon`). A full scan every 5 minutes; ENOSPC is a problem once.
+- **`pnmt-agent keys`** prints sshd's settings, whether removal is allowed and for whom, and per file the owner, mode, keys with their notes, the problems, and **"PNMT may remove keys here" or why not**.
+
+**Removing a key (§6.5, §6.6): what PNMTD gets**
+
+- **For a signed `remove-ssh-key`** (`RemoveSshKeyRequest`) the agent runs **§6.5 step 4's checks in order**, the first that fails refuses:
+  1. `ssh_keys.remove`;
+  2. the account in `ssh_keys.users`, or that list empty;
+  3. the fingerprint (normalised) not in `ssh_keys.protect`, and on Proxmox VE not a node's own key;
+  4. **the path one the last scan found for that account**: the path sshd reads, or a followed root symlink's target (a scan is made first when there is none yet);
+  5. and 6. the file looked at again now: a regular file, not a user's symlink, the account's or root's, folders not writable by others, under /etc only in `writable_paths`.
+- **Then it sends `key-removal`** (`SshKeyRemovalResult`, with the request's id and the removal's id) **for every outcome**:
+  - *Removed*: the lines, the backup's name, the file's new SHA-256, and for Proxmox VE's file "Removed from Proxmox VE's cluster-wide file: from every node of the cluster";
+  - *NotFound*: the key isn't in the file (any more); nothing written, no backup;
+  - *Refused*: the reason, a sentence; *Failed*: the message.
+  - **Then the ack: `ok` for Removed and NotFound, `ok: false` with the message for Refused and Failed.** Then `ssh-keys` is collected and sent at once.
+- **The backup:** `state/key-backups/<account>/<yyyyMMddTHHmmssZ>-<file name>` (0600, folders 0700), with a `.json` next to it naming the path, owner, mode, fingerprint and removal. Kept 30 days and at least the last 10 per file; deleted again when nothing was removed.
+- **The rewrite** (`KeyRewrite`):
+  - through the folder's descriptor (`O_DIRECTORY|O_NOFOLLOW`), the file opened `O_NOFOLLOW`, **and only while its SHA-256 is still the backup's**;
+  - a temporary `.<name>.pnmt-<random>` (`O_EXCL`), synced, with the original's mode (and as root its owner), renamed over it, the folder synced (a folder that can't be synced, as on pmxcfs, is no error);
+  - `SshKeys.Without` for UTF-8; a file that isn't UTF-8 keeps every other line's bytes.
+  - **A user's file is rewritten as the user:** `setpriv --reuid=<uid> --regid=<gid> --init-groups -- /usr/local/sbin/pnmt-agent internal rewrite-keys --path … --fingerprint … --sha256 …`, which answers one JSON line. **Root's files** (root's own, under /etc, Proxmox VE's, a root-owned file in a home) **by the agent itself.**
+- **Logged and journalled:** "PNMT removed the key SHA256:… from /home/deploy/.ssh/authorized_keys: 2 lines, backup deploy/20261114T030308Z-authorized_keys (pnmt-agent keys restore …)"; refusals and failures too.
+- **`pnmt-agent keys restore`** lists the backups, newest first. **With a name** it shows the keys that come back and those that would go (added since the backup), asks (`--yes` for scripts; without a terminal and without `--yes` it refuses), writes the file with its owner's rights (`internal write-keys`, the content on stdin) or as root for root's, journals it, and asks the service for `ssh-keys`.
+
+**Bash scripts (§8.3–§8.5)**
+
+- **`parse-script`:** `BashScriptHeader.Parse`, then `bash -n` (the errors with their lines) and `shellcheck -f json -s bash` when installed (the first 50, as `SC2012` with the level), on the text in a root-only folder. `parse-result`, then the ack.
+- **`run-script`, the checks in order:** enabled; bash; the account (root for `Service`, the name for `User`, other kinds refused) in `run_as`; `allowed_hashes` when not empty; the timeout (at least 10 s) within `max_timeout_minutes`; the hash; a fresh header parse without errors; `ScriptArguments.Check`; `bash -n`; the account in /etc/passwd; systemd-run; **D-Bus's socket** ("Scripts need D-Bus (systemd-run talks to systemd over it): apt install dbus").
+  - **A refusal is the ack's `ok: false` with the reason, and nothing runs.** Otherwise the ack comes at once and `script-result` at the end.
+- **The run:**
+  - `runs/<id>/script.sh` (the folder the account's, 0700; the file its, 0400; without a BOM and CRLF, as the hash has it), and `runs/<id>.env` (root's, 0600) from `BashScriptHeader.EnvironmentFile`, **with the defaults of what wasn't given and `false` for a bool**, secrets decrypted with the agent's ECDH key;
+  - §8.4's `systemd-run` (no `--uid` for root), **through `sh -c 'exec "$@" 2>&1'`, so stdout and stderr arrive as one stream, in their order**; output capped at 1 MiB;
+  - **a timeout is told by the time** (L0: at least the limit minus a second, with a non-zero exit). The agent waits the timeout and a minute, then `systemctl stop pnmt-script-<id>`;
+  - "PNMT ran the script s1 (6b2962044af2) as deploy: exit 3 (0 s)." in the log file and the journal.
+  - **`/var/lib/pnmt-agent` is 0711 now** (L3: 0700), so the account passes through to its own run folder. It can list nothing, and everything in it stays 0600 or 0700.
+
+**Other changes**
+
+- **Hidden commands** (`pnmt-agent internal …`): `rewrite-keys` and `write-keys`, started as a file's owner and the only commands without root; for the lab and support `remove-key`, `logins [<minutes>]` (the records the stream would make of the journal's last minutes, and the unmatched lines), `parse-script <file>` and `run-script <file> --as <account> [--arg k=v] [--secret k=v] [--timeout <s>]` (secrets through a temporary ECDH key), all with config.yaml's rights as they are.
+- **Core:** `SectionScheduler.CollectSoon(names)` collects soon and sends only when changed (the watch, the journal's warnings), next to `Request`, which sends anyway. Windows doesn't call it; Core and the Windows agent build.
+- **`Tool`:** stdin, an extra environment (`TZ=UTC`), and `Stream`. **`FileFacts`:** the kind, inode, time, links and raw bits.
+- **`pnmt-agent update` with nothing newer exits 0:** "Already up to date: 1.2.0 (--force installs it anyway)." (after the coordinator's end-to-end run).
+- **`InternalsVisibleTo` PNMTD.Tests**, and **PNMTD.Tests references `PNMTD.Sensor.Linux`**: its lock file gains the agent, Core and `Microsoft.Extensions.Hosting.Systemd`, and no version changes.
+- **Found for PNMTD.Lib, not changed here:** `BashScriptHeader`'s use check doesn't see `${#PNMT_X}` (a length), so a secret used only that way is reported *Unused*.
+
+**Tests**
+
+- **`PNMTD.Tests/Linux/JournalLinesTests.cs`, 38 tests:**
+  - every line of the seven fixtures is matched;
+  - per fixture the key logins with their fingerprints, the password logins, the failures, the invalid users, refused keys and SFTP at VERBOSE (none at INFO), sudo's and su's lines; sudo-rs; logind's classes (Ubuntu 26.04);
+  - written by hand: console logins, certificates, keyboard-interactive, MaxAuthTries, pam_faillock, the old SFTP line, forced commands (their text never kept), sudo's terminal and `;` in a command, unknown lines and other identifiers; journalctl's byte arrays and several values;
+  - the records: sessions paired with their ends, SFTP as a transfer, invalid users per source with 10 names, sudo counted once (and three PAM lines as three), refused keys only without a login, a cluster node's transfers, the aggregation window, the 24 hours and their state.
+- **Results:** `dotnet test --filter FullyQualifiedName~PNMTD.Tests.Linux`: 81 tests, **the 38 new ones passed**. Two of `LinuxAgentTests` failed (the sections' storage and the logins' 264), and fail the same without the reference and the new file: the server's L5 work was in progress.
+
+**The lab** (arm64 under Podman on Apple Silicon)
+
+- **Every new section without errors** on Debian 12 (systemd 252), Debian 13 (257), Ubuntu 22.04 (249) and Ubuntu 26.04 (259): `services` 0.8–1.5 s (dpkg's first pass), `remote-access` about 0.27 s, `access` 0.17–0.28 s, `journal` 0.15 s, `ssh-keys` 0.12–0.15 s. systemd 249's JSON for units, unit files and timers works.
+- **Services:** an app under /opt and a python app *unpackaged*, a service failing with `/bin/false` *enabled but failed*, the agent `Pnmt`; cron's lines with the program only (`curl -u admin:secret …` → `curl`).
+- **Logins** (Debian 12, sshd at VERBOSE), 17 records of a scenario: key logins with their fingerprints and ends, an SFTP transfer, a password login, three wrong passwords as one aggregate of 3, three invalid users as one with their names, a key refused for root, sudo with and without its command, sudo's wrong passwords once, `password required`, `not in sudoers`, su. In the service the stream reads 50 entries in 4–7 ms.
+- **End to end** against the test PNMTD from HEAD (e13, Debian 13): the hello announced `collect.v1, access.v1, diag.ping, diag.dns, keys.v1, keys.remove.v1, parse.v1` (removal allowed for lab, scripts off); the eight sections were stored without errors; **a root key login and an invalid user were stored in `agent_logins` within 20 s, the key's fingerprint with it.**
+- **The watch:** a key appended by hand collected `ssh-keys` 3.0 s later; `useradd`, a new home's .ssh and its first key file each did too; 12–13 folders watched.
+- **Symlinks:** root's `/root/.ssh/authorized_keys2` → `/etc/ssh/shared_keys` followed and read; a user's → `/etc/shadow` refused and unread; a user's `~/.ssh` → `/root/.ssh` refused (the case that made `UsersFolderLink`).
+- **Removals** (`internal remove-key`): deploy's key, two lines, **rewritten as deploy through setpriv** (deploy:deploy 0600 kept), with its backup; again *NotFound*; a protected key, a user's symlink, `/etc/shadow` as deploy's file and an account not in `users` refused with their reasons; root's file rewritten as root. **Inside a transient unit with the service's sandbox lines** the setpriv rewrite and a script run work too. **`keys restore`:** the list; refused without `--yes` and without a terminal; restored with `--yes`, the original's SHA-256.
+- **Scripts:** `bash -n`'s error with its line; shellcheck's `SC2012`; a run as deploy (in its home, a secret decrypted, a default applied, stderr in its place, exit 3) and as root; refused for an account not in `run_as` and for an argument outside its set; **a 12 s timeout with a background child: *TimedOut* after 12.2 s, nothing left running.**
+- **Match blocks:** `Match User deploy` with `/etc/ssh/keys/%u` found through `-C`; a `Match Address` pattern listed only where its file exists; the CA of TrustedUserCAKeys listed.
+- **Not checked here:**
+  - **`ProtectSystem=full` isn't enforced in these containers** (no mount namespaces: `touch /etc/x` works under it), so the refusal under /etc and the read-only file system's hint wait for a VM;
+  - ufw and nftables on a host (a container lacks CAP_NET_ADMIN): the evaluation was checked against sample rule sets only;
+  - Proxmox VE (the cluster file, renaming on pmxcfs, the nodes' keys), snaps, amd64, a real console login;
+  - live sudo-rs: the Ubuntu 26.04 lab image has sudo 1.9.17p2 (the fixtures have sudo-rs);
+  - removals and script runs sent by PNMTD, whose side is being built.
+
 ---
 
 ## Appendix: configuration and file changes

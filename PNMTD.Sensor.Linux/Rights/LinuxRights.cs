@@ -45,7 +45,7 @@ internal sealed class LinuxRights : IAgentRightsSource, IAgentFeature
 
     public string Name => "config.yaml";
 
-    /// <summary>None yet: <c>keys.remove.v1</c> (L6) and <c>scripts.v1</c> (L7) will follow these rights.</summary>
+    /// <summary>None of its own: <c>keys.remove.v1</c> (KeysFeature) and <c>scripts.v1</c> (ScriptsFeature) follow these rights.</summary>
     public IReadOnlyList<string> Capabilities => [];
 
     public void Configure(AgentConfig config)

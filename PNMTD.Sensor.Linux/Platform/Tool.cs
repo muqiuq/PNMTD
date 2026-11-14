@@ -50,40 +50,39 @@ internal static class Tool
 
     public static bool Exists(string name) => Find(name) is not null;
 
-    /// <summary>Runs a tool and answers what it said, whatever its exit code; throws only when it is missing or runs out of time.</summary>
-    public static ToolResult Run(string name, IReadOnlyList<string> arguments, TimeSpan? timeout = null)
+    /// <summary>
+    /// Runs a tool and answers what it said, whatever its exit code; throws only when it is missing or runs out of time. <paramref name="input"/>
+    /// is written to its stdin (closed after it), <paramref name="environment"/> added to its environment (<c>TZ=UTC</c>).
+    /// </summary>
+    public static ToolResult Run(string name, IReadOnlyList<string> arguments, TimeSpan? timeout = null, string? input = null,
+        IReadOnlyDictionary<string, string>? environment = null)
     {
         var path = Find(name) ?? throw new NotAvailableException($"{name} is not installed");
         var limit = timeout ?? DefaultTimeout;
-        var info = new ProcessStartInfo(path)
-        {
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            RedirectStandardInput = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8,
-        };
-        foreach (var argument in arguments)
-        {
-            info.ArgumentList.Add(argument);
-        }
-        // systemd's notification socket and watchdog are the service's own: a tool that inherits them may write to the socket
-        // (L3 in the lab: "Got notification message from PID …, but reception only permitted for main PID").
-        foreach (var inherited in new[] { "NOTIFY_SOCKET", "WATCHDOG_PID", "WATCHDOG_USEC", "LISTEN_FDS", "LISTEN_PID", "LISTEN_FDNAMES" })
-        {
-            info.Environment.Remove(inherited);
-        }
-        info.Environment["LC_ALL"] = "C";
-        info.Environment["LANG"] = "C";
-        info.Environment["SYSTEMD_COLORS"] = "0";
-        info.Environment["SYSTEMD_PAGER"] = "cat";
-        info.Environment["PAGER"] = "cat";
+        var info = StartInfo(path, arguments, environment);
         var started = Stopwatch.GetTimestamp();
         using var process = Process.Start(info) ?? throw new InvalidOperationException($"{name} did not start.");
-        process.StandardInput.Close();
+        // Read before writing: a tool that answers before it read its input all would otherwise block on a full pipe.
         var output = ReadAsync(process.StandardOutput);
         var errors = ReadAsync(process.StandardError);
+        if (input is not null)
+        {
+            try
+            {
+                process.StandardInput.Write(input);
+            }
+            catch (IOException)
+            {
+                // The tool ended without reading it all: its exit code says why.
+            }
+        }
+        try
+        {
+            process.StandardInput.Close();
+        }
+        catch (IOException)
+        {
+        }
         if (!process.WaitForExit(limit))
         {
             try
@@ -107,10 +106,106 @@ internal static class Tool
         return result;
     }
 
-    /// <summary>The output of a tool that must succeed: a failure is an error with its reason.</summary>
-    public static string Text(string name, IReadOnlyList<string> arguments, TimeSpan? timeout = null)
+    /// <summary>
+    /// Runs a tool and hands its output to <paramref name="line"/> line by line as it comes, until that answers false (the tool is then
+    /// killed) or the output ends: <c>journalctl</c>'s entries after a cursor, which <c>-n</c> can't limit from the front. Answers the exit
+    /// code (null when it was stopped) and the first line of its errors.
+    /// </summary>
+    public static (int? ExitCode, string Errors) Stream(string name, IReadOnlyList<string> arguments, TimeSpan timeout, Func<string, bool> line,
+        IReadOnlyDictionary<string, string>? environment = null)
     {
-        var result = Run(name, arguments, timeout);
+        var path = Find(name) ?? throw new NotAvailableException($"{name} is not installed");
+        var info = StartInfo(path, arguments, environment);
+        var started = Stopwatch.GetTimestamp();
+        using var process = Process.Start(info) ?? throw new InvalidOperationException($"{name} did not start.");
+        process.StandardInput.Close();
+        var errors = ReadAsync(process.StandardError);
+        using var limit = new CancellationTokenSource(timeout);
+        var stopped = false;
+        var lines = 0;
+        try
+        {
+            while (!stopped)
+            {
+                var next = process.StandardOutput.ReadLineAsync(limit.Token).AsTask().GetAwaiter().GetResult();
+                if (next is null)
+                {
+                    break;
+                }
+                lines++;
+                stopped = !line(next);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            Kill(process);
+            Logger.LogDebug("{Tool} {Arguments}: timed out after {Seconds:0} s ({Lines} lines)", name, string.Join(' ', arguments), timeout.TotalSeconds, lines);
+            throw new TimeoutException($"{name} did not finish within {timeout.TotalSeconds:0} s");
+        }
+        if (stopped)
+        {
+            Kill(process);
+        }
+        process.WaitForExit();
+        var text = errors.GetAwaiter().GetResult();
+        Logger.LogDebug("{Tool} {Arguments}: {Lines} lines{Stopped} in {Ms:0} ms", name, string.Join(' ', arguments), lines, stopped ? " (stopped there)" : "",
+            Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+        if (!stopped && process.ExitCode != 0 && Unavailable.Any(u => text.Contains(u, StringComparison.Ordinal)))
+        {
+            throw new NotAvailableException($"{name}: {text.Trim().Split('\n')[0]}");
+        }
+        return (stopped ? null : process.ExitCode, text.Trim().Split('\n')[0].Trim());
+    }
+
+    private static ProcessStartInfo StartInfo(string path, IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string>? environment)
+    {
+        var info = new ProcessStartInfo(path)
+        {
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            RedirectStandardInput = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
+            StandardInputEncoding = new UTF8Encoding(false),
+        };
+        foreach (var argument in arguments)
+        {
+            info.ArgumentList.Add(argument);
+        }
+        // systemd's notification socket and watchdog are the service's own: a tool that inherits them may write to the socket
+        // (L3 in the lab: "Got notification message from PID …, but reception only permitted for main PID").
+        foreach (var inherited in new[] { "NOTIFY_SOCKET", "WATCHDOG_PID", "WATCHDOG_USEC", "LISTEN_FDS", "LISTEN_PID", "LISTEN_FDNAMES" })
+        {
+            info.Environment.Remove(inherited);
+        }
+        info.Environment["LC_ALL"] = "C";
+        info.Environment["LANG"] = "C";
+        info.Environment["SYSTEMD_COLORS"] = "0";
+        info.Environment["SYSTEMD_PAGER"] = "cat";
+        info.Environment["PAGER"] = "cat";
+        foreach (var (key, value) in environment ?? new Dictionary<string, string>())
+        {
+            info.Environment[key] = value;
+        }
+        return info;
+    }
+
+    private static void Kill(Process process)
+    {
+        try
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        catch (Exception e) when (e is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+        }
+    }
+
+    /// <summary>The output of a tool that must succeed: a failure is an error with its reason.</summary>
+    public static string Text(string name, IReadOnlyList<string> arguments, TimeSpan? timeout = null, IReadOnlyDictionary<string, string>? environment = null)
+    {
+        var result = Run(name, arguments, timeout, environment: environment);
         return result.Ok ? result.Output : throw new InvalidOperationException($"{name} failed ({result.ExitCode}): {result.Reason}");
     }
 

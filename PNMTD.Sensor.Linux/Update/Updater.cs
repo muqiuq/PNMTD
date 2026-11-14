@@ -13,6 +13,9 @@ namespace PNMTD.Sensor.Linux.Update;
 /// itself (<see cref="InstallSelf"/>): the service stops, <c>/usr/local/sbin/pnmt-agent</c> is replaced atomically, the unit rewritten,
 /// and the service starts. The identity, keys, state and config.yaml stay.
 /// </summary>
+/// <summary>PNMT has nothing newer than this agent: <c>pnmt-agent update</c> says so and exits 0.</summary>
+internal sealed class AlreadyUpToDateException(string message) : Exception(message);
+
 internal static class Updater
 {
     private const long MaxBytes = 300L * 1024 * 1024;
@@ -127,7 +130,10 @@ internal static class Updater
             ?? throw new InvalidOperationException($"PNMT {manifest.Version} has no {asset} (yet): its Download tab says why.");
         if (!IsNewer(manifest.Version, AgentInfo.Version) && !force)
         {
-            throw new InvalidOperationException($"PNMT has {manifest.Version}, this agent is {AgentInfo.Version}: nothing newer (--force installs it anyway).");
+            // Not a failure: unattended runs of update exit 0 (L4).
+            throw new AlreadyUpToDateException(manifest.Version == AgentInfo.Version
+                ? $"Already up to date: {AgentInfo.Version} (--force installs it anyway)."
+                : $"Already up to date: this agent is {AgentInfo.Version}, newer than PNMT's {manifest.Version} (--force installs PNMT's anyway).");
         }
         if (entry.Size <= 0 || entry.Size > MaxBytes)
         {

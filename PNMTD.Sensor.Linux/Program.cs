@@ -13,10 +13,13 @@ using PNMTD.Sensor.Core.Resilience;
 using PNMTD.Sensor.Core.Rights;
 using PNMTD.Sensor.Core.Service;
 using PNMTD.Sensor.Core.State;
+using PNMTD.Sensor.Linux.Access;
 using PNMTD.Sensor.Linux.Collectors;
 using PNMTD.Sensor.Linux.Join;
+using PNMTD.Sensor.Linux.Keys;
 using PNMTD.Sensor.Linux.Platform;
 using PNMTD.Sensor.Linux.Rights;
+using PNMTD.Sensor.Linux.Scripts;
 using PNMTD.Sensor.Linux.Update;
 
 namespace PNMTD.Sensor.Linux;
@@ -34,9 +37,11 @@ internal static class Program
                                        installed but not connected within 60 s. A missing URL or token is asked for.
                                        An http:// URL needs --allow-http: unencrypted, compare PNMT's key
         pnmt-agent status              the service, the connection, problems, diagnostics and the rights
-        pnmt-agent keys                the authorized_keys files and keys as the agent sees them
-        pnmt-agent keys restore <backup>
-                                       puts a removed key's file back from its backup
+        pnmt-agent keys                the authorized_keys files and keys as the agent sees them, and which PNMT
+                                       may remove (and why not)
+        pnmt-agent keys restore [<backup>] [--yes]
+                                       lists the backups of removed keys; with one, shows what comes back, asks,
+                                       and puts the file back with its owner's rights
         pnmt-agent config check        checks /etc/pnmt-agent/config.yaml and prints the rights it grants
         pnmt-agent collect [<section>] collects once and prints the sections as JSON (for support)
         pnmt-agent collect-now         asks the running service to collect everything now
@@ -52,7 +57,10 @@ internal static class Program
         """;
 
     private static readonly string[] Commands =
-        ["join", "status", "keys", "config", "collect", "collect-now", "log", "update", "uninstall", "service", "install-unit", "update-install"];
+        ["join", "status", "keys", "config", "collect", "collect-now", "log", "update", "uninstall", "service", "install-unit", "update-install", "internal"];
+
+    /// <summary>The hidden commands the agent starts as a key file's owner (setpriv, §6.5): they run without root, and need none.</summary>
+    private static readonly string[] AsOwnerCommands = ["rewrite-keys", "write-keys"];
 
     private static int Main(string[] args)
     {
@@ -74,7 +82,7 @@ internal static class Program
         {
             return Error(Usage, 2);
         }
-        if (!Native.IsRoot)
+        if (!Native.IsRoot && !(command == "internal" && args.Length > 1 && AsOwnerCommands.Contains(args[1])))
         {
             return Error($"pnmt-agent {command} needs root: sudo pnmt-agent {string.Join(' ', args)}", 1);
         }
@@ -94,6 +102,7 @@ internal static class Program
                 "uninstall" => Uninstall(args[1..]),
                 "install-unit" => InstallUnit(),
                 "update-install" when args is [_, "--from", var from] => UpdateInstall(from),
+                "internal" => Internal(args[1..]),
                 _ => Error(Usage, 2),
             };
         }
@@ -161,12 +170,26 @@ internal static class Program
         services.AddSingleton<Collector, SystemCollector>();
         services.AddSingleton<Collector, HardwareCollector>();
         services.AddSingleton<Collector, NetworkCollector>();
+        services.AddSingleton<Collector, ServicesCollector>();
+        services.AddSingleton<Collector, RemoteAccessCollector>();
+        services.AddSingleton<Collector, AccessCollector>();
+        services.AddSingleton<Collector, JournalCollector>();
+        services.AddSingleton<SshKeysCollector>();
+        services.AddSingleton<Collector>(sp => sp.GetRequiredService<SshKeysCollector>());
         // config.yaml (§4.6): the rights for the hello and for the features, watched; a change reconnects.
         services.AddSingleton<LinuxRights>();
         services.AddSingleton<IAgentRightsSource>(sp => sp.GetRequiredService<LinuxRights>());
         services.AddSingleton<IAgentFeature>(sp => sp.GetRequiredService<LinuxRights>());
+        // Logins and elevations from the journal (§5.6): access.v1; the access collector reads its counts.
+        services.AddSingleton<JournalStream>();
+        services.AddSingleton<IAgentFeature>(sp => sp.GetRequiredService<JournalStream>());
         // Diagnostics (§7): the shared core's, unchanged.
         services.AddSingleton<IAgentFeature, DiagnosticsFeature>();
+        // SSH keys (§6): keys.v1, keys.remove.v1 while config.yaml allows removal; the inotify watch.
+        services.AddSingleton<KeyRemoval>();
+        services.AddSingleton<IAgentFeature, KeysFeature>();
+        // Bash scripts (§8): parse.v1, scripts.v1 while config.yaml enables them.
+        services.AddSingleton<IAgentFeature, ScriptsFeature>();
         services.AddSingleton<SectionScheduler>();
         services.AddSingleton<IHeartbeatSampler, LinuxHeartbeatSampler>();
         services.AddSingleton<AgentService>();
@@ -409,13 +432,286 @@ internal static class Program
         return 0;
     }
 
-    /// <summary>The key commands of §4.1 come with the ssh-keys section (L5) and removals (L6).</summary>
+    /// <summary>§4.1: <c>keys</c> prints the files and keys as the agent sees them; <c>keys restore</c> lists or puts back a backup (§6.5).</summary>
     private static int Keys(string[] args) => args switch
     {
-        [] => Error("pnmt-agent keys: not yet. The authorized_keys files and keys come with the ssh-keys section (docs/linux-sensor-plan.md L5).", 1),
-        ["restore", _] => Error("pnmt-agent keys restore: not yet. Removing and restoring keys come with L6 (docs/linux-sensor-plan.md §6.5).", 1),
+        [] => KeysList(),
+        ["restore"] => KeysRestoreList(),
+        ["restore", var backup] when !backup.StartsWith('-') => KeysRestore(backup, yes: false),
+        ["restore", var backup, "--yes"] => KeysRestore(backup, yes: true),
+        ["restore", "--yes", var named] => KeysRestore(named, yes: true),
         _ => Error(Usage, 2),
     };
+
+    /// <summary>The rights as config.yaml grants them now, for the command line's one-off runs.</summary>
+    private sealed class FileRights : IAgentRightsSource
+    {
+        public AgentRights Current { get; } = ConfigYaml.Read().Rights;
+
+        public int Version => 0;
+    }
+
+    private static int KeysList()
+    {
+        var rights = new FileRights();
+        var errors = new List<string>();
+        var (section, _) = new SshKeysCollector([rights]).Scan(rights.Current, errors);
+        var s = section.Sshd;
+        Console.WriteLine(s.Available
+            ? $"sshd:        AuthorizedKeysFile {string.Join(' ', s.AuthorizedKeysFiles)}; PubkeyAuthentication {(s.PubkeyAuthentication ? "yes" : "no")}; "
+              + $"PermitRootLogin {s.PermitRootLogin}; StrictModes {(s.StrictModes ? "yes" : "no")}{(s.MatchBlocks ? "; Match blocks" : "")}"
+            : "sshd:        not available (the default pattern is read)");
+        var keys = rights.Current.Keys;
+        Console.WriteLine($"Removal:     {(keys.Remove ? $"allowed for {(keys.Users.Count == 0 ? "every account" : string.Join(", ", keys.Users))}" : "off (config.yaml: ssh_keys.remove: false)")}"
+            + (keys.Protect.Count > 0 ? $"; {keys.Protect.Count} protected keys" : ""));
+        if (section.Files.Count == 0)
+        {
+            Console.WriteLine("No authorized_keys files were found.");
+        }
+        foreach (var f in section.Files)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"{f.Account}  {f.Path}{(f.Target is { } t ? $" -> {t}" : "")}{(f.ClusterWide ? "  (cluster-wide)" : "")}");
+            Console.WriteLine($"  {f.Owner}:{f.Group} {f.Mode}, {f.Size} bytes, {f.Keys.Count} key{(f.Keys.Count == 1 ? "" : "s")}{(f.Sha256 is { } h ? $", SHA-256 {h[..16]}…" : "")}");
+            Console.WriteLine(f.Removable ? "  PNMT may remove keys here." : $"  PNMT may not remove keys here: {f.NotRemovable}.");
+            foreach (var problem in f.Problems)
+            {
+                Console.WriteLine($"  Problem: {problem}");
+            }
+            foreach (var k in f.Keys)
+            {
+                Console.WriteLine($"  line {k.Line,-4} {k.Type} {k.Bits} {k.Fingerprint}{(k.Comment is { } c ? $" \"{c}\"" : "")}"
+                    + (k.Options.Count > 0 ? $"  options: {string.Join(',', k.Options.Select(o => o.Split('=')[0]))}" : "")
+                    + (k.Protected ? $"  PROTECTED ({k.ProtectedBecause})" : ""));
+                foreach (var note in k.Notes)
+                {
+                    Console.WriteLine($"            {note}");
+                }
+            }
+            if (f.InvalidLines.Count > 0)
+            {
+                Console.WriteLine($"  Lines that are not keys: {string.Join(", ", f.InvalidLines)}");
+            }
+        }
+        foreach (var ca in section.CaKeys)
+        {
+            Console.WriteLine($"CA key:      {ca.Type} {ca.Bits} {ca.Fingerprint}{(ca.Comment is { } c ? $" \"{c}\"" : "")} ({ca.Source})");
+        }
+        foreach (var note in section.Notes)
+        {
+            Console.WriteLine($"Note:        {note}");
+        }
+        foreach (var error in errors)
+        {
+            Console.Error.WriteLine($"Error:       {error}");
+        }
+        return 0;
+    }
+
+    private static int KeysRestoreList()
+    {
+        var backups = KeyBackups.List();
+        if (backups.Count == 0)
+        {
+            return Print("No backups of removed keys (they are kept 30 days, at least the last 10 per file).", 0);
+        }
+        Console.WriteLine("Backups of removed keys, newest first (pnmt-agent keys restore <name>):");
+        foreach (var backup in backups)
+        {
+            Console.WriteLine($"  {KeyBackups.Describe(backup)}");
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// §6.5: puts a key file back from its backup, after showing which keys come back (and which would go: added since), with a confirmation
+    /// (<c>--yes</c> for scripts); with the owner's rights for a user's file. Then the service collects ssh-keys.
+    /// </summary>
+    private static int KeysRestore(string name, bool yes)
+    {
+        var backup = KeyBackups.Find(name);
+        if (backup is null)
+        {
+            return Error($"No backup {name}: pnmt-agent keys restore lists them.", 1);
+        }
+        var account = KeyAccount.Read().FirstOrDefault(a => a.Name == backup.Account);
+        if (account is null)
+        {
+            return Error($"The account {backup.Account} doesn't exist any more: restore {backup.Path} by hand from {Path.Combine(KeyBackups.Folder, backup.Name)}.", 1);
+        }
+        var content = KeyBackups.Content(backup);
+        string Owner(uint uid) => uid.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var current = KeyFiles.Inspect(account, backup.Path, Owner);
+        if (current is { UserSymlink: true } || current?.Link is { Symlink: true })
+        {
+            return Error($"{backup.Path} is a symlink now: not written through. Restore it by hand.", 1);
+        }
+        static Dictionary<string, string> KeysOf(byte[]? bytes) => bytes is null ? []
+            : System.Text.Encoding.UTF8.GetString(bytes).Split('\n').Select(l => SshKeys.ParseLine(l.TrimEnd('\r')).Key).Where(k => k is not null)
+                .GroupBy(k => k!.Fingerprint).ToDictionary(g => g.Key, g => $"{g.First()!.Type} {g.Key}{(g.First()!.Comment is { } c ? $" \"{c}\"" : "")}");
+        var before = KeysOf(content);
+        var now = KeysOf(current?.Content);
+        Console.WriteLine($"Restore {backup.Path} ({backup.Account}) from {backup.Name}, {backup.At.ToLocalTime():yyyy-MM-dd HH:mm}:");
+        foreach (var added in before.Where(b => !now.ContainsKey(b.Key)))
+        {
+            Console.WriteLine($"  comes back:  {added.Value}");
+        }
+        foreach (var lost in now.Where(n => !before.ContainsKey(n.Key)))
+        {
+            Console.WriteLine($"  goes again:  {lost.Value}  (added since the backup)");
+        }
+        if (before.Keys.All(now.ContainsKey) && now.Keys.All(before.ContainsKey))
+        {
+            Console.WriteLine("  the same keys as now");
+        }
+        if (!yes)
+        {
+            if (Console.IsInputRedirected)
+            {
+                return Error("Not restored: confirm with --yes.", 1);
+            }
+            Console.Write("Restore it? [y/N] ");
+            if (Console.ReadLine()?.Trim().ToLowerInvariant() is not ("y" or "yes"))
+            {
+                return Print("Not restored.", 1);
+            }
+        }
+        var ownerUid = current?.Facts?.Uid ?? backup.Uid;
+        var mode = KeyBackups.ParseMode(backup.Mode);
+        string hash;
+        if (ownerUid == 0)
+        {
+            hash = KeyRewrite.WriteAll(backup.Path, content, mode, (0, current?.Facts?.Gid ?? backup.Gid));
+        }
+        else
+        {
+            if (ownerUid != account.Uid)
+            {
+                return Error($"{backup.Path} is owned by uid {ownerUid}, not by {account.Name}: not restored.", 1);
+            }
+            hash = KeyRemoval.RunAsOwner(account, ownerUid, ["internal", "write-keys", "--path", backup.Path, "--mode", backup.Mode],
+                Convert.ToBase64String(content)).Sha256 ?? "";
+        }
+        var text = $"Restored {backup.Path} ({backup.Account}) from the backup {backup.Name} (pnmt-agent keys restore): SHA-256 {hash[..Math.Min(16, hash.Length)]}….";
+        Journal.Write(text, warning: true);
+        try
+        {
+            LinuxPlatform.SecureFolder(AgentInfo.StateFolder);
+            File.WriteAllText(AgentInfo.Layout.CollectNowFile, SectionNames.SshKeys + "\n");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+        }
+        return Print(text + (Systemd.IsActive() ? " The service collects ssh-keys now." : ""), 0);
+    }
+
+    // --- internal: what the agent starts as a key file's owner, and local test hooks --------------------------------
+
+    /// <summary>
+    /// Hidden commands. <c>rewrite-keys</c> and <c>write-keys</c> are started by the agent as a key file's owner (setpriv, §6.5 step 6) and
+    /// answer one JSON line. <c>remove-key</c>, <c>parse-script</c> and <c>run-script</c> run the service's flows locally, for the lab, with
+    /// config.yaml's rights as they are.
+    /// </summary>
+    private static int Internal(string[] args)
+    {
+        string? Option(string name) => args.SkipWhile(a => a != name).Skip(1).FirstOrDefault();
+        IEnumerable<string> Options(string name) => args.Select((a, i) => (a, i)).Where(p => p.a == name && p.i + 1 < args.Length).Select(p => args[p.i + 1]);
+        var json = new JsonSerializerOptions(AgentJson.Options) { WriteIndented = false };
+        switch (args.FirstOrDefault())
+        {
+            case "rewrite-keys" when Option("--path") is { } path && Option("--fingerprint") is { } fingerprint:
+                try
+                {
+                    var (removed, sha) = KeyRewrite.RemoveKey(path, fingerprint, Option("--sha256"), keepOwner: false);
+                    Console.WriteLine(JsonSerializer.Serialize(new RewriteAnswer(removed, sha, null), json));
+                    return 0;
+                }
+                catch (KeyFileChangedException e)
+                {
+                    Console.WriteLine(JsonSerializer.Serialize(new RewriteAnswer(0, null, e.Message), json));
+                    return 4;
+                }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+                {
+                    Console.WriteLine(JsonSerializer.Serialize(new RewriteAnswer(0, null, e.Message), json));
+                    return 1;
+                }
+            case "write-keys" when Option("--path") is { } path && Option("--mode") is { } mode:
+                try
+                {
+                    var content = Convert.FromBase64String(Console.In.ReadToEnd().Trim());
+                    var sha = KeyRewrite.WriteAll(path, content, KeyBackups.ParseMode(mode), null);
+                    Console.WriteLine(JsonSerializer.Serialize(new RewriteAnswer(0, sha, null), json));
+                    return 0;
+                }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException or FormatException)
+                {
+                    Console.WriteLine(JsonSerializer.Serialize(new RewriteAnswer(0, null, e.Message), json));
+                    return 1;
+                }
+            case "remove-key" when Option("--account") is { } account && Option("--path") is { } path && Option("--fingerprint") is { } fingerprint:
+            {
+                using var provider = OneOff(out var logs);
+                var result = provider.GetRequiredService<KeyRemoval>().Remove(new RemoveSshKeyRequest(Guid.NewGuid(), account, path, fingerprint), "local");
+                Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions(AgentJson.Options) { WriteIndented = true }));
+                return result.Outcome is SshKeyRemovalOutcome.Removed or SshKeyRemovalOutcome.NotFound ? 0 : 1;
+            }
+            case "logins":
+            {
+                var minutes = args.Length > 1 && int.TryParse(args[1], out var m) ? m : 60;
+                var users = Accounts.ParsePasswd(File.ReadAllText("/etc/passwd"));
+                var admins = Accounts.Administrators(users, Accounts.ParseGroup(File.ReadAllText("/etc/group")), Accounts.ReadSudoRules()).Select(a => a.Name).ToHashSet();
+                var (records, unmatched, entries) = JournalStream.Preview(TimeSpan.FromMinutes(minutes), admins.Contains, ConfigYaml.Read().Rights.Collect.SudoCommands);
+                Console.WriteLine(JsonSerializer.Serialize(records, new JsonSerializerOptions(AgentJson.Options) { WriteIndented = true }));
+                Console.Error.WriteLine($"{entries} journal entries of the last {minutes} min, {records.Count} records, {unmatched.Values.Sum()} lines matched no pattern");
+                foreach (var (line, count) in unmatched)
+                {
+                    Console.Error.WriteLine($"  unmatched ({count}×): {line}");
+                }
+                return 0;
+            }
+            case "parse-script" when args.Length == 2:
+                Console.WriteLine(JsonSerializer.Serialize(BashScripts.Parse(File.ReadAllText(args[1])), new JsonSerializerOptions(AgentJson.Options) { WriteIndented = true }));
+                return 0;
+            case "run-script" when args.Length >= 2 && Option("--as") is { } runAs:
+            {
+                var text = File.ReadAllText(args[1]);
+                using var temporary = System.Security.Cryptography.ECDiffieHellman.Create(System.Security.Cryptography.ECCurve.NamedCurves.nistP256);
+                var publicKey = Convert.ToBase64String(temporary.ExportSubjectPublicKeyInfo());
+                var runId = Guid.NewGuid();
+                var arguments = Options("--arg").Select(a => a.Split('=', 2)).ToDictionary(p => p[0], p => p.Length > 1 && p[1] is "true" or "false"
+                    ? JsonSerializer.SerializeToElement(p[1] == "true") : JsonSerializer.SerializeToElement(p.Length > 1 ? p[1] : ""));
+                var secrets = Options("--secret").Select(a => a.Split('=', 2)).ToDictionary(p => p[0], p => AgentSecrets.Encrypt(publicKey, p.Length > 1 ? p[1] : "", runId));
+                var timeout = int.TryParse(Option("--timeout"), out var seconds) ? seconds : 300;
+                var request = new RunScriptRequest(runId, Option("--name") ?? Path.GetFileNameWithoutExtension(args[1]), ScriptHashes.Of(text), text, arguments, secrets,
+                    new RunAsSpec(runAs == "root" ? RunAsKind.Service : RunAsKind.User, runAs == "root" ? null : runAs, null), timeout, "bash");
+                var (checkedRun, refusal) = BashScripts.Check(request, ConfigYaml.Read().Rights.Scripts);
+                if (checkedRun is null)
+                {
+                    return Error($"Refused: {refusal}", 1);
+                }
+                using var logs = new DailyFileLoggerProvider(AgentInfo.LogFolder, $"{AgentInfo.Name}-cli");
+                var result = BashScripts.Run(checkedRun, secret => AgentSecrets.Decrypt(temporary, secret, runId));
+                ScriptsFeature.Log(logs.CreateLogger("Scripts.ScriptsFeature"), checkedRun, result);
+                Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions(AgentJson.Options) { WriteIndented = true }));
+                return result.State == ScriptRunState.Done ? 0 : 1;
+            }
+            default:
+                return Error("pnmt-agent internal: rewrite-keys, write-keys, remove-key, logins, parse-script, run-script (for the agent itself and the lab).", 2);
+        }
+    }
+
+    /// <summary>The agent's parts for a one-off command (collect, internal remove-key), logging to the command line's own log file.</summary>
+    private static ServiceProvider OneOff(out DailyFileLoggerProvider logs)
+    {
+        LinuxPlatform.SecureFolder(AgentInfo.LogFolder);
+        logs = new DailyFileLoggerProvider(AgentInfo.LogFolder, $"{AgentInfo.Name}-cli");
+        var services = new ServiceCollection();
+        var provider = logs;
+        services.AddLogging(b => b.AddProvider(provider));
+        AddAgent(services, logs);
+        return services.BuildServiceProvider();
+    }
 
     // --- collect, collect-now, log --------------------------------------------------------------------------------
 
@@ -517,7 +813,15 @@ internal static class Program
             return Error(Usage, 2);
         }
         var before = AgentInfo.Version;
-        var after = Updater.UpdateAsync(files.FirstOrDefault(), force, new Steps(false), CancellationToken.None).GetAwaiter().GetResult();
+        string after;
+        try
+        {
+            after = Updater.UpdateAsync(files.FirstOrDefault(), force, new Steps(false), CancellationToken.None).GetAwaiter().GetResult();
+        }
+        catch (AlreadyUpToDateException e)
+        {
+            return Print(e.Message, 0);
+        }
         // The new binary wrote the journal: this process runs from a replaced file and loads nothing new from here on.
         return Print($"Updated {AgentInfo.Product} from {before} to {after}; the service runs again.", 0);
     }

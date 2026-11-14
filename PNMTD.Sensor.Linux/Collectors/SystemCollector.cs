@@ -356,7 +356,7 @@ internal sealed partial class SystemCollector : Collector
     }
 
     /// <summary>fail2ban (§5.2): running, its jails, and the addresses banned now and in all.</summary>
-    private static Fail2banInfo? Fail2ban()
+    internal static Fail2banInfo? Fail2ban()
     {
         if (!Tool.Exists("fail2ban-client"))
         {

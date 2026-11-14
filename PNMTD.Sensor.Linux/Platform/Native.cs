@@ -2,8 +2,20 @@ using System.Runtime.InteropServices;
 
 namespace PNMTD.Sensor.Linux.Platform;
 
-/// <summary>A file's owner, group, permission bits, kind and size, as <c>statx</c> answers them.</summary>
-internal sealed record FileFacts(uint Uid, uint Gid, UnixFileMode Mode, bool Directory, bool Symlink, long Size);
+/// <summary>
+/// A file's owner, group, permission bits, kind and size, as <c>statx</c> answers them; <see cref="Native.StatFull"/> and
+/// <see cref="Native.StatFd"/> add whether it is a regular file, the inode, the modification time, the links and the raw bits (with setuid
+/// and sticky).
+/// </summary>
+internal sealed record FileFacts(uint Uid, uint Gid, UnixFileMode Mode, bool Directory, bool Symlink, long Size, bool Regular = false, ulong Inode = 0,
+    DateTimeOffset? ModifiedAt = null, uint Links = 0, int Bits = 0)
+{
+    /// <summary>Writable by its group or others (sshd's StrictModes refuses that).</summary>
+    public bool WritableByOthers => (Mode & (UnixFileMode.GroupWrite | UnixFileMode.OtherWrite)) != 0;
+
+    /// <summary>The mode as <c>ls</c>'s octal: <c>0600</c>.</summary>
+    public string Octal => Convert.ToString((int)Mode & 0xFFF, 8).PadLeft(4, '0');
+}
 
 /// <summary>
 /// The few libc calls the agent needs (docs/linux-sensor-plan.md §4.1, §4.6): who runs it (<c>geteuid</c>), a file's owner
