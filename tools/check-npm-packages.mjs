@@ -22,6 +22,7 @@ const allowedLicenses = new Set([
   'BSD-3-Clause',
   'CC0-1.0',
   'CC-BY-4.0',
+  'EPL-2.0', // elkjs, Mermaid's ELK layout (docs/locations-knowledge-plan.md §5.8): weak copyleft per file, used unmodified
   'ISC',
   'MIT',
   'MIT-0',
@@ -29,6 +30,12 @@ const allowedLicenses = new Set([
   'OFL-1.1', // the fonts (Inter, JetBrains Mono)
   'Python-2.0', // argparse
   'Unlicense',
+])
+
+// Packages whose package.json names no licence, read from their licence file by hand, per version:
+// another version is checked again.
+const licensesReadByHand = new Map([
+  ['khroma@2.1.0', 'MIT'], // Mermaid's colours; its "license" file
 ])
 
 // Their scripts never run (npm ci --ignore-scripts); listed so that a new one is a decision.
@@ -88,7 +95,7 @@ for (const [path, entry] of Object.entries(lock.packages ?? {})) {
   if (!entry.integrity?.startsWith('sha512-')) {
     problems.push(`${name}: no sha512 integrity`)
   }
-  if (!licenseOk(entry.license)) {
+  if (!licenseOk(entry.license ?? licensesReadByHand.get(`${name}@${entry.version}`))) {
     problems.push(`${name}@${entry.version}: licence ${JSON.stringify(entry.license ?? null)} is not on the list`)
   }
   if (entry.hasInstallScript && !allowedInstallScripts.has(name)) {

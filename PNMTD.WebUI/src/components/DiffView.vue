@@ -1,13 +1,31 @@
-<script setup lang="ts">
-import type { S } from '@/api/resources'
-
+<script lang="ts">
 /**
- * A diff between two exports (docs/mikrotik-plan.md §6.4): each hunk with its header, and every line
- * with its number in the old and the new version, added lines green, removed lines red.
+ * A line diff as an HTML table (docs/mikrotik-plan.md §6.4): each hunk with its header, and every line
+ * with its number in the old and the new version, added lines green, removed lines red. Shared since
+ * docs/locations-knowledge-plan.md §6.3: MikroTik's exports, a page's history where Monaco doesn't run
+ * (§5.4), and the editor's own diffs (components/markdown/lineDiff.ts). The shape is that of the
+ * server's LineDiff, so any of its contracts fits.
  */
-defineProps<{ diff: S['MikrotikBackupDiff'] }>()
+export interface DiffLine {
+  kind: 'Context' | 'Added' | 'Removed'
+  text: string
+  oldNumber: number | null
+  newNumber: number | null
+}
 
-const mark = (kind: S['DiffLineKind']) => (kind === 'Added' ? '+' : kind === 'Removed' ? '−' : ' ')
+export interface DiffHunk {
+  oldStart: number
+  oldCount: number
+  newStart: number
+  newCount: number
+  lines: DiffLine[]
+}
+</script>
+
+<script setup lang="ts">
+defineProps<{ diff: { hunks: DiffHunk[] } }>()
+
+const mark = (kind: DiffLine['kind']) => (kind === 'Added' ? '+' : kind === 'Removed' ? '−' : ' ')
 </script>
 
 <template>
