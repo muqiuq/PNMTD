@@ -26,6 +26,10 @@ export default defineConfig({
     assetsInlineLimit: 0,
     chunkSizeWarningLimit: 1200,
   },
+  // Monaco's editor worker (docs/locations-knowledge-plan.md §5.3), bundled from PNMT itself and loaded
+  // from its own origin: the CSP's default-src 'self' covers it, no blob: worker is needed. ES modules,
+  // since the worker's code is split like the app's.
+  worker: { format: 'es' },
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.ts'],

@@ -1,0 +1,158 @@
+/*
+ * Crepe in PNMT's look (docs/locations-knowledge-plan.md §5.2): its common styles, without LaTeX's
+ * (KaTeX) and the AI feature's, and the frame theme's variables taken from base.css's tokens, light
+ * and dark. Crepe's own rules are all under .milkdown; the variables are set under .pnmt-md-editor,
+ * so nothing reaches the rest of the app.
+ */
+@import '@milkdown/crepe/theme/common/prosemirror.css';
+@import '@milkdown/crepe/theme/common/reset.css';
+@import '@milkdown/crepe/theme/common/block-edit.css';
+@import '@milkdown/crepe/theme/common/code-mirror.css';
+@import '@milkdown/crepe/theme/common/cursor.css';
+@import '@milkdown/crepe/theme/common/image-block.css';
+@import '@milkdown/crepe/theme/common/link-tooltip.css';
+@import '@milkdown/crepe/theme/common/list-item.css';
+@import '@milkdown/crepe/theme/common/placeholder.css';
+@import '@milkdown/crepe/theme/common/toolbar.css';
+@import '@milkdown/crepe/theme/common/table.css';
+@import '@milkdown/crepe/theme/common/top-bar.css';
+
+.pnmt-md-editor {
+  /* Code colours, for CodeMirror in Crepe's code blocks (crepeSetup.ts). */
+  --md-code-comment: var(--p-surface-500);
+  --md-code-keyword: var(--p-purple-700);
+  --md-code-string: var(--p-green-700);
+  --md-code-number: var(--p-orange-700);
+  --md-code-attr: var(--p-sky-700);
+  --md-code-title: var(--p-blue-700);
+  --md-code-deleted: var(--p-red-700);
+}
+
+:root.pnmt-dark .pnmt-md-editor {
+  --md-code-comment: var(--p-surface-400);
+  --md-code-keyword: var(--p-purple-300);
+  --md-code-string: var(--p-green-300);
+  --md-code-number: var(--p-orange-300);
+  --md-code-attr: var(--p-sky-300);
+  --md-code-title: var(--p-blue-300);
+  --md-code-deleted: var(--p-red-300);
+}
+
+.pnmt-md-editor .milkdown {
+  --crepe-color-background: var(--pnmt-panel);
+  --crepe-color-on-background: var(--pnmt-text);
+  --crepe-color-surface: var(--pnmt-panel);
+  --crepe-color-surface-low: var(--pnmt-bg);
+  --crepe-color-on-surface: var(--pnmt-text);
+  --crepe-color-on-surface-variant: var(--pnmt-muted);
+  --crepe-color-outline: var(--pnmt-border);
+  --crepe-color-primary: var(--p-primary-color);
+  --crepe-color-secondary: var(--p-highlight-background);
+  --crepe-color-on-secondary: var(--p-highlight-color);
+  --crepe-color-inverse: var(--p-surface-800);
+  --crepe-color-on-inverse: var(--p-surface-0);
+  --crepe-color-inline-code: var(--p-red-700);
+  --crepe-color-error: var(--pnmt-fail);
+  --crepe-color-hover: var(--p-content-hover-background);
+  --crepe-color-selected: var(--p-highlight-background);
+  --crepe-color-inline-area: var(--pnmt-bg);
+
+  --crepe-base-font-size: 15px;
+  --crepe-font-title: var(--pnmt-font);
+  --crepe-font-default: var(--pnmt-font);
+  --crepe-font-code: var(--pnmt-mono);
+
+  --crepe-shadow-1: 0 1px 3px rgb(15 23 42 / 0.12), 0 1px 2px rgb(15 23 42 / 0.2);
+  --crepe-shadow-2: 0 4px 12px rgb(15 23 42 / 0.14), 0 1px 3px rgb(15 23 42 / 0.2);
+}
+
+:root.pnmt-dark .pnmt-md-editor .milkdown {
+  --crepe-color-inline-code: var(--p-red-300);
+  --crepe-color-inverse: var(--p-surface-100);
+  --crepe-color-on-inverse: var(--p-surface-900);
+  --crepe-shadow-1: 0 1px 3px rgb(0 0 0 / 0.5), 0 0 0 1px var(--pnmt-border);
+  --crepe-shadow-2: 0 4px 12px rgb(0 0 0 / 0.55), 0 0 0 1px var(--pnmt-border);
+}
+
+/* The editor fills its box and scrolls inside; the top bar stays at its top (§5.9). */
+.pnmt-visual-editor {
+  height: 100%;
+  overflow: auto;
+}
+
+.pnmt-md-editor .milkdown {
+  min-height: 100%;
+}
+
+.pnmt-md-editor .milkdown .milkdown-top-bar {
+  border-bottom: 1px solid var(--pnmt-border);
+}
+
+/* Writing room: the block handle sits in the left margin. */
+.pnmt-md-editor .milkdown .ProseMirror {
+  padding: var(--pnmt-space-4) var(--pnmt-space-6) 4rem 56px;
+  max-width: 64rem;
+  line-height: 1.55;
+}
+
+/* Headings as MarkdownView shows them, so that what is written is what is read. */
+.pnmt-md-editor .milkdown .ProseMirror h1 {
+  font-size: 1.6em;
+}
+
+.pnmt-md-editor .milkdown .ProseMirror h2 {
+  font-size: 1.4em;
+}
+
+.pnmt-md-editor .milkdown .ProseMirror h3 {
+  font-size: 1.2em;
+}
+
+.pnmt-md-editor .milkdown .ProseMirror :is(h4, h5, h6) {
+  font-size: 1.05em;
+}
+
+.pnmt-md-editor .milkdown .ProseMirror :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--pnmt-font);
+  font-weight: 600;
+  margin-top: 1em;
+}
+
+/* A mermaid block's diagram under its code (crepeSetup.ts, §5.8). */
+.pnmt-md-editor .pnmt-crepe-diagram {
+  display: flex;
+  justify-content: center;
+  padding: var(--pnmt-space-2);
+  overflow-x: auto;
+}
+
+.pnmt-md-editor .pnmt-crepe-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.pnmt-md-editor .pnmt-crepe-diagram.failed {
+  display: block;
+  color: var(--pnmt-muted);
+}
+
+.pnmt-md-editor .pnmt-crepe-diagram.failed strong {
+  color: var(--pnmt-fail);
+}
+
+.pnmt-md-editor .pnmt-crepe-diagram.failed pre {
+  margin-top: var(--pnmt-space-1);
+  font-family: var(--pnmt-mono);
+  font-size: 0.857rem;
+  white-space: pre-wrap;
+}
+
+/* An upload in flight (crepeSetup.ts). */
+.pnmt-md-editor .pnmt-upload-placeholder {
+  display: inline-block;
+  padding: 0 var(--pnmt-space-2);
+  border: 1px dashed var(--pnmt-border);
+  border-radius: var(--p-border-radius-sm);
+  color: var(--pnmt-muted);
+  font-size: 0.9em;
+}
