@@ -28,9 +28,10 @@ const item = computed(() => props.server?.server)
     </div>
     <div class="cell">
       <span class="label">{{ item.platform === 'Linux' ? 'System' : 'Windows' }}</span>
-      <span class="value">{{ item.osCaption ?? '–' }}</span>
+      <span class="value">{{ (item.platform === 'Linux' ? item.distribution : null) ?? item.osCaption ?? '–' }}</span>
       <span class="muted small tag-line"
-        ><span>{{ server.osDisplayVersion ?? '' }} {{ item.osBuild }}</span>
+        ><span v-if="item.platform === 'Linux'" class="mono">{{ item.kernelRelease ?? item.osBuild }}</span
+        ><span v-else>{{ server.osDisplayVersion ?? '' }} {{ item.osBuild }}</span>
         <Tag v-if="!item.osSupported" value="not a supported version" severity="warn"
       /></span>
     </div>

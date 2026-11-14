@@ -39,14 +39,14 @@ test('the admin page, Add server and every tab of a server', async ({ page }) =>
   await shot(page, 'servers-add-windows')
   await page.getByRole('button', { name: 'Done' }).click()
 
-  // The platform comes first; a Linux token waits for the Linux agent's release.
+  // The platform comes first; a Linux token's one line is in e2e/linux.spec.ts.
   await page.getByRole('button', { name: 'Add server' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Linux' }).click()
   await page.getByRole('dialog').getByRole('combobox').click()
   await page.getByRole('option', { name: 'wiki', exact: true }).click()
   await page.getByRole('button', { name: 'Create token' }).click()
   await expect(page.getByLabel('Join token').first()).toHaveText(/^[a-z2-9]{4}-[a-z2-9]{4}$/)
-  await expect(page.getByRole('dialog')).toContainText("The Linux agent's install line comes with its release")
+  await expect(page.getByRole('dialog')).toContainText('What join will do')
   await page.getByRole('button', { name: 'Done' }).click()
   await page
     .getByRole('navigation', { name: 'Servers', exact: true })

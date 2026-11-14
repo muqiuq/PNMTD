@@ -55,12 +55,17 @@ import { useNodeActions } from './udp/useNodeActions'
 import AgentChangesTab from './agent/AgentChangesTab.vue'
 import AgentDiagnosticsTab from './agent/AgentDiagnosticsTab.vue'
 import AgentHardwareTab from './agent/AgentHardwareTab.vue'
-import AgentLoginsList from './agent/AgentLoginsList.vue'
 import AgentNetworkTab from './agent/AgentNetworkTab.vue'
 import AgentScriptsTab from './agent/AgentScriptsTab.vue'
 import AgentStatusStrip from './agent/AgentStatusStrip.vue'
 import AgentTab from './agent/AgentTab.vue'
 import { useAgentServer } from './agent/useAgentServer'
+import LinuxAccessTab from './linux/LinuxAccessTab.vue'
+import LinuxJournalTab from './linux/LinuxJournalTab.vue'
+import LinuxOverviewTab from './linux/LinuxOverviewTab.vue'
+import LinuxRemoteAccessTab from './linux/LinuxRemoteAccessTab.vue'
+import LinuxServicesTab from './linux/LinuxServicesTab.vue'
+import LinuxSshKeysTab from './linux/LinuxSshKeysTab.vue'
 import WindowsAccessTab from './windows/WindowsAccessTab.vue'
 import WindowsEventLogTab from './windows/WindowsEventLogTab.vue'
 import WindowsOverviewTab from './windows/WindowsOverviewTab.vue'
@@ -98,8 +103,8 @@ const heartbeat = computed(() => usesGracePeriod(sensor.value?.type))
 // --- a UDP node's subpages ------------------------------------------------------------------
 const isUdp = computed(() => sensor.value?.type === 'UDP_NODE' && !!sensor.value.udp)
 const isMikrotik = computed(() => sensor.value?.type === 'MIKROTIK' && !!sensor.value.mikrotik)
-// A server's pages (docs/windows-sensor-plan.md §10.2; docs/linux-sensor-plan.md §11.2): Windows' with the overview first; a
-// Linux server's shared tabs (views/sensors/agent/), with its own tabs to come with its agent (L3, L4).
+// A server's pages (docs/windows-sensor-plan.md §10.2; docs/linux-sensor-plan.md §11.2), the overview first: the shared tabs
+// (views/sensors/agent/), and each platform's own (views/sensors/windows/, views/sensors/linux/).
 const isWindows = computed(() => sensor.value?.type === 'WINDOWS')
 const isLinux = computed(() => sensor.value?.type === 'LINUX')
 const isAgent = computed(() => isWindows.value || isLinux.value)
@@ -107,8 +112,10 @@ const agent = useAgentServer(id, isAgent)
 const tab = computed(
   () =>
     ((isUdp.value || isMikrotik.value || isAgent.value) && typeof route.params.tab === 'string' && route.params.tab) ||
-    (isWindows.value ? 'overview' : 'events'),
+    (isAgent.value ? 'overview' : 'events'),
 )
+// The Access tab's key filter, from a key's "Logins with this key" (?key=SHA256:…).
+const keyQuery = computed(() => (typeof route.query.key === 'string' ? route.query.key : null))
 const agentTabs = computed(() => (isWindows.value ? windowsTabs.value : linuxTabs.value))
 const diagnosticsTab = (to: (t?: string) => object) => ({
   key: 'diagnostics',
@@ -127,13 +134,24 @@ const agentTab = (to: (t?: string) => object) => ({
 const linuxTabs = computed(() => {
   const to = (t?: string) => ({ name: 'sensor', params: { id: id.value, tab: t } })
   return [
-    { key: 'events', label: 'Events', icon: 'pi pi-list', to: to() },
+    { key: 'overview', label: 'Overview', icon: 'pi pi-server', to: to() },
+    { key: 'events', label: 'Events', icon: 'pi pi-list', to: to('events') },
     { key: 'hardware', label: 'Hardware', icon: 'pi pi-box', to: to('hardware') },
     { key: 'network', label: 'Network', icon: 'pi pi-sitemap', to: to('network') },
-    // Logins hold names and addresses: the User role.
-    ...(canWrite.value ? [{ key: 'access', label: 'Access', icon: 'pi pi-sign-in', to: to('access') }] : []),
+    { key: 'services', label: 'Services', icon: 'pi pi-cog', to: to('services') },
+    { key: 'remote-access', label: 'Remote access', icon: 'pi pi-desktop', to: to('remote-access') },
+    // Logins, the journal and the SSH keys hold names, addresses and key comments: the User role (§11.2).
+    ...(canWrite.value
+      ? [
+          { key: 'access', label: 'Access', icon: 'pi pi-sign-in', to: to('access') },
+          { key: 'journal', label: 'Journal', icon: 'pi pi-exclamation-triangle', to: to('journal') },
+          { key: 'ssh-keys', label: 'SSH keys', icon: 'pi pi-key', to: to('ssh-keys') },
+        ]
+      : []),
     diagnosticsTab(to),
     { key: 'changes', label: 'Changes', icon: 'pi pi-history', to: to('changes') },
+    // Bash scripts (§8): Admin.
+    ...(isAdmin.value ? [{ key: 'scripts', label: 'Scripts', icon: 'pi pi-code', to: to('scripts') }] : []),
     agentTab(to),
   ]
 })
@@ -425,10 +443,20 @@ const more = computed(() =>
           :server="agent.server.value"
           :can-write="canWrite"
         />
+        <LinuxOverviewTab
+          v-else-if="isLinux && tab === 'overview'"
+          :server="agent.server.value"
+          :can-write="canWrite"
+        />
         <AgentHardwareTab v-else-if="tab === 'hardware'" :server="agent.server.value" :can-write="canWrite" />
         <AgentNetworkTab v-else-if="tab === 'network'" :server="agent.server.value" :can-write="canWrite" />
         <WindowsServicesTab
           v-else-if="isWindows && tab === 'services'"
+          :server="agent.server.value"
+          :can-write="canWrite"
+        />
+        <LinuxServicesTab
+          v-else-if="isLinux && tab === 'services'"
           :server="agent.server.value"
           :can-write="canWrite"
         />
@@ -437,19 +465,40 @@ const more = computed(() =>
           :server="agent.server.value"
           :can-write="canWrite"
         />
+        <LinuxRemoteAccessTab
+          v-else-if="isLinux && tab === 'remote-access'"
+          :server="agent.server.value"
+          :can-write="canWrite"
+        />
         <WindowsAccessTab
           v-else-if="isWindows && tab === 'access' && canWrite"
           :server="agent.server.value"
           :can-write="canWrite"
         />
-        <AgentLoginsList v-else-if="tab === 'access' && canWrite" :server="agent.server.value" />
+        <LinuxAccessTab
+          v-else-if="isLinux && tab === 'access' && canWrite"
+          :server="agent.server.value"
+          :can-write="canWrite"
+          :key-fingerprint="keyQuery"
+        />
+        <LinuxJournalTab
+          v-else-if="isLinux && tab === 'journal' && canWrite"
+          :server="agent.server.value"
+          :can-write="canWrite"
+        />
+        <LinuxSshKeysTab
+          v-else-if="isLinux && tab === 'ssh-keys' && canWrite"
+          :server="agent.server.value"
+          :can-write="canWrite"
+          :is-admin="isAdmin"
+        />
         <WindowsEventLogTab
           v-else-if="isWindows && tab === 'event-log' && canWrite"
           :server="agent.server.value"
           :can-write="canWrite"
         />
         <AgentChangesTab v-else-if="tab === 'changes'" :server="agent.server.value" />
-        <AgentScriptsTab v-else-if="isWindows && tab === 'scripts' && isAdmin" :server="agent.server.value" />
+        <AgentScriptsTab v-else-if="tab === 'scripts' && isAdmin" :server="agent.server.value" />
         <WindowsWmiTab v-else-if="isWindows && tab === 'wmi' && isAdmin" :server="agent.server.value" />
         <AgentDiagnosticsTab
           v-else-if="tab === 'diagnostics'"

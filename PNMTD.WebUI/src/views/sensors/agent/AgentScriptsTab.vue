@@ -31,8 +31,15 @@ const runDialog = (name: string | null) => {
         PNMT).
       </template>
       <template v-else>
-        Scripts are not allowed on this server: root allows them in /etc/pnmt-agent/config.yaml there.
+        Scripts are not allowed on this server: root allows them in /etc/pnmt-agent/config.yaml there, with
+        <code>scripts: { enabled: true, run_as: [root] }</code> (the accounts they may run as).
       </template>
+    </Message>
+    <Message v-else-if="!windows && server.rights?.scripts" severity="secondary" :closable="false" size="small">
+      Allowed as {{ server.rights.scriptRunAs.join(', ') || 'no account yet' }}, for at most
+      {{ server.rights.maxScriptTimeoutMinutes }} minutes<template v-if="server.rights.allowedScriptHashes"
+        >, {{ server.rights.allowedScriptHashes }} scripts by hash only</template
+      >.
     </Message>
     <WindowsLocalScripts v-if="windows" :server="server" :allowed="allowed" @run="runDialog" />
     <div class="toolbar">

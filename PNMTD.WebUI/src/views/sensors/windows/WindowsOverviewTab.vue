@@ -5,8 +5,8 @@ import { computed } from 'vue'
 import type { S } from '@/api/resources'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { logKindLabel, logKindSeverity } from '@/views/admin/servers/agentFormat'
+import AgentSessions from '../agent/AgentSessions.vue'
 import WindowsOverviewExtras from './WindowsOverviewExtras.vue'
-import WindowsSessions from './WindowsSessions.vue'
 import WindowsSystemPanel from './WindowsSystemPanel.vue'
 
 /**
@@ -31,7 +31,7 @@ const sessions = computed(() => props.server.heartbeat?.sessions ?? [])
         <div class="panel-header">Logged on now</div>
         <div class="panel-body">
           <p v-if="!server.heartbeat" class="muted">No heartbeat yet.</p>
-          <WindowsSessions v-else :sessions="sessions" />
+          <AgentSessions v-else :sessions="sessions" />
         </div>
       </section>
       <WindowsSystemPanel :server="server" :can-write="canWrite" />

@@ -1,14 +1,30 @@
 <script setup lang="ts">
+import { useQuery } from '@tanstack/vue-query'
 import Message from 'primevue/message'
-import type { S } from '@/api/resources'
+import { computed } from 'vue'
+import { api, keys, type S } from '@/api/resources'
 import CopyField from '@/components/CopyField.vue'
+import LinuxInstallLine from './LinuxInstallLine.vue'
 
 /**
- * A new join token (docs/windows-sensor-plan.md §3.3; docs/linux-sensor-plan.md §11.1), shown once: the token in large type,
- * PNMT's URL and key, and for Windows the downloads with their SHA-256, the command line for unattended installs and what to
- * do on the server. Linux's install line comes with the Linux agent's release (L3).
+ * A new join token (docs/windows-sensor-plan.md §3.3; docs/linux-sensor-plan.md §4.4, §11.1), shown once: the token in large
+ * type, PNMT's URL and key; for Windows the downloads from PNMT and GitHub with their SHA-256, the command line for unattended
+ * installs and what to do on the server; for Linux the one line with its toggles and what join will do. PNMTD starts fetching
+ * the Linux files with the token, so their state is read again while one is being fetched.
  */
-defineProps<{ created: S['AgentJoinTokenCreated'] }>()
+const props = defineProps<{ created: S['AgentJoinTokenCreated'] }>()
+const linux = computed(() => props.created.item.platform === 'Linux')
+const fetching = (d: S['AgentDownloadLinks'] | undefined) => (d?.assets ?? []).some((a) => a.state === 'Fetching')
+const live = useQuery({
+  queryKey: computed(() => [...keys.agents, 'downloads', 'token', props.created.item.id]),
+  queryFn: api.agents.downloads,
+  initialData: () => props.created.downloads,
+  // Read again only while a file is being fetched.
+  staleTime: Infinity,
+  enabled: linux,
+  refetchInterval: (q) => (fetching(q.state.data) ? 3_000 : false),
+})
+const downloads = computed(() => live.data.value ?? props.created.downloads)
 </script>
 
 <template>
@@ -36,12 +52,31 @@ defineProps<{ created: S['AgentJoinTokenCreated'] }>()
         }}<template v-if="created.item.rejoin"> · re-join of {{ created.item.rejoin.name }}</template>
       </dd>
     </dl>
-    <template v-if="created.item.platform === 'Linux'">
+    <template v-if="linux">
       <h3>On the server</h3>
-      <Message severity="info" :closable="false" size="small">
-        The Linux agent's install line comes with its release: until then, keep the token for it, or revoke it on
-        <em>Join tokens</em>. A Windows agent can't use it.
-      </Message>
+      <p class="small">
+        One line, as root: it downloads the agent of PNMT {{ downloads.version }}, checks its SHA-256 before anything
+        runs, installs it and joins.
+      </p>
+      <LinuxInstallLine :downloads="downloads" :token="created.token" />
+      <h3>What join will do</h3>
+      <ul class="steps small">
+        <li>Check the machine (root, systemd, the distribution, a writable /var/lib), PNMT's URL and key.</li>
+        <li>Create the agent's keys and join with the token.</li>
+        <li>
+          Install to <code>/usr/local/sbin/pnmt-agent</code>, write the systemd unit and
+          <code>/etc/pnmt-agent/config.yaml</code>'s template with everything off (a file there is never touched), and
+          start the service.
+        </li>
+        <li>
+          Wait until it is connected (at most 60 s) and print both fingerprints: compare them with the agent log here.
+          Exit code 0 means connected.
+        </li>
+      </ul>
+      <p class="small muted">
+        PNMT may remove keys or run scripts only where root allows it in config.yaml; the server's Agent tab shows its
+        rights.
+      </p>
     </template>
     <template v-else>
       <h3>On the server</h3>
@@ -50,7 +85,8 @@ defineProps<{ created: S['AgentJoinTokenCreated'] }>()
           Download the agent of PNMT {{ created.downloads.version }}:
           <ul>
             <li v-for="f in created.downloads.files" :key="f.architecture">
-              <a :href="f.url" rel="noopener">{{ f.fileName }}</a>
+              <a :href="f.pnmtUrl ?? f.url" rel="noopener">{{ f.fileName }}</a>
+              <template v-if="f.pnmtUrl"> · <a :href="f.url" rel="noopener" class="small">GitHub</a></template>
               <div v-if="f.sha256" class="mono small muted">SHA-256 {{ f.sha256 }}</div>
             </li>
           </ul>
@@ -104,5 +140,9 @@ h3 {
 
 .small {
   font-size: 0.857rem;
+}
+
+p {
+  margin: 0;
 }
 </style>

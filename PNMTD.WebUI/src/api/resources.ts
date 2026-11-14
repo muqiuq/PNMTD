@@ -310,6 +310,8 @@ export const api = {
         remoteAccess?: boolean
         auditGaps?: boolean
         diagnosticsFailing?: boolean
+        securityUpdates?: boolean
+        keyRemoval?: boolean
         hostId?: Id
       },
     ) => call(client.GET('/api/v1/agents/servers', { params: { query } })),
@@ -320,6 +322,7 @@ export const api = {
         outcome?: S['LogonOutcome']
         admin?: boolean
         kind?: S['LogonKind']
+        keyFingerprint?: string
         user?: string
         source?: string
         from?: string
@@ -346,6 +349,9 @@ export const api = {
     agentLog: (query: ListQuery & { kind?: S['AgentLogKind']; sensorId?: Id }) =>
       call(client.GET('/api/v1/agents/agent-log', { params: { query } })),
     downloads: () => call(client.GET('/api/v1/agents/downloads')),
+    /** Fetch again (docs/linux-sensor-plan.md §4.4): the files named, or every one that isn't here and verified. */
+    fetchDownloads: (files: string[] | null = null) =>
+      call(client.POST('/api/v1/agents/downloads/fetch', { body: { files } })),
     // --- scripts (docs/windows-sensor-plan.md §7; docs/linux-sensor-plan.md §8): Admin --------------------------
     scripts: (query: ListQuery) => call(client.GET('/api/v1/agents/scripts', { params: { query } })),
     script: (id: Id) => call(client.GET('/api/v1/agents/scripts/{id}', { params: { path: { id } } })),
@@ -381,6 +387,15 @@ export const api = {
     updateRunAs: (id: Id, body: S['WindowsRunAsRequest']) =>
       call(client.PUT('/api/v1/windows/run-as/{id}', { params: { path: { id } }, body })),
     deleteRunAs: (id: Id) => call(client.DELETE('/api/v1/windows/run-as/{id}', { params: { path: { id } } })),
+  },
+
+  /**
+   * What is Linux's own (docs/linux-sensor-plan.md §10): a Linux server's typed sections (CanRead; access, journal and ssh-keys
+   * CanWrite).
+   */
+  linux: {
+    section: (id: Id, section: string) =>
+      call(client.GET('/api/v1/linux/servers/{id}/sections/{section}', { params: { path: { id, section } } })),
   },
 
   /** Diagnostics (docs/windows-sensor-plan.md §5): reading CanRead, changing Admin, Run now CanWrite. */

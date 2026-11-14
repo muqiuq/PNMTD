@@ -4,21 +4,28 @@ import type { S } from '@/api/resources'
 import RelativeTime from '@/components/RelativeTime.vue'
 
 /**
- * Who is logged on to a Windows server now (docs/windows-sensor-plan.md §4.7), on the overview and the Access tab: one row per
- * session with the account (its domain or computer muted), how (console or Remote Desktop) and whether it is active, since
- * when and from where; then the last 24 hours' logins.
+ * Who is logged on to a server now (docs/windows-sensor-plan.md §4.7; docs/linux-sensor-plan.md §5.2), on the overview and the
+ * Access tab of either platform: one row per session with the account (a Windows domain or computer muted), how (console,
+ * Remote Desktop, SSH, graphical) and its state, since when and from where; then the last 24 hours' logins. Linux adds the
+ * elevations (sudo, su) and the internet's scanners, counted apart.
  */
-defineProps<{ sessions: S['SessionInfo'][]; last24Hours?: S['AccessCounts'] | null }>()
+defineProps<{
+  sessions: S['SessionInfo'][]
+  last24Hours?: S['AccessCounts'] | null
+  elevations?: number | null
+  scanners?: number | null
+}>()
 
 const split = (user: string) => {
   const slash = user.lastIndexOf('\\')
   return slash < 0 ? { domain: '', name: user } : { domain: user.slice(0, slash + 1), name: user.slice(slash + 1) }
 }
 const kindLabel = (kind: string) =>
-  kind === 'Rdp' ? 'Remote Desktop' : kind === 'Console' ? 'console' : kind.toLowerCase()
-const kindIcon = (kind: string) => (kind === 'Rdp' ? 'pi pi-globe' : 'pi pi-desktop')
+  kind === 'Rdp' ? 'Remote Desktop' : kind.toLowerCase() === 'ssh' ? 'SSH' : kind.toLowerCase()
+const kindIcon = (kind: string) =>
+  kind === 'Rdp' || kind === 'Remote' ? 'pi pi-globe' : kind.toLowerCase() === 'ssh' ? 'pi pi-code' : 'pi pi-desktop'
 const stateSeverity = (state: string) =>
-  state === 'Active' ? 'success' : state === 'Disconnected' ? 'warn' : 'secondary'
+  state.toLowerCase() === 'active' ? 'success' : state === 'Disconnected' || state === 'closing' ? 'warn' : 'secondary'
 </script>
 
 <template>
@@ -59,6 +66,18 @@ const stateSeverity = (state: string) =>
       <div class="stat" :class="{ fail: last24Hours.lockouts > 0 }">
         <span class="value">{{ last24Hours.lockouts }}</span>
         <span class="muted small">lockouts</span>
+      </div>
+      <div v-if="elevations !== null && elevations !== undefined" class="stat">
+        <span class="value">{{ elevations }}</span>
+        <span class="muted small">sudo and su</span>
+      </div>
+      <div
+        v-if="scanners !== null && scanners !== undefined"
+        class="stat"
+        title="Failed logins for accounts that don't exist"
+      >
+        <span class="value">{{ scanners }}</span>
+        <span class="muted small">scanners</span>
       </div>
     </div>
   </div>
@@ -122,7 +141,7 @@ const stateSeverity = (state: string) =>
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
   gap: var(--pnmt-space-2);
 }
 

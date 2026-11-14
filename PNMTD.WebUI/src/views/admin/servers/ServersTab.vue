@@ -15,12 +15,22 @@ import { connection, platformIcon, platforms, uptime } from './agentFormat'
 
 /**
  * The fleet of both platforms (docs/windows-sensor-plan.md §10.1; docs/linux-sensor-plan.md §11.1): the platform, state,
- * host, OS, agent, connection, remote access, audit gaps and diagnostics, with filters. Add server makes a join token for an
+ * host, OS (for Linux the distribution and the kernel), agent, connection, remote access, audit gaps and diagnostics, Linux's
+ * pending security updates and whether its config.yaml allows key removal, with filters. Add server makes a join token for an
  * existing host.
  */
 const platform = ref<S['AgentPlatform'] | null>(null)
 const filter = ref<
-  '' | 'failing' | 'offline' | 'unsupported' | 'outdated' | 'remoteAccess' | 'auditGaps' | 'diagnosticsFailing'
+  | ''
+  | 'failing'
+  | 'offline'
+  | 'unsupported'
+  | 'outdated'
+  | 'remoteAccess'
+  | 'auditGaps'
+  | 'diagnosticsFailing'
+  | 'securityUpdates'
+  | 'keyRemoval'
 >('')
 const filters = computed(() => ({
   platform: platform.value ?? undefined,
@@ -31,6 +41,8 @@ const filters = computed(() => ({
   remoteAccess: filter.value === 'remoteAccess' ? true : undefined,
   auditGaps: filter.value === 'auditGaps' ? true : undefined,
   diagnosticsFailing: filter.value === 'diagnosticsFailing' ? true : undefined,
+  securityUpdates: filter.value === 'securityUpdates' ? true : undefined,
+  keyRemoval: filter.value === 'keyRemoval' ? true : undefined,
 }))
 type Server = S['AgentServerItem'] & { id: string }
 const table = useServerTable<Server>({
@@ -53,6 +65,8 @@ const choices = [
   { label: 'Remote access open', value: 'remoteAccess' },
   { label: 'Audit gaps', value: 'auditGaps' },
   { label: 'Diagnostics failing', value: 'diagnosticsFailing' },
+  { label: 'Security updates pending (Linux)', value: 'securityUpdates' },
+  { label: 'Key removal allowed (Linux)', value: 'keyRemoval' },
 ]
 const adding = ref(false)
 </script>
@@ -103,7 +117,13 @@ const adding = ref(false)
       </Column>
       <Column header="System" field="os" sortable style="width: 16rem">
         <template #body="{ data }">
-          {{ data.osCaption ?? '–' }} <span class="muted small mono">{{ data.osBuild }}</span>
+          <template v-if="data.platform === 'Linux'">
+            {{ data.distribution ?? data.osCaption ?? '–' }}
+            <div class="muted small mono">{{ data.kernelRelease ?? data.osBuild }}</div>
+          </template>
+          <template v-else>
+            {{ data.osCaption ?? '–' }} <span class="muted small mono">{{ data.osBuild }}</span>
+          </template>
           <div>
             <Tag v-if="!data.osSupported" value="not a supported version" severity="warn" class="small" />
           </div>
@@ -128,6 +148,13 @@ const adding = ref(false)
               :value="`${data.diagnosticsFailing} diagnostics failing`"
               severity="danger"
             />
+            <Tag
+              v-if="data.securityUpdates"
+              :value="`${data.securityUpdates} security updates`"
+              severity="danger"
+              icon="pi pi-shield"
+            />
+            <Tag v-if="data.keyRemovalAllowed" value="key removal allowed" severity="info" icon="pi pi-key" />
           </div>
         </template>
       </Column>
@@ -145,7 +172,10 @@ const adding = ref(false)
           >
           <Tag :value="connection(item).label" :severity="connection(item).severity" />
         </div>
-        <div class="small muted">{{ item.platform }} · {{ item.osCaption }} · {{ item.agentVersion }}</div>
+        <div class="small muted">
+          {{ item.platform }} · {{ item.distribution ?? item.osCaption }} · {{ item.agentVersion }}
+          <template v-if="item.securityUpdates"> · {{ item.securityUpdates }} security updates</template>
+        </div>
       </template>
     </ListTable>
     <AddServerDialog v-model:visible="adding" />

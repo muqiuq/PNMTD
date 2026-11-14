@@ -5,9 +5,9 @@ import { computed, toRef } from 'vue'
 import type { S } from '@/api/resources'
 import CopyField from '@/components/CopyField.vue'
 import AgentLoginsList from '../agent/AgentLoginsList.vue'
+import AgentSessions from '../agent/AgentSessions.vue'
 import SectionBar from '../agent/SectionBar.vue'
 import { useAgentSection } from '../agent/useAgentSection'
-import WindowsSessions from './WindowsSessions.vue'
 
 /**
  * Logins and connections (docs/windows-sensor-plan.md §4.7, §10.2): the sessions now, the audit policy's state with the
@@ -35,7 +35,7 @@ const access = computed(() => section.data.value?.access ?? null)
       <section class="panel">
         <div class="panel-header">Logged on now</div>
         <div class="panel-body">
-          <WindowsSessions :sessions="access.sessions" :last24-hours="access.last24Hours" />
+          <AgentSessions :sessions="access.sessions" :last24-hours="access.last24Hours" />
         </div>
       </section>
       <section class="panel">

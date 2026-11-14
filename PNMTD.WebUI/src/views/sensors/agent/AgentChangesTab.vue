@@ -26,7 +26,12 @@ const table = useServerTable<S['AgentChangeItem']>({
   pageSize: 50,
   filters,
 })
-const sections = ['system', 'hardware', 'network', 'services', 'remote-access', 'access']
+// Linux's SSH keys are compared too (§5.8); its journal is a log, not changes.
+const sections = computed(() =>
+  props.server.server.platform === 'Linux'
+    ? ['system', 'hardware', 'network', 'services', 'remote-access', 'access', 'ssh-keys']
+    : ['system', 'hardware', 'network', 'services', 'remote-access', 'access'],
+)
 const changedCode = computed(() => String(platformCodes(props.server.server.platform).changed))
 </script>
 

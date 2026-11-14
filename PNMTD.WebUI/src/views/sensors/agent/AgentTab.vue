@@ -3,24 +3,30 @@ import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Dialog from 'primevue/dialog'
 import InputNumber from 'primevue/inputnumber'
+import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import { computed, ref, watch } from 'vue'
 import { api, keys, type S } from '@/api/resources'
+import CopyField from '@/components/CopyField.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { useActions } from '@/composables/useActions'
 import AddServerDialog from '@/views/admin/servers/AddServerDialog.vue'
 import AgentLogTab from '@/views/admin/servers/AgentLogTab.vue'
 import { platformCodes, skewText } from '@/views/admin/servers/agentFormat'
+import { rightsRows, rightsSource } from '../linux/linuxFormat'
 
 /**
  * A server's agent (docs/windows-sensor-plan.md §10.2; docs/linux-sensor-plan.md §11.3), on either platform: the connection,
  * the version, both keys' fingerprints, the switches for its events with the platform's codes, Collect now, Send log,
- * Re-join and Revoke, and its log.
+ * Re-join and Revoke, and its log. Linux adds the switches for unregistered keys (465) and pending security updates (462), the
+ * rights its config.yaml gives PNMT with the line that would grant what is off, and `pnmt-agent update` when it is outdated.
  */
 const props = defineProps<{ server: S['AgentServerDetail']; canWrite: boolean; isAdmin: boolean }>()
 const id = () => props.server.server.sensorId
 const linux = computed(() => props.server.server.platform === 'Linux')
 const codes = computed(() => platformCodes(props.server.server.platform))
+const rights = computed(() => props.server.rights ?? null)
+const rows = computed(() => (rights.value ? rightsRows(rights.value) : []))
 
 const settings = ref<S['AgentServerSettings']>({ ...props.server.settings })
 watch(
@@ -94,6 +100,10 @@ const rejoining = ref(false)
             <dd>
               <span class="mono">{{ server.server.agentVersion }}</span> ({{ server.server.architecture }})
               <Tag v-if="server.server.outdated" :value="`PNMT is ${server.pnmtVersion}`" severity="warn" />
+              <template v-if="linux && server.server.outdated">
+                <div class="small muted">Update it on the server, as root; it checks PNMT's signature:</div>
+                <CopyField value="pnmt-agent update" label="Update line" />
+              </template>
             </dd>
             <dt>Joined</dt>
             <dd><RelativeTime :value="server.joinedAt" /></dd>
@@ -173,9 +183,30 @@ const rejoining = ref(false)
           <label class="check"
             ><Checkbox v-model="settings.criticalEvents" binary :disabled="!canWrite" /> {{ codes.critical }} for new
             {{
-              linux ? 'critical entries in the journal' : 'Critical entries in the System and Application logs'
+              linux
+                ? 'critical entries in the journal (emerg, alert, crit)'
+                : 'Critical entries in the System and Application logs'
             }}</label
           >
+          <template v-if="linux">
+            <label class="check"
+              ><Checkbox v-model="settings.keyAddedEvents" binary :disabled="!canWrite" /> {{ codes.keyAdded }} for SSH
+              keys added that aren't registered as active</label
+            >
+            <label class="check"
+              ><Checkbox v-model="settings.securityUpdateEvents" binary :disabled="!canWrite" />
+              {{ codes.securityUpdates }} for security updates pending longer than
+              <InputNumber
+                v-model="settings.securityUpdateDays"
+                :min="1"
+                :max="365"
+                size="small"
+                :disabled="!canWrite"
+                input-class="threshold"
+              />
+              days</label
+            >
+          </template>
           <small class="field-hint">Nothing is sent without a notification rule.</small>
           <div v-if="canWrite" class="form-actions">
             <Button type="submit" label="Save" size="small" :disabled="!dirty()" :loading="busy" />
@@ -184,6 +215,41 @@ const rejoining = ref(false)
       </section>
     </div>
     <div class="column">
+      <section v-if="linux" class="panel">
+        <div class="panel-header">
+          The rights the server gives PNMT
+          <Tag v-if="rights" :value="rightsSource(rights).label" :severity="rightsSource(rights).severity" />
+        </div>
+        <div class="panel-body content">
+          <p v-if="!rights" class="muted">Not announced yet: the agent names them when it connects.</p>
+          <template v-else>
+            <Message v-if="rights.source === 'refused'" severity="error" :closable="false" size="small">
+              /etc/pnmt-agent/config.yaml is refused<template v-if="rights.problem">: {{ rights.problem }}</template
+              >. It grants PNMT nothing until root fixes it.
+            </Message>
+            <Message v-else-if="rights.problem" severity="warn" :closable="false" size="small">{{
+              rights.problem
+            }}</Message>
+            <Message v-for="w in rights.warnings ?? []" :key="w" severity="warn" :closable="false" size="small">{{
+              w
+            }}</Message>
+            <dl class="facts">
+              <template v-for="r in rows" :key="r.label">
+                <dt>{{ r.label }}</dt>
+                <dd>
+                  <span :class="{ muted: !r.on }">{{ r.value }}</span>
+                  <CopyField v-if="r.grant" :value="r.grant" :label="`config.yaml for ${r.label}`" />
+                </dd>
+              </template>
+            </dl>
+            <small class="field-hint">
+              Only root grants rights, in /etc/pnmt-agent/config.yaml on the server: PNMT can't change them. The lines
+              show the key that grants what is off; the agent applies a change without a restart. Check the file with
+              <code>pnmt-agent config check</code>.
+            </small>
+          </template>
+        </div>
+      </section>
       <section v-if="isAdmin" class="panel">
         <div class="panel-header">Agent log</div>
         <div class="panel-body"><AgentLogTab :sensor-id="server.server.sensorId" /></div>
@@ -215,6 +281,20 @@ const rejoining = ref(false)
 
 .spacer {
   flex: 1;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-2);
+}
+
+.content p {
+  margin: 0;
+}
+
+.facts :deep(.copy-field) {
+  margin-top: var(--pnmt-space-1);
 }
 
 .actions {

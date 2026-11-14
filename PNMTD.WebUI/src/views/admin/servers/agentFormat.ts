@@ -23,12 +23,43 @@ export const platformIcon = (platform: S['AgentPlatform'] | null | undefined) =>
 
 /**
  * A platform's event codes (docs/linux-sensor-plan.md §9.2): Windows 25x and 45x, Linux 26x and 46x. The switches and the
- * changes name them.
+ * changes name them. Linux adds unregistered keys (465) and pending security updates (462).
  */
 export function platformCodes(platform: S['AgentPlatform'] | null | undefined) {
   return platform === 'Linux'
-    ? { changed: 263, adminLogin: 264, loginFailures: 464, critical: 463 }
-    : { changed: 253, adminLogin: 254, loginFailures: 454, critical: 453 }
+    ? { changed: 263, adminLogin: 264, loginFailures: 464, critical: 463, keyAdded: 465, securityUpdates: 462 }
+    : { changed: 253, adminLogin: 254, loginFailures: 454, critical: 453, keyAdded: null, securityUpdates: null }
+}
+
+/** A login's kind in words: "RDP", "SSH", "SFTP", "sudo", "explicit credentials". */
+export const logonKindLabel = (k: S['LogonKind']) =>
+  (
+    ({
+      Rdp: 'RDP',
+      RdpConnection: 'RDP connection',
+      Ssh: 'SSH',
+      Sftp: 'SFTP',
+      WinRm: 'WinRM',
+      Explicit: 'explicit credentials',
+    }) as Record<string, string>
+  )[k] ?? k.toLowerCase()
+
+/** The kinds of login each platform records (docs/windows-sensor-plan.md §4.7; docs/linux-sensor-plan.md §5.6). */
+export const logonKinds: Record<S['AgentPlatform'], S['LogonKind'][]> = {
+  Windows: [
+    'Console',
+    'Rdp',
+    'RdpConnection',
+    'Ssh',
+    'WinRm',
+    'Network',
+    'Cached',
+    'Unlock',
+    'Explicit',
+    'Batch',
+    'Lockout',
+  ],
+  Linux: ['Ssh', 'Sftp', 'Console', 'Sudo', 'Su', 'Lockout'],
 }
 
 export const tokenStateSeverity = (state: S['AgentJoinTokenState']): TagSeverity =>

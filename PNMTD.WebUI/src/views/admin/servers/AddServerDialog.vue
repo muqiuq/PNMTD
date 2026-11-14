@@ -67,7 +67,7 @@ async function create() {
     v-model:visible="visible"
     :header="rejoin ? `Re-join ${rejoin.name}` : 'Add server'"
     modal
-    :style="{ width: '36rem' }"
+    :style="{ width: created?.item.platform === 'Linux' ? '52rem' : '36rem' }"
     :breakpoints="{ '640px': '95vw' }"
   >
     <TokenCreated v-if="created" :created="created" />
