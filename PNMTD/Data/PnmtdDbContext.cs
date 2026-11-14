@@ -147,6 +147,8 @@ namespace PNMTD.Data
         public DbSet<AvailabilityDayEntity> AvailabilityDays { get; set; }
         public DbSet<AvailabilitySettingsEntity> AvailabilitySettings { get; set; }
         public DbSet<CookieSettingEntity> CookieSettings { get; set; }
+        public DbSet<CookieDecisionEntity> CookieDecisions { get; set; }
+        public DbSet<CookieInstructionEntity> CookieInstructions { get; set; }
         public DbSet<CookieRuntimeEntity> CookieRuntime { get; set; }
         public DbSet<CookieCaseEntity> CookieCases { get; set; }
         public DbSet<CookieCaseEntryEntity> CookieCaseEntries { get; set; }
@@ -666,6 +668,15 @@ namespace PNMTD.Data
         private static void ConfigureCookie(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<CookieSettingEntity>().HasIndex(s => new { s.Section, s.Version }).IsUnique();
+            // Package nine point five (docs/cookie-plan.md §21.2): the decision log, and mute, suppress and instructions.
+            modelBuilder.Entity<CookieDecisionEntity>(e =>
+            {
+                e.HasOne<CookieCaseEntity>().WithMany().HasForeignKey(x => x.CaseId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(x => x.At);
+                e.HasIndex(x => new { x.CaseId, x.Kind, x.At });
+                e.HasIndex(x => x.InboxDecisionId);
+            });
+            modelBuilder.Entity<CookieInstructionEntity>().HasIndex(x => new { x.Confirmed, x.EndedAt, x.Until });
             modelBuilder.Entity<CookieRuntimeEntity>(e =>
             {
                 e.Property(r => r.State).HasConversion<string>().HasMaxLength(16);

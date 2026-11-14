@@ -26,6 +26,12 @@ public sealed record ModelTurn(
     decimal Cost,
     string? Provider);
 
+/// <summary>
+/// Another model than Cookie's for a call (docs/cookie-plan.md §21.1): Seraph's, or one of the big brother's. Its providers in
+/// order, its minimum quantisation (none for the big brother's natively 4-bit primary), and the role in the request log.
+/// </summary>
+public sealed record ModelChoice(string Model, string Providers, string? MinQuantization, AiRole Role);
+
 /// <summary>Cookie's budget is spent for the month (§19.1): Cookie pauses until the next.</summary>
 public sealed class CookieBudgetException(decimal spent, decimal limit) : Exception($"Cookie's budget is spent: {spent:0.00} of {limit:0.00} USD this month.");
 
@@ -41,6 +47,9 @@ public sealed class CookieModel(IHttpClientFactory http, IOptionsMonitor<AiOptio
 {
     public const string PurposePrefix = "cookie.";
 
+    /// <summary>The big brother's calls: under cookie.* for package one's budget, with a budget of their own (§15.5).</summary>
+    public const string BigBrotherPurpose = "cookie.bigbrother";
+
     public static readonly string[] AtLeastFp8 = ["fp8", "fp16", "bf16", "fp32"];
 
     public async Task<decimal> BudgetLimitAsync(CancellationToken ct) =>
@@ -52,7 +61,17 @@ public sealed class CookieModel(IHttpClientFactory http, IOptionsMonitor<AiOptio
         var today = DateOnly.FromDateTime(Clock.LocalNow);
         var first = new DateOnly(today.Year, today.Month, 1);
         await using var db = await dbs.CreateDbContextAsync(ct);
-        return await db.AiSpending.Where(s => s.Day >= first && s.Purpose.StartsWith(PurposePrefix)).SumAsync(s => (decimal?)s.Cost, ct) ?? 0m;
+        return await db.AiSpending.Where(s => s.Day >= first && s.Purpose.StartsWith(PurposePrefix) && !s.Purpose.StartsWith(BigBrotherPurpose))
+            .SumAsync(s => (decimal?)s.Cost, ct) ?? 0m;
+    }
+
+    /// <summary>What the big brother spent this calendar month (§15.5).</summary>
+    public async Task<decimal> BigBrotherSpentAsync(CancellationToken ct)
+    {
+        var today = DateOnly.FromDateTime(Clock.LocalNow);
+        var first = new DateOnly(today.Year, today.Month, 1);
+        await using var db = await dbs.CreateDbContextAsync(ct);
+        return await db.AiSpending.Where(s => s.Day >= first && s.Purpose.StartsWith(BigBrotherPurpose)).SumAsync(s => (decimal?)s.Cost, ct) ?? 0m;
     }
 
     public async Task EnsureBudgetAsync(CancellationToken ct)
@@ -69,17 +88,29 @@ public sealed class CookieModel(IHttpClientFactory http, IOptionsMonitor<AiOptio
     /// is only used without tools. <paramref name="provider"/> keeps the round on the provider that answered first.
     /// </summary>
     public async Task<ModelTurn> CompleteAsync(string purpose, JsonArray messages, JsonArray? tools, (string Name, JsonObject Schema)? schema, string effort,
-        string? provider, int maxTokens, CancellationToken ct)
+        string? provider, int maxTokens, CancellationToken ct, ModelChoice? choice = null)
     {
         var o = ai.CurrentValue;
         if (!o.Usable)
         {
             throw new AiNotConfiguredException("AI is off or has no key: Ai__Enabled=true and Ai__ApiKey.");
         }
-        await EnsureBudgetAsync(ct);
+        var bigBrother = (PurposePrefix + purpose).StartsWith(BigBrotherPurpose, StringComparison.Ordinal);
+        if (bigBrother)
+        {
+            var limit = options.CurrentValue.BigBrother.BudgetUsd;
+            if (limit > 0 && await BigBrotherSpentAsync(ct) is var spentByBrother && spentByBrother >= limit)
+            {
+                throw new CookieBudgetException(spentByBrother, limit);
+            }
+        }
+        else
+        {
+            await EnsureBudgetAsync(ct);
+        }
         var models = await settings.GetAsync<ModelSettings>(ct);
         var c = options.CurrentValue;
-        var model = string.IsNullOrWhiteSpace(models.Model) ? c.Model : models.Model.Trim();
+        var model = choice?.Model ?? (string.IsNullOrWhiteSpace(models.Model) ? c.Model : models.Model.Trim());
         var body = new JsonObject
         {
             ["model"] = model,
@@ -102,10 +133,13 @@ public sealed class CookieModel(IHttpClientFactory http, IOptionsMonitor<AiOptio
         }
         if (o.IsOpenRouter)
         {
-            body["provider"] = Provider(c, models, provider);
+            body["provider"] = choice is null ? Provider(c, models, provider) : Provider(c, choice.Providers, choice.MinQuantization, provider);
         }
         var requestText = body.ToJsonString();
-        var entry = new AiRequestEntity { Purpose = PurposePrefix + purpose, Attempt = 1, Role = AiRole.Main, ModelAsked = model, PromptVersion = "cookie-1" };
+        var entry = new AiRequestEntity
+        {
+            Purpose = PurposePrefix + purpose, Attempt = 1, Role = choice?.Role ?? AiRole.Main, ModelAsked = model, PromptVersion = "cookie-1",
+        };
         var watch = Stopwatch.StartNew();
         string? responseText = null;
         try
@@ -152,10 +186,12 @@ public sealed class CookieModel(IHttpClientFactory http, IOptionsMonitor<AiOptio
     }
 
     /// <summary>OpenRouter's provider preferences (§14.3): the order, sticky within a round; ZDR; fp8 or better; the schema honoured.</summary>
-    public static JsonObject Provider(CookieOptions c, ModelSettings models, string? sticky)
+    public static JsonObject Provider(CookieOptions c, ModelSettings models, string? sticky) =>
+        Provider(c, string.IsNullOrWhiteSpace(models.Providers) ? c.Providers : models.Providers, c.MinQuantization, sticky);
+
+    public static JsonObject Provider(CookieOptions c, string providers, string? minQuantization, string? sticky)
     {
-        var order = (string.IsNullOrWhiteSpace(models.Providers) ? c.Providers : models.Providers)
-            .Split([',', ' ', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        var order = providers.Split([',', ' ', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
         if (sticky is not null)
         {
             order.RemoveAll(p => string.Equals(p, sticky, StringComparison.OrdinalIgnoreCase));
@@ -170,7 +206,7 @@ public sealed class CookieModel(IHttpClientFactory http, IOptionsMonitor<AiOptio
         {
             provider["zdr"] = true;
         }
-        if (string.Equals(c.MinQuantization, "fp8", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(minQuantization, "fp8", StringComparison.OrdinalIgnoreCase))
         {
             provider["quantizations"] = new JsonArray([.. AtLeastFp8.Select(q => (JsonNode)q)]);
         }

@@ -143,6 +143,11 @@ public static class AuditEvents
     public const string CookieCaseCommented = "CookieCaseCommented";
     public const string CookieCaseStopped = "CookieCaseStopped";
     public const string CookieCaseGoOn = "CookieCaseGoOn";
+    public const string CookieInstructionCreated = "CookieInstructionCreated";
+    public const string CookieInstructionConfirmed = "CookieInstructionConfirmed";
+    public const string CookieInstructionEnded = "CookieInstructionEnded";
+    public const string CookieDecisionRated = "CookieDecisionRated";
+    public const string CookieBigBrotherAsked = "CookieBigBrotherAsked";
 
     // The person and the availability plan (docs/cookie-plan.md §8.1, §8.2).
     public const string ContactChanged = "ContactChanged";
@@ -344,7 +349,9 @@ public static class AuditCatalog
         Add(AuditCategory.Cookie, null, AuditEvents.CookieSettingsChanged, AuditEvents.CookieSettingsRolledBack, AuditEvents.CookieStarted,
             AuditEvents.CookieStopped, AuditEvents.CookieRunRequested);
         Add(AuditCategory.Cookie, AuditTargets.CookieCase, AuditEvents.CookieTicketCreated, AuditEvents.CookieNoteAdded, AuditEvents.CookieMessageSent,
-            AuditEvents.CookieHeldBackSent, AuditEvents.CookieCaseCommented, AuditEvents.CookieCaseStopped, AuditEvents.CookieCaseGoOn);
+            AuditEvents.CookieHeldBackSent, AuditEvents.CookieCaseCommented, AuditEvents.CookieCaseStopped, AuditEvents.CookieCaseGoOn, AuditEvents.CookieDecisionRated,
+            AuditEvents.CookieBigBrotherAsked);
+        Add(AuditCategory.Cookie, null, AuditEvents.CookieInstructionCreated, AuditEvents.CookieInstructionConfirmed, AuditEvents.CookieInstructionEnded);
         Add(AuditCategory.Users, AuditTargets.User, AuditEvents.ContactChanged, AuditEvents.ContactTested);
         Add(AuditCategory.Availability, null, AuditEvents.AvailabilityChanged, AuditEvents.AvailabilityFilled, AuditEvents.AvailabilityPeopleChanged,
             AuditEvents.AvailabilitySettingsChanged);

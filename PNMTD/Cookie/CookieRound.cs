@@ -64,6 +64,21 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             toolCalls += replies.ToolCalls;
             cost += replies.Cost;
 
+            // 0b. The AI every time mails (§12, §21.1), with Cookie's group's right to read mails.
+            var mailsMore = false;
+            if (rights.Has(Auth.Rights.Area.Mail, Auth.Rights.Level.Read))
+            {
+                var mails = await services.GetRequiredService<CookieMail>().RunAsync(round.Id, rights, p, models.TriageEffort,
+                    (title, body) => trace.Add(null, "mail", title, body, ["Mail"]), ct);
+                calls += mails.Calls;
+                cost += mails.Cost;
+                mailsMore = mails.More;
+            }
+            else if (await db.MailLogs.AnyAsync(m => m.AiState == MailAiState.Cookie && !m.Processed, ct))
+            {
+                trace.Add(null, "mail", "Mails wait", "AI every time mails wait: Cookie's group needs Mail: Read.", ["Mail"]);
+            }
+
             // 1. The brief: open cases Cookie may see, those that changed or are due in full, the rest as one line each.
             var visible = (await db.CookieCases.Where(c => c.Open && c.Kind != CookieCaseKind.Request).ToListAsync(ct))
                 .Where(c => CookieAccess.CanSee(rights, c.Areas)).ToList();
@@ -75,7 +90,7 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 .GroupBy(d => d.CaseId).ToDictionary(g => g.Key, g => g.OrderBy(d => d.DueAt).First());
             var since = runtime.LastRoundAt ?? DateTime.MinValue;
             var soon = now.AddHours(1);
-            var focus = open.Where(c => c.ChangedAt > since || c.CookieNoteAt is null || (due.TryGetValue(c.Id, out var d) && d.DueAt <= soon))
+            var focus = open.Where(c => c.ChangedAt > since || c.CookieNoteAt is null || c.BigBrotherAskedAt is not null || (due.TryGetValue(c.Id, out var d) && d.DueAt <= soon))
                 .OrderByDescending(c => c.Importance).ThenByDescending(c => c.ChangedAt).Take(25).ToList();
             var hash = Hash(string.Join("\n", visible.OrderBy(c => c.Id).Select(c => $"{c.Id}|{c.ChangedAt:O}|{c.StoppedAt:O}|{(due.TryGetValue(c.Id, out var d) ? d.Key : "")}"))
                 + $"|{runtime.CodeStatus}|{runtime.CodeReason}");
@@ -88,7 +103,7 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             {
                 // Nothing changed: no call, and Cookie's status stays as it was (§3.3).
                 runtime.CookieStatusAt = now;
-                return await EndAsync(db, round, runtime, replies.Count > 0 ? "replied" : "quiet", 0, calls, toolCalls, cost, replies.More, ct);
+                return await EndAsync(db, round, runtime, replies.Count > 0 ? "replied" : "quiet", 0, calls, toolCalls, cost, replies.More || mailsMore, ct);
             }
 
             // 2. Screening (§4.2, §13.1): Jev on the outside text the brief carries; flagged, every message is withheld this round.
@@ -143,11 +158,19 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             var triage = Parse<TriageAnswer>(triageTurn);
             var known = open.ToDictionary(c => c.Id.ToString(), c => c, StringComparer.OrdinalIgnoreCase);
             var chosen = triage.Cases.Where(x => known.ContainsKey(x.Id)).DistinctBy(x => x.Id.ToLowerInvariant()).Take(models.MaxCasesPerRound).ToList();
+            // A case a person asked the big brother for is worked in any case (§15.2).
+            chosen.AddRange(open.Where(c => c.BigBrotherAskedAt is not null && chosen.All(x => !string.Equals(x.Id, c.Id.ToString(), StringComparison.OrdinalIgnoreCase)))
+                .Take(2).Select(c => new TriageCase(c.Id.ToString(), $"{c.BigBrotherAskedBy} asked the big brother.")));
             trace.Add(null, "triage", $"Triage: {triage.State}, {chosen.Count} of {open.Count} cases", p.Mask(Reasoned(triageTurn,
                 $"{triage.Reason}\n\n{string.Join("\n", chosen.Select(x => $"- {known[x.Id].Title}: {x.Why}"))}")),
                 [.. open.SelectMany(c => c.Areas).Distinct()]);
 
-            // 3. Work, case by case, with the read tools; each ends in a note.
+            // 3. Work, case by case, with the read tools; each ends in a note, and the proposals it needs (§21.1).
+            var acting = await brain.ActingAsync(ct);
+            var executor = services.GetRequiredService<CookieExecutor>();
+            var bigBrother = services.GetRequiredService<BigBrother>();
+            var missed = (await db.CookieDuties.AsNoTracking().Where(d => openIds.Contains(d.CaseId) && d.DueAt <= now
+                    && (d.Kind == CookieDutyKind.FirstAnswerMissed || d.Kind == CookieDutyKind.UpdateMissed)).Select(d => d.CaseId).ToListAsync(ct)).ToHashSet();
             var tools = CookieTools.For(rights);
             var definitions = CookieTools.Definitions(tools);
             var worked = 0;
@@ -173,9 +196,16 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 var instructions = await brain.InstructionsAsync(c, kind, members, manyAtOnce, caseValues, ct);
                 var context = new ToolContext(services, rights, p);
                 context.Areas.UnionWith(c.Areas);
+                var people = await PeopleAsync(db, c, p, ct);
+                // The big brother (§15.2): code offers the case when it matters and nobody took care of it for a working day.
+                var offered = BigBrother.Offered(c, runtime, missed.Contains(c.Id), calendar, now);
+                var caseText = $"The case:\n{CookieBrain.Json(Summary(c, due.GetValueOrDefault(c.Id), p, full: true, withheld))}\n\n" +
+                    $"PeopleYouMayAddress:\n{CookieBrain.Json(people)}" +
+                    (offered ? "\n\nThis case matters and nobody has taken care of it for a working day: if something is broken that needs a technical " +
+                        "fix nobody has found, set NeedsFixing, and say in your note what needs fixing." : "");
                 var work = new JsonArray(
-                    Message("system", $"{system}\n\n{instructions}\n\n{CookieBrain.WatchOnly}"),
-                    Message("user", $"The case:\n{CookieBrain.Json(Summary(c, due.GetValueOrDefault(c.Id), p, full: true, withheld))}\n\nWhy it needs attention now: " +
+                    Message("system", $"{system}\n\n{instructions}\n\n{acting}"),
+                    Message("user", $"{caseText}\n\nWhy it needs attention now: " +
                         $"{p.Mask(item.Why)}\n\nLook at what you need with your tools. When you have looked enough, say in a few sentences what you found, " +
                         "without calling more tools."));
                 string findings = "";
@@ -213,10 +243,10 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 }
 
                 // The note: a final call with a strict schema and no tools (§14.3), on what was found.
-                var noteMessages = new JsonArray(Message("system", $"{system}\n\n{instructions}\n\n{CookieBrain.WatchOnly}"),
-                    Message("user", $"The case:\n{CookieBrain.Json(Summary(c, due.GetValueOrDefault(c.Id), p, full: true, withheld))}"),
+                var noteMessages = new JsonArray(Message("system", $"{system}\n\n{instructions}\n\n{acting}"),
+                    Message("user", caseText),
                     Message("assistant", string.IsNullOrWhiteSpace(findings) ? "(I found nothing more.)" : findings),
-                    Message("user", "Now write your case note."));
+                    Message("user", "Now write your case note, with what you propose to do now, if anything."));
                 var noteTurn = await model.CompleteAsync("note", noteMessages, null, (nameof(CaseNoteAnswer), AiJson.SchemaFor<CaseNoteAnswer>()),
                     models.WorkEffort, provider, 3000, ct);
                 calls++;
@@ -229,6 +259,38 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 c.CookieNoteAreas = [.. context.Areas.Order()];
                 CaseBook.Entry(db, c.Id, Clock.UtcNow, "note", text, "cookie");
                 trace.Add(c.Id, "note", $"Note: {c.Title}", text, c.CookieNoteAreas);
+                await db.SaveChangesAsync(ct);
+
+                // The proposals (§21.1): each through the executor; Seraph's "revise" gets one retry of the note call.
+                foreach (var proposed in (note.Proposals ?? []).Take(3))
+                {
+                    async Task<ProposedAction?> Retry(string reason, CancellationToken token)
+                    {
+                        var again = new JsonArray([.. noteMessages.Select(m => m!.DeepClone())]);
+                        again.Add(Message("assistant", noteTurn.Content ?? ""));
+                        again.Add(Message("user", $"Seraph, the reviewer, sent your {ProposedAction.Name(proposed.Action)} proposal back: {reason}\n" +
+                            "Write your case note again, with that proposal corrected, or without it if it shouldn't happen."));
+                        var turn = await model.CompleteAsync("note", again, null, (nameof(CaseNoteAnswer), AiJson.SchemaFor<CaseNoteAnswer>()),
+                            models.WorkEffort, provider, 3000, token);
+                        calls++;
+                        cost += turn.Cost;
+                        return Parse<CaseNoteAnswer>(turn).Proposals?.FirstOrDefault(x => x.Action == proposed.Action);
+                    }
+                    var decision = await executor.HandleAsync(new ActionRequest(new CookieProposal(proposed), c, round.Id, rights, p, context.Areas, Retry), ct);
+                    trace.Add(c.Id, "proposal", $"{decision.Title}: {decision.Outcome}",
+                        $"{p.Mask(proposed.Text)}\n\nWhy: {p.Mask(proposed.Reason)} ({proposed.Confidence:0.00})" +
+                        (decision.Verdict is null ? "" : $"\nSeraph: {decision.Verdict}, {decision.VerdictReason}") +
+                        (decision.Detail is null ? "" : $"\n{decision.Detail}"), c.CookieNoteAreas);
+                }
+                if ((offered && note.NeedsFixing) || c.BigBrotherAskedAt is not null)
+                {
+                    var asked = c.BigBrotherAskedBy;
+                    var solved = await bigBrother.SolveAsync(c, asked is null ? note.Note : $"{asked} asked for a solution. Cookie's note: {note.Note}", round.Id, rights, p,
+                        asked, ct);
+                    trace.Add(c.Id, "big-brother", $"Big brother: {solved.Outcome}{(solved.Model is null ? "" : $" ({solved.Model})")}", solved.Detail ?? "",
+                        c.CookieNoteAreas);
+                    await db.Entry(c).ReloadAsync(ct);
+                }
                 worked++;
                 await db.SaveChangesAsync(ct);
             }
@@ -255,7 +317,7 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             runtime.CookieStatusAt = Clock.UtcNow;
             runtime.BriefHash = hash;
             trace.Add(null, "status", $"Status: {triage.State}", runtime.CookieReason ?? "", [.. chosen.SelectMany(x => known[x.Id].Areas).Distinct()]);
-            var more = triage.Cases.Count > chosen.Count || replies.More;
+            var more = triage.Cases.Count > chosen.Count || replies.More || mailsMore;
             return await EndAsync(db, round, runtime, worked > 0 ? "worked" : "triaged", worked, calls, toolCalls, cost, more, ct);
         }
         catch (Exception e) when (e is not OperationCanceledException || !ct.IsCancellationRequested)
@@ -306,6 +368,8 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             db.CookieCases.Add(c);
             CaseBook.Entry(db, c.Id, now, "opened", CaseBook.Cut(message.Text, 2000)!, "person", asker?.DisplayName);
             string reply;
+            var from = "cookie";
+            Guid? draftId = null;
             var context = new ToolContext(services, rights, p);
             var o = ai.CurrentValue;
             var flagged = false;
@@ -326,6 +390,25 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                     "Ask me again in your own words." : "This account is no longer active.";
                 trace.Add(c.Id, "screen", "Jev flagged the message", "", []);
             }
+            else if (message.To == "seraph")
+            {
+                // Seraph explains itself (§10.2), from the decisions the asker may see; it can't act.
+                from = "seraph";
+                var since = now.AddDays(-14);
+                var recent = (await db.CookieDecisions.AsNoTracking().Where(d => d.At >= since).OrderByDescending(d => d.Id).Take(200).ToListAsync(ct))
+                    .Where(d => CookieAccess.CanSee(askerRights, d.Areas)).Take(40)
+                    .Select(d => new { d.Id, d.At, d.Kind, Title = p.Mask(d.Title), d.Outcome, d.Verdict, Reason = p.Mask(d.VerdictReason), Detail = p.Mask(d.Detail) });
+                try
+                {
+                    reply = await services.GetRequiredService<Seraph>().ReplyAsync(context.Untrusted("message", message.Text, 4000), CookieBrain.Json(recent), ct);
+                    calls++;
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    reply = $"Seraph couldn't answer: {e.Message}";
+                }
+                context.Areas.Add("Cookie");
+            }
             else
             {
                 var thread = await db.CookieMessages.AsNoTracking().Where(m => m.UserId == message.UserId && m.Id < message.Id).OrderByDescending(m => m.Id)
@@ -338,8 +421,13 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 };
                 var instructions = CookiePrompts.Fill(await brain.CaseInstructionAsync("request", ct), requestValues);
                 var allowed = CookieTools.Definitions(CookieTools.For(rights));
-                var work = new JsonArray(Message("system", $"{system}\n\n{instructions}\n\n{CookieBrain.WatchOnly} Mute, away and suppress come with a later " +
-                    "version of you: if asked for one, say so."));
+                var canInstruct = askerRights.Has(Auth.Rights.Area.Cookie, Auth.Rights.Level.Instruct);
+                var work = new JsonArray(Message("system", $"{system}\n\n{instructions}\n\nYou don't act from the chat: for anything the person wants " +
+                    "done, say what would happen and who could do it. " + (canInstruct
+                        ? "This person may give instructions: if they give one (mute something, suppress a kind of message, a note on how you should " +
+                          "work for a while), look up the ids you need with your tools, and say briefly that you filled it in below for them to confirm."
+                        : "This person can't give instructions (that needs Cookie: Instruct); if they try, say so.") +
+                    " Who is away is in the availability plan, not an instruction."));
                 foreach (var m in thread)
                 {
                     work.Add(Message(m.From == "cookie" ? "assistant" : "user", m.From == "cookie" ? p.Mask(m.Text) : context.Untrusted("message", m.Text, 2000)));
@@ -378,12 +466,38 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 {
                     reply = "I looked, but couldn't put an answer together. Try asking more narrowly.";
                 }
+                else if (canInstruct)
+                {
+                    // An instruction becomes a draft the person confirms in PNMT's UI (§10.3); code checks every part of it.
+                    work.Add(Message("assistant", reply));
+                    work.Add(Message("user", "Did the person give an instruction in their last message? Fill it in, or say it isn't one."));
+                    var turn = await model.CompleteAsync("instruction", work, null, (nameof(InstructionAnswer), AiJson.SchemaFor<InstructionAnswer>()), models.TriageEffort,
+                        null, 1000, ct);
+                    calls++;
+                    cost += turn.Cost;
+                    var draft = Parse<InstructionAnswer>(turn);
+                    if (draft.IsInstruction)
+                    {
+                        try
+                        {
+                            var created = await services.GetRequiredService<Instructions>().CreateAsync(new InstructionDraft(draft.Kind.Trim().ToLowerInvariant(),
+                                draft.Scope.Trim().ToLowerInvariant(), string.IsNullOrWhiteSpace(draft.Value) ? null : draft.Value.Trim(), p.Unmask(draft.Label),
+                                p.Unmask(draft.Text), now.AddDays(Math.Clamp(draft.Days, 1, Instructions.MaxDays))), confirmed: false, "chat", message.UserId,
+                                asker.DisplayName, ct);
+                            draftId = created.Id;
+                        }
+                        catch (Api.ApiException e)
+                        {
+                            reply += $"\n\n(I couldn't fill in the instruction: {string.Join(" ", e.Errors?.SelectMany(x => x.Value) ?? [e.Message])})";
+                        }
+                    }
+                }
             }
             var restored = p.Unmask(reply.Trim());
             db.CookieMessages.Add(new CookieMessageEntity
             {
-                UserId = message.UserId, At = Clock.UtcNow, From = "cookie", Text = CaseBook.Cut(restored, 8000)!, Answered = true, CaseId = c.Id,
-                RoundId = trace.RoundId, Areas = [.. context.Areas.Order()],
+                UserId = message.UserId, At = Clock.UtcNow, From = from, Text = CaseBook.Cut(restored, 8000)!, Answered = true, CaseId = c.Id,
+                RoundId = trace.RoundId, Areas = [.. context.Areas.Order()], To = "person", InstructionId = draftId,
             });
             message.Answered = true;
             message.CaseId = c.Id;
@@ -434,6 +548,58 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
     }
 
     /// <summary>A case as the brief gives it: masked, outside text wrapped.</summary>
+    /// <summary>
+    /// The people Cookie may address about a case (§8.3, §21.1): the assignee, today's responsible and fallback and whoever
+    /// stands in, and a ticket's escalation group; by user id, names as placeholders.
+    /// </summary>
+    private async Task<List<object>> PeopleAsync(PnmtdDbContext db, CookieCaseEntity c, Pseudonyms p, CancellationToken ct)
+    {
+        var roles = new Dictionary<Guid, List<string>>();
+        void Add(Guid id, string role)
+        {
+            if (!roles.TryGetValue(id, out var list))
+            {
+                roles[id] = list = [];
+            }
+            list.Add(role);
+        }
+        if (await Recipients.AssigneeAsync(db, c.AssigneeName, ct) is { } assignee)
+        {
+            Add(assignee.Id, "assignee");
+        }
+        var today = DateOnly.FromDateTime(Clock.LocalNow);
+        var day = await plan.DayAsync(today, ct);
+        if (day.Row(today) is { } row)
+        {
+            if (row.ResponsibleId is { } r)
+            {
+                Add(r, "responsible today");
+            }
+            if (row.FallbackId is { } f)
+            {
+                Add(f, "fallback today");
+            }
+        }
+        foreach (var u in day.ResponsibleOn(today).UserIds)
+        {
+            Add(u, "stands in today");
+        }
+        if (c.ProjectId is { } projectId && (await settings.GetAsync<CookieRedmineSettings>(ct)).Of(projectId)?.EscalationGroupId is { } group)
+        {
+            foreach (var m in await db.UserGroups.AsNoTracking().Where(m => m.GroupId == group).Select(m => m.UserId).ToListAsync(ct))
+            {
+                Add(m, "escalation group");
+            }
+        }
+        var ids = roles.Keys.ToList();
+        var users = await db.Users.AsNoTracking().Where(u => ids.Contains(u.Id) && u.IsActive).OrderBy(u => u.DisplayName).ToListAsync(ct);
+        return [.. users.Select(u => (object)new
+        {
+            UserId = u.Id, Name = p.Mask(u.DisplayName), Roles = roles[u.Id].Distinct(), WorksToday = day.Works(u.Id, today),
+            HasEmail = !string.IsNullOrWhiteSpace(u.Email), HasPushover = !string.IsNullOrWhiteSpace(u.PushoverKey),
+        })];
+    }
+
     private static object Summary(CookieCaseEntity c, CookieDutyEntity? next, Pseudonyms p, bool full, bool withheld = false,
         IReadOnlyList<CookieCaseEntryEntity>? comments = null)
     {

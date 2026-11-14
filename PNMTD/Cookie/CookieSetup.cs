@@ -33,7 +33,32 @@ public sealed class CookieOptions
     /// <summary>How often it reads the watched tickets.</summary>
     public int TicketsMinutes { get; set; } = 5;
 
+    /// <summary>Seraph's model (§5, §14): ideally another vendor's than Cookie's.</summary>
+    public string SeraphModel { get; set; } = "z-ai/glm-5.3";
+
+    public string SeraphProviders { get; set; } = "mistral,together,fireworks";
+
+    /// <summary>The big brother (§15): two models, one budget.</summary>
+    public BigBrotherOptions BigBrother { get; set; } = new();
+
     public bool PrivacyOff => string.Equals(Privacy, "Off", StringComparison.OrdinalIgnoreCase);
+}
+
+/// <summary>The big brother's two models and their shared budget (docs/cookie-plan.md §15.5, §15.6).</summary>
+public sealed class BigBrotherOptions
+{
+    public BigBrotherModel Primary { get; set; } = new() { Model = "moonshotai/kimi-k3.1-pro", Providers = "nebius,deepinfra,together" };
+
+    public BigBrotherModel Backup { get; set; } = new() { Model = "google/gemini-4-carbon", Providers = "google-vertex/eu" };
+
+    public decimal BudgetUsd { get; set; } = 30m;
+}
+
+public sealed class BigBrotherModel
+{
+    public string Model { get; set; } = "";
+
+    public string Providers { get; set; } = "";
 }
 
 /// <summary>Cookie's services (docs/cookie-plan.md §19.3).</summary>
@@ -56,6 +81,16 @@ public static class CookieSetup
         services.AddSingleton<CookieLoop>();
         services.AddSingleton<Summaries>();
         services.AddScoped<CookieService>();
+        // Cookie acts (package nine point five, §21): instructions, Seraph, the executor and the inbox's kinds.
+        services.AddSingleton<Instructions>();
+        services.AddSingleton<Seraph>();
+        services.AddSingleton<CookieExecutor>();
+        services.AddSingleton<CookieMail>();
+        services.AddSingleton<DutyWriter>();
+        services.AddSingleton<BigBrother>();
+        services.AddSingleton<Lessons>();
+        services.AddSingleton<CookieDailyTask>();
+        services.AddSingleton<PNMTD.Decisions.IDecisionKind, CookieActionDecision>();
         return services;
     }
 }

@@ -17,7 +17,8 @@ namespace PNMTD.Tasks
     /// <c>Ai:Mail:WaitMinutes</c> is analysed, unless one like it already waits for a decision; and a rule set to ask when
     /// unsure has the AI propose better tests.
     /// </summary>
-    public class MailProcessTask(ILogger<MailProcessTask> logger, IServiceProvider services, IOptionsMonitor<AiOptions> ai, AiWorkQueue queue,
+    public class MailProcessTask(ILogger<MailProcessTask> logger, IServiceProvider services, IOptionsMonitor<AiOptions> ai,
+        IOptionsMonitor<PNMTD.Cookie.CookieOptions> cookie, AiWorkQueue queue,
         DecisionBook decisions) : IHostedService, IDisposable
     {
         private Timer? timer;
@@ -100,6 +101,15 @@ namespace PNMTD.Tasks
                 mail.ProcessedById = rule.Id;
                 if (rule.Action == MailRuleAction.AskAi)
                 {
+                    // With Cookie, Cookie decides in its next round (docs/cookie-plan.md §12, §21.1); while it is stopped, the mail waits.
+                    if (cookie.CurrentValue.Enabled && o.Usable && mail.AiState == MailAiState.None)
+                    {
+                        mail.AiState = MailAiState.Cookie;
+                        mail.ProcessLog += "\nwaits for Cookie";
+                        await db.SaveChangesAsync(ct);
+                        services.GetService<PNMTD.Cookie.CookieSignals>()?.Raise("an AI every time mail");
+                        continue;
+                    }
                     // The AI decides; the mail stays unprocessed until it has (or a person has).
                     if (aiMail && mail.AiState == MailAiState.None)
                     {

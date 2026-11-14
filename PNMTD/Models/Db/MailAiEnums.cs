@@ -34,4 +34,7 @@ public enum MailAiState : short
     Analysed = 2,
     Blocked = 3,
     Failed = 4,
+
+    /// <summary>An <i>AI every time</i> mail waits for Cookie's next round (docs/cookie-plan.md §21.1).</summary>
+    Cookie = 5,
 }

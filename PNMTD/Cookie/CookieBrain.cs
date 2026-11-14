@@ -16,11 +16,23 @@ public sealed record TriageCase(
     [property: Description("The case's id, from the brief")] string Id,
     [property: Description("Why it needs attention, at most 200 characters")] string Why);
 
-/// <summary>A case's work ends in a note (package nine: Cookie only watches, §19.1).</summary>
+/// <summary>A case's work ends in a note, and the proposals it needs now (§21.1); most rounds need none.</summary>
 public sealed record CaseNoteAnswer(
     [property: Description("What is going on, what should happen next and who should do it; at most 600 characters")] string Note,
     [property: Description("info, important or urgent")] Urgency Urgency,
-    [property: Description("Who should look at it, in a few words; empty when nobody needs to")] string Attention);
+    [property: Description("Who should look at it, in a few words; empty when nobody needs to")] string Attention,
+    [property: Description("What you propose to do now, at most 3; empty when nothing is needed")] IReadOnlyList<ProposedAction>? Proposals = null,
+    [property: Description("True when something is broken and needs a technical fix that nobody has found yet")] bool NeedsFixing = false);
+
+/// <summary>Whether a person's message gives an instruction, filled in for them to confirm (§10.3, §21.1).</summary>
+public sealed record InstructionAnswer(
+    [property: Description("True when the person gives an instruction: mute something, suppress a kind of message, or a note on how you should work for a while")] bool IsInstruction,
+    [property: Description("mute, suppress or note")] string Kind,
+    [property: Description("For mute: host, sensor, location or case; for suppress: channel, sensor-type or case-kind; empty for a note")] string Scope,
+    [property: Description("For mute: the id from your data; for suppress: pushover, email, ticket, redmine-note, a sensor type, problem or ticket; empty for a note")] string Value,
+    [property: Description("What it is about, for people: the host's name, the channel")] string Label,
+    [property: Description("The instruction, or why; at most 300 characters")] string Text,
+    [property: Description("For how many days, 1 to 30")] int Days);
 
 /// <summary>The status line (docs/cookie-prompts.md §5).</summary>
 public sealed record StatusAnswer([property: Description("One sentence, at most 160 characters")] string Reason);
@@ -29,7 +41,7 @@ public sealed record StatusAnswer([property: Description("One sentence, at most 
 /// Puts Cookie's prompts together (docs/cookie-prompts.md): identity, goals and rules every time, then the step's prompt or the
 /// case's instructions, with the parts in braces filled in by code. The prompts come from Admin → Cookie, or their defaults.
 /// </summary>
-public sealed class CookieBrain(CookieSettings settings)
+public sealed class CookieBrain(CookieSettings settings, Instructions instructions)
 {
     /// <summary>What package nine adds to every case, fixed in code: Cookie can't act yet (§3.4).</summary>
     public const string WatchOnly =
@@ -38,6 +50,27 @@ public sealed class CookieBrain(CookieSettings settings)
         "should do it.";
 
     public const int StatusChars = 160;
+
+    /// <summary>
+    /// What Cookie may propose now (§6, §21.1), fixed in code from the levels on Admin → Cookie → Actions; with every action off,
+    /// it only watches, as in package nine.
+    /// </summary>
+    public async Task<string> ActingAsync(CancellationToken ct)
+    {
+        var levels = (await settings.GetAsync<ActionSettings>(ct)).Levels;
+        var kinds = new[] { CookieActionKind.Pushover, CookieActionKind.Email, CookieActionKind.Ticket, CookieActionKind.PrivateNote,
+            CookieActionKind.PublicAnswer, CookieActionKind.ObjectNote };
+        var on = kinds.Where(k => levels.Of(k).Level != ActionLevel.Off).Select(ProposedAction.Name).ToList();
+        if (on.Count == 0)
+        {
+            return WatchOnly;
+        }
+        return "You may propose actions now: " + string.Join(", ", on) + ", and hand-to-person for anything else. Each proposal goes through " +
+            "code (rights, limits, duplicates, mute and suppress) and Seraph, the reviewer; some wait for a person. Propose only what the case " +
+            "needs now; most rounds need none, and a note is enough when someone is already on it. Name people only by the user ids in " +
+            "PeopleYouMayAddress, tickets by their number, hosts and sensors by their ids. Write each text as it is to be sent, in the " +
+            "requester's language for a public answer, and never with secrets.";
+    }
 
     public async Task<string> PromptAsync(string key, CancellationToken ct)
     {
@@ -66,9 +99,10 @@ public sealed class CookieBrain(CookieSettings settings)
             ["language"] = identity.Language,
             ["first_answer_hours"] = first.FirstAnswerHours.ToString("0.#", CultureInfo.InvariantCulture),
             ["update_days"] = first.UpdateDays.ToString(CultureInfo.InvariantCulture),
-            // Mute, away and suppress, and lessons, come with package nine point five (§10.3, §11).
-            ["instructions"] = "None.",
-            ["lessons"] = "None yet.",
+            // Mute, suppress and instructions (§10.3), and the lessons (§11).
+            ["instructions"] = Instructions.PromptText(await instructions.ActiveAsync(ct)),
+            ["lessons"] = (await settings.GetAsync<LessonSettings>(ct)).Lessons.Where(l => l.Active) is var active && active.Any()
+                ? string.Join("\n", active.Select(l => $"- {l.Text}")) : "None yet.",
             ["max_chars"] = StatusChars.ToString(CultureInfo.InvariantCulture),
             ["now"] = Clock.LocalNow.ToString("dddd yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
         };

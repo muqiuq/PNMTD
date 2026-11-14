@@ -149,6 +149,8 @@ public partial class Program
             // Cookie's case book (docs/cookie-plan.md §19.3), with Cookie:Enabled=true.
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CaseBookTask>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CookieLoop>());
+            // Cookie's lessons and Seraph's drift report, once a day while Cookie runs (docs/cookie-plan.md §21.1).
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CookieDailyTask>());
             // The availability plan stays filled for the next 365 days (docs/cookie-plan.md §8.2).
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Availability.AvailabilityFillTask>());
         }

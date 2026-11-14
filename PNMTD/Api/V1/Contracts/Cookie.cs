@@ -76,7 +76,50 @@ public sealed record CookieCaseDetail(
     CookieTicketClock? Ticket,
     string? OwnIssueUrl,
     bool CanComment = false,
-    bool CanStop = false);
+    bool CanStop = false,
+    CookieSolutionItem? Solution = null,
+    DateTime? BigBrotherAskedAt = null,
+    bool CanAskBigBrother = false);
+
+/// <summary>The big brother's last solution on a case (§15.4).</summary>
+public sealed record CookieSolutionItem(string Text, DateTime At, string? Model);
+
+/// <summary>
+/// An entry of Cookie's decision log (§11, §21.2): the proposal and what came of it, Seraph's verdict, and its rating. Shown
+/// only to readers who have all the areas of its sources.
+/// </summary>
+public sealed record CookieDecisionItem(
+    long Id,
+    DateTime At,
+    Guid? CaseId,
+    string? CaseTitle,
+    string Kind,
+    string Title,
+    string? Text,
+    string? Reason,
+    double? Confidence,
+    string? Verdict,
+    string? VerdictReason,
+    string Outcome,
+    string? Detail,
+    string? Model,
+    Guid? InboxDecisionId,
+    string? Rating,
+    string? RatingComment,
+    string? RatedByName,
+    bool CanRate);
+
+public sealed class CookieDecisionQuery : PageQuery
+{
+    public Guid? CaseId { get; init; }
+
+    public string? Kind { get; init; }
+
+    public string? Outcome { get; init; }
+}
+
+/// <summary><c>PUT decisions/{id}/rating</c>: right, wrong, or null to take it back; a comment says why.</summary>
+public sealed record CookieRatingRequest(string? Rating, string? Comment);
 
 /// <summary>Admin → Cookie → Overview (§9.3).</summary>
 public sealed record CookieAdminOverview(
@@ -95,7 +138,15 @@ public sealed record CookieAdminOverview(
     IReadOnlyList<CookieDutyCount> Duties,
     int HeldBackToday,
     CookieBudgetItem Budget,
-    bool HasGroup);
+    bool HasGroup,
+    CookieActingItem? Acting = null);
+
+/// <summary>
+/// What Cookie did today (§21.1): proposals waiting in the inbox, done, rejected by Seraph, declined by people, held back;
+/// whether Seraph has a model; the big brother's budget.
+/// </summary>
+public sealed record CookieActingItem(int Waiting, int DoneToday, int RejectedToday, int DeclinedToday, int HeldBackToday, bool SeraphConfigured,
+    CookieBudgetItem BigBrother, int ActiveInstructions, int Lessons);
 
 /// <summary>How the duties of one kind ended in the last 7 days.</summary>
 public sealed record CookieDutyCount(CookieDutyKind Kind, bool On, int Due, int Done, int HeldBack, int Off, int Failed);
@@ -108,7 +159,8 @@ public sealed record CookieAllSettings(
     CookieRedmineSettings Redmine,
     ActionSettings Actions,
     ModelSettings Models,
-    CookieRightsSettings Rights);
+    CookieRightsSettings Rights,
+    LessonSettings Lessons);
 
 public sealed record CookieSaved(string Section, int Version);
 
@@ -174,9 +226,31 @@ public sealed record CookieBudgetItem(decimal Limit, decimal Spent);
 public sealed record CookiePromptPreview(string Key, string Text);
 
 /// <summary>A message of the reader's chat with Cookie (§10.2), placeholders restored.</summary>
-public sealed record CookieMessageItem(long Id, DateTime At, string From, string Text, bool Answered);
+public sealed record CookieMessageItem(long Id, DateTime At, string From, string Text, bool Answered, string To = "cookie",
+    CookieInstructionItem? Instruction = null);
+
+/// <summary>Mute, suppress or an instruction (§10.3, §21.1): a draft from the chat until a person confirms it.</summary>
+public sealed record CookieInstructionItem(
+    Guid Id,
+    string Kind,
+    string Scope,
+    string? Value,
+    string? Label,
+    string Text,
+    DateTime Until,
+    bool Confirmed,
+    DateTime CreatedAt,
+    string CreatedByName,
+    string Source,
+    DateTime? EndedAt,
+    string? EndedByName,
+    bool Active);
+
+/// <summary><c>POST admin/instructions</c>: a new one, confirmed at once.</summary>
+public sealed record CookieInstructionRequest(string Kind, string Scope, string? Value, string? Label, string Text, DateTime Until);
 
 /// <summary>The reader's thread: the newest messages, whether one waits for a reply, and Cookie's state.</summary>
 public sealed record CookieThread(IReadOnlyList<CookieMessageItem> Messages, bool Waiting, CookieState State);
 
-public sealed record CookieMessageRequest(string Text);
+/// <summary>A message to Cookie, or to Seraph (§10.2, §21.1).</summary>
+public sealed record CookieMessageRequest(string Text, string? To = null);

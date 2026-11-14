@@ -69,6 +69,38 @@ public sealed class CookieController(CookieService cookie) : V1ControllerBase
         return NoContent();
     }
 
+    /// <summary><i>Ask the big brother</i> (§15.2): the next round calls it.</summary>
+    [HttpPost("cases/{id:guid}/big-brother")]
+    [RequireRight(Area.Cookie, Level.Instruct)]
+    [Audit(AuditEvents.CookieBigBrotherAsked)]
+    public async Task<IActionResult> AskBigBrother(Guid id, CancellationToken ct)
+    {
+        await cookie.AskBigBrotherAsync(id, User, ct);
+        return NoContent();
+    }
+
+    /// <summary>Cookie's decision log (§11), by the reader's rights.</summary>
+    [HttpGet("decisions")]
+    [RequireRight(Area.Cookie, Level.Use)]
+    public async Task<Paged<CookieDecisionItem>> Decisions([FromQuery] CookieDecisionQuery query, CancellationToken ct) => await cookie.DecisionsAsync(query, User, ct);
+
+    [HttpPut("decisions/{id:long}/rating")]
+    [RequireRight(Area.Cookie, Level.Use)]
+    [Audit(AuditEvents.CookieDecisionRated)]
+    public async Task<CookieDecisionItem> Rate(long id, CookieRatingRequest request, CancellationToken ct) => await cookie.RateAsync(id, request, User, ct);
+
+    /// <summary>Confirm a draft Cookie filled in from one's message (§10.3).</summary>
+    [HttpPost("instructions/{id:guid}/confirm")]
+    [RequireRight(Area.Cookie, Level.Instruct)]
+    [Audit(AuditEvents.CookieInstructionConfirmed)]
+    public async Task<CookieInstructionItem> Confirm(Guid id, CancellationToken ct) => await cookie.ConfirmInstructionAsync(id, User, ct);
+
+    /// <summary><i>End now</i>.</summary>
+    [HttpPost("instructions/{id:guid}/end")]
+    [RequireRight(Area.Cookie, Level.Instruct)]
+    [Audit(AuditEvents.CookieInstructionEnded)]
+    public async Task<CookieInstructionItem> End(Guid id, CancellationToken ct) => await cookie.EndInstructionAsync(id, User, ct);
+
     /// <summary>The trace by the reader's rights (§9.2); <c>afterId</c> for polling while a round runs.</summary>
     [HttpGet("trace")]
     [RequireRight(Area.Cookie, Level.Use)]
@@ -145,6 +177,18 @@ public sealed class CookieAdminController(CookieService cookie) : V1ControllerBa
     [HttpPut("settings/models")]
     [Audit(AuditEvents.CookieSettingsChanged)]
     public async Task<CookieSaved> SaveModels(ModelSettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);
+
+    [HttpGet("instructions")]
+    public async Task<IReadOnlyList<CookieInstructionItem>> Instructions(CancellationToken ct) => await cookie.InstructionsAsync(ct);
+
+    [HttpPost("instructions")]
+    [Audit(AuditEvents.CookieInstructionCreated)]
+    public async Task<CookieInstructionItem> CreateInstruction(CookieInstructionRequest request, CancellationToken ct) =>
+        await cookie.CreateInstructionAsync(request, User, ct);
+
+    [HttpPut("settings/lessons")]
+    [Audit(AuditEvents.CookieSettingsChanged)]
+    public async Task<CookieSaved> SaveLessons(LessonSettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);
 
     [HttpPut("settings/rights")]
     [Audit(AuditEvents.CookieSettingsChanged)]

@@ -85,6 +85,9 @@ public sealed class DecideRequest
     public string? Choice { get; init; }
 
     public MailInputRuleRequest? Rule { get; init; }
+
+    /// <summary>Why, for a choice that asks for it (Cookie's proposals: <i>Don't</i>).</summary>
+    public string? Comment { get; init; }
 }
 
 public sealed record DecisionCount(int Open);

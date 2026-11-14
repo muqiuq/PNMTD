@@ -189,7 +189,46 @@ public sealed record OutputLimits(
     public static readonly OutputLimits Ceilings = new(10, 5, 50, 200, 20, 10, 200, 50, 200, 30, 5);
 }
 
-/// <summary>Actions (§6, §9.3): the duties' switches, and the output limits.</summary>
+/// <summary>An action's level (§6): never, through a person, or on Seraph's approval.</summary>
+public enum ActionLevel { Off, Propose, Auto }
+
+/// <summary>An action's level and the confidence below which it goes to a person (§6, §21.1).</summary>
+public sealed record ActionRule(ActionLevel Level, double MinConfidence = 0.7);
+
+/// <summary>
+/// The level of each of Cookie's actions (§6, §13.4, §21.1): what leaves PNMT or reaches people starts at <i>Propose</i>; a note
+/// on a host, sensor or location and an <i>AI every time</i> rule's event start at <i>Auto</i>.
+/// </summary>
+public sealed record ActionLevels
+{
+    public ActionRule Pushover { get; init; } = new(ActionLevel.Propose);
+
+    public ActionRule Email { get; init; } = new(ActionLevel.Propose);
+
+    public ActionRule Ticket { get; init; } = new(ActionLevel.Propose);
+
+    public ActionRule PrivateNote { get; init; } = new(ActionLevel.Propose);
+
+    public ActionRule PublicAnswer { get; init; } = new(ActionLevel.Propose);
+
+    public ActionRule ObjectNote { get; init; } = new(ActionLevel.Auto);
+
+    public ActionRule MailEvent { get; init; } = new(ActionLevel.Auto);
+
+    public ActionRule Of(CookieActionKind kind) => kind switch
+    {
+        CookieActionKind.Pushover => Pushover,
+        CookieActionKind.Email => Email,
+        CookieActionKind.Ticket => Ticket,
+        CookieActionKind.PrivateNote => PrivateNote,
+        CookieActionKind.PublicAnswer => PublicAnswer,
+        CookieActionKind.ObjectNote => ObjectNote,
+        CookieActionKind.MailEvent => MailEvent,
+        _ => new ActionRule(ActionLevel.Propose, 0),
+    };
+}
+
+/// <summary>Actions (§6, §9.3): the duties' switches, the output limits, and Cookie's actions (§21.1).</summary>
 public sealed record ActionSettings : ICookieSection
 {
     public static string Section => "actions";
@@ -198,8 +237,21 @@ public sealed record ActionSettings : ICookieSection
 
     public OutputLimits Limits { get; init; } = new();
 
+    public ActionLevels Levels { get; init; } = new();
+
+    /// <summary>Cookie writes the reminders' and escalations' texts while it runs (§21.1); the templates otherwise.</summary>
+    public bool CookieWritesDuties { get; init; }
+
+    /// <summary>The big brother may be called (§15); off until an admin turns it on, because it costs money.</summary>
+    public bool BigBrother { get; init; }
+
     public void Validate(ApiValidator v)
     {
+        foreach (var kind in Enum.GetValues<CookieActionKind>().Where(k => k is not (CookieActionKind.HandToPerson)))
+        {
+            var rule = Levels.Of(kind);
+            v.Check(rule.MinConfidence is >= 0 and <= 1, $"levels.{JsonNamingPolicy.CamelCase.ConvertName(kind.ToString())}", "A confidence of 0 to 1.");
+        }
         var values = Limits.GetType().GetProperties().Where(p => p.PropertyType == typeof(int));
         foreach (var p in values)
         {
@@ -234,6 +286,22 @@ public sealed record ModelSettings : ICookieSection
     /// <summary>Empty: Cookie__BudgetUsd.</summary>
     public decimal? BudgetUsd { get; init; }
 
+    /// <summary>Empty: Cookie__SeraphModel (§5).</summary>
+    public string? SeraphModel { get; init; }
+
+    /// <summary>Empty: Cookie__SeraphProviders.</summary>
+    public string? SeraphProviders { get; init; }
+
+    public string SeraphEffort { get; init; } = "medium";
+
+    /// <summary>Empty: Cookie__BigBrother__Primary__Model and __Backup__Model (§15.6).</summary>
+    public string? BigBrotherPrimary { get; init; }
+
+    public string? BigBrotherBackup { get; init; }
+
+    /// <summary>Seraph's sample of Cookie's internal notes for its daily drift report: 1 in this many (§5).</summary>
+    public int SeraphSampleEvery { get; init; } = 10;
+
     public static readonly string[] Efforts = ["minimal", "low", "medium", "high"];
 
     public void Validate(ApiValidator v) => v
@@ -244,7 +312,38 @@ public sealed record ModelSettings : ICookieSection
         .Check(SleepMinutes is >= 1 and <= 120, "sleepMinutes", "1 to 120 minutes.")
         .Check(MaxCasesPerRound is >= 1 and <= 20, "maxCasesPerRound", "1 to 20.")
         .Check(MaxToolCalls is >= 0 and <= 60, "maxToolCalls", "0 to 60.")
-        .Check(BudgetUsd is null or >= 0 and <= 10_000, "budgetUsd", "0 to 10,000 USD.");
+        .Check(BudgetUsd is null or >= 0 and <= 10_000, "budgetUsd", "0 to 10,000 USD.")
+        .Check(SeraphModel is null || SeraphModel.Length <= 200, "seraphModel", "At most 200 characters.")
+        .Check(SeraphProviders is null || SeraphProviders.Length <= 300, "seraphProviders", "At most 300 characters.")
+        .Check(Efforts.Contains(SeraphEffort), "seraphEffort", "minimal, low, medium or high.")
+        .Check(BigBrotherPrimary is null || BigBrotherPrimary.Length <= 200, "bigBrotherPrimary", "At most 200 characters.")
+        .Check(BigBrotherBackup is null || BigBrotherBackup.Length <= 200, "bigBrotherBackup", "At most 200 characters.")
+        .Check(SeraphSampleEvery is >= 1 and <= 100, "seraphSampleEvery", "1 to 100.");
+}
+
+/// <summary>A lesson (§11): a short rule from people's ratings; one that is "never send X" names what to suppress.</summary>
+public sealed record Lesson(Guid Id, string Text, bool Active = true, string? SuppressScope = null, string? SuppressValue = null);
+
+/// <summary>Lessons (§11, §21.1): versioned like every section, edited and disabled by admins, written by the summariser.</summary>
+public sealed record LessonSettings : ICookieSection
+{
+    public static string Section => "lessons";
+
+    public const int MaxActive = 30;
+
+    public List<Lesson> Lessons { get; init; } = [];
+
+    public void Validate(ApiValidator v)
+    {
+        v.Check(Lessons.Count <= 100, "lessons", "At most 100.");
+        v.Check(Lessons.Count(l => l.Active) <= MaxActive, "lessons", $"At most {MaxActive} active.");
+        v.Check(Lessons.Select(l => l.Id).Distinct().Count() == Lessons.Count, "lessons", "Each lesson once.");
+        foreach (var l in Lessons)
+        {
+            v.Check(l.Text.Trim().Length is > 0 and <= 300, $"lessons.{l.Id}", "1 to 300 characters.");
+            v.Check(l.SuppressScope is null || Instructions.SuppressScopes.Contains(l.SuppressScope), $"lessons.{l.Id}", "channel, sensor-type or case-kind.");
+        }
+    }
 }
 
 /// <summary>Rights (§9.3): the group whose rights Cookie reads with. Never the admin flag.</summary>
@@ -276,7 +375,7 @@ public sealed class CookieSettings(IDbContextFactory<PnmtdDbContext> dbs, IMemor
     public static readonly IReadOnlyList<string> Sections =
     [
         IdentitySettings.Section, PromptSettings.Section, CaseSettings.Section, CookieRedmineSettings.Section, ActionSettings.Section,
-        ModelSettings.Section, CookieRightsSettings.Section,
+        ModelSettings.Section, CookieRightsSettings.Section, LessonSettings.Section,
     ];
 
     private static string Key(string section) => $"cookie-settings:{section}";

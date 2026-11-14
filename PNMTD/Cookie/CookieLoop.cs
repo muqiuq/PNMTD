@@ -183,5 +183,8 @@ public sealed class CookieLoop(IDbContextFactory<PnmtdDbContext> dbs, CookieRoun
         await db.CookieRounds.Where(r => r.StartedAt < month).ExecuteDeleteAsync(ct);
         await db.CookieOutbox.Where(o => o.CreatedAt < year).ExecuteDeleteAsync(ct);
         await db.CookieCases.Where(c => !c.Open && c.ClosedAt < year).ExecuteDeleteAsync(ct);
+        // The decision log and ended instructions (§21.2): a year, like the outbox.
+        await db.CookieDecisions.Where(d => d.At < year).ExecuteDeleteAsync(ct);
+        await db.CookieInstructions.Where(i => (i.EndedAt ?? i.Until) < year).ExecuteDeleteAsync(ct);
     }
 }

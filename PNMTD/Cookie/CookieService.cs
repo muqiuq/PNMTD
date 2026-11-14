@@ -113,7 +113,101 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
             : null;
         var rights = user.Rights();
         return new CookieCaseDetail(Item(c, next is null ? null : (next.DueAt, next.Kind), await NamesAsync([c], ct)), members, entries, duties, ticket,
-            Url(c.OwnIssueId), c.Open && rights.Has(Area.Cookie, Level.Use), c.Open && c.Kind != CookieCaseKind.Request && rights.Has(Area.Cookie, Level.Instruct));
+            Url(c.OwnIssueId), c.Open && rights.Has(Area.Cookie, Level.Use), c.Open && c.Kind != CookieCaseKind.Request && rights.Has(Area.Cookie, Level.Instruct),
+            c.Solution is null ? null : new CookieSolutionItem(c.Solution, c.SolutionAt ?? c.ChangedAt, c.SolutionModel), c.BigBrotherAskedAt,
+            c.Open && c.Kind != CookieCaseKind.Request && c.StoppedAt is null && rights.Has(Area.Cookie, Level.Instruct));
+    }
+
+    /// <summary><i>Ask the big brother</i> (§15.2): the next round calls it for the case, within its limits and budget.</summary>
+    public async Task AskBigBrotherAsync(Guid id, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var c = await OpenCaseAsync(id, user, ct);
+        if (c.Kind == CookieCaseKind.Request || c.StoppedAt is not null)
+        {
+            throw ApiException.Conflict("cookie_case_not_for_big_brother", "Not for a person's request or a stopped case.");
+        }
+        if (!(await settings.GetAsync<ActionSettings>(ct)).BigBrother)
+        {
+            throw ApiException.Conflict("cookie_big_brother_off", "The big brother is off on Admin → Cookie → Actions.");
+        }
+        var runtime = await db.CookieRuntime.AsNoTracking().SingleOrDefaultAsync(ct);
+        if (!options.CurrentValue.Enabled || runtime is not { Running: true })
+        {
+            throw ApiException.Conflict("cookie_stopped", "Cookie is stopped: an admin starts it on Admin → Cookie.");
+        }
+        c.BigBrotherAskedAt = Clock.UtcNow;
+        c.BigBrotherAskedBy = CaseBook.Cut(user.Identity?.Name ?? "someone", 200);
+        c.ChangedAt = Clock.UtcNow;
+        CaseBook.Entry(db, c.Id, Clock.UtcNow, "asked", "Asked the big brother.", "person", user.Identity?.Name);
+        await db.SaveChangesAsync(ct);
+        services.GetRequiredService<CookieSignals>().Raise("the big brother asked");
+        AuditLog.Summary($"Asked the big brother about \"{c.Title}\"");
+    }
+
+    // --- The decision log and ratings (§11, §21.1) ----------------------------------------------------------------------
+
+    public async Task<Paged<CookieDecisionItem>> DecisionsAsync(CookieDecisionQuery query, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var rights = user.Rights();
+        var q = db.CookieDecisions.AsNoTracking();
+        if (query.CaseId is { } caseId)
+        {
+            q = q.Where(d => d.CaseId == caseId);
+        }
+        if (!string.IsNullOrWhiteSpace(query.Kind))
+        {
+            q = q.Where(d => d.Kind == query.Kind);
+        }
+        if (!string.IsNullOrWhiteSpace(query.Outcome))
+        {
+            q = q.Where(d => d.Outcome == query.Outcome);
+        }
+        // Rights by the areas of the sources (§9.2): filtered after reading, a window of the newest.
+        var rows = (await q.OrderByDescending(d => d.Id).Take(2000).ToListAsync(ct)).Where(d => CookieAccess.CanSee(rights, d.Areas)).ToList();
+        var size = Math.Clamp(query.PageSize, 1, 200);
+        var page = Math.Max(1, query.Page);
+        var items = rows.Skip((page - 1) * size).Take(size).ToList();
+        var caseIds = items.Where(d => d.CaseId is not null).Select(d => d.CaseId!.Value).Distinct().ToList();
+        var titles = await db.CookieCases.AsNoTracking().Where(c => caseIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id, c => c.Title, ct);
+        var privacy = services.GetRequiredService<PrivacyFilter>();
+        await privacy.EnsureLoadedAsync(ct);
+        var canRate = rights.Has(Area.Cookie, Level.Use);
+        return new Paged<CookieDecisionItem>([.. items.Select(d =>
+        {
+            ProposedAction? a = null;
+            try
+            {
+                a = JsonSerializer.Deserialize<CookieProposal>(d.Proposal, AiJson.Options)?.Action;
+            }
+            catch (JsonException)
+            {
+            }
+            return new CookieDecisionItem(d.Id, d.At, d.CaseId, d.CaseId is { } id ? titles.GetValueOrDefault(id) : null, d.Kind, d.Title,
+                a is null ? null : privacy.Unmask(a.Text), a is null ? null : privacy.Unmask(a.Reason), d.Confidence, d.Verdict, privacy.Unmask(d.VerdictReason),
+                d.Outcome, privacy.Unmask(d.Detail), d.Model, d.InboxDecisionId, d.Rating, d.RatingComment, d.RatedByName, canRate && d.Kind != "drift");
+        })], page, size, rows.Count);
+    }
+
+    /// <summary><i>Right</i> or <i>Wrong</i> with a comment (§11), by whoever may see it; null takes it back.</summary>
+    public async Task<CookieDecisionItem> RateAsync(long id, CookieRatingRequest request, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var d = await db.CookieDecisions.SingleOrDefaultAsync(x => x.Id == id, ct);
+        if (d is null || !CookieAccess.CanSee(user.Rights(), d.Areas) || d.Kind == "drift")
+        {
+            throw ApiException.NotFound("Decision");
+        }
+        var rating = request.Rating?.Trim().ToLowerInvariant();
+        new ApiValidator().Check(rating is null or "right" or "wrong", "rating", "right, wrong, or nothing.")
+            .Check((request.Comment ?? "").Length <= 1000, "comment", "At most 1,000 characters.").ThrowIfInvalid();
+        d.Rating = rating;
+        d.RatingComment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment.Trim();
+        d.RatedById = rating is null ? null : user.UserId();
+        d.RatedByName = rating is null ? null : CaseBook.Cut(user.Identity?.Name, 200);
+        d.RatedAt = rating is null ? null : Clock.UtcNow;
+        d.RatingRead = false;
+        await db.SaveChangesAsync(ct);
+        AuditLog.Summary($"Rated \"{d.Title}\": {rating ?? "taken back"}{(d.RatingComment is null ? "" : $": {d.RatingComment}")}");
+        return (await DecisionsAsync(new CookieDecisionQuery { CaseId = d.CaseId, PageSize = 200 }, user, ct)).Items.First(x => x.Id == id);
     }
 
     /// <summary>A person's comment on a case (§4.3): in its timeline, and in Cookie's next round, screened.</summary>
@@ -260,7 +354,18 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         return new CookieAdminOverview(status, runtime.CodeReason, runtime.CodeStatus, runtime.CaseBookAt, runtime.TicketsAt, runtime.CaseBookError,
             open.Where(o => o.Key == CookieCaseKind.Problem).Sum(o => o.Count), open.Where(o => o.Key == CookieCaseKind.Ticket).Sum(o => o.Count),
             due, r.Enabled, r.CanWrite, ai.CurrentValue.Usable, counts, heldBack, await BudgetAsync(ct),
-            (await settings.GetAsync<CookieRightsSettings>(ct)).GroupId is not null);
+            (await settings.GetAsync<CookieRightsSettings>(ct)).GroupId is not null, await ActingAsync(today, ct));
+    }
+
+    private async Task<CookieActingItem> ActingAsync(DateTime today, CancellationToken ct)
+    {
+        var day = db.CookieDecisions.AsNoTracking().Where(d => d.At >= today);
+        var model = services.GetRequiredService<CookieModel>();
+        return new CookieActingItem(await db.CookieDecisions.CountAsync(d => d.Outcome == "proposed", ct), await day.CountAsync(d => d.Outcome == "done", ct),
+            await day.CountAsync(d => d.Outcome == "rejected", ct), await day.CountAsync(d => d.Outcome == "declined", ct),
+            await day.CountAsync(d => d.Outcome == "held-back", ct), await services.GetRequiredService<Seraph>().ChoiceAsync(ct) is not null,
+            new CookieBudgetItem(options.CurrentValue.BigBrother.BudgetUsd, await model.BigBrotherSpentAsync(ct)),
+            (await services.GetRequiredService<Instructions>().ActiveAsync(ct)).Count, (await settings.GetAsync<LessonSettings>(ct)).Lessons.Count(l => l.Active));
     }
 
     private async Task<CookieBudgetItem> BudgetAsync(CancellationToken ct)
@@ -335,7 +440,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         string text;
         if (key.StartsWith("case:", StringComparison.Ordinal) && CookiePrompts.CaseKinds.ContainsKey(key[5..]))
         {
-            text = $"{basePrompt}\n\n{CookiePrompts.Fill(await brain.CaseInstructionAsync(key[5..], ct), values)}\n\n{CookieBrain.WatchOnly}\n\n" +
+            text = $"{basePrompt}\n\n{CookiePrompts.Fill(await brain.CaseInstructionAsync(key[5..], ct), values)}\n\n{await brain.ActingAsync(ct)}\n\n" +
                 "The case:\n[the case]";
         }
         else if (CookiePrompts.Defaults.ContainsKey(key))
@@ -365,8 +470,11 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         {
             q = q.Where(m => m.Id > after);
         }
-        var messages = (await q.OrderByDescending(m => m.Id).Take(100).ToListAsync(ct)).OrderBy(m => m.Id)
-            .Select(m => new CookieMessageItem(m.Id, m.At, m.From, m.Text, m.Answered)).ToList();
+        var rows = (await q.OrderByDescending(m => m.Id).Take(100).ToListAsync(ct)).OrderBy(m => m.Id).ToList();
+        var drafts = rows.Where(m => m.InstructionId is not null).Select(m => m.InstructionId!.Value).ToList();
+        var instructions = await db.CookieInstructions.AsNoTracking().Where(i => drafts.Contains(i.Id)).ToDictionaryAsync(i => i.Id, ct);
+        var messages = rows.Select(m => new CookieMessageItem(m.Id, m.At, m.From, m.Text, m.Answered, m.To,
+            m.InstructionId is { } i && instructions.TryGetValue(i, out var x) ? InstructionItem(x) : null)).ToList();
         var waiting = await db.CookieMessages.AnyAsync(m => m.UserId == userId && m.From == "person" && !m.Answered, ct);
         var runtime = await db.CookieRuntime.AsNoTracking().SingleOrDefaultAsync(ct);
         return new CookieThread(messages, waiting, options.CurrentValue.Enabled ? runtime?.State ?? CookieState.Stopped : CookieState.Stopped);
@@ -376,7 +484,9 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
     public async Task<CookieMessageItem> PostMessageAsync(CookieMessageRequest request, ClaimsPrincipal user, CancellationToken ct)
     {
         var text = request.Text?.Trim() ?? "";
-        new ApiValidator().Check(text.Length is > 0 and <= MaxMessageChars, "text", $"1 to {MaxMessageChars:N0} characters.").ThrowIfInvalid();
+        var to = string.IsNullOrWhiteSpace(request.To) ? "cookie" : request.To.Trim().ToLowerInvariant();
+        new ApiValidator().Check(text.Length is > 0 and <= MaxMessageChars, "text", $"1 to {MaxMessageChars:N0} characters.")
+            .Check(to is "cookie" or "seraph", "to", "cookie or seraph.").ThrowIfInvalid();
         var runtime = await db.CookieRuntime.AsNoTracking().SingleOrDefaultAsync(ct);
         if (!options.CurrentValue.Enabled || runtime is not { Running: true })
         {
@@ -388,11 +498,76 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         {
             throw new ApiException(StatusCodes.Status429TooManyRequests, "cookie_too_many_messages", $"At most {MessagesPerHour} messages an hour.");
         }
-        var message = new CookieMessageEntity { UserId = userId, At = Clock.UtcNow, From = "person", Text = text };
+        var message = new CookieMessageEntity { UserId = userId, At = Clock.UtcNow, From = "person", Text = text, To = to };
         db.CookieMessages.Add(message);
         await db.SaveChangesAsync(ct);
         services.GetRequiredService<CookieSignals>().Raise($"message from {user.Identity?.Name}");
-        return new CookieMessageItem(message.Id, message.At, message.From, message.Text, false);
+        return new CookieMessageItem(message.Id, message.At, message.From, message.Text, false, to);
+    }
+
+    // --- Mute, suppress and instructions (§10.3, §21.1) ------------------------------------------------------------------
+
+    public static CookieInstructionItem InstructionItem(CookieInstructionEntity i) => new(i.Id, i.Kind, i.Scope, i.Value, i.Label, i.Text, i.Until, i.Confirmed,
+        i.CreatedAt, i.CreatedByName, i.Source, i.EndedAt, i.EndedByName, i.Confirmed && i.EndedAt is null && i.Until > Clock.UtcNow);
+
+    /// <summary>Admin → Cookie → Mute, suppress: the active ones and drafts first, then the last 30 days' ended ones.</summary>
+    public async Task<IReadOnlyList<CookieInstructionItem>> InstructionsAsync(CancellationToken ct)
+    {
+        var since = Clock.UtcNow.AddDays(-30);
+        return [.. (await db.CookieInstructions.AsNoTracking().Where(i => i.CreatedAt >= since || (i.EndedAt == null && i.Until > since))
+            .OrderByDescending(i => i.CreatedAt).Take(500).ToListAsync(ct)).Select(InstructionItem).OrderByDescending(i => i.Active)];
+    }
+
+    public async Task<CookieInstructionItem> CreateInstructionAsync(CookieInstructionRequest request, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var label = request.Label;
+        if (request.Kind == "mute" && Guid.TryParse(request.Value, out var id) && string.IsNullOrWhiteSpace(label))
+        {
+            label = request.Scope switch
+            {
+                "host" => await db.Hosts.Where(h => h.Id == id).Select(h => h.Name).FirstOrDefaultAsync(ct),
+                "sensor" => await db.Sensors.Where(s => s.Id == id).Select(s => s.Parent.Name + " / " + s.Name).FirstOrDefaultAsync(ct),
+                "location" => await db.Locations.Where(l => l.Id == id).Select(l => l.Name).FirstOrDefaultAsync(ct),
+                "case" => await db.CookieCases.Where(c => c.Id == id).Select(c => c.Title).FirstOrDefaultAsync(ct),
+                _ => null,
+            };
+        }
+        var i = await services.GetRequiredService<Instructions>().CreateAsync(new InstructionDraft(request.Kind?.Trim() ?? "", request.Scope?.Trim() ?? "",
+            request.Value, label, request.Text ?? "", request.Until), confirmed: true, "admin", user.UserId(), user.Identity?.Name ?? "", ct);
+        AuditLog.Summary($"{i.Kind} {i.Scope} {i.Label ?? i.Value} until {Clock.ToLocal(i.Until):d MMM HH:mm}: {i.Text}".Trim());
+        return InstructionItem(i);
+    }
+
+    /// <summary>A person confirms a draft Cookie filled in from their message (§10.3): only they, or <i>Cookie: Manage</i>.</summary>
+    public async Task<CookieInstructionItem> ConfirmInstructionAsync(Guid id, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var i = await db.CookieInstructions.SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw ApiException.NotFound("Instruction");
+        if (i.CreatedById != user.UserId() && !user.Has(Area.Cookie, Level.Manage))
+        {
+            throw ApiException.NotFound("Instruction");
+        }
+        if (i.Confirmed || i.EndedAt is not null || i.Until <= Clock.UtcNow)
+        {
+            throw ApiException.Conflict("cookie_instruction_not_draft", "Only a draft that hasn't ended can be confirmed.");
+        }
+        i.Confirmed = true;
+        await db.SaveChangesAsync(ct);
+        AuditLog.Summary($"Confirmed: {i.Kind} {i.Scope} {i.Label ?? i.Value} until {Clock.ToLocal(i.Until):d MMM HH:mm}: {i.Text}".Trim());
+        return InstructionItem(i);
+    }
+
+    /// <summary><i>End now</i> (§10.3).</summary>
+    public async Task<CookieInstructionItem> EndInstructionAsync(Guid id, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var i = await db.CookieInstructions.SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw ApiException.NotFound("Instruction");
+        if (i.EndedAt is null)
+        {
+            i.EndedAt = Clock.UtcNow;
+            i.EndedByName = CaseBook.Cut(user.Identity?.Name, 200);
+            await db.SaveChangesAsync(ct);
+        }
+        AuditLog.Summary($"Ended: {i.Kind} {i.Scope} {i.Label ?? i.Value}".Trim());
+        return InstructionItem(i);
     }
 
     // --- The trace (§9.2) ------------------------------------------------------------------------------------------------
@@ -475,7 +650,8 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
     public async Task<CookieAllSettings> SettingsAsync(CancellationToken ct) => new(
         await settings.GetAsync<IdentitySettings>(ct), await settings.GetAsync<PromptSettings>(ct), await settings.GetAsync<CaseSettings>(ct),
         await settings.GetAsync<CookieRedmineSettings>(ct),
-        await settings.GetAsync<ActionSettings>(ct), await settings.GetAsync<ModelSettings>(ct), await settings.GetAsync<CookieRightsSettings>(ct));
+        await settings.GetAsync<ActionSettings>(ct), await settings.GetAsync<ModelSettings>(ct), await settings.GetAsync<CookieRightsSettings>(ct),
+        await settings.GetAsync<LessonSettings>(ct));
 
     public async Task<CookieSaved> SaveAsync<T>(T value, ClaimsPrincipal user, CancellationToken ct) where T : class, ICookieSection, new()
     {
@@ -577,6 +753,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         "redmine" => "Redmine",
         "actions" => "Actions",
         "models" => "Models",
+        "lessons" => "Lessons",
         "rights" => "Rights",
         _ => section,
     };

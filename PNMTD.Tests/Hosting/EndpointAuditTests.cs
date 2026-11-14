@@ -164,6 +164,15 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/cookie/cases/{id:guid}/comments"] = ("Cookie:Use", Roles.Admin),
         ["POST /api/v1/cookie/cases/{id:guid}/stop"] = ("Cookie:Instruct", Roles.Admin),
         ["POST /api/v1/cookie/cases/{id:guid}/go-on"] = ("Cookie:Instruct", Roles.Admin),
+        // Package nine point five (docs/cookie-plan.md §21.4): the big brother and instructions for Instruct, the log and ratings for Use.
+        ["POST /api/v1/cookie/cases/{id:guid}/big-brother"] = ("Cookie:Instruct", Roles.Admin),
+        ["GET /api/v1/cookie/decisions"] = ("Cookie:Use", Roles.Admin),
+        ["PUT /api/v1/cookie/decisions/{id:long}/rating"] = ("Cookie:Use", Roles.Admin),
+        ["POST /api/v1/cookie/instructions/{id:guid}/confirm"] = ("Cookie:Instruct", Roles.Admin),
+        ["POST /api/v1/cookie/instructions/{id:guid}/end"] = ("Cookie:Instruct", Roles.Admin),
+        ["GET /api/v1/cookie/admin/instructions"] = ("Cookie:Manage", Roles.Admin),
+        ["POST /api/v1/cookie/admin/instructions"] = ("Cookie:Manage", Roles.Admin),
+        ["PUT /api/v1/cookie/admin/settings/lessons"] = ("Cookie:Manage", Roles.Admin),
         // The person and the availability plan (docs/cookie-plan.md §8.1, §8.2): one's own contact details and column for
         // everyone (the plan's code checks the column), the rest by the area Availability; a user's profile for admins.
         ["GET /api/v1/account/contact"] = ("signed-in", Roles.Viewer),

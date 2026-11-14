@@ -61,7 +61,7 @@ public static class Recipients
 /// outside working hours waits for the next working period; a reminder whose deadline is due as well gives way to it.
 /// </summary>
 public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings settings, Outbox outbox, IOptionsMonitor<RedmineOptions> redmineOptions,
-    IConfiguration configuration, PNMTD.Availability.AvailabilityPlan plan, ILogger<DutyRunner> logger)
+    IConfiguration configuration, PNMTD.Availability.AvailabilityPlan plan, DutyWriter writer, ILogger<DutyRunner> logger)
 {
     public const int PerRun = 50;
     private static readonly JsonSerializerOptions Json = CookieSettings.Json;
@@ -197,7 +197,9 @@ public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSett
         }
         var missed = duty.Kind is CookieDutyKind.FirstAnswerMissed or CookieDutyKind.UpdateMissed;
         var urgency = CaseRules.UrgencyOf(duty.Kind);
-        var text = DutyTexts.Ticket(duty.Kind, c, project, duty.DueAt, identity.Name, IssueUrl(issueId), configuration["PublicBaseUrl"]);
+        var template = DutyTexts.Ticket(duty.Kind, c, project, duty.DueAt, identity.Name, IssueUrl(issueId), configuration["PublicBaseUrl"]);
+        // Cookie writes the text while it runs and Admin → Cookie → Actions says so (§21.1); the template otherwise.
+        var text = await writer.WriteAsync(c, duty, template, ct);
         var rows = new List<CookieOutboxEntity>();
         var notes = new List<string>();
 

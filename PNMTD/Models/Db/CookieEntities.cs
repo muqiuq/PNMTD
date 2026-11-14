@@ -239,6 +239,145 @@ public class CookieCaseEntity
 
     [MaxLength(1000)]
     public string? StopComment { get; set; }
+
+    /// <summary>A person asked the big brother (§15.2): the next round calls it.</summary>
+    public DateTime? BigBrotherAskedAt { get; set; }
+
+    [MaxLength(200)]
+    public string? BigBrotherAskedBy { get; set; }
+
+    /// <summary>The big brother's last solution (§15.4), placeholders restored, with the model that wrote it.</summary>
+    public string? Solution { get; set; }
+
+    public DateTime? SolutionAt { get; set; }
+
+    [MaxLength(200)]
+    public string? SolutionModel { get; set; }
+}
+
+/// <summary>
+/// Cookie's decision log (docs/cookie-plan.md §11, §21.2): every proposal and what came of it, Seraph's verdict, and how
+/// people rated it. Also the duties' texts, the mails' events, the big brother's calls and Seraph's drift reports.
+/// </summary>
+[Table("cookie_decisions")]
+[NotAudited("Cookie's decision log; what it sends is in the outbox and the audit log, a rating is audited")]
+public class CookieDecisionEntity
+{
+    [Key]
+    public long Id { get; set; }
+
+    public DateTime At { get; set; }
+
+    public Guid? CaseId { get; set; }
+
+    public long? RoundId { get; set; }
+
+    /// <summary>The action (pushover, email, ticket, private-note, public-answer, object-note, mail-event, hand-to-person), or duty-text, big-brother, drift.</summary>
+    [MaxLength(32)]
+    public string Kind { get; set; } = "";
+
+    [MaxLength(300)]
+    public string Title { get; set; } = "";
+
+    /// <summary>What it is about, for duplicates: user:{id}, issue:{n}, host:{id}, mail:{id}.</summary>
+    [MaxLength(100)]
+    public string? Target { get; set; }
+
+    /// <summary>The proposal as JSON, placeholders as the model wrote them.</summary>
+    public string Proposal { get; set; } = "{}";
+
+    public double? Confidence { get; set; }
+
+    /// <summary>approve, revise, reject or ask; null when Seraph wasn't asked.</summary>
+    [MaxLength(16)]
+    public string? Verdict { get; set; }
+
+    [MaxLength(1000)]
+    public string? VerdictReason { get; set; }
+
+    /// <summary>done, proposed, approved, declined, rejected, off, below-threshold, refused, duplicate, muted, held-back, failed, noted.</summary>
+    [MaxLength(32)]
+    public string Outcome { get; set; } = "";
+
+    [MaxLength(1000)]
+    public string? Detail { get; set; }
+
+    public Guid? InboxDecisionId { get; set; }
+
+    public long? OutboxId { get; set; }
+
+    [MaxLength(200)]
+    public string? Model { get; set; }
+
+    /// <summary>right or wrong (§11).</summary>
+    [MaxLength(8)]
+    public string? Rating { get; set; }
+
+    [MaxLength(1000)]
+    public string? RatingComment { get; set; }
+
+    public Guid? RatedById { get; set; }
+
+    [MaxLength(200)]
+    public string? RatedByName { get; set; }
+
+    public DateTime? RatedAt { get; set; }
+
+    /// <summary>The lessons summariser has read the rating.</summary>
+    public bool RatingRead { get; set; }
+
+    public List<string> Areas { get; set; } = [];
+}
+
+/// <summary>
+/// A temporary instruction (docs/cookie-plan.md §10.3, §21.1): <i>mute</i> a host, sensor, location or case; <i>suppress</i> a
+/// channel, sensor type or kind of case; or a free-text <i>note</i>. Each ends, at most 30 days away. A draft from the chat
+/// counts only once a person confirms it.
+/// </summary>
+[Table("cookie_instructions")]
+[NotAudited("temporary instructions; creating, confirming and ending them is audited")]
+public class CookieInstructionEntity
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    /// <summary>mute, suppress or note.</summary>
+    [MaxLength(16)]
+    public string Kind { get; set; } = "";
+
+    /// <summary>host, sensor, location or case (mute); channel, sensor-type or case-kind (suppress); empty for a note.</summary>
+    [MaxLength(16)]
+    public string Scope { get; set; } = "";
+
+    [MaxLength(100)]
+    public string? Value { get; set; }
+
+    /// <summary>What the value names, for people: the host's name, "Pushover".</summary>
+    [MaxLength(200)]
+    public string? Label { get; set; }
+
+    [MaxLength(1000)]
+    public string Text { get; set; } = "";
+
+    public DateTime Until { get; set; }
+
+    public bool Confirmed { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public Guid? CreatedById { get; set; }
+
+    [MaxLength(200)]
+    public string CreatedByName { get; set; } = "";
+
+    /// <summary>chat, admin or lesson.</summary>
+    [MaxLength(16)]
+    public string Source { get; set; } = "admin";
+
+    public DateTime? EndedAt { get; set; }
+
+    [MaxLength(200)]
+    public string? EndedByName { get; set; }
 }
 
 /// <summary>A line of a case's timeline: what happened, when, by whom (code, Cookie, a person).</summary>
@@ -422,9 +561,16 @@ public class CookieMessageEntity
 
     public DateTime At { get; set; }
 
-    /// <summary>person or cookie.</summary>
+    /// <summary>person, cookie or seraph.</summary>
     [MaxLength(16)]
     public string From { get; set; } = "person";
+
+    /// <summary>A person's message is to cookie or to seraph (docs/cookie-plan.md §21.1).</summary>
+    [MaxLength(16)]
+    public string To { get; set; } = "cookie";
+
+    /// <summary>A reply's draft instruction, for the person to confirm (§10.3, §21.1).</summary>
+    public Guid? InstructionId { get; set; }
 
     public string Text { get; set; } = "";
 
