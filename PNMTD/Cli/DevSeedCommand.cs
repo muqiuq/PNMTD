@@ -75,6 +75,11 @@ internal static class DevSeedCommand
             var (links, zabbix, audit) = DevSeedIntegrations.Seed(integrationsDb, settings, Clock.UtcNow);
             Console.WriteLine($"Seeded {links} Redmine links, {zabbix} Zabbix sensor(s), {audit} audit entries.");
         }
+        // Cookie's group and settings (docs/cookie-plan.md §19.6).
+        using (var cookieDb = database())
+        {
+            Console.WriteLine(DevSeedCookie.Seed(cookieDb, settings, Clock.UtcNow));
+        }
         return 0;
     }
 

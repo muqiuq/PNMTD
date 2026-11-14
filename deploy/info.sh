@@ -63,6 +63,14 @@ if [[ -n "$zabbix_url" && -n "$(env_value Zabbix__ApiToken)" ]]; then
 else
   echo "  Zabbix:     off"
 fi
+# Cookie (docs/cookie-plan.md §19): available or off, and whether it may write to Redmine; never a key.
+if [[ "$(env_value Cookie__Enabled)" == "true" ]]; then
+  cookie_write="$([[ -n "$(env_value Redmine__WriteApiKey)" ]] && echo "writes tickets and notes" || echo "no Redmine__WriteApiKey: no tickets or notes")"
+  cookie_privacy="$(env_value Cookie__Privacy)"
+  echo "  Cookie:     available (started on Admin → Cookie), privacy ${cookie_privacy:-Code}, ${cookie_write}"
+else
+  echo "  Cookie:     off"
+fi
 echo "  Backups:    $(ls -1d "$(env_value PNMTD_BACKUP_DIR || echo backups)"/pnmtd-* 2>/dev/null | wc -l | tr -d ' ') in $(env_value PNMTD_BACKUP_DIR)"
 files="$(files_dir)"
 files_size=""

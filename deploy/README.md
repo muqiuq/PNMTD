@@ -289,6 +289,18 @@ PNMT reads Zabbix (6.0 or later; docs/audit-redmine-zabbix-plan.md §7): the ope
 - **Checking it:** *Admin → System health → Integrations → Test* reads the problems and hosts now and names the host groups it found.
 - **Without the menu entry:** `Zabbix__HideMenu=true` leaves *Zabbix* out of the drawer. Zabbix sensors keep working, and the Zabbix pages stay reachable through their links.
 
+## Cookie (optional)
+
+Cookie is PNMT's assistant (docs/cookie-plan.md). This release is package nine: **Cookie watches.** PNMT keeps a case book, keeps the ticket deadlines and sends reminders itself; Cookie explains the status, writes personal summaries and answers questions. **No AI text leaves PNMT yet.**
+
+- **Turning it on:** `Cookie__Enabled=true`. From then on the case book runs: a case per host with bad sensors or Zabbix problems, and a case per ticket of the projects watched on *Admin → Cookie → Redmine*. **Cookie itself stays stopped** until someone with *Cookie: Manage* starts it on *Admin → Cookie*; after a restart it resumes if it was running.
+- **Cookie's rights:** it reads with a group chosen on *Admin → Cookie → Rights*, never with the admin flag. Without a group it pauses and says so.
+- **The duties** (reminders and escalations on tickets, the ticket after 2 days without progress, its closing note) are sent by code from template texts, whether Cookie runs or not. **Each is off until switched on** on *Admin → Cookie → Actions*. **Tickets and notes need `Redmine__WriteApiKey`**, the key of a second Redmine account that may create issues and add notes in the watched projects; without it, those duties say they aren't possible. Messages go by e-mail (the SMTP settings) and Pushover (`Pushover__ApiKey`), to the contacts on *Admin → Cookie → Notifications*.
+- **The limits:** every message, note and ticket goes through the outbox, which counts the limits of *Admin → Cookie → Actions* (up to ceilings in code). What is over a limit is held back, and an admin can send it from *Admin → Cookie → Overview*.
+- **Privacy:** with `Cookie__Privacy=Code` (the default), people's names, e-mail addresses and phone numbers become placeholders before a request leaves PNMT, and come back when the answer is shown. Host names and IP addresses stay. Pages marked sensitive never reach Cookie. Requests go only to zero-data-retention endpoints (`Cookie__Zdr`) with fp8 or better (`Cookie__MinQuantization`).
+- **What it costs:** Cookie has a budget of its own, `Cookie__BudgetUsd` (30 USD a month), apart from `Ai__Budget__Usd`. A round in which nothing changed makes no call. Every request is in *Admin → AI*'s request log under `cookie.*`.
+- **Who sees what:** everyone sees the status and their own summary on the dashboard; *Cookie: Use* opens Cookie's window (cases, trace, chat), within the person's other rights; *Cookie: Manage* is *Admin → Cookie*. The full trace, with reasoning and tool results, is for *Manage* and for whoever may see everything Cookie's group sees.
+
 ## Menu entries
 
 A deployment that doesn't use a part of PNMT can leave its entries out of the drawer, for everybody:
