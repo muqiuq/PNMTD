@@ -117,7 +117,13 @@ async function apply() {
       <div class="options">
         <div class="field">
           <label for="from-text-parent">New locations go under</label>
-          <LocationPicker v-model="parentId" input-id="from-text-parent" none-label="None (top level)" size="small" />
+          <LocationPicker
+            v-model="parentId"
+            input-id="from-text-parent"
+            none-label="None (top level)"
+            size="small"
+            aria-label="New locations go under"
+          />
         </div>
         <div class="switch-row">
           <ToggleSwitch v-model="clearText" input-id="from-text-clear" />

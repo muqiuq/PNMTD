@@ -12996,6 +12996,7 @@ export interface components {
             value?: null | components["schemas"]["JsonElement"];
             /** Format: int32 */
             revision?: number;
+            acknowledgeCredentials?: boolean;
         };
         LoggingCheck: {
             journalPersistent: boolean;

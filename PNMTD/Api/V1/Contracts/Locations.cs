@@ -122,12 +122,19 @@ public sealed class LocationMoveRequest
     public Guid? ParentId { get; init; }
 }
 
-/// <summary><c>PUT /locations/{id}/values/{fieldId}</c>: the value by the field's type (above), and the revision the edit started from.</summary>
+/// <summary>
+/// <c>PUT /locations/{id}/values/{fieldId}</c>: the value by the field's type (above), and the revision the edit started
+/// from. A Markdown or Text value with new lines that look like credentials is answered 422 <c>looks_like_credential</c>
+/// with their line numbers, as a page's save is (§5.7), unless <see cref="AcknowledgeCredentials"/> says the warning
+/// was answered with <i>Save anyway</i>.
+/// </summary>
 public sealed class LocationValueRequest
 {
     public JsonElement? Value { get; init; }
 
     public int Revision { get; init; }
+
+    public bool AcknowledgeCredentials { get; init; }
 }
 
 /// <summary>A row of a location's history (§3.5), newest first. Values are JSON by the field's type; the field's label is its current one.</summary>

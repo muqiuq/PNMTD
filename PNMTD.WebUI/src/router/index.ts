@@ -72,6 +72,13 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'Location' },
   },
   {
+    // A Markdown field on the editing page (§5.9).
+    path: '/locations/:id/fields/:key/edit',
+    name: 'location-field-edit',
+    component: () => import('@/views/locations/LocationFieldEditView.vue'),
+    meta: { title: 'Edit field', role: 'User' },
+  },
+  {
     path: '/hosts/:id/sensors/new',
     name: 'sensor-new',
     component: () => import('@/views/sensors/SensorFormView.vue'),

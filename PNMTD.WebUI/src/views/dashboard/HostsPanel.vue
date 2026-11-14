@@ -197,6 +197,8 @@ const disabled = computed(() => sorted(matching.value.filter((h) => !h.enabled))
 
 .panel-header {
   flex-wrap: wrap;
+  /* Wrapped onto two lines, it keeps its height: min-height alone would let the list squeeze it. */
+  flex-shrink: 0;
   padding-top: var(--pnmt-space-1);
   padding-bottom: var(--pnmt-space-1);
 }
@@ -234,6 +236,10 @@ const disabled = computed(() => sorted(matching.value.filter((h) => !h.enabled))
 .where {
   font-weight: 400;
   font-size: 0.857rem;
+}
+
+.row .where {
+  margin-left: var(--pnmt-space-2);
 }
 
 .scroller {

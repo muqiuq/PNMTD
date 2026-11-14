@@ -186,8 +186,15 @@ async function save() {
           >
         </div>
         <div class="field">
-          <label for="field-type">Type</label>
-          <Select v-model="type" :options="fieldTypes" option-label="label" option-value="value" input-id="field-type">
+          <label id="field-type-label" for="field-type">Type</label>
+          <Select
+            v-model="type"
+            :options="fieldTypes"
+            option-label="label"
+            option-value="value"
+            input-id="field-type"
+            aria-labelledby="field-type-label"
+          >
             <template #option="{ option }">
               <span class="type-option"><i :class="option.icon" aria-hidden="true" /> {{ option.label }}</span>
             </template>

@@ -102,7 +102,12 @@ async function save() {
       </div>
       <div v-if="!editing" class="field">
         <label for="location-parent">Part of</label>
-        <LocationPicker v-model="parent" input-id="location-parent" none-label="None (top level)" />
+        <LocationPicker
+          v-model="parent"
+          input-id="location-parent"
+          none-label="None (top level)"
+          aria-label="Part of"
+        />
         <small v-if="errors.parentId" class="field-error">{{ errors.parentId }}</small>
       </div>
     </form>

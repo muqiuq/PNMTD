@@ -208,7 +208,7 @@ export function grouped<T extends Pick<FieldDefinition, 'group'>>(
 export function sampleValue(field: Pick<FieldDefinition, 'type' | 'options' | 'label'>): unknown {
   switch (field.type) {
     case 'Markdown':
-      return `Rack 4–6, cage B. Badges at the front desk; ask for **${field.label.toLowerCase()}**.`
+      return 'Rack 4–6, cage B. Badges at the **front desk**; ask for the IT cage.'
     case 'Text':
       return 'Init7 · 12-3456'
     case 'Number':

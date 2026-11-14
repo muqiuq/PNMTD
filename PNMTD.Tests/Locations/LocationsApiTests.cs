@@ -292,6 +292,57 @@ public sealed class LocationsApiTests
     }
 
     [TestMethod]
+    public async Task ACredentialInAValueIsAWarningThatASaveCanAcknowledge()
+    {
+        var access = await FieldAsync(new { label = V1.Unique("Access"), type = "Markdown", sensitive = true });
+        var site = await CreateAsync(user);
+        var markdown = "Badges at the front desk.\n\npassword: Hunter2-Zrh!\n";
+
+        using var warned = await SetAsync(user, site.Id, access.Id, markdown, 0);
+        Assert.AreEqual((HttpStatusCode)422, warned.StatusCode);
+        var problem = await warned.ProblemAsync();
+        Assert.AreEqual("looks_like_credential", problem.GetProperty("code").GetString());
+        Assert.AreEqual(3, problem.GetProperty("lines")[0].GetInt32());
+        Assert.IsFalse(problem.GetRawText().Contains("Hunter2"), "never the text");
+
+        using var saved = await user.PutJsonAsync($"/api/v1/locations/{site.Id}/values/{access.Id}",
+            new { value = markdown, revision = 0, acknowledgeCredentials = true });
+        Assert.AreEqual(HttpStatusCode.OK, saved.StatusCode);
+        // A line that was there before doesn't warn again.
+        Assert.AreEqual(HttpStatusCode.OK, (await SetAsync(user, site.Id, access.Id, markdown + "\nAsk for the IT cage.\n", 1)).StatusCode);
+    }
+
+    [TestMethod]
+    public async Task PagesLinkedToALocationAHostOrASensorLoseTheLinkWithIt()
+    {
+        var site = await CreateAsync(user);
+        var host = await HostAsync();
+        var sensor = await V1.CreateSensorAsync(user, host.Id);
+        var other = await HostAsync();
+        var otherSensor = await V1.CreateSensorAsync(user, other.Id);
+        var page = new KbPageEntity { Id = Guid.NewGuid(), Title = V1.Unique("Linked"), CreatedAt = Clock.UtcNow, UpdatedAt = Clock.UtcNow, Revision = 1 };
+        using (var db = app.NewDb())
+        {
+            db.KbPages.Add(page);
+            db.KbLinks.AddRange(
+                new KbLinkEntity { Id = Guid.NewGuid(), PageId = page.Id, LocationId = site.Id, CreatedAt = Clock.UtcNow },
+                new KbLinkEntity { Id = Guid.NewGuid(), PageId = page.Id, HostId = host.Id, CreatedAt = Clock.UtcNow },
+                new KbLinkEntity { Id = Guid.NewGuid(), PageId = page.Id, SensorId = otherSensor.Id, CreatedAt = Clock.UtcNow });
+            await db.SaveChangesAsync();
+        }
+
+        // HostService deletes with ExecuteDeleteAsync: the database's cascades take the links.
+        Assert.AreEqual(HttpStatusCode.NoContent, (await user.DeleteAsync($"/api/v1/hosts/{host.Id}")).StatusCode);
+        Assert.AreEqual(HttpStatusCode.NoContent, (await user.DeleteAsync($"/api/v1/sensors/{otherSensor.Id}")).StatusCode);
+        Assert.AreEqual(HttpStatusCode.NoContent, (await admin.DeleteAsync($"/api/v1/locations/{site.Id}")).StatusCode);
+
+        using var check = app.NewDb();
+        Assert.IsFalse(await check.KbLinks.AnyAsync(l => l.PageId == page.Id));
+        Assert.IsTrue(await check.KbPages.AnyAsync(p => p.Id == page.Id), "the page stays");
+        Assert.IsFalse(await check.Sensors.AnyAsync(s => s.Id == sensor.Id));
+    }
+
+    [TestMethod]
     public async Task UserAndHostValuesNameTheirTargetsAndADeletedHostClearsItsValues()
     {
         var contact = await FieldAsync(new { label = V1.Unique("Contact"), type = "User" });

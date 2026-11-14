@@ -23382,6 +23382,9 @@
           "revision": {
             "type": "integer",
             "format": "int32"
+          },
+          "acknowledgeCredentials": {
+            "type": "boolean"
           }
         }
       },

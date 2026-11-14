@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using PNMTD.Ai;
 using PNMTD.Api;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
@@ -200,6 +201,10 @@ public sealed partial class LocationValues(PnmtdDbContext db, LocationTree tree,
                 throw ApiException.EditConflict(own!.Revision, own.UpdatedByName, own.UpdatedAt,
                     $"{own.UpdatedByName ?? "Someone"} saved {field.Label} in the meantime.");
             }
+            if (!request.AcknowledgeCredentials && field.Type is LocationFieldType.Markdown or LocationFieldType.Text)
+            {
+                CheckCredentials(ReadString(json), ReadString(own?.Value));
+            }
             var by = LocationActor.Of(accessor);
             var now = Clock.UtcNow;
             var old = own?.Value;
@@ -230,6 +235,28 @@ public sealed partial class LocationValues(PnmtdDbContext db, LocationTree tree,
         await transaction.CommitAsync(ct);
         var resolved = (await ResolveAsync(locationId, ct)).Single(v => v.Field.Id == fieldId);
         return (await ItemsAsync([resolved], ct))[0];
+    }
+
+    /// <summary>
+    /// The credentials warning (§5.7): lines that look like a password, a key or a token, and weren't in the value before,
+    /// answer 422 <c>looks_like_credential</c> with their numbers and kinds, never the text. It doesn't block: the save
+    /// that acknowledges it goes through.
+    /// </summary>
+    private static void CheckCredentials(string? text, string? before)
+    {
+        var findings = SecretScanner.Scan(text);
+        if (findings.Count == 0)
+        {
+            return;
+        }
+        var lines = text!.Replace("\r\n", "\n").Split('\n');
+        var oldLines = (before ?? "").Replace("\r\n", "\n").Split('\n');
+        var known = SecretScanner.Scan(before).Select(f => oldLines[f.Line - 1].Trim()).ToHashSet(StringComparer.Ordinal);
+        var fresh = findings.Where(f => !known.Contains(lines[f.Line - 1].Trim())).ToList();
+        if (fresh.Count > 0)
+        {
+            throw KbPageService.LooksLikeCredential(fresh, "Some lines look like credentials. PNMT is not a password manager.");
+        }
     }
 
     // --- Validating and normalising (§4.1) ---------------------------------------------------------------------------

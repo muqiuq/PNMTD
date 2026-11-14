@@ -41,7 +41,13 @@ async function move() {
   >
     <div class="field">
       <label for="move-parent">Part of</label>
-      <LocationPicker v-model="parent" input-id="move-parent" :exclude="location.id" none-label="None (top level)" />
+      <LocationPicker
+        v-model="parent"
+        input-id="move-parent"
+        :exclude="location.id"
+        none-label="None (top level)"
+        aria-label="Part of"
+      />
       <small class="field-hint">Its sub-locations move with it. Locations nest at most 6 levels deep.</small>
     </div>
     <template #footer>

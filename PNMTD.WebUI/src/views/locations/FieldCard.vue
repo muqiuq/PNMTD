@@ -60,23 +60,28 @@ const editing = ref(false)
 const draft = ref<unknown>(null)
 const saving = ref(false)
 const error = ref<string | null>(null)
+// The credentials warning (§5.7): it doesn't block, *Save anyway* goes through.
+const warned = ref(false)
 const card = ref<HTMLElement | null>(null)
 
 async function begin(from: unknown = shown.value) {
   draft.value = from === undefined ? null : structuredClone(from)
   error.value = null
+  warned.value = false
   editing.value = true
   await nextTick()
   card.value?.querySelector<HTMLElement>('.field-value-editor input, .field-value-editor [tabindex="0"]')?.focus()
 }
 
-async function store(value: unknown) {
+async function store(value: unknown, acknowledgeCredentials = false) {
   saving.value = true
   error.value = null
+  warned.value = false
   try {
     const saved = await api.locations.setValue(props.locationId!, props.field.id, {
       value: value as S['LocationValueRequest']['value'],
       revision: props.value?.revision ?? 0,
+      acknowledgeCredentials,
     })
     editing.value = false
     emit('saved', saved)
@@ -85,6 +90,9 @@ async function store(value: unknown) {
     if (e instanceof ApiError && e.code === 'edit_conflict') {
       error.value = `${e.message} Their value is shown now; yours is still here to save again.`
       await queryClient.invalidateQueries({ queryKey: keys.location(props.locationId!) })
+    } else if (e instanceof ApiError && e.code === 'looks_like_credential') {
+      error.value = 'This looks like a password, a key or a token. PNMT is not a password manager.'
+      warned.value = true
     } else if (e instanceof ApiError && e.field('value')) {
       error.value = e.field('value')!
     } else {
@@ -188,7 +196,13 @@ function onKey(event: KeyboardEvent) {
         <span v-else>{{ text }}</span>
       </div>
     </template>
-    <div v-if="error" class="field-error" role="alert">{{ error }}</div>
+    <small v-if="editing && field.help" class="muted help">{{ field.help }}</small>
+    <div v-if="error" class="field-error" role="alert">
+      {{ error }}
+      <button v-if="warned && editing" type="button" class="link-button" :disabled="saving" @click="store(draft, true)">
+        Save anyway
+      </button>
+    </div>
 
     <footer v-if="!editing && (inherited || (editable && ownValue && field.inherited))" class="card-footer muted">
       <template v-if="inherited">
@@ -278,6 +292,10 @@ function onKey(event: KeyboardEvent) {
 
 .not-filled {
   font-style: italic;
+}
+
+.help {
+  font-size: 0.857rem;
 }
 
 .card-footer {
