@@ -14,6 +14,7 @@ internal static class Wmi
 {
     public const string Cimv2 = @"root\cimv2";
     public const string StandardCimv2 = @"root\StandardCimv2";
+    public const string Smb = @"root\Microsoft\Windows\SMB";
     public const string Storage = @"root\Microsoft\Windows\Storage";
     public const string Defender = @"root\Microsoft\Windows\Defender";
     public const string BitLocker = @"root\CIMV2\Security\MicrosoftVolumeEncryption";
@@ -34,7 +35,14 @@ internal static class Wmi
         try
         {
             using var searcher = new ManagementObjectSearcher(new ManagementScope(scope), new ObjectQuery(wql), options);
-            var rows = searcher.Get().Cast<ManagementBaseObject>().ToList();
+            // A forward-only result is read once, by its own enumerator. Never through LINQ: .NET 10's Cast().ToList() asks an
+            // ICollection for its Count first, and ManagementObjectCollection.Count reads the whole result to count it, so the
+            // list came back empty, without an error (every query, on every Windows: no services, no domain, no activation).
+            var rows = new List<ManagementBaseObject>();
+            foreach (ManagementBaseObject row in searcher.Get())
+            {
+                rows.Add(row);
+            }
             Logger.LogDebug("WMI {Scope} {Class}: {Count} objects in {Ms:0} ms", scope, name, rows.Count, Stopwatch.GetElapsedTime(started).TotalMilliseconds);
             return rows;
         }

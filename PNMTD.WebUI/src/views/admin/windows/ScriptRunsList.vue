@@ -2,13 +2,15 @@
 import { useQuery } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
-import Drawer from 'primevue/drawer'
+import Dialog from 'primevue/dialog'
+import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import { computed, ref } from 'vue'
 import { api, keys, type S } from '@/api/resources'
 import ListTable from '@/components/ListTable.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { useActions } from '@/composables/useActions'
+import { useCopy } from '@/composables/useCopy'
 import { useServerTable } from '@/composables/useServerTable'
 import { runStateSeverity, versionLabel } from './scriptFormat'
 
@@ -31,6 +33,10 @@ const detail = useQuery({
   refetchInterval: (q) => (q.state.data?.run.finishedAt ? false : 2000),
 })
 const { run, ask } = useActions()
+const copy = useCopy()
+/** A registered script's account as the server names it; a library run's account by its name in PNMT and the account. */
+const runAsText = (r: S['WindowsScriptRunItem']) =>
+  r.versionNumber === 0 ? r.runAsName : `${r.runAsName} (${r.account ?? 'LocalSystem'})`
 async function redact() {
   if (!(await ask('Redact the arguments?', 'They are removed from this run for good.', 'Redact'))) return
   await run(() => api.windows.redactRun(selected.value!), { success: 'Redacted', invalidate: [keys.windows] })
@@ -72,43 +78,73 @@ async function redact() {
         <div class="small muted">{{ item.serverName }} · <RelativeTime :value="item.startedAt" /></div>
       </template>
     </ListTable>
-    <Drawer v-model:visible="open" position="right" header="Script run" class="script-run-drawer">
+    <Dialog
+      v-model:visible="open"
+      header="Script run"
+      modal
+      maximizable
+      dismissable-mask
+      :style="{ width: '90vw', maxWidth: '80rem' }"
+      :breakpoints="{ '700px': '100vw' }"
+    >
       <template v-if="detail.data.value">
-        <p class="line">
+        <div class="line">
           <Tag :value="detail.data.value.run.state" :severity="runStateSeverity(detail.data.value.run.state)" />
           <strong>{{ detail.data.value.run.scriptName }}</strong>
-          {{ versionLabel(detail.data.value.run.versionNumber) }} on
-          {{ detail.data.value.run.serverName }}
-        </p>
-        <p class="small muted">
-          as {{ detail.data.value.run.account ?? 'LocalSystem' }} ({{ detail.data.value.run.runAsName }}) · by
-          {{ detail.data.value.run.requestedBy }} · <RelativeTime :value="detail.data.value.run.startedAt" />
-          <template v-if="detail.data.value.run.durationMs !== null">
-            · {{ Math.round(detail.data.value.run.durationMs) }} ms</template
-          >
-          <template v-if="detail.data.value.run.exitCode !== null">
-            · exit code {{ detail.data.value.run.exitCode }}</template
-          >
-        </p>
-        <p v-if="detail.data.value.run.message">{{ detail.data.value.run.message }}</p>
-        <h4>Arguments</h4>
-        <p v-if="detail.data.value.run.redacted" class="muted">Redacted.</p>
-        <pre v-else class="box mono">{{ detail.data.value.arguments ?? 'none' }}</pre>
-        <Button
-          v-if="!detail.data.value.run.redacted && detail.data.value.arguments"
-          label="Redact the arguments"
-          size="small"
-          text
-          severity="danger"
-          @click="redact"
-        />
-        <h4>Output</h4>
-        <pre class="box mono">{{
+          <span class="muted">{{ versionLabel(detail.data.value.run.versionNumber) }}</span>
+          <span>on {{ detail.data.value.run.serverName }}</span>
+        </div>
+        <dl class="facts run-facts">
+          <dt>As</dt>
+          <dd>{{ runAsText(detail.data.value.run) }}</dd>
+          <dt>By</dt>
+          <dd>{{ detail.data.value.run.requestedBy ?? '–' }}</dd>
+          <dt>Started</dt>
+          <dd><RelativeTime :value="detail.data.value.run.startedAt" /></dd>
+          <dt>Took</dt>
+          <dd>
+            <template v-if="detail.data.value.run.durationMs !== null"
+              >{{ Math.round(detail.data.value.run.durationMs) }} ms</template
+            >
+            <template v-else>{{ detail.data.value.run.finishedAt ? '–' : 'running…' }}</template>
+          </dd>
+          <dt>Exit code</dt>
+          <dd>{{ detail.data.value.run.exitCode ?? '–' }}</dd>
+          <dt>SHA-256</dt>
+          <dd class="mono small hash">{{ detail.data.value.hash }}</dd>
+        </dl>
+        <Message v-if="detail.data.value.run.message" severity="warn" :closable="false" size="small">{{
+          detail.data.value.run.message
+        }}</Message>
+        <div class="section-head">
+          <h4>Output</h4>
+          <Button
+            v-if="detail.data.value.output"
+            label="Copy"
+            icon="pi pi-copy"
+            size="small"
+            text
+            @click="copy(detail.data.value.output, 'The output')"
+          />
+        </div>
+        <pre class="box output mono">{{
           detail.data.value.output ?? (detail.data.value.run.finishedAt ? '(none)' : 'Running…')
         }}</pre>
-        <p class="small muted mono">{{ detail.data.value.hash }}</p>
+        <div class="section-head">
+          <h4>Arguments</h4>
+          <Button
+            v-if="!detail.data.value.run.redacted && detail.data.value.arguments"
+            label="Redact the arguments"
+            size="small"
+            text
+            severity="danger"
+            @click="redact"
+          />
+        </div>
+        <p v-if="detail.data.value.run.redacted" class="muted">Redacted.</p>
+        <pre v-else class="box mono">{{ detail.data.value.arguments ?? 'none' }}</pre>
       </template>
-    </Drawer>
+    </Dialog>
   </div>
 </template>
 
@@ -129,20 +165,42 @@ async function redact() {
 .box {
   white-space: pre-wrap;
   background: var(--pnmt-bg);
-  padding: var(--pnmt-space-2);
+  border: 1px solid var(--pnmt-border);
+  padding: var(--pnmt-space-2) var(--pnmt-space-3);
   border-radius: var(--p-border-radius-md);
-  max-height: 50vh;
+  max-height: 30vh;
   overflow: auto;
   font-size: 0.857rem;
+  margin: 0;
+}
+
+/* The output keeps its columns (tables, aligned numbers): no wrapping, scrolled sideways when wider. */
+.box.output {
+  white-space: pre;
+  min-height: 8rem;
+  max-height: 60vh;
+}
+
+.run-facts {
+  margin: var(--pnmt-space-3) 0;
+}
+
+.hash {
+  word-break: break-all;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: var(--pnmt-space-3) 0 var(--pnmt-space-2);
+}
+
+.section-head h4 {
+  margin: 0;
 }
 
 .small {
   font-size: 0.857rem;
-}
-</style>
-
-<style>
-.script-run-drawer {
-  width: min(48rem, 100vw);
 }
 </style>

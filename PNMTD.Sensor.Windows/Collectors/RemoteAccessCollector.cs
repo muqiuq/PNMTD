@@ -86,7 +86,7 @@ internal sealed class RemoteAccessCollector : Collector
         }));
         Add(features, Isolated.Part(errors, "SMB", () =>
         {
-            var smb1 = Isolated.Part(errors, "SMB1", () => Wmi.First(Wmi.StandardCimv2, "SELECT EnableSMB1Protocol, RequireSecuritySignature FROM MSFT_SmbServerConfiguration"));
+            var smb1 = Isolated.Part(errors, "SMB1", () => Wmi.First(Wmi.Smb, "SELECT EnableSMB1Protocol, RequireSecuritySignature FROM MSFT_SmbServerConfiguration"));
             var shares = Isolated.Part(errors, "shares", () => Wmi.Query(Wmi.Cimv2, "SELECT Name FROM Win32_Share").Select(s => s.Str("Name") ?? "").ToList()) ?? [];
             return Feature("smb", "SMB file sharing", Installed("LanmanServer"), Running("LanmanServer") && listening.Contains(445), [445],
                 smb1?.Bool("EnableSMB1Protocol") == true ? "SMB1 on" : "", smb1?.Bool("RequireSecuritySignature") == false ? "signing not required" : "",
