@@ -63,6 +63,13 @@ public sealed partial class AgentDownloads(IHttpClientFactory http, IOptionsMoni
     /// <summary>The download folder, absolute; a relative one (<c>dist</c>) is the working directory's.</summary>
     public string Folder => Path.GetFullPath(string.IsNullOrWhiteSpace(options.CurrentValue.DownloadFolder) ? "/var/lib/pnmtd/downloads" : options.CurrentValue.DownloadFolder);
 
+    /// <summary>
+    /// Where fetched files go: <c>sensor-{version}/</c> in the download folder, which is a volume in the compose deployment and so
+    /// outlives an update; a new version fetches into a folder of its own, and the older ones are deleted. Files placed in the
+    /// download folder itself (an admin's for a PNMT without internet, or <c>dist/</c>) are served when this one has none.
+    /// </summary>
+    public string ReleaseFolder => Path.Combine(Folder, ReleaseTag(ServerInfo.Version));
+
     // --- the folder ---------------------------------------------------------------------------------------------
 
     /// <summary>
@@ -71,9 +78,15 @@ public sealed partial class AgentDownloads(IHttpClientFactory http, IOptionsMoni
     /// </summary>
     public (VerifiedFile? File, string? Problem) Check(string executable)
     {
+        var fetchedHere = CheckIn(ReleaseFolder, executable);
+        return fetchedHere.File is not null || fetchedHere.Problem is not null ? fetchedHere : CheckIn(Folder, executable);
+    }
+
+    private (VerifiedFile? File, string? Problem) CheckIn(string folder, string executable)
+    {
         try
         {
-            var path = Path.Combine(Folder, executable);
+            var path = Path.Combine(folder, executable);
             var sumPath = path + ".sha256";
             if (!File.Exists(path) || !File.Exists(sumPath))
             {
@@ -237,7 +250,7 @@ public sealed partial class AgentDownloads(IHttpClientFactory http, IOptionsMoni
         string? temporarySum = null;
         try
         {
-            var folder = Folder;
+            var folder = ReleaseFolder;
             using var client = http.CreateClient(nameof(AgentDownloads));
             client.Timeout = Timeout.InfiniteTimeSpan;
             string expected;
@@ -311,6 +324,7 @@ public sealed partial class AgentDownloads(IHttpClientFactory http, IOptionsMoni
             failures.TryRemove(executable, out _);
             fetched[executable] = Clock.UtcNow;
             logger.LogInformation("Fetched {File} from {Url} into {Folder}: SHA-256 {Sha256}", executable, url, folder, expected);
+            DeleteOlderReleases();
             return null;
         }
         catch (Exception e) when (e is HttpRequestException or IOException or UnauthorizedAccessException or OperationCanceledException or InvalidOperationException)
@@ -329,6 +343,24 @@ public sealed partial class AgentDownloads(IHttpClientFactory http, IOptionsMoni
                 {
                 }
             }
+        }
+    }
+
+    /// <summary>The folders older versions fetched into (<c>sensor-*</c> but this version's): an update leaves them behind in the volume.</summary>
+    private void DeleteOlderReleases()
+    {
+        try
+        {
+            var current = Path.GetFileName(ReleaseFolder);
+            foreach (var old in Directory.GetDirectories(Folder, "sensor-*").Where(d => Path.GetFileName(d) != current))
+            {
+                Directory.Delete(old, recursive: true);
+                logger.LogInformation("Deleted the agent files of an older version: {Folder}", old);
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning("The older versions' agent files could not be deleted: {Message}", e.Message);
         }
     }
 

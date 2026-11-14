@@ -206,7 +206,19 @@ PNMTD monitors MikroTik routers (RouterOS 7.13 or later) and backs up their conf
 
 ## Servers with an agent
 
-Servers report through PNMT's agent, on PNMT's address and port, and are managed on *Admin → Servers*. **Windows** servers and PCs run the PNMT sensor service ([docs/windows-sensor-plan.md](../docs/windows-sensor-plan.md)); the **Linux** agent for Debian follows ([docs/linux-sensor-plan.md](../docs/linux-sensor-plan.md)): *Add server* already makes Linux tokens, and the agent's install line comes with its release. The settings are `Agents__*` in `.env` (`deploy/.env.example`).
+Servers report through PNMT's agent, on PNMT's address and port, and are managed on *Admin → Servers*. **Windows** servers and PCs run the PNMT sensor service ([docs/windows-sensor-plan.md](../docs/windows-sensor-plan.md)); **Linux** servers (Debian 12 and 13, also Proxmox VE and Ubuntu LTS) run the PNMT agent for Linux ([docs/linux-sensor-plan.md](../docs/linux-sensor-plan.md)). The settings are `Agents__*` in `.env` (`deploy/.env.example`).
+
+- **The agents' files come from PNMT itself** (`/agent/v1/download/…`), so a server needs to reach only PNMT: PNMTD fetches its own version's files from the GitHub release `sensor-{version}` when first asked for, checks each against its `.sha256`, and keeps them in the volume `pnmtd-downloads` (in `sensor-{version}/`; an update fetches anew and deletes the older ones). *Admin → Servers → Download* shows each file's state and has *Fetch again*. GitHub's links, with the same hashes, are offered next to PNMT's.
+- **A PNMT without internet:** put the release's files (`pnmt-agent-linux-x64`, `pnmt-agent-linux-arm64`, `pnmt-sensor-x64.exe`, `pnmt-sensor-arm64.exe`, each with its `.sha256`) into a folder on the host and mount it instead of the volume, in `docker-compose.override.yml`:
+
+  ```yaml
+  services:
+    pnmtd:
+      volumes:
+        - /srv/pnmt-agent-files:/var/lib/pnmtd/downloads:ro
+  ```
+
+  PNMTD serves only files that match their `.sha256`. `Agents__ServeDownloads=false` turns the download paths off (the dialogs then offer GitHub only).
 
 ### Windows
 
@@ -218,7 +230,19 @@ One executable, `pnmt-sensor-x64.exe` or `pnmt-sensor-arm64.exe`, from the GitHu
 - **Trust.** Each agent has a key in the server's machine store; PNMTD's signing key is under Data Protection in the keys volume, which `./backup.sh` includes. A restore without the keys volume means every server must re-join.
 - **Updating:** run the newer executable on the server: its window offers *Update*, or `pnmt-sensor.exe update` on the command line. The identity and key stay.
 - **Logins** need the audit policy: the server's *Access* tab lists what is missing, with the `auditpol` lines to fix it. The agent changes nothing itself.
-- `docker compose exec pnmtd pnmtd agent simulate --url https://pnmt.example.com --token xxxx-xxxx` runs a fake Windows agent next to the server, for a look without Windows; `pnmtd agent tokens` lists the join tokens.
+- `docker compose exec pnmtd pnmtd agent simulate --url https://pnmt.example.com --token xxxx-xxxx` runs a fake Windows agent next to the server, for a look without Windows (`--platform linux` for a Linux one); `pnmtd agent tokens` lists the join tokens.
+
+### Linux
+
+One binary, `pnmt-agent`, with .NET included, a systemd service and a command line; no GUI.
+
+- **Adding a server:** *Add server…* in a host's menu (Admin), with *Linux* as the platform, shows the token and **one line** to run as root on the server: it downloads the binary from PNMT, checks its SHA-256 with `sha256sum -c`, installs it to `/usr/local/sbin`, and runs `pnmt-agent join --url … --token …`, which writes the unit `pnmt-agent.service`, starts it, and exits 0 when connected. Toggles choose x64 or arm64, `wget` or `curl`, root or `sudo`, and PNMT or GitHub as the source. Over plain http:// the line has `--allow-http`, and `join` prints PNMT's key to compare.
+- **What PNMT may change is decided on the server**, in `/etc/pnmt-agent/config.yaml` (root's, 0600): removing SSH keys (per account, with protected break-glass keys) and running bash scripts (as named accounts), both off by default. `pnmt-agent config check` shows the effective rights. A file not owned by root, writable by others or broken grants nothing. PNMT can't write it.
+- **SSH keys:** the agent reports every `authorized_keys` file sshd uses and which key each SSH login used. *Admin → SSH keys* names each key and assigns it to a user; a key nobody registered raises 465. Removing a key needs `ssh_keys.remove: true` on that server; a backup is kept there, and `pnmt-agent keys restore` puts it back. PNMT can never add a key.
+- **Logins** come from the journal. Debian 12 and later and Ubuntu keep it persistently; the server's *Access* tab lists what is missing (a volatile journal, sshd's `LogLevel` below `VERBOSE`, which hides SFTP sessions and refused keys) with the commands that fix it.
+- **Updating:** `pnmt-agent update` on the server, after PNMT's update: it downloads PNMT's version from PNMT and checks it against a manifest PNMTD signed with the key pinned at the join.
+- **Uninstalling:** `pnmt-agent uninstall` (`config.yaml` and the logs stay; `--purge` deletes them too). PNMT keeps the server and its history, marked uninstalled.
+- **Scripts need D-Bus** on the server (`systemd-run` starts them in a unit of their own): Debian's and Ubuntu's standard installations have it; a minimal one may need `apt install dbus`.
 
 ## AI (optional)
 
@@ -237,6 +261,7 @@ PNMT can use AI models through [OpenRouter](https://openrouter.ai): to propose r
 |---|---|---|
 | volume `pnmtd_pnmtd-pgdata` | the database, with the UDP nodes' keys, their command log and firmware images, and the MikroTik routers' configurations and (encrypted) tunnel keys | `./backup.sh` (`pg_dump`) |
 | volume `pnmtd_pnmtd-keys` | Data Protection keys (sessions, 2FA secrets, PNMTD's SSH key and the tunnel keys) | `./backup.sh` |
+| volume `pnmtd_pnmtd-downloads` | the agents' files PNMT serves, fetched from the GitHub release | not needed: fetched again |
 | `deploy/.env` | database password, first admin password, settings | you. It is not in any backup |
 | `deploy/backups/` | backup folders | you |
 

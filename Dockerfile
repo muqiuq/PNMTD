@@ -52,7 +52,7 @@ RUN apt-get update \
  # ping's file capability (cap_net_raw) makes exec fail outright under cap_drop ALL and
  # no-new-privileges; a plain copy of the binary drops it and leaves the ICMP socket path.
  && cp /usr/bin/ping /usr/bin/ping.plain && mv -f /usr/bin/ping.plain /usr/bin/ping \
- && mkdir -p /var/lib/pnmtd/keys \
+ && mkdir -p /var/lib/pnmtd/keys /var/lib/pnmtd/downloads \
  && chown -R app:app /var/lib/pnmtd \
  && printf '#!/bin/sh\nexec dotnet /app/PNMTD.dll "$@"\n' > /usr/local/bin/pnmtd \
  && chmod 0755 /usr/local/bin/pnmtd

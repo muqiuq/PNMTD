@@ -65,6 +65,9 @@ services:
       net.ipv4.ping_group_range: "0 2147483647"   # PING sensors as a non-root user, no capability
     volumes:
       - pnmtd-keys:/var/lib/pnmtd/keys             # sessions and 2FA secrets: backed up by ./backup.sh
+      # The agents' files PNMT serves (docs/linux-sensor-plan.md §4.4), fetched from the GitHub release of this version into
+      # sensor-<version>/; not backed up. For a PNMT without internet, mount a folder with the release's files here instead.
+      - pnmtd-downloads:/var/lib/pnmtd/downloads
     healthcheck:                                   # here as well: Podman's OCI images drop HEALTHCHECK
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1"]
       interval: 30s
@@ -117,3 +120,4 @@ services:
 volumes:
   pnmtd-pgdata:
   pnmtd-keys:
+  pnmtd-downloads:

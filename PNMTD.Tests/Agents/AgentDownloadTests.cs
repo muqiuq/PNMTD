@@ -266,6 +266,8 @@ public sealed class AgentDownloadTests
     public async Task AMissingFileIsFetchedFromTheReleaseOnceCheckedAndKept()
     {
         var into = Directory.CreateTempSubdirectory("pnmtd-downloads-fetched-");
+        // What an older version fetched into the same folder (a volume, after an update).
+        Put(Directory.CreateDirectory(Path.Combine(into.FullName, "sensor-0.9.0")), AgentDownloadAssets.LinuxArm64);
         var release = new Release();
         var binary = RandomNumberGenerator.GetBytes(200_000);
         release.Files[AgentDownloadAssets.LinuxArm64] = binary;
@@ -295,15 +297,18 @@ public sealed class AgentDownloadTests
                 CollectionAssert.AreEqual(binary, await response.Content.ReadAsByteArrayAsync());
             }
             Assert.AreEqual(1, release.Requests.Count(r => r == $"/releases/download/{Tag}/{AgentDownloadAssets.LinuxArm64}"), "one fetch");
-            CollectionAssert.AreEqual(binary, File.ReadAllBytes(Path.Combine(into.FullName, AgentDownloadAssets.LinuxArm64)), "kept");
-            Assert.AreEqual($"{Sha(binary)}  {AgentDownloadAssets.LinuxArm64}\n", File.ReadAllText(Path.Combine(into.FullName, AgentDownloadAssets.LinuxArm64 + ".sha256")));
-            Assert.AreEqual(2, into.GetFiles().Length, "no temporary files left");
+            // Kept in the version's own folder (the compose deployment's volume outlives updates); an older version's is deleted.
+            var kept = Path.Combine(into.FullName, Tag);
+            CollectionAssert.AreEqual(binary, File.ReadAllBytes(Path.Combine(kept, AgentDownloadAssets.LinuxArm64)), "kept");
+            Assert.AreEqual($"{Sha(binary)}  {AgentDownloadAssets.LinuxArm64}\n", File.ReadAllText(Path.Combine(kept, AgentDownloadAssets.LinuxArm64 + ".sha256")));
+            Assert.AreEqual(2, new DirectoryInfo(kept).GetFiles().Length, "no temporary files left");
+            Assert.IsFalse(Directory.Exists(Path.Combine(into.FullName, "sensor-0.9.0")), "the older version's files are gone");
 
             // A file that doesn't match the release's .sha256 is not kept, and the failure is remembered.
             using var tampered = await client.GetAsync($"{AgentProtocol.DownloadPath}/{AgentDownloadAssets.LinuxX64}");
             Assert.AreEqual(HttpStatusCode.NotFound, tampered.StatusCode);
             StringAssert.Contains(await tampered.Content.ReadAsStringAsync(), "does not match its .sha256");
-            Assert.IsFalse(File.Exists(Path.Combine(into.FullName, AgentDownloadAssets.LinuxX64)));
+            Assert.IsFalse(File.Exists(Path.Combine(into.FullName, Tag, AgentDownloadAssets.LinuxX64)));
             var asked = release.Requests.Count;
             Assert.AreEqual(HttpStatusCode.NotFound, (await client.GetAsync($"{AgentProtocol.DownloadPath}/{AgentDownloadAssets.LinuxX64}")).StatusCode);
             Assert.AreEqual(asked, release.Requests.Count, "not fetched again for a while");
