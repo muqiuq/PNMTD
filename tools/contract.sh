@@ -6,7 +6,7 @@
 #   tools/contract.sh make-fixture      create PNMTD.Contract.Tests/fixture/ with that image (done once, committed)
 #   tools/contract.sh record            record PNMTD.Contract.Tests/golden/sensor-api.json from that image
 #   tools/contract.sh make-import-fixture   the importer test's v0.12 database (PNMTD.Tests/Fixtures/)
-#   tools/contract.sh build             build pnmtd:dev from the working tree
+#   tools/contract.sh build             build pnmtd:dev (or IMAGE) from the working tree
 #   tools/contract.sh verify [IMAGE]    replay the contract against IMAGE (default pnmtd:dev) and compare
 #
 # Every run starts the image with a fresh copy of the fixture database, in Production mode (the
@@ -19,7 +19,7 @@ cd "$(dirname "$0")/.."
 ENGINE="${ENGINE:-podman}"
 BASELINE_TAG="v0.12.1"
 BASELINE_IMAGE="pnmtd-contract:${BASELINE_TAG}"
-DEV_IMAGE="${DEV_IMAGE:-pnmtd:dev}"
+DEV_IMAGE="${DEV_IMAGE:-${IMAGE:-pnmtd:dev}}"
 NAME="${NAME:-pnmtd-contract}"
 VOLUME="${NAME}-data"
 DB_NAME="${NAME}-db"

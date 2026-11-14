@@ -15,19 +15,20 @@
 #                                  and other service names (--legacy-backend, --legacy-webapp)
 #
 # Needs docker and compose (on a Mac the docker CLI may talk to Podman), pnmtd:dev (tools/contract.sh
-# build) and pnmtd-contract:v0.12.1 (tools/contract.sh baseline).
+# build; IMAGE=repo:tag another) and pnmtd-contract:v0.12.1 (tools/contract.sh baseline). UPGRADE_TEST_PROJECT names
+# the new stack's compose project.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 PORT="${UPGRADE_TEST_PORT:-5094}"
 KEEP="${KEEP:-0}"
 LAYOUT="${UPGRADE_TEST_LAYOUT:-single}"
-PROJECT="pnmtd-upgradetest"
+PROJECT="${UPGRADE_TEST_PROJECT:-pnmtd-upgradetest}"
 
 image_ref() {  # Podman names local images localhost/…, Docker docker.io/library/….
   if docker image inspect "localhost/$1" >/dev/null 2>&1; then echo "localhost/$1"; else echo "$1"; fi
 }
-dev_image="$(image_ref pnmtd:dev)"
+dev_image="$(image_ref "${IMAGE:-pnmtd:dev}")"
 legacy_image="$(image_ref pnmtd-contract:v0.12.1)"
 docker image inspect "$legacy_image" >/dev/null 2>&1 || { echo "$legacy_image is missing: tools/contract.sh baseline" >&2; exit 1; }
 
@@ -137,9 +138,11 @@ before="$(curl -fsS "$base/read/$read/raw")"
 cd "$dir/deploy"
 # shellcheck source=deploy/lib.sh
 . ./lib.sh
+# Before init.sh, which gives the files folder to the app's user from a container of the image.
+export PNMTD_IMAGE="${dev_image%:*}" PNMTD_IMAGE_TAG="${dev_image##*:}"
 ./init.sh >/dev/null
-env_set PNMTD_IMAGE "${dev_image%:dev}"
-env_set PNMTD_IMAGE_TAG dev
+env_set PNMTD_IMAGE "$PNMTD_IMAGE"
+env_set PNMTD_IMAGE_TAG "$PNMTD_IMAGE_TAG"
 env_set PNMTD_PORT "$PORT"
 # Not the default 5028/udp: a dev stack (start.sh) may hold it.
 env_set PNMTD_UDP_PORT "${UPGRADE_TEST_UDP_PORT:-5095}"
