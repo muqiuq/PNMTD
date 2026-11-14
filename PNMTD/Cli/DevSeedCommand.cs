@@ -65,9 +65,16 @@ internal static class DevSeedCommand
             Console.WriteLine(generated is null ? $"Created the first admin {admin.Username} with Auth:InitialAdmin:Password."
                 : $"Created the first admin {admin.Username} with the password {generated}. Change it at the first sign-in.");
         }
-        var counts = Seed(db, database, configuration ?? new ConfigurationBuilder().AddEnvironmentVariables().Build());
+        var settings = configuration ?? new ConfigurationBuilder().AddEnvironmentVariables().Build();
+        var counts = Seed(db, database, settings);
         Console.WriteLine($"Seeded {counts.Hosts} hosts, {counts.Sensors} sensors, {counts.Events:N0} events; {counts.Knowledge.Locations} locations, "
             + $"{counts.Knowledge.Pages} knowledge base pages, {counts.Knowledge.Files} files.");
+        // Redmine's links, a Zabbix sensor and the audit log (docs/audit-redmine-zabbix-plan.md §11, F).
+        using (var integrationsDb = database())
+        {
+            var (links, zabbix, audit) = DevSeedIntegrations.Seed(integrationsDb, settings, Clock.UtcNow);
+            Console.WriteLine($"Seeded {links} Redmine links, {zabbix} Zabbix sensor(s), {audit} audit entries.");
+        }
         return 0;
     }
 

@@ -5,7 +5,7 @@ import { collectProblems, shot, signIn } from './support'
  * Zabbix (docs/audit-redmine-zabbix-plan.md §7, §12), against the hosts and problems Z0 set up: the overview's counts and
  * matrix, a tile opening its problems, a problem's row with its description, the hosts with an unavailable interface, a
  * host's page with its latest data and links, and attaching it to a new PNMT host, whose Zabbix sensor fails with the
- * problem. Skipped when the stack has no Zabbix (tools/e2e.sh's E2E_ENV).
+ * problem. Against tools/e2e.sh's fake Zabbix 7.0, or a real one through E2E_ENV; skipped without Zabbix.
  */
 test('the overview, problems, hosts, a host page, and a host attached as a sensor', async ({ page }) => {
   const problems = collectProblems(page)

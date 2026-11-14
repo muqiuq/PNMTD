@@ -2,9 +2,9 @@ import { expect, test, type Page } from '@playwright/test'
 import { collectProblems, shot, signIn } from './support'
 
 /**
- * Redmine (docs/audit-redmine-zabbix-plan.md §6, §12), against the tickets recorded in R0: the overview's tiles and lists,
- * the search, a number opening the ticket, the ticket's page linking a host, and the host's Tickets panel with its two
- * buttons, its header chip and Unlink. Skipped when the stack has no Redmine (tools/e2e.sh's E2E_ENV).
+ * Redmine (docs/audit-redmine-zabbix-plan.md §6, §12), against the tickets recorded in R0 (tools/e2e.sh's fake, or a real
+ * Redmine through E2E_ENV): the overview's tiles and lists, the search, a number opening the ticket, the ticket's page
+ * linking a host, and the host's Tickets panel with its two buttons, its header chip and Unlink. Skipped without Redmine.
  */
 async function api(page: Page, method: 'POST', path: string, data: unknown) {
   const xsrf = (await page.context().cookies()).find((c) => c.name === 'XSRF-TOKEN')?.value ?? ''

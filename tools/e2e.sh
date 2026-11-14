@@ -15,7 +15,12 @@
 #   E2E_NAME=pnmtd-e2e-2 E2E_PORT=7498 E2E_UDP_PORT=7497 tools/e2e.sh
 #                                another stack beside this one (containers, volumes and folders named after it)
 #   E2E_ENV=$'Redmine__Url=…\nRedmine__ApiKey=…' tools/e2e.sh
-#                                settings of its own for the stack, one per line (an integration to test against)
+#                                settings of its own for the stack, one per line: a real Redmine or Zabbix to test
+#                                against instead of the fakes
+#   E2E_FAKES=0 tools/e2e.sh     without the fake Redmine and Zabbix (the integrations' specs skip themselves)
+#
+# Redmine and Zabbix (docs/audit-redmine-zabbix-plan.md §12) are `pnmtd dev fake-integrations` beside the stack, answering
+# as Redmine 6.0 and Zabbix 7.0 did when they were recorded, unless E2E_ENV names real ones.
 #
 # AI is on against an address that never answers, with its scheduled uses off: the knowledge base's AI question opens
 # (docs/locations-knowledge-plan.md §7.2), and nothing is sent.
@@ -42,10 +47,19 @@ export ENV_FILE="$PWD/.tmpcheck/${E2E_NAME}.env"
 (umask 077 && printf '%s\n' 'Auth__LoginRateLimit__PermitLimit=1000' \
   'Ai__Enabled=true' 'Ai__ApiKey=e2e-no-provider' 'Ai__BaseUrl=http://127.0.0.1:9/api/v1' 'Ai__Guard__Url=http://127.0.0.1:9/api/alpha/decisions' \
   'Ai__Mail__Enabled=false' 'Ai__Analysis__Enabled=false' 'Mikrotik__Advisories__Enabled=false' >"$ENV_FILE")
+FAKES="${E2E_FAKES:-$([[ -z "${E2E_ENV:-}" ]] && echo 1 || echo 0)}"
+FAKES_NAME="${E2E_NAME}-fakes"
+if [[ "$FAKES" == "1" ]]; then
+  printf '%s\n' "Redmine__Url=http://${FAKES_NAME}:7390/redmine" 'Redmine__ApiKey=test-redmine-key-0123456789' \
+    'Redmine__Projects=it-support network' 'Redmine__PublicUrl=https://redmine.example.com' \
+    "Zabbix__Url=http://${FAKES_NAME}:7390/zabbix" 'Zabbix__ApiToken=test-zabbix-token-0123456789abcdef' \
+    'Zabbix__PublicUrl=https://zabbix.example.com' >>"$ENV_FILE"
+fi
 [[ -z "${E2E_ENV:-}" ]] || printf '%s\n' "$E2E_ENV" >>"$ENV_FILE"
 
 cleanup() {
   if [[ "$KEEP" != "1" ]]; then
+    "$ENGINE" rm -f "$FAKES_NAME" >/dev/null 2>&1 || true
     ./stop.sh >/dev/null 2>&1 || true
     "$ENGINE" volume rm -f "$PG_VOLUME" "$KEYS_VOLUME" "$DOWNLOADS_VOLUME" >/dev/null 2>&1 || true
     # The uploaded files: on Linux the app's user's (uid 1654), so they go from a container of the image.
@@ -61,6 +75,11 @@ trap cleanup EXIT
 log="$(mktemp "$PWD/.tmpcheck/e2e.XXXXXX")"
 echo "Starting ${NAME} on port ${PORT}…"
 ./start.sh >"$log" 2>&1 || { cat "$log" >&2; exit 1; }
+if [[ "$FAKES" == "1" ]]; then
+  "$ENGINE" rm -f "$FAKES_NAME" >/dev/null 2>&1 || true
+  "$ENGINE" run -d --name "$FAKES_NAME" --network "$NETWORK" --entrypoint pnmtd "${IMAGE:-pnmtd:dev}" \
+    dev fake-integrations --port 7390 >"$log" 2>&1 || { cat "$log" >&2; exit 1; }
+fi
 
 user="e2e-$(od -An -N4 -tx1 /dev/urandom | tr -d ' \n')"
 "$ENGINE" exec "$NAME" pnmtd users add "$user" --admin --display-name "E2E Admin" >"$log" 2>&1 \

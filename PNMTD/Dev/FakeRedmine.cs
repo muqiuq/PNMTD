@@ -4,12 +4,13 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace PNMTD.Tests.Redmine;
+namespace PNMTD.Dev;
 
 /// <summary>
-/// A Redmine for the tests (docs/audit-redmine-zabbix-plan.md §12), answering as Redmine 6.0 did in R0 (the fixtures): its
-/// projects (IT Support with Printers below it, Network, and Other, which PNMT doesn't show), statuses, priorities and
-/// tickets, with the filters PNMT sends applied. It records every request; it can be down, or refuse the key.
+/// A Redmine for the tests and for <c>pnmtd dev fake-integrations</c> (docs/audit-redmine-zabbix-plan.md §12), answering as
+/// Redmine 6.0 did in R0 (the fixtures): its projects (IT Support with Printers below it, Network, and Other, which PNMT
+/// doesn't show), statuses, priorities and tickets, with the filters PNMT sends applied. It records every request; it can
+/// be down, or refuse the key.
 /// </summary>
 public sealed class FakeRedmine : HttpMessageHandler
 {
@@ -24,7 +25,6 @@ public sealed class FakeRedmine : HttpMessageHandler
         ["Redmine:PublicUrl"] = "https://redmine.example.com",
     };
 
-    private static readonly string Fixtures = Path.Combine(AppContext.BaseDirectory, "Redmine", "Fixtures");
 
     public List<HttpRequestMessage> Requests { get; } = [];
 
@@ -36,14 +36,14 @@ public sealed class FakeRedmine : HttpMessageHandler
     public Dictionary<int, JsonObject> Issues { get; } = Load();
 
     public void Install(IServiceCollection services) =>
-        services.AddHttpClient(global::PNMTD.Redmine.RedmineClient.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => this);
+        services.AddHttpClient(PNMTD.Redmine.RedmineClient.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => this);
 
     private static Dictionary<int, JsonObject> Load()
     {
         var issues = new Dictionary<int, JsonObject>();
         foreach (var name in new[] { "issues_projects.json", "issues_by_id.json" })
         {
-            foreach (var issue in JsonNode.Parse(System.IO.File.ReadAllText(Path.Combine(Fixtures, name)))!["issues"]!.AsArray())
+            foreach (var issue in JsonNode.Parse(Fixture.Read("redmine", name))!["issues"]!.AsArray())
             {
                 issues[issue!["id"]!.GetValue<int>()] = issue.AsObject();
             }
@@ -56,6 +56,9 @@ public sealed class FakeRedmine : HttpMessageHandler
         issues[13] = printers;
         return issues;
     }
+
+    /// <summary>A request as Redmine would answer it, its path relative to Redmine's address.</summary>
+    public Task<HttpResponseMessage> HandleAsync(HttpRequestMessage request, CancellationToken cancellationToken) => SendAsync(request, cancellationToken);
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -188,8 +191,23 @@ public sealed class FakeRedmine : HttpMessageHandler
         .Select(p => p.Split('=', 2)).Select(kv => (WebUtility.UrlDecode(kv[0]), kv.Length > 1 ? WebUtility.UrlDecode(kv[1]) : "")).ToList();
 
     private static HttpResponseMessage File(string name) =>
-        new(HttpStatusCode.OK) { Content = new StringContent(System.IO.File.ReadAllText(Path.Combine(Fixtures, name)), Encoding.UTF8, "application/json") };
+        new(HttpStatusCode.OK) { Content = new StringContent(Fixture.Read("redmine", name), Encoding.UTF8, "application/json") };
 
     private static HttpResponseMessage Json(JsonNode node) =>
         new(HttpStatusCode.OK) { Content = new StringContent(node.ToJsonString(), Encoding.UTF8, "application/json") };
+}
+
+/// <summary>The recorded answers, embedded in the assembly (PNMTD/Dev/Fixtures).</summary>
+internal static class Fixture
+{
+    public static string Read(string set, string name)
+    {
+        var assembly = typeof(Fixture).Assembly;
+        var wanted = $"fixtures/{set}/{name}";
+        var resource = assembly.GetManifestResourceNames().SingleOrDefault(n => n.Replace('\\', '/') == wanted)
+            ?? throw new FileNotFoundException($"No fixture {wanted}");
+        using var stream = assembly.GetManifestResourceStream(resource)!;
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
+    }
 }

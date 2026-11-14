@@ -14,8 +14,6 @@
   <ItemGroup>
     <!-- A database v0.12.1 wrote (tools/contract.sh make-import-fixture). -->
     <None Include="Fixtures/**" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Redmine/Fixtures/**" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Zabbix/Fixtures/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PNMTD.Lib\PNMTD.Lib.csproj" />

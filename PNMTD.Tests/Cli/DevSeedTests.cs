@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using PNMTD.Cli;
@@ -19,13 +20,28 @@ public sealed class DevSeedTests
         await using var db = TestDatabases.Fresh("pnmtd_seed_cli_test");
         var connection = TestDatabases.ConnectionString("pnmtd_seed_cli_test");
 
-        Assert.AreEqual(0, DevSeedCommand.Run(["seed"], () => Data.PnmtdDbContext.Create(connection), NullLogger.Instance));
+        // With Redmine and the fake Zabbix (docs/audit-redmine-zabbix-plan.md §11, F): their links and sensor too.
+        var configuration = new ConfigurationBuilder().AddEnvironmentVariables()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Redmine:Url"] = "http://fakes:7390/redmine", ["Redmine:ApiKey"] = PNMTD.Dev.FakeRedmine.Key, ["Redmine:Projects"] = "it-support network",
+                ["Zabbix:Url"] = "http://fakes:7390/zabbix", ["Zabbix:ApiToken"] = PNMTD.Dev.FakeZabbix.Token,
+            }).Build();
+        Assert.AreEqual(0, DevSeedCommand.Run(["seed"], () => Data.PnmtdDbContext.Create(connection), NullLogger.Instance, configuration));
 
         // 50, and pve-01 for its Proxmox VE server (docs/linux-sensor-plan.md §12).
         Assert.AreEqual(51, await db.Hosts.CountAsync());
         // 300; two Windows servers with their diagnostics sensors (docs/windows-sensor-plan.md §11); two Linux servers, and web-01's
         // diagnostics sensor (docs/linux-sensor-plan.md §12).
-        Assert.AreEqual(307, await db.Sensors.CountAsync());
+        Assert.AreEqual(308, await db.Sensors.CountAsync(), "and nas-01's Zabbix sensor");
+        Assert.AreEqual(long.Parse(new PNMTD.Dev.FakeZabbix().HostId("nas01")), (await db.ZabbixSensors.SingleAsync()).ZabbixHostId);
+        Assert.AreEqual(5, await db.RedmineLinks.CountAsync(), "a sensor, three hosts and a page");
+        Assert.AreEqual(5, await db.RedmineIssues.CountAsync(), "with PNMT's copy");
+        Assert.IsTrue(await db.RedmineLinks.AnyAsync(l => l.IssueId == 9 && db.Sensors.Any(x => x.Id == l.SensorId && x.Name == "disk /")),
+            "a failing sensor's ticket: its chip on the dashboard");
+        Assert.AreEqual(global::PNMTD.Audit.AuditCatalog.All.Select(e => e.Category).Distinct().Count(), await db.AuditLog.Select(e => e.Category).Distinct().CountAsync(),
+            "an audit entry of every category");
+        Assert.IsTrue(await db.AuditLog.AnyAsync(e => e.Outcome == global::PNMTD.Audit.AuditOutcome.Denied));
         Assert.AreEqual(4, await db.Agents.CountAsync());
         Assert.AreEqual(2, await db.Agents.CountAsync(a => a.Platform == Lib.Agent.AgentPlatform.Linux));
         Assert.AreEqual(2 * Lib.Agent.SectionNames.Windows.Count + 2 * Lib.Agent.SectionNames.Linux.Count, await db.AgentSections.CountAsync());

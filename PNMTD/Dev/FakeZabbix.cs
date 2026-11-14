@@ -3,10 +3,11 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace PNMTD.Tests.Zabbix;
+namespace PNMTD.Dev;
 
 /// <summary>
-/// A Zabbix for the tests (docs/audit-redmine-zabbix-plan.md §12), answering as Zabbix 6.0, 7.0 or 8.0 did in Z0 (one set of
+/// A Zabbix for the tests and for <c>pnmtd dev fake-integrations</c> (docs/audit-redmine-zabbix-plan.md §12), answering as
+/// Zabbix 6.0, 7.0 or 8.0 did in Z0 (one set of
 /// fixtures each): the token only where the version takes it (6.0 the request's auth field, 7.0 either, 8.0 the Bearer
 /// header), apiinfo.version only without it, host groups under the key the version uses, the role's allow list, and the
 /// filters PNMT sends (groupids, hostids, eventids, triggerids, search). It records every request; it can be down.
@@ -23,8 +24,6 @@ public sealed class FakeZabbix : HttpMessageHandler
         ["Zabbix:HostGroups"] = "PNMT Servers",
         ["Zabbix:PublicUrl"] = "https://zabbix.example.com",
     };
-
-    private static readonly string Fixtures = Path.Combine(AppContext.BaseDirectory, "Zabbix", "Fixtures");
 
     private static readonly HashSet<string> Allowed = ["hostgroup.get", "host.get", "problem.get", "trigger.get", "item.get"];
 
@@ -60,7 +59,7 @@ public sealed class FakeZabbix : HttpMessageHandler
     public void Load(string version)
     {
         Version = version;
-        JsonNode Read(string name) => JsonNode.Parse(File.ReadAllText(Path.Combine(Fixtures, $"zabbix-{version}", name)))!;
+        JsonNode Read(string name) => JsonNode.Parse(Fixture.Read($"zabbix-{version}", name))!;
         VersionText = Read("apiinfo_version.json")["result"]!.GetValue<string>();
         Groups = Read("hostgroup_get.json")["result"]!.AsArray();
         Hosts = Read("host_get_mirror.json")["result"]!.AsArray();
@@ -75,12 +74,15 @@ public sealed class FakeZabbix : HttpMessageHandler
     }
 
     public void Install(IServiceCollection services) =>
-        services.AddHttpClient(global::PNMTD.Zabbix.ZabbixClient.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => this);
+        services.AddHttpClient(PNMTD.Zabbix.ZabbixClient.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => this);
 
     /// <summary>A host's id by its technical name, in this version's fixtures.</summary>
     public string HostId(string technicalName) => Hosts.Single(h => h!["host"]!.GetValue<string>() == technicalName)!["hostid"]!.GetValue<string>();
 
     public string GroupId(string name) => Groups.Single(g => g!["name"]!.GetValue<string>() == name)!["groupid"]!.GetValue<string>();
+
+    /// <summary>A request as Zabbix would answer it, its path relative to Zabbix's address.</summary>
+    public Task<HttpResponseMessage> HandleAsync(HttpRequestMessage request, CancellationToken cancellationToken) => SendAsync(request, cancellationToken);
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {

@@ -33,6 +33,11 @@
     <ProjectReference Include="..\PNMTD.Lib\PNMTD.Lib.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Redmine's and Zabbix's answers as R0 and Z0 recorded them: the fakes of the tests and of `pnmtd dev fake-integrations`. -->
+    <Content Remove="Dev/Fixtures/**" />
+    <EmbeddedResource Include="Dev/Fixtures/**/*.json" LogicalName="fixtures/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
     <Content Update="appsettings.Production.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
