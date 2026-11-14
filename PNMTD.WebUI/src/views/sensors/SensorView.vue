@@ -36,6 +36,7 @@ import {
 import { useServerTable } from '@/composables/useServerTable'
 import { formatAbsolute, formatPercent } from '@/format'
 import { useSession } from '@/stores/session'
+import KbPanel from '@/views/kb/KbPanel.vue'
 import BackupsTab from './mikrotik/BackupsTab.vue'
 import MikrotikCommandsTab from './mikrotik/CommandsTab.vue'
 import UpdatesTab from './mikrotik/UpdatesTab.vue'
@@ -507,6 +508,7 @@ const more = computed(() =>
           :is-admin="isAdmin"
         />
         <AgentTab v-else-if="tab === 'agent'" :server="agent.server.value" :can-write="canWrite" :is-admin="isAdmin" />
+        <KbPanel v-if="tab === 'overview'" :sensor-id="sensor.id" :name="sensor.name" />
       </template>
 
       <div v-else class="two-columns">
@@ -731,6 +733,8 @@ const more = computed(() =>
               </div>
             </div>
           </section>
+          <!-- Its pages, then its host's, the host's location's and that one's parents' (docs/locations-knowledge-plan.md §6.5). -->
+          <KbPanel :sensor-id="sensor.id" :name="sensor.name" />
         </div>
 
         <div class="column">

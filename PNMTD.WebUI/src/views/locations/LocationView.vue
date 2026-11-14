@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { MenuItem } from 'primevue/menuitem'
 import { computed, nextTick, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { kbApi, kbKeys } from '@/api/kb'
 import { api, keys, type S } from '@/api/resources'
 import EmptyState from '@/components/EmptyState.vue'
 import ErrorState from '@/components/ErrorState.vue'
@@ -16,6 +17,7 @@ import { useActions } from '@/composables/useActions'
 import { downloadText, fileSlug } from '@/format/markdown'
 import { useSession } from '@/stores/session'
 import HostsPanel from '@/views/dashboard/HostsPanel.vue'
+import KbPanel from '@/views/kb/KbPanel.vue'
 import AddHostsDialog from './AddHostsDialog.vue'
 import FieldCard from './FieldCard.vue'
 import LocationDialog from './LocationDialog.vue'
@@ -58,10 +60,20 @@ const informationGroups = computed(() => grouped(fields.value.filter((f) => canW
 const emptyCount = computed(() => fields.value.filter((f) => !filled(f.id)).length)
 const files = computed(() => location.value?.files ?? [])
 
+// The Knowledge base tab counts the location's own pages (§3.4); the panels share the query.
+const related = useQuery({
+  queryKey: computed(() => kbKeys.related({ locationId: id.value })),
+  queryFn: () => kbApi.related({ locationId: id.value }),
+})
 const tabs = computed(() => [
   { key: 'overview', label: 'Overview', to: { name: 'location', params: { id: id.value } } },
   { key: 'information', label: 'Information', to: { name: 'location', params: { id: id.value, tab: 'information' } } },
-  { key: 'pages', label: 'Knowledge base', to: { name: 'location', params: { id: id.value, tab: 'pages' } } },
+  {
+    key: 'pages',
+    label: 'Knowledge base',
+    to: { name: 'location', params: { id: id.value, tab: 'pages' } },
+    badge: related.data.value?.pages.length || null,
+  },
   { key: 'history', label: 'History', to: { name: 'location', params: { id: id.value, tab: 'history' } } },
 ])
 const crumbs = computed(() => [
@@ -242,6 +254,7 @@ async function fillIn() {
             />
           </section>
           <!-- The knowledge base: the pages linked to the location, at most 10, with All pages… (§3.4, §6.5). -->
+          <KbPanel :location-id="location.id" :name="location.name" :limit="10" own-only />
         </div>
       </div>
 
@@ -278,7 +291,7 @@ async function fillIn() {
 
       <div v-else-if="tab === 'pages'" class="pages">
         <!-- The knowledge base's panel for this location (§3.4, §6.5): its pages, then folded those of its ancestors and hosts. -->
-        <EmptyState icon="pi pi-book" title="The pages linked to this location appear here." class="panel" />
+        <KbPanel :location-id="location.id" :name="location.name" :limit="200" />
       </div>
 
       <LocationHistory v-else-if="tab === 'history'" :location="location" :fields="fields" :can-write="canWrite" />

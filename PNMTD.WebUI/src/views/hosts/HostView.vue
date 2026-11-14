@@ -25,6 +25,7 @@ import { useSession } from '@/stores/session'
 import { importanceOptions } from '@/views/notifications/importance'
 import AddServerDialog from '@/views/admin/servers/AddServerDialog.vue'
 import HostLocationField from '@/views/locations/HostLocationField.vue'
+import KbPanel from '@/views/kb/KbPanel.vue'
 
 /**
  * A host (§5.6): its state and 90 days, its properties edited in place, and every sensor with its
@@ -265,6 +266,8 @@ const more = computed(() => [
             </Column>
           </DataTable>
         </section>
+        <!-- Its pages, then its location's and that one's parents' (docs/locations-knowledge-plan.md §6.5). -->
+        <KbPanel :host-id="host.id" :name="host.name" />
       </div>
     </template>
     <AddServerDialog v-if="host" v-model:visible="addingServer" :host-id="host.id" />

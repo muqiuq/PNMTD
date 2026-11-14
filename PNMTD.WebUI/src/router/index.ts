@@ -71,6 +71,33 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/locations/LocationView.vue'),
     meta: { title: 'Location' },
   },
+  // The knowledge base (docs/locations-knowledge-plan.md §10.2): the list and search, a page by its number, editing it on
+  // the editing page, its history (?from&to).
+  { path: '/kb', name: 'kb', component: () => import('@/views/kb/KbListView.vue'), meta: { title: 'Knowledge base' } },
+  {
+    path: '/kb/new',
+    name: 'kb-new',
+    component: () => import('@/views/kb/KbEditView.vue'),
+    meta: { title: 'New page', role: 'User' },
+  },
+  {
+    path: '/kb/:number(\\d+)',
+    name: 'kb-page',
+    component: () => import('@/views/kb/KbPageView.vue'),
+    meta: { title: 'Knowledge base' },
+  },
+  {
+    path: '/kb/:number(\\d+)/edit',
+    name: 'kb-edit',
+    component: () => import('@/views/kb/KbEditView.vue'),
+    meta: { title: 'Edit page', role: 'User' },
+  },
+  {
+    path: '/kb/:number(\\d+)/history',
+    name: 'kb-history',
+    component: () => import('@/views/kb/KbHistoryView.vue'),
+    meta: { title: 'History' },
+  },
   {
     // A Markdown field on the editing page (§5.9).
     path: '/locations/:id/fields/:key/edit',
@@ -251,6 +278,13 @@ export const routes: RouteRecordRaw[] = [
     name: 'location-fields',
     component: () => import('@/views/admin/locationFields/LocationFieldsView.vue'),
     meta: { title: 'Location fields', role: 'Admin' },
+  },
+  {
+    // Admin → Knowledge base (docs/locations-knowledge-plan.md §10.6): the tags and the files.
+    path: '/admin/knowledge-base/:tab(tags|files)?',
+    name: 'kb-admin',
+    component: () => import('@/views/admin/kb/KnowledgeBaseAdminView.vue'),
+    meta: { title: 'Knowledge base', role: 'Admin' },
   },
   {
     path: '/admin/debug',

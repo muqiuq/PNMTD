@@ -15,6 +15,11 @@ export class ApiError extends Error {
   readonly errors: Record<string, string[]>
   /** Seconds, from Retry-After (locked_out, rate_limited). */
   readonly retryAfter: number | undefined
+  /**
+   * The whole ProblemDetails body, for the members a code adds: an edit_conflict's revision, by and at, a
+   * looks_like_credential's lines (docs/locations-knowledge-plan.md §5.7, §7.3).
+   */
+  readonly body: Record<string, unknown>
 
   constructor(status: number, body: unknown, retryAfter?: number) {
     const problem = (typeof body === 'object' && body !== null ? body : {}) as Record<string, unknown>
@@ -31,6 +36,7 @@ export class ApiError extends Error {
       string[]
     >
     this.retryAfter = retryAfter
+    this.body = problem
   }
 
   /** The first message for a field, for showing it under the input. */

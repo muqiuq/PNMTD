@@ -32,6 +32,11 @@ export const navigation: NavGroup[] = [
     ],
   },
   {
+    // The knowledge base (docs/locations-knowledge-plan.md §10.1).
+    label: 'Knowledge',
+    items: [{ label: 'Knowledge base', icon: 'pi pi-book', to: '/kb', name: 'kb' }],
+  },
+  {
     label: 'Admin',
     items: [
       { label: 'Key values', icon: 'pi pi-key', to: '/admin/key-values', name: 'key-values', role: 'Admin' },
@@ -53,6 +58,13 @@ export const navigation: NavGroup[] = [
         icon: 'pi pi-list-check',
         to: '/admin/location-fields',
         name: 'location-fields',
+        role: 'Admin',
+      },
+      {
+        label: 'Knowledge base',
+        icon: 'pi pi-book',
+        to: '/admin/knowledge-base',
+        name: 'kb-admin',
         role: 'Admin',
       },
       { label: 'System health', icon: 'pi pi-heart', to: '/admin/system', name: 'system', role: 'Admin' },
