@@ -342,8 +342,8 @@ public sealed class ZabbixSensorService(PnmtdDbContext db, ZabbixSnapshot snapsh
 
 /// <summary>
 /// The ZABBIX sensors' state after every poll (§7.7): an event when the code or the counted problems change, through
-/// <see cref="SensorEventWriter"/>, so notifications apply. Nothing while the snapshot is stale: Zabbix not answering is
-/// the system sensor's, not every sensor's.
+/// <see cref="SensorEventWriter"/>, so notifications apply. Nothing while the snapshot is stale (Zabbix not answering is
+/// the system sensor's, not every sensor's), nor before the hosts were synced once.
 /// </summary>
 public sealed class ZabbixSensors(IServiceScopeFactory scopes, ZabbixSnapshot snapshot, ILogger<ZabbixSensors> logger)
 {
@@ -363,6 +363,11 @@ public sealed class ZabbixSensors(IServiceScopeFactory scopes, ZabbixSnapshot sn
         {
             await using var scope = scopes.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<PnmtdDbContext>();
+            // Before the first host sync the mirror is empty: every host would look gone (491).
+            if (!db.KeyValueKeyExists(Models.Enums.KeyValueKeyEnums.LAST_ZABBIX_HOST_SYNC))
+            {
+                return;
+            }
             var rows = await db.ZabbixSensors.Where(z => z.Sensor.Enabled && (only == null || z.SensorId == only)).ToListAsync(ct);
             if (rows.Count == 0)
             {

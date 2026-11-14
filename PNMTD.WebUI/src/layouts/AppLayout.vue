@@ -13,7 +13,7 @@ import { api, keys } from '@/api/resources'
 import { pageTitle } from '@/router'
 import { usePreferences } from '@/stores/preferences'
 import { useSession } from '@/stores/session'
-import { visibleNavigation } from './navigation'
+import { type NavGroup, visibleNavigation } from './navigation'
 
 /**
  * The shell (§5.4): a drawer with the groups of today, an app bar of 48 px, the page. On a desktop
@@ -97,6 +97,12 @@ function isActive(name: string, to: string) {
   return route.name === name || route.path.startsWith(`${to}/`) || route.path === to
 }
 
+// Folded groups (docs/menu-proposal.md): Devices and Admin start folded; a folded group still shows the page one is on.
+// The rail shows every entry: it has no labels to unfold.
+const folded = (group: NavGroup) => !rail.value && preferences.isFolded(group.label, !!group.folded)
+const shownItems = (group: NavGroup) =>
+  folded(group) ? group.items.filter((i) => isActive(i.name, i.to)) : group.items
+
 const userMenu = ref<InstanceType<typeof Menu> | null>(null)
 const userItems = computed(() => [
   {
@@ -105,6 +111,7 @@ const userItems = computed(() => [
       { label: 'Account', icon: 'pi pi-user', command: () => router.push({ name: 'account' }) },
       { label: 'Security', icon: 'pi pi-shield', command: () => router.push({ name: 'account-security' }) },
       { label: 'Tunnels', icon: 'pi pi-lock', command: () => router.push({ name: 'account-tunnels' }) },
+      { label: 'Documentation', icon: 'pi pi-question-circle', command: () => router.push({ name: 'docs' }) },
       { separator: true },
       { label: 'Sign out', icon: 'pi pi-sign-out', command: signOut },
     ],
@@ -128,35 +135,47 @@ async function signOut() {
       </RouterLink>
       <nav class="drawer-nav">
         <section v-for="group in groups" :key="group.label" class="group">
-          <div v-if="!rail" class="group-label">{{ group.label }}</div>
-          <div v-else class="group-divider" />
-          <RouterLink
-            v-for="item in group.items"
-            :key="item.name"
-            v-tooltip.right="rail ? item.label : undefined"
-            :to="item.to"
-            class="nav-item"
-            :class="{ active: isActive(item.name, item.to) }"
-            :aria-current="isActive(item.name, item.to) ? 'page' : undefined"
+          <button
+            v-if="!rail"
+            type="button"
+            class="group-label"
+            :aria-expanded="!folded(group)"
+            :aria-controls="`nav-${group.label}`"
+            @click="preferences.toggleFold(group.label, !!group.folded)"
           >
-            <i :class="item.icon" aria-hidden="true" />
-            <span v-if="!rail" class="label">{{ item.label }}</span>
-            <span
-              v-if="item.name === 'dashboard' && failing"
-              class="badge"
-              :class="{ dot: rail }"
-              :aria-label="`${failing} failing`"
-              >{{ rail ? '' : failing }}</span
+            <span>{{ group.label }}</span>
+            <i :class="folded(group) ? 'pi pi-chevron-right' : 'pi pi-chevron-down'" aria-hidden="true" />
+          </button>
+          <div v-else class="group-divider" />
+          <div :id="`nav-${group.label}`">
+            <RouterLink
+              v-for="item in shownItems(group)"
+              :key="item.name"
+              v-tooltip.right="rail ? item.label : undefined"
+              :to="item.to"
+              class="nav-item"
+              :class="{ active: isActive(item.name, item.to) }"
+              :aria-current="isActive(item.name, item.to) ? 'page' : undefined"
             >
-            <span
-              v-else-if="item.name === 'decisions' && openDecisions"
-              class="badge"
-              :class="{ dot: rail }"
-              :aria-label="`${openDecisions} open`"
-              >{{ rail ? '' : openDecisions }}</span
-            >
-            <span v-else class="sr-only">{{ item.label }}</span>
-          </RouterLink>
+              <i :class="item.icon" aria-hidden="true" />
+              <span v-if="!rail" class="label">{{ item.label }}</span>
+              <span
+                v-if="item.name === 'dashboard' && failing"
+                class="badge"
+                :class="{ dot: rail }"
+                :aria-label="`${failing} failing`"
+                >{{ rail ? '' : failing }}</span
+              >
+              <span
+                v-else-if="item.name === 'decisions' && openDecisions"
+                class="badge"
+                :class="{ dot: rail }"
+                :aria-label="`${openDecisions} open`"
+                >{{ rail ? '' : openDecisions }}</span
+              >
+              <span v-else class="sr-only">{{ item.label }}</span>
+            </RouterLink>
+          </div>
         </section>
       </nav>
       <footer v-if="!rail" class="drawer-footer">
@@ -309,12 +328,29 @@ async function signOut() {
 }
 
 .group-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
   padding: var(--pnmt-space-3) var(--pnmt-space-2) var(--pnmt-space-1);
+  font: inherit;
   font-size: 0.786rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--pnmt-muted);
+  text-align: left;
+}
+
+.group-label:hover {
+  color: var(--pnmt-text);
+}
+
+.group-label i {
+  font-size: 0.7rem;
 }
 
 .group-divider {

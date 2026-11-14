@@ -365,6 +365,17 @@ public sealed class ZabbixTests
         await PollAsync();
         Assert.AreEqual(1, (await EventsAsync(sensor.Id)).Count, "the same problems: no event");
 
+        // A poll before the hosts were synced (a fresh start): nothing, though the empty mirror knows no host.
+        await using (var fresh = app.NewDb())
+        {
+            await fresh.KeyValues.Where(k => k.Key == "last_zabbix_host_sync").ExecuteDeleteAsync();
+            await fresh.ZabbixHosts.ExecuteDeleteAsync();
+        }
+        await PollAsync();
+        Assert.AreEqual(1, (await EventsAsync(sensor.Id)).Count, "no 491 before the first host sync");
+        await app.Services.GetRequiredService<ZabbixHostSync>().RunAsync(CancellationToken.None);
+        Assert.AreEqual(1, (await EventsAsync(sensor.Id)).Count, "synced: the same problems, no event");
+
         RemoveProblem("High CPU load");
         await PollAsync();
         events = await EventsAsync(sensor.Id);

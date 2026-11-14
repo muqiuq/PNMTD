@@ -15,16 +15,28 @@ export interface NavItem {
 
 export interface NavGroup {
   label: string
+  /** Starts folded: Devices and Admin (docs/menu-proposal.md). Each browser remembers what was folded or opened. */
+  folded?: boolean
   items: NavItem[]
 }
 
-/** The drawer (§5.4): the groups of today, minus what the user lacks the right for (docs/audit-redmine-zabbix-plan.md §10.1). */
+/**
+ * The drawer (docs/menu-proposal.md): what is looked at daily first, then setup, devices and the admin pages; minus what the
+ * user lacks the right for (docs/audit-redmine-zabbix-plan.md §10.1). Every icon is used once. Documentation is in the
+ * user menu.
+ */
 export const navigation: NavGroup[] = [
   {
-    label: 'Monitoring',
+    label: 'Overview',
     items: [
       { label: 'Dashboard', icon: 'pi pi-th-large', to: '/', name: 'dashboard' },
       { label: 'Decisions', icon: 'pi pi-inbox', to: '/decisions', name: 'decisions', right: ['Decisions', 'Decide'] },
+      { label: 'Events', icon: 'pi pi-list', to: '/events', name: 'events', right: ['Monitoring', 'View'] },
+    ],
+  },
+  {
+    label: 'Monitoring',
+    items: [
       { label: 'Hosts', icon: 'pi pi-server', to: '/hosts', name: 'hosts', right: ['Monitoring', 'View'] },
       {
         label: 'Locations',
@@ -33,24 +45,13 @@ export const navigation: NavGroup[] = [
         name: 'locations',
         right: ['Locations', 'View'],
       },
-      { label: 'Events', icon: 'pi pi-list', to: '/events', name: 'events', right: ['Monitoring', 'View'] },
       { label: 'DNS zones', icon: 'pi pi-globe', to: '/dns-zones', name: 'dns-zones', right: ['Monitoring', 'View'] },
-      {
-        label: 'Mail inputs',
-        icon: 'pi pi-envelope',
-        to: '/mail-inputs',
-        name: 'mail-inputs',
-        right: ['Monitoring', 'View'],
-        menu: 'mail',
-      },
-      {
-        label: 'Mail log',
-        icon: 'pi pi-inbox',
-        to: '/mail-log',
-        name: 'mail-log',
-        right: ['Mail', 'Read'],
-        menu: 'mail',
-      },
+      { label: 'Uplink', icon: 'pi pi-cloud', to: '/uplink', name: 'uplink', right: ['Monitoring', 'View'] },
+    ],
+  },
+  {
+    label: 'Alerts',
+    items: [
       {
         label: 'Notification rules',
         icon: 'pi pi-bell',
@@ -60,12 +61,32 @@ export const navigation: NavGroup[] = [
       },
       {
         label: 'Notification manager',
-        icon: 'pi pi-th-large',
+        icon: 'pi pi-sliders-h',
         to: '/notifications',
         name: 'notifications',
         right: ['Monitoring', 'View'],
       },
-      { label: 'Uplink', icon: 'pi pi-cloud', to: '/uplink', name: 'uplink', right: ['Monitoring', 'View'] },
+    ],
+  },
+  {
+    label: 'Mail',
+    items: [
+      {
+        label: 'Mail inputs',
+        icon: 'pi pi-filter',
+        to: '/mail-inputs',
+        name: 'mail-inputs',
+        right: ['Monitoring', 'View'],
+        menu: 'mail',
+      },
+      {
+        label: 'Mail log',
+        icon: 'pi pi-envelope',
+        to: '/mail-log',
+        name: 'mail-log',
+        right: ['Mail', 'Read'],
+        menu: 'mail',
+      },
     ],
   },
   {
@@ -98,15 +119,38 @@ export const navigation: NavGroup[] = [
     ],
   },
   {
-    label: 'Admin',
+    label: 'Devices',
+    folded: true,
     items: [
+      { label: 'Servers', icon: 'pi pi-desktop', to: '/admin/servers', name: 'servers', right: ['Servers', 'Manage'] },
       {
-        label: 'Key values',
-        icon: 'pi pi-key',
-        to: '/admin/key-values',
-        name: 'key-values',
-        right: ['System', 'Manage'],
+        label: 'MikroTik & WireGuard',
+        icon: 'pi pi-share-alt',
+        to: '/admin/mikrotik',
+        name: 'mikrotik',
+        right: ['Mikrotik', 'Manage'],
       },
+      {
+        label: 'UDP nodes',
+        icon: 'pi pi-wifi',
+        to: '/admin/udp-nodes',
+        name: 'udp-nodes',
+        right: ['UdpNodes', 'Manage'],
+      },
+      { label: 'SSH keys', icon: 'pi pi-key', to: '/admin/ssh-keys', name: 'ssh-keys', right: ['SshKeys', 'Manage'] },
+      {
+        label: 'Diagnostics',
+        icon: 'pi pi-check-circle',
+        to: '/admin/diagnostics',
+        name: 'diagnostics',
+        right: ['Diagnostics', 'Manage'],
+      },
+    ],
+  },
+  {
+    label: 'Admin',
+    folded: true,
+    items: [
       { label: 'Users', icon: 'pi pi-users', to: '/admin/users', name: 'users', right: 'admin' },
       { label: 'Groups', icon: 'pi pi-sitemap', to: '/admin/groups', name: 'groups', right: 'admin' },
       {
@@ -116,29 +160,8 @@ export const navigation: NavGroup[] = [
         name: 'audit-log',
         right: ['AuditLog', 'View'],
       },
-      {
-        label: 'UDP nodes',
-        icon: 'pi pi-wifi',
-        to: '/admin/udp-nodes',
-        name: 'udp-nodes',
-        right: ['UdpNodes', 'Manage'],
-      },
-      {
-        label: 'MikroTik & WireGuard',
-        icon: 'pi pi-server',
-        to: '/admin/mikrotik',
-        name: 'mikrotik',
-        right: ['Mikrotik', 'Manage'],
-      },
-      { label: 'Servers', icon: 'pi pi-desktop', to: '/admin/servers', name: 'servers', right: ['Servers', 'Manage'] },
-      { label: 'SSH keys', icon: 'pi pi-key', to: '/admin/ssh-keys', name: 'ssh-keys', right: ['SshKeys', 'Manage'] },
-      {
-        label: 'Diagnostics',
-        icon: 'pi pi-check-circle',
-        to: '/admin/diagnostics',
-        name: 'diagnostics',
-        right: ['Diagnostics', 'Manage'],
-      },
+      { label: 'System health', icon: 'pi pi-heart', to: '/admin/system', name: 'system', right: ['System', 'Manage'] },
+      { label: 'AI', icon: 'pi pi-sparkles', to: '/admin/ai', name: 'ai', right: ['Ai', 'Manage'] },
       {
         label: 'Location fields',
         icon: 'pi pi-list-check',
@@ -147,20 +170,21 @@ export const navigation: NavGroup[] = [
         right: ['Locations', 'Manage'],
       },
       {
-        label: 'Knowledge base',
-        icon: 'pi pi-book',
+        label: 'Knowledge base settings',
+        icon: 'pi pi-tags',
         to: '/admin/knowledge-base',
         name: 'kb-admin',
         right: ['KnowledgeBase', 'Manage'],
       },
-      { label: 'System health', icon: 'pi pi-heart', to: '/admin/system', name: 'system', right: ['System', 'Manage'] },
-      { label: 'AI', icon: 'pi pi-sparkles', to: '/admin/ai', name: 'ai', right: ['Ai', 'Manage'] },
+      {
+        label: 'Key values',
+        icon: 'pi pi-database',
+        to: '/admin/key-values',
+        name: 'key-values',
+        right: ['System', 'Manage'],
+      },
       { label: 'Debug', icon: 'pi pi-wrench', to: '/admin/debug', name: 'debug', right: ['System', 'Manage'] },
     ],
-  },
-  {
-    label: 'Help',
-    items: [{ label: 'Documentation', icon: 'pi pi-book', to: '/docs', name: 'docs' }],
   },
 ]
 

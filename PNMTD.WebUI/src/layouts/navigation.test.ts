@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { visibleNavigation } from './navigation'
+import { navigation, visibleNavigation } from './navigation'
 
 describe('visibleNavigation', () => {
   const names = (groups: ReturnType<typeof visibleNavigation>) => groups.flatMap((g) => g.items.map((i) => i.name))
@@ -59,5 +59,32 @@ describe('visibleNavigation', () => {
     expect(hidden).not.toContain('zabbix')
     expect(hidden).toContain('redmine')
     expect(all.length - hidden.length).toBe(3)
+  })
+
+  it('has the groups of docs/menu-proposal.md, Devices and Admin folded at first, and every icon once', () => {
+    expect(navigation.map((g) => g.label)).toEqual([
+      'Overview',
+      'Monitoring',
+      'Alerts',
+      'Mail',
+      'Knowledge',
+      'Integrations',
+      'Devices',
+      'Admin',
+    ])
+    expect(navigation.filter((g) => g.folded).map((g) => g.label)).toEqual(['Devices', 'Admin'])
+    const icons = navigation.flatMap((g) => g.items.map((i) => i.icon))
+    expect(new Set(icons).size).toBe(icons.length)
+    expect(navigation.flatMap((g) => g.items.map((i) => i.name))).not.toContain('docs')
+  })
+
+  it('drops the Mail group when Mail__HideMenu hides its entries', () => {
+    expect(
+      visibleNavigation(
+        () => true,
+        () => true,
+        ['mail'],
+      ).map((g) => g.label),
+    ).not.toContain('Mail')
   })
 })

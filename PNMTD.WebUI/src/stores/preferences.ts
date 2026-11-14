@@ -14,6 +14,8 @@ const storageKey = 'pnmt.preferences'
 interface Stored {
   theme?: Theme
   drawerCollapsed?: boolean
+  /** The drawer's groups folded (true) or opened (false) by hand; the others as they start (docs/menu-proposal.md). */
+  navFolds?: Record<string, boolean>
   hostsView?: HostsView
   editorModes?: Partial<EditorModes>
 }
@@ -29,13 +31,16 @@ function read(): Stored {
 const isMode = (value: unknown): value is EditorMode => value === 'visual' || value === 'markdown'
 
 /**
- * Per-browser preferences (§5.3, §5.5): theme, the drawer as a rail, the dashboard's host view, and
+ * Per-browser preferences (§5.3, §5.5): theme, the drawer as a rail and its folded groups, the dashboard's host view, and
  * the Markdown editor's last mode for pages and for fields (docs/locations-knowledge-plan.md §5.4).
  */
 export const usePreferences = defineStore('preferences', () => {
   const stored = read()
   const theme = ref<Theme>(stored.theme ?? 'system')
   const drawerCollapsed = ref(stored.drawerCollapsed ?? false)
+  const navFolds = ref<Record<string, boolean>>(
+    stored.navFolds && typeof stored.navFolds === 'object' ? { ...stored.navFolds } : {},
+  )
   // null: the default, rows on a desktop and tiles on a phone (§5.5).
   const hostsView = ref<HostsView | null>(stored.hostsView ?? null)
   const modes = stored.editorModes ?? {}
@@ -79,13 +84,14 @@ export const usePreferences = defineStore('preferences', () => {
 
   watch([theme, systemDark], apply, { immediate: true })
   watch(
-    [theme, drawerCollapsed, hostsView, editorModes],
+    [theme, drawerCollapsed, navFolds, hostsView, editorModes],
     () =>
       localStorage.setItem(
         storageKey,
         JSON.stringify({
           theme: theme.value,
           drawerCollapsed: drawerCollapsed.value,
+          navFolds: navFolds.value,
           hostsView: hostsView.value,
           editorModes: editorModes.value,
         }),
@@ -98,5 +104,26 @@ export const usePreferences = defineStore('preferences', () => {
     theme.value = isDark() ? 'light' : 'dark'
   }
 
-  return { theme, drawerCollapsed, hostsView, editorModes, railHeld, holdRail, isDark, toggleTheme }
+  /** Whether a drawer group is folded: as the person left it, else as it starts. */
+  function isFolded(group: string, foldedByDefault: boolean): boolean {
+    return navFolds.value[group] ?? foldedByDefault
+  }
+
+  function toggleFold(group: string, foldedByDefault: boolean) {
+    navFolds.value = { ...navFolds.value, [group]: !isFolded(group, foldedByDefault) }
+  }
+
+  return {
+    theme,
+    drawerCollapsed,
+    navFolds,
+    hostsView,
+    editorModes,
+    railHeld,
+    holdRail,
+    isDark,
+    toggleTheme,
+    isFolded,
+    toggleFold,
+  }
 })
