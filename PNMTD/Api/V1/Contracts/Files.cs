@@ -53,6 +53,20 @@ public sealed record FileAdminItem(FileItem File, DateTime CreatedAt, string? Cr
 /// <summary>A file in the folder that no row names (§5.5): listed, never deleted by PNMTD. <see cref="Path"/> is relative to the folder.</summary>
 public sealed record UnknownFileItem(string Path, long Size, DateTime ModifiedAt);
 
-/// <summary>GET /api/v1/files: the totals, the folder, a page of files, and with <c>unknown=true</c> the unknown files (at most 500).</summary>
-public sealed record FilesOverview(IReadOnlyList<FileKindTotal> Totals, FileStorageInfo Storage, Paged<FileAdminItem> Files,
+/// <summary>A file the check found missing from the folder or changed in it: <see cref="Detail"/> says how.</summary>
+public sealed record FileCheckFinding(Guid Id, string Name, string Path, string Detail);
+
+/// <summary>
+/// The last check of the folder (§5.5), the <i>File storage</i> sensor's findings: whether it compared contents (weekly) and
+/// found a problem (428), the files missing or changed, and how many files on disk no row names. Null until the first
+/// check after a start.
+/// </summary>
+public sealed record FileCheckReport(DateTime CheckedAt, bool ContentsChecked, bool Problem, IReadOnlyList<FileCheckFinding> Missing,
+    IReadOnlyList<FileCheckFinding> Changed, int UnknownCount);
+
+/// <summary>
+/// GET /api/v1/files: the totals, the folder, the last check, a page of files, and with <c>unknown=true</c> the unknown files
+/// (at most 500).
+/// </summary>
+public sealed record FilesOverview(IReadOnlyList<FileKindTotal> Totals, FileStorageInfo Storage, FileCheckReport? Check, Paged<FileAdminItem> Files,
     IReadOnlyList<UnknownFileItem>? Unknown);

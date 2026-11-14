@@ -18148,6 +18148,69 @@
           }
         }
       },
+      "FileCheckFinding": {
+        "required": [
+          "id",
+          "name",
+          "path",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "FileCheckReport": {
+        "required": [
+          "checkedAt",
+          "contentsChecked",
+          "problem",
+          "missing",
+          "changed",
+          "unknownCount"
+        ],
+        "type": "object",
+        "properties": {
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contentsChecked": {
+            "type": "boolean"
+          },
+          "problem": {
+            "type": "boolean"
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileCheckFinding"
+            }
+          },
+          "changed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileCheckFinding"
+            }
+          },
+          "unknownCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "FileContentResult": {
         "type": "object",
         "properties": {
@@ -18269,6 +18332,7 @@
         "required": [
           "totals",
           "storage",
+          "check",
           "files",
           "unknown"
         ],
@@ -18282,6 +18346,16 @@
           },
           "storage": {
             "$ref": "#/components/schemas/FileStorageInfo"
+          },
+          "check": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FileCheckReport"
+              }
+            ]
           },
           "files": {
             "$ref": "#/components/schemas/PagedOfFileAdminItem"

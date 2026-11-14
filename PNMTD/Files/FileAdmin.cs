@@ -14,7 +14,7 @@ namespace PNMTD.Files;
 /// folder and its disk, the largest files with where they are used, unused uploads and files waiting to leave the disk,
 /// and the files on disk that no row names. Also the folder's inventory for the check (FileCheckTask).
 /// </summary>
-public sealed class FileAdmin(IDbContextFactory<PnmtdDbContext> dbs, FileStore store, IOptionsMonitor<KnowledgeBaseOptions> options)
+public sealed class FileAdmin(IDbContextFactory<PnmtdDbContext> dbs, FileStore store, FileCheckState check, IOptionsMonitor<KnowledgeBaseOptions> options)
 {
     /// <summary>Unknown files listed at most.</summary>
     public const int MaxUnknown = 500;
@@ -66,7 +66,7 @@ public sealed class FileAdmin(IDbContextFactory<PnmtdDbContext> dbs, FileStore s
             f.DeletedAt?.AddDays(days), uses[f.Id].OrderBy(u => u.Kind).ThenBy(u => u.Name, StringComparer.OrdinalIgnoreCase).ToList())).ToList();
 
         var unknown = query.Unknown ? (await UnknownAsync(db, ct)).Take(MaxUnknown).ToList() : null;
-        return new FilesOverview(totals.OrderBy(t => t.Kind).ToList(), Storage(), new Paged<FileAdminItem>(items, page.Page, page.PageSize, page.TotalCount), unknown);
+        return new FilesOverview(totals.OrderBy(t => t.Kind).ToList(), Storage(), check.Last, new Paged<FileAdminItem>(items, page.Page, page.PageSize, page.TotalCount), unknown);
     }
 
     public FileStorageInfo Storage()

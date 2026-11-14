@@ -14,6 +14,9 @@ public static class FilesSetup
         services.AddSingleton<FileStore>();
         services.AddSingleton<FileAdmin>();
         services.AddSingleton<UploadGuard>();
+        services.AddSingleton<FileCheckState>();
+        services.AddSingleton<FileCleanupTask>();
+        services.AddSingleton<FileCheckTask>();
         return services;
     }
 }

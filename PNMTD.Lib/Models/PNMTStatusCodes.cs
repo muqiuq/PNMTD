@@ -55,6 +55,9 @@ namespace PNMTD.Lib.Models
         public const int AI_BUDGET_90 = 426;
         public const int AI_BUDGET_REACHED = 427;
 
+        /// <summary>The files folder (docs/locations-knowledge-plan.md §5.5): missing or not writable, its disk nearly full, or files missing or changed.</summary>
+        public const int FILE_STORAGE_PROBLEM = 428;
+
         /// <summary>Windows servers (docs/windows-sensor-plan.md §8.2): the heartbeat, a restart, a notable change, admin logins; the agent's problems, critical entries, login failures.</summary>
         public const int WINDOWS_OK = 250;
         public const int WINDOWS_RESTARTED = 251;

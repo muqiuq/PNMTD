@@ -11199,6 +11199,23 @@ export interface components {
             leavesDiskAt: null | string;
             usedBy: components["schemas"]["FileUseRef"][];
         };
+        FileCheckFinding: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            path: string;
+            detail: string;
+        };
+        FileCheckReport: {
+            /** Format: date-time */
+            checkedAt: string;
+            contentsChecked: boolean;
+            problem: boolean;
+            missing: components["schemas"]["FileCheckFinding"][];
+            changed: components["schemas"]["FileCheckFinding"][];
+            /** Format: int32 */
+            unknownCount: number;
+        };
         FileContentResult: {
             /** Format: byte */
             fileContents?: string;
@@ -11235,6 +11252,7 @@ export interface components {
         FilesOverview: {
             totals: components["schemas"]["FileKindTotal"][];
             storage: components["schemas"]["FileStorageInfo"];
+            check: null | components["schemas"]["FileCheckReport"];
             files: components["schemas"]["PagedOfFileAdminItem"];
             unknown: null | components["schemas"]["UnknownFileItem"][];
         };

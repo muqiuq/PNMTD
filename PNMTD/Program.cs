@@ -129,6 +129,9 @@ public partial class Program
             builder.Services.AddHostedService(sp => sp.GetRequiredService<BackupRetentionTask>());
             // Servers with an agent (docs/windows-sensor-plan.md §8.4): expired tokens and retention.
             builder.Services.AddHostedService(sp => sp.GetRequiredService<AgentMaintenanceTask>());
+            // Uploaded files (docs/locations-knowledge-plan.md §5.5): the daily cleanup, and the check on the File storage sensor.
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<FileCleanupTask>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<FileCheckTask>());
         }
 
         // UDP nodes (docs/udp-iot-plan.md §4.4): on unless Udp:Enabled=false, not tied to the
