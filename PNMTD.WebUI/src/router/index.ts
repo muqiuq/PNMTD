@@ -58,6 +58,19 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'New host', role: 'User' },
   },
   { path: '/hosts/:id', name: 'host', component: () => import('@/views/hosts/HostView.vue'), meta: { title: 'Host' } },
+  // Locations (docs/locations-knowledge-plan.md §10.2): the tree, and a location's page with its tabs.
+  {
+    path: '/locations',
+    name: 'locations',
+    component: () => import('@/views/locations/LocationsView.vue'),
+    meta: { title: 'Locations' },
+  },
+  {
+    path: '/locations/:id/:tab(overview|information|pages|history)?',
+    name: 'location',
+    component: () => import('@/views/locations/LocationView.vue'),
+    meta: { title: 'Location' },
+  },
   {
     path: '/hosts/:id/sensors/new',
     name: 'sensor-new',
@@ -225,6 +238,12 @@ export const routes: RouteRecordRaw[] = [
     name: 'ai',
     component: () => import('@/views/admin/ai/AiView.vue'),
     meta: { title: 'AI', role: 'Admin' },
+  },
+  {
+    path: '/admin/location-fields',
+    name: 'location-fields',
+    component: () => import('@/views/admin/locationFields/LocationFieldsView.vue'),
+    meta: { title: 'Location fields', role: 'Admin' },
   },
   {
     path: '/admin/debug',

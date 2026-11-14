@@ -17,8 +17,14 @@ import { useServerTable } from '@/composables/useServerTable'
 import { formatPercent } from '@/format'
 import { useSession } from '@/stores/session'
 import { importanceOptions, importanceSeverity, type Importance } from '@/views/notifications/importance'
+import LocationPicker from '@/views/locations/LocationPicker.vue'
+import SetLocationDialog from '@/views/locations/SetLocationDialog.vue'
 
-/** The hosts (§5.6): status, sensors by state, 30 days, the last event; quick filters, search. */
+/**
+ * The hosts (§5.6): status, sensors by state, 30 days, the last event; quick filters, search. The location's path, or
+ * else the text, muted; a filter by location with its sub-locations, *None* included; *Set location…* for the hosts
+ * picked (docs/locations-knowledge-plan.md §3.2).
+ */
 const session = useSession()
 const route = useRoute()
 const router = useRouter()
@@ -36,10 +42,17 @@ watch(importance, (value) =>
   router.replace({ query: { ...route.query, importance: value || undefined, page: undefined } }),
 )
 const importanceChoices = [{ label: 'Any importance', value: '' }, ...importanceOptions]
+// null: any location; 'none': hosts without one.
+const location = ref<string | null>(typeof route.query.location === 'string' ? route.query.location : null)
+watch(location, (value) => router.replace({ query: { ...route.query, location: value ?? undefined, page: undefined } }))
 const filters = computed(() => ({
   state: (state.value || undefined) as HostState | undefined,
   importance: (importance.value || undefined) as Importance | undefined,
+  locationId: location.value && location.value !== 'none' ? location.value : undefined,
+  noLocation: location.value === 'none' ? true : undefined,
 }))
+const selected = ref<S['HostListItem'][]>([])
+const settingLocation = ref(false)
 
 const table = useServerTable<S['HostListItem']>({
   key: keys.hosts,
@@ -58,6 +71,15 @@ const table = useServerTable<S['HostListItem']>({
       </template>
       <template #actions>
         <Button
+          v-if="session.can('User') && selected.length"
+          :label="`Set location… (${selected.length})`"
+          icon="pi pi-map-marker"
+          size="small"
+          severity="secondary"
+          outlined
+          @click="settingLocation = true"
+        />
+        <Button
           v-if="session.can('User')"
           label="New host"
           icon="pi pi-plus"
@@ -69,8 +91,15 @@ const table = useServerTable<S['HostListItem']>({
     <FilterBar
       v-model:search="table.search.value"
       placeholder="Search name or location"
-      :active="(state ? 1 : 0) + (importance ? 1 : 0)"
+      :active="(state ? 1 : 0) + (importance ? 1 : 0) + (location ? 1 : 0)"
     >
+      <LocationPicker
+        v-model="location"
+        none-label="Any location"
+        with-unassigned
+        size="small"
+        aria-label="Location, with its sub-locations"
+      />
       <SelectButton
         v-model="state"
         :options="states"
@@ -89,7 +118,13 @@ const table = useServerTable<S['HostListItem']>({
         aria-label="Importance"
       />
     </FilterBar>
-    <ListTable :table="table" what="hosts" :row-class="(h) => (h.enabled ? undefined : 'row-muted')">
+    <ListTable
+      v-model:selection="selected"
+      :table="table"
+      what="hosts"
+      :row-class="(h) => (h.enabled ? undefined : 'row-muted')"
+    >
+      <Column v-if="session.can('User')" selection-mode="multiple" style="width: 2.5rem" />
       <Column field="state" header="" sortable style="width: 2.5rem">
         <template #body="{ data }"><StatusBadge :status="data.state" icon-only /></template>
       </Column>
@@ -99,9 +134,10 @@ const table = useServerTable<S['HostListItem']>({
         </template>
       </Column>
       <Column header="Location">
-        <template #body="{ data }"
-          ><span class="muted">{{ data.location }}</span></template
-        >
+        <template #body="{ data }">
+          <span v-if="data.assignedLocation">{{ data.assignedLocation.path }}</span>
+          <span v-else class="muted">{{ data.location }}</span>
+        </template>
       </Column>
       <Column header="Importance" style="width: 7rem">
         <template #body="{ data }"
@@ -144,11 +180,12 @@ const table = useServerTable<S['HostListItem']>({
         <RouterLink :to="{ name: 'host', params: { id: item.id } }" class="mobile-row">
           <StatusBadge :status="item.state" icon-only />
           <span class="strong">{{ item.name }}</span>
-          <span class="muted ellipsis">{{ item.location }}</span>
+          <span class="muted ellipsis">{{ item.assignedLocation?.path ?? item.location }}</span>
           <span class="right">{{ formatPercent(item.uptime30Days) }}</span>
         </RouterLink>
       </template>
     </ListTable>
+    <SetLocationDialog v-model:visible="settingLocation" :ids="selected.map((h) => h.id)" @done="selected = []" />
   </div>
 </template>
 

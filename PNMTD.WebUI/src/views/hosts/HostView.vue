@@ -24,6 +24,7 @@ import { formatAbsolute, formatPercent } from '@/format'
 import { useSession } from '@/stores/session'
 import { importanceOptions } from '@/views/notifications/importance'
 import AddServerDialog from '@/views/admin/servers/AddServerDialog.vue'
+import HostLocationField from '@/views/locations/HostLocationField.vue'
 
 /**
  * A host (§5.6): its state and 90 days, its properties edited in place, and every sensor with its
@@ -56,7 +57,8 @@ const sensors = computed(() =>
 async function save(patch: Partial<S['HostRequest']>) {
   const updated = await api.hosts.update(id.value, hostRequest(host.value!, patch))
   queryClient.setQueryData(keys.host(id.value), updated)
-  await invalidate([keys.hosts])
+  // A location counts its hosts (docs/locations-knowledge-plan.md §3.1).
+  await invalidate(patch.locationId !== undefined ? [keys.hosts, keys.locations] : [keys.hosts])
 }
 
 async function remove() {
@@ -94,6 +96,11 @@ const more = computed(() => [
       <PageHeader :title="host.name" :crumbs="[{ label: 'Hosts', to: { name: 'hosts' } }]">
         <template #status>
           <StatusBadge :status="host.state" />
+          <RouterLink
+            v-if="host.assignedLocation"
+            :to="{ name: 'location', params: { id: host.assignedLocation.id } }"
+            >{{ host.assignedLocation.path }}</RouterLink
+          >
           <span v-if="host.location" class="muted">{{ host.location }}</span>
         </template>
         <template #actions>
@@ -145,13 +152,7 @@ const more = computed(() => [
             </dd>
             <dt>Location</dt>
             <dd>
-              <InlineField
-                :value="host.location"
-                label="Location"
-                field="location"
-                :readonly="!canWrite"
-                :save="(v) => save({ location: v ? String(v) : null })"
-              />
+              <HostLocationField :host="host" :readonly="!canWrite" :save="save" />
             </dd>
             <dt>Importance</dt>
             <dd>

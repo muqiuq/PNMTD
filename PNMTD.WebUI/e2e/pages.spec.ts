@@ -53,7 +53,7 @@ test('a host, a sensor, an event through the sensor API, and both deleted again'
   await open(page, '/hosts')
   await page.getByRole('button', { name: 'New host' }).click()
   await page.getByRole('textbox', { name: 'Name', exact: true }).fill('e2e-host')
-  await page.getByRole('textbox', { name: 'Location', exact: true }).fill('Playwright lab')
+  await page.getByRole('textbox', { name: 'Location text', exact: true }).fill('Playwright lab')
   await page.getByRole('button', { name: 'Create host' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'e2e-host' })).toBeVisible()
 

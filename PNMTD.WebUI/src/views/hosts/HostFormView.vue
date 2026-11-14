@@ -5,18 +5,24 @@ import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '@/api/client'
 import { api, keys } from '@/api/resources'
 import PageHeader from '@/components/PageHeader.vue'
 import { useActions } from '@/composables/useActions'
 import { importanceOptions, type Importance } from '@/views/notifications/importance'
+import LocationPicker from '@/views/locations/LocationPicker.vue'
 
-/** A new host (§5.6); everything else is edited where it is shown, on the host's page. */
+/**
+ * A new host (§5.6); everything else is edited where it is shown, on the host's page. Its location is picked, and the
+ * free text stays as <i>Location text</i> (docs/locations-knowledge-plan.md §3.2); <code>?locationId</code> preselects one.
+ */
 const router = useRouter()
+const route = useRoute()
 const { invalidate, notify } = useActions()
 
 const name = ref('')
+const locationId = ref<string | null>(typeof route.query.locationId === 'string' ? route.query.locationId : null)
 const location = ref('')
 const notes = ref('')
 const enabled = ref(true)
@@ -34,16 +40,22 @@ async function submit() {
     const host = await api.hosts.create({
       name: name.value.trim(),
       location: location.value.trim() || null,
+      locationId: locationId.value,
       notes: notes.value || null,
       enabled: enabled.value,
       importance: importance.value,
     })
-    await invalidate([keys.hosts])
+    await invalidate(locationId.value ? [keys.hosts, keys.locations] : [keys.hosts])
     notify.success(`Host ${host.name} created`)
     await router.replace({ name: 'host', params: { id: host.id } })
   } catch (e) {
     if (e instanceof ApiError && Object.keys(e.errors).length) {
-      errors.value = { name: e.field('name'), location: e.field('location'), notes: e.field('notes') }
+      errors.value = {
+        name: e.field('name'),
+        location: e.field('location'),
+        locationId: e.field('locationId'),
+        notes: e.field('notes'),
+      }
     } else {
       notify.error(e, 'Not created')
     }
@@ -63,8 +75,13 @@ async function submit() {
         <small v-if="errors.name" class="field-error">{{ errors.name }}</small>
       </div>
       <div class="field">
-        <label for="host-location">Location</label>
-        <InputText id="host-location" v-model="location" placeholder="Zurich DC, rack 4" />
+        <label for="host-location-id">Location</label>
+        <LocationPicker v-model="locationId" input-id="host-location-id" />
+        <small v-if="errors.locationId" class="field-error">{{ errors.locationId }}</small>
+      </div>
+      <div class="field">
+        <label for="host-location">Location text</label>
+        <InputText id="host-location" v-model="location" maxlength="128" placeholder="Rack 4, room 2.13" />
         <small v-if="errors.location" class="field-error">{{ errors.location }}</small>
       </div>
       <div class="field">

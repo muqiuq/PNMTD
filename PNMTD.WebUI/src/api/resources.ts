@@ -34,12 +34,47 @@ export const api = {
   },
 
   hosts: {
-    list: (query: ListQuery & { state?: HostState }) => call(client.GET('/api/v1/hosts', { params: { query } })),
+    list: (query: ListQuery & { state?: HostState; locationId?: Id; noLocation?: boolean }) =>
+      call(client.GET('/api/v1/hosts', { params: { query } })),
     get: (id: Id) => call(client.GET('/api/v1/hosts/{id}', { params: { path: { id } } })),
     create: (body: S['HostRequest']) => call(client.POST('/api/v1/hosts', { body })),
     update: (id: Id, body: S['HostRequest']) =>
       call(client.PUT('/api/v1/hosts/{id}', { params: { path: { id } }, body })),
     remove: (id: Id) => call(client.DELETE('/api/v1/hosts/{id}', { params: { path: { id } } })),
+    /** Many hosts' location at once (docs/locations-knowledge-plan.md §3.2); null: none. */
+    setLocation: (body: S['HostLocationRequest']) => call(client.PUT('/api/v1/hosts/location', { body })),
+  },
+
+  /** Locations (docs/locations-knowledge-plan.md §3, §9): every role reads, Users write, Admins delete. */
+  locations: {
+    list: (query: { search?: string; sort?: string } = {}) =>
+      call(client.GET('/api/v1/locations', { params: { query } })),
+    get: (id: Id, own = false) =>
+      call(client.GET('/api/v1/locations/{id}', { params: { path: { id }, query: own ? { own } : {} } })),
+    create: (body: S['LocationRequest']) => call(client.POST('/api/v1/locations', { body })),
+    update: (id: Id, body: S['LocationRequest']) =>
+      call(client.PUT('/api/v1/locations/{id}', { params: { path: { id } }, body })),
+    move: (id: Id, parentId: Id | null) =>
+      call(client.POST('/api/v1/locations/{id}/move', { params: { path: { id } }, body: { parentId } })),
+    remove: (id: Id) => call(client.DELETE('/api/v1/locations/{id}', { params: { path: { id } } })),
+    setValue: (id: Id, fieldId: Id, body: S['LocationValueRequest']) =>
+      call(client.PUT('/api/v1/locations/{id}/values/{fieldId}', { params: { path: { id, fieldId } }, body })),
+    history: (id: Id, query: ListQuery = {}) =>
+      call(client.GET('/api/v1/locations/{id}/history', { params: { path: { id }, query } })),
+    suggestions: () => call(client.GET('/api/v1/locations/suggestions')),
+    fromText: (body: S['LocationFromTextRequest']) => call(client.POST('/api/v1/locations/from-text', { body })),
+  },
+
+  /** The location fields (docs/locations-knowledge-plan.md §4, §10.5): every role reads, Admins define. */
+  locationFields: {
+    list: () => call(client.GET('/api/v1/location-fields')),
+    create: (body: S['LocationFieldRequest']) => call(client.POST('/api/v1/location-fields', { body })),
+    update: (id: Id, body: S['LocationFieldRequest']) =>
+      call(client.PUT('/api/v1/location-fields/{id}', { params: { path: { id } }, body })),
+    order: (ids: Id[]) => call(client.PUT('/api/v1/location-fields/order', { body: { ids } })),
+    archive: (id: Id) => call(client.POST('/api/v1/location-fields/{id}/archive', { params: { path: { id } } })),
+    restore: (id: Id) => call(client.POST('/api/v1/location-fields/{id}/restore', { params: { path: { id } } })),
+    remove: (id: Id) => call(client.DELETE('/api/v1/location-fields/{id}', { params: { path: { id } } })),
   },
 
   sensors: {
@@ -554,6 +589,11 @@ export const keys = {
   dashboard: ['dashboard'] as const,
   hosts: ['hosts'] as const,
   host: (id: Id) => ['host', id] as const,
+  /** Locations: the tree, a location's page and history (docs/locations-knowledge-plan.md §3). */
+  locations: ['locations'] as const,
+  location: (id: Id) => ['locations', id] as const,
+  /** The fields' definitions, which every location page renders with. */
+  locationFields: ['location-fields'] as const,
   sensors: ['sensors'] as const,
   sensor: (id: Id) => ['sensor', id] as const,
   events: ['events'] as const,
@@ -588,7 +628,15 @@ export const keys = {
 
 /** The request of a resource as it is, with some fields changed: v1's PUT takes every writable field. */
 export function hostRequest(h: S['HostDetail'], patch: Partial<S['HostRequest']> = {}): S['HostRequest'] {
-  return { name: h.name, location: h.location, notes: h.notes, enabled: h.enabled, importance: h.importance, ...patch }
+  return {
+    name: h.name,
+    location: h.location,
+    locationId: h.assignedLocation?.id ?? null,
+    notes: h.notes,
+    enabled: h.enabled,
+    importance: h.importance,
+    ...patch,
+  }
 }
 
 export function sensorRequest(s: S['SensorDetail'], patch: Partial<S['SensorRequest']> = {}): S['SensorRequest'] {

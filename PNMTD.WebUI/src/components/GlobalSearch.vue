@@ -9,14 +9,18 @@ import { useSession } from '@/stores/session'
 
 /**
  * The global search (§5.4), Ctrl/⌘ K: hosts and sensors by name; for User and Admin also a sensor's
- * exact write or read token, which replaces v0.12's token box on the dashboard.
+ * exact write or read token, which replaces v0.12's token box on the dashboard. Locations by name
+ * with their paths, and pages by number, title, summary and tag; #tag searches tags only
+ * (docs/locations-knowledge-plan.md §6.7, §10.4).
  */
 interface Suggestion {
-  kind: 'host' | 'sensor' | 'token'
+  kind: 'host' | 'sensor' | 'token' | 'location' | 'page'
   id: string
   label: string
   detail: string
   icon: string
+  /** A page's number: its route is /kb/42. */
+  number?: number
 }
 
 const router = useRouter()
@@ -35,7 +39,7 @@ async function complete(event: { query: string }) {
   }
   const found: Suggestion[] = []
   const lookup =
-    session.can('User') && q.length >= 8 && !q.includes(' ')
+    session.can('User') && q.length >= 8 && !q.includes(' ') && !q.startsWith('#')
       ? api.sensors
           .lookup(q)
           .catch((e: unknown) => (e instanceof ApiError && e.status === 404 ? null : Promise.reject(e)))
@@ -65,6 +69,21 @@ async function complete(event: { query: string }) {
       detail: s.hostName,
       icon: typeIcon(s.type),
     })),
+    ...result.locations.map((l) => ({
+      kind: 'location' as const,
+      id: l.id,
+      label: l.name,
+      detail: l.path === l.name ? 'location' : l.path,
+      icon: 'pi pi-map-marker',
+    })),
+    ...result.pages.map((p) => ({
+      kind: 'page' as const,
+      id: p.id,
+      number: p.number,
+      label: `KB-${p.number} · ${p.title}`,
+      detail: p.tags.length ? p.tags.map((t) => `#${t}`).join(' ') : 'page',
+      icon: p.sensitive ? 'pi pi-lock' : 'pi pi-book',
+    })),
   )
   suggestions.value = found
 }
@@ -72,7 +91,14 @@ async function complete(event: { query: string }) {
 async function open(event: { value: Suggestion }) {
   const item = event.value
   text.value = ''
-  await router.push({ name: item.kind === 'host' ? 'host' : 'sensor', params: { id: item.id } })
+  await router.push(
+    item.kind === 'page'
+      ? `/kb/${item.number}`
+      : {
+          name: item.kind === 'host' ? 'host' : item.kind === 'location' ? 'location' : 'sensor',
+          params: { id: item.id },
+        },
+  )
   ;(document.activeElement as HTMLElement | null)?.blur()
 }
 
@@ -94,13 +120,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       v-model="text"
       :suggestions="suggestions"
       option-label="label"
-      :placeholder="`Search hosts and sensors (${shortcut})`"
+      :placeholder="`Search hosts, sensors, locations and pages (${shortcut})`"
       :delay="200"
       :min-length="1"
       fluid
       size="small"
       input-id="global-search"
-      :pt="{ pcInputText: { root: { 'aria-label': 'Search hosts and sensors' } } }"
+      :pt="{ pcInputText: { root: { 'aria-label': 'Search hosts, sensors, locations and pages' } } }"
       @complete="complete"
       @option-select="open"
     >
@@ -142,5 +168,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   margin-left: auto;
   font-size: 0.857rem;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 50%;
 }
 </style>

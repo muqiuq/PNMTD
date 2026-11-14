@@ -11,7 +11,8 @@ import ErrorState from './ErrorState.vue'
 /**
  * A server-paged list (§5.3): a compact DataTable on a desktop; below 600 px a list of two-line
  * rows (the #mobile slot) with a pager, so nothing scrolls sideways. With an #expansion slot, the
- * rows whose ids are in v-model:expanded open their details below them (on a phone too).
+ * rows whose ids are in v-model:expanded open their details below them (on a phone too). With
+ * v-model:selection and a column with selection-mode="multiple", rows can be picked on a desktop.
  */
 const props = withDefaults(
   defineProps<{
@@ -26,6 +27,8 @@ const props = withDefaults(
 const emit = defineEmits<{ select: [item: T] }>()
 /** The expanded rows by id ({ [id]: true }); a collapsed row is not in it. */
 const expanded = defineModel<Record<string, boolean>>('expanded', { default: () => ({}) })
+/** The picked rows, for actions on several (docs/locations-knowledge-plan.md §3.2's *Set location…*). */
+const selection = defineModel<T[] | undefined>('selection', { default: undefined })
 const phone = useMedia('(max-width: 599px)')
 const q = computed(() => props.table.query)
 const pages = computed(() => Math.max(1, Math.ceil(props.table.total.value / props.table.pageSize.value)))
@@ -82,6 +85,8 @@ const pages = computed(() => Math.max(1, Math.ceil(props.table.total.value / pro
     paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
     current-page-report-template="{first}–{last} of {totalRecords}"
     :expanded-rows="expanded"
+    :selection="selection"
+    @update:selection="(rows: unknown) => (selection = rows as T[])"
     @page="table.onPage"
     @sort="table.onSort"
     @update:expanded-rows="(rows: unknown) => (expanded = rows as Record<string, boolean>)"
