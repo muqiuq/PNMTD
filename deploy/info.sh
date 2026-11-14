@@ -49,6 +49,20 @@ case "$(env_value WireGuard__Enabled | tr '[:upper:]' '[:lower:]')" in
     echo "  WireGuard:  gateway ${wg_state}, ${wg_port}/udp; routers dial ${wg_host:-${wg_url_host:-<set PNMTD_WG_EXTERNAL_HOST>}}:${wg_ext_port:-$wg_port}" ;;
   *) echo "  WireGuard:  off (MikroTik routers by Direct SSH only)" ;;
 esac
+# Redmine and Zabbix (docs/audit-redmine-zabbix-plan.md §8.4): on or off, and where; never the key or the token.
+redmine_url="$(env_value Redmine__Url)"
+if [[ -n "$redmine_url" && -n "$(env_value Redmine__ApiKey)" && -n "$(env_value Redmine__Projects)" ]]; then
+  echo "  Redmine:    ${redmine_url}, projects $(env_value Redmine__Projects)"
+else
+  echo "  Redmine:    off"
+fi
+zabbix_url="$(env_value Zabbix__Url)"
+if [[ -n "$zabbix_url" && -n "$(env_value Zabbix__ApiToken)" ]]; then
+  zabbix_groups="$(env_value Zabbix__HostGroups)"
+  echo "  Zabbix:     ${zabbix_url}, ${zabbix_groups:-all host groups the token sees}"
+else
+  echo "  Zabbix:     off"
+fi
 echo "  Backups:    $(ls -1d "$(env_value PNMTD_BACKUP_DIR || echo backups)"/pnmtd-* 2>/dev/null | wc -l | tr -d ' ') in $(env_value PNMTD_BACKUP_DIR)"
 files="$(files_dir)"
 files_size=""
@@ -75,7 +89,7 @@ fi
 if is_running "$DB_SERVICE"; then
   # Who could manage users with a password alone (§4.6).
   admins="$(compose exec -T "$DB_SERVICE" psql -U pnmtd -d pnmtd -tAc \
-    "SELECT string_agg(\"Username\", ', ' ORDER BY \"NormalizedUsername\") FROM users WHERE \"Role\" = 'Admin' AND \"IsActive\" AND NOT \"IsTotpEnabled\"" \
+    "SELECT string_agg(\"Username\", ', ' ORDER BY \"NormalizedUsername\") FROM users WHERE \"IsAdmin\" AND \"IsActive\" AND NOT \"IsTotpEnabled\"" \
     2>/dev/null || true)"
   if [[ -n "$admins" ]]; then
     case "$(env_value Auth__TotpPolicy | tr '[:upper:]' '[:lower:]')" in

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Plan, for review.** Nothing built yet |
+| Status | **Built: A1–A3, G1 (with G2), R0–R2, Z0–Z3 and F, on master** (§15 *As built*). Not done: A0's checks at scale; Zabbix 7.2 and 7.4 untested |
 | Date | 2026-11-14 |
 | Revision | 3: **the review of revision 2 applied** (§14.1):<ul><li>**No roles any more:** the admin flag, and groups for everything else (§5.3).</li><li>**Redmine:** an overview of the most important tickets; every ticket has two buttons, its detail page (a full page) and Redmine; on the detail page, tickets are linked to knowledge base pages too (§6.3–6.6).</li><li>**2FA stays as it is;** the open questions are decided: no reads logged, retention in ENV, the rest as proposed.</li></ul>2: **groups and rights added** (§5): rights are assigned to groups, a user can be in several, and **an admin flag on the user grants every right**. The three roles go; nobody's access changes with the update. Kept simple: 16 fixed areas with one to three levels each, no deny, no rights per object.<br>1: the first plan |
 | Scope | Packages 5.5, 6 and 7 of docs/ideas2.md:<ul><li>**Audit (5.5):**<ul><li>every operation a person performs is logged: who, when, from where, what, on what, with what result, and what changed;</li><li>the existing auth log is extended for it, not replaced;</li><li>**the bug:** on *Admin → Auth log* the detail text is cut off long before the column ends, so on a desktop most of the column stays empty.</li></ul></li><li>**Groups and rights (added in review, with 5.5):**<ul><li>a more detailed rights system than the three roles;</li><li>rights are assigned to groups, and users to groups;</li><li>an admin flag on the user grants every right automatically;</li><li>not too complicated.</li></ul></li><li>**Redmine (6):**<ul><li>a Redmine page with **an overview of the most important tickets** and a search;</li><li>**every ticket has two buttons:** its detail page in PNMT (a full page, not a window) and the ticket in Redmine;</li><li>Redmine's address, its API token and the project ids come from the ENV file;</li><li>on the detail page, tickets are linked to **knowledge base pages**, locations, hosts and sensors;</li><li>links to Redmine and to each ticket's page in Redmine, and information about tickets, wherever they help;</li><li>a ticket's detail view is a page of its own.</li></ul></li><li>**Zabbix (7):**<ul><li>a Zabbix page: a summary of the open problems by category, and a list of them;</li><li>Zabbix hosts are attached to PNMT hosts: **each one becomes a *Zabbix* sensor**, and a host can have several;</li><li>all Zabbix hosts can be browsed and searched, each with a detail page that links on into Zabbix.</li></ul></li></ul> |
@@ -1186,6 +1186,86 @@ As in the earlier packages: **few tests, where they protect something.**
 
 None.
 ---
+
+## 15. As built
+
+**On master** (2026-11-14): 11 commits from 3865fee (A1) to the finish. Where the code differs from the sections above, this section says so; the rest is as planned. Nothing is pushed or tagged, and the version isn't bumped: [docs/release-notes-1.4.md](release-notes-1.4.md) is written for 1.4.0.
+
+| Commit | Phase |
+|---|---|
+| 3865fee | A1: the audit log, its migration, scope, filter, denied handler, interceptor, retention |
+| 2ad6466 | G1 **with G2**: rights on the server and in the web UI together, so master worked after every commit |
+| 09a3b70 | A2: every write endpoint's event, every entity classified |
+| 6c68b3c | A3: *Admin → Audit log*, *History* on hosts and sensors |
+| 073154d | R0 and R1: Redmine verified, and the server |
+| d4b354a | R2: the Redmine web UI |
+| 265cfc0 | Z0 and Z1: Zabbix verified, and the server's reading side |
+| 62a3024 | Z2: the Zabbix sensor |
+| 9bbad54 | Z3: the Zabbix web UI |
+| 883e833, and the next | F: the fakes, the seed; then the documentation and this section |
+
+### What was checked against real servers
+
+**Redmine (R0), 5.1 and 6.0 in containers, answering alike;** their 6.0 answers are the fixtures (`PNMTD/Dev/Fixtures/redmine`):
+
+- **Several projects and several priorities only through the filter syntax** (`f[]`, `op[]`, `v[]`). It leaves subprojects out, so PNMT adds their ids itself.
+- **`any_searchable`** searches subjects, descriptions and notes in one call with the other filters: the search API isn't used.
+- **`issue_id` lists** return tickets of any project the key can read: PNMT filters them to its projects.
+- The overview's filters work as planned (priorities above the default, no assignee, `due_date`, `updated_on`); `is_closed` on statuses and `is_default` on priorities are in the answers; the prefilled new-ticket form works.
+
+**Zabbix (Z0), 6.0.49, 7.0.32 and 8.0.0 in containers,** set up as deploy/README.md describes (a role with an allow list of five methods, a user group with read access to two of three host groups, a token), with triggers, problems, a maintenance, an acknowledgement and an unavailable interface. The answers and what was checked are the fixtures (`PNMTD/Dev/Fixtures/zabbix-60`, `-70`, `-80`, each with `checks.json`):
+
+| | 6.0 | 7.0 | 8.0 |
+|---|---|---|---|
+| **The token** in the request's `auth` | yes | yes | **refused** ("unexpected parameter auth") |
+| **The token** as `Authorization: Bearer` | **"Not authorized"** | yes | yes |
+| `apiinfo.version` with a token | refused | refused | accepted |
+| Host groups under `selectGroups` | yes | yes (still) | **ignored** |
+| Host groups under `selectHostGroups` | **ignored** | yes | yes |
+| A method outside the allow list | -32602 "No permissions to call" | -32500, the same text | -32500 |
+
+- **The rule of §7.2 holds:** Bearer from 6.4, the `auth` field before; never a token for `apiinfo.version`; `selectHostGroups` from 6.2.
+- **Availability is per interface** in all three (`available` 0, 1, 2 and `error`). `problem.get` names no host; `trigger.get` with `selectHosts` does. Problems carry their host's tags; `opdata` comes resolved.
+- **The token sees only its groups' problems,** with *Frontend access: Disabled* on the user group.
+- **Acknowledgements name only a user id,** and a role of type *User* can't read other users: PNMT shows "Zabbix user 1".
+- **The frontend's URLs of §7.9 work in all three,** except the host's configuration: `zabbix.php?action=host.edit` is a page up to 7.0 and answers JSON in 8.0, where `action=popup&popup=host.edit` is the page. PNMT uses the popup from 7.2 on; **7.2 and 7.4 weren't tested.**
+
+### Where the code differs from the plan
+
+**Audit and rights:**
+
+- **A0 wasn't done as a step of its own:** the search on 500,000 entries and the entry counts of an e2e run and a week of the seed weren't measured. The retention defaults stand as planned.
+- **No `IAuditLog` interface:** a static `AuditLog` (`Target`, `Summary`, `Change`, `Record`, `Entry`) writes into the request's `AuditScope`. A service that records the endpoint's own event keeps its detail as given.
+- **The attributes** are `[Audit(events…)]` and `[NotAudited(reason)]` on actions and entities, `[Audited]`, `[AuditSecret]`, `[AuditIgnore]`, `[AuditText]`, `[AuditPlain(reason)]` on entities and properties.
+- **No `useRights()` composable:** the session store's `can(area, level)` and `allows(right)` serve every view.
+- **An endpoint needing rights of two areas** (attaching Zabbix hosts: Monitoring *Edit* and Zabbix *View*) has two `[RequireRight]`; the access matrix writes it `Monitoring:Edit&Zabbix:View` and checks each alone is refused.
+- **Validation errors are 400,** as elsewhere in v1, not 422.
+
+**Redmine:**
+
+- **Not configured is 409** `redmine_not_configured`, as AI's; Redmine's failures are 502 (`redmine_refused`, `redmine_unreachable`).
+- **A ticket outside PNMT's projects, or unknown to Redmine,** shows *Not in PNMT's Redmine projects* or *Not found in Redmine*, but **not its links** (§6.4 wanted them listed for removal). The objects' panels still list such a ticket from PNMT's copy, and unlink it there.
+- **The pickers:** *Link ticket…* is `LinkTicketDialog.vue` (no `RedmineIssuePicker.vue`); the ticket page's *Link to…* is `TargetPicker.vue` over the global search, which finds pages, locations, hosts and sensors. The knowledge base's `LinkPicker` is unchanged.
+- **The header chip** reads "2 open tickets" and scrolls to the panel; a failing sensor's chip is `SensorTicket.vue`, fed by `GET /redmine/problems`.
+- **The tests** of *Test Redmine* and *Test Zabbix* are on *System health → Integrations*, not on the debug page.
+
+**Zabbix:**
+
+- **Five migrations, not four:** `AddZabbix` (the mirror, Z1) and `AddZabbixSensors` (the side table, Z2).
+- **The server gained what the UI needed:** an exact `severity` filter on problems (a tile or cell opens just its severity), the mirror's host groups in the summary (for the filters), and a problem's attached `sensorId` (for the ticket chip).
+- **The sensors are evaluated after the host sync too,** so a host that disappears is 491 at once. New rules reset the last state, so their result is an event at once. A ZABBIX sensor's interval and grace period are 0.
+- **The mirror's interfaces** are stored with their availability by name (`"Unavailable"`).
+- **The sensor's page** has *Overview*, *Events* (the page every sensor has), *Setup* and *History*; Overview carries the knowledge base and ticket panels, and *Zabbix not reached since …* when the snapshot failed.
+
+**The finish:**
+
+- **The fakes are the tests' ones,** moved into `PNMTD/Dev` with their fixtures embedded, so tests, `pnmtd dev fake-integrations` and the browser tests use the same answers. `tools/e2e.sh` starts the fakes beside the stack, so `redmine.spec.ts` and `zabbix.spec.ts` always run; `E2E_ENV` names real servers instead (that is how R2 and Z3 were checked against Redmine 6 and Zabbix 7.0).
+- **`dev.env` isn't touched** (it is gitignored and holds a person's settings): `pnmtd dev fake-integrations` prints the lines to add.
+- **The seed** adds the Redmine links and copies only with Redmine configured, and nas-01's Zabbix sensor only with the fake Zabbix, whose host ids it knows.
+
+**Found and fixed on the way:** `deploy/info.sh` still asked for `users."Role"`, which G1 removes, for its warning about admins without 2FA; the global search's ticket subjects escaped wildcards with nothing instead of `\`; the Redmine client's comment claimed a pinned certificate excludes valid ones (it accepts both).
+
+**The uncommitted work on the sensor page** (`SensorNotesPanel.vue` and the overview tabs) was left as it was: this package's changes to `SensorView.vue` were committed on top of the committed file, without it. Once, early in R2, an editing script emptied that uncommitted file; it was restored from the recorded diff and compared, and later edits read the file whole before writing.
 
 ## Appendix A: write endpoints, their rights and audit events
 

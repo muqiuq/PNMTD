@@ -71,10 +71,8 @@ Local changes to the stack go into `docker-compose.override.yml`. Git ignores th
 
 **Users** sign in at `/pnmt-admin/`:
 
-- **Roles:**
-  - **Viewer** reads everything except tokens and mail contents.
-  - **User** also manages hosts, sensors, rules, zones, locations and knowledge base pages.
-  - **Admin** also manages users, location fields, the knowledge base's tags and files, the audit log and system health.
+- **Rights:** a user is an admin, with every right and alone managing users and groups, or has what their groups give: a level in each area (Monitoring *View* or *Edit*, Mail *Read*, Redmine *View* or *Link*, Zabbix *View* or *Details*, Servers *Manage*, …), listed with what each allows under *Documentation → Groups and rights*. The update to 1.4 made the old roles into the groups *Operators* (what *User* could do) and *Viewers* (what *Viewer* could). *Admin → Groups* changes them or adds others.
+- **The audit log** (*Admin → Audit log*) records every change, sign-in and refusal: who, when, from where, and each field's old and new value (never a secret's). It keeps `Audit__KeepDays` (400) days and at most `Audit__MaxEntries` (500,000) entries; *Download CSV* exports what the filters show. A host's or sensor's *History* tab shows its own.
 - **Temporary passwords:** a password from `add-user.sh` or `reset-password.sh` is valid for 7 days and must be changed at the first sign-in. With `--password-stdin`, the first line of standard input is a permanent password of your choice.
 - **Two-factor authentication (TOTP):** every user can turn it on under their account, with any authenticator app (Aegis, Google or Microsoft Authenticator, Bitwarden, 1Password, …). The app shows the instance as `PNMT (<Identity>)`, or as `Auth__TotpIssuer`.
   - `Auth__TotpPolicy=Optional` (the default) suggests it after each sign-in without it. `RequiredForAdmins` and `Required` allow nothing else until it is set up, from the next request on, sessions that are already open included.
@@ -264,6 +262,30 @@ PNMT can use AI models through [OpenRouter](https://openrouter.ai): to propose r
 - **When it fails:** a request is retried every minute 5 times, then after 1 hour, 3 hours and every 24 hours. The *AI* sensor turns red (421) while requests keep failing; a notification rule on it tells you.
 - **The situation analysis** runs every `Ai__Analysis__IntervalMinutes` (60) when something changed, and early on a storm of failures, when the uplink comes back or the WireGuard gateway goes down. Its findings go to three sensors on the host *PNMT*: *AI analysis: critical* (High), *warnings* (Normal) and *info* (Low). A notification rule on them, or a scope such as *at least High*, decides who hears of them; warnings and critical findings also wait under *Decisions*, where similar ones can be muted for 7 days.
 - **Turning it off:** `Ai__Enabled=false`, or one use at a time (`Ai__Mail__Enabled`, `Ai__Analysis__Enabled`). *Admin → Debug → Test the AI* checks the key and every model.
+
+## Redmine (optional)
+
+PNMT shows the tickets of chosen Redmine projects (5.1 or later; docs/audit-redmine-zabbix-plan.md §6): an overview of the most important ones, a search, a page per ticket, and links from tickets to hosts, sensors, locations and knowledge base pages, with their panels there. It changes nothing in Redmine.
+
+- **An account of its own:** a Redmine user *pnmt* with a role that may only *View issues* (and *View private notes* only if `Redmine__ShowPrivateNotes=true`), member of the projects PNMT shows. *Administration → Settings → API* enables the REST API; the user's API key (*My account → API access key*) goes into `Redmine__ApiKey`. It is sent only as a header, never in a URL, and never shown.
+- **The settings:** `Redmine__Url`, `Redmine__ApiKey` and `Redmine__Projects` (ids or identifiers) turn it on; `Redmine__PublicUrl` when browsers reach Redmine at another address; `Redmine__TextFormatting` as in Redmine's settings, so descriptions render right.
+- **Who sees it:** groups with Redmine *View* (tickets) or *Link* (linking them). *Viewers* get neither: tickets hold customers' and colleagues' text.
+- **A copy of the linked tickets** (number, subject, status, assignee) is refreshed every `Redmine__SyncMinutes`, so panels work when Redmine is slow or down. When it doesn't answer, or refuses the key, twice in a row, the system sensor *Redmine* writes 429.
+- **Checking it:** *Admin → System health → Integrations → Test* signs in with the key and looks for every project.
+
+## Zabbix (optional)
+
+PNMT reads Zabbix (6.0 or later; docs/audit-redmine-zabbix-plan.md §7): the open problems by severity and category, the hosts, a page per host, and **Zabbix sensors**: a Zabbix host attached to a PNMT host fails it from a severity up, with notifications as for any sensor. It changes nothing in Zabbix.
+
+- **An account of its own,** with the least it needs:
+  - a **user role** *PNMT API* of type *User*, with *API access* on and the *API methods* limited to an **allow list**: `hostgroup.get`, `host.get`, `problem.get`, `trigger.get`, `item.get`, and no frontend sections;
+  - a **user group** *PNMT readers* with *Frontend access: Disabled* and **read** permission on the host groups PNMT should see;
+  - a **user** *pnmt* in that group with that role, and an **API token** for it (*Users → API tokens*), without expiry or with a reminder to renew it. The token goes into `Zabbix__ApiToken`; PNMT sends it the way the version wants (in the request up to 6.2, as a header from 6.4), never in a URL, and never shows it.
+- **The settings:** `Zabbix__Url` (the frontend's address) and `Zabbix__ApiToken` turn it on; `Zabbix__HostGroups` narrows the hosts further; `Zabbix__MinSeverity` (Average) is the default for new Zabbix sensors.
+- **Who sees it:** groups with Zabbix *View* (*Viewers* too) or *Details* (also the inventory and acknowledgement messages, which name people). Attaching hosts needs Monitoring *Edit* as well.
+- **Load:** one `problem.get` every `Zabbix__PollSeconds` (60) and the hosts every `Zabbix__HostSyncMinutes` (10), whatever the page views.
+- **When Zabbix doesn't answer,** Zabbix sensors keep their state and write nothing; the system sensor *Zabbix* writes 430 once. If Zabbix also mails PNMT through a mail input, both alert: retire the mail rule once the host's Zabbix sensor is in.
+- **Checking it:** *Admin → System health → Integrations → Test* reads the problems and hosts now and names the host groups it found.
 
 ## Uploaded files
 
