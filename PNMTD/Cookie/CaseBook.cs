@@ -52,6 +52,8 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
         var caseSettings = await settings.GetAsync<CaseSettings>(ct);
         await using var scope = scopes.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<PnmtdDbContext>();
+        // Duties that fell due since the last run wake Cookie; one waiting for working hours doesn't, again and again.
+        var lastRun = (await RuntimeAsync(db, ct)).CaseBookAt ?? now.AddMinutes(-1);
 
         await ProblemsAsync(db, scope.ServiceProvider.GetRequiredService<MonitoringReader>(), caseSettings, now, counts, ct);
         string? error = null;
@@ -72,7 +74,7 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
             }
         }
         await db.SaveChangesAsync(ct);
-        await DutiesAsync(db, caseSettings, now, counts, ct);
+        await DutiesAsync(db, caseSettings, now, lastRun, counts, ct);
         await StatusAsync(db, now, ticketsRead, error, ct);
         db.UpdateKeyValueTimestampToNow(KeyValueKeyEnums.LAST_COOKIE_CASEBOOK);
         await db.SaveChangesAsync(ct);
@@ -427,7 +429,7 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
     /// The duties each case has now (§7, §19.1): added when new, moved while still due, removed when no longer due (a first
     /// answer came, the problem has a ticket). A duty that was done stays done, by its key.
     /// </summary>
-    private async Task DutiesAsync(PnmtdDbContext db, CaseSettings caseSettings, DateTime now, Counts counts, CancellationToken ct)
+    private async Task DutiesAsync(PnmtdDbContext db, CaseSettings caseSettings, DateTime now, DateTime lastRun, Counts counts, CancellationToken ct)
     {
         var redmineSettings = await settings.GetAsync<CookieRedmineSettings>(ct);
         var calendar = (await settings.GetAsync<HoursSettings>(ct)).Calendar();
@@ -481,7 +483,7 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
         // Duties of cases that closed, and aren't planned again, go too.
         await db.CookieDuties.Where(d => d.State == CookieDutyState.Due && !ids.Contains(d.CaseId)).ExecuteDeleteAsync(ct);
         await db.SaveChangesAsync(ct);
-        counts.DutiesDue = await db.CookieDuties.CountAsync(d => d.State == CookieDutyState.Due && d.DueAt <= now, ct);
+        counts.DutiesDue = await db.CookieDuties.CountAsync(d => d.State == CookieDutyState.Due && d.DueAt > lastRun && d.DueAt <= now, ct);
     }
 
     // --- The code's status ---------------------------------------------------------------------------------------------
