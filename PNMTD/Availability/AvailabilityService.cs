@@ -288,8 +288,12 @@ public sealed partial class AvailabilityService(IDbContextFactory<PnmtdDbContext
         return new AvailabilityPeopleItem(u.Id, u.Username, u.DisplayName, u.InPlan, u.ShortCode, u.Color, People.WeekOf(u.DefaultWeek), u.PlanOrder);
     }
 
-    public async Task<AvailabilitySettingsItem> SettingsAsync(CancellationToken ct) =>
-        new([.. (await plan.TypesAsync(ct)).Select(ToItem)], await plan.SettingsAsync(ct));
+    public async Task<AvailabilitySettingsItem> SettingsAsync(CancellationToken ct)
+    {
+        await using var db = await dbs.CreateDbContextAsync(ct);
+        var groups = await db.Groups.AsNoTracking().OrderBy(g => g.Name).Select(g => new Ref(g.Id, g.Name)).ToListAsync(ct);
+        return new([.. (await plan.TypesAsync(ct)).Select(ToItem)], await plan.SettingsAsync(ct), groups);
+    }
 
     public async Task<AvailabilitySettingsItem> SaveSettingsAsync(AvailabilitySettingsRequest request, ClaimsPrincipal user, CancellationToken ct)
     {

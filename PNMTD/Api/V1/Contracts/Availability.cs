@@ -88,8 +88,8 @@ public sealed record AvailabilityFillResult(int Written, int Replaced);
 /// <summary>A type as saved: without an id, a new one.</summary>
 public sealed record AvailabilityTypeInput(Guid? Id, string Name, string Code, string Color, IReadOnlyList<AvailabilityFlag> Flags, bool IsDefault, bool IsDayOff);
 
-/// <summary>The plan's settings (§9.4): the types (retired ones too), and the rest.</summary>
-public sealed record AvailabilitySettingsItem(IReadOnlyList<AvailabilityTypeItem> Types, AvailabilitySettings Settings);
+/// <summary>The plan's settings (§9.4): the types (retired ones too), the rest, and the groups to pick from (count columns, the global fallback).</summary>
+public sealed record AvailabilitySettingsItem(IReadOnlyList<AvailabilityTypeItem> Types, AvailabilitySettings Settings, IReadOnlyList<Ref>? Groups = null);
 
 /// <summary>
 /// <c>PUT /availability/settings</c>: the types in their order (a type left out is retired when it is in use, deleted
