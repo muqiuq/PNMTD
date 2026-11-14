@@ -21,6 +21,9 @@
 #                                  WireGuard modes for MikroTik routers (docs/mikrotik-plan.md §3).
 #                                  WG_PORT=51820 is its host port (UDP); WG_EXTERNAL_HOST names what
 #                                  routers dial (default: this machine's name)
+#   AGENT_FILES=dist ./start.sh    serve the agents built into dist/ (./build-sensor-linux.sh, ./build-sensor-windows.sh)
+#                                  at /agent/v1/download/, mounted read-only; otherwise PNMTD fetches them from the
+#                                  GitHub release of its version into the volume pnmtd-downloads-dev, as deployed
 #   VERBOSE=1 ./start.sh           show the build log, which is otherwise only printed on failure
 #   ENGINE=docker ./start.sh       Docker instead of Podman
 #
@@ -42,6 +45,8 @@ DB_NAME="${DB_NAME:-pnmtd-db}"
 NETWORK="${NETWORK:-pnmtd-dev}"
 PG_VOLUME="${PG_VOLUME:-pnmtd-pgdata}"
 KEYS_VOLUME="${KEYS_VOLUME:-pnmtd-keys-dev}"
+DOWNLOADS_VOLUME="${DOWNLOADS_VOLUME:-pnmtd-downloads-dev}"
+AGENT_FILES="${AGENT_FILES:-}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-docker.io/library/postgres:18-alpine}"
 LEGACY_DIR="${LEGACY_DIR:-}"
 LEGACY_USERS="${LEGACY_USERS:-}"
@@ -198,6 +203,12 @@ if [[ "$WIREGUARD" != "0" ]]; then
     -e "WireGuard__ExternalHost=${WG_EXTERNAL_HOST}")
 fi
 "$ENGINE" rm -f "$NAME" >/dev/null 2>&1 || true
+# The agents' files (docs/linux-sensor-plan.md §4.4): a volume, as deployed, or dist/ read-only.
+downloads=(-v "${DOWNLOADS_VOLUME}:/var/lib/pnmtd/downloads")
+if [[ -n "$AGENT_FILES" ]]; then
+  [[ -d "$AGENT_FILES" ]] || die "AGENT_FILES=${AGENT_FILES} is not a folder."
+  downloads=(-v "$(cd "$AGENT_FILES" && pwd):/var/lib/pnmtd/downloads:ro")
+fi
 # As hardened as in deploy/docker-compose.yml, so what fails there fails here first.
 "$ENGINE" run -d --name "$NAME" --hostname "$NAME" --network "$NETWORK" \
   -p "${PORT}:8080" \
@@ -210,6 +221,7 @@ fi
   --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
   --sysctl "net.ipv4.ping_group_range=0 2147483647" \
   -v "${KEYS_VOLUME}:/var/lib/pnmtd/keys" \
+  "${downloads[@]}" \
   "$IMAGE" >/dev/null
 
 for _ in $(seq 1 120); do

@@ -314,7 +314,8 @@ public sealed class AgentHub(
         var rights = hello.Rights is { } announced ? ServerRights.Bounded(announced) : null;
         var rightsJson = rights is null ? null : AgentJson.Serialize(rights);
         var previousRights = ServerRights.Read(agent.Rights);
-        var rightsChanged = agent.Rights is not null && rightsJson != agent.Rights;
+        // jsonb comes back normalised (key order, spacing): compare what both serialise to, not the stored text.
+        var rightsChanged = agent.Rights is not null && rightsJson != (previousRights is null ? null : AgentJson.Serialize(previousRights));
         agent.Rights = rightsJson;
         if (agent.Platform == AgentPlatform.Linux)
         {

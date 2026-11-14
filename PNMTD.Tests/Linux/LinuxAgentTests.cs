@@ -123,9 +123,20 @@ public sealed class LinuxAgentTests
             await session.SendAsync(AgentMessageTypes.Heartbeat, Beat(session, DateTimeOffset.UtcNow.AddDays(-1)), CancellationToken.None);
             await AgentHarness.EventuallyAsync(() => AgentHarness.EventsAsync(app, joined.Grant.SensorId), e => e[0].Code == PNMTStatusCodes.LINUX_OK);
         }
+        // The same rights again (a restart, an update): no change logged, although jsonb gives the stored text back normalised.
+        await using (var session = await AgentHarness.OpenAsync(app, joined, rights: Rights("config.yaml", keyRemoval: true)))
+        {
+            await session.SendAsync(AgentMessageTypes.Heartbeat, Beat(session, DateTimeOffset.UtcNow.AddDays(-1)), CancellationToken.None);
+            await AgentHarness.EventuallyAsync(async () =>
+            {
+                await using var connected = app.NewDb();
+                return await connected.AgentLog.CountAsync(l => l.SensorId == joined.Grant.SensorId && l.Kind == AgentLogKind.Connected) == 3;
+            });
+        }
         await using var db = app.NewDb();
         var log = await db.AgentLog.AsNoTracking().Where(l => l.SensorId == joined.Grant.SensorId).OrderBy(l => l.At).ToListAsync();
         CollectionAssert.Contains(log.Select(l => l.Message).ToList(), "Rights changed on the server: key removal allowed for deploy, www (1 protected keys); scripts off.");
+        Assert.AreEqual(1, log.Count(l => l.Message.StartsWith("Rights changed", StringComparison.Ordinal)), "only the real change");
         StringAssert.Contains(log.First(l => l.Kind == AgentLogKind.Connected).Message, "rights on the server: config.yaml refused (/etc/pnmt-agent/config.yaml is writable by others): everything off");
         var item = (await (await admin.GetAsync("/api/v1/agents/servers?search=web-rights&keyRemoval=true")).ReadAsync<Paged<AgentServerItem>>()).Items.Single();
         Assert.IsTrue(item.KeyRemovalAllowed);
