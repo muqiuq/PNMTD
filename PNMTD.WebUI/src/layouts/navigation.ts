@@ -11,6 +11,8 @@ export interface NavItem {
   feature?: 'redmine' | 'zabbix'
   /** A menu the deployment can hide (Redmine__HideMenu, Mail__HideMenu, Zabbix__HideMenu): only the entry goes. */
   menu?: 'redmine' | 'mail' | 'zabbix'
+  /** Also for everyone in the availability plan, who needs no right for it (docs/cookie-plan.md §9.4). */
+  inPlan?: boolean
 }
 
 export interface NavGroup {
@@ -165,6 +167,14 @@ export const navigation: NavGroup[] = [
       { label: 'AI', icon: 'pi pi-sparkles', to: '/admin/ai', name: 'ai', right: ['Ai', 'Manage'] },
       { label: 'Cookie', icon: 'pi pi-cog', to: '/admin/cookie', name: 'cookie-admin', right: ['Cookie', 'Manage'] },
       {
+        label: 'Availability plan',
+        icon: 'pi pi-calendar',
+        to: '/admin/availability',
+        name: 'availability',
+        right: ['Availability', 'View'],
+        inPlan: true,
+      },
+      {
         label: 'Location fields',
         icon: 'pi pi-list-check',
         to: '/admin/location-fields',
@@ -194,13 +204,14 @@ export function visibleNavigation(
   allows: (right: Right) => boolean,
   configured: (feature: 'redmine' | 'zabbix') => boolean = () => true,
   hiddenMenus: readonly string[] = [],
+  inPlan = false,
 ): NavGroup[] {
   return navigation
     .map((g) => ({
       ...g,
       items: g.items.filter(
         (i) =>
-          (!i.right || allows(i.right)) &&
+          (!i.right || allows(i.right) || (!!i.inPlan && inPlan)) &&
           (!i.feature || configured(i.feature)) &&
           (!i.menu || !hiddenMenus.includes(i.menu)),
       ),

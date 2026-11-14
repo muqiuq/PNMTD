@@ -85,6 +85,14 @@ describe('visibleNavigation', () => {
     expect(manage).toEqual(['dashboard', 'cookie', 'cookie-admin'])
   })
 
+  it('shows the availability plan with its View, and to everyone in the plan without a right (docs/cookie-plan.md §9.4)', () => {
+    const none = () => false
+    expect(names(visibleNavigation(none))).toEqual(['dashboard'])
+    expect(names(visibleNavigation(none, () => true, [], true))).toEqual(['dashboard', 'availability'])
+    const view = names(visibleNavigation((r) => r !== 'admin' && r[0] === 'Availability'))
+    expect(view).toEqual(['dashboard', 'availability'])
+  })
+
   it('drops the Mail group when Mail__HideMenu hides its entries', () => {
     expect(
       visibleNavigation(

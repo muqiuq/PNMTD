@@ -339,10 +339,24 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     // Admin → Cookie (docs/cookie-plan.md §9.3): one tab per section, each versioned.
-    path: '/admin/cookie/:tab(overview|identity|cases|hours|notifications|redmine|actions|models|rights)?',
+    path: '/admin/cookie/:tab(overview|identity|cases|redmine|actions|models|rights)?',
     name: 'cookie-admin',
     component: () => import('@/views/admin/cookie/CookieAdminView.vue'),
     meta: { title: 'Cookie', right: ['Cookie', 'Manage'] },
+  },
+  {
+    // Revision 7 moved the working hours to the availability plan's settings, and the contacts to the user.
+    path: '/admin/cookie/:tab(hours|notifications)',
+    redirect: (to) =>
+      to.params.tab === 'hours' ? { name: 'availability', params: { tab: 'settings' } } : { name: 'cookie-admin' },
+  },
+  {
+    // The availability plan (docs/cookie-plan.md §8.2, §9.4): for Availability: View, and for everyone in the plan, who
+    // needs no right for it. So no right here: the API decides, and the page says so when the plan is empty for the reader.
+    path: '/admin/availability/:tab(plan|people|settings)?',
+    name: 'availability',
+    component: () => import('@/views/admin/availability/AvailabilityView.vue'),
+    meta: { title: 'Availability plan' },
   },
   {
     path: '/admin/location-fields',

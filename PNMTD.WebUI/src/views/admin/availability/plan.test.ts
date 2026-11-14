@@ -1,0 +1,222 @@
+import { describe, expect, it } from 'vitest'
+import {
+  addDays,
+  after,
+  barShare,
+  before,
+  belowMinimum,
+  datesBetween,
+  daysBetween,
+  exactCode,
+  fallbackWarning,
+  formatPlanDate,
+  fullWeek,
+  inSelection,
+  mergeDays,
+  movePoint,
+  responsibleWarning,
+  selectionRect,
+  shouldBeSet,
+  textOn,
+  typeAhead,
+  works,
+  type GridColumn,
+  type PlanDay,
+} from './plan'
+
+const day = (date: string, patch: Partial<PlanDay> = {}): PlanDay => ({
+  date,
+  weekday: 'Mo',
+  closed: false,
+  holiday: null,
+  hours: '08:00–17:00',
+  responsibleId: null,
+  fallbackId: null,
+  comment: null,
+  responsibleWorks: null,
+  fallbackWorks: null,
+  cells: [],
+  counts: [],
+  missing: 0,
+  ...patch,
+})
+
+describe('the availability plan (docs/cookie-plan.md §8.2, §9.4)', () => {
+  it('counts dates in days, across summer time and the end of a year', () => {
+    expect(addDays('2026-03-28', 1)).toBe('2026-03-29')
+    expect(addDays('2026-03-29', 1)).toBe('2026-03-30')
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01')
+    expect(addDays('2026-01-01', -1)).toBe('2025-12-31')
+    expect(daysBetween('2026-10-24', '2026-10-26')).toBe(2)
+    expect(daysBetween('2026-11-18', '2026-11-17')).toBe(-1)
+    expect(datesBetween('2026-11-30', '2026-12-02')).toEqual(['2026-11-30', '2026-12-01', '2026-12-02'])
+    expect(datesBetween('2026-12-02', '2026-11-30')).toEqual([])
+    expect(formatPlanDate('2026-11-17')).toBe('17.11.2026')
+  })
+
+  it('loads the chunk before the first day and after the last, and merges the chunks into one list', () => {
+    expect(before('2026-11-08', 60)).toEqual({ from: '2026-09-09', to: '2026-11-07' })
+    expect(after('2027-01-07', 60)).toEqual({ from: '2027-01-08', to: '2027-03-08' })
+    const merged = mergeDays([
+      { days: [day('2026-11-03'), day('2026-11-04', { comment: 'old' })] },
+      { days: [day('2026-11-01'), day('2026-11-02')] },
+      { days: [day('2026-11-04', { comment: 'new' }), day('2026-11-05')] },
+    ])
+    expect(merged.map((d) => d.date)).toEqual(['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05'])
+    expect(merged[3].comment).toBe('new')
+  })
+
+  it('writes black on light colours and white on dark ones', () => {
+    expect(textOn('#ffffff')).toBe('#000000')
+    expect(textOn('#fde68a')).toBe('#000000')
+    expect(textOn('#d9f2d9')).toBe('#000000')
+    expect(textOn('#000000')).toBe('#ffffff')
+    expect(textOn('#1e3a8a')).toBe('#ffffff')
+    expect(textOn('#dc2626')).toBe('#ffffff')
+    expect(textOn(null)).toBe('#000000')
+    expect(textOn('red')).toBe('#000000')
+  })
+
+  it('reads the checkboxes as the server does: on site, travelling or at home, and not off', () => {
+    expect(works(['OnSite'])).toBe(true)
+    expect(works(['HomeOffice'])).toBe(true)
+    expect(works(['WorkTravel'])).toBe(true)
+    expect(works(['OnSite', 'Vacation'])).toBe(false)
+    expect(works(['HomeOffice', 'Compensation'])).toBe(false)
+    expect(works(['Vacation', 'Holiday'])).toBe(false)
+    expect(works([])).toBe(false)
+  })
+
+  it('warns on a working day without a responsible, or with one who is off; closed days need nothing', () => {
+    expect(responsibleWarning(day('2026-11-17'))).toMatch(/Nobody/)
+    expect(responsibleWarning(day('2026-11-17', { responsibleId: 'a', responsibleWorks: true }))).toBeNull()
+    expect(responsibleWarning(day('2026-11-17', { responsibleId: 'a', responsibleWorks: false }))).toMatch(
+      /doesn't work/,
+    )
+    expect(responsibleWarning(day('2026-11-21', { closed: true }))).toBeNull()
+    expect(fallbackWarning(day('2026-11-17'))).toBeNull()
+    expect(fallbackWarning(day('2026-11-17', { fallbackId: 'b', fallbackWorks: false }))).toMatch(/doesn't work/)
+    expect(fallbackWarning(day('2026-11-21', { closed: true, fallbackId: 'b', fallbackWorks: false }))).toBeNull()
+  })
+
+  it('flags a count below its minimum on working days only, and draws its bar against everyone', () => {
+    const columns = [
+      { id: 'c1', name: 'On site', minimum: 2 },
+      { id: 'c2', name: 'Remote', minimum: null },
+    ]
+    expect(belowMinimum(day('2026-11-18', { counts: [1, 0] }), 0, columns)).toBe(true)
+    expect(belowMinimum(day('2026-11-18', { counts: [2, 0] }), 0, columns)).toBe(false)
+    expect(belowMinimum(day('2026-11-18', { counts: [1, 0] }), 1, columns)).toBe(false)
+    expect(belowMinimum(day('2026-11-21', { closed: true, counts: [0, 0] }), 0, columns)).toBe(false)
+    expect(barShare(3, 4)).toBe(75)
+    expect(barShare(5, 4)).toBe(100)
+    expect(barShare(1, 0)).toBe(0)
+  })
+
+  it('wants the cells of working days set from today on, for 365 days', () => {
+    expect(shouldBeSet(day('2026-11-17'), '2026-11-17')).toBe(true)
+    expect(shouldBeSet(day('2026-11-16'), '2026-11-17')).toBe(false)
+    expect(shouldBeSet(day('2027-11-16'), '2026-11-17')).toBe(true)
+    expect(shouldBeSet(day('2027-11-17'), '2026-11-17')).toBe(false)
+    expect(shouldBeSet(day('2026-11-21', { closed: true }), '2026-11-17')).toBe(false)
+  })
+})
+
+describe('selecting cells of the plan', () => {
+  const columns: GridColumn[] = [
+    { key: 'responsible', kind: 'staff' },
+    { key: 'fallback', kind: 'staff' },
+    { key: 'ann', kind: 'person' },
+    { key: 'bob', kind: 'person' },
+    { key: 'cid', kind: 'person' },
+  ]
+
+  it('covers the dates and columns between where it started and where it is, either way round', () => {
+    const rect = selectionRect(
+      { anchor: { date: '2026-11-20', col: 'cid' }, focus: { date: '2026-11-18', col: 'bob' } },
+      columns,
+    )
+    expect(rect).toEqual({ from: '2026-11-18', to: '2026-11-20', cols: ['bob', 'cid'] })
+    const one = selectionRect(
+      { anchor: { date: '2026-11-18', col: 'ann' }, focus: { date: '2026-11-18', col: 'ann' } },
+      columns,
+    )
+    expect(one).toEqual({ from: '2026-11-18', to: '2026-11-18', cols: ['ann'] })
+  })
+
+  it('stays within the kind of column it started in', () => {
+    const rect = selectionRect(
+      { anchor: { date: '2026-11-18', col: 'fallback' }, focus: { date: '2026-11-19', col: 'bob' } },
+      columns,
+    )
+    expect(rect.cols).toEqual(['fallback'])
+    const people = selectionRect(
+      { anchor: { date: '2026-11-18', col: 'ann' }, focus: { date: '2026-11-19', col: 'responsible' } },
+      columns,
+    )
+    expect(people.cols).toEqual(['ann'])
+    const selection = { anchor: { date: '2026-11-18', col: 'ann' }, focus: { date: '2026-11-19', col: 'bob' } }
+    expect(inSelection(selection, columns, '2026-11-19', 'bob')).toBe(true)
+    expect(inSelection(selection, columns, '2026-11-20', 'bob')).toBe(false)
+    expect(inSelection(selection, columns, '2026-11-18', 'cid')).toBe(false)
+    expect(inSelection(null, columns, '2026-11-18', 'ann')).toBe(false)
+  })
+
+  it('moves with the arrow keys within the days loaded and the columns', () => {
+    const p = { date: '2026-11-18', col: 'ann' }
+    expect(movePoint(p, 1, 0, columns, '2026-11-01', '2026-11-30')).toEqual({ date: '2026-11-19', col: 'ann' })
+    expect(movePoint(p, 0, 1, columns, '2026-11-01', '2026-11-30')).toEqual({ date: '2026-11-18', col: 'bob' })
+    expect(movePoint(p, 0, 9, columns, '2026-11-01', '2026-11-30')).toEqual({ date: '2026-11-18', col: 'cid' })
+    expect(movePoint(p, -30, 0, columns, '2026-11-01', '2026-11-30')).toEqual({ date: '2026-11-01', col: 'ann' })
+  })
+})
+
+describe('typing a code into the plan', () => {
+  const types = [{ code: 'ANWE' }, { code: 'HOME' }, { code: 'HO' }, { code: 'VACA' }, { code: 'UNAV' }]
+
+  it('sets the type once its code is whole and no longer code goes on from it', () => {
+    let state = typeAhead('', 'a', types)
+    expect(state).toEqual({ typed: 'A', chosen: null })
+    state = typeAhead(state.typed, 'n', types)
+    state = typeAhead(state.typed, 'w', types)
+    state = typeAhead(state.typed, 'e', types)
+    expect(state).toEqual({ typed: '', chosen: { code: 'ANWE' } })
+  })
+
+  it('waits when a longer code goes on, and Enter takes the exact one', () => {
+    let state = typeAhead('', 'h', types)
+    state = typeAhead(state.typed, 'o', types)
+    expect(state).toEqual({ typed: 'HO', chosen: null })
+    expect(exactCode(state.typed, types)).toEqual({ code: 'HO' })
+    state = typeAhead(state.typed, 'm', types)
+    state = typeAhead(state.typed, 'e', types)
+    expect(state.chosen).toEqual({ code: 'HOME' })
+  })
+
+  it('starts again with a key no code continues with, and forgets a key no code starts with', () => {
+    expect(typeAhead('AN', 'v', types)).toEqual({ typed: 'V', chosen: null })
+    expect(typeAhead('AN', 'x', types)).toEqual({ typed: '', chosen: null })
+    expect(exactCode('', types)).toBeNull()
+  })
+})
+
+describe("a person's default week (docs/cookie-plan.md §8.1)", () => {
+  it('shows every weekday once, Monday first; a missing day works with the default', () => {
+    const week = fullWeek([
+      { day: 'Friday', works: true, typeId: 'home' },
+      { day: 'Sunday', works: false },
+    ])
+    expect(week.map((d) => d.day)).toEqual([
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ])
+    expect(week[0]).toEqual({ day: 'Monday', works: true, typeId: null })
+    expect(week[4]).toEqual({ day: 'Friday', works: true, typeId: 'home' })
+    expect(week[6]).toEqual({ day: 'Sunday', works: false, typeId: null })
+  })
+})

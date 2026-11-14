@@ -2,10 +2,14 @@
 import Tag from 'primevue/tag'
 import PageHeader from '@/components/PageHeader.vue'
 import { useSession } from '@/stores/session'
+import ContactDetails from './ContactDetails.vue'
 import MySshKeys from './MySshKeys.vue'
 import PasswordForm from './PasswordForm.vue'
 
-/** The own account (§5.6): who you are, your password, and your SSH keys (docs/linux-sensor-plan.md §6.4). */
+/**
+ * The own account (§5.6): who you are, your contact details (docs/cookie-plan.md §8.1), your password, and your SSH keys
+ * (docs/linux-sensor-plan.md §6.4).
+ */
 const session = useSession()
 </script>
 
@@ -38,12 +42,15 @@ const session = useSession()
         </section>
         <MySshKeys />
       </div>
-      <section class="panel" aria-labelledby="password-title">
-        <div id="password-title" class="panel-header">Change password</div>
-        <div class="panel-body narrow">
-          <PasswordForm />
-        </div>
-      </section>
+      <div class="column">
+        <ContactDetails />
+        <section class="panel" aria-labelledby="password-title">
+          <div id="password-title" class="panel-header">Change password</div>
+          <div class="panel-body narrow">
+            <PasswordForm />
+          </div>
+        </section>
+      </div>
     </div>
   </div>
 </template>

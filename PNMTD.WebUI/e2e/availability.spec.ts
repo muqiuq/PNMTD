@@ -1,0 +1,104 @@
+import { expect, test, type Page } from '@playwright/test'
+import { collectProblems, shot, signIn } from './support'
+
+/**
+ * Admin → Availability plan (docs/cookie-plan.md §8.2, §9.4, revision 7) on the seed: the first admin is in the plan as
+ * ADM, responsible on the working days of the next two weeks, and the six types of the team's Excel plan exist (ANWE the
+ * default, UNAV for days off). As an admin: the table with Today and today's row; ADM's cell on the next working day set
+ * to HOME by a click and the menu; People and Settings. A viewer, neither in the plan nor with a right, has no menu entry
+ * and is told so.
+ */
+async function json(page: Page, path: string) {
+  const response = await page.request.get(path)
+  expect(response.ok(), `GET ${path}: ${response.status()}`).toBeTruthy()
+  return response.json()
+}
+
+interface Plan {
+  today: string
+  people: { id: string; code: string }[]
+  types: { id: string; code: string }[]
+  days: { date: string; closed: boolean; cells: { userId: string; typeId: string }[] }[]
+}
+
+/** 2026-11-18 as the plan writes it, ready for a RegExp: 18\.11\.2026. */
+const dotted = (iso: string) => `${iso.slice(8, 10)}\\.${iso.slice(5, 7)}\\.${iso.slice(0, 4)}`
+
+test('the availability plan: the table, a cell set to HOME, People and Settings', async ({ page }) => {
+  const problems = collectProblems(page)
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signIn(page)
+  const plan = (await json(page, '/api/v1/availability/plan')) as Plan
+  const adm = plan.people.find((p) => p.code === 'ADM')
+  expect(adm, 'the seed puts the first admin into the plan as ADM').toBeTruthy()
+  const home = plan.types.find((t) => t.code === 'HOME')
+  expect(home, 'the seed creates HOME').toBeTruthy()
+  const day = plan.days.find((d) => d.date > plan.today && !d.closed)
+  expect(day, 'a working day after today').toBeTruthy()
+
+  await page.goto('/pnmt-admin/admin/availability')
+  await expect(page.getByRole('heading', { level: 1, name: 'Availability plan' })).toBeVisible()
+  await expect(page.locator('aside.drawer').getByRole('link', { name: 'Availability plan' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Today' })).toBeVisible()
+  const grid = page.getByRole('region', { name: 'The plan' })
+  await expect(grid.getByRole('columnheader', { name: 'ADM' })).toBeVisible()
+  await expect(grid.locator('tr[aria-current="date"]')).toContainText(new RegExp(dotted(plan.today)))
+  // The seed made ADM responsible on the working days of the next two weeks.
+  await expect(grid.getByRole('cell', { name: new RegExp(`^Responsible ${dotted(day!.date)}: ADM$`) })).toBeVisible()
+  await shot(page, 'availability-plan')
+
+  // ADM's cell on the next working day: a click opens the menu of types, HOME sets it.
+  const cell = grid.getByRole('cell', { name: new RegExp(`^ADM ${dotted(day!.date)}:`) })
+  await cell.click()
+  const menu = page.getByRole('group', { name: 'Set the selected cells' })
+  await expect(menu).toBeVisible()
+  await shot(page, 'availability-menu')
+  await menu.getByRole('button', { name: /^HOME/ }).click()
+  await expect(menu).toHaveCount(0)
+  await expect(cell).toHaveText('HOME')
+  await expect
+    .poll(async () => {
+      const saved = (await json(page, `/api/v1/availability/plan?from=${day!.date}&to=${day!.date}`)) as Plan
+      return saved.days[0]?.cells.find((c) => c.userId === adm!.id)?.typeId
+    })
+    .toBe(home!.id)
+
+  // Far into the future, and Today brings today's row back.
+  await grid.evaluate((el) => (el.scrollTop = el.scrollHeight))
+  await expect(grid.locator('tr[aria-current="date"]')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Today' }).click()
+  await expect(grid.locator('tr[aria-current="date"]')).toBeVisible()
+
+  // People: ADM is in the plan.
+  const tabs = page.getByRole('navigation', { name: 'Availability plan' })
+  await tabs.getByRole('link', { name: 'People' }).click()
+  await expect(page).toHaveURL(/\/admin\/availability\/people$/)
+  const admRow = page.getByRole('row').filter({ has: page.getByText('ADM', { exact: true }) })
+  await expect(admRow).toContainText('in the plan')
+  await shot(page, 'availability-people')
+
+  // Settings: the seed's six types, and the working hours moved here from Admin → Cookie.
+  await tabs.getByRole('link', { name: 'Settings' }).click()
+  await expect(page).toHaveURL(/\/admin\/availability\/settings$/)
+  const types = page.getByRole('region', { name: 'Availability types' })
+  await expect(types.getByRole('textbox', { name: 'Type 1, code' })).toBeVisible()
+  const codes = await types
+    .getByRole('textbox', { name: /^Type \d+, code$/ })
+    .evaluateAll((inputs) => inputs.map((i) => (i as HTMLInputElement).value))
+  expect(codes).toEqual(expect.arrayContaining(['ANWE', 'HOME', 'EXTN', 'VACA', 'KOMP', 'UNAV']))
+  await expect(page.getByRole('region', { name: 'Working hours' })).toContainText('Monday')
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled()
+  await shot(page, 'availability-settings')
+  expect(problems).toEqual([])
+})
+
+test('a viewer outside the plan has no menu entry, and the page says why', async ({ page }) => {
+  const problems = collectProblems(page)
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signIn(page, 'viewer')
+  await expect(page.locator('aside.drawer').getByRole('link', { name: 'Availability plan' })).toHaveCount(0)
+  await page.goto('/pnmt-admin/admin/availability')
+  await expect(page.getByText("The plan isn't yours to see.")).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Availability plan' }).getByRole('link')).toHaveText(['Plan'])
+  expect(problems).toEqual([])
+})

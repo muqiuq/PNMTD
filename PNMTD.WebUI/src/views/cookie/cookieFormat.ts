@@ -51,6 +51,7 @@ export const dutyStateLabel: Record<S['CookieDutyState'], string> = {
   Off: 'Off',
   NotPossible: 'Not possible',
   Failed: 'Failed',
+  Stopped: 'Stopped',
 }
 
 export const dutyStateName = (s: S['CookieDutyState']) => dutyStateLabel[s] ?? s
@@ -97,6 +98,14 @@ export const outboxStateName = (s: S['CookieOutboxState']) => outboxStateLabel[s
 
 export const outboxStateSeverity = (s: S['CookieOutboxState']): Severity =>
   s === 'Sent' ? 'success' : s === 'HeldBack' ? 'warn' : s === 'Failed' ? 'danger' : 'secondary'
+
+/** A person's word in a case's timeline (§4.3): a comment, a stop, or letting Cookie go on. */
+export const personKinds = ['comment', 'stopped', 'go-on'] as const
+
+export const entryKindLabel = (kind: string) => (kind === 'go-on' ? 'go on' : kind === 'held-back' ? 'held back' : kind)
+
+export const entryKindSeverity = (kind: string): Severity =>
+  kind === 'comment' ? 'info' : kind === 'stopped' ? 'warn' : kind === 'go-on' ? 'success' : 'secondary'
 
 /** Who wrote a timeline entry: PNMT's code, Cookie, or a person by name. */
 export function actorLabel(entry: Pick<S['CookieEntryItem'], 'actor' | 'actorName'>): string {

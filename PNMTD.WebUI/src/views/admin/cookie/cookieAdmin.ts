@@ -6,7 +6,7 @@ export interface Option<T = string> {
 }
 
 /**
- * A new id for a row (a recipient rule, a narrower instruction), as a version-4 UUID. crypto.getRandomValues works on plain
+ * A new id for a row (a narrower instruction, a count column), as a version-4 UUID. crypto.getRandomValues works on plain
  * HTTP too, where crypto.randomUUID doesn't.
  */
 export function newId(): string {

@@ -2740,6 +2740,131 @@
         }
       }
     },
+    "/api/v1/account/contact": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountContactItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountContactItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountContactItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Account"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountContactRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountContactRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountContactRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountContactItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountContactItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountContactItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/contact/test": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactTestRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactTestRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactTestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactTestResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactTestResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactTestResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users": {
       "get": {
         "tags": [
@@ -3101,6 +3226,487 @@
         }
       }
     },
+    "/api/v1/users/{id}/profile": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonProfile"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonProfile"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonProfile"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserProfileRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserProfileRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonProfile"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonProfile"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonProfile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/availability/plan": {
+      "get": {
+        "tags": [
+          "Availability"
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityPlanItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityPlanItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityPlanItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/availability/entries": {
+      "put": {
+        "tags": [
+          "Availability"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityCellsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityCellsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityCellsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/availability/days": {
+      "put": {
+        "tags": [
+          "Availability"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityDaysRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityDaysRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityDaysRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/availability/fill": {
+      "post": {
+        "tags": [
+          "Availability"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityFillRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityFillRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityFillRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityFillResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityFillResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityFillResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/availability/fill/mine": {
+      "post": {
+        "tags": [
+          "Availability"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityFillRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityFillRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityFillRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityFillResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityFillResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityFillResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/availability/people": {
+      "get": {
+        "tags": [
+          "Availability"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AvailabilityPeopleItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AvailabilityPeopleItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AvailabilityPeopleItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/availability/people/{id}": {
+      "put": {
+        "tags": [
+          "Availability"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityPersonRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityPersonRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityPersonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityPeopleItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityPeopleItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityPeopleItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/availability/settings": {
+      "get": {
+        "tags": [
+          "Availability"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilitySettingsItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilitySettingsItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilitySettingsItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Availability"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilitySettingsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilitySettingsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilitySettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilitySettingsItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilitySettingsItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilitySettingsItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cookie/status": {
       "get": {
         "tags": [
@@ -3342,6 +3948,135 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/cases/{id}/comments": {
+      "post": {
+        "tags": [
+          "Cookie"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieCaseCommentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieCaseCommentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieCaseCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/cases/{id}/stop": {
+      "post": {
+        "tags": [
+          "Cookie"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieCaseCommentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieCaseCommentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieCaseCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/cases/{id}/go-on": {
+      "post": {
+        "tags": [
+          "Cookie"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieCaseCommentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieCaseCommentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieCaseCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -3943,104 +4678,6 @@
             "application/*+json": {
               "schema": {
                 "$ref": "#/components/schemas/CaseSettings"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookieSaved"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookieSaved"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookieSaved"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/cookie/admin/settings/hours": {
-      "put": {
-        "tags": [
-          "CookieAdmin"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HoursSettings"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HoursSettings"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/HoursSettings"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookieSaved"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookieSaved"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookieSaved"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/cookie/admin/settings/notifications": {
-      "put": {
-        "tags": [
-          "CookieAdmin"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NotificationSettings"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NotificationSettings"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/NotificationSettings"
               }
             }
           },
@@ -17100,6 +17737,73 @@
           }
         }
       },
+      "AccountContactItem": {
+        "required": [
+          "email",
+          "pushoverKey",
+          "redmineName",
+          "inPlan",
+          "shortCode",
+          "color"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pushoverKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "redmineName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inPlan": {
+            "type": "boolean"
+          },
+          "shortCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AccountContactRequest": {
+        "required": [
+          "email",
+          "pushoverKey"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pushoverKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ActionSettings": {
         "type": "object",
         "properties": {
@@ -19544,7 +20248,8 @@
           "Ai",
           "System",
           "AuditLog",
-          "Cookie"
+          "Cookie",
+          "Availability"
         ]
       },
       "AssignMode": {
@@ -19585,7 +20290,8 @@
           "System",
           "Redmine",
           "Zabbix",
-          "Cookie"
+          "Cookie",
+          "Availability"
         ]
       },
       "AuditChange": {
@@ -20007,6 +20713,618 @@
           }
         }
       },
+      "AvailabilityCell": {
+        "required": [
+          "userId",
+          "typeId",
+          "filled"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "typeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "filled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AvailabilityCellChange": {
+        "required": [
+          "userId",
+          "date",
+          "typeId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "typeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "AvailabilityCellsRequest": {
+        "required": [
+          "cells"
+        ],
+        "type": "object",
+        "properties": {
+          "cells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityCellChange"
+            }
+          }
+        }
+      },
+      "AvailabilityColumnItem": {
+        "required": [
+          "id",
+          "name",
+          "minimum"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "minimum": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AvailabilityDayChange": {
+        "required": [
+          "date",
+          "responsibleId",
+          "fallbackId",
+          "comment"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "responsibleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "fallbackId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AvailabilityDayItem": {
+        "required": [
+          "date",
+          "weekday",
+          "closed",
+          "holiday",
+          "hours",
+          "responsibleId",
+          "fallbackId",
+          "comment",
+          "responsibleWorks",
+          "fallbackWorks",
+          "cells",
+          "counts",
+          "missing"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "weekday": {
+            "type": "string"
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "holiday": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hours": {
+            "type": "string"
+          },
+          "responsibleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "fallbackId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "responsibleWorks": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "fallbackWorks": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "cells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityCell"
+            }
+          },
+          "counts": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "missing": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AvailabilityDaysRequest": {
+        "required": [
+          "days"
+        ],
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityDayChange"
+            }
+          }
+        }
+      },
+      "AvailabilityFillRequest": {
+        "required": [
+          "again"
+        ],
+        "type": "object",
+        "properties": {
+          "again": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AvailabilityFillResult": {
+        "required": [
+          "written",
+          "replaced"
+        ],
+        "type": "object",
+        "properties": {
+          "written": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "replaced": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AvailabilityFlag": {
+        "enum": [
+          "Vacation",
+          "Holiday",
+          "OnSite",
+          "WorkTravel",
+          "HomeOffice",
+          "Compensation"
+        ]
+      },
+      "AvailabilityPeopleItem": {
+        "required": [
+          "id",
+          "username",
+          "displayName",
+          "inPlan",
+          "shortCode",
+          "color",
+          "defaultWeek",
+          "planOrder"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "inPlan": {
+            "type": "boolean"
+          },
+          "shortCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "defaultWeek": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DefaultDay"
+            }
+          },
+          "planOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AvailabilityPersonItem": {
+        "required": [
+          "id",
+          "name",
+          "code",
+          "color",
+          "isMe"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isMe": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AvailabilityPersonRequest": {
+        "required": [
+          "inPlan",
+          "shortCode",
+          "color",
+          "defaultWeek",
+          "planOrder"
+        ],
+        "type": "object",
+        "properties": {
+          "inPlan": {
+            "type": "boolean"
+          },
+          "shortCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "defaultWeek": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DefaultDay"
+            }
+          },
+          "planOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AvailabilityPlanItem": {
+        "required": [
+          "from",
+          "to",
+          "today",
+          "types",
+          "people",
+          "columns",
+          "days",
+          "canEditAll",
+          "inPlan",
+          "globalFallback"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "today": {
+            "type": "string",
+            "format": "date"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityTypeItem"
+            }
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityPersonItem"
+            }
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityColumnItem"
+            }
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityDayItem"
+            }
+          },
+          "canEditAll": {
+            "type": "boolean"
+          },
+          "inPlan": {
+            "type": "boolean"
+          },
+          "globalFallback": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AvailabilitySettings": {
+        "type": "object",
+        "properties": {
+          "week": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayHours"
+            }
+          },
+          "holidays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Holiday"
+            }
+          },
+          "countColumns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CountColumn"
+            }
+          },
+          "globalFallbackUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "globalFallbackGroupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "AvailabilitySettingsItem": {
+        "required": [
+          "types",
+          "settings"
+        ],
+        "type": "object",
+        "properties": {
+          "types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityTypeItem"
+            }
+          },
+          "settings": {
+            "$ref": "#/components/schemas/AvailabilitySettings"
+          }
+        }
+      },
+      "AvailabilitySettingsRequest": {
+        "required": [
+          "types",
+          "settings"
+        ],
+        "type": "object",
+        "properties": {
+          "types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityTypeInput"
+            }
+          },
+          "settings": {
+            "$ref": "#/components/schemas/AvailabilitySettings"
+          }
+        }
+      },
+      "AvailabilityTypeInput": {
+        "required": [
+          "id",
+          "name",
+          "code",
+          "color",
+          "flags",
+          "isDefault",
+          "isDayOff"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityFlag"
+            }
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "isDayOff": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AvailabilityTypeItem": {
+        "required": [
+          "id",
+          "name",
+          "code",
+          "color",
+          "flags",
+          "isDefault",
+          "isDayOff",
+          "order",
+          "retired",
+          "works"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityFlag"
+            }
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "isDayOff": {
+            "type": "boolean"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "retired": {
+            "type": "boolean"
+          },
+          "works": {
+            "type": "boolean"
+          }
+        }
+      },
       "BatteryInfo": {
         "required": [
           "name",
@@ -20201,6 +21519,32 @@
           }
         }
       },
+      "ContactTestRequest": {
+        "required": [
+          "channel"
+        ],
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string"
+          }
+        }
+      },
+      "ContactTestResult": {
+        "required": [
+          "ok",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
       "ContainerRuntime": {
         "required": [
           "name",
@@ -20314,8 +21658,6 @@
           "identity",
           "prompts",
           "cases",
-          "hours",
-          "notifications",
           "redmine",
           "actions",
           "models",
@@ -20331,12 +21673,6 @@
           },
           "cases": {
             "$ref": "#/components/schemas/CaseSettings"
-          },
-          "hours": {
-            "$ref": "#/components/schemas/HoursSettings"
-          },
-          "notifications": {
-            "$ref": "#/components/schemas/NotificationSettings"
           },
           "redmine": {
             "$ref": "#/components/schemas/CookieRedmineSettings"
@@ -20366,6 +21702,20 @@
           "spent": {
             "type": "number",
             "format": "double"
+          }
+        }
+      },
+      "CookieCaseCommentRequest": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -20416,6 +21766,14 @@
               "null",
               "string"
             ]
+          },
+          "canComment": {
+            "type": "boolean",
+            "default": false
+          },
+          "canStop": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -20530,6 +21888,16 @@
                 "$ref": "#/components/schemas/CookieNextDuty"
               }
             ]
+          },
+          "stopped": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CookieStop"
+              }
+            ]
           }
         }
       },
@@ -20564,53 +21932,6 @@
           "RedminePrivateNote",
           "RedmineTicket"
         ]
-      },
-      "CookieContact": {
-        "required": [
-          "userId",
-          "email",
-          "pushoverKey",
-          "redmineName",
-          "quietFrom",
-          "quietTo"
-        ],
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "email": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "pushoverKey": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "redmineName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "quietFrom": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "quietTo": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
       },
       "CookieDefaults": {
         "required": [
@@ -20750,7 +22071,8 @@
           "HeldBack",
           "Off",
           "NotPossible",
-          "Failed"
+          "Failed",
+          "Stopped"
         ]
       },
       "CookieEntryItem": {
@@ -21332,6 +22654,32 @@
           }
         }
       },
+      "CookieStop": {
+        "required": [
+          "at",
+          "by",
+          "comment"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "by": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "CookieSummaryItem": {
         "required": [
           "lines",
@@ -21550,6 +22898,47 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "CountColumn": {
+        "required": [
+          "id",
+          "name",
+          "flags"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityFlag"
+            }
+          },
+          "groupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "minimum": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "shown": {
+            "type": "boolean",
+            "default": true
           }
         }
       },
@@ -22399,6 +23788,28 @@
           "Superseded",
           "Failed"
         ]
+      },
+      "DefaultDay": {
+        "required": [
+          "day",
+          "works"
+        ],
+        "type": "object",
+        "properties": {
+          "day": {
+            "$ref": "#/components/schemas/DayOfWeek"
+          },
+          "works": {
+            "type": "boolean"
+          },
+          "typeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
       },
       "DefenderInfo": {
         "required": [
@@ -24668,23 +26079,6 @@
           },
           "to": {
             "type": "string"
-          }
-        }
-      },
-      "HoursSettings": {
-        "type": "object",
-        "properties": {
-          "week": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DayHours"
-            }
-          },
-          "holidays": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Holiday"
-            }
           }
         }
       },
@@ -31446,23 +32840,6 @@
           }
         }
       },
-      "NotificationSettings": {
-        "type": "object",
-        "properties": {
-          "contacts": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CookieContact"
-            }
-          },
-          "rules": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RecipientRule"
-            }
-          }
-        }
-      },
       "OperationalLog": {
         "required": [
           "name",
@@ -33038,6 +34415,64 @@
           }
         }
       },
+      "PersonProfile": {
+        "required": [
+          "email",
+          "pushoverKey",
+          "redmineName",
+          "inPlan",
+          "shortCode",
+          "color",
+          "defaultWeek",
+          "planOrder"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pushoverKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "redmineName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inPlan": {
+            "type": "boolean"
+          },
+          "shortCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "defaultWeek": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DefaultDay"
+            }
+          },
+          "planOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "PingParameters": {
         "required": [
           "target"
@@ -33292,88 +34727,6 @@
             }
           }
         }
-      },
-      "RecipientChannel": {
-        "enum": [
-          "Dashboard",
-          "Email",
-          "Pushover"
-        ]
-      },
-      "RecipientRule": {
-        "required": [
-          "id",
-          "name",
-          "scope",
-          "value",
-          "minUrgency",
-          "when",
-          "users",
-          "groups",
-          "channels"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "scope": {
-            "$ref": "#/components/schemas/RecipientScope"
-          },
-          "value": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "The location's or host's id, the Redmine project's number, or the kind of case (problem, ticket)"
-          },
-          "minUrgency": {
-            "$ref": "#/components/schemas/Urgency"
-          },
-          "when": {
-            "$ref": "#/components/schemas/RecipientWhen"
-          },
-          "users": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          "groups": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          "channels": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RecipientChannel"
-            }
-          }
-        }
-      },
-      "RecipientScope": {
-        "enum": [
-          "Everything",
-          "Location",
-          "Host",
-          "Project",
-          "CaseKind"
-        ]
-      },
-      "RecipientWhen": {
-        "enum": [
-          "Always",
-          "WorkingHours",
-          "OutsideWorkingHours"
-        ]
       },
       "RedmineAttachmentItem": {
         "required": [
@@ -40950,13 +42303,6 @@
           }
         }
       },
-      "Urgency": {
-        "enum": [
-          "Info",
-          "Important",
-          "Urgent"
-        ]
-      },
       "UserItem": {
         "required": [
           "id",
@@ -41044,6 +42390,67 @@
             "type": "integer",
             "format": "int32",
             "default": 0
+          }
+        }
+      },
+      "UserProfileRequest": {
+        "required": [
+          "email",
+          "pushoverKey",
+          "redmineName",
+          "inPlan",
+          "shortCode",
+          "color",
+          "defaultWeek",
+          "planOrder"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pushoverKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "redmineName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inPlan": {
+            "type": "boolean"
+          },
+          "shortCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "defaultWeek": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DefaultDay"
+            }
+          },
+          "planOrder": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -43180,6 +44587,9 @@
     },
     {
       "name": "Users"
+    },
+    {
+      "name": "Availability"
     },
     {
       "name": "Cookie"

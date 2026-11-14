@@ -23,12 +23,14 @@ import { useServerTable } from '@/composables/useServerTable'
 import { formatAbsolute } from '@/format'
 import { useSession } from '@/stores/session'
 import RemoveKeysDialog from './sshkeys/RemoveKeysDialog.vue'
+import UserProfileForm from './UserProfileForm.vue'
 import type { RemovalSource } from './sshkeys/sshKeyFormat'
 import UserKeys from './sshkeys/UserKeys.vue'
 
 /**
  * Users (§4.9, §5.6): admin or their groups (docs/audit-redmine-zabbix-plan.md §5.5), 2FA, last sign-in, locked or
- * not, their SSH keys. A user's drawer shows their effective rights and the group each comes from. A row opens its drawer: edit, reset
+ * not, their SSH keys. A user's drawer shows their contact details and place in the availability plan (docs/cookie-plan.md
+ * §8.1), their effective rights and the group each comes from. A row opens its drawer: edit, reset
  * the password (a temporary one, shown once), reset 2FA, unlock, delete; their keys with where each is authorized, and
  * Remove all from every server… (docs/linux-sensor-plan.md §6.4). Deactivating a user who has keys asks whether to retire
  * them and remove them now. The server refuses to leave no active admin (409 last_admin) and says so.
@@ -398,6 +400,10 @@ async function create() {
             @click="remove"
           />
         </div>
+        <section class="profile" aria-labelledby="profile-title">
+          <h3 id="profile-title">Contact and availability plan</h3>
+          <UserProfileForm :key="selected.id" :user-id="selected.id" :username="selected.username" />
+        </section>
         <section class="access">
           <h3>Rights</h3>
           <p v-if="selected.isAdmin" class="muted">Every right (admin).</p>
@@ -530,6 +536,19 @@ async function create() {
   white-space: nowrap;
   text-overflow: ellipsis;
   display: block;
+}
+
+.profile {
+  margin-top: var(--pnmt-space-4);
+  padding-top: var(--pnmt-space-4);
+  border-top: 1px solid var(--pnmt-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-3);
+}
+
+.profile h3 {
+  margin: 0;
 }
 
 .access {

@@ -1,8 +1,9 @@
 import type { S } from '@/api/resources'
 
 /**
- * Working hours (docs/cookie-plan.md §7.3) as Admin → Cookie edits them, with the server's checks
- * (PNMTD/Cookie/CookieSettings.cs, HoursSettings.Validate) mirrored so a mistake shows while typing. The server decides.
+ * Working hours and holidays (docs/cookie-plan.md §7.3) as the availability plan's settings edit them (revision 7; Admin →
+ * Cookie before), with the server's checks (PNMTD/Availability/AvailabilitySettings.cs, Validate) mirrored so a mistake
+ * shows while typing. The server decides.
  */
 
 export const weekdays: S['DayOfWeek'][] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']

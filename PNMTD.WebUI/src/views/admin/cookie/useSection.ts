@@ -112,7 +112,7 @@ export function useSection<K extends Section>(
     if (value) load(value)
   }
 
-  /** The first message for a field (its JSON name, or "week.Monday", "contacts.<id>", …). */
+  /** The first message for a field (its JSON name, or "projects.<id>", "scoped.<id>", …). */
   const error = (field: string) => errors.value[field]?.[0]
 
   return { section, settings, draft, dirty, busy, errors, error, save, reset, reload }

@@ -14,6 +14,7 @@ import { humanize, typeIcon, typeLabel, useRuleTypes, useSensorTypes, useStatusC
 import { useSession } from '@/stores/session'
 import { recipientHint } from '../rules/ruleHelp'
 import AccessDocs from './AccessDocs.vue'
+import AvailabilityDocs from './AvailabilityDocs.vue'
 import CookieDocs from './CookieDocs.vue'
 import IntegrationsDocs from './IntegrationsDocs.vue'
 import MarkdownDocs from './MarkdownDocs.vue'
@@ -22,7 +23,8 @@ import MarkdownDocs from './MarkdownDocs.vue'
  * The documentation (§5.6), from the API so it never drifts: the sensor API with examples for this
  * instance's address (§3.3), UDP nodes (docs/udp-iot-plan.md §6.7, with a link to the protocol
  * reference), the status codes, the sensor types and the notification rule types. *Markdown in PNMT*
- * (docs/locations-knowledge-plan.md §10.7) has a section of its own, with an editor to try; Cookie too (docs/cookie-plan.md).
+ * (docs/locations-knowledge-plan.md §10.7) has a section of its own, with an editor to try; Cookie and the availability plan
+ * too (docs/cookie-plan.md).
  */
 const session = useSession()
 const codes = useStatusCodes()
@@ -149,6 +151,7 @@ const visibleRules = computed(() => ruleTypes.list.value.filter((r) => has(r.typ
     <AccessDocs :search="search" />
     <IntegrationsDocs :search="search" />
     <CookieDocs :search="search" />
+    <AvailabilityDocs :search="search" />
 
     <section v-if="visibleCodes.length" class="panel" aria-labelledby="codes-title">
       <div id="codes-title" class="panel-header">Status codes</div>

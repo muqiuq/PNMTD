@@ -33,6 +33,7 @@ const pages: [string, string, string][] = [
   ['/admin/location-fields', 'Location fields', 'location-fields'],
   ['/admin/knowledge-base', 'Knowledge base', 'admin-kb'],
   ['/admin/system', 'System health', 'system'],
+  ['/admin/availability', 'Availability plan', 'availability'],
   ['/docs', 'Documentation', 'docs'],
 ]
 

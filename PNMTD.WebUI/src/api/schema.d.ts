@@ -2049,6 +2049,113 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountContactItem"];
+                        "text/json": components["schemas"]["AccountContactItem"];
+                        "text/plain": components["schemas"]["AccountContactItem"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AccountContactRequest"];
+                    "text/json": components["schemas"]["AccountContactRequest"];
+                    "application/*+json": components["schemas"]["AccountContactRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountContactItem"];
+                        "text/json": components["schemas"]["AccountContactItem"];
+                        "text/plain": components["schemas"]["AccountContactItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/contact/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ContactTestRequest"];
+                    "text/json": components["schemas"]["ContactTestRequest"];
+                    "application/*+json": components["schemas"]["ContactTestRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContactTestResult"];
+                        "text/json": components["schemas"]["ContactTestResult"];
+                        "text/plain": components["schemas"]["ContactTestResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -2354,6 +2461,424 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/{id}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PersonProfile"];
+                        "text/json": components["schemas"]["PersonProfile"];
+                        "text/plain": components["schemas"]["PersonProfile"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UserProfileRequest"];
+                    "text/json": components["schemas"]["UserProfileRequest"];
+                    "application/*+json": components["schemas"]["UserProfileRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PersonProfile"];
+                        "text/json": components["schemas"]["PersonProfile"];
+                        "text/plain": components["schemas"]["PersonProfile"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/availability/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvailabilityPlanItem"];
+                        "text/json": components["schemas"]["AvailabilityPlanItem"];
+                        "text/plain": components["schemas"]["AvailabilityPlanItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/availability/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AvailabilityCellsRequest"];
+                    "text/json": components["schemas"]["AvailabilityCellsRequest"];
+                    "application/*+json": components["schemas"]["AvailabilityCellsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/availability/days": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AvailabilityDaysRequest"];
+                    "text/json": components["schemas"]["AvailabilityDaysRequest"];
+                    "application/*+json": components["schemas"]["AvailabilityDaysRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/availability/fill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AvailabilityFillRequest"];
+                    "text/json": components["schemas"]["AvailabilityFillRequest"];
+                    "application/*+json": components["schemas"]["AvailabilityFillRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvailabilityFillResult"];
+                        "text/json": components["schemas"]["AvailabilityFillResult"];
+                        "text/plain": components["schemas"]["AvailabilityFillResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/availability/fill/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AvailabilityFillRequest"];
+                    "text/json": components["schemas"]["AvailabilityFillRequest"];
+                    "application/*+json": components["schemas"]["AvailabilityFillRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvailabilityFillResult"];
+                        "text/json": components["schemas"]["AvailabilityFillResult"];
+                        "text/plain": components["schemas"]["AvailabilityFillResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/availability/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvailabilityPeopleItem"][];
+                        "text/json": components["schemas"]["AvailabilityPeopleItem"][];
+                        "text/plain": components["schemas"]["AvailabilityPeopleItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/availability/people/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AvailabilityPersonRequest"];
+                    "text/json": components["schemas"]["AvailabilityPersonRequest"];
+                    "application/*+json": components["schemas"]["AvailabilityPersonRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvailabilityPeopleItem"];
+                        "text/json": components["schemas"]["AvailabilityPeopleItem"];
+                        "text/plain": components["schemas"]["AvailabilityPeopleItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/availability/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvailabilitySettingsItem"];
+                        "text/json": components["schemas"]["AvailabilitySettingsItem"];
+                        "text/plain": components["schemas"]["AvailabilitySettingsItem"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AvailabilitySettingsRequest"];
+                    "text/json": components["schemas"]["AvailabilitySettingsRequest"];
+                    "application/*+json": components["schemas"]["AvailabilitySettingsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvailabilitySettingsItem"];
+                        "text/json": components["schemas"]["AvailabilitySettingsItem"];
+                        "text/plain": components["schemas"]["AvailabilitySettingsItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cookie/status": {
         parameters: {
             query?: never;
@@ -2569,6 +3094,129 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/cases/{id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CookieCaseCommentRequest"];
+                    "text/json": components["schemas"]["CookieCaseCommentRequest"];
+                    "application/*+json": components["schemas"]["CookieCaseCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/cases/{id}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CookieCaseCommentRequest"];
+                    "text/json": components["schemas"]["CookieCaseCommentRequest"];
+                    "application/*+json": components["schemas"]["CookieCaseCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/cases/{id}/go-on": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CookieCaseCommentRequest"];
+                    "text/json": components["schemas"]["CookieCaseCommentRequest"];
+                    "application/*+json": components["schemas"]["CookieCaseCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -3177,92 +3825,6 @@ export interface paths {
                     "application/json": components["schemas"]["CaseSettings"];
                     "text/json": components["schemas"]["CaseSettings"];
                     "application/*+json": components["schemas"]["CaseSettings"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CookieSaved"];
-                        "text/json": components["schemas"]["CookieSaved"];
-                        "text/plain": components["schemas"]["CookieSaved"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cookie/admin/settings/hours": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["HoursSettings"];
-                    "text/json": components["schemas"]["HoursSettings"];
-                    "application/*+json": components["schemas"]["HoursSettings"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CookieSaved"];
-                        "text/json": components["schemas"]["CookieSaved"];
-                        "text/plain": components["schemas"]["CookieSaved"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cookie/admin/settings/notifications": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["NotificationSettings"];
-                    "text/json": components["schemas"]["NotificationSettings"];
-                    "application/*+json": components["schemas"]["NotificationSettings"];
                 };
             };
             responses: {
@@ -13189,6 +13751,18 @@ export interface components {
             last24Hours: null | components["schemas"]["AccessCounts"];
             gaps: string[];
         };
+        AccountContactItem: {
+            email: null | string;
+            pushoverKey: null | string;
+            redmineName: null | string;
+            inPlan: boolean;
+            shortCode: null | string;
+            color: null | string;
+        };
+        AccountContactRequest: {
+            email: null | string;
+            pushoverKey: null | string;
+        };
         ActionSettings: {
             duties?: components["schemas"]["DutySwitches"];
             limits?: components["schemas"]["OutputLimits"];
@@ -13764,13 +14338,13 @@ export interface components {
             complaining: number;
         };
         /** @enum {unknown} */
-        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie";
+        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability";
         /** @enum {unknown} */
         AssignMode: "Add" | "Remove";
         /** @enum {unknown} */
         AuditActor: "User" | "Cli" | "Agent" | "System" | "Cookie";
         /** @enum {unknown} */
-        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix" | "Cookie";
+        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix" | "Cookie" | "Availability";
         AuditChange: {
             object: null | string;
             field: string;
@@ -13857,6 +14431,157 @@ export interface components {
             removable: boolean;
             notRemovable: null | string;
         };
+        AvailabilityCell: {
+            /** Format: uuid */
+            userId: string;
+            /** Format: uuid */
+            typeId: string;
+            filled: boolean;
+        };
+        AvailabilityCellChange: {
+            /** Format: uuid */
+            userId: string;
+            /** Format: date */
+            date: string;
+            /** Format: uuid */
+            typeId: null | string;
+        };
+        AvailabilityCellsRequest: {
+            cells: components["schemas"]["AvailabilityCellChange"][];
+        };
+        AvailabilityColumnItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: int32 */
+            minimum: null | number;
+        };
+        AvailabilityDayChange: {
+            /** Format: date */
+            date: string;
+            /** Format: uuid */
+            responsibleId: null | string;
+            /** Format: uuid */
+            fallbackId: null | string;
+            comment: null | string;
+        };
+        AvailabilityDayItem: {
+            /** Format: date */
+            date: string;
+            weekday: string;
+            closed: boolean;
+            holiday: null | string;
+            hours: string;
+            /** Format: uuid */
+            responsibleId: null | string;
+            /** Format: uuid */
+            fallbackId: null | string;
+            comment: null | string;
+            responsibleWorks: null | boolean;
+            fallbackWorks: null | boolean;
+            cells: components["schemas"]["AvailabilityCell"][];
+            counts: number[];
+            /** Format: int32 */
+            missing: number;
+        };
+        AvailabilityDaysRequest: {
+            days: components["schemas"]["AvailabilityDayChange"][];
+        };
+        AvailabilityFillRequest: {
+            again: boolean;
+        };
+        AvailabilityFillResult: {
+            /** Format: int32 */
+            written: number;
+            /** Format: int32 */
+            replaced: number;
+        };
+        /** @enum {unknown} */
+        AvailabilityFlag: "Vacation" | "Holiday" | "OnSite" | "WorkTravel" | "HomeOffice" | "Compensation";
+        AvailabilityPeopleItem: {
+            /** Format: uuid */
+            id: string;
+            username: string;
+            displayName: string;
+            inPlan: boolean;
+            shortCode: null | string;
+            color: null | string;
+            defaultWeek: components["schemas"]["DefaultDay"][];
+            /** Format: int32 */
+            planOrder: number;
+        };
+        AvailabilityPersonItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            code: string;
+            color: null | string;
+            isMe: boolean;
+        };
+        AvailabilityPersonRequest: {
+            inPlan: boolean;
+            shortCode: null | string;
+            color: null | string;
+            defaultWeek: null | components["schemas"]["DefaultDay"][];
+            /** Format: int32 */
+            planOrder: number;
+        };
+        AvailabilityPlanItem: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** Format: date */
+            today: string;
+            types: components["schemas"]["AvailabilityTypeItem"][];
+            people: components["schemas"]["AvailabilityPersonItem"][];
+            columns: components["schemas"]["AvailabilityColumnItem"][];
+            days: components["schemas"]["AvailabilityDayItem"][];
+            canEditAll: boolean;
+            inPlan: boolean;
+            globalFallback: null | string;
+        };
+        AvailabilitySettings: {
+            week?: components["schemas"]["DayHours"][];
+            holidays?: components["schemas"]["Holiday"][];
+            countColumns?: components["schemas"]["CountColumn"][];
+            /** Format: uuid */
+            globalFallbackUserId?: null | string;
+            /** Format: uuid */
+            globalFallbackGroupId?: null | string;
+        };
+        AvailabilitySettingsItem: {
+            types: components["schemas"]["AvailabilityTypeItem"][];
+            settings: components["schemas"]["AvailabilitySettings"];
+        };
+        AvailabilitySettingsRequest: {
+            types: components["schemas"]["AvailabilityTypeInput"][];
+            settings: components["schemas"]["AvailabilitySettings"];
+        };
+        AvailabilityTypeInput: {
+            /** Format: uuid */
+            id: null | string;
+            name: string;
+            code: string;
+            color: string;
+            flags: components["schemas"]["AvailabilityFlag"][];
+            isDefault: boolean;
+            isDayOff: boolean;
+        };
+        AvailabilityTypeItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            code: string;
+            color: string;
+            flags: components["schemas"]["AvailabilityFlag"][];
+            isDefault: boolean;
+            isDayOff: boolean;
+            /** Format: int32 */
+            order: number;
+            retired: boolean;
+            works: boolean;
+        };
         BatteryInfo: {
             name: string;
             /** Format: int32 */
@@ -13906,6 +14631,13 @@ export interface components {
             currentPassword?: null | string;
             newPassword?: null | string;
         };
+        ContactTestRequest: {
+            channel: string;
+        };
+        ContactTestResult: {
+            ok: boolean;
+            detail: string;
+        };
         ContainerRuntime: {
             name: string;
             installed: boolean;
@@ -13939,8 +14671,6 @@ export interface components {
             identity: components["schemas"]["IdentitySettings"];
             prompts: components["schemas"]["PromptSettings"];
             cases: components["schemas"]["CaseSettings"];
-            hours: components["schemas"]["HoursSettings"];
-            notifications: components["schemas"]["NotificationSettings"];
             redmine: components["schemas"]["CookieRedmineSettings"];
             actions: components["schemas"]["ActionSettings"];
             models: components["schemas"]["ModelSettings"];
@@ -13952,6 +14682,9 @@ export interface components {
             /** Format: double */
             spent: number;
         };
+        CookieCaseCommentRequest: {
+            text: null | string;
+        };
         CookieCaseDetail: {
             case: components["schemas"]["CookieCaseItem"];
             members: components["schemas"]["CaseMember"][];
@@ -13959,6 +14692,10 @@ export interface components {
             duties: components["schemas"]["CookieDutyItem"][];
             ticket: null | components["schemas"]["CookieTicketClock"];
             ownIssueUrl: null | string;
+            /** @default false */
+            canComment: boolean;
+            /** @default false */
+            canStop: boolean;
         };
         CookieCaseItem: {
             /** Format: uuid */
@@ -13986,6 +14723,7 @@ export interface components {
             cookieNote: null | string;
             cookieUrgency: null | string;
             next: null | components["schemas"]["CookieNextDuty"];
+            stopped?: null | components["schemas"]["CookieStop"];
         };
         /** @enum {unknown} */
         CookieCaseKind: "Problem" | "Ticket" | "Request";
@@ -13996,15 +14734,6 @@ export interface components {
         };
         /** @enum {unknown} */
         CookieChannel: "Email" | "Pushover" | "RedmineNote" | "RedminePrivateNote" | "RedmineTicket";
-        CookieContact: {
-            /** Format: uuid */
-            userId: string;
-            email: null | string;
-            pushoverKey: null | string;
-            redmineName: null | string;
-            quietFrom: null | string;
-            quietTo: null | string;
-        };
         CookieDefaults: {
             prompts: components["schemas"]["CookiePromptItem"][];
             caseKinds: components["schemas"]["CookiePromptItem"][];
@@ -14042,7 +14771,7 @@ export interface components {
         /** @enum {unknown} */
         CookieDutyKind: "FirstAnswerReminder" | "FirstAnswerMissed" | "UpdateReminder" | "UpdateMissed" | "ProblemTicket" | "ClosingNote";
         /** @enum {unknown} */
-        CookieDutyState: "Due" | "Done" | "HeldBack" | "Off" | "NotPossible" | "Failed";
+        CookieDutyState: "Due" | "Done" | "HeldBack" | "Off" | "NotPossible" | "Failed" | "Stopped";
         CookieEntryItem: {
             /** Format: date-time */
             at: string;
@@ -14196,6 +14925,12 @@ export interface components {
             overall: components["schemas"]["OverallStateItem"];
             cookie: components["schemas"]["CookieStateItem"];
         };
+        CookieStop: {
+            /** Format: date-time */
+            at: string;
+            by: null | string;
+            comment: null | string;
+        };
         CookieSummaryItem: {
             lines: components["schemas"]["CookieSummaryLine"][];
             source: string;
@@ -14248,6 +14983,18 @@ export interface components {
             title: string;
             body: string;
             areas: string[];
+        };
+        CountColumn: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            flags: components["schemas"]["AvailabilityFlag"][];
+            /** Format: uuid */
+            groupId?: null | string;
+            /** Format: int32 */
+            minimum?: null | number;
+            /** @default true */
+            shown: boolean;
         };
         CreatedUser: {
             user: components["schemas"]["UserItem"];
@@ -14450,6 +15197,12 @@ export interface components {
         };
         /** @enum {unknown} */
         DecisionState: "Open" | "Accepted" | "Rejected" | "Dismissed" | "Expired" | "Superseded" | "Failed";
+        DefaultDay: {
+            day: components["schemas"]["DayOfWeek"];
+            works: boolean;
+            /** Format: uuid */
+            typeId?: null | string;
+        };
         DefenderInfo: {
             realTimeProtection: null | boolean;
             /** Format: int32 */
@@ -15034,10 +15787,6 @@ export interface components {
         HoursPeriod: {
             from: string;
             to: string;
-        };
-        HoursSettings: {
-            week?: components["schemas"]["DayHours"][];
-            holidays?: components["schemas"]["Holiday"][];
         };
         HypervisorInfo: {
             present: boolean;
@@ -16664,10 +17413,6 @@ export interface components {
             /** Format: uuid */
             hostId?: null | string;
         };
-        NotificationSettings: {
-            contacts?: components["schemas"]["CookieContact"][];
-            rules?: components["schemas"]["RecipientRule"][];
-        };
         OperationalLog: {
             name: string;
             purpose: string;
@@ -17170,6 +17915,17 @@ export interface components {
             errors: components["schemas"]["ScriptSyntaxError"][];
             findings: components["schemas"]["ScriptFinding"][];
         };
+        PersonProfile: {
+            email: null | string;
+            pushoverKey: null | string;
+            redmineName: null | string;
+            inPlan: boolean;
+            shortCode: null | string;
+            color: null | string;
+            defaultWeek: components["schemas"]["DefaultDay"][];
+            /** Format: int32 */
+            planOrder: number;
+        };
         PingParameters: {
             target: string;
             /**
@@ -17246,25 +18002,6 @@ export interface components {
             node: null | string;
             nodes: string[];
         };
-        /** @enum {unknown} */
-        RecipientChannel: "Dashboard" | "Email" | "Pushover";
-        RecipientRule: {
-            /** Format: uuid */
-            id: string;
-            name: string;
-            scope: components["schemas"]["RecipientScope"];
-            /** @description The location's or host's id, the Redmine project's number, or the kind of case (problem, ticket) */
-            value: null | string;
-            minUrgency: components["schemas"]["Urgency"];
-            when: components["schemas"]["RecipientWhen"];
-            users: string[];
-            groups: string[];
-            channels: components["schemas"]["RecipientChannel"][];
-        };
-        /** @enum {unknown} */
-        RecipientScope: "Everything" | "Location" | "Host" | "Project" | "CaseKind";
-        /** @enum {unknown} */
-        RecipientWhen: "Always" | "WorkingHours" | "OutsideWorkingHours";
         RedmineAttachmentItem: {
             /** Format: int32 */
             id: number;
@@ -19081,8 +19818,6 @@ export interface components {
             start: string;
             values: (null | number)[];
         };
-        /** @enum {unknown} */
-        Urgency: "Info" | "Important" | "Urgent";
         UserItem: {
             /** Format: uuid */
             id: string;
@@ -19110,6 +19845,17 @@ export interface components {
              * @default 0
              */
             sshKeys: number;
+        };
+        UserProfileRequest: {
+            email: null | string;
+            pushoverKey: null | string;
+            redmineName: null | string;
+            inPlan: boolean;
+            shortCode: null | string;
+            color: null | string;
+            defaultWeek: null | components["schemas"]["DefaultDay"][];
+            /** Format: int32 */
+            planOrder: number;
         };
         VolumeInfo: {
             mount: string;

@@ -5,24 +5,11 @@ import { useSession } from '@/stores/session'
 import type { Option } from './cookieAdmin'
 
 /**
- * What Admin → Cookie's pickers list: PNMT's users and groups (GET admin/people, for Cookie's Manage), and the hosts
- * (Monitoring's View; without it, a text field). A chosen user or group that no longer exists shows as removed.
+ * What Admin → Cookie's pickers list: PNMT's groups (GET admin/people, for Cookie's Manage), and the hosts (Monitoring's
+ * View; without it, a text field). A chosen group that no longer exists shows as removed.
  */
 function usePeople() {
   return useQuery({ queryKey: [...keys.cookie, 'admin', 'people'], queryFn: api.cookie.people, staleTime: 60_000 })
-}
-
-export function useUserOptions() {
-  const query = usePeople()
-  const options = computed<Option[]>(() =>
-    (query.data.value?.users ?? []).map((u) => ({
-      label:
-        (u.displayName && u.displayName !== u.username ? `${u.displayName} (${u.username})` : u.username) +
-        (u.isActive ? '' : ', deactivated'),
-      value: u.id,
-    })),
-  )
-  return { query, options, unknown: () => 'A removed user' }
 }
 
 export function useGroupOptions() {

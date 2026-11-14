@@ -21,12 +21,12 @@ const duties: { key: Switch; kind: DutyKind; text: string }[] = [
   {
     key: 'firstAnswerReminder',
     kind: 'FirstAnswerReminder',
-    text: "A ticket without a first answer by staff at its reminder (by default after 3 working hours) gets a private note, and its assignee a message, or the project's escalation group when nobody is assigned.",
+    text: "A ticket without a first answer by staff at its reminder (by default after 3 working hours) gets a private note, and its assignee a message, or the project's escalation group when nobody is assigned or the assignee doesn't work that day.",
   },
   {
     key: 'firstAnswerMissed',
     kind: 'FirstAnswerMissed',
-    text: "When the first answer is overdue (by default after 4 working hours), the assignee and the escalation group are told, by Pushover too: it's urgent.",
+    text: "When the first answer is overdue (by default after 4 working hours), the assignee, the escalation group and whoever is responsible in the availability plan are told, by Pushover too: it's urgent.",
   },
   {
     key: 'updateReminder',
@@ -36,7 +36,7 @@ const duties: { key: Switch; kind: DutyKind; text: string }[] = [
   {
     key: 'updateMissed',
     kind: 'UpdateMissed',
-    text: 'When an update is overdue (by default after 14 days), the assignee and the escalation group are told.',
+    text: 'When an update is overdue (by default after 14 days), the assignee, the escalation group and whoever is responsible are told.',
   },
   {
     key: 'problemTicket',
@@ -84,8 +84,9 @@ const placed = (f: string) => f.startsWith('limits.')
             duty was off stays off; switching it on sends nothing old.
           </Message>
           <p class="muted small intro">
-            The deadlines are each watched project's (Redmine); reminders and escalations wait for working hours. The
-            notes and tickets need Redmine__WriteApiKey.
+            The deadlines are each watched project's (Redmine); reminders and escalations wait for working hours, which
+            are set in the availability plan's settings. They reach people by the e-mail address and Pushover key on
+            their user. The notes and tickets need Redmine__WriteApiKey.
           </p>
           <div v-for="d in duties" :key="d.key" class="duty">
             <ToggleSwitch v-model="s.draft.value.duties[d.key]" :input-id="`duty-${d.key}`" />

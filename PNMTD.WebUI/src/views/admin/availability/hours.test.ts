@@ -3,7 +3,7 @@ import { holidayProblems, minutesOf, nextPeriod, normalizeWeek, periodProblems }
 
 const p = (from: string, to: string) => ({ from, to })
 
-describe('working hours (docs/cookie-plan.md §7.3), as the server checks them', () => {
+describe("working hours (docs/cookie-plan.md §7.3), as the availability plan's settings check them", () => {
   it('takes HH:mm, and 24:00 only as an end', () => {
     expect(minutesOf('08:30')).toBe(510)
     expect(minutesOf('8:30')).toBeNull()

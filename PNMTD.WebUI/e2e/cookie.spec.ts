@@ -3,9 +3,10 @@ import { collectProblems, shot, signIn } from './support'
 
 /**
  * Cookie (docs/cookie-plan.md §9, §19.5) on a stack with Cookie__Enabled=true, Cookie stopped as after a fresh
- * installation: Admin → Cookie saves the working hours as a new version and a duty switched on; the dashboard shows the
- * card; Cookie's window lists the cases the case book opened for the seed's failing sensors, with the trace and the chat.
- * Skipped without Cookie.
+ * installation: Admin → Cookie saves the models (the sleep between rounds) as a new version and a duty switched on; the
+ * dashboard shows the card; Cookie's window lists the cases the case book opened for the seed's
+ * failing sensors, with the trace and the chat. Skipped without Cookie. The working hours are the availability plan's
+ * since revision 7 (availability.spec.ts).
  */
 async function json(page: Page, path: string) {
   const response = await page.request.get(path)
@@ -36,22 +37,28 @@ test("Admin → Cookie saves a version and a duty; the card; the window's cases,
   await expect(page.getByRole('button', { name: 'Start' })).toBeVisible()
   await shot(page, 'cookie-admin-overview')
 
-  // The working hours: Monday ends at another time, saved as a new version, which History shows in force.
-  const before = (await json(page, '/api/v1/cookie/admin/settings/hours/versions')) as { version: number }[]
+  // Revision 7 moved Working hours and Notifications away.
+  const tabs = page.getByRole('navigation', { name: 'Cookie' })
+  await expect(tabs.getByRole('link', { name: 'Working hours' })).toHaveCount(0)
+  await expect(tabs.getByRole('link', { name: 'Notifications' })).toHaveCount(0)
+
+  // The models: another sleep between rounds, saved as a new version, which History shows in force.
+  const before = (await json(page, '/api/v1/cookie/admin/settings/models/versions')) as { version: number }[]
   const next = (before[0]?.version ?? 0) + 1
-  await page.getByRole('link', { name: 'Working hours' }).click()
-  const mondayTo = page.getByRole('textbox', { name: 'Monday, period 1, to' })
-  await expect(mondayTo).toHaveValue(/\d\d:\d\d/)
-  await mondayTo.fill((await mondayTo.inputValue()) === '16:30' ? '16:00' : '16:30')
+  await tabs.getByRole('link', { name: 'Models' }).click()
+  const sleep = page.getByRole('spinbutton', { name: 'Sleep between rounds' })
+  await expect(sleep).toHaveValue(/\d+ min/)
+  await sleep.fill(Number.parseInt(await sleep.inputValue(), 10) === 6 ? '5' : '6')
+  await sleep.press('Tab')
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByText(`Version ${next}.`)).toBeVisible()
-  const history = page.getByRole('region', { name: 'History of the working hours' })
+  const history = page.getByRole('region', { name: 'History of the models' })
   await history.getByRole('button', { name: 'Show' }).click()
   await expect(history.getByRole('row').nth(1)).toContainText(new RegExp(`${next}\\s*in force`))
-  await shot(page, 'cookie-admin-hours')
+  await shot(page, 'cookie-admin-models')
 
   // A duty switched on and saved; then off again, as a fresh installation has it.
-  await page.getByRole('link', { name: 'Actions' }).click()
+  await tabs.getByRole('link', { name: 'Actions' }).click()
   const closingNote = page.getByRole('switch', { name: 'Closing note' })
   await expect(closingNote).not.toBeChecked()
   await closingNote.click()

@@ -162,6 +162,42 @@ export const api = {
     resetTotp: (id: Id) => call(client.POST('/api/v1/users/{id}/reset-totp', { params: { path: { id } } })),
     unlock: (id: Id) => call(client.POST('/api/v1/users/{id}/unlock', { params: { path: { id } } })),
     access: (id: Id) => call(client.GET('/api/v1/users/{id}/access', { params: { path: { id } } })),
+    /** The person's contact details and their place in the availability plan (docs/cookie-plan.md §8.1). Admin. */
+    profile: (id: Id) => call(client.GET('/api/v1/users/{id}/profile', { params: { path: { id } } })),
+    saveProfile: (id: Id, body: S['UserProfileRequest']) =>
+      call(client.PUT('/api/v1/users/{id}/profile', { params: { path: { id } }, body })),
+  },
+
+  /** One's own contact details (docs/cookie-plan.md §8.1): the e-mail address and the Pushover key, and a test. */
+  account: {
+    contact: () => call(client.GET('/api/v1/account/contact')),
+    saveContact: (body: S['AccountContactRequest']) => call(client.PUT('/api/v1/account/contact', { body })),
+    /** A message to one's own saved address or key; 409 when there is none yet, or no provider. */
+    testContact: (channel: 'email' | 'pushover') =>
+      call(client.POST('/api/v1/account/contact/test', { body: { channel } })),
+  },
+
+  /**
+   * The availability plan (docs/cookie-plan.md §8.2, §9.4): the table for Availability's View and everyone in the plan
+   * (an empty plan for anyone else), one's own column from today on for everyone in it, the rest for its Edit; the people
+   * and the settings for its Manage.
+   */
+  availability: {
+    /** At most 400 days; without from and to, a week back and two months ahead. */
+    plan: (query: { from?: string; to?: string } = {}) =>
+      call(client.GET('/api/v1/availability/plan', { params: { query } })),
+    saveCells: (cells: S['AvailabilityCellChange'][]) =>
+      call(client.PUT('/api/v1/availability/entries', { body: { cells } })),
+    /** Whole rows: the responsible, the fallback and the comment. */
+    saveDays: (days: S['AvailabilityDayChange'][]) => call(client.PUT('/api/v1/availability/days', { body: { days } })),
+    fill: (again: boolean) => call(client.POST('/api/v1/availability/fill', { body: { again } })),
+    fillMine: (again: boolean) => call(client.POST('/api/v1/availability/fill/mine', { body: { again } })),
+    people: () => call(client.GET('/api/v1/availability/people')),
+    savePerson: (id: Id, body: S['AvailabilityPersonRequest']) =>
+      call(client.PUT('/api/v1/availability/people/{id}', { params: { path: { id } }, body })),
+    settings: () => call(client.GET('/api/v1/availability/settings')),
+    saveSettings: (body: S['AvailabilitySettingsRequest']) =>
+      call(client.PUT('/api/v1/availability/settings', { body })),
   },
 
   // --- groups and rights (docs/audit-redmine-zabbix-plan.md §5): admins; the catalog and one's own access everyone's ----
@@ -408,6 +444,14 @@ export const api = {
     cases: (query: ListQuery & { open?: boolean; kind?: S['CookieCaseKind'] }) =>
       call(client.GET('/api/v1/cookie/cases', { params: { query } })),
     case: (id: Id) => call(client.GET('/api/v1/cookie/cases/{id}', { params: { path: { id } } })),
+    /** A comment on a case (§4.3), for Cookie: Use; Cookie reads it in its next round. */
+    comment: (id: Id, text: string) =>
+      call(client.POST('/api/v1/cookie/cases/{id}/comments', { params: { path: { id } }, body: { text } })),
+    /** "Don't go on with this", with a comment that says why (Cookie: Instruct). */
+    stopCase: (id: Id, text: string) =>
+      call(client.POST('/api/v1/cookie/cases/{id}/stop', { params: { path: { id } }, body: { text } })),
+    goOn: (id: Id, text: string | null) =>
+      call(client.POST('/api/v1/cookie/cases/{id}/go-on', { params: { path: { id } }, body: { text } })),
     // --- Admin → Cookie: Cookie's Manage ----------------------------------------------------------------------------
     overview: () => call(client.GET('/api/v1/cookie/admin/overview')),
     start: () => call(client.POST('/api/v1/cookie/admin/start')),
@@ -427,9 +471,6 @@ export const api = {
       identity: (body: S['IdentitySettings']) => call(client.PUT('/api/v1/cookie/admin/settings/identity', { body })),
       prompts: (body: S['PromptSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/prompts', { body })),
       cases: (body: S['CaseSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/cases', { body })),
-      hours: (body: S['HoursSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/hours', { body })),
-      notifications: (body: S['NotificationSettings']) =>
-        call(client.PUT('/api/v1/cookie/admin/settings/notifications', { body })),
       redmine: (body: S['CookieRedmineSettings']) =>
         call(client.PUT('/api/v1/cookie/admin/settings/redmine', { body })),
       actions: (body: S['ActionSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/actions', { body })),
@@ -813,6 +854,10 @@ export const keys = {
   decisions: ['decisions'] as const,
   /** Cookie: the status, the cases, and Admin → Cookie's sections, defaults, versions and outbox (docs/cookie-plan.md §19.4). */
   cookie: ['cookie'] as const,
+  /** One's own account's contact details (docs/cookie-plan.md §8.1). */
+  account: ['account'] as const,
+  /** The availability plan: the days, the people and the settings (docs/cookie-plan.md §8.2, §9.4). */
+  availability: ['availability'] as const,
 }
 
 /** The request of a resource as it is, with some fields changed: v1's PUT takes every writable field. */

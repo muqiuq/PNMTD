@@ -13,6 +13,7 @@ import { api, keys } from '@/api/resources'
 import { pageTitle } from '@/router'
 import { usePreferences } from '@/stores/preferences'
 import { useSession } from '@/stores/session'
+import { useContact } from '@/views/admin/availability/useAvailability'
 import { type NavGroup, visibleNavigation } from './navigation'
 
 /**
@@ -58,8 +59,15 @@ async function refresh() {
   }
 }
 
+// Everyone in the availability plan sees it without a right (docs/cookie-plan.md §9.4): asked only of those without one.
+const contact = useContact(computed(() => !!session.user && !session.can('Availability', 'View')))
 const groups = computed(() =>
-  visibleNavigation(session.allows, (f) => !!session.info?.[f], session.info?.hiddenMenus ?? []),
+  visibleNavigation(
+    session.allows,
+    (f) => !!session.info?.[f],
+    session.info?.hiddenMenus ?? [],
+    contact.data.value?.inPlan ?? false,
+  ),
 )
 // An editing page holds the drawer as a rail while it is open (docs/locations-knowledge-plan.md §5.9);
 // opening it then is for that page only, the stored preference stays as it was.
