@@ -102,10 +102,11 @@ public sealed class DnsZoneService(PnmtdDbContext db)
     /// </summary>
     public async Task DeleteAsync(Guid id, CancellationToken ct)
     {
-        if (!await db.DnsZones.AnyAsync(z => z.Id == id, ct))
-        {
-            throw ApiException.NotFound("DNS zone");
-        }
+        var zone = await db.DnsZones.AsNoTracking().Where(z => z.Id == id).Select(z => new { z.ZoneName, z.HostId }).SingleOrDefaultAsync(ct)
+            ?? throw ApiException.NotFound("DNS zone");
+        // Deleted by ExecuteDelete below: the audit learns the zone here (docs/audit-redmine-zabbix-plan.md §3.3).
+        AuditLog.Target(AuditTarget.Of(AuditTargets.DnsZone, id, zone.ZoneName, zone.HostId));
+        AuditLog.Summary($"{zone.ZoneName} deleted, with its DNS sensors and log");
         var textId = id.ToString();
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         await db.DnsZoneLogEntries.Where(l => l.DnsZoneId == id).ExecuteDeleteAsync(ct);
@@ -117,10 +118,11 @@ public sealed class DnsZoneService(PnmtdDbContext db)
     /// <summary>Checked on DnsCheckTask's next run (every 15 seconds), whatever its interval.</summary>
     public async Task ForceUpdateAsync(Guid id, CancellationToken ct)
     {
-        if (await db.DnsZones.Where(z => z.Id == id).ExecuteUpdateAsync(u => u.SetProperty(z => z.ForceUpdate, true), ct) == 0)
-        {
-            throw ApiException.NotFound("DNS zone");
-        }
+        var zone = await db.DnsZones.AsNoTracking().Where(z => z.Id == id).Select(z => new { z.ZoneName, z.HostId }).SingleOrDefaultAsync(ct)
+            ?? throw ApiException.NotFound("DNS zone");
+        AuditLog.Target(AuditTarget.Of(AuditTargets.DnsZone, id, zone.ZoneName, zone.HostId));
+        AuditLog.Summary($"{zone.ZoneName}: checked on the next run");
+        await db.DnsZones.Where(z => z.Id == id).ExecuteUpdateAsync(u => u.SetProperty(z => z.ForceUpdate, true), ct);
     }
 
     public async Task<DnsRecord> UpdateRecordAsync(Guid id, Guid recordId, DnsRecordRequest request, CancellationToken ct)

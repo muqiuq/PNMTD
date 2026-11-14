@@ -18,6 +18,7 @@ public enum UplinkOutcome : short
 
 /// <summary>One uplink check (docs/ai-operations-plan.md §7.2): kept 30 days.</summary>
 [Table("uplink_checks")]
+[NotAudited("the uplink's checks")]
 public class UplinkCheckEntity
 {
     [Key]

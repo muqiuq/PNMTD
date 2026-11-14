@@ -13,6 +13,7 @@ namespace PNMTD.Models.Db;
 /// (§3.3); LocationTree checks both, the database only refuses to delete a parent. Its path and state are never stored.
 /// </summary>
 [Table("locations")]
+[Audited]
 public class LocationEntity
 {
     [Key]
@@ -29,24 +30,35 @@ public class LocationEntity
 
     /// <summary>The name compared, regardless of case: unique among siblings, at the top level too (NULLS NOT DISTINCT).</summary>
     [MaxLength(64)]
+    [AuditIgnore]
     public string NormalizedName { get; set; } = "";
 
     /// <summary>One line, shown under the name.</summary>
     [MaxLength(256)]
     public string? Description { get; set; }
 
+    [AuditIgnore]
+
     public DateTime CreatedAt { get; set; }
+
+    [AuditIgnore]
 
     public Guid? CreatedBy { get; set; }
 
     [MaxLength(200)]
+    [AuditIgnore]
     public string? CreatedByName { get; set; }
 
+    [AuditIgnore]
+
     public DateTime UpdatedAt { get; set; }
+
+    [AuditIgnore]
 
     public Guid? UpdatedBy { get; set; }
 
     [MaxLength(200)]
+    [AuditIgnore]
     public string? UpdatedByName { get; set; }
 }
 
@@ -73,6 +85,7 @@ public enum LocationFieldType
 /// The migration creates <see cref="OverviewId"/> (§4.4).
 /// </summary>
 [Table("location_fields")]
+[Audited]
 public class LocationFieldEntity
 {
     /// <summary>The field AddLocations creates: <i>Overview</i>, Markdown, on the overview, not inherited (§4.4).</summary>
@@ -85,6 +98,7 @@ public class LocationFieldEntity
 
     /// <summary>A slug of the first label (<c>on-site-contact</c>), unique, never changed: for exports and later for MCP.</summary>
     [MaxLength(64)]
+    [AuditPlain("the field's name in URLs")]
     public string Key { get; set; } = "";
 
     [MaxLength(64)]
@@ -126,6 +140,7 @@ public class LocationFieldEntity
 /// <c>edit_conflict</c>). Goes with its location and with its field.
 /// </summary>
 [Table("location_values")]
+[Audited]
 public class LocationValueEntity
 {
     public Guid LocationId { get; set; }
@@ -139,13 +154,19 @@ public class LocationValueEntity
     public string? Value { get; set; }
 
     /// <summary>Raised by every save; a save carries the revision it started from.</summary>
+    [AuditIgnore]
     public int Revision { get; set; }
 
+    [AuditIgnore]
+
     public DateTime UpdatedAt { get; set; }
+
+    [AuditIgnore]
 
     public Guid? UpdatedBy { get; set; }
 
     [MaxLength(200)]
+    [AuditIgnore]
     public string? UpdatedByName { get; set; }
 }
 
@@ -167,6 +188,7 @@ public enum LocationHistoryKind
 /// One change to a location (§3.5), newest first. A field's rows go with the field when an Admin deletes it (§4.3).
 /// </summary>
 [Table("location_history")]
+[NotAudited("a location's history, with the full values")]
 public class LocationHistoryEntity
 {
     [Key]

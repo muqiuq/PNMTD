@@ -21,6 +21,7 @@ public sealed class NotificationsController(NotificationManagerService manager) 
 
     [HttpPost("assign")]
     [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.NotificationsAssigned)]
     public async Task<ActionResult<NotificationAssignResult>> Assign(NotificationAssignRequest request, CancellationToken ct) =>
         await manager.AssignAsync(request, ct);
 }

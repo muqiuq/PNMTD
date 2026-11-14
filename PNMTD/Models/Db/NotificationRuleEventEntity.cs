@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace PNMTD.Models.Db
 {
     [Table("notificationruleevent")]
+    [NotAudited("notifications sent")]
     public class NotificationRuleEventEntity
     {
         [Key]

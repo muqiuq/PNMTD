@@ -19,6 +19,7 @@ public sealed class KeyValuesController(KeyValueService values) : V1ControllerBa
     public async Task<ActionResult<KeyValueItem>> Get(Guid id, CancellationToken ct) => await values.GetAsync(id, ct);
 
     [HttpPost]
+    [Audit(AuditEvents.KeyValueCreated)]
     public async Task<ActionResult<KeyValueItem>> Create(KeyValueRequest request, CancellationToken ct)
     {
         var entry = await values.CreateAsync(request, ct);
@@ -26,10 +27,12 @@ public sealed class KeyValuesController(KeyValueService values) : V1ControllerBa
     }
 
     [HttpPut("{id:guid}")]
+    [Audit(AuditEvents.KeyValueUpdated)]
     public async Task<ActionResult<KeyValueItem>> Update(Guid id, KeyValueRequest request, CancellationToken ct) =>
         await values.UpdateAsync(id, request, ct);
 
     [HttpDelete("{id:guid}")]
+    [Audit(AuditEvents.KeyValueDeleted)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         await values.DeleteAsync(id, ct);

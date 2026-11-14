@@ -56,6 +56,20 @@ public sealed record AuditTarget(string Type, string? Id, string? Name, IReadOnl
 
     public static AuditTarget Sensor(Guid id, string name, Guid? hostId = null, Guid? locationId = null) =>
         Of(AuditTargets.Sensor, id, name, hostId, locationId);
+
+    /// <summary>
+    /// A bulk operation's objects (§3.2): the first one's id, "web01 and 11 more", and all of them (at most 1,000) as
+    /// subjects, so that each one's History shows it.
+    /// </summary>
+    public static AuditTarget Many(string type, IReadOnlyList<(Guid Id, string Name)> objects)
+    {
+        if (objects.Count == 0)
+        {
+            return new AuditTarget(type, null, "none", []);
+        }
+        var name = objects.Count == 1 ? objects[0].Name : $"{objects[0].Name} and {objects.Count - 1} more";
+        return new AuditTarget(type, objects[0].Id.ToString(), name, objects.Take(1000).Select(o => o.Id).ToList());
+    }
 }
 
 /// <summary>One change of a field (§3.4). A secret has no values; a long text a summary of its lines.</summary>

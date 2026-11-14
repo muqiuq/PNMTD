@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace PNMTD.Models.Db
 {
     [Table("dnszoneentries")]
+    [Audited]
     public class DnsZoneEntryEntity
     {
         [Key]

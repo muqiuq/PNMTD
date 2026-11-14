@@ -23,6 +23,8 @@ namespace PNMTD.Models.Db
 
         public string? Notes { get; set; }
 
+        [AuditIgnore]
+
         public DateTime Created { get; set; }
 
         public bool Enabled { get; set; }

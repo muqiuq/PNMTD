@@ -5,12 +5,15 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace PNMTD.Models.Db
 {
     [Table("notificationrules")]
+    [Audited]
     public class NotificationRuleEntity
     {
         [Key]
         public Guid Id { get; set; }
         
         public string Name { get; set; }
+        
+        [AuditSecret]
         
         public string Recipient { get; set; }
         

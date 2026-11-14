@@ -10,6 +10,7 @@ namespace PNMTD.Models.Db;
 /// name only), one whose password is typed per run, or a gMSA. No password is ever stored in PNMT.
 /// </summary>
 [Table("windows_run_as")]
+[Audited]
 public class WindowsRunAsEntity
 {
     [Key]

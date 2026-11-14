@@ -9,6 +9,7 @@ namespace PNMTD.Models.Db;
 /// highest any of their groups gives. The update creates Operators and Viewers once, as ordinary groups.
 /// </summary>
 [Table("groups")]
+[Audited]
 public class GroupEntity
 {
     /// <summary>The groups the update made from the roles (§5.3). Nothing in the code relies on their names.</summary>
@@ -24,12 +25,17 @@ public class GroupEntity
 
     /// <summary>Lower-case invariant, unique.</summary>
     [MaxLength(100)]
+    [AuditIgnore]
     public required string NormalizedName { get; set; }
 
     [MaxLength(500)]
     public string? Description { get; set; }
 
+    [AuditIgnore]
+
     public DateTime CreatedAt { get; set; }
+
+    [AuditIgnore]
 
     public DateTime UpdatedAt { get; set; }
 
@@ -40,6 +46,7 @@ public class GroupEntity
 
 /// <summary>A group's level in one area; an area without a row is None.</summary>
 [Table("group_rights")]
+[Audited]
 public class GroupRightEntity
 {
     public Guid GroupId { get; set; }
@@ -51,6 +58,7 @@ public class GroupRightEntity
 
 /// <summary>A member of a group.</summary>
 [Table("user_groups")]
+[Audited]
 public class UserGroupEntity
 {
     public Guid UserId { get; set; }

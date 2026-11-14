@@ -10,6 +10,7 @@ namespace PNMTD.Models.Db;
 /// Holds no secret: PNMTD logs in with the installation's key (<see cref="MikrotikSshKeyEntity"/>).
 /// </summary>
 [Table("mikrotik_routers")]
+[Audited]
 public class MikrotikRouterEntity
 {
     [Key]
@@ -35,6 +36,7 @@ public class MikrotikRouterEntity
     public bool ManagementAccess { get; set; }
 
     /// <summary><c>sensitive</c> in the group, <c>show-sensitive</c> in exports (§6.6). Admin.</summary>
+    [AuditPlain("a setting")]
     public bool IncludeSecrets { get; set; }
 
     /// <summary><c>test</c> in the group: ping and traceroute as <c>pnmt</c> (§8.4). Admin.</summary>
@@ -64,17 +66,27 @@ public class MikrotikRouterEntity
 
     // --- the host key (§4.4) -------------------------------------------------------------------------
 
+    [AuditPlain("the router's public host key")]
+
     public string? HostKeyType { get; set; }
 
     /// <summary>SHA-256, unpadded Base64 as <c>ssh-keygen -l</c> writes it (without "SHA256:").</summary>
+    [AuditPlain("the router's public host key")]
     public string? HostKeyFingerprint { get; set; }
+
+    [AuditPlain("the router's public host key")]
 
     public DateTime? HostKeyPinnedAt { get; set; }
 
     /// <summary>A different key the router presented, refused until an Admin accepts it.</summary>
+    [AuditPlain("the router's public host key")]
     public string? PendingHostKeyType { get; set; }
 
+    [AuditPlain("the router's public host key")]
+
     public string? PendingHostKeyFingerprint { get; set; }
+
+    [AuditPlain("the router's public host key")]
 
     public DateTime? PendingHostKeySeenAt { get; set; }
 
@@ -128,6 +140,7 @@ public class MikrotikRouterEntity
     public DateTime? LastExportAttemptAt { get; set; }
 
     /// <summary>SHA-256 of the newest stored export, normalised: an equal export stores nothing (§6.2).</summary>
+    [AuditIgnore]
     public string? LastExportHash { get; set; }
 
     /// <summary>
@@ -149,6 +162,7 @@ public class MikrotikRouterEntity
 /// everything a join script creates) and the latest versions per channel.
 /// </summary>
 [Table("mikrotik_settings")]
+[Audited]
 public class MikrotikSettingsEntity
 {
     public const int SingletonId = 1;
@@ -179,9 +193,11 @@ public class MikrotikSettingsEntity
     /// The key of the exports' keyed digests (docs/mikrotik-backup-plan.md §3.7), 32 random bytes, base64, under Data
     /// Protection. Made on first use.
     /// </summary>
+    [AuditSecret]
     public string? BackupDigestKeyProtected { get; set; }
 
     /// <summary>The active backup key (docs/mikrotik-backup-plan.md §3.5); null while encryption is off.</summary>
+    [AuditPlain("which backup key, not the key")]
     public Guid? BackupKeyId { get; set; }
 
     /// <summary>New routers start with their backups encrypted (only while there is a key).</summary>
@@ -195,6 +211,7 @@ public class MikrotikSettingsEntity
 /// </summary>
 [Table("mikrotik_backup_keys")]
 [Microsoft.EntityFrameworkCore.Index(nameof(Fingerprint), IsUnique = true)]
+[Audited]
 public class MikrotikBackupKeyEntity
 {
     public const string X25519 = "x25519";
@@ -225,16 +242,20 @@ public class MikrotikBackupKeyEntity
 /// one before it. The private key is under Data Protection.
 /// </summary>
 [Table("mikrotik_ssh_keys")]
+[Audited]
 public class MikrotikSshKeyEntity
 {
     [Key]
     public Guid Id { get; set; }
 
     /// <summary>The OpenSSH line, "ssh-ed25519 AAAA… pnmt-&lt;id&gt;@&lt;host&gt;".</summary>
+    [AuditPlain("a public key")]
     public string PublicKey { get; set; } = "";
 
     /// <summary>The comment, which RouterOS shows as the key's owner: how a poll tells PNMTD's keys apart.</summary>
     public string Comment { get; set; } = "";
+
+    [AuditSecret]
 
     public string PrivateKeyProtected { get; set; } = "";
 
@@ -254,6 +275,7 @@ public class MikrotikSshKeyEntity
 /// outlives the router (<c>ON DELETE SET NULL</c>, with the router's name kept); retention deletes old ones.
 /// </summary>
 [Table("mikrotik_backups")]
+[NotAudited("the backups taken; a deletion is an entry of its own")]
 public class MikrotikBackupEntity
 {
     [Key]
@@ -319,6 +341,7 @@ public class MikrotikBackupEntity
 /// together. Permanent; only a redaction (§8.3) changes a finished one. Never holds a password.
 /// </summary>
 [Table("mikrotik_jobs")]
+[NotAudited("update jobs at work; starting and cancelling are entries of their own")]
 public class MikrotikJobEntity
 {
     [Key]
@@ -392,6 +415,7 @@ public class MikrotikJobEntity
 
 /// <summary>A job's steps as they happened, with the router's answers (at most 64 KiB each). Permanent.</summary>
 [Table("mikrotik_job_log")]
+[NotAudited("an update job's log")]
 public class MikrotikJobLogEntity
 {
     [Key]

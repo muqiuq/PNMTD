@@ -13,6 +13,7 @@ namespace PNMTD.Models.Db;
 /// the keys volume, as the MikroTik keys are. One row, for agents of every platform.
 /// </summary>
 [Table("agent_settings")]
+[Audited]
 public class AgentSettingsEntity
 {
     public const int SingletonId = 1;
@@ -22,10 +23,14 @@ public class AgentSettingsEntity
     public int Id { get; set; } = SingletonId;
 
     /// <summary>The PKCS#8 private key, Base64, protected.</summary>
+    [AuditSecret]
     public string SigningKeyProtected { get; set; } = "";
 
     /// <summary>SubjectPublicKeyInfo, Base64: what agents pin at their join.</summary>
+    [AuditPlain("a public key")]
     public string SigningPublicKey { get; set; } = "";
+
+    [AuditPlain("a fingerprint")]
 
     public string SigningKeyFingerprint { get; set; } = "";
 
@@ -41,6 +46,7 @@ public class AgentSettingsEntity
 /// of the other is refused (docs/linux-sensor-plan.md §3.3).
 /// </summary>
 [Table("agent_join_tokens")]
+[Audited]
 public class AgentJoinTokenEntity
 {
     [Key]
@@ -50,6 +56,7 @@ public class AgentJoinTokenEntity
     public Lib.Agent.AgentPlatform Platform { get; set; }
 
     [MaxLength(64)]
+    [AuditSecret]
     public string TokenHash { get; set; } = "";
 
     /// <summary>The first two characters, for the list.</summary>
@@ -90,6 +97,7 @@ public class AgentJoinTokenEntity
 /// it reported about itself, its connection, its last heartbeat, and the server's event switches.
 /// </summary>
 [Table("agents")]
+[Audited]
 public class AgentEntity
 {
     [Key]
@@ -104,11 +112,15 @@ public class AgentEntity
     public Guid AgentId { get; set; }
 
     /// <summary>The agent's ECDSA P-256 public key, SPKI Base64. Null once revoked.</summary>
+    [AuditPlain("the agent's public key")]
     public string? PublicKey { get; set; }
+
+    [AuditPlain("a fingerprint")]
 
     public string KeyFingerprint { get; set; } = "";
 
     /// <summary>W6 (§3.4): the agent's ECDH P-256 key for passwords typed per run.</summary>
+    [AuditSecret]
     public string? EncryptionKey { get; set; }
 
     public DateTime JoinedAt { get; set; }
@@ -201,6 +213,7 @@ public class AgentEntity
     public string? Rights { get; set; }
 
     /// <summary>Linux: 465 for a key that isn't registered as active (§6.3). Stored now, used from L5 on.</summary>
+    [AuditPlain("a setting")]
     public bool KeyAddedEvents { get; set; } = true;
 
     /// <summary>Linux: 462 when security updates have been pending longer than <see cref="SecurityUpdateDays"/> (§9.2). Off by default.</summary>
@@ -264,6 +277,7 @@ public enum AgentLogKind
 /// like mikrotik_job_log, and is kept a year.
 /// </summary>
 [Table("agent_log")]
+[NotAudited("the agents' own log")]
 public class AgentLogEntity
 {
     [Key]
@@ -295,6 +309,7 @@ public class AgentLogEntity
 /// was collected and received, and its collector's errors. A section with a new hash is compared with this one first (§4.9).
 /// </summary>
 [Table("agent_sections")]
+[NotAudited("what an agent reported")]
 public class AgentSectionEntity
 {
     public Guid SensorId { get; set; }
@@ -325,6 +340,7 @@ public class AgentSectionEntity
 /// (docs/linux-sensor-plan.md §5.6) also sudo and su, file transfers, and the key of a key login.
 /// </summary>
 [Table("agent_logins")]
+[NotAudited("logins an agent reported")]
 public class AgentLoginEntity
 {
     [Key]
@@ -396,6 +412,7 @@ public class AgentLoginEntity
 
 /// <summary>A readable change of a section (§4.9): "Service AnyDesk added (third-party, automatic, running)". Kept 180 days.</summary>
 [Table("agent_changes")]
+[NotAudited("what an agent reported changed on its server")]
 public class AgentChangeEntity
 {
     [Key]
@@ -427,6 +444,7 @@ public enum ScriptParseState { Pending, Parsed, Failed }
 /// docs/linux-sensor-plan.md §8.1 on.
 /// </summary>
 [Table("agent_scripts")]
+[Audited]
 public class AgentScriptEntity
 {
     [Key]
@@ -440,9 +458,15 @@ public class AgentScriptEntity
     [MaxLength(2000)]
     public string? Description { get; set; }
 
+    [AuditIgnore]
+
     public DateTime CreatedAt { get; set; }
 
+    [AuditIgnore]
+
     public DateTime UpdatedAt { get; set; }
+
+    [AuditIgnore]
 
     public int CurrentVersion { get; set; }
 
@@ -451,6 +475,7 @@ public class AgentScriptEntity
 
 /// <summary>A version of a script: its text and hash, and what an agent's parser found in it (§7.1).</summary>
 [Table("agent_script_versions")]
+[NotAudited("a script's versions are its history")]
 public class AgentScriptVersionEntity
 {
     [Key]
@@ -487,6 +512,7 @@ public class AgentScriptVersionEntity
 
 /// <summary>A script's run on one server (§7.3): what, as whom, by whom, the arguments (redactable), and the outcome. A history.</summary>
 [Table("agent_script_runs")]
+[NotAudited("a run's results; starting it is an entry of its own")]
 public class AgentScriptRunEntity
 {
     [Key]

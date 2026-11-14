@@ -87,6 +87,11 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             .Check(request.Importance is null || Enum.IsDefined(request.Importance.Value), "importance", "Low, Normal, High, or null for the host's.")
             .ThrowIfInvalid();
         var ids = request.Ids.Distinct().ToList();
+        // A bulk update: the audit learns the sensors here (docs/audit-redmine-zabbix-plan.md §3.3).
+        var sensors = await db.Sensors.AsNoTracking().Where(s => ids.Contains(s.Id) && s.Importance != request.Importance)
+            .OrderBy(s => s.Parent.Name).ThenBy(s => s.Name).Select(s => new { s.Id, Name = s.Parent.Name + " / " + s.Name }).ToListAsync(ct);
+        AuditLog.Target(AuditTarget.Many(AuditTargets.Sensor, sensors.Select(s => (s.Id, s.Name)).ToList()));
+        AuditLog.Summary($"{sensors.Count} sensor{(sensors.Count == 1 ? "" : "s")}: importance {request.Importance?.ToString() ?? "the host's"}");
         return await db.Sensors.Where(s => ids.Contains(s.Id)).ExecuteUpdateAsync(u => u.SetProperty(s => s.Importance, request.Importance), ct);
     }
 
@@ -184,8 +189,13 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
     /// <summary>The sensor, its ENCAPSULADED children, and their events and rule links.</summary>
     public async Task DeleteAsync(Guid id, CancellationToken ct)
     {
-        var type = await db.Sensors.Where(s => s.Id == id).Select(s => (SensorType?)s.Type).SingleOrDefaultAsync(ct)
+        var sensor = await db.Sensors.AsNoTracking().Where(s => s.Id == id)
+            .Select(s => new { s.Type, s.Name, s.ParentId, Host = s.Parent.Name, s.Parent.LocationId }).SingleOrDefaultAsync(ct)
             ?? throw ApiException.NotFound("Sensor");
+        var type = sensor.Type;
+        // Deleted by ExecuteDelete below: the audit learns the sensor here (docs/audit-redmine-zabbix-plan.md §3.3).
+        AuditLog.Target(AuditTarget.Sensor(id, $"{sensor.Host} / {sensor.Name}", sensor.ParentId, sensor.LocationId));
+        AuditLog.Summary($"{sensor.Host} / {sensor.Name} deleted ({sensor.Type})");
         if (type == SensorType.SYSTEM)
         {
             throw ApiException.Conflict("system_sensor", "A system sensor cannot be deleted (PNMT would create it again): disable it instead.");

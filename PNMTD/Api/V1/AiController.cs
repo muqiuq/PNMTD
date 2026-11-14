@@ -15,6 +15,7 @@ public sealed class AiController(AiService ai, PNMTD.Decisions.DecisionBook deci
 {
     /// <summary>The unmatched mails of the last days (§6.2): <c>dryRun</c> (the default) counts them first.</summary>
     [HttpPost("mail/backfill")]
+    [Audit(AuditEvents.AiBackfillStarted)]
     public async Task<ActionResult<MailBackfillResult>> Backfill(MailBackfillRequest request, CancellationToken ct) =>
         await ai.BackfillAsync(request, decisions, queue, ct);
 
@@ -31,6 +32,7 @@ public sealed class AiController(AiService ai, PNMTD.Decisions.DecisionBook deci
     public async Task<ActionResult<Paged<AiWorkItem>>> Work([FromQuery] AiWorkQuery query, CancellationToken ct) => await ai.WorkAsync(query, ct);
 
     [HttpPost("work/{id:guid}/retry")]
+    [Audit(AuditEvents.AiWorkRetried)]
     public async Task<IActionResult> Retry(Guid id, CancellationToken ct)
     {
         await ai.RetryAsync(id, ct);
@@ -38,6 +40,7 @@ public sealed class AiController(AiService ai, PNMTD.Decisions.DecisionBook deci
     }
 
     [HttpPost("work/{id:guid}/cancel")]
+    [Audit(AuditEvents.AiWorkCancelled)]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
     {
         await ai.CancelAsync(id, ct);
@@ -52,6 +55,7 @@ public sealed class DebugAiController(AiService ai) : V1ControllerBase
 {
     [HttpPost]
     [EnableRateLimiting(AuthSetup.DebugRateLimit)]
+    [Audit(AuditEvents.DebugAiTested)]
     public async Task<ActionResult<IReadOnlyList<DebugAiResult>>> Test(CancellationToken ct) => Ok(await ai.TestAsync(ct));
 }
 
@@ -73,5 +77,6 @@ public sealed class AiAnalysisController(AiAnalysisService analysis) : V1Control
 
     [HttpPost("run")]
     [RequireRight(Area.Ai, Level.Manage)]
+    [Audit(AuditEvents.AiAnalysisStarted)]
     public async Task<ActionResult<AiAnalysisQueued>> Run(CancellationToken ct) => Accepted(await analysis.RunAsync(ct));
 }

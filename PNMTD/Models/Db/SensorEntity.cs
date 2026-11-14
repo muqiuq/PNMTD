@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace PNMTD.Models.Db
 {
     [Table("sensors")]
+    [Audited]
     public class SensorEntity
     {
         [Key]
@@ -25,11 +26,17 @@ namespace PNMTD.Models.Db
 
         public string? Status { get; set; }
 
+        [AuditSecret]
+
         public string SecretWriteToken { get; set; }
+
+        [AuditSecret]
 
         public string? SecretReadToken { get; set; }
 
         public string? TextId { get; set; }
+
+        [AuditIgnore]
 
         public DateTime Created { get; set; }
 

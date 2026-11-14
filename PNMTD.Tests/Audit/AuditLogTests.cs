@@ -90,6 +90,34 @@ public sealed class AuditLogTests
         Assert.AreEqual(AuditOutcome.Succeeded, deleted.Outcome);
     }
 
+    /// <summary>A secret is recorded as changed, never as a value, in no column (§3.4).</summary>
+    [TestMethod]
+    public async Task ASecretIsChangedNeverAValue()
+    {
+        var host = await CreateHostAsync($"audit-secret-{Guid.NewGuid():N}"[..24]);
+        var created = await user.PostAsJsonAsync("/api/v1/sensors", new { hostId = host.Id, name = "heartbeat", type = "HEARTBEAT", interval = 60 });
+        Assert.AreEqual(HttpStatusCode.Created, created.StatusCode, await created.Content.ReadAsStringAsync());
+        var sensor = await created.ReadAsync<SensorDetail>();
+        var rotated = await user.PostAsJsonAsync($"/api/v1/sensors/{sensor.Id}/tokens/rotate", new { });
+        Assert.AreEqual(HttpStatusCode.OK, rotated.StatusCode, await rotated.Content.ReadAsStringAsync());
+
+        await using var db = app.NewDb();
+        var tokens = await db.Sensors.AsNoTracking().Where(s => s.Id == sensor.Id).Select(s => new { s.SecretWriteToken, s.SecretReadToken }).SingleAsync();
+        var entries = await EntriesAsync(sensor.Id);
+        var rotation = entries.Single(e => e.EventType == AuditEvents.SensorTokensRotated);
+        var changes = System.Text.Json.JsonSerializer.Deserialize<List<AuditChange>>(rotation.Changes!, AuditLog.Json)!;
+        Assert.AreEqual("secret", changes.Single(c => c.Field == "SecretWriteToken").Kind);
+        Assert.IsTrue(changes.All(c => c.Old is null && c.New is null || c.Kind is null));
+        foreach (var e in entries)
+        {
+            var row = System.Text.Json.JsonSerializer.Serialize(e);
+            Assert.IsFalse(row.Contains(tokens.SecretWriteToken, StringComparison.Ordinal), $"{e.EventType} holds the write token");
+            Assert.IsFalse(tokens.SecretReadToken is { } read && row.Contains(read, StringComparison.Ordinal), $"{e.EventType} holds the read token");
+        }
+        Assert.AreEqual($"{host.Name} / heartbeat", entries.Single(e => e.EventType == AuditEvents.SensorCreated).TargetName);
+        CollectionAssert.Contains(rotation.Subjects, host.Id, "the host's History finds its sensors' entries");
+    }
+
     [TestMethod]
     public async Task AFailureIsAnEntryWithItsCode()
     {

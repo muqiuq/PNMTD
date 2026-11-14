@@ -349,6 +349,9 @@ namespace PNMTD.Tasks
                 };
                 existingSensor.SetNewSecretToken();
                 dbContext.Sensors.Add(existingSensor);
+                // PNMT's own change to the configuration (docs/audit-redmine-zabbix-plan.md §3.6).
+                PNMTD.Audit.AuditLog.Record(dbContext, PNMTD.Audit.AuditEvents.SensorCreated, $"{dnsZone.ZoneName}: the DNS zone's sensor",
+                    PNMTD.Audit.AuditWho.System, PNMTD.Audit.AuditTarget.Sensor(existingSensor.Id, dnsZone.ZoneName, dnsZone.HostId));
                 dbContext.SaveChanges();
             }
 

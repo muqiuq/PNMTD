@@ -10,6 +10,7 @@ namespace PNMTD.Models.Db;
 /// Key and token are in plaintext, like the sensor tokens (review decision 3).
 /// </summary>
 [Table("udp_nodes")]
+[Audited]
 public class UdpNodeEntity
 {
     [Key]
@@ -20,32 +21,54 @@ public class UdpNodeEntity
     /// <summary>1 … 4,294,967,295; unique.</summary>
     public long DeviceId { get; set; }
 
+    [AuditPlain("the kind of key")]
+
     public KeyFamily KeyFamily { get; set; }
 
     /// <summary>A bitmask of SUITE values (<see cref="SecuritySuites.Mask"/>).</summary>
     public int AllowedSuites { get; set; }
 
+    [AuditSecret]
+
     public byte[] Key { get; set; } = [];
+
+    [AuditSecret]
 
     public byte[] Token { get; set; } = [];
 
+    [AuditPlain("where the key came from")]
+
     public UdpSecretSource KeySource { get; set; }
+
+    [AuditPlain("where the token came from")]
 
     public UdpSecretSource TokenSource { get; set; }
 
+    [AuditIgnore]
+
     public DateTime KeyChangedAt { get; set; }
+
+    [AuditIgnore]
 
     public Guid? KeyChangedBy { get; set; }
 
+    [AuditIgnore]
+
     public DateTime TokenChangedAt { get; set; }
+
+    [AuditIgnore]
 
     public Guid? TokenChangedBy { get; set; }
 
     public UdpSessionMode SessionMode { get; set; }
 
+    [AuditSecret]
+
     public byte[]? SessionKey { get; set; }
 
     public DateTime? SessionStartedAt { get; set; }
+
+    [AuditSecret]
 
     public byte[]? PendingSessionKey { get; set; }
 
@@ -105,6 +128,7 @@ public class UdpNodeEntity
 
 /// <summary>The last packet of each uplink type per node, overwritten by the next one (§4.7).</summary>
 [Table("udp_last_packets")]
+[NotAudited("packets received")]
 public class UdpLastPacketEntity
 {
     public Guid SensorId { get; set; }
@@ -129,6 +153,7 @@ public class UdpLastPacketEntity
 
 /// <summary>A command and its current state. Permanent (§4.3, §4.6).</summary>
 [Table("udp_commands")]
+[NotAudited("commands at work; queuing and cancelling are entries of their own")]
 public class UdpCommandEntity
 {
     [Key]
@@ -177,6 +202,7 @@ public class UdpCommandEntity
 
 /// <summary>Every step of every command and update, with the bytes on the wire. Permanent (§4.3).</summary>
 [Table("udp_command_log")]
+[NotAudited("a command's log")]
 public class UdpCommandLogEntity
 {
     [Key]
@@ -223,6 +249,7 @@ public class UdpCommandLogEntity
 
 /// <summary>An uploaded firmware image (§4.11). Content is stored uncompressed out of line (STORAGE EXTERNAL).</summary>
 [Table("udp_firmware")]
+[Audited]
 public class UdpFirmwareEntity
 {
     [Key]
@@ -251,6 +278,7 @@ public class UdpFirmwareEntity
 
 /// <summary>One firmware update of one node. Permanent, like the commands (§4.3, §4.11).</summary>
 [Table("udp_ota_jobs")]
+[NotAudited("updates at work; starting and cancelling are entries of their own")]
 public class UdpOtaJobEntity
 {
     [Key]

@@ -20,6 +20,7 @@ public enum SshKeyState { Active, Retired }
 /// names and assigns a key; it never deploys it anywhere (§2.2).
 /// </summary>
 [Table("ssh_keys")]
+[Audited]
 public class SshKeyEntity
 {
     [Key]
@@ -35,6 +36,7 @@ public class SshKeyEntity
     public int? Bits { get; set; }
 
     /// <summary>The key's Base64, as in a .pub file.</summary>
+    [AuditPlain("a public key")]
     public string PublicKey { get; set; } = "";
 
     /// <summary>The comment it came with.</summary>
@@ -81,6 +83,7 @@ public class SshKeyEntity
 /// (<see cref="Removable"/>, <see cref="Protected"/>), for the remove dialog.
 /// </summary>
 [Table("ssh_key_authorizations")]
+[NotAudited("where keys were seen authorized")]
 public class SshKeyAuthorizationEntity
 {
     [Key]
@@ -158,6 +161,7 @@ public enum SshKeyRemovalState { Pending, Sent, Removed, NotFound, Refused, Fail
 /// Agents__KeepKeyRemovalsDays, a year). The key's name and the server's are kept as they were.
 /// </summary>
 [Table("ssh_key_removals")]
+[NotAudited("removals at work; asking and the agents' results are entries of their own")]
 public class SshKeyRemovalEntity
 {
     [Key]

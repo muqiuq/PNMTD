@@ -126,7 +126,7 @@ public sealed class AuditDeniedHandler(IDbContextFactory<PnmtdDbContext> dbs, IL
         int count;
         lock (gate)
         {
-            var key = who.UserId?.ToString() ?? who.Username;
+            var key = $"{who.UserId}/{who.Username}";
             count = recent.TryGetValue(key, out var r) && r.Minute == minute ? r.Count + 1 : 1;
             recent[key] = (minute, count);
             if (recent.Count > 1000)

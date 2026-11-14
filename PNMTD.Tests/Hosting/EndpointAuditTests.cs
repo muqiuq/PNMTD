@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Routing;
@@ -498,6 +499,49 @@ public sealed class EndpointAuditTests
                 {
                     failures.Add($"{key} as {role}: {(int)status}, expected {expected}");
                 }
+            }
+        }
+        Assert.AreEqual(0, failures.Count, string.Join("\n", failures));
+    }
+
+    /// <summary>
+    /// Nothing slips in unlogged (docs/audit-redmine-zabbix-plan.md §3.7): every write endpoint names its event, or why it
+    /// has none, and every one writes a Denied entry with its event and the missing right when called without it.
+    /// </summary>
+    [TestMethod]
+    public void EveryWriteEndpointNamesItsAuditEvent()
+    {
+        var writes = Endpoints().Where(e => Matrix.ContainsKey(e.Key) && e.Method != "GET").ToList();
+        Assert.IsGreaterThan(150, writes.Count);
+        var missing = writes.Where(e => e.Endpoint.Metadata.GetMetadata<AuditAttribute>() is null && e.Endpoint.Metadata.GetMetadata<NotAuditedAttribute>() is null)
+            .Select(e => e.Key).ToList();
+        Assert.AreEqual("", string.Join(", ", missing), "write endpoints with neither [Audit] nor [NotAudited]");
+        var unknown = writes.SelectMany(e => e.Endpoint.Metadata.GetMetadata<AuditAttribute>()?.EventTypes ?? []).Where(t => !AuditCatalog.Contains(t)).ToList();
+        Assert.AreEqual("", string.Join(", ", unknown), "events that are not in the catalog");
+    }
+
+    [TestMethod]
+    public async Task EveryAuditedEndpointWritesItsDeniedEntry()
+    {
+        var failures = new List<string>();
+        foreach (var e in Endpoints().Where(e => Matrix.ContainsKey(e.Key) && e.Method != "GET"))
+        {
+            var (right, _) = Matrix[e.Key];
+            if (e.Endpoint.Metadata.GetMetadata<AuditAttribute>() is not { } audit || right == "signed-in")
+            {
+                continue;
+            }
+            var name = $"denied-{Guid.NewGuid():N}";
+            var client = app.ClientWithRights(right == "admin" ? Everything() : Everything(except: right.Split('|')));
+            client.DefaultRequestHeaders.Remove(TestSignIn.NameHeader);
+            client.DefaultRequestHeaders.Add(TestSignIn.NameHeader, name);
+            var status = await CallAsync(e.Key, client);
+            await using var db = app.NewDb();
+            var entry = await db.AuditLog.AsNoTracking().Where(l => l.Username == name).SingleOrDefaultAsync();
+            if (status != HttpStatusCode.Forbidden || entry is null || entry.EventType != audit.EventTypes[0] || entry.Outcome != AuditOutcome.Denied
+                || entry.Request != e.Key)
+            {
+                failures.Add($"{e.Key}: {(int)status}, entry {entry?.EventType ?? "none"} {entry?.Outcome} {entry?.Request}");
             }
         }
         Assert.AreEqual(0, failures.Count, string.Join("\n", failures));

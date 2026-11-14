@@ -35,6 +35,7 @@ public sealed class FilesController(FileStore store, FileAdmin admin, UploadGuar
     [RequireAnyRight(Area.KnowledgeBase, Level.Edit, Area.Locations, Level.Edit)]
     [FileUploadLimit]
     [ProducesResponseType<FileItem>(StatusCodes.Status201Created)]
+    [Audit(AuditEvents.FileUploaded)]
     public async Task<ActionResult<FileItem>> Upload([FromQuery] string? kind, [FromQuery] string? name, CancellationToken ct)
     {
         var fileKind = kind?.Trim().ToLowerInvariant() switch
@@ -93,6 +94,7 @@ public sealed class FilesController(FileStore store, FileAdmin admin, UploadGuar
     /// <summary>Deletes a file at once, from the disk too (an image that shows what it shouldn't): pages show <i>File removed</i>.</summary>
     [HttpDelete("{id:guid}")]
     [RequireRight(Area.KnowledgeBase, Level.Manage)]
+    [Audit(AuditEvents.FileDeleted)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         if (!await store.DeleteNowAsync(id, Actor(), ct))

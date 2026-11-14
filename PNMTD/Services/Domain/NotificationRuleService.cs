@@ -166,10 +166,12 @@ public sealed class NotificationRuleService(PnmtdDbContext db)
     /// <summary>The rule, its sensor links and its notification records (ON DELETE CASCADE).</summary>
     public async Task DeleteAsync(Guid id, CancellationToken ct)
     {
-        if (await db.NotificationRules.Where(r => r.Id == id).ExecuteDeleteAsync(ct) == 0)
-        {
-            throw ApiException.NotFound("Notification rule");
-        }
+        var name = await db.NotificationRules.AsNoTracking().Where(r => r.Id == id).Select(r => r.Name).SingleOrDefaultAsync(ct)
+            ?? throw ApiException.NotFound("Notification rule");
+        // Deleted by ExecuteDelete below: the audit learns the rule here (docs/audit-redmine-zabbix-plan.md §3.3).
+        AuditLog.Target(AuditTarget.Of(AuditTargets.NotificationRule, id, name));
+        AuditLog.Summary($"{name} deleted");
+        await db.NotificationRules.Where(r => r.Id == id).ExecuteDeleteAsync(ct);
     }
 
     /// <summary>Idempotent: an existing link stays as it is.</summary>
@@ -192,6 +194,11 @@ public sealed class NotificationRuleService(PnmtdDbContext db)
     public async Task UnlinkAsync(Guid id, Guid sensorId, CancellationToken ct)
     {
         await EnsureExistsAsync(id, ct);
+        var names = await db.NotificationRules.AsNoTracking().Where(r => r.Id == id)
+            .Select(r => new { Rule = r.Name, Sensor = db.Sensors.Where(s => s.Id == sensorId).Select(s => s.Parent.Name + " / " + s.Name).FirstOrDefault() })
+            .SingleAsync(ct);
+        AuditLog.Target(AuditTarget.Of(AuditTargets.NotificationRule, id, names.Rule, sensorId));
+        AuditLog.Summary($"{names.Rule}: {names.Sensor ?? "a sensor"} unlinked");
         await db.NotificationRuleSensor.Where(l => l.NotificationRuleId == id && l.SensorId == sensorId).ExecuteDeleteAsync(ct);
     }
 

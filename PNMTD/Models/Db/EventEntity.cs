@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace PNMTD.Models.Db
 {
     [Table("events")]
+    [NotAudited("sensor events: monitoring data")]
     public class EventEntity
     {
         [Key]

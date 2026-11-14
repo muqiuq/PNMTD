@@ -18,9 +18,11 @@ public sealed class DebugController(DebugService debug) : V1ControllerBase
 
     [HttpPost("pushover")]
     [EnableRateLimiting(AuthSetup.DebugRateLimit)]
+    [Audit(AuditEvents.DebugNotificationSent)]
     public async Task<ActionResult<DebugResult>> Pushover(DebugPushoverRequest request, CancellationToken ct) => await debug.PushoverAsync(request, ct);
 
     [HttpPost("mail")]
     [EnableRateLimiting(AuthSetup.DebugRateLimit)]
+    [Audit(AuditEvents.DebugNotificationSent)]
     public async Task<ActionResult<DebugResult>> Mail(DebugMailRequest request, CancellationToken ct) => await debug.MailAsync(request, ct);
 }

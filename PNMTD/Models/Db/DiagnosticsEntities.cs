@@ -9,6 +9,7 @@ namespace PNMTD.Models.Db;
 
 /// <summary>A set of checks, defined on Admin → Diagnostics.</summary>
 [Table("diagnostic_sets")]
+[Audited]
 public class DiagnosticSetEntity
 {
     [Key]
@@ -29,6 +30,7 @@ public class DiagnosticSetEntity
 
 /// <summary>A check of a set: a name, a type, and its typed parameters as JSON.</summary>
 [Table("diagnostic_checks")]
+[Audited]
 public class DiagnosticCheckEntity
 {
     [Key]
@@ -53,6 +55,7 @@ public class DiagnosticCheckEntity
 /// host: deleting the assignment deletes that sensor and its history.
 /// </summary>
 [Table("diagnostic_assignments")]
+[Audited]
 public class DiagnosticAssignmentEntity
 {
     [Key]
@@ -77,6 +80,7 @@ public class DiagnosticAssignmentEntity
 
 /// <summary>A run (§5.4): the trigger (schedule or manual, and who), when, the outcome and each check's result. Kept 30 days, at least 100 per assignment.</summary>
 [Table("diagnostic_runs")]
+[NotAudited("a run's results")]
 public class DiagnosticRunEntity
 {
     [Key]

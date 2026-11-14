@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace PNMTD.Models.Db
 {
     [Table("maillogs")]
+    [NotAudited("the mails received")]
     public class MailLogEntity
     {
         [Key]

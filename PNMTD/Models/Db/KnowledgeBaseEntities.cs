@@ -24,6 +24,7 @@ public enum KbPageStatus
 /// and <see cref="TagsText"/> are what the server derived on the last save, for <see cref="SearchVector"/> (§6.7).
 /// </summary>
 [Table("kb_pages")]
+[Audited]
 public class KbPageEntity
 {
     [Key]
@@ -40,12 +41,15 @@ public class KbPageEntity
     public string? Summary { get; set; }
 
     /// <summary>Markdown, at most KnowledgeBase:MaxPageBytes.</summary>
+    [AuditText]
     public string Content { get; set; } = "";
 
     /// <summary>The content's plain text, which MarkdownText writes on every save (§6.7).</summary>
+    [AuditIgnore]
     public string PlainText { get; set; } = "";
 
     /// <summary>The page's tag names, separated by spaces, for the search's weight A.</summary>
+    [AuditIgnore]
     public string TagsText { get; set; } = "";
 
     public KbPageStatus Status { get; set; } = KbPageStatus.Published;
@@ -54,37 +58,53 @@ public class KbPageEntity
     public bool Sensitive { get; set; }
 
     /// <summary>The current revision's number; a save carries the revision it started from (409 <c>edit_conflict</c>).</summary>
+    [AuditIgnore]
     public int Revision { get; set; }
 
+    [AuditIgnore]
+
     public DateTime CreatedAt { get; set; }
+
+    [AuditIgnore]
 
     public Guid? CreatedBy { get; set; }
 
     [MaxLength(200)]
+    [AuditIgnore]
     public string? CreatedByName { get; set; }
 
+    [AuditIgnore]
+
     public DateTime UpdatedAt { get; set; }
+
+    [AuditIgnore]
 
     public Guid? UpdatedBy { get; set; }
 
     [MaxLength(200)]
+    [AuditIgnore]
     public string? UpdatedByName { get; set; }
 
     /// <summary>Archived: read-only, left out of lists and the search (§6.2). Only an archived page can be deleted.</summary>
     public DateTime? ArchivedAt { get; set; }
 
+    [AuditIgnore]
+
     public Guid? ArchivedBy { get; set; }
 
     [MaxLength(200)]
+    [AuditIgnore]
     public string? ArchivedByName { get; set; }
 
     /// <summary>All views; per day in kb_page_views (§6.6).</summary>
+    [AuditIgnore]
     public int Views { get; set; }
 
     /// <summary>
     /// Generated and stored by PostgreSQL with the <c>simple</c> configuration: A the title and tags, B the summary, C the
     /// plain text (§6.7). Never written by PNMTD.
     /// </summary>
+    [AuditIgnore]
     public NpgsqlTsVector SearchVector { get; set; } = null!;
 
     public List<KbPageTagEntity> Tags { get; set; } = [];
@@ -97,6 +117,7 @@ public class KbPageEntity
 /// of what changed, and for AI scans and unmarking sensitive the declaration. Machines never read revisions (§7.4).
 /// </summary>
 [Table("kb_revisions")]
+[NotAudited("a page's revisions are its history, with the full diff")]
 public class KbRevisionEntity
 {
     [Key]
@@ -158,6 +179,7 @@ public class KbRevisionEntity
 
 /// <summary>A tag (§6.4): 2–40 characters, lower case, unique.</summary>
 [Table("kb_tags")]
+[Audited]
 public class KbTagEntity
 {
     [Key]
@@ -182,6 +204,7 @@ public enum KbTagSource
 
 /// <summary>A tag on a page; goes with either.</summary>
 [Table("kb_page_tags")]
+[Audited]
 public class KbPageTagEntity
 {
     public Guid PageId { get; set; }
@@ -202,6 +225,7 @@ public class KbPageTagEntity
 /// ExecuteDeleteAsync as well.
 /// </summary>
 [Table("kb_links")]
+[Audited]
 public class KbLinkEntity
 {
     [Key]
@@ -222,6 +246,7 @@ public class KbLinkEntity
 
 /// <summary>A link in a page's Markdown to another page, by number, recorded on each save: <i>Linked from</i> (§6.5).</summary>
 [Table("kb_page_refs")]
+[NotAudited("a page's links to others: derived from its text")]
 public class KbPageRefEntity
 {
     public Guid FromPageId { get; set; }
@@ -232,6 +257,7 @@ public class KbPageRefEntity
 
 /// <summary>A page's views on one day (§6.6), so the last 30 days can be summed.</summary>
 [Table("kb_page_views")]
+[NotAudited("page views: reads are not operations")]
 public class KbPageViewEntity
 {
     public Guid PageId { get; set; }
@@ -243,6 +269,7 @@ public class KbPageViewEntity
 
 /// <summary>When a person was last asked about AI tags for a page: not again within 24 hours (§7.2).</summary>
 [Table("kb_ai_questions")]
+[NotAudited("when the AI question was asked")]
 public class KbAiQuestionEntity
 {
     public Guid PageId { get; set; }

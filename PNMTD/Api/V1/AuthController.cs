@@ -28,6 +28,7 @@ public sealed class AuthController(AuthService auth, UserAccounts accounts, Totp
     [AllowAnonymous]
     [SkipCsrf]
     [EnableRateLimiting(AuthSetup.LoginRateLimit)]
+    [NotAudited("logged by AuthService: LoginSucceeded, LoginFailed, LockedOut")]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request, CancellationToken ct)
     {
         var outcome = await auth.LoginAsync(request.Username, request.Password, AuditContext.From(HttpContext), ct);
@@ -52,6 +53,7 @@ public sealed class AuthController(AuthService auth, UserAccounts accounts, Totp
     [AllowAnonymous]
     [SkipCsrf]
     [EnableRateLimiting(AuthSetup.LoginRateLimit)]
+    [NotAudited("logged by AuthService: LoginSucceeded, TotpFailed, LockedOut")]
     public async Task<ActionResult<LoginResponse>> LoginTotp(TotpCodeRequest request, CancellationToken ct)
     {
         var outcome = secrets.ReadTicket(Request.Cookies[AuthSetup.TwoFactorCookieName]) is { } ticket
@@ -92,6 +94,7 @@ public sealed class AuthController(AuthService auth, UserAccounts accounts, Totp
     };
 
     [HttpPost("logout")]
+    [Audit(AuditEvents.Logout)]
     public async Task<IActionResult> Logout(CancellationToken ct)
     {
         if (User.UserId() is { } id && await db.Users.SingleOrDefaultAsync(u => u.Id == id, ct) is { } user)
@@ -151,6 +154,7 @@ public sealed class AccountController(UserAccounts accounts, TwoFactorService tw
 
     /// <summary>Ends the user's other sessions; this one continues with a fresh cookie.</summary>
     [HttpPost("password")]
+    [Audit(AuditEvents.PasswordChanged)]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest request, CancellationToken ct)
     {
         var id = User.UserId() ?? throw ApiException.NotFound("User");
@@ -161,6 +165,7 @@ public sealed class AccountController(UserAccounts accounts, TwoFactorService tw
 
     /// <summary>"Sign out all sessions": every other session of this user ends; this one continues.</summary>
     [HttpPost("sessions/revoke")]
+    [Audit(AuditEvents.SessionsRevoked)]
     public async Task<IActionResult> RevokeSessions(CancellationToken ct)
     {
         var id = User.UserId() ?? throw ApiException.NotFound("User");
@@ -174,6 +179,7 @@ public sealed class AccountController(UserAccounts accounts, TwoFactorService tw
     /// one). 409 totp_already_enabled.
     /// </summary>
     [HttpPost("totp/setup")]
+    [Audit(AuditEvents.TotpSetupStarted)]
     public async Task<ActionResult<TotpSetup>> SetupTotp(CancellationToken ct) =>
         await twoFactor.SetupAsync(User.UserId() ?? throw ApiException.NotFound("User"), ct);
 
@@ -182,6 +188,7 @@ public sealed class AccountController(UserAccounts accounts, TwoFactorService tw
     /// one continues. 400 for a wrong code, 409 totp_setup_expired: start again.
     /// </summary>
     [HttpPost("totp/confirm")]
+    [Audit(AuditEvents.TotpEnabled)]
     public async Task<IActionResult> ConfirmTotp(TotpCodeRequest request, CancellationToken ct)
     {
         var id = User.UserId() ?? throw ApiException.NotFound("User");
@@ -195,6 +202,7 @@ public sealed class AccountController(UserAccounts accounts, TwoFactorService tw
     /// session ends. 409 totp_required while Auth:TotpPolicy requires it, totp_not_enabled.
     /// </summary>
     [HttpPost("totp/disable")]
+    [Audit(AuditEvents.TotpDisabled, AuditEvents.TotpFailed)]
     public async Task<IActionResult> DisableTotp(TotpDisableRequest request, CancellationToken ct)
     {
         var id = User.UserId() ?? throw ApiException.NotFound("User");
@@ -270,6 +278,7 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
     }
 
     [HttpPost]
+    [Audit(AuditEvents.UserCreated)]
     public async Task<ActionResult<CreatedUser>> Create(CreateUserRequest request, CancellationToken ct)
     {
         var (user, temporary) = await accounts.CreateAsync(request.Username, request.DisplayName, request.IsAdmin, request.GroupIds, null,
@@ -279,11 +288,13 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
     }
 
     [HttpPut("{id:guid}")]
+    [Audit(AuditEvents.UserUpdated, AuditEvents.UserAdminChanged, AuditEvents.UserGroupsChanged)]
     public async Task<ActionResult<UserItem>> Update(Guid id, UpdateUserRequest request, CancellationToken ct) =>
         await WithKeysAsync((await accounts.UpdateAsync(id, request.DisplayName, request.IsAdmin, request.IsActive, request.GroupIds,
             AuditContext.From(HttpContext), ct)).Id, ct);
 
     [HttpDelete("{id:guid}")]
+    [Audit(AuditEvents.UserDeleted)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         await accounts.DeleteAsync(id, AuditContext.From(HttpContext), ct);
@@ -292,6 +303,7 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
 
     /// <summary>A temporary password (shown once); the user's sessions end and a lockout is lifted.</summary>
     [HttpPost("{id:guid}/reset-password")]
+    [Audit(AuditEvents.PasswordReset)]
     public async Task<ActionResult<TemporaryPassword>> ResetPassword(Guid id, CancellationToken ct)
     {
         var password = await accounts.ResetPasswordAsync(id, null, AuditContext.From(HttpContext), ct);
@@ -301,6 +313,7 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
 
     /// <summary>"Reset 2FA" for a user who lost the authenticator: 2FA off, sessions ended, a lockout lifted.</summary>
     [HttpPost("{id:guid}/reset-totp")]
+    [Audit(AuditEvents.TotpReset)]
     public async Task<IActionResult> ResetTotp(Guid id, CancellationToken ct)
     {
         await accounts.ResetTotpAsync(id, AuditContext.From(HttpContext), ct);
@@ -308,6 +321,7 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
     }
 
     [HttpPost("{id:guid}/unlock")]
+    [Audit(AuditEvents.UserUnlocked)]
     public async Task<IActionResult> Unlock(Guid id, CancellationToken ct)
     {
         await accounts.UnlockAsync(id, AuditContext.From(HttpContext), ct);

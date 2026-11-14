@@ -30,6 +30,7 @@ public sealed class WindowsServersController(AgentServerService servers, AgentSc
     /// <summary>Saves the WMI settings and sends the agent its new configuration. Admin, audited.</summary>
     [HttpPut("{id:guid}/wmi")]
     [RequireRight(Area.Servers, Level.Manage)]
+    [Audit(AuditEvents.WindowsSettingsChanged)]
     public async Task<ActionResult<WindowsWmiView>> SaveWmi(Guid id, WmiConfig request, CancellationToken ct) => await servers.SaveWmiAsync(id, request, ct);
 
     /// <summary>The scripts registered on a server in the agent's window (§7.2), as it last reported them. Admin.</summary>
@@ -40,6 +41,7 @@ public sealed class WindowsServersController(AgentServerService servers, AgentSc
     /// <summary>Runs a script registered on the server, as the account it is registered with. Admin, audited.</summary>
     [HttpPost("{id:guid}/local-scripts/run")]
     [RequireRight(Area.Servers, Level.Manage)]
+    [Audit(AuditEvents.AgentScriptRun)]
     public async Task<ActionResult<AgentScriptRunItem>> RunLocal(Guid id, WindowsLocalScriptRunRequest request, CancellationToken ct) =>
         await scripts.RunLocalAsync(id, request, ct);
 }
@@ -53,13 +55,16 @@ public sealed class WindowsRunAsController(AgentScriptService scripts) : V1Contr
     public async Task<ActionResult<IReadOnlyList<WindowsRunAsItem>>> RunAs(CancellationToken ct) => Ok(await scripts.RunAsListAsync(ct));
 
     [HttpPost]
+    [Audit(AuditEvents.WindowsRunAsChanged)]
     public async Task<ActionResult<WindowsRunAsItem>> CreateRunAs(WindowsRunAsRequest request, CancellationToken ct) => await scripts.SaveRunAsAsync(null, request, ct);
 
     [HttpPut("{id:guid}")]
+    [Audit(AuditEvents.WindowsRunAsChanged)]
     public async Task<ActionResult<WindowsRunAsItem>> UpdateRunAs(Guid id, WindowsRunAsRequest request, CancellationToken ct) =>
         await scripts.SaveRunAsAsync(id, request, ct);
 
     [HttpDelete("{id:guid}")]
+    [Audit(AuditEvents.WindowsRunAsChanged)]
     public async Task<IActionResult> DeleteRunAs(Guid id, CancellationToken ct)
     {
         await scripts.DeleteRunAsAsync(id, ct);

@@ -166,6 +166,12 @@ public sealed class NotificationManagerService(PnmtdDbContext db, MonitoringRead
                 }
             }
         }
+        // Many rules and sensors: the audit gets the counts (docs/audit-redmine-zabbix-plan.md §3.3); the rows are in the changes.
+        var rules = await db.NotificationRules.AsNoTracking().Where(r => ruleIds.Contains(r.Id)).OrderBy(r => r.Name)
+            .Select(r => new { r.Id, r.Name }).ToListAsync(ct);
+        AuditLog.Target(AuditTarget.Many(AuditTargets.NotificationRule, rules.Select(r => (r.Id, r.Name)).ToList()));
+        AuditLog.Summary($"{request.Mode} {sensorIds.Count} sensor{(sensorIds.Count == 1 ? "" : "s")}: {linked} linked, {unlinked} unlinked, "
+            + $"{excluded} excluded, {included} included again");
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         return new NotificationAssignResult(linked, unlinked, excluded, included);
@@ -174,10 +180,9 @@ public sealed class NotificationManagerService(PnmtdDbContext db, MonitoringRead
     /// <summary>Replaces the rule's scopes (§11.2).</summary>
     public async Task SetScopesAsync(Guid ruleId, IReadOnlyList<NotificationScopeRequest> scopes, CancellationToken ct)
     {
-        if (!await db.NotificationRules.AnyAsync(r => r.Id == ruleId, ct))
-        {
-            throw ApiException.NotFound("Notification rule");
-        }
+        var ruleName = await db.NotificationRules.AsNoTracking().Where(r => r.Id == ruleId).Select(r => r.Name).SingleOrDefaultAsync(ct)
+            ?? throw ApiException.NotFound("Notification rule");
+        AuditLog.Target(AuditTarget.Of(AuditTargets.NotificationRule, ruleId, ruleName));
         await ValidateAsync(scopes, ct);
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         await db.NotificationRuleScopes.Where(s => s.RuleId == ruleId).ExecuteDeleteAsync(ct);
@@ -208,10 +213,9 @@ public sealed class NotificationManagerService(PnmtdDbContext db, MonitoringRead
 
     public async Task ExcludeAsync(Guid ruleId, Guid sensorId, bool exclude, CancellationToken ct)
     {
-        if (!await db.NotificationRules.AnyAsync(r => r.Id == ruleId, ct))
-        {
-            throw ApiException.NotFound("Notification rule");
-        }
+        var ruleName = await db.NotificationRules.AsNoTracking().Where(r => r.Id == ruleId).Select(r => r.Name).SingleOrDefaultAsync(ct)
+            ?? throw ApiException.NotFound("Notification rule");
+        AuditLog.Target(AuditTarget.Of(AuditTargets.NotificationRule, ruleId, ruleName));
         if (!await db.Sensors.AnyAsync(s => s.Id == sensorId, ct))
         {
             throw ApiException.NotFound("Sensor");

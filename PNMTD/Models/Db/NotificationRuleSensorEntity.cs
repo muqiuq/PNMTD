@@ -2,6 +2,7 @@
 
 namespace PNMTD.Models.Db
 {
+    [Audited]
     public class NotificationRuleSensorEntity
     {
         [Key]

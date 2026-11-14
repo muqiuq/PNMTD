@@ -36,6 +36,7 @@ public enum AiOutcome : short
 
 /// <summary>One use of the AI (§3.5): retried on a schedule until it succeeds, is cancelled, or fails for good.</summary>
 [Table("ai_work")]
+[NotAudited("the AI's work queue")]
 public class AiWorkEntity
 {
     [Key]
@@ -76,6 +77,7 @@ public class AiWorkEntity
 
 /// <summary>One HTTP request to a model (§3.6), whatever its outcome: the raw bodies gzip-compressed. The newest 10,000 are kept.</summary>
 [Table("ai_requests")]
+[NotAudited("the AI's request log")]
 public class AiRequestEntity
 {
     [Key]
@@ -137,6 +139,7 @@ public class AiRequestEntity
 
 /// <summary>Spending per day, purpose and model (§3.7): kept 2 years, independent of the request log.</summary>
 [Table("ai_spending")]
+[NotAudited("the AI's spending")]
 public class AiSpendingEntity
 {
     public DateOnly Day { get; set; }
@@ -155,6 +158,7 @@ public class AiSpendingEntity
 
 /// <summary>Which budget thresholds of a period were written (§3.7): each once.</summary>
 [Table("ai_budget_state")]
+[NotAudited("the AI's spending")]
 public class AiBudgetStateEntity
 {
     [Key]

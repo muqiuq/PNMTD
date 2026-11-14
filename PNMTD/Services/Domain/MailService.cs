@@ -54,10 +54,11 @@ public sealed class MailService(PnmtdDbContext db)
     /// <summary>The rule; the mail it processed stays in the log, without the rule's name.</summary>
     public async Task DeleteRuleAsync(Guid id, CancellationToken ct)
     {
-        if (!await db.MailInputs.AnyAsync(r => r.Id == id, ct))
-        {
-            throw ApiException.NotFound("Mail input rule");
-        }
+        var name = await db.MailInputs.AsNoTracking().Where(r => r.Id == id).Select(r => r.Name).SingleOrDefaultAsync(ct)
+            ?? throw ApiException.NotFound("Mail input rule");
+        // Deleted by ExecuteDelete below: the audit learns the rule here (docs/audit-redmine-zabbix-plan.md §3.3).
+        AuditLog.Target(AuditTarget.Of(AuditTargets.MailInputRule, id, name));
+        AuditLog.Summary($"{name} deleted");
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         await db.MailLogs.Where(m => m.ProcessedById == id).ExecuteUpdateAsync(u => u.SetProperty(m => m.ProcessedById, (Guid?)null), ct);
         await db.MailInputs.Where(r => r.Id == id).ExecuteDeleteAsync(ct);

@@ -28,5 +28,6 @@ public sealed class UplinkController(UplinkService uplink) : V1ControllerBase
 
     [HttpPost("check")]
     [RequireRight(Area.System, Level.Manage)]
+    [Audit(AuditEvents.UplinkCheckRun)]
     public async Task<ActionResult<UplinkCheckItem>> Check(CancellationToken ct) => await uplink.CheckNowAsync(ct);
 }

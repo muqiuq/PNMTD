@@ -87,10 +87,12 @@ public sealed class KeyValueService(PnmtdDbContext db)
     /// <summary>Read-only entries too: the task writes them again on its next run.</summary>
     public async Task DeleteAsync(Guid id, CancellationToken ct)
     {
-        if (await db.KeyValues.Where(k => k.Id == id).ExecuteDeleteAsync(ct) == 0)
-        {
-            throw ApiException.NotFound("Key value");
-        }
+        var key = await db.KeyValues.AsNoTracking().Where(k => k.Id == id).Select(k => k.Key).SingleOrDefaultAsync(ct)
+            ?? throw ApiException.NotFound("Key value");
+        // Deleted by ExecuteDelete below: the audit learns the key here (docs/audit-redmine-zabbix-plan.md §3.3).
+        AuditLog.Target(AuditTarget.Of(AuditTargets.KeyValue, id, key));
+        AuditLog.Summary($"{key} deleted");
+        await db.KeyValues.Where(k => k.Id == id).ExecuteDeleteAsync(ct);
     }
 
     private static string Validate(KeyValueRequest request)

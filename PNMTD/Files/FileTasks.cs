@@ -85,6 +85,14 @@ public sealed class FileCleanupTask(IDbContextFactory<PnmtdDbContext> dbs, FileS
                 }
             }
         }
+        if (removed > 0)
+        {
+            // PNMT's own deletes (docs/audit-redmine-zabbix-plan.md §3.6): one entry per run.
+            await using var audit = await dbs.CreateDbContextAsync(ct);
+            AuditLog.Record(audit, AuditEvents.FileDeleted, $"cleanup: {removed} file{(removed == 1 ? "" : "s")} deleted for good, {marked} unused upload"
+                + $"{(marked == 1 ? "" : "s")} marked deleted", AuditWho.System);
+            await audit.SaveChangesAsync(ct);
+        }
         if (marked + revived + removed + temporary > 0)
         {
             logger.LogInformation(

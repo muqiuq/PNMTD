@@ -61,29 +61,34 @@ public sealed class AgentServersController(AgentServerService servers, SshKeySer
     /// <summary>Asks the agent to collect sections now (§6); 409 when it is offline.</summary>
     [HttpPost("{id:guid}/collect")]
     [RequireRight(Area.Commands, Level.Run)]
+    [Audit(AuditEvents.AgentCollectRequested)]
     public async Task<ActionResult<AgentRequestResult>> Collect(Guid id, AgentCollectRequest request, CancellationToken ct) =>
         await servers.CollectAsync(id, request, ct);
 
     /// <summary>The last 500 lines of the agent's log file (§3.8). Admin.</summary>
     [HttpPost("{id:guid}/send-log")]
     [RequireRight(Area.Servers, Level.Manage)]
+    [Audit(AuditEvents.AgentLogRequested)]
     public async Task<ActionResult<AgentLogFile>> SendLog(Guid id, CancellationToken ct) => await servers.SendLogAsync(id, ct);
 
     /// <summary>The server's event switches (§4.7, §4.8). Audit-logged.</summary>
     [HttpPut("{id:guid}/settings")]
     [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.AgentSettingsChanged)]
     public async Task<ActionResult<AgentServerDetail>> Settings(Guid id, AgentServerSettings request, CancellationToken ct) =>
         await servers.SettingsAsync(id, request, ct);
 
     /// <summary>Revokes the agent's key and closes its connection (§3.4); the sensor and its history stay. Audit-logged.</summary>
     [HttpPost("{id:guid}/revoke")]
     [RequireRight(Area.Servers, Level.Manage)]
+    [Audit(AuditEvents.AgentRevoked)]
     public async Task<ActionResult<AgentServerDetail>> Revoke(Guid id, AgentRevokeRequest request, CancellationToken ct) =>
         await servers.RevokeAsync(id, request, ct);
 
     /// <summary>A token bound to this server, of its platform: joining with it replaces the key and keeps the history (§3.3). Shown once.</summary>
     [HttpPost("{id:guid}/rejoin-token")]
     [RequireRight(Area.Servers, Level.Manage)]
+    [Audit(AuditEvents.AgentJoinTokenCreated)]
     public async Task<ActionResult<AgentJoinTokenCreated>> RejoinToken(Guid id, AgentRejoinTokenRequest request, CancellationToken ct) =>
         await servers.RejoinTokenAsync(id, request, ct);
 }
@@ -102,11 +107,13 @@ public sealed class AgentsController(AgentServerService servers) : V1ControllerB
     /// other platform is refused at the join. Audit-logged.
     /// </summary>
     [HttpPost("join-tokens")]
+    [Audit(AuditEvents.AgentJoinTokenCreated)]
     public async Task<ActionResult<AgentJoinTokenCreated>> CreateToken(AgentJoinTokenRequest request, CancellationToken ct) =>
         await servers.CreateTokenAsync(request, ct);
 
     /// <summary>Revokes a token that was not used yet. Audit-logged.</summary>
     [HttpDelete("join-tokens/{id:guid}")]
+    [Audit(AuditEvents.AgentJoinTokenRevoked)]
     public async Task<IActionResult> RevokeToken(Guid id, CancellationToken ct)
     {
         await servers.RevokeTokenAsync(id, ct);
@@ -127,6 +134,7 @@ public sealed class AgentsController(AgentServerService servers) : V1ControllerB
 
     /// <summary><i>Fetch again</i>: the files from the release into PNMT's download folder; answers at once. Audited.</summary>
     [HttpPost("downloads/fetch")]
+    [Audit(AuditEvents.AgentDownloadsFetched)]
     public async Task<ActionResult<AgentDownloadLinks>> FetchDownloads(AgentDownloadFetchRequest request, CancellationToken ct) =>
         await servers.FetchDownloadsAsync(request, ct);
 }
@@ -153,18 +161,22 @@ public sealed class AgentScriptsController(AgentScriptService scripts) : V1Contr
     /// from the template.
     /// </summary>
     [HttpPost("scripts")]
+    [Audit(AuditEvents.AgentScriptChanged)]
     public async Task<ActionResult<AgentScriptDetail>> Create(AgentScriptRequest request, CancellationToken ct) => await scripts.CreateAsync(request, ct);
 
     /// <summary>A new version when the text changed; parsed again.</summary>
     [HttpPut("scripts/{id:guid}")]
+    [Audit(AuditEvents.AgentScriptChanged)]
     public async Task<ActionResult<AgentScriptDetail>> Update(Guid id, AgentScriptRequest request, CancellationToken ct) =>
         await scripts.UpdateAsync(id, request, ct);
 
     [HttpPost("scripts/{id:guid}/parse")]
+    [NotAudited("parses a script, saves nothing")]
     public async Task<ActionResult<AgentScriptDetail>> Parse(Guid id, CancellationToken ct) => await scripts.ReparseAsync(id, ct);
 
     /// <summary>Deletes the script and its versions; its runs stay in the history.</summary>
     [HttpDelete("scripts/{id:guid}")]
+    [Audit(AuditEvents.AgentScriptChanged)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         await scripts.DeleteAsync(id, ct);
@@ -173,6 +185,7 @@ public sealed class AgentScriptsController(AgentScriptService scripts) : V1Contr
 
     /// <summary>Runs the current version on servers (§7.3); each server answers with its own run.</summary>
     [HttpPost("scripts/{id:guid}/run")]
+    [Audit(AuditEvents.AgentScriptRun)]
     public async Task<ActionResult<IReadOnlyList<AgentScriptRunItem>>> Run(Guid id, AgentScriptRunRequest request, CancellationToken ct) =>
         Ok(await scripts.RunAsync(id, request, ct));
 
@@ -183,5 +196,6 @@ public sealed class AgentScriptsController(AgentScriptService scripts) : V1Contr
     public async Task<ActionResult<AgentScriptRunDetail>> RunDetail(Guid id, CancellationToken ct) => await scripts.RunDetailAsync(id, ct);
 
     [HttpPost("script-runs/{id:guid}/redact")]
+    [Audit(AuditEvents.AgentScriptRunRedacted)]
     public async Task<ActionResult<AgentScriptRunDetail>> Redact(Guid id, CancellationToken ct) => await scripts.RedactAsync(id, ct);
 }

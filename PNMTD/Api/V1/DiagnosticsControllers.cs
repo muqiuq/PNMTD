@@ -23,16 +23,19 @@ public sealed class DiagnosticsController(DiagnosticsSetService diagnostics) : V
     /// <summary>A set with its checks (§5.1): valid names and addresses, at most 10 pings of at most 5 s. Audit-logged.</summary>
     [HttpPost("sets")]
     [RequireRight(Area.Diagnostics, Level.Manage)]
+    [Audit(AuditEvents.DiagnosticsSetChanged)]
     public async Task<ActionResult<DiagnosticSetDetail>> CreateSet(DiagnosticSetRequest request, CancellationToken ct) => await diagnostics.CreateSetAsync(request, ct);
 
     [HttpPut("sets/{id:guid}")]
     [RequireRight(Area.Diagnostics, Level.Manage)]
+    [Audit(AuditEvents.DiagnosticsSetChanged)]
     public async Task<ActionResult<DiagnosticSetDetail>> UpdateSet(Guid id, DiagnosticSetRequest request, CancellationToken ct) =>
         await diagnostics.UpdateSetAsync(id, request, ct);
 
     /// <summary>Refused while the set is assigned.</summary>
     [HttpDelete("sets/{id:guid}")]
     [RequireRight(Area.Diagnostics, Level.Manage)]
+    [Audit(AuditEvents.DiagnosticsSetChanged)]
     public async Task<IActionResult> DeleteSet(Guid id, CancellationToken ct)
     {
         await diagnostics.DeleteSetAsync(id, ct);
@@ -47,17 +50,20 @@ public sealed class DiagnosticsController(DiagnosticsSetService diagnostics) : V
     /// <summary>Assigns a set to servers: each assignment creates its DIAGNOSTICS sensor (§5.2). Audit-logged.</summary>
     [HttpPost("assignments")]
     [RequireRight(Area.Diagnostics, Level.Manage)]
+    [Audit(AuditEvents.DiagnosticsAssignmentChanged)]
     public async Task<ActionResult<IReadOnlyList<DiagnosticAssignmentItem>>> Assign(DiagnosticAssignmentRequest request, CancellationToken ct) =>
         Ok(await diagnostics.AssignAsync(request, ct));
 
     [HttpPut("assignments/{id:guid}")]
     [RequireRight(Area.Diagnostics, Level.Manage)]
+    [Audit(AuditEvents.DiagnosticsAssignmentChanged)]
     public async Task<ActionResult<DiagnosticAssignmentItem>> UpdateAssignment(Guid id, DiagnosticAssignmentUpdate request, CancellationToken ct) =>
         await diagnostics.UpdateAssignmentAsync(id, request, ct);
 
     /// <summary>Deletes the assignment, its sensor and that sensor's history.</summary>
     [HttpDelete("assignments/{id:guid}")]
     [RequireRight(Area.Diagnostics, Level.Manage)]
+    [Audit(AuditEvents.DiagnosticsAssignmentChanged)]
     public async Task<IActionResult> DeleteAssignment(Guid id, CancellationToken ct)
     {
         await diagnostics.DeleteAssignmentAsync(id, ct);
@@ -67,6 +73,7 @@ public sealed class DiagnosticsController(DiagnosticsSetService diagnostics) : V
     /// <summary>Run now (§5.3): the result arrives within seconds; 409 when the agent is offline.</summary>
     [HttpPost("assignments/{id:guid}/run")]
     [RequireRight(Area.Commands, Level.Run)]
+    [Audit(AuditEvents.DiagnosticsRun)]
     public async Task<ActionResult<DiagnosticRunItem>> Run(Guid id, CancellationToken ct) => await diagnostics.RunNowAsync(id, ct);
 
     [HttpGet("runs")]

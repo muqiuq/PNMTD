@@ -120,6 +120,11 @@ public sealed class HostService(PnmtdDbContext db, MonitoringReader reader, Loca
             .Check(request.Importance is { } i && Enum.IsDefined(i), "importance", "Low, Normal or High.")
             .ThrowIfInvalid();
         var ids = request.Ids.Distinct().ToList();
+        // A bulk update: the audit learns the hosts here (docs/audit-redmine-zabbix-plan.md §3.3).
+        var hosts = await db.Hosts.AsNoTracking().Where(h => ids.Contains(h.Id) && h.Importance != request.Importance).OrderBy(h => h.Name)
+            .Select(h => new { h.Id, h.Name }).ToListAsync(ct);
+        AuditLog.Target(AuditTarget.Many(AuditTargets.Host, hosts.Select(h => (h.Id, h.Name)).ToList()));
+        AuditLog.Summary($"{hosts.Count} host{(hosts.Count == 1 ? "" : "s")}: importance {request.Importance}");
         return await db.Hosts.Where(h => ids.Contains(h.Id)).ExecuteUpdateAsync(u => u.SetProperty(h => h.Importance, request.Importance!.Value), ct);
     }
 

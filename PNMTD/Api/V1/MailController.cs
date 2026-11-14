@@ -20,6 +20,7 @@ public sealed class MailInputRulesController(MailService mail) : V1ControllerBas
 
     [HttpPost]
     [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.MailInputRuleCreated)]
     public async Task<ActionResult<MailInputRule>> Create(MailInputRuleRequest request, CancellationToken ct)
     {
         var rule = await mail.CreateRuleAsync(request, ct);
@@ -28,11 +29,13 @@ public sealed class MailInputRulesController(MailService mail) : V1ControllerBas
 
     [HttpPut("{id:guid}")]
     [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.MailInputRuleUpdated)]
     public async Task<ActionResult<MailInputRule>> Update(Guid id, MailInputRuleRequest request, CancellationToken ct) =>
         await mail.UpdateRuleAsync(id, request, ct);
 
     [HttpDelete("{id:guid}")]
     [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.MailInputRuleDeleted)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         await mail.DeleteRuleAsync(id, ct);

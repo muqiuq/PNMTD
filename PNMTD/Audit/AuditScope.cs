@@ -134,15 +134,15 @@ public sealed class AuditScope
         checkpoint = null;
     }
 
-    /// <summary>A service's own record of one of the endpoint's events: it becomes the entry.</summary>
+    /// <summary>
+    /// A service's own record of one of the endpoint's events: it becomes the entry, with the service's detail as it is
+    /// (none too), not one made from the changes, which stay in their own column.
+    /// </summary>
     internal void Merge(string eventType, string? detail, AuditTarget? target)
     {
         EventType = eventType;
         Explicit = true;
-        if (detail is not null)
-        {
-            SetSummary(detail);
-        }
+        SetSummary(detail);
         if (target is not null)
         {
             SetTarget(target);
@@ -189,7 +189,7 @@ public sealed class AuditScope
         e.TargetName = AuditLog.Cut(target?.Name, 500);
         e.Subjects = target?.Subjects.Distinct().ToList() ?? [];
         e.Changes = Changes.Count == 0 ? null : JsonSerializer.Serialize(Changes, AuditLog.Json);
-        e.Detail = Summary ?? AuditLog.Describe(target?.Name, Changes, ChangesLeftOut);
+        e.Detail = Explicit ? Summary : Summary ?? AuditLog.Describe(target?.Name, Changes, ChangesLeftOut);
         return e;
     }
 }

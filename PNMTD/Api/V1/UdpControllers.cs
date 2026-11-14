@@ -20,16 +20,19 @@ public sealed class SensorUdpController(UdpNodeService nodes, UdpCommandService 
     /// <summary>Overwrites the key or the token manually: sessions and the counter are reset.</summary>
     [HttpPut("key")]
     [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.UdpKeyChanged)]
     public async Task<ActionResult<UdpSecretsChanged>> SetKey(Guid id, UdpKeyRequest request, CancellationToken ct) =>
         await nodes.SetSecretsAsync(id, request, ct);
 
     [HttpPost("regenerate-key")]
     [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.UdpKeyChanged)]
     public async Task<ActionResult<UdpSecretsChanged>> Regenerate(Guid id, UdpRegenerateRequest request, CancellationToken ct) =>
         await nodes.RegenerateAsync(id, request, ct);
 
     [HttpPost("reset-counter")]
     [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.UdpCounterReset)]
     public async Task<IActionResult> ResetCounter(Guid id, CancellationToken ct)
     {
         await nodes.ResetCounterAsync(id, ct);
@@ -38,6 +41,7 @@ public sealed class SensorUdpController(UdpNodeService nodes, UdpCommandService 
 
     [HttpPost("reset-session")]
     [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.UdpSessionReset)]
     public async Task<IActionResult> ResetSession(Guid id, CancellationToken ct)
     {
         await nodes.ResetSessionAsync(id, ct);
@@ -72,11 +76,13 @@ public sealed class SensorUdpController(UdpNodeService nodes, UdpCommandService 
 
     [HttpPost("commands")]
     [RequireRight(Area.Commands, Level.Run)]
+    [Audit(AuditEvents.UdpCommandQueued)]
     public async Task<ActionResult<UdpCommandCreated>> Queue(Guid id, UdpCommandRequest request, CancellationToken ct) =>
         await commands.CreateAsync(id, request, ct);
 
     [HttpDelete("commands/{commandId:guid}")]
     [RequireRight(Area.Commands, Level.Run)]
+    [Audit(AuditEvents.UdpCommandCancelled)]
     public async Task<IActionResult> Cancel(Guid id, Guid commandId, CancellationToken ct)
     {
         await commands.CancelAsync(id, commandId, ct);
@@ -122,15 +128,18 @@ public sealed class UdpController(UdpNodeService nodes, UdpCommandService comman
     /// </summary>
     [HttpPost("firmware")]
     [FirmwareUploadLimit]
+    [Audit(AuditEvents.UdpFirmwareUploaded)]
     public async Task<ActionResult<UdpFirmwareUploaded>> Upload(IFormFile? file, [FromForm] string? name, [FromForm] string? version,
         [FromForm] string? notes, CancellationToken ct) =>
         await ota.UploadAsync(file, name, version, notes, ct);
 
     [HttpPut("firmware/{id:guid}")]
+    [Audit(AuditEvents.UdpFirmwareChanged)]
     public async Task<ActionResult<UdpFirmwareItem>> UpdateFirmware(Guid id, UdpFirmwareRequest request, CancellationToken ct) =>
         await ota.UpdateFirmwareAsync(id, request, ct);
 
     [HttpDelete("firmware/{id:guid}")]
+    [Audit(AuditEvents.UdpFirmwareDeleted)]
     public async Task<IActionResult> DeleteFirmware(Guid id, CancellationToken ct)
     {
         await ota.DeleteFirmwareAsync(id, ct);
@@ -150,10 +159,12 @@ public sealed class UdpController(UdpNodeService nodes, UdpCommandService comman
         await ota.JobsAsync(query, ct);
 
     [HttpPost("ota-jobs")]
+    [Audit(AuditEvents.UdpUpdateStarted)]
     public async Task<ActionResult<UdpOtaJobsCreated>> StartUpdates(UdpOtaJobRequest request, CancellationToken ct) =>
         await ota.CreateJobsAsync(request, ct);
 
     [HttpDelete("ota-jobs/{id:guid}")]
+    [Audit(AuditEvents.UdpUpdateCancelled)]
     public async Task<IActionResult> CancelUpdate(Guid id, CancellationToken ct)
     {
         await ota.CancelJobAsync(id, ct);

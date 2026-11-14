@@ -116,6 +116,9 @@ public sealed class SystemSensors(IDbContextFactory<PnmtdDbContext> dbs, IConfig
             };
             sensor.SetNewSecretToken();
             db.Sensors.Add(sensor);
+            // PNMT's own change to the configuration (docs/audit-redmine-zabbix-plan.md §3.6).
+            AuditLog.Record(db, AuditEvents.SensorCreated, $"{HostName} / {definition.Name}: a system sensor", AuditWho.System,
+                AuditTarget.Sensor(sensor.Id, $"{HostName} / {definition.Name}", hostId.Value));
             try
             {
                 await db.SaveChangesAsync(ct);

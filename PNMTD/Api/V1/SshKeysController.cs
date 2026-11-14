@@ -31,10 +31,12 @@ public sealed class SshKeysController(SshKeyService keys) : V1ControllerBase
 
     /// <summary><i>Add keys…</i>'s preview, as the text is typed: per line the fingerprint, type, bits, weakness, a name from the comment, and why it would be refused. Nothing is stored.</summary>
     [HttpPost("parse")]
+    [NotAudited("parses a key, saves nothing")]
     public async Task<ActionResult<SshKeyParseResult>> Parse(SshKeyParseRequest request, CancellationToken ct) => await keys.ParseAsync(request, ct);
 
     /// <summary>Registers one or more pasted public keys, each with its name. Refuses private keys (stored and logged nowhere), lines that aren't keys and keys registered before. Audited.</summary>
     [HttpPost]
+    [Audit(AuditEvents.SshKeyRegistered)]
     public async Task<ActionResult<IReadOnlyList<SshKeyItem>>> Register(SshKeyRegisterRequest request, CancellationToken ct) =>
         Ok(await keys.RegisterAsync(request, ct));
 
@@ -44,17 +46,21 @@ public sealed class SshKeysController(SshKeyService keys) : V1ControllerBase
 
     /// <summary>The name, owner, kind and note. Audited.</summary>
     [HttpPut("{id:guid}")]
+    [Audit(AuditEvents.SshKeyChanged)]
     public async Task<ActionResult<SshKeyDetail>> Update(Guid id, SshKeyUpdateRequest request, CancellationToken ct) => await keys.UpdateAsync(id, request, ct);
 
     /// <summary>Retires the key: it stays where it is authorized, flagged there, and 465 says so wherever it appears again. Audited.</summary>
     [HttpPost("{id:guid}/retire")]
+    [Audit(AuditEvents.SshKeyRetired)]
     public async Task<ActionResult<SshKeyDetail>> Retire(Guid id, CancellationToken ct) => await keys.RetireAsync(id, ct);
 
     [HttpPost("{id:guid}/reactivate")]
+    [Audit(AuditEvents.SshKeyChanged)]
     public async Task<ActionResult<SshKeyDetail>> Reactivate(Guid id, CancellationToken ct) => await keys.ReactivateAsync(id, ct);
 
     /// <summary>Deletes the registration: the key is unregistered again and stays authorized wherever it is. Audited.</summary>
     [HttpDelete("{id:guid}")]
+    [Audit(AuditEvents.SshKeyDeleted)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         await keys.DeleteAsync(id, ct);
@@ -63,6 +69,7 @@ public sealed class SshKeysController(SshKeyService keys) : V1ControllerBase
 
     /// <summary>"Remove from every server…": every place the key is authorized, as the remove dialog's preview.</summary>
     [HttpPost("{id:guid}/removal-items")]
+    [NotAudited("a preview of a removal: changes nothing")]
     public async Task<ActionResult<SshKeyRemovalPreview>> KeyRemovalItems(Guid id, CancellationToken ct) => await keys.KeyRemovalItemsAsync(id, ct);
 
     /// <summary>A user's keys and where each is authorized: for <i>Admin → Users</i> and offboarding.</summary>
@@ -71,15 +78,18 @@ public sealed class SshKeysController(SshKeyService keys) : V1ControllerBase
 
     /// <summary>Offboarding's preview: every place any key of the user is authorized.</summary>
     [HttpPost("users/{userId:guid}/removal-items")]
+    [NotAudited("a preview of a removal: changes nothing")]
     public async Task<ActionResult<SshKeyRemovalPreview>> UserRemovalItems(Guid userId, CancellationToken ct) => await keys.UserRemovalItemsAsync(userId, ct);
 
     /// <summary>Offboarding: retires every key of the user and removes each from every server and account. <c>confirm</c>: the number of removals. Audited.</summary>
     [HttpPost("users/{userId:guid}/offboard")]
+    [Audit(AuditEvents.SshKeyRetired)]
     public async Task<ActionResult<SshKeyOffboardResult>> Offboard(Guid userId, SshKeyOffboardRequest request, CancellationToken ct) =>
         await keys.OffboardAsync(userId, request, ct);
 
     /// <summary>The remove dialog: each item allowed or refused (from the server's rights), and its warnings.</summary>
     [HttpPost("remove/preview")]
+    [NotAudited("a preview of a removal: changes nothing")]
     public async Task<ActionResult<SshKeyRemovalPreview>> RemovePreview(SshKeyRemovalPreviewRequest request, CancellationToken ct) => await keys.PreviewAsync(request, ct);
 
     /// <summary>
@@ -87,6 +97,7 @@ public sealed class SshKeysController(SshKeyService keys) : V1ControllerBase
     /// server (sent when it connects, at most Agents__KeyRemovalPendingDays), or refused where the server doesn't allow it. Audited.
     /// </summary>
     [HttpPost("remove")]
+    [Audit(AuditEvents.SshKeyRemoved)]
     public async Task<ActionResult<SshKeyRemoveResult>> Remove(SshKeyRemoveRequest request, CancellationToken ct) => await keys.RemoveAsync(request, ct);
 }
 

@@ -20,6 +20,7 @@ public sealed class DnsZonesController(DnsZoneService zones) : V1ControllerBase
 
     [HttpPost]
     [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.DnsZoneCreated)]
     public async Task<ActionResult<DnsZoneDetail>> Create(DnsZoneRequest request, CancellationToken ct)
     {
         var zone = await zones.CreateAsync(request, ct);
@@ -28,11 +29,13 @@ public sealed class DnsZonesController(DnsZoneService zones) : V1ControllerBase
 
     [HttpPut("{id:guid}")]
     [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.DnsZoneUpdated)]
     public async Task<ActionResult<DnsZoneDetail>> Update(Guid id, DnsZoneRequest request, CancellationToken ct) =>
         await zones.UpdateAsync(id, request, ct);
 
     [HttpDelete("{id:guid}")]
     [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.DnsZoneDeleted)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         await zones.DeleteAsync(id, ct);
@@ -41,6 +44,7 @@ public sealed class DnsZonesController(DnsZoneService zones) : V1ControllerBase
 
     [HttpPost("{id:guid}/force-update")]
     [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.DnsZoneUpdateForced)]
     public async Task<IActionResult> ForceUpdate(Guid id, CancellationToken ct)
     {
         await zones.ForceUpdateAsync(id, ct);
@@ -49,6 +53,7 @@ public sealed class DnsZonesController(DnsZoneService zones) : V1ControllerBase
 
     [HttpPut("{id:guid}/records/{recordId:guid}")]
     [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.DnsRecordUpdated)]
     public async Task<ActionResult<DnsRecord>> UpdateRecord(Guid id, Guid recordId, DnsRecordRequest request, CancellationToken ct) =>
         await zones.UpdateRecordAsync(id, recordId, request, ct);
 

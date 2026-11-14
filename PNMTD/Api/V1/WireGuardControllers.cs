@@ -21,6 +21,7 @@ public sealed class WireGuardController(WireGuardService wireGuard, WireGuardTun
 
     /// <summary>Changes the settings; one the environment sets is refused. A new prefix needs <c>confirmPrefix</c>. Audit-logged.</summary>
     [HttpPut("network")]
+    [Audit(AuditEvents.WireGuardNetworkChanged)]
     public async Task<ActionResult<WireGuardNetworkSaved>> SaveNetwork(WireGuardNetworkRequest request, CancellationToken ct) =>
         await wireGuard.UpdateNetworkAsync(request, ct);
 
@@ -33,14 +34,17 @@ public sealed class WireGuardController(WireGuardService wireGuard, WireGuardTun
     public async Task<ActionResult<IReadOnlyList<WireGuardTunnelItem>>> Tunnels(CancellationToken ct) => Ok(await tunnels.ListAsync(null, ct));
 
     [HttpPost("tunnels")]
+    [Audit(AuditEvents.WireGuardTunnelCreated)]
     public async Task<ActionResult<WireGuardTunnelItem>> CreateTunnel(WireGuardTunnelRequest request, CancellationToken ct) =>
         await tunnels.CreateAsync(request, ct);
 
     [HttpPut("tunnels/{id:guid}")]
+    [Audit(AuditEvents.WireGuardTunnelChanged)]
     public async Task<ActionResult<WireGuardTunnelItem>> UpdateTunnel(Guid id, WireGuardTunnelRequest request, CancellationToken ct) =>
         await tunnels.UpdateAsync(id, request, ct);
 
     [HttpDelete("tunnels/{id:guid}")]
+    [Audit(AuditEvents.WireGuardTunnelDeleted)]
     public async Task<IActionResult> DeleteTunnel(Guid id, CancellationToken ct)
     {
         await tunnels.DeleteAsync(id, ct);
@@ -49,6 +53,7 @@ public sealed class WireGuardController(WireGuardService wireGuard, WireGuardTun
 
     /// <summary>New keys: every downloaded file stops working. Audit-logged.</summary>
     [HttpPost("tunnels/{id:guid}/regenerate-keys")]
+    [Audit(AuditEvents.WireGuardKeysRegenerated)]
     public async Task<ActionResult<WireGuardTunnelItem>> RegenerateTunnel(Guid id, CancellationToken ct) => await tunnels.RegenerateAsync(id, ct);
 
     /// <summary>The wg-quick file (the UI also shows it as a QR code). It holds a private key: audit-logged.</summary>

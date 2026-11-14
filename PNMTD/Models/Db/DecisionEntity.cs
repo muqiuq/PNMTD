@@ -20,6 +20,7 @@ public enum DecisionState : short
 /// who decided what and when. One open decision per dedupe key: more of the same raise its occurrences.
 /// </summary>
 [Table("decisions")]
+[Audited]
 public class DecisionEntity
 {
     [Key]
@@ -51,6 +52,7 @@ public class DecisionEntity
     public Guid? SourceId { get; set; }
 
     [MaxLength(300)]
+    [AuditPlain("a grouping key")]
     public string? DedupeKey { get; set; }
 
     public int Occurrences { get; set; } = 1;

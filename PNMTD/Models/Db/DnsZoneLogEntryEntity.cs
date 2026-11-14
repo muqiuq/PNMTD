@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace PNMTD.Models.Db
 {
     [Table("dnszonelogentries")]
+    [NotAudited("the DNS check's log")]
     public class DnsZoneLogEntryEntity
     {
         [Key]

@@ -42,6 +42,7 @@ public enum FindingSeverity : short
 /// the AI's status and summary, with the real names mapped back.
 /// </summary>
 [Table("ai_analysis_runs")]
+[NotAudited("the AI's work")]
 public class AiAnalysisRunEntity
 {
     [Key]
@@ -88,6 +89,7 @@ public class AiAnalysisRunEntity
 
 /// <summary>A finding of a run (§9.3), its texts with the real names mapped back.</summary>
 [Table("ai_findings")]
+[NotAudited("the AI's findings")]
 public class AiFindingEntity
 {
     [Key]

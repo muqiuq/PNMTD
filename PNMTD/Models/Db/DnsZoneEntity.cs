@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace PNMTD.Models.Db
 {
     [Table("dnszones")]
+    [Audited]
     public class DnsZoneEntity
     {
         [Key]
@@ -11,19 +12,29 @@ namespace PNMTD.Models.Db
 
         public bool Enabled { get; set; }
 
+        [AuditIgnore]
+
         public bool RequiresProcessing { get; set; }
 
         public bool ForceUpdate { get; set; }
 
         public int Interval { get; set; }
 
+        [AuditIgnore]
+
         public DateTime LastChecked { get; set; }
 
+        [AuditIgnore]
+
         public DateTime NextCheck { get; set; }
+
+        [AuditIgnore]
 
         public bool RecordsMatch { get; set; }
 
         public string ZoneName { get; set; }
+
+        [AuditText]
 
         public string ZoneFileContent { get; set; }
 

@@ -10,6 +10,7 @@ namespace PNMTD.Models.Db;
 /// win over the ones stored here.
 /// </summary>
 [Table("wg_network")]
+[Audited]
 public class WgNetworkEntity
 {
     public const int SingletonId = 1;
@@ -21,9 +22,12 @@ public class WgNetworkEntity
     /// <summary>"10.253.0.0/16".</summary>
     public string Prefix { get; set; } = "";
 
+    [AuditPlain("a public key")]
+
     public string PublicKey { get; set; } = "";
 
     /// <summary>The gateway's private key, under Data Protection (purpose PNMTD.WireGuard.Key.v1).</summary>
+    [AuditSecret]
     public string PrivateKeyProtected { get; set; } = "";
 
     public int KeepaliveSeconds { get; set; } = 25;
@@ -41,6 +45,7 @@ public class WgNetworkEntity
     public int[] ManagementPorts { get; set; } = [22, 8291, 80, 443];
 
     /// <summary>The SOCKS5 password between the app and the gateway (§3.4), under Data Protection.</summary>
+    [AuditSecret]
     public string SocksSecretProtected { get; set; } = "";
 
     /// <summary>When a setting that the join scripts carry last changed: scripts generated before are outdated.</summary>
@@ -62,6 +67,7 @@ public class WgNetworkEntity
 
 /// <summary>A tunnel: a router's, or a custom one (§3.5). PNMTD generated its keys.</summary>
 [Table("wg_peers")]
+[Audited]
 public class WgPeerEntity
 {
     [Key]
@@ -76,12 +82,19 @@ public class WgPeerEntity
     /// <summary>Inside the prefix, after the server block.</summary>
     public string Address { get; set; } = "";
 
+    [AuditPlain("a public key")]
+
     public string PublicKey { get; set; } = "";
 
     /// <summary>Under Data Protection: the join script and the tunnel file show it again (§3.2).</summary>
+    [AuditSecret]
     public string PrivateKeyProtected { get; set; } = "";
 
+    [AuditIgnore]
+
     public DateTime KeysCreatedAt { get; set; }
+
+    [AuditIgnore]
 
     public Guid? KeysCreatedBy { get; set; }
 
@@ -104,6 +117,7 @@ public class WgPeerEntity
 
 /// <summary>A peer's tunnel as the gateway sees it, every 15 seconds (§3.2). Written by the gateway only.</summary>
 [Table("wg_peer_status")]
+[NotAudited("the tunnel's state, observed")]
 public class WgPeerStatusEntity
 {
     [Key]
@@ -125,6 +139,7 @@ public class WgPeerStatusEntity
 
 /// <summary>The routers a custom tunnel may reach, when not all of them (§3.5); each only with its management access on.</summary>
 [Table("wg_peer_access")]
+[Audited]
 public class WgPeerAccessEntity
 {
     public Guid PeerId { get; set; }

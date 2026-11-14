@@ -24,6 +24,7 @@ public enum FileKind
 /// (<see cref="DeletedAt"/>); FileCleanupTask removes it from the disk 7 days later, an Admin's delete at once.
 /// </summary>
 [Table("files")]
+[Audited]
 public class FileEntity
 {
     [Key]
@@ -52,13 +53,19 @@ public class FileEntity
 
     /// <summary>Relative to the folder, from the id and a slug only: <c>2026/11/{id}-cage-b.png</c>.</summary>
     [MaxLength(512)]
+    [AuditIgnore]
     public string Path { get; set; } = "";
 
+    [AuditIgnore]
+
     public DateTime CreatedAt { get; set; }
+
+    [AuditIgnore]
 
     public Guid? CreatedBy { get; set; }
 
     [MaxLength(200)]
+    [AuditIgnore]
     public string? CreatedByName { get; set; }
 
     public DateTime? DeletedAt { get; set; }
@@ -69,6 +76,7 @@ public class FileEntity
 /// lasts as long as its page or location, since their revisions and history keep the reference.
 /// </summary>
 [Table("file_uses")]
+[NotAudited("which page or field uses a file: derived from their saves")]
 public class FileUseEntity
 {
     [Key]

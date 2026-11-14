@@ -120,11 +120,27 @@ public sealed class AuditChangesInterceptor : SaveChangesInterceptor
             var policy = Policy.Of(entry.Metadata.ClrType);
             var id = Key(entry);
             var name = policy.NameProperty is { } p ? entry.Property(p).CurrentValue as string ?? entry.Property(p).OriginalValue as string : null;
+            Guid? hostLocation = null;
+            if (entry.Entity is Models.Db.SensorEntity sensor)
+            {
+                // A sensor is "host / sensor" everywhere in PNMT, and belongs to its host's location too.
+                var host = sensor.Parent as Models.Db.HostEntity
+                    ?? ((PnmtdDbContext)entry.Context).Hosts.Local.FirstOrDefault(h => h.Id == sensor.ParentId);
+                var known = host is not null ? (host.Name, host.LocationId)
+                    : ((PnmtdDbContext)entry.Context).Hosts.AsNoTracking().Where(h => h.Id == sensor.ParentId)
+                        .Select(h => new ValueTuple<string, Guid?>(h.Name, h.LocationId)).FirstOrDefault();
+                if (known.Item1 is not null)
+                {
+                    name = $"{known.Item1} / {name}";
+                    hostLocation = known.Item2;
+                }
+            }
             var label = name is null ? policy.Label : $"{policy.Label} {name}";
             var isTarget = targetType == policy.Label;
             if (isTarget && (scope.Target is null || scope.Target.Id == id || scope.RouteId == id || scope.RouteId is null))
             {
-                scope.SuggestTarget(new AuditTarget(policy.Label, id, name, Subjects(entry, policy)));
+                scope.SuggestTarget(new AuditTarget(policy.Label, id, name,
+                    hostLocation is { } location ? [.. Subjects(entry, policy), location] : Subjects(entry, policy)));
             }
             switch (entry.State)
             {

@@ -19,6 +19,7 @@ public enum NotificationScopeKind : short
 
 /// <summary>A lasting assignment of a rule to many sensors (§11.2), next to its links to single sensors.</summary>
 [Table("notification_rule_scopes")]
+[Audited]
 public class NotificationRuleScopeEntity
 {
     [Key]
@@ -48,6 +49,7 @@ public class NotificationRuleScopeEntity
 
 /// <summary>A sensor a rule's scopes must not cover (§11.2): "everything on host X except its ping sensor". Links still apply.</summary>
 [Table("notification_rule_exclusions")]
+[Audited]
 public class NotificationRuleExclusionEntity
 {
     public Guid RuleId { get; set; }

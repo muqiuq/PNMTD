@@ -13,6 +13,7 @@ public enum ReleaseSeverity : short
 
 /// <summary>A RouterOS release from MikroTik's feed (§10.2), with its assessment. Kept 2 years.</summary>
 [Table("mikrotik_releases")]
+[NotAudited("RouterOS releases, fetched")]
 public class MikrotikReleaseEntity
 {
     [Key]

@@ -22,6 +22,7 @@ public sealed class DecisionsController(DecisionService decisions) : V1Controlle
     public async Task<ActionResult<DecisionDetail>> Get(Guid id, CancellationToken ct) => await decisions.GetAsync(id, ct);
 
     [HttpPost("{id:guid}/decide")]
+    [Audit(AuditEvents.DecisionDecided)]
     public async Task<ActionResult<DecisionDetail>> Decide(Guid id, DecideRequest request, CancellationToken ct) =>
         await decisions.DecideAsync(id, request, ct);
 }
