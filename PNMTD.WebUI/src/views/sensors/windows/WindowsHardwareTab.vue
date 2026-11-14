@@ -100,7 +100,7 @@ const healthSeverity = (h: string | null | undefined) =>
         <DataTable :value="hw.volumes" size="small">
           <Column header="Volume" style="width: 10rem">
             <template #body="{ data }"
-              >{{ data.letter }} <span class="muted">{{ data.label }}</span></template
+              >{{ data.mount }} <span class="muted">{{ data.label }}</span></template
             >
           </Column>
           <Column field="fileSystem" header="File system" style="width: 8rem" />
@@ -113,7 +113,7 @@ const healthSeverity = (h: string | null | undefined) =>
             </template>
           </Column>
           <Column header="BitLocker" style="width: 8rem">
-            <template #body="{ data }">{{ data.bitLocker ?? '–' }}</template>
+            <template #body="{ data }">{{ data.encryption ?? '–' }}</template>
           </Column>
         </DataTable>
       </section>

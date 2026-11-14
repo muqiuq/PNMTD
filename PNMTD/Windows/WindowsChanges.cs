@@ -172,7 +172,7 @@ public sealed class WindowsChanges
                 changes.Add(new($"Disk {Disk(disk)}: SMART predicts a failure", true));
             }
         }
-        Sets(changes, a.Volumes.Select(v => v.Letter), b.Volumes.Select(v => v.Letter), v => $"Volume {v} added", v => $"Volume {v} removed", notable: false);
+        Sets(changes, a.Volumes.Select(v => v.Mount), b.Volumes.Select(v => v.Mount), v => $"Volume {v} added", v => $"Volume {v} removed", notable: false);
         return changes;
     }
 

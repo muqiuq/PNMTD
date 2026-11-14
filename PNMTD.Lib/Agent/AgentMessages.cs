@@ -27,8 +27,10 @@ public sealed record SignedContent(string Type, Guid AgentId, string RequestId, 
 public sealed record Challenge(string Nonce, DateTimeOffset ServerTime);
 
 /// <summary>
-/// The Windows version an agent runs on (§3.9). <see cref="Supported"/> is the agent's own check: another version is
-/// flagged in PNMT, and the agent runs anyway.
+/// The OS an agent runs on (§3.9). <see cref="Supported"/> is the agent's own check: another version is flagged in PNMT, and
+/// the agent runs anyway. On Linux (docs/linux-sensor-plan.md §4.8): the caption is os-release's PRETTY_NAME, the edition its
+/// ID (debian, ubuntu, or proxmox on Proxmox VE), the version VERSION_ID, the build the kernel's release, and the display
+/// version the codename.
 /// </summary>
 public sealed record AgentOs(string Caption, string? Edition, string? Version, string Build, string? DisplayVersion, bool Supported, string? ProductType = null);
 
@@ -44,7 +46,30 @@ public sealed record Hello(
     string Origin,
     string Signature,
     bool RestartedAfterCrash = false,
-    string? EncryptionKey = null);
+    string? EncryptionKey = null,
+    AgentPlatform Platform = AgentPlatform.Windows,
+    AgentRightsSummary? Rights = null);
+
+/// <summary>
+/// What the server's own configuration allows PNMT (docs/linux-sensor-plan.md §4.6): in the hello, which PNMT shows and uses to
+/// grey out what a server refuses. On Linux from /etc/pnmt-agent/config.yaml; <see cref="Source"/> says whether the file was
+/// applied (<c>config.yaml</c>), missing (<c>defaults</c>) or refused (<c>refused</c>, with <see cref="Problem"/>): a refused
+/// file grants nothing.
+/// </summary>
+public sealed record AgentRightsSummary(
+    string Source,
+    string? Problem,
+    bool KeyRemoval,
+    IReadOnlyList<string> KeyRemovalUsers,
+    int ProtectedKeys,
+    IReadOnlyList<string> WritablePaths,
+    bool Scripts,
+    IReadOnlyList<string> ScriptRunAs,
+    int AllowedScriptHashes,
+    int MaxScriptTimeoutMinutes,
+    bool SudoCommands,
+    bool CronCommands,
+    IReadOnlyList<string>? Warnings = null);
 
 /// <summary>
 /// The configuration (§3.6): sent signed in <c>welcome</c> after the hello, and as <c>config</c> when it changes. The agent
@@ -144,7 +169,8 @@ public sealed record JoinRequest(
     string AgentVersion,
     string Architecture,
     string? MachineGuid,
-    string? Name);
+    string? Name,
+    AgentPlatform Platform = AgentPlatform.Windows);
 
 /// <summary>
 /// The join's answer. <see cref="Signed"/> carries the agent's identity and first configuration (<see cref="JoinGrant"/>),
@@ -157,3 +183,42 @@ public sealed record JoinGrant(Guid AgentId, Guid SensorId, string SensorName, s
 
 /// <summary>A refused join or request: a stable code and a sentence for the window.</summary>
 public sealed record AgentError(string Code, string Message);
+
+// --- the agents' files (docs/linux-sensor-plan.md §4.4) ------------------------------------------------------
+
+/// <summary>A file PNMTD serves: its name, size and SHA-256 (hex, lower case), checked against the release's <c>.sha256</c>.</summary>
+public sealed record DownloadAsset(string Name, long Size, string Sha256);
+
+/// <summary>
+/// <c>GET /agent/v1/download</c>'s signed part (<see cref="AgentMessageTypes.DownloadManifest"/>, agent id empty): PNMTD's
+/// version and the files it has. <c>pnmt-agent update</c> checks it against the key it pinned at the join, so a TLS-inspecting
+/// proxy can't hand over another binary.
+/// </summary>
+public sealed record DownloadManifest(string Version, IReadOnlyList<DownloadAsset> Assets);
+
+/// <summary><c>GET /agent/v1/download</c>: the manifest, signed with PNMTD's agent signing key, and that key's fingerprint.</summary>
+public sealed record DownloadManifestResponse(string SigningKeyFingerprint, SignedEnvelope Signed);
+
+// --- removing SSH keys (docs/linux-sensor-plan.md §6.5) ------------------------------------------------------
+
+/// <summary>
+/// PNMTD → agent (signed): remove every line with this key from this account's file. The agent checks config.yaml, the account,
+/// the protected keys, and that the path is one it found itself for that account; PNMT can't name any other path.
+/// </summary>
+public sealed record RemoveSshKeyRequest(Guid RemovalId, string Account, string Path, string Fingerprint);
+
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SshKeyRemovalOutcome>))]
+public enum SshKeyRemovalOutcome { Removed, NotFound, Refused, Failed }
+
+/// <summary>
+/// Agent → PNMTD: what a removal did: the lines removed, the backup's name (for <c>pnmt-agent keys restore</c>), the file's new
+/// SHA-256, or why not. Like <c>log</c> for <c>send-log</c>, it completes the waiting request.
+/// </summary>
+public sealed record SshKeyRemovalResult(
+    string RequestId,
+    Guid RemovalId,
+    SshKeyRemovalOutcome Outcome,
+    int LinesRemoved,
+    string? Backup,
+    string? NewFileHash,
+    string? Message);

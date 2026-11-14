@@ -14751,7 +14751,10 @@
           "Unlock",
           "Explicit",
           "Batch",
-          "Lockout"
+          "Lockout",
+          "Sudo",
+          "Su",
+          "Sftp"
         ]
       },
       "LogonOutcome": {
@@ -19688,7 +19691,8 @@
           "Service",
           "Stored",
           "TypedPerRun",
-          "Gmsa"
+          "Gmsa",
+          "User"
         ]
       },
       "ScheduledTaskState": {
@@ -20598,7 +20602,8 @@
           "MIKROTIK",
           "SYSTEM",
           "WINDOWS",
-          "DIAGNOSTICS"
+          "DIAGNOSTICS",
+          "LINUX"
         ]
       },
       "SensorTypeInfo": {
@@ -23825,16 +23830,16 @@
       },
       "VolumeInfo": {
         "required": [
-          "letter",
+          "mount",
           "label",
           "fileSystem",
           "sizeBytes",
           "freeBytes",
-          "bitLocker"
+          "encryption"
         ],
         "type": "object",
         "properties": {
-          "letter": {
+          "mount": {
             "type": "string"
           },
           "label": {
@@ -23863,7 +23868,7 @@
             ],
             "format": "int64"
           },
-          "bitLocker": {
+          "encryption": {
             "type": [
               "null",
               "string"

@@ -64,6 +64,20 @@ namespace PNMTD.Lib.Models
         public const int WINDOWS_CRITICAL_EVENT = 453;
         public const int WINDOWS_LOGIN_FAILURES = 454;
 
+        /// <summary>
+        /// Linux servers (docs/linux-sensor-plan.md §9.2): the heartbeat, a restart, a notable change, admin logins; the agent's
+        /// problems, pending security updates, critical journal entries, login failures, and keys that aren't registered as active.
+        /// </summary>
+        public const int LINUX_OK = 260;
+        public const int LINUX_RESTARTED = 261;
+        public const int LINUX_CHANGED = 263;
+        public const int LINUX_ADMIN_LOGIN = 264;
+        public const int LINUX_AGENT_PROBLEM = 461;
+        public const int LINUX_SECURITY_UPDATES = 462;
+        public const int LINUX_CRITICAL_ENTRY = 463;
+        public const int LINUX_LOGIN_FAILURES = 464;
+        public const int LINUX_KEY_ADDED = 465;
+
         /// <summary>Diagnostics (docs/windows-sensor-plan.md §5.4): every check passed, or at least one failed.</summary>
         public const int DIAGNOSTICS_OK = 252;
         public const int DIAGNOSTICS_FAILED = 452;

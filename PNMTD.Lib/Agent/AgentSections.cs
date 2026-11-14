@@ -1,8 +1,10 @@
 namespace PNMTD.Lib.Agent;
 
-// The sections an agent reports (docs/windows-sensor-plan.md §4), shared by the agent, PNMTD and
-// the API's typed answers. A field the agent could not read is null, and the collector's error is
-// in the section's errors. Lists are capped on PNMTD's side when they are stored.
+// The sections an agent reports (docs/windows-sensor-plan.md §4; Linux: docs/linux-sensor-plan.md §5
+// and AgentLinux.cs), shared by the agents, PNMTD and the API's typed answers. A field the agent could
+// not read is null, and the collector's error is in the section's errors. Lists are capped on PNMTD's
+// side when they are stored. hardware and network are the same records on both platforms; system,
+// services, remote-access and access are named the same and typed by the agent's platform.
 
 /// <summary>The sections' names and the schema version they are sent with.</summary>
 public static class SectionNames
@@ -17,11 +19,27 @@ public static class SectionNames
     public const string Scripts = "scripts";
     public const string Wmi = "wmi";
 
+    /// <summary>Linux: the newest journal entries at warning or above (docs/linux-sensor-plan.md §5.7).</summary>
+    public const string Journal = "journal";
+
+    /// <summary>Linux: sshd's key settings, every authorized_keys file and its keys (docs/linux-sensor-plan.md §6.1).</summary>
+    public const string SshKeys = "ssh-keys";
+
     public const int SchemaVersion = 1;
 
-    public static readonly IReadOnlyList<string> All = [System, Hardware, Network, Services, RemoteAccess, Access, EventLog, Scripts, Wmi];
+    /// <summary>What a Windows agent sends.</summary>
+    public static readonly IReadOnlyList<string> Windows = [System, Hardware, Network, Services, RemoteAccess, Access, EventLog, Scripts, Wmi];
+
+    /// <summary>What a Linux agent sends.</summary>
+    public static readonly IReadOnlyList<string> Linux = [System, Hardware, Network, Services, RemoteAccess, Access, Journal, SshKeys];
+
+    public static readonly IReadOnlyList<string> All = [.. Windows, Journal, SshKeys];
 
     public static bool IsKnown(string? name) => name is not null && All.Contains(name);
+
+    public static IReadOnlyList<string> For(AgentPlatform platform) => platform == AgentPlatform.Linux ? Linux : Windows;
+
+    public static bool IsKnown(AgentPlatform platform, string? name) => name is not null && For(platform).Contains(name);
 }
 
 // --- system (§4.2) -----------------------------------------------------------------------------------------
@@ -112,7 +130,11 @@ public sealed record MemoryModule(string? Slot, long SizeBytes, int? SpeedMhz, s
 public sealed record DiskInfo(string? Number, string Model, long? SizeBytes, string? Media, string? Bus, string? Health, string? OperationalStatus,
     bool? PredictFailure, string? SerialNumber = null);
 
-public sealed record VolumeInfo(string Letter, string? Label, string? FileSystem, long? SizeBytes, long? FreeBytes, string? BitLocker);
+/// <summary>
+/// A volume: its mount (a drive letter, <c>C:</c>, on Windows; the mount point, <c>/var</c>, on Linux), label, file system, size,
+/// free space, and its encryption (BitLocker's protection on Windows, <c>LUKS</c> on Linux).
+/// </summary>
+public sealed record VolumeInfo(string Mount, string? Label, string? FileSystem, long? SizeBytes, long? FreeBytes, string? Encryption);
 
 public sealed record GpuInfo(string Name, string? DriverVersion, long? MemoryBytes);
 
@@ -237,14 +259,16 @@ public sealed record SecurityLogInfo(long MaxBytes, DateTimeOffset? OldestAt, do
 public sealed record AccessCounts(int Successes, int Failures, int AdminLogins, int Lockouts);
 
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LogonKind>))]
-public enum LogonKind { Console, Rdp, RdpConnection, Ssh, WinRm, Network, Cached, Unlock, Explicit, Batch, Lockout }
+public enum LogonKind { Console, Rdp, RdpConnection, Ssh, WinRm, Network, Cached, Unlock, Explicit, Batch, Lockout, Sudo, Su, Sftp }
 
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LogonOutcome>))]
 public enum LogonOutcome { Success, Failure }
 
 /// <summary>
 /// A login or connection (§4.7), or an aggregate of identical ones within 10 minutes (<see cref="Count"/> above 1). Identified by
-/// its log and the record id of its first event: sending it again (a higher count, a logoff) updates it.
+/// its log and the record id of its first event: sending it again (a higher count, a logoff) updates it. On Linux
+/// (docs/linux-sensor-plan.md §5.6) the channel is the journal (<c>journal</c>), the record id a 64-bit hash of the first entry's
+/// cursor, <see cref="KeyFingerprint"/> the key of an SSH key login, and <see cref="TargetUser"/> whom sudo or su became.
 /// </summary>
 public sealed record LoginRecord(
     string Channel,
@@ -264,7 +288,10 @@ public sealed record LoginRecord(
     string? Workstation,
     bool? Elevated,
     string? LogonId,
-    DateTimeOffset? LoggedOffAt);
+    DateTimeOffset? LoggedOffAt,
+    string? KeyFingerprint = null,
+    string? TargetUser = null,
+    string? Command = null);
 
 /// <summary>Agent → PNMTD: logins and connections, read from the logs every 15 seconds, or buffered while offline.</summary>
 public sealed record AccessBatch(IReadOnlyList<LoginRecord> Entries);

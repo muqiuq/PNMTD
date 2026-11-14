@@ -9232,7 +9232,7 @@ export interface components {
             flags: null | components["schemas"]["SessionFlags"];
         };
         /** @enum {unknown} */
-        LogonKind: "Console" | "Rdp" | "RdpConnection" | "Ssh" | "WinRm" | "Network" | "Cached" | "Unlock" | "Explicit" | "Batch" | "Lockout";
+        LogonKind: "Console" | "Rdp" | "RdpConnection" | "Ssh" | "WinRm" | "Network" | "Cached" | "Unlock" | "Explicit" | "Batch" | "Lockout" | "Sudo" | "Su" | "Sftp";
         /** @enum {unknown} */
         LogonOutcome: "Success" | "Failure";
         MachineInfo: {
@@ -10520,7 +10520,7 @@ export interface components {
             examples: string[];
         };
         /** @enum {unknown} */
-        RunAsKind: "Service" | "Stored" | "TypedPerRun" | "Gmsa";
+        RunAsKind: "Service" | "Stored" | "TypedPerRun" | "Gmsa" | "User";
         ScheduledTaskState: {
             state: string;
             /** Format: date-time */
@@ -10735,7 +10735,7 @@ export interface components {
             childCount: number;
         };
         /** @enum {unknown} */
-        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN" | "UDP_NODE" | "MIKROTIK" | "SYSTEM" | "WINDOWS" | "DIAGNOSTICS";
+        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN" | "UDP_NODE" | "MIKROTIK" | "SYSTEM" | "WINDOWS" | "DIAGNOSTICS" | "LINUX";
         SensorTypeInfo: {
             type: components["schemas"]["SensorType"];
             description: string;
@@ -11540,14 +11540,14 @@ export interface components {
             passwordChangedAt: null | string;
         };
         VolumeInfo: {
-            letter: string;
+            mount: string;
             label: null | string;
             fileSystem: null | string;
             /** Format: int64 */
             sizeBytes: null | number;
             /** Format: int64 */
             freeBytes: null | number;
-            bitLocker: null | string;
+            encryption: null | string;
         };
         /** @enum {unknown} */
         WgPeerKind: "Router" | "Custom";

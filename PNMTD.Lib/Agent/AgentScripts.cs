@@ -6,12 +6,17 @@ using System.Text.Json.Serialization;
 
 namespace PNMTD.Lib.Agent;
 
-// PowerShell scripts (docs/windows-sensor-plan.md §7, W6): parsed on an agent (never run for
-// that), run only where an administrator allowed it on the server itself, as the service, an
-// account stored on that server, an account whose password is typed per run, or a gMSA.
+// Scripts (docs/windows-sensor-plan.md §7, W6; bash: docs/linux-sensor-plan.md §8): parsed on an
+// agent (never run for that), run only where an administrator allowed it on the server itself. On
+// Windows as the service, an account stored on that server, an account whose password is typed per
+// run, or a gMSA; on Linux as root (the service) or a local account by name (User).
 
 [JsonConverter(typeof(JsonStringEnumConverter<RunAsKind>))]
-public enum RunAsKind { Service, Stored, TypedPerRun, Gmsa }
+public enum RunAsKind { Service, Stored, TypedPerRun, Gmsa, User }
+
+/// <summary>A script's language: PowerShell runs on Windows servers, bash on Linux servers.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<ScriptLanguage>))]
+public enum ScriptLanguage { PowerShell, Bash }
 
 [JsonConverter(typeof(JsonStringEnumConverter<ScriptRunState>))]
 public enum ScriptRunState { Sent, Running, Done, Failed, Refused, TimedOut, Offline }
@@ -129,7 +134,7 @@ public static class ScriptArguments
             {
                 yield return ($"arguments.{parameter.Name}", $"{parameter.Name} must be one of {string.Join(", ", set)}.");
             }
-            var numeric = parameter.Type.ToLowerInvariant() is "int" or "int32" or "int64" or "long" or "double" or "decimal" or "byte" or "uint32";
+            var numeric = parameter.Type.ToLowerInvariant() is "int" or "int32" or "int64" or "long" or "double" or "decimal" or "byte" or "uint32" or "number";
             if (numeric && !double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
             {
                 yield return ($"arguments.{parameter.Name}", $"{parameter.Name} must be a number.");

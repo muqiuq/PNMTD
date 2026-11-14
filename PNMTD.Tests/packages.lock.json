@@ -475,7 +475,10 @@
         }
       },
       "pnmtd.lib": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "YamlDotNet": "[16.3.0, )"
+        }
       },
       "BouncyCastle.Cryptography": {
         "type": "CentralTransitive",
@@ -577,6 +580,12 @@
         "requested": "[10.0.15, )",
         "resolved": "10.0.15",
         "contentHash": "d1ynyO/BvCyi8SI1m6/xASazxrZm20V/mTDJay4qmL947RsA5MEiMk1JWvafw6JX005VVBAHvjWQP1dRRBvYKw=="
+      },
+      "YamlDotNet": {
+        "type": "CentralTransitive",
+        "requested": "[16.3.0, )",
+        "resolved": "16.3.0",
+        "contentHash": "SgMOdxbz8X65z8hraIs6hOEdnkH6hESTAIUa7viEngHOYaH+6q5XJmwr1+yb9vJpNQ19hCQY69xbFsLtXpobQA=="
       }
     }
   }

@@ -30,6 +30,10 @@
     <PackageVersion Include="System.Diagnostics.EventLog" Version="10.0.15" />
     <PackageVersion Include="System.ServiceProcess.ServiceController" Version="10.0.15" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.15" />
+    <!-- The Linux agent (docs/linux-sensor-plan.md §4.1): Type=notify and the watchdog; config.yaml and bash script headers
+         (YamlDotNet, read through its representation model only: no reflection). -->
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.15" />
+    <PackageVersion Include="YamlDotNet" Version="16.3.0" />
     <!-- Tests: MSTest 4 on Microsoft.Testing.Platform (global.json), as in plm. -->
     <PackageVersion Include="MSTest.TestFramework" Version="4.5.2" />
     <PackageVersion Include="MSTest.TestAdapter" Version="4.5.2" />

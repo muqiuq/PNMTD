@@ -1,2 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <!-- Bash scripts' parameter headers (docs/linux-sensor-plan.md §8.2), read on PNMTD and on the Linux agent. -->
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
 </Project>

@@ -5,9 +5,9 @@ using System.Text.Json.Serialization;
 namespace PNMTD.Lib.Agent;
 
 /// <summary>
-/// The protocol between PNMTD and its agents (docs/windows-sensor-plan.md §3.5, §3.6): the paths on PNMT's existing
-/// address and port, the WebSocket subprotocol, the message types, the close codes and the capabilities. Shared by
-/// PNMTD, the Windows agent and <c>pnmtd windows simulate</c>.
+/// The protocol between PNMTD and its agents (docs/windows-sensor-plan.md §3.5, §3.6; docs/linux-sensor-plan.md §3.4): the
+/// paths on PNMT's existing address and port, the WebSocket subprotocol, the message types, the close codes and the
+/// capabilities. Shared by PNMTD, the Windows and Linux agents and <c>pnmtd agent simulate</c>.
 /// </summary>
 public static class AgentProtocol
 {
@@ -18,6 +18,13 @@ public static class AgentProtocol
     public const string JoinPath = "/agent/v1/join";
 
     public const string WebSocketPath = "/agent/v1/ws";
+
+    /// <summary>
+    /// The agents' files, served by PNMTD itself (docs/linux-sensor-plan.md §4.4): <c>GET /agent/v1/download</c> answers the
+    /// signed manifest, <c>GET /agent/v1/download/{asset}</c> one of <see cref="AgentDownloadAssets.All"/>. Anonymous: a server
+    /// isn't joined yet when it downloads, and the files are public on GitHub anyway.
+    /// </summary>
+    public const string DownloadPath = "/agent/v1/download";
 
     /// <summary>A message, compressed or not (§3.5): 4 MiB on the wire, 16 MiB decompressed.</summary>
     public const int DefaultMaxMessageBytes = 4 * 1024 * 1024;
@@ -32,6 +39,40 @@ public static class AgentProtocol
 
     /// <summary>How long a signed request from PNMTD is valid (§3.6).</summary>
     public static readonly TimeSpan RequestLifetime = TimeSpan.FromMinutes(5);
+}
+
+/// <summary>
+/// The platform an agent runs on (docs/linux-sensor-plan.md §3.4): in the hello and the join, optional, Windows when missing, so
+/// Windows agents built before it need no change. A join token is made for one platform.
+/// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter<AgentPlatform>))]
+public enum AgentPlatform { Windows, Linux }
+
+/// <summary>The files PNMTD serves under <see cref="AgentProtocol.DownloadPath"/>: a fixed list, anything else is 404.</summary>
+public static class AgentDownloadAssets
+{
+    public const string LinuxX64 = "pnmt-agent-linux-x64";
+    public const string LinuxArm64 = "pnmt-agent-linux-arm64";
+    public const string WindowsX64 = "pnmt-sensor-x64.exe";
+    public const string WindowsArm64 = "pnmt-sensor-arm64.exe";
+
+    /// <summary>The executables; each has its <c>.sha256</c> next to it (<c>sha256sum</c>'s format: the hash, two spaces, the name).</summary>
+    public static readonly IReadOnlyList<string> Executables = [LinuxX64, LinuxArm64, WindowsX64, WindowsArm64];
+
+    public static readonly IReadOnlyList<string> All = [.. Executables, .. Executables.Select(e => e + ".sha256")];
+
+    public static bool IsKnown(string? name) => name is not null && All.Contains(name, StringComparer.Ordinal);
+
+    public static AgentPlatform PlatformOf(string executable) => executable.EndsWith(".exe", StringComparison.Ordinal) ? AgentPlatform.Windows : AgentPlatform.Linux;
+
+    /// <summary>The executable for a platform and an architecture (<c>x64</c>, <c>arm64</c>).</summary>
+    public static string For(AgentPlatform platform, string architecture) => (platform, architecture) switch
+    {
+        (AgentPlatform.Linux, "arm64") => LinuxArm64,
+        (AgentPlatform.Linux, _) => LinuxX64,
+        (_, "arm64") => WindowsArm64,
+        _ => WindowsX64,
+    };
 }
 
 /// <summary>The message types (§3.6). Unknown types are ignored and logged on both sides.</summary>
@@ -59,13 +100,20 @@ public static class AgentMessageTypes
     public const string RunScript = "run-script";
     public const string ScriptResult = "script-result";
 
+    // Linux (docs/linux-sensor-plan.md §6.5): removing a key from an authorized_keys file, where config.yaml allows it.
+    public const string RemoveSshKey = "remove-ssh-key";
+    public const string KeyRemoval = "key-removal";
+
+    /// <summary>What the download manifest's signed part is typed as (docs/linux-sensor-plan.md §4.4).</summary>
+    public const string DownloadManifest = "download-manifest";
+
     /// <summary>What the join answer's signed part is typed as.</summary>
     public const string Join = "join";
 
     /// <summary>The requests an agent accepts from PNMTD, all signed. Before W6 there is no way to run anything (§6).</summary>
     public static readonly IReadOnlySet<string> SignedRequests = new HashSet<string>(StringComparer.Ordinal)
     {
-        Collect, RunDiagnostics, SendLog, ParseScript, RunScript,
+        Collect, RunDiagnostics, SendLog, ParseScript, RunScript, RemoveSshKey,
     };
 }
 
@@ -90,7 +138,7 @@ public static class AgentCloseCodes
     /// <summary>A message above the limits.</summary>
     public const int TooLarge = 4413;
 
-    /// <summary>The Windows agents are turned off on PNMTD.</summary>
+    /// <summary>The agents are turned off on PNMTD.</summary>
     public const int Disabled = 4404;
 }
 
@@ -107,6 +155,12 @@ public static class AgentCapabilities
 
     /// <summary>W6: parsing scripts, which never runs them (§7.1).</summary>
     public const string Parse = "parse.v1";
+
+    /// <summary>Linux: the <c>ssh-keys</c> section (docs/linux-sensor-plan.md §6).</summary>
+    public const string Keys = "keys.v1";
+
+    /// <summary>Linux: removing keys, only while config.yaml allows it (§6.5).</summary>
+    public const string KeysRemove = "keys.remove.v1";
 }
 
 /// <summary>The JSON of the protocol: camelCase, enums as their names, no nulls written, numbers strict.</summary>
