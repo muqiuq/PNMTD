@@ -222,13 +222,18 @@ internal sealed class AgentService(
         {
             if (File.Exists(AgentInfo.CollectNowFile))
             {
+                // The window's Collect now (a time stamp: every section), or section names, one per line (scripts after a change).
+                var names = ReadCollectNow();
                 TryDelete(AgentInfo.CollectNowFile);
-                sections.Request([]);
+                sections.Request(names);
             }
             foreach (var message in sections.TakeForSending())
             {
+                var started = DateTimeOffset.UtcNow;
                 await current.SendAsync(AgentMessageTypes.Section, message, ct);
                 sections.Sent(message);
+                logger.LogDebug("Sent the section {Section} to PNMT: {Bytes} bytes, hash {Hash}, {Ms:0} ms", message.Name, SectionScheduler.Bytes(message), message.Hash,
+                    (DateTimeOffset.UtcNow - started).TotalMilliseconds);
             }
             var pending = problems.Take();
             if (pending.Count > 0)
@@ -350,7 +355,7 @@ internal sealed class AgentService(
                     logs.MinimumLevel = current.LogLevel?.Equals("Debug", StringComparison.OrdinalIgnoreCase) == true ? LogLevel.Debug : LogLevel.Information;
                 }
                 AgentFiles.WriteStatus(new AgentStatusFile(DateTimeOffset.UtcNow, AgentInfo.Version, session?.IsOpen == true, connectedSince, config?.Url,
-                    lastHeartbeatAt, state, problems.Recent, extras.SelectMany(f => f.Diagnostics).ToList(), AuditGaps(), startedAt));
+                    lastHeartbeatAt, state, problems.Recent, extras.SelectMany(f => f.Diagnostics).ToList(), AuditGaps(), startedAt, sections.Status()));
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
@@ -421,6 +426,20 @@ internal sealed class AgentService(
         catch (IOException)
         {
             return "(unknown)";
+        }
+    }
+
+    private static List<string> ReadCollectNow()
+    {
+        try
+        {
+            var lines = File.ReadAllLines(AgentInfo.CollectNowFile).Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
+            // Anything else (the window's time stamp) asks for every section.
+            return lines.All(SectionNames.IsKnown) ? lines.Distinct().ToList() : [];
+        }
+        catch (IOException)
+        {
+            return [];
         }
     }
 

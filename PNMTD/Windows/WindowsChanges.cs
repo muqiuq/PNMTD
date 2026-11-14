@@ -15,7 +15,7 @@ public sealed record WindowsChange(string Summary, bool Notable, object? Before 
 /// Changes (docs/windows-sensor-plan.md §4.9): a section with a new hash is compared with the stored one by its section's
 /// differ, which writes readable lines to windows_changes; notable ones write 253 with a summary: services added, removed or
 /// with a new start type or account; any change to remote access; the local administrators; addresses, gateways or DNS
-/// servers; the OS build; disks or memory; the audit policy. Logins and event log entries are logs, not changes; a new
+/// servers; the OS build; disks or memory; the audit policy; scripts registered, replaced or removed in the agent's window. Logins and event log entries are logs, not changes; a new
 /// Critical entry writes 453 when the server asks for it (§4.8).
 /// </summary>
 public sealed class WindowsChanges
@@ -87,6 +87,7 @@ public sealed class WindowsChanges
         SectionNames.Services => ServiceChanges(Parse<ServicesSection>(before), Parse<ServicesSection>(after)),
         SectionNames.RemoteAccess => RemoteChanges(Parse<RemoteAccessSection>(before), Parse<RemoteAccessSection>(after)),
         SectionNames.Access => AccessChanges(Parse<AccessSection>(before), Parse<AccessSection>(after)),
+        SectionNames.Scripts => ScriptChanges(Parse<ScriptsSection>(before), Parse<ScriptsSection>(after)),
         _ => [],
     };
 
@@ -277,6 +278,56 @@ public sealed class WindowsChanges
             if (!string.Equals(before.Path, service.Path, StringComparison.OrdinalIgnoreCase) || !string.Equals(before.ServiceDll, service.ServiceDll, StringComparison.OrdinalIgnoreCase))
             {
                 changes.Add(new($"Service {service.DisplayName}: binary {service.ServiceDll ?? service.Path}", false, before.ServiceDll ?? before.Path, service.ServiceDll ?? service.Path));
+            }
+        }
+        return changes;
+    }
+
+    /// <summary>Scripts registered in the agent's window (§7.2): what PNMT may run there, and as whom. Task runs are not changes.</summary>
+    private static List<WindowsChange> ScriptChanges(ScriptsSection? a, ScriptsSection? b)
+    {
+        var changes = new List<WindowsChange>();
+        if (a is null || b is null)
+        {
+            return changes;
+        }
+        static string Mode(ScriptsSection s) => !s.Allowed ? "not allowed" : s.AnyScript ? "any script" : "registered scripts only";
+        if (Mode(a) != Mode(b))
+        {
+            changes.Add(new($"Scripts from PNMT: {Mode(a)} → {Mode(b)}", true));
+        }
+        static string Who(RegisteredScript s) => s.RunAs == RunAsKind.Service ? "this service" : $"{s.Account}";
+        var old = a.Scripts.GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var current = b.Scripts.GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        foreach (var script in current.Values.Where(s => !old.ContainsKey(s.Name)))
+        {
+            changes.Add(new($"Script {script.Name} registered, as {Who(script)}{(script.Schedule is { } when ? $", {when}" : "")}", true));
+        }
+        foreach (var script in old.Values.Where(s => !current.ContainsKey(s.Name)))
+        {
+            changes.Add(new($"Script {script.Name} removed", true));
+        }
+        foreach (var script in current.Values)
+        {
+            if (!old.TryGetValue(script.Name, out var before))
+            {
+                continue;
+            }
+            if (before.Sha256 != script.Sha256)
+            {
+                changes.Add(new($"Script {script.Name} replaced ({before.Sha256[..12]} → {script.Sha256[..12]})", true, before.Sha256, script.Sha256));
+            }
+            if (before.RunAs != script.RunAs || !string.Equals(before.Account, script.Account, StringComparison.OrdinalIgnoreCase))
+            {
+                changes.Add(new($"Script {script.Name}: runs as {Who(script)} (was {Who(before)})", true));
+            }
+            if (before.Schedule != script.Schedule)
+            {
+                changes.Add(new($"Script {script.Name}: schedule {before.Schedule ?? "none"} → {script.Schedule ?? "none"}", false));
+            }
+            if (before.Matches && !script.Matches)
+            {
+                changes.Add(new($"Script {script.Name}: its copy was changed after the registration", true));
             }
         }
         return changes;

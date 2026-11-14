@@ -26,7 +26,8 @@ public sealed class WindowsServerService(
     PublicUrls urls,
     IHttpContextAccessor accessor,
     IOptionsMonitor<WindowsOptions> options,
-    WindowsDownloads downloads)
+    WindowsDownloads downloads,
+    ILogger<WindowsServerService> logger)
 {
     private static readonly string[] SortFields = ["name", "host", "state", "hostname", "lastseen", "os"];
 
@@ -171,6 +172,11 @@ public sealed class WindowsServerService(
         {
             throw ApiException.NotFound("Section");
         }
+        if (section == SectionNames.Scripts)
+        {
+            // Script texts and accounts: Admin only, through …/local-scripts.
+            throw ApiException.NotFound("Section (the registered scripts: GET /api/v1/windows/servers/{id}/local-scripts, Admin)");
+        }
         if (section is SectionNames.Access or SectionNames.EventLog && !canWrite)
         {
             throw new ApiException(StatusCodes.Status403Forbidden, "forbidden", "Logins and the event log need the User role: they hold user names and addresses.");
@@ -178,17 +184,26 @@ public sealed class WindowsServerService(
         var row = await db.WindowsSections.AsNoTracking().SingleOrDefaultAsync(s => s.SensorId == id && s.Section == section, ct)
             ?? throw ApiException.NotFound("Section (not reported yet)");
         var view = new WindowsSectionView(row.Section, row.CollectedAt, row.ReceivedAt, row.ChangedAt, row.Errors);
-        return section switch
+        // A section PNMT can't read shows why (the JSON path), instead of looking collected and empty.
+        string? error = null;
+        T? Read<T>() where T : class => WindowsSections.Parse<T>(row.Content, out error);
+        view = section switch
         {
-            SectionNames.System => view with { System = WindowsSections.Parse<SystemSection>(row.Content) },
-            SectionNames.Hardware => view with { Hardware = WindowsSections.Parse<HardwareSection>(row.Content) },
-            SectionNames.Network => view with { Network = WindowsSections.Parse<NetworkSection>(row.Content) },
-            SectionNames.Services => view with { Services = WindowsSections.Parse<ServicesSection>(row.Content) },
-            SectionNames.RemoteAccess => view with { RemoteAccess = WindowsSections.Parse<RemoteAccessSection>(row.Content) },
-            SectionNames.Access => view with { Access = WindowsSections.Parse<AccessSection>(row.Content) },
-            SectionNames.EventLog => view with { EventLog = WindowsSections.Parse<EventLogSection>(row.Content) },
+            SectionNames.System => view with { System = Read<SystemSection>() },
+            SectionNames.Hardware => view with { Hardware = Read<HardwareSection>() },
+            SectionNames.Network => view with { Network = Read<NetworkSection>() },
+            SectionNames.Services => view with { Services = Read<ServicesSection>() },
+            SectionNames.RemoteAccess => view with { RemoteAccess = Read<RemoteAccessSection>() },
+            SectionNames.Access => view with { Access = Read<AccessSection>() },
+            SectionNames.EventLog => view with { EventLog = Read<EventLogSection>() },
             _ => view,
         };
+        if (error is not null)
+        {
+            logger.LogWarning("Windows server {Id}: the section {Section} could not be read: {Error}", id, section, error);
+            view = view with { Errors = [error, .. view.Errors] };
+        }
+        return view;
     }
 
     /// <summary>Logins and connections (§4.7), newest first. CanWrite: they hold user names and addresses.</summary>

@@ -257,6 +257,7 @@ public static class SimulatedSections
             [SectionNames.RemoteAccess] = RemoteAccess(),
             [SectionNames.Access] = Access(),
             [SectionNames.EventLog] = EventLog(),
+            [SectionNames.Scripts] = Scripts(),
         };
         foreach (var name in sections.Keys.ToList())
         {
@@ -377,6 +378,29 @@ public static class SimulatedSections
             "The Backup Agent service terminated unexpectedly. It has done this 1 time(s).", null, 40211),
         new EventEntry(Stamp.AddHours(-3), "Application", "Warning", "MSSQLSERVER", 833, null,
             "SQL Server has encountered 1 occurrence(s) of I/O requests taking longer than 15 seconds to complete.", null, 88123),
+    ]);
+
+    /// <summary>A script registered in the agent's window, with a schedule, and scripts from PNMT allowed for it.</summary>
+    public const string RegisteredScriptText = """
+        <#
+        .SYNOPSIS
+            Reports the disks' free space.
+        #>
+        [CmdletBinding()]
+        param(
+            [ValidateRange(1, 99)]
+            [int] $MinFreePercent = 10
+        )
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+        Get-CimInstance -ClassName Win32_LogicalDisk -Filter 'DriveType = 3' | ForEach-Object { '{0} {1:N1} GB free' -f $_.DeviceID, ($_.FreeSpace / 1GB) }
+        """;
+
+    public static ScriptsSection Scripts() => new(true, false, [],
+    [
+        new RegisteredScript("Get-DiskReport", ScriptHashes.Of(RegisteredScriptText), true, RunAsKind.Service, null, "daily at 02:00",
+            new ScheduledTaskState("Ready", Stamp.AddHours(-6), 0, Stamp.AddHours(18)), Stamp.AddDays(-3), "SIM\\admin", Stamp.AddDays(-3),
+            RegisteredScriptText, SimulatedParser.Parse(RegisteredScriptText), null),
     ]);
 
     /// <summary>An admin's RDP login and a few failed ones, new each time (record ids from the clock).</summary>

@@ -13,6 +13,7 @@ const props = defineProps<{
   canWrite: boolean
   connected: boolean
   loading?: boolean
+  error?: string | null
 }>()
 const { run, busy } = useActions()
 const collect = () =>
@@ -32,6 +33,7 @@ const collect = () =>
       >Collected <RelativeTime :value="view.collectedAt" />, changed <RelativeTime :value="view.changedAt"
     /></span>
     <span v-else-if="loading" class="muted small">Loading…</span>
+    <span v-else-if="error" class="small fail">PNMT could not read this section: {{ error }}</span>
     <span v-else class="muted small">Not reported yet.</span>
     <span class="spacer" />
     <Button
@@ -59,6 +61,10 @@ const collect = () =>
 
 .spacer {
   flex: 1;
+}
+
+.fail {
+  color: var(--pnmt-fail);
 }
 
 .small {

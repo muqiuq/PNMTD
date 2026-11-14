@@ -356,6 +356,10 @@ export const api = {
     deleteScript: (id: Id) => call(client.DELETE('/api/v1/windows/scripts/{id}', { params: { path: { id } } })),
     runScript: (id: Id, body: S['WindowsScriptRunRequest']) =>
       call(client.POST('/api/v1/windows/scripts/{id}/run', { params: { path: { id } }, body })),
+    localScripts: (sensorId: Id) =>
+      call(client.GET('/api/v1/windows/servers/{id}/local-scripts', { params: { path: { id: sensorId } } })),
+    runLocalScript: (sensorId: Id, body: S['WindowsLocalScriptRunRequest']) =>
+      call(client.POST('/api/v1/windows/servers/{id}/local-scripts/run', { params: { path: { id: sensorId } }, body })),
     runAs: () => call(client.GET('/api/v1/windows/run-as')),
     createRunAs: (body: S['WindowsRunAsRequest']) => call(client.POST('/api/v1/windows/run-as', { body })),
     updateRunAs: (id: Id, body: S['WindowsRunAsRequest']) =>

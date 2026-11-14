@@ -243,42 +243,137 @@ public sealed class WindowsScriptService(
         foreach (var row in rows)
         {
             var server = servers.Single(s => s.SensorId == row.SensorId);
-            var connection = hub.Connection(server.SensorId);
-            if (connection is null)
-            {
-                Finish(row, ScriptRunState.Offline, "The agent is not connected.");
-                continue;
-            }
-            if (!connection.Capabilities.Contains(AgentCapabilities.Scripts))
-            {
-                Finish(row, ScriptRunState.Refused, "Scripts are not allowed on this server: an administrator turns them on in the agent's window there.");
-                continue;
-            }
-            if (server.EncryptionKey is null && (secure.Count > 0 || runAs.Kind == RunAsKind.TypedPerRun))
-            {
-                Finish(row, ScriptRunState.Refused, "The agent has no encryption key for secrets: update it.");
-                continue;
-            }
-            var spec = new RunAsSpec(runAs.Kind, runAs.Account,
-                runAs.Kind == RunAsKind.TypedPerRun ? AgentSecrets.Encrypt(server.EncryptionKey!, request.Password!, row.Id) : null);
-            var encrypted = secure.ToDictionary(p => p.Key, p => AgentSecrets.Encrypt(server.EncryptionKey!, p.Value, row.Id));
-            var message = new RunScriptRequest(row.Id, script.Name, version.Hash, version.Text, arguments, encrypted, spec, timeout, shell);
-            try
-            {
-                var answer = await connection.RequestAsync(keys, AgentMessageTypes.RunScript, message, TimeSpan.FromSeconds(30), ct);
-                if (AgentJson.Deserialize<Ack>(answer) is { Ok: false } refused)
-                {
-                    Finish(row, ScriptRunState.Refused, refused.Error ?? "Refused.");
-                }
-            }
-            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-            {
-                Finish(row, ScriptRunState.Failed, "The agent did not answer within 30 s.");
-            }
+            await SendAsync(row, server.EncryptionKey, version.Text, arguments, secure, runAs.Kind == RunAsKind.TypedPerRun ? request.Password : null, shell, ct);
         }
         await db.SaveChangesAsync(ct);
         return rows.Select(Item).ToList();
     }
+
+    /// <summary>Sends a run to its server's agent, signed, with the secrets encrypted to it; a refusal or no answer finishes the row.</summary>
+    private async Task SendAsync(WindowsScriptRunEntity row, string? encryptionKey, string text, IReadOnlyDictionary<string, JsonElement> arguments,
+        IReadOnlyDictionary<string, string> secure, string? password, string shell, CancellationToken ct)
+    {
+        var connection = row.SensorId is { } sensorId ? hub.Connection(sensorId) : null;
+        if (connection is null)
+        {
+            Finish(row, ScriptRunState.Offline, "The agent is not connected.");
+            return;
+        }
+        if (!connection.Capabilities.Contains(AgentCapabilities.Scripts))
+        {
+            Finish(row, ScriptRunState.Refused, "Scripts are not allowed on this server: an administrator turns them on in the agent's window there.");
+            return;
+        }
+        if (encryptionKey is null && (secure.Count > 0 || password is not null))
+        {
+            Finish(row, ScriptRunState.Refused, "The agent has no encryption key for secrets: update it.");
+            return;
+        }
+        var spec = new RunAsSpec(row.RunAsKind, row.Account, password is null ? null : AgentSecrets.Encrypt(encryptionKey!, password, row.Id));
+        var encrypted = secure.ToDictionary(p => p.Key, p => AgentSecrets.Encrypt(encryptionKey!, p.Value, row.Id));
+        var message = new RunScriptRequest(row.Id, row.ScriptName, row.Hash, text, arguments, encrypted, spec, row.TimeoutSeconds, shell);
+        try
+        {
+            var answer = await connection.RequestAsync(keys, AgentMessageTypes.RunScript, message, TimeSpan.FromSeconds(30), ct);
+            if (AgentJson.Deserialize<Ack>(answer) is { Ok: false } refused)
+            {
+                Finish(row, ScriptRunState.Refused, refused.Error ?? "Refused.");
+            }
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            Finish(row, ScriptRunState.Failed, "The agent did not answer within 30 s.");
+        }
+    }
+
+    // --- scripts registered on a server (§7.2) ------------------------------------------------------------------
+
+    /// <summary>The scripts registered on a server, from its last <c>scripts</c> section, with the library script of the same text.</summary>
+    public async Task<WindowsLocalScripts> LocalScriptsAsync(Guid sensorId, CancellationToken ct)
+    {
+        var (collectedAt, section) = await LocalSectionAsync(sensorId, ct);
+        if (section is null)
+        {
+            return new WindowsLocalScripts(null, false, false, [], []);
+        }
+        var hashes = section.Scripts.Select(s => s.Sha256).ToList();
+        var library = await db.WindowsScriptVersions.AsNoTracking().Where(v => hashes.Contains(v.Hash))
+            .Join(db.WindowsScripts, v => new { v.ScriptId, v.Number }, s => new { ScriptId = s.Id, Number = s.CurrentVersion }, (v, s) => new { v.Hash, s.Id, s.Name })
+            .ToListAsync(ct);
+        return new WindowsLocalScripts(collectedAt, section.Allowed, section.AnyScript, section.RunAs, section.Scripts.Select(s =>
+        {
+            var match = library.FirstOrDefault(l => l.Hash == s.Sha256);
+            return new WindowsLocalScript(s, RunAsName(s), match?.Id, match?.Name);
+        }).ToList());
+    }
+
+    /// <summary>
+    /// Runs a script registered on the server, as its registered account: the text is the one the server reported (its hash is
+    /// the registered one), the arguments are checked against its parse here and again on the agent.
+    /// </summary>
+    public async Task<WindowsScriptRunItem> RunLocalAsync(Guid sensorId, WindowsLocalScriptRunRequest request, CancellationToken ct)
+    {
+        var server = await db.WindowsAgents.AsNoTracking().Where(a => a.SensorId == sensorId)
+            .Select(a => new { a.SensorId, a.EncryptionKey, Name = a.Sensor.Parent.Name + " / " + a.Sensor.Name }).SingleOrDefaultAsync(ct)
+            ?? throw ApiException.NotFound("Windows server");
+        var (_, section) = await LocalSectionAsync(sensorId, ct);
+        var script = section?.Scripts.FirstOrDefault(s => string.Equals(s.Name, request.Name, StringComparison.OrdinalIgnoreCase))
+            ?? throw ApiException.NotFound("Registered script");
+        if (!script.Matches || script.Text is null)
+        {
+            throw ApiException.Conflict("script_changed", $"{script.Name}'s copy on the server no longer matches its registration: replace it in the agent's window.");
+        }
+        if (script.Parsed is null)
+        {
+            throw ApiException.Conflict("parameters_pending", $"The agent could not parse {script.Name}{(script.ParseError is { } e ? $": {e}" : "")}.");
+        }
+        if (script.Parsed.Errors.Count > 0)
+        {
+            throw ApiException.Conflict("syntax_errors", $"The script has syntax errors: {script.Parsed.Errors[0].Message} (line {script.Parsed.Errors[0].Line}).");
+        }
+        var arguments = request.Arguments ?? new Dictionary<string, JsonElement>();
+        var secure = request.SecureArguments ?? new Dictionary<string, string>();
+        var timeout = request.TimeoutSeconds ?? DefaultTimeoutSeconds;
+        var shell = request.Shell ?? "powershell";
+        var v = new ApiValidator()
+            .Check(timeout is >= 10 and <= MaxTimeoutSeconds, "timeoutSeconds", $"Between 10 and {MaxTimeoutSeconds} seconds.")
+            .Check(shell is "powershell" or "pwsh", "shell", "powershell (Windows PowerShell 5.1) or pwsh.");
+        foreach (var problem in ScriptArguments.Check(script.Parsed, arguments, secure.Keys.ToList()))
+        {
+            v.Check(false, problem.Field, problem.Message);
+        }
+        v.ThrowIfInvalid();
+
+        var (_, user) = UdpViews.User(accessor);
+        var row = new WindowsScriptRunEntity
+        {
+            Id = Guid.NewGuid(), BatchId = Guid.NewGuid(), ScriptId = null, ScriptName = script.Name, VersionNumber = 0, Hash = script.Sha256,
+            SensorId = sensorId, ServerName = server.Name, RunAsName = RunAsName(script), RunAsKind = script.RunAs, Account = script.Account,
+            Arguments = arguments.Count == 0 && secure.Count == 0 ? null : JsonSerializer.Serialize(arguments, AgentJson.Options), RequestedBy = user,
+            StartedAt = Clock.UtcNow, State = ScriptRunState.Sent, TimeoutSeconds = timeout,
+        };
+        db.WindowsScriptRuns.Add(row);
+        UdpViews.Audit(db, accessor, AuthEvents.WindowsScriptRun,
+            $"script {script.Name} registered on {server.Name} ({script.Sha256[..12]}) as {row.RunAsName}, batch {row.BatchId}");
+        await db.SaveChangesAsync(ct);
+        await SendAsync(row, server.EncryptionKey, script.Text, arguments, secure, null, shell, ct);
+        await db.SaveChangesAsync(ct);
+        return Item(row);
+    }
+
+    private async Task<(DateTime? CollectedAt, ScriptsSection? Section)> LocalSectionAsync(Guid sensorId, CancellationToken ct)
+    {
+        var row = await db.WindowsSections.AsNoTracking().SingleOrDefaultAsync(s => s.SensorId == sensorId && s.Section == SectionNames.Scripts, ct);
+        return row is null ? (null, null) : (row.CollectedAt, WindowsSections.Parse<ScriptsSection>(row.Content));
+    }
+
+    /// <summary>The account as the window names it: the service, a gMSA, or the account whose password is stored there.</summary>
+    private static string RunAsName(RegisteredScript script) => script.RunAs switch
+    {
+        RunAsKind.Service => "this service (LocalSystem)",
+        RunAsKind.Gmsa => $"{script.Account} (gMSA)",
+        _ => $"{script.Account} (stored on the server)",
+    };
 
     private static void Finish(WindowsScriptRunEntity row, ScriptRunState state, string message)
     {

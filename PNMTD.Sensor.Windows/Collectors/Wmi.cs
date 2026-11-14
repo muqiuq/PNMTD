@@ -1,5 +1,8 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Management;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace PNMTD.Sensor.Windows.Collectors;
 
@@ -20,18 +23,33 @@ internal static class Wmi
 
     public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(15);
 
+    /// <summary>Every query, its rows and its time, and every failure with WMI's status, at debug level (the window's Debug logging).</summary>
+    public static ILogger Logger { get; set; } = NullLogger.Instance;
+
     public static List<ManagementBaseObject> Query(string scope, string wql, TimeSpan? timeout = null)
     {
         var options = new System.Management.EnumerationOptions { Timeout = timeout ?? Timeout, ReturnImmediately = true, Rewindable = false };
+        var name = wql.Split(' ').SkipWhile(w => !w.Equals("FROM", StringComparison.OrdinalIgnoreCase)).Skip(1).FirstOrDefault();
+        var started = Stopwatch.GetTimestamp();
         try
         {
             using var searcher = new ManagementObjectSearcher(new ManagementScope(scope), new ObjectQuery(wql), options);
-            return searcher.Get().Cast<ManagementBaseObject>().ToList();
+            var rows = searcher.Get().Cast<ManagementBaseObject>().ToList();
+            Logger.LogDebug("WMI {Scope} {Class}: {Count} objects in {Ms:0} ms", scope, name, rows.Count, Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+            return rows;
         }
         catch (ManagementException e) when (e.ErrorCode is ManagementStatus.InvalidClass or ManagementStatus.InvalidNamespace
             or ManagementStatus.NotSupported or ManagementStatus.InvalidQuery or ManagementStatus.ProviderNotCapable or ManagementStatus.NotAvailable)
         {
-            throw new NotAvailableException($"{scope}: {wql.Split(' ').SkipWhile(w => !w.Equals("FROM", StringComparison.OrdinalIgnoreCase)).Skip(1).FirstOrDefault()} is not available here");
+            Logger.LogDebug("WMI {Scope} {Class}: not available ({Status}: {Message}) after {Ms:0} ms; the query: {Wql}", scope, name, e.ErrorCode,
+                e.Message.Trim(), Stopwatch.GetElapsedTime(started).TotalMilliseconds, wql);
+            throw new NotAvailableException($"{scope}: {name} is not available here ({e.ErrorCode})");
+        }
+        catch (Exception e)
+        {
+            Logger.LogDebug(e, "WMI {Scope} {Class} failed after {Ms:0} ms: {Type} {Status}; the query: {Wql}", scope, name,
+                Stopwatch.GetElapsedTime(started).TotalMilliseconds, e.GetType().Name, (e as ManagementException)?.ErrorCode, wql);
+            throw;
         }
     }
 
@@ -80,8 +98,9 @@ internal static class Wmi
         {
             return o[name];
         }
-        catch (ManagementException)
+        catch (ManagementException e)
         {
+            Logger.LogDebug("WMI {Class}.{Property}: {Status}", o.ClassPath?.ClassName, name, e.ErrorCode);
             return null;
         }
     }

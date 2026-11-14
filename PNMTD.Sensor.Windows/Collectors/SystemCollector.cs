@@ -77,7 +77,10 @@ internal sealed class SystemCollector : Collector
         var product = products.OrderByDescending(p => p.Int("LicenseStatus") == 1).FirstOrDefault();
         if (product is null)
         {
-            return null;
+            // Windows answered, and no product has a key: not activated, and that is the reason.
+            return new ActivationInfo("No product key", null, null, null, null, null, null, null,
+                Isolated.Part([], "firmware key", () => Wmi.First(Wmi.Cimv2, "SELECT * FROM SoftwareLicensingService")?.Str("OA3xOriginalProductKey")) is { Length: >= 5 } k
+                    ? k[^5..] : null, null);
         }
         var service = Wmi.First(Wmi.Cimv2, "SELECT * FROM SoftwareLicensingService");
         var status = product.Int("LicenseStatus");
@@ -201,9 +204,17 @@ internal sealed class SystemCollector : Collector
                 UseShellExecute = false,
                 CreateNoWindow = true,
             });
-            if (process is not null && process.WaitForExit(5000))
+            if (process is not null)
             {
-                source = process.StandardOutput.ReadToEnd().Trim();
+                var output = process.StandardOutput.ReadToEndAsync();
+                if (process.WaitForExit(5000) && output.Wait(1000))
+                {
+                    var text = output.Result.Trim();
+                    // An error is not a source: 0x80070426 is the Windows Time service not running (common on a VM or a workgroup PC).
+                    source = process.ExitCode == 0 && !text.Contains("0x8", StringComparison.OrdinalIgnoreCase) ? text
+                        : text.Contains("0x80070426", StringComparison.OrdinalIgnoreCase) ? "none: the Windows Time service is not running"
+                        : null;
+                }
             }
         }
         catch (System.ComponentModel.Win32Exception)

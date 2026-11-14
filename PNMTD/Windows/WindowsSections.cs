@@ -43,14 +43,19 @@ public static class WindowsSections
         return row is null ? null : Parse<T>(row.Content);
     }
 
-    public static T? Parse<T>(byte[] content) where T : class
+    public static T? Parse<T>(byte[] content) where T : class => Parse<T>(content, out _);
+
+    /// <summary>The stored section, typed; null with the reason (the JSON path that failed) when PNMT can't read it.</summary>
+    public static T? Parse<T>(byte[] content, out string? error) where T : class
     {
+        error = null;
         try
         {
-            return AgentJson.Deserialize<T>(Decompress(content));
+            return AgentJson.Deserialize<T>(Decompress(content)) ?? throw new JsonException("The section is empty.");
         }
-        catch (Exception e) when (e is JsonException or InvalidDataException)
+        catch (Exception e) when (e is JsonException or InvalidDataException or NotSupportedException)
         {
+            error = $"PNMT could not read the stored section: {e.Message}";
             return null;
         }
     }

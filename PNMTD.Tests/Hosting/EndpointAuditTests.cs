@@ -256,6 +256,8 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/windows/scripts/{id:guid}/parse"] = Roles.Admin,
         ["DELETE /api/v1/windows/scripts/{id:guid}"] = Roles.Admin,
         ["POST /api/v1/windows/scripts/{id:guid}/run"] = Roles.Admin,
+        ["GET /api/v1/windows/servers/{id:guid}/local-scripts"] = Roles.Admin,
+        ["POST /api/v1/windows/servers/{id:guid}/local-scripts/run"] = Roles.Admin,
         ["GET /api/v1/windows/run-as"] = Roles.Admin,
         ["POST /api/v1/windows/run-as"] = Roles.Admin,
         ["PUT /api/v1/windows/run-as/{id:guid}"] = Roles.Admin,

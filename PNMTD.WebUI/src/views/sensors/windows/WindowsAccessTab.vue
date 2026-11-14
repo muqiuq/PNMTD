@@ -65,6 +65,7 @@ const who = (l: S['WindowsLoginItem']) => (l.domain ? `${l.domain}\\${l.user}` :
       section="access"
       :view="section.data.value"
       :loading="section.loading.value"
+      :error="section.error.value"
       :can-write="canWrite"
       :connected="server.server.connected"
     />

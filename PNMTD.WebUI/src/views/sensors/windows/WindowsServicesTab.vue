@@ -54,6 +54,7 @@ const classSeverity = (c: S['ServiceClass']) =>
       section="services"
       :view="section.data.value"
       :loading="section.loading.value"
+      :error="section.error.value"
       :can-write="canWrite"
       :connected="server.server.connected"
     />

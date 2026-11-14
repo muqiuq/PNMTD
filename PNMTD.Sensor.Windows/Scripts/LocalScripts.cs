@@ -92,8 +92,25 @@ internal static partial class LocalScripts
 
     public static LocalScript? ByHash(string hash) => All().FirstOrDefault(s => s.Sha256.Equals(hash, StringComparison.OrdinalIgnoreCase));
 
-    private static void Write(IEnumerable<LocalScript> scripts) =>
+    /// <summary>Writes the registrations and asks the service to report them to PNMT now (the <c>scripts</c> section).</summary>
+    private static void Write(IEnumerable<LocalScript> scripts)
+    {
         AgentFiles.WriteState(RegistryFile, scripts.OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase).ToList());
+        TellService();
+    }
+
+    /// <summary>The service collects the named sections at its next pass (a second or so) when this file names them.</summary>
+    public static void TellService()
+    {
+        try
+        {
+            File.AppendAllLines(AgentInfo.CollectNowFile, [SectionNames.Scripts]);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // The service reports the scripts within 5 minutes anyway.
+        }
+    }
 
     /// <summary>
     /// Registers a script, or changes a registered one's account and schedule: the copy (when <paramref name="source"/> is given),

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using PNMTD.Lib.Agent;
 using PNMTD.Sensor.Windows.Native;
@@ -12,7 +13,7 @@ namespace PNMTD.Sensor.Windows.Collectors;
 /// class by the binary's signature (the ServiceDll for svchost services): Windows, Microsoft, third-party or unsigned. Every
 /// minute: the signatures are cached by path, size and time, so only new binaries are checked.
 /// </summary>
-internal sealed class ServicesCollector : Collector
+internal sealed class ServicesCollector(ILogger<ServicesCollector> logger) : Collector
 {
     public override string Name => SectionNames.Services;
 
@@ -31,11 +32,26 @@ internal sealed class ServicesCollector : Collector
     private readonly ConcurrentDictionary<string, (long Size, DateTime Written, WinTrust.Signature Signature, string? Version, string? Company)> signatures =
         new(StringComparer.OrdinalIgnoreCase);
 
+    // What one pass did, for the debug log: signatures checked, taken from the cache, binaries not found, and the slowest check.
+    private int checkedCount;
+    private int cachedCount;
+    private int missingCount;
+    private double checkMs;
+    private (string? Path, double Ms) slowest;
+
     public override object Collect(List<string> errors, CancellationToken ct)
     {
         var windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
         var self = Path.GetFullPath(AgentInfo.InstalledExecutable);
-        var services = Wmi.Query(Wmi.Cimv2, "SELECT Name, DisplayName, State, StartMode, StartName, PathName, ProcessId FROM Win32_Service")
+        checkedCount = cachedCount = missingCount = 0;
+        checkMs = 0;
+        slowest = (null, 0);
+        var started = DateTimeOffset.UtcNow;
+        var rows = Wmi.Query(Wmi.Cimv2, "SELECT Name, DisplayName, State, StartMode, StartName, PathName, ProcessId FROM Win32_Service");
+        var queried = DateTimeOffset.UtcNow;
+        logger.LogDebug("Services: {Count} from Win32_Service in {Ms:0} ms; {Cached} signatures cached", rows.Count, (queried - started).TotalMilliseconds,
+            signatures.Count);
+        var services = rows
             .Select(s =>
             {
                 ct.ThrowIfCancellationRequested();
@@ -47,6 +63,7 @@ internal sealed class ServicesCollector : Collector
                 catch (Exception e) when (e is not OperationCanceledException)
                 {
                     // One odd service (a registry key it can't read, a path Windows can't parse) is reported as far as known.
+                    logger.LogDebug(e, "Services: {Name} failed", name);
                     errors.Add($"service {name}: {e.GetType().Name}: {e.Message}");
                     var display = s.Str("DisplayName") ?? name;
                     return new ServiceEntry(name, display, s.Str("State") ?? "Unknown", s.Str("StartMode") ?? "", s.Str("StartName"), s.Str("PathName"), null, null, null,
@@ -55,6 +72,14 @@ internal sealed class ServicesCollector : Collector
             })
             .OrderBy(s => s.Class == ServiceClass.Windows ? 1 : 0).ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+        logger.LogDebug("Services: {Count} in {Ms:0} ms ({Classes}); signatures {Checked} checked in {CheckMs:0} ms, {Cached} from the cache, {Missing} binaries " +
+            "not found{Slowest}; {Errors} errors", services.Count, (DateTimeOffset.UtcNow - started).TotalMilliseconds,
+            string.Join(", ", services.GroupBy(s => s.Class).OrderBy(g => g.Key).Select(g => $"{g.Key} {g.Count()}")), checkedCount, checkMs, cachedCount,
+            missingCount, slowest.Path is null ? "" : $"; slowest {slowest.Path} {slowest.Ms:0} ms", errors.Count);
+        if (services.Count == 0)
+        {
+            errors.Add("Win32_Service listed no services.");
+        }
         return new ServicesSection(services);
     }
 
@@ -99,14 +124,29 @@ internal sealed class ServicesCollector : Collector
             var info = new FileInfo(path);
             if (!info.Exists)
             {
+                missingCount++;
+                logger.LogDebug("Services: the binary {Path} does not exist", path);
                 return (new WinTrust.Signature(false, false, null), null, null);
             }
             if (signatures.TryGetValue(path, out var cached) && cached.Size == info.Length && cached.Written == info.LastWriteTimeUtc)
             {
+                cachedCount++;
                 return (cached.Signature, cached.Version, cached.Company);
             }
+            var started = DateTimeOffset.UtcNow;
             var signature = WinTrust.Check(path);
             var version = FileVersionInfo.GetVersionInfo(path);
+            var ms = (DateTimeOffset.UtcNow - started).TotalMilliseconds;
+            checkedCount++;
+            checkMs += ms;
+            if (ms > slowest.Ms)
+            {
+                slowest = (path, ms);
+            }
+            if (ms > 2000)
+            {
+                logger.LogDebug("Services: checking the signature of {Path} took {Ms:0} ms", path, ms);
+            }
             signatures[path] = (info.Length, info.LastWriteTimeUtc, signature, version.FileVersion, version.CompanyName);
             return (signature, version.FileVersion, version.CompanyName);
         }

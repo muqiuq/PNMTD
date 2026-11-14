@@ -45,6 +45,22 @@ public sealed record WindowsScriptRunRequest(
     int? TimeoutSeconds,
     string? Shell);
 
+/// <summary>
+/// The scripts an administrator registered on a server, in the agent's window (§7.2), as the server last reported them; each
+/// with the library script of the same text, when there is one. <see cref="CollectedAt"/> is null until the agent reported them.
+/// </summary>
+public sealed record WindowsLocalScripts(DateTime? CollectedAt, bool Allowed, bool AnyScript, IReadOnlyList<string> RunAs, IReadOnlyList<WindowsLocalScript> Scripts);
+
+public sealed record WindowsLocalScript(RegisteredScript Script, string RunAsName, Guid? LibraryScriptId, string? LibraryScriptName);
+
+/// <summary>Run a script registered on the server (§7.2), as the account it is registered with; secure arguments are encrypted to the agent.</summary>
+public sealed record WindowsLocalScriptRunRequest(
+    string Name,
+    IReadOnlyDictionary<string, JsonElement>? Arguments,
+    IReadOnlyDictionary<string, string>? SecureArguments,
+    int? TimeoutSeconds,
+    string? Shell);
+
 public sealed record WindowsScriptRunItem(
     Guid Id,
     Guid BatchId,

@@ -42,6 +42,15 @@ public sealed class WindowsScriptsController(WindowsScriptService scripts) : V1C
     public async Task<ActionResult<IReadOnlyList<WindowsScriptRunItem>>> Run(Guid id, WindowsScriptRunRequest request, CancellationToken ct) =>
         Ok(await scripts.RunAsync(id, request, ct));
 
+    /// <summary>The scripts registered on a server in the agent's window (§7.2), as it last reported them.</summary>
+    [HttpGet("servers/{id:guid}/local-scripts")]
+    public async Task<ActionResult<WindowsLocalScripts>> LocalScripts(Guid id, CancellationToken ct) => await scripts.LocalScriptsAsync(id, ct);
+
+    /// <summary>Runs a script registered on the server, as the account it is registered with.</summary>
+    [HttpPost("servers/{id:guid}/local-scripts/run")]
+    public async Task<ActionResult<WindowsScriptRunItem>> RunLocal(Guid id, WindowsLocalScriptRunRequest request, CancellationToken ct) =>
+        await scripts.RunLocalAsync(id, request, ct);
+
     [HttpGet("run-as")]
     public async Task<ActionResult<IReadOnlyList<WindowsRunAsItem>>> RunAs(CancellationToken ct) => Ok(await scripts.RunAsListAsync(ct));
 

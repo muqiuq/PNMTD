@@ -38,6 +38,9 @@ internal sealed class StatusView : UserControl
     private Label updateText = null!;
     private Card problemsCard = null!;
     private Card diagnosticsCard = null!;
+    private Card sectionsCard = null!;
+    private TableLayoutPanel sectionsTable = null!;
+    private string sectionsShown = "";
     private Card auditCard = null!;
     private Label server = null!;
     private TextBox agentId = null!;
@@ -135,6 +138,9 @@ internal sealed class StatusView : UserControl
         Kit.Fact(serverFacts, "Agent", Kit.Label($"{AgentInfo.Version} ({AgentInfo.Architecture})"));
         Kit.Add(stack, mine);
 
+        sectionsCard = new Card("Sections") { Visible = false };
+        Kit.Add(stack, sectionsCard);
+
         diagnosticsCard = new Card("Diagnostics") { Visible = false };
         Kit.Add(stack, diagnosticsCard);
 
@@ -185,6 +191,7 @@ internal sealed class StatusView : UserControl
         }
 
         ShowProblems(status?.Problems ?? []);
+        ShowSections(status?.Sections ?? []);
         ShowDiagnostics(status?.Diagnostics ?? []);
         ShowGaps(status?.AuditGaps ?? []);
         SetDebug(config.LogLevel == "Debug");
@@ -210,6 +217,62 @@ internal sealed class StatusView : UserControl
         }
         problemsCard.Add(Kit.Muted("PNMT has them too, in the server's Agent tab."));
         problemsCard.Visible = problems.Count > 0;
+    }
+
+    /// <summary>What the service collected and sent, per section: when a section is missing in PNMT, this says which side it is on.</summary>
+    private void ShowSections(IReadOnlyList<SectionStatus> sections)
+    {
+        var shown = string.Join("\n", sections.Select(x => $"{x.Name}{x.CollectedAt}{x.Bytes}{x.Errors}{x.SentAt}{x.SentCurrent}"));
+        if (shown == sectionsShown)
+        {
+            return;
+        }
+        sectionsShown = shown;
+        if (sectionsTable is null)
+        {
+            sectionsCard.Add(Kit.Muted("What the service collected, and when it last sent it to PNMT. An unchanged section is sent again only when asked for " +
+                "(Collect now, PNMT's Collect now) and every 6 hours."));
+            sectionsTable = sectionsCard.Add(new TableLayoutPanel
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 5,
+                Margin = Theme.P(0, 6, 0, 0),
+            });
+        }
+        sectionsTable.SuspendLayout();
+        while (sectionsTable.Controls.Count > 0)
+        {
+            var control = sectionsTable.Controls[0];
+            sectionsTable.Controls.RemoveAt(0);
+            control.Dispose();
+        }
+        sectionsTable.RowStyles.Clear();
+        sectionsTable.RowCount = 0;
+        void Row(Color color, params string[] cells)
+        {
+            var row = sectionsTable.RowCount++;
+            sectionsTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            for (var i = 0; i < cells.Length; i++)
+            {
+                var label = Kit.Label(cells[i], row == 0 ? Theme.Strong : Theme.Body, row == 0 ? Theme.Muted : i == 0 ? Theme.Text : color);
+                label.Margin = Theme.P(0, 2, 18, 2);
+                sectionsTable.Controls.Add(label, i, row);
+            }
+        }
+        Row(Theme.Muted, "Section", "Collected", "Size", "Errors", "Sent to PNMT");
+        foreach (var x in sections)
+        {
+            var sent = x.SentAt is not { } at ? "not yet" : $"{at.ToLocalTime():T}{(x.SentCurrent ? "" : ", an older version")}";
+            Row(x.CollectedAt is null || x.SentAt is null ? Theme.Warn : Theme.Text,
+                x.Name,
+                x.CollectedAt is { } c ? c.ToLocalTime().ToString("T") : "not yet",
+                x.Bytes is { } b ? b >= 1024 ? $"{b / 1024.0:0.#} KB" : $"{b} B" : "–",
+                x.Errors == 0 ? "–" : x.Errors.ToString(),
+                sent);
+        }
+        sectionsTable.ResumeLayout();
+        sectionsCard.Visible = sections.Count > 0;
     }
 
     private void ShowDiagnostics(IReadOnlyList<DiagnosticsStatus> diagnostics)

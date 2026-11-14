@@ -153,4 +153,34 @@ public sealed class ScriptTests
         stop.Cancel();
         await running.WaitAsync(TimeSpan.FromSeconds(10));
     }
+
+    [TestMethod]
+    public async Task AScriptRegisteredOnTheServerIsListedAndRunsAsItsAccount()
+    {
+        var (_, state, stop, running) = await ConnectAsync(allowScripts: true);
+        var local = await WindowsHarness.EventuallyAsync(
+            async () => await (await admin.GetAsync($"/api/v1/windows/servers/{state.SensorId}/local-scripts")).ReadAsync<WindowsLocalScripts>(),
+            l => l.Scripts.Count == 1);
+        var script = local.Scripts.Single().Script;
+        Assert.AreEqual("Get-DiskReport", script.Name);
+        Assert.AreEqual(ScriptHashes.Of(SimulatedSections.RegisteredScriptText), script.Sha256);
+        Assert.AreEqual("MinFreePercent", script.Parsed!.Parameters.Single().Name);
+        Assert.AreEqual(HttpStatusCode.NotFound, (await admin.GetAsync($"/api/v1/windows/servers/{state.SensorId}/sections/scripts")).StatusCode,
+            "the texts only through local-scripts, Admin");
+
+        async Task<HttpResponseMessage> Run(string name, params (string Key, object Value)[] values) =>
+            await admin.PostJsonAsync($"/api/v1/windows/servers/{state.SensorId}/local-scripts/run", new WindowsLocalScriptRunRequest(name,
+                values.ToDictionary(v => v.Key, v => JsonSerializer.SerializeToElement(v.Value)), null, 60, null));
+        Assert.AreEqual(HttpStatusCode.NotFound, (await Run("Nope")).StatusCode);
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await Run("Get-DiskReport", ("Nope", 1))).StatusCode, "no such parameter");
+        var sent = await (await Run("get-diskreport", ("MinFreePercent", 15))).ReadAsync<WindowsScriptRunItem>();
+        Assert.AreEqual(RunAsKind.Service, sent.RunAsKind);
+        Assert.IsNull(sent.ScriptId);
+        var done = await WindowsHarness.EventuallyAsync(async () => await (await admin.GetAsync($"/api/v1/windows/script-runs/{sent.Id}")).ReadAsync<WindowsScriptRunDetail>(),
+            d => d.Run.State == ScriptRunState.Done);
+        StringAssert.Contains(done.Output, "as SYSTEM");
+        StringAssert.Contains(done.Output, "MinFreePercent=15");
+        stop.Cancel();
+        await running.WaitAsync(TimeSpan.FromSeconds(10));
+    }
 }

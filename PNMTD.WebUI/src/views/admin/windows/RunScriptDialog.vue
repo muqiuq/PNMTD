@@ -17,10 +17,11 @@ import { runAsLabel } from './scriptFormat'
 /**
  * Run… (docs/windows-sensor-plan.md §7.3): the servers, the account, and a form built from the parsed parameters (a switch is a
  * checkbox, a set a select, a number a number field, a [securestring] a password field). Passwords and secure arguments are
- * encrypted to each agent and never stored. Admin, audited.
+ * encrypted to each agent and never stored. Admin, audited. Opened for one server, its registered scripts (§7.2) come first:
+ * they run there only, as the account they are registered with.
  */
 const visible = defineModel<boolean>('visible', { required: true })
-const props = defineProps<{ scriptId: string | null; sensorId?: string | null }>()
+const props = defineProps<{ scriptId: string | null; sensorId?: string | null; localName?: string | null }>()
 const emit = defineEmits<{ started: [runs: S['WindowsScriptRunItem'][]] }>()
 
 const scripts = useQuery({
@@ -28,11 +29,34 @@ const scripts = useQuery({
   queryFn: () => api.windows.scripts({ pageSize: 500 }),
   enabled: visible,
 })
+const local = useQuery({
+  queryKey: computed(() => [...keys.windows, 'local-scripts', props.sensorId]),
+  queryFn: () => api.windows.localScripts(props.sensorId!),
+  enabled: computed(() => visible.value && !!props.sensorId),
+})
+// A library script by its id, a registered one as "local:<name>".
 const chosen = ref<string | null>(null)
+const localScript = computed(() =>
+  chosen.value?.startsWith('local:')
+    ? (local.data.value?.scripts.find((l) => `local:${l.script.name}` === chosen.value) ?? null)
+    : null,
+)
+const isLocal = computed(() => chosen.value?.startsWith('local:') ?? false)
+const options = computed(() => {
+  const library = (scripts.data.value?.items ?? []).map((s) => ({ label: s.name, value: s.id }))
+  const registered = (local.data.value?.scripts ?? []).map((l) => ({
+    label: `${l.script.name} (as ${l.runAsName})`,
+    value: `local:${l.script.name}`,
+  }))
+  return [
+    ...(registered.length ? [{ label: 'Registered on this server', items: registered }] : []),
+    { label: 'Library', items: library },
+  ]
+})
 const detail = useQuery({
   queryKey: computed(() => [...keys.windows, 'script', chosen.value]),
   queryFn: () => api.windows.script(chosen.value!),
-  enabled: computed(() => visible.value && chosen.value !== null),
+  enabled: computed(() => visible.value && chosen.value !== null && !isLocal.value),
 })
 const servers = useQuery({
   queryKey: [...keys.windows, 'servers', 'all'],
@@ -48,13 +72,20 @@ const shell = ref<'powershell' | 'pwsh'>('powershell')
 const values = ref<Record<string, unknown>>({})
 watch(visible, (open) => {
   if (!open) return
-  chosen.value = props.scriptId
+  chosen.value = props.localName ? `local:${props.localName}` : props.scriptId
   targets.value = props.sensorId ? [props.sensorId] : []
   account.value = null
   password.value = ''
   values.value = {}
 })
-const parameters = computed(() => detail.data.value?.parsed?.parameters ?? [])
+const parameters = computed(() =>
+  isLocal.value ? (localScript.value?.script.parsed?.parameters ?? []) : (detail.data.value?.parsed?.parameters ?? []),
+)
+const canRun = computed(() =>
+  isLocal.value
+    ? !!localScript.value?.script.matches && !!localScript.value.script.parsed && !!props.sensorId
+    : !!chosen.value && targets.value.length > 0 && !!account.value && detail.data.value?.parseState === 'Parsed',
+)
 const selectedRunAs = computed(() => runAs.data.value?.find((r) => r.id === account.value))
 const numeric = (p: S['ScriptParameter']) => ['Int32', 'Int64', 'Double', 'Decimal', 'Byte', 'UInt32'].includes(p.type)
 
@@ -69,16 +100,26 @@ async function start() {
     else argumentsBody[p.name] = v
   }
   const runs = await run(
-    () =>
-      api.windows.runScript(chosen.value!, {
-        sensorIds: targets.value,
-        runAsId: account.value!,
-        arguments: argumentsBody as S['WindowsScriptRunRequest']['arguments'],
-        secureArguments: secure,
-        password: selectedRunAs.value?.kind === 'TypedPerRun' ? password.value : null,
-        timeoutSeconds: timeout.value,
-        shell: shell.value,
-      }),
+    async () =>
+      isLocal.value
+        ? [
+            await api.windows.runLocalScript(props.sensorId!, {
+              name: localScript.value!.script.name,
+              arguments: argumentsBody as S['WindowsLocalScriptRunRequest']['arguments'],
+              secureArguments: secure,
+              timeoutSeconds: timeout.value,
+              shell: shell.value,
+            }),
+          ]
+        : await api.windows.runScript(chosen.value!, {
+            sensorIds: targets.value,
+            runAsId: account.value!,
+            arguments: argumentsBody as S['WindowsScriptRunRequest']['arguments'],
+            secureArguments: secure,
+            password: selectedRunAs.value?.kind === 'TypedPerRun' ? password.value : null,
+            timeoutSeconds: timeout.value,
+            shell: shell.value,
+          }),
     { success: 'Sent', invalidate: [keys.windows] },
   )
   password.value = ''
@@ -103,22 +144,36 @@ async function start() {
         <Select
           v-model="chosen"
           input-id="run-script"
-          :options="scripts.data.value?.items ?? []"
-          option-label="name"
-          option-value="id"
+          :options="options"
+          option-label="label"
+          option-value="value"
+          option-group-label="label"
+          option-group-children="items"
           filter
           placeholder="Choose a script"
+          empty-message="No scripts: add one to the library, or register one in the agent's window on the server"
         />
       </div>
+      <Message v-if="localScript && !localScript.script.matches" severity="warn" :closable="false" size="small">
+        The copy on the server changed after it was registered: replace it in the agent's window.
+      </Message>
+      <Message v-else-if="localScript && !localScript.script.parsed" severity="warn" :closable="false" size="small">
+        The agent could not read its parameters{{
+          localScript.script.parseError ? `: ${localScript.script.parseError}` : ''
+        }}.
+      </Message>
       <Message
-        v-if="detail.data.value && detail.data.value.parseState !== 'Parsed'"
+        v-if="!isLocal && detail.data.value && detail.data.value.parseState !== 'Parsed'"
         severity="warn"
         :closable="false"
         size="small"
       >
         Its parameters are not known yet: an agent parses it when one is connected.
       </Message>
-      <div class="field">
+      <p v-if="localScript" class="muted local-note">
+        Runs on this server only, as <strong>{{ localScript.runAsName }}</strong>, the account it is registered with.
+      </p>
+      <div v-if="!isLocal" class="field">
         <label for="run-servers">Servers</label>
         <MultiSelect
           v-model="targets"
@@ -134,7 +189,7 @@ async function start() {
           >Only servers where an administrator allowed scripts in the agent's window run it.</small
         >
       </div>
-      <div class="field">
+      <div v-if="!isLocal" class="field">
         <label for="run-as">As</label>
         <Select
           v-model="account"
@@ -147,7 +202,7 @@ async function start() {
           placeholder="Choose a run-as account"
         />
       </div>
-      <div v-if="selectedRunAs?.kind === 'TypedPerRun'" class="field">
+      <div v-if="!isLocal && selectedRunAs?.kind === 'TypedPerRun'" class="field">
         <label for="run-password">Password of {{ selectedRunAs.account }}</label>
         <Password v-model="password" input-id="run-password" :feedback="false" toggle-mask />
         <small class="field-hint">Encrypted to each server's agent, used once, never stored or logged.</small>
@@ -198,13 +253,7 @@ async function start() {
     </form>
     <template #footer>
       <Button label="Cancel" text severity="secondary" @click="visible = false" />
-      <Button
-        label="Run"
-        icon="pi pi-play"
-        :loading="busy"
-        :disabled="!chosen || !targets.length || !account || detail.data.value?.parseState !== 'Parsed'"
-        @click="start"
-      />
+      <Button label="Run" icon="pi pi-play" :loading="busy" :disabled="!canRun" @click="start" />
     </template>
   </Dialog>
 </template>
@@ -212,5 +261,9 @@ async function start() {
 <style scoped>
 .small {
   font-size: 0.857rem;
+}
+
+.local-note {
+  margin: 0;
 }
 </style>

@@ -14,10 +14,11 @@ public static class SectionNames
     public const string RemoteAccess = "remote-access";
     public const string Access = "access";
     public const string EventLog = "event-log";
+    public const string Scripts = "scripts";
 
     public const int SchemaVersion = 1;
 
-    public static readonly IReadOnlyList<string> All = [System, Hardware, Network, Services, RemoteAccess, Access, EventLog];
+    public static readonly IReadOnlyList<string> All = [System, Hardware, Network, Services, RemoteAccess, Access, EventLog, Scripts];
 
     public static bool IsKnown(string? name) => name is not null && All.Contains(name);
 }
@@ -273,3 +274,33 @@ public sealed record EventLogSection(IReadOnlyList<EventEntry> Entries);
 
 /// <summary>An entry of System or Application at Critical, Error or Warning; the message rendered and capped at 2 KB.</summary>
 public sealed record EventEntry(DateTimeOffset At, string Log, string Level, string Source, int EventId, string? Category, string Message, string? User, long RecordId);
+
+// --- scripts registered on the server (§7.2) ---------------------------------------------------------------
+
+/// <summary>
+/// The scripts an administrator registered in the agent's window (§7.2), and whether PNMT may run scripts there (only these, or
+/// any script as the named accounts): PNMT lists them on the server's Scripts tab and runs them as their own account.
+/// </summary>
+public sealed record ScriptsSection(bool Allowed, bool AnyScript, IReadOnlyList<string> RunAs, IReadOnlyList<RegisteredScript> Scripts);
+
+/// <summary>
+/// A registered script: its SHA-256 and whether the copy still matches it, the account it runs as, its schedule and scheduled
+/// task, who added it. The text and the parser's view of it only while the copy matches (a changed copy is refused anyway).
+/// </summary>
+public sealed record RegisteredScript(
+    string Name,
+    string Sha256,
+    bool Matches,
+    RunAsKind RunAs,
+    string? Account,
+    string? Schedule,
+    ScheduledTaskState? Task,
+    DateTimeOffset AddedAt,
+    string AddedBy,
+    DateTimeOffset UpdatedAt,
+    string? Text,
+    ParsedScript? Parsed,
+    string? ParseError);
+
+/// <summary>A registered script's scheduled task, as the Task Scheduler reports it; the result is Windows' (0 is success).</summary>
+public sealed record ScheduledTaskState(string State, DateTimeOffset? LastRun, long? LastResult, DateTimeOffset? NextRun);

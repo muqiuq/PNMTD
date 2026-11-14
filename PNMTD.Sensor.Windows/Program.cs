@@ -102,6 +102,8 @@ internal static partial class Program
     internal static void AddAgent(IServiceCollection services, DailyFileLoggerProvider logs)
     {
         services.AddSingleton(logs);
+        Collectors.Wmi.Logger = logs.CreateLogger("Collectors.Wmi");
+        Isolated.Logger = logs.CreateLogger("Resilience.Isolated");
         services.AddSingleton<ProblemReporter>();
         services.AddSingleton<Collector, SystemCollector>();
         services.AddSingleton<Collector, HardwareCollector>();
@@ -110,6 +112,7 @@ internal static partial class Program
         services.AddSingleton<Collector, RemoteAccessCollector>();
         services.AddSingleton<Collector, AccessCollector>();
         services.AddSingleton<Collector, EventLogCollector>();
+        services.AddSingleton<Collector, Scripts.RegisteredScriptsCollector>();
         // Logins and connections (§4.7): a stream of its own, and the source of the access section's numbers.
         services.AddSingleton<Access.LoginStream>();
         services.AddSingleton<IAgentFeature>(sp => sp.GetRequiredService<Access.LoginStream>());

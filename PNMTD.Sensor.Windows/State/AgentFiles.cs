@@ -36,7 +36,11 @@ internal sealed record AgentStatusFile(
     IReadOnlyList<AgentProblem> Problems,
     IReadOnlyList<DiagnosticsStatus> Diagnostics,
     IReadOnlyList<string> AuditGaps,
-    DateTimeOffset StartedAt);
+    DateTimeOffset StartedAt,
+    IReadOnlyList<SectionStatus>? Sections = null);
+
+/// <summary>A section for the window: when it was collected, its size and errors, when it was last sent, and whether that was this one.</summary>
+internal sealed record SectionStatus(string Name, DateTimeOffset? CollectedAt, int? Bytes, int Errors, DateTimeOffset? SentAt, bool SentCurrent);
 
 internal sealed record DiagnosticsStatus(Guid AssignmentId, string SetName, string Mode, int IntervalMinutes, bool Enabled, DateTimeOffset? LastRunAt,
     string? LastOutcome, string? LastMessage);

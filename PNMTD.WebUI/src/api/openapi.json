@@ -6320,6 +6320,106 @@
         }
       }
     },
+    "/api/v1/windows/servers/{id}/local-scripts": {
+      "get": {
+        "tags": [
+          "WindowsScripts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsLocalScripts"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsLocalScripts"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsLocalScripts"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/windows/servers/{id}/local-scripts/run": {
+      "post": {
+        "tags": [
+          "WindowsScripts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowsLocalScriptRunRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowsLocalScriptRunRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowsLocalScriptRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsScriptRunItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsScriptRunItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WindowsScriptRunItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/windows/run-as": {
       "get": {
         "tags": [
@@ -19120,6 +19220,93 @@
           }
         }
       },
+      "RegisteredScript": {
+        "required": [
+          "name",
+          "sha256",
+          "matches",
+          "runAs",
+          "account",
+          "schedule",
+          "task",
+          "addedAt",
+          "addedBy",
+          "updatedAt",
+          "text",
+          "parsed",
+          "parseError"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "matches": {
+            "type": "boolean"
+          },
+          "runAs": {
+            "$ref": "#/components/schemas/RunAsKind"
+          },
+          "account": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "schedule": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "task": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ScheduledTaskState"
+              }
+            ]
+          },
+          "addedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "addedBy": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "parsed": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ParsedScript"
+              }
+            ]
+          },
+          "parseError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ReleaseSeverity": {
         "enum": [
           "Normal",
@@ -19284,6 +19471,41 @@
           "TypedPerRun",
           "Gmsa"
         ]
+      },
+      "ScheduledTaskState": {
+        "required": [
+          "state",
+          "lastRun",
+          "lastResult",
+          "nextRun"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "lastRun": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastResult": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "nextRun": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
       },
       "ScriptFinding": {
         "required": [
@@ -23798,6 +24020,116 @@
           "Expired",
           "Revoked"
         ]
+      },
+      "WindowsLocalScript": {
+        "required": [
+          "script",
+          "runAsName",
+          "libraryScriptId",
+          "libraryScriptName"
+        ],
+        "type": "object",
+        "properties": {
+          "script": {
+            "$ref": "#/components/schemas/RegisteredScript"
+          },
+          "runAsName": {
+            "type": "string"
+          },
+          "libraryScriptId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "libraryScriptName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "WindowsLocalScriptRunRequest": {
+        "required": [
+          "name",
+          "arguments",
+          "secureArguments",
+          "timeoutSeconds",
+          "shell"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "arguments": {
+            "type": [
+              "null",
+              "object"
+            ]
+          },
+          "secureArguments": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "timeoutSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "shell": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "WindowsLocalScripts": {
+        "required": [
+          "collectedAt",
+          "allowed",
+          "anyScript",
+          "runAs",
+          "scripts"
+        ],
+        "type": "object",
+        "properties": {
+          "collectedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "allowed": {
+            "type": "boolean"
+          },
+          "anyScript": {
+            "type": "boolean"
+          },
+          "runAs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scripts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WindowsLocalScript"
+            }
+          }
+        }
       },
       "WindowsLoginItem": {
         "required": [

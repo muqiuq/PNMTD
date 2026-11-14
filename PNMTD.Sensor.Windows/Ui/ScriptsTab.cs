@@ -63,7 +63,7 @@ internal sealed class ScriptsTab : UserControl
         scripts.Paint += (_, e) => Kit.Border(scripts, e);
         scripts.Controls.Add(Kit.Heading("Scripts on this server"), 0, 0);
         scripts.Controls.Add(Kit.Muted("Each is a copy of a .ps1 file with its SHA-256 and the account it runs as, and runs by itself when it has a schedule. " +
-            "To run one from PNMT too, PNMT's script library needs the same text."), 0, 1);
+            "PNMT lists them on this server's Scripts tab, and runs them from there when allowed above."), 0, 1);
         scripts.Controls.Add(Kit.Row(
             Kit.Button("Add script…", ButtonKind.Primary, (_, _) => AddScript()),
             Kit.Button("Example script", ButtonKind.Secondary, (_, _) => OpenExample()),

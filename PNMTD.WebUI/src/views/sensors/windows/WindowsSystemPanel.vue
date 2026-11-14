@@ -15,6 +15,13 @@ const id = toRef(() => props.server.server.sensorId)
 const section = useWindowsSection(id, 'system')
 const sys = computed(() => section.data.value?.system ?? null)
 const activation = computed(() => sys.value?.os.activation ?? null)
+/** "corp.example · Member server", "workgroup WORKGROUP · Standalone workstation", or what is known of it. */
+const domainText = computed(() => {
+  const s = sys.value
+  if (!s) return ''
+  const where = s.partOfDomain ? (s.domain ?? 'a domain') : s.domain ? `workgroup ${s.domain}` : 'workgroup'
+  return [where, s.domainRole].filter(Boolean).join(' · ')
+})
 
 const activationLabel = (status: string) => (status === 'Licensed' ? 'activated' : status.toLowerCase())
 const activationSeverity = (status: string) =>
@@ -45,10 +52,18 @@ const graceText = (a: S['ActivationInfo']) => {
         section="system"
         :view="section.data.value"
         :loading="section.loading.value"
+        :error="section.error.value"
         :can-write="canWrite"
         :connected="server.server.connected"
       />
       <dl v-if="sys" class="facts">
+        <dt>Hostname</dt>
+        <dd>
+          <span class="mono">{{ sys.hostname }}</span>
+          <span v-if="sys.fqdn && sys.fqdn.toLowerCase() !== sys.hostname.toLowerCase()" class="muted mono">
+            · {{ sys.fqdn }}</span
+          >
+        </dd>
         <dt>Windows</dt>
         <dd>
           {{ sys.os.caption }} {{ sys.os.displayVersion }} ({{ sys.os.build
@@ -93,7 +108,7 @@ const graceText = (a: S['ActivationInfo']) => {
           <template v-else>–</template>
         </dd>
         <dt>Domain</dt>
-        <dd>{{ sys.partOfDomain ? sys.domain : `workgroup ${sys.domain ?? ''}` }} · {{ sys.domainRole ?? '' }}</dd>
+        <dd>{{ domainText }}</dd>
         <dt>Last shutdown</dt>
         <dd>
           <template v-if="sys.lastShutdown">

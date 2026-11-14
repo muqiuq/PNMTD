@@ -106,6 +106,9 @@ internal sealed class ProblemReporter(ILogger<ProblemReporter> logger)
 /// <summary>Rules 1 and 2 (§3.8): each unit of work in its own try/catch, with a timeout; a failure is reported, the next unit runs.</summary>
 internal static class Isolated
 {
+    /// <summary>The parts left empty because this Windows doesn't have them, at debug level.</summary>
+    public static ILogger Logger { get; set; } = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
+
     public static async Task<T?> RunAsync<T>(ProblemReporter problems, string component, string operation, TimeSpan timeout,
         Func<CancellationToken, Task<T>> work, CancellationToken ct)
     {
@@ -150,8 +153,9 @@ internal static class Isolated
         {
             return read();
         }
-        catch (Collectors.NotAvailableException)
+        catch (Collectors.NotAvailableException e)
         {
+            Logger.LogDebug("{Part}: {Message}; the part stays empty, not an error", part, e.Message);
             return default;
         }
         catch (Exception e)

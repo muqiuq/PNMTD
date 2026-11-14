@@ -4897,6 +4897,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/windows/servers/{id}/local-scripts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsLocalScripts"];
+                        "text/json": components["schemas"]["WindowsLocalScripts"];
+                        "text/plain": components["schemas"]["WindowsLocalScripts"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/windows/servers/{id}/local-scripts/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WindowsLocalScriptRunRequest"];
+                    "text/json": components["schemas"]["WindowsLocalScriptRunRequest"];
+                    "application/*+json": components["schemas"]["WindowsLocalScriptRunRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WindowsScriptRunItem"];
+                        "text/json": components["schemas"]["WindowsScriptRunItem"];
+                        "text/plain": components["schemas"]["WindowsScriptRunItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/windows/run-as": {
         parameters: {
             query?: never;
@@ -10281,6 +10365,23 @@ export interface components {
             id: string;
             name: string;
         };
+        RegisteredScript: {
+            name: string;
+            sha256: string;
+            matches: boolean;
+            runAs: components["schemas"]["RunAsKind"];
+            account: null | string;
+            schedule: null | string;
+            task: null | components["schemas"]["ScheduledTaskState"];
+            /** Format: date-time */
+            addedAt: string;
+            addedBy: string;
+            /** Format: date-time */
+            updatedAt: string;
+            text: null | string;
+            parsed: null | components["schemas"]["ParsedScript"];
+            parseError: null | string;
+        };
         /** @enum {unknown} */
         ReleaseSeverity: "Normal" | "Important" | "Critical" | null;
         RemoteAccessSection: {
@@ -10322,6 +10423,15 @@ export interface components {
         };
         /** @enum {unknown} */
         RunAsKind: "Service" | "Stored" | "TypedPerRun" | "Gmsa";
+        ScheduledTaskState: {
+            state: string;
+            /** Format: date-time */
+            lastRun: null | string;
+            /** Format: int64 */
+            lastResult: null | number;
+            /** Format: date-time */
+            nextRun: null | string;
+        };
         ScriptFinding: {
             rule: string;
             message: string;
@@ -11427,6 +11537,31 @@ export interface components {
         };
         /** @enum {unknown} */
         WindowsJoinTokenState: "Pending" | "Used" | "Expired" | "Revoked";
+        WindowsLocalScript: {
+            script: components["schemas"]["RegisteredScript"];
+            runAsName: string;
+            /** Format: uuid */
+            libraryScriptId: null | string;
+            libraryScriptName: null | string;
+        };
+        WindowsLocalScriptRunRequest: {
+            name: string;
+            arguments: null | Record<string, never>;
+            secureArguments: null | {
+                [key: string]: string;
+            };
+            /** Format: int32 */
+            timeoutSeconds: null | number;
+            shell: null | string;
+        };
+        WindowsLocalScripts: {
+            /** Format: date-time */
+            collectedAt: null | string;
+            allowed: boolean;
+            anyScript: boolean;
+            runAs: string[];
+            scripts: components["schemas"]["WindowsLocalScript"][];
+        };
         WindowsLoginItem: {
             /** Format: uuid */
             id: string;

@@ -30,6 +30,7 @@ const connections = computed(() =>
       section="network"
       :view="section.data.value"
       :loading="section.loading.value"
+      :error="section.error.value"
       :can-write="canWrite"
       :connected="server.server.connected"
     />

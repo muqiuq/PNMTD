@@ -16,7 +16,8 @@ namespace PNMTD.Windows;
 /// 451 for a clock that is off or problems in three heartbeats in a row; problems go to the agent log; <c>bye</c> marks the
 /// server uninstalled.
 /// </summary>
-public sealed class WindowsReportService(IDbContextFactory<PnmtdDbContext> dbs, IOptionsMonitor<WindowsOptions> options, WindowsChanges changes)
+public sealed class WindowsReportService(IDbContextFactory<PnmtdDbContext> dbs, IOptionsMonitor<WindowsOptions> options, WindowsChanges changes,
+    ILogger<WindowsReportService> logger)
 {
     /// <summary>The source of the events PNMTD writes for agents: one, so the dedupe collapses repeated heartbeats.</summary>
     public const string EventSource = "windows-agent";
@@ -141,13 +142,16 @@ public sealed class WindowsReportService(IDbContextFactory<PnmtdDbContext> dbs, 
         var agent = await db.WindowsAgents.Include(a => a.Sensor).ThenInclude(s => s.Parent).SingleOrDefaultAsync(a => a.SensorId == connection.SensorId, ct);
         if (agent is null || agent.AgentId != connection.AgentId)
         {
+            logger.LogDebug("Agent {Name}: the section {Section} ignored, the agent is not this server's (any more)", connection.AgentName, message.Name);
             return;
         }
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
-        var (_, previous) = await WindowsSections.StoreAsync(db, connection.SensorId, message, ct);
+        var (row, previous) = await WindowsSections.StoreAsync(db, connection.SensorId, message, ct);
         await changes.StoredAsync(db, agent, message, previous, ct);
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
+        logger.LogDebug("Agent {Name}: the section {Section} stored ({Bytes} bytes, hash {Hash}, {Errors} errors, {State})", connection.AgentName, message.Name,
+            message.Data.GetRawText().Length, message.Hash, message.Errors?.Count ?? 0, row.ChangedAt == row.ReceivedAt ? "changed" : "unchanged");
     }
 
     public async Task ByeAsync(AgentConnection connection, Bye bye, CancellationToken ct)

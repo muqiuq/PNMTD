@@ -14,6 +14,9 @@ export const runAsLabel = (k: S['RunAsKind']) =>
         ? 'typed per run'
         : 'gMSA'
 
+/** A library script's version, or a script registered on the server (version 0: it has no versions in PNMT). */
+export const versionLabel = (n: number) => (n > 0 ? `v${n}` : 'registered on the server')
+
 export const parseSeverity = (p: S['ScriptParseState']) =>
   p === 'Parsed' ? 'success' : p === 'Failed' ? 'danger' : 'warn'
 

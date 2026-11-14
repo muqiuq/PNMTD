@@ -10,7 +10,7 @@ import ListTable from '@/components/ListTable.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { useActions } from '@/composables/useActions'
 import { useServerTable } from '@/composables/useServerTable'
-import { runStateSeverity } from './scriptFormat'
+import { runStateSeverity, versionLabel } from './scriptFormat'
 
 /** The scripts' runs (docs/windows-sensor-plan.md §7.3): who ran what where, as whom, with the output; arguments can be redacted. */
 const props = defineProps<{ sensorId?: string }>()
@@ -51,7 +51,7 @@ async function redact() {
       </Column>
       <Column header="Script">
         <template #body="{ data }">
-          {{ data.scriptName }} <span class="muted small">v{{ data.versionNumber }}</span>
+          {{ data.scriptName }} <span class="muted small">{{ versionLabel(data.versionNumber) }}</span>
           <div v-if="!sensorId" class="small muted">{{ data.serverName }}</div>
         </template>
       </Column>
@@ -76,7 +76,8 @@ async function redact() {
       <template v-if="detail.data.value">
         <p class="line">
           <Tag :value="detail.data.value.run.state" :severity="runStateSeverity(detail.data.value.run.state)" />
-          <strong>{{ detail.data.value.run.scriptName }}</strong> v{{ detail.data.value.run.versionNumber }} on
+          <strong>{{ detail.data.value.run.scriptName }}</strong>
+          {{ versionLabel(detail.data.value.run.versionNumber) }} on
           {{ detail.data.value.run.serverName }}
         </p>
         <p class="small muted">
