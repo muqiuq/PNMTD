@@ -75,7 +75,8 @@ public static class AgentDownloadEndpoint
             return Results.NotFound();
         }
         var address = http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        if (!guard.TryEnter(address, settings.DownloadsPerHour, out var retryAfter))
+        // A HEAD sends no file, so it doesn't count towards the downloads per hour.
+        if (!HttpMethods.IsHead(http.Request.Method) && !guard.TryEnter(address, settings.DownloadsPerHour, out var retryAfter))
         {
             http.Response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
             return Results.Text($"Too many downloads from this address: at most {settings.DownloadsPerHour} per hour. GitHub's release has the same files.",

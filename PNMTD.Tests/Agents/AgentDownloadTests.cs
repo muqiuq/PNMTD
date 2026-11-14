@@ -73,6 +73,13 @@ public sealed class AgentDownloadTests
         Assert.AreEqual("application/octet-stream", response.Content.Headers.ContentType?.MediaType);
         Assert.AreEqual(bytes.Length, response.Content.Headers.ContentLength);
         CollectionAssert.AreEqual(bytes, await response.Content.ReadAsByteArrayAsync());
+        // HEAD: the same answer without the file (curl -I).
+        using (var head = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, $"{AgentProtocol.DownloadPath}/{AgentDownloadAssets.LinuxX64}")))
+        {
+            Assert.AreEqual(HttpStatusCode.OK, head.StatusCode);
+            Assert.AreEqual(bytes.Length, head.Content.Headers.ContentLength);
+            Assert.AreEqual(0, (await head.Content.ReadAsByteArrayAsync()).Length);
+        }
         var sum = await (await client.GetAsync($"{AgentProtocol.DownloadPath}/{AgentDownloadAssets.LinuxX64}.sha256")).Content.ReadAsStringAsync();
         Assert.AreEqual($"{Sha(bytes)}  {AgentDownloadAssets.LinuxX64}\n", sum);
 

@@ -43,7 +43,9 @@ public static class AgentSetup
         app.MapPost(AgentProtocol.JoinPath, AgentJoinEndpoint.JoinAsync).AllowAnonymous().ExcludeFromDescription();
         app.MapGet(AgentProtocol.WebSocketPath, (HttpContext context, AgentHub hub) => hub.HandleAsync(context)).AllowAnonymous().ExcludeFromDescription();
         app.MapGet(AgentProtocol.DownloadPath, AgentDownloadEndpoint.ManifestAsync).AllowAnonymous().ExcludeFromDescription();
-        app.MapGet(AgentProtocol.DownloadPath + "/{asset}", AgentDownloadEndpoint.AssetAsync).AllowAnonymous().ExcludeFromDescription();
+        // HEAD too (curl -I, tools that check a file before fetching it); Kestrel sends no body for it.
+        app.MapMethods(AgentProtocol.DownloadPath + "/{asset}", [HttpMethods.Get, HttpMethods.Head], AgentDownloadEndpoint.AssetAsync)
+            .AllowAnonymous().ExcludeFromDescription();
         return app;
     }
 }

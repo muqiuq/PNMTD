@@ -42,6 +42,7 @@ public sealed class EndpointAuditTests
         // The agents' files (docs/linux-sensor-plan.md §4.4, §9.7): public as on GitHub, fixed names only, limited per address.
         "GET /agent/v1/download",
         "GET /agent/v1/download/{asset}",
+        "HEAD /agent/v1/download/{asset}",
     ];
 
     /// <summary>
