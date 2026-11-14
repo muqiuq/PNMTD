@@ -120,6 +120,13 @@ public sealed class ApiExceptionFilterAttribute : ExceptionFilterAttribute
         {
             return;
         }
+        if (context.Exception is ApiException { Extensions: { } extensions })
+        {
+            foreach (var (name, value) in extensions)
+            {
+                problem.Extensions[name] = value;
+            }
+        }
         context.Result = new ObjectResult(problem)
         {
             StatusCode = problem.Status,

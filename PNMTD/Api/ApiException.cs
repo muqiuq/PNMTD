@@ -3,8 +3,10 @@ namespace PNMTD.Api;
 /// <summary>
 /// A v1 error with its HTTP status and the stable <c>code</c> of the ProblemDetails body
 /// (docs/webui-migration-plan.md §3.7). Thrown by the domain services, written by <see cref="ApiExceptionFilter"/>.
+/// <see cref="Extensions"/> become members of the body next to <c>code</c>, such as an edit conflict's revision.
 /// </summary>
-public sealed class ApiException(int status, string code, string detail, IDictionary<string, string[]>? errors = null)
+public sealed class ApiException(int status, string code, string detail, IDictionary<string, string[]>? errors = null,
+    IReadOnlyDictionary<string, object?>? extensions = null)
     : Exception(detail)
 {
     public int Status { get; } = status;
@@ -13,11 +15,21 @@ public sealed class ApiException(int status, string code, string detail, IDictio
 
     public IDictionary<string, string[]>? Errors { get; } = errors;
 
+    public IReadOnlyDictionary<string, object?>? Extensions { get; } = extensions;
+
     public static ApiException NotFound(string what) =>
         new(StatusCodes.Status404NotFound, ApiErrorCodes.NotFound, $"{what} not found.");
 
     public static ApiException Conflict(string code, string detail) =>
         new(StatusCodes.Status409Conflict, code, detail);
+
+    /// <summary>
+    /// 409 <c>edit_conflict</c> (docs/locations-knowledge-plan.md §5.7): someone saved since the revision the save started
+    /// from. The body names their <c>revision</c>, <c>by</c> and <c>at</c>, so the editor can show both sides.
+    /// </summary>
+    public static ApiException EditConflict(int revision, string? by, DateTime? at, string detail) =>
+        new(StatusCodes.Status409Conflict, ApiErrorCodes.EditConflict, detail,
+            extensions: new Dictionary<string, object?> { ["revision"] = revision, ["by"] = by, ["at"] = at });
 
     public static ApiException Invalid(string field, string message) =>
         new(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationFailed, "One or more fields are invalid.",
@@ -32,6 +44,9 @@ public static class ApiErrorCodes
     /// <summary>An encrypted backup PNMTD cannot read: the browser decrypts and compares it (docs/mikrotik-backup-plan.md §3.6).</summary>
     public const string BackupEncrypted = "backup_encrypted";
     public const string DuplicateKey = "duplicate_key";
+
+    /// <summary>A save that started from an older revision (docs/locations-knowledge-plan.md §5.7).</summary>
+    public const string EditConflict = "edit_conflict";
     public const string ReadOnly = "read_only";
     public const string Unauthorized = "unauthorized";
     public const string ForbiddenRole = "forbidden_role";
