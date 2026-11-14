@@ -68,6 +68,20 @@
             }
           },
           {
+            "name": "securityUpdates",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "keyRemoval",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "hostId",
             "in": "query",
             "schema": {
@@ -204,6 +218,13 @@
             "in": "query",
             "schema": {
               "$ref": "#/components/schemas/LogonKind"
+            }
+          },
+          {
+            "name": "keyFingerprint",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -959,6 +980,55 @@
         "tags": [
           "Agents"
         ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDownloadLinks"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDownloadLinks"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDownloadLinks"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/downloads/fetch": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentDownloadFetchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentDownloadFetchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentDownloadFetchRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -4797,6 +4867,54 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/linux/servers/{id}/sections/{section}": {
+      "get": {
+        "tags": [
+          "LinuxServers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinuxSectionView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinuxSectionView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinuxSectionView"
+                }
+              }
+            }
           }
         }
       }
@@ -11109,6 +11227,87 @@
           }
         }
       },
+      "AgentDownloadFetchRequest": {
+        "required": [
+          "files"
+        ],
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AgentDownloadFile": {
+        "required": [
+          "name",
+          "platform",
+          "architecture",
+          "pnmtUrl",
+          "gitHubUrl",
+          "sha256",
+          "size",
+          "state",
+          "error",
+          "fetchedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/AgentPlatform"
+          },
+          "architecture": {
+            "type": "string"
+          },
+          "pnmtUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "gitHubUrl": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "size": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "state": {
+            "$ref": "#/components/schemas/AgentDownloadState"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fetchedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "AgentDownloadLink": {
         "required": [
           "architecture",
@@ -11132,6 +11331,12 @@
               "null",
               "string"
             ]
+          },
+          "pnmtUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -11140,7 +11345,13 @@
           "version",
           "files",
           "releaseUrl",
-          "note"
+          "note",
+          "assets",
+          "linux",
+          "updateLine",
+          "serveDownloads",
+          "url",
+          "tokenPlaceholder"
         ],
         "type": "object",
         "properties": {
@@ -11164,8 +11375,40 @@
               "null",
               "string"
             ]
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentDownloadFile"
+            }
+          },
+          "linux": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinuxInstallLines"
+            }
+          },
+          "updateLine": {
+            "type": "string"
+          },
+          "serveDownloads": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          },
+          "tokenPlaceholder": {
+            "type": "string"
           }
         }
+      },
+      "AgentDownloadState": {
+        "enum": [
+          "Here",
+          "Fetching",
+          "Failed",
+          "NotFetched"
+        ]
       },
       "AgentJoinTokenCreated": {
         "required": [
@@ -11457,6 +11700,33 @@
           },
           "channel": {
             "type": "string"
+          },
+          "keyFingerprint": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetUser": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "command": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "triedUsers": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -11577,6 +11847,85 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "AgentRightsSummary": {
+        "required": [
+          "source",
+          "problem",
+          "keyRemoval",
+          "keyRemovalUsers",
+          "protectedKeys",
+          "writablePaths",
+          "scripts",
+          "scriptRunAs",
+          "allowedScriptHashes",
+          "maxScriptTimeoutMinutes",
+          "sudoCommands",
+          "cronCommands"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "problem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "keyRemoval": {
+            "type": "boolean"
+          },
+          "keyRemovalUsers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "protectedKeys": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "writablePaths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scripts": {
+            "type": "boolean"
+          },
+          "scriptRunAs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowedScriptHashes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxScriptTimeoutMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sudoCommands": {
+            "type": "boolean"
+          },
+          "cronCommands": {
+            "type": "boolean"
+          },
+          "warnings": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -12178,6 +12527,23 @@
           },
           "pnmtVersion": {
             "type": "string"
+          },
+          "rights": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AgentRightsSummary"
+              }
+            ]
+          },
+          "securityUpdatesSince": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -12329,6 +12695,31 @@
           "diagnosticsFailing": {
             "type": "integer",
             "format": "int32"
+          },
+          "distribution": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kernelRelease": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "securityUpdates": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "keyRemovalAllowed": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -12353,6 +12744,19 @@
           },
           "criticalEvents": {
             "type": "boolean"
+          },
+          "keyAddedEvents": {
+            "type": "boolean",
+            "default": true
+          },
+          "securityUpdateEvents": {
+            "type": "boolean",
+            "default": false
+          },
+          "securityUpdateDays": {
+            "type": "integer",
+            "format": "int32",
+            "default": 7
           }
         }
       },
@@ -13103,6 +13507,27 @@
           "Cancelled"
         ]
       },
+      "AppArmorInfo": {
+        "required": [
+          "enabled",
+          "enforcing",
+          "complaining"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "enforcing": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "complaining": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "AssignMode": {
         "enum": [
           "Add",
@@ -13201,6 +13626,176 @@
           }
         }
       },
+      "AuthorizedKey": {
+        "required": [
+          "line",
+          "type",
+          "bits",
+          "fingerprint",
+          "comment",
+          "options",
+          "key",
+          "notes",
+          "protected"
+        ],
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "type": {
+            "type": "string"
+          },
+          "bits": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "key": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "protected": {
+            "type": "boolean"
+          },
+          "protectedBecause": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AuthorizedKeysFile": {
+        "required": [
+          "account",
+          "path",
+          "target",
+          "exists",
+          "owner",
+          "group",
+          "mode",
+          "size",
+          "modifiedAt",
+          "sha256",
+          "clusterWide",
+          "problems",
+          "keys",
+          "invalidLines",
+          "removable",
+          "notRemovable"
+        ],
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "target": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "exists": {
+            "type": "boolean"
+          },
+          "owner": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "group": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "size": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "modifiedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "sha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "clusterWide": {
+            "type": "boolean"
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthorizedKey"
+            }
+          },
+          "invalidLines": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "removable": {
+            "type": "boolean"
+          },
+          "notRemovable": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "BatteryInfo": {
         "required": [
           "name",
@@ -13249,6 +13844,40 @@
           }
         }
       },
+      "CaKey": {
+        "required": [
+          "source",
+          "type",
+          "bits",
+          "fingerprint",
+          "comment"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "bits": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ChangePasswordRequest": {
         "type": "object",
         "properties": {
@@ -13263,6 +13892,25 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ContainerRuntime": {
+        "required": [
+          "name",
+          "installed",
+          "running"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "running": {
+            "type": "boolean"
           }
         }
       },
@@ -13301,6 +13949,40 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "CronEntry": {
+        "required": [
+          "file",
+          "user",
+          "schedule",
+          "program",
+          "command",
+          "lineHash"
+        ],
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "schedule": {
+            "type": "string"
+          },
+          "program": {
+            "type": "string"
+          },
+          "command": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lineHash": {
+            "type": "string"
           }
         }
       },
@@ -15028,6 +15710,28 @@
           "NS"
         ]
       },
+      "EncryptedVolume": {
+        "required": [
+          "device",
+          "mount",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "device": {
+            "type": "string"
+          },
+          "mount": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          }
+        }
+      },
       "EntityTagHeaderValue": {
         "type": "object",
         "properties": {
@@ -15160,6 +15864,45 @@
             "items": {
               "$ref": "#/components/schemas/EventEntry"
             }
+          }
+        }
+      },
+      "Fail2banInfo": {
+        "required": [
+          "running",
+          "jails"
+        ],
+        "type": "object",
+        "properties": {
+          "running": {
+            "type": "boolean"
+          },
+          "jails": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Fail2banJail"
+            }
+          }
+        }
+      },
+      "Fail2banJail": {
+        "required": [
+          "name",
+          "banned",
+          "totalBanned"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "banned": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalBanned": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -15828,6 +16571,82 @@
         ],
         "default": "Any"
       },
+      "JournalEntry": {
+        "required": [
+          "at",
+          "priority",
+          "level",
+          "unit",
+          "identifier",
+          "pid",
+          "boot",
+          "message",
+          "cursor"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "priority": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "level": {
+            "type": "string"
+          },
+          "unit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "identifier": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pid": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "boot": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "JournalSection": {
+        "required": [
+          "entries",
+          "persistent"
+        ],
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JournalEntry"
+            }
+          },
+          "persistent": {
+            "type": "boolean"
+          }
+        }
+      },
       "KeyFamily": {
         "enum": [
           "HmacSha256",
@@ -15930,6 +16749,961 @@
           }
         }
       },
+      "LinuxAccessSection": {
+        "required": [
+          "sessions",
+          "logging",
+          "last24Hours",
+          "invalidUserFailures24Hours",
+          "elevations24Hours",
+          "gaps"
+        ],
+        "type": "object",
+        "properties": {
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionInfo"
+            }
+          },
+          "logging": {
+            "$ref": "#/components/schemas/LoggingCheck"
+          },
+          "last24Hours": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AccessCounts"
+              }
+            ]
+          },
+          "invalidUserFailures24Hours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "elevations24Hours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LinuxAccount": {
+        "required": [
+          "name",
+          "uid",
+          "gid",
+          "home",
+          "shell",
+          "loginShell",
+          "groups",
+          "passwordSet",
+          "locked",
+          "systemAccount"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "uid": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gid": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "home": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shell": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "loginShell": {
+            "type": "boolean"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "passwordSet": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "locked": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "systemAccount": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LinuxAdmin": {
+        "required": [
+          "name",
+          "via"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "via": {
+            "type": "string"
+          }
+        }
+      },
+      "LinuxFirewallInfo": {
+        "required": [
+          "kind",
+          "active",
+          "inputPolicy",
+          "notes"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "inputPolicy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LinuxInstallLines": {
+        "required": [
+          "architecture",
+          "fileName",
+          "sha256",
+          "pnmt",
+          "pnmtCurl",
+          "gitHub",
+          "gitHubCurl"
+        ],
+        "type": "object",
+        "properties": {
+          "architecture": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pnmt": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pnmtCurl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "gitHub": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "gitHubCurl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "LinuxOsInfo": {
+        "required": [
+          "prettyName",
+          "id",
+          "idLike",
+          "versionId",
+          "codename",
+          "debianVersion",
+          "kernelRelease",
+          "kernelVersion",
+          "architecture",
+          "supported",
+          "distribution",
+          "systemdVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "prettyName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "idLike": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "versionId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "codename": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "debianVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kernelRelease": {
+            "type": "string"
+          },
+          "kernelVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "architecture": {
+            "type": "string"
+          },
+          "supported": {
+            "type": "boolean"
+          },
+          "distribution": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "systemdVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "LinuxRemoteAccessSection": {
+        "required": [
+          "sshd",
+          "features",
+          "summary",
+          "firewallKind"
+        ],
+        "type": "object",
+        "properties": {
+          "sshd": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SshdSettings"
+              }
+            ]
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinuxRemoteFeature"
+            }
+          },
+          "summary": {
+            "type": "string"
+          },
+          "firewallKind": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "LinuxRemoteFeature": {
+        "required": [
+          "key",
+          "name",
+          "installed",
+          "active",
+          "ports",
+          "listening",
+          "firewall",
+          "notes"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "ports": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "listening": {
+            "type": "boolean"
+          },
+          "firewall": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "highlight": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "LinuxSectionView": {
+        "required": [
+          "name",
+          "collectedAt",
+          "receivedAt",
+          "changedAt",
+          "errors"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "collectedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "system": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LinuxSystemSection"
+              }
+            ]
+          },
+          "hardware": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HardwareSection"
+              }
+            ]
+          },
+          "network": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NetworkSection"
+              }
+            ]
+          },
+          "services": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LinuxServicesSection"
+              }
+            ]
+          },
+          "remoteAccess": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LinuxRemoteAccessSection"
+              }
+            ]
+          },
+          "access": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LinuxAccessSection"
+              }
+            ]
+          },
+          "journal": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JournalSection"
+              }
+            ]
+          },
+          "sshKeys": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SshKeysSection"
+              }
+            ]
+          }
+        }
+      },
+      "LinuxSecurityInfo": {
+        "required": [
+          "firewall",
+          "appArmor",
+          "secureBoot",
+          "encrypted",
+          "fail2ban"
+        ],
+        "type": "object",
+        "properties": {
+          "firewall": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LinuxFirewallInfo"
+              }
+            ]
+          },
+          "appArmor": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AppArmorInfo"
+              }
+            ]
+          },
+          "secureBoot": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "encrypted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EncryptedVolume"
+            }
+          },
+          "fail2ban": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Fail2banInfo"
+              }
+            ]
+          }
+        }
+      },
+      "LinuxServiceClass": {
+        "enum": [
+          "Distribution",
+          "ThirdParty",
+          "Unpackaged",
+          "Pnmt",
+          "Unknown"
+        ]
+      },
+      "LinuxServiceEntry": {
+        "required": [
+          "name",
+          "description",
+          "loadState",
+          "activeState",
+          "subState",
+          "unitFileState",
+          "user",
+          "pid",
+          "program",
+          "unitFile",
+          "unitSource",
+          "package",
+          "origin",
+          "snap",
+          "class",
+          "enabledNotRunning",
+          "failed"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "loadState": {
+            "type": "string"
+          },
+          "activeState": {
+            "type": "string"
+          },
+          "subState": {
+            "type": "string"
+          },
+          "unitFileState": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "user": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pid": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "program": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "unitFile": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "unitSource": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "package": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "origin": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "snap": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "class": {
+            "$ref": "#/components/schemas/LinuxServiceClass"
+          },
+          "enabledNotRunning": {
+            "type": "boolean"
+          },
+          "failed": {
+            "type": "boolean"
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "LinuxServicesSection": {
+        "required": [
+          "services",
+          "timers",
+          "cron",
+          "packages",
+          "cronCommands"
+        ],
+        "type": "object",
+        "properties": {
+          "services": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinuxServiceEntry"
+            }
+          },
+          "timers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimerEntry"
+            }
+          },
+          "cron": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CronEntry"
+            }
+          },
+          "packages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cronCommands": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LinuxShutdownInfo": {
+        "required": [
+          "at",
+          "clean",
+          "boot"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "clean": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "boot": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "LinuxSystemSection": {
+        "required": [
+          "hostname",
+          "fqdn",
+          "realm",
+          "machineId",
+          "virtualization",
+          "containers",
+          "proxmox",
+          "os",
+          "bootTime",
+          "lastShutdown",
+          "updates",
+          "time",
+          "security",
+          "administrators",
+          "sudoRules",
+          "accounts",
+          "sessions"
+        ],
+        "type": "object",
+        "properties": {
+          "hostname": {
+            "type": "string"
+          },
+          "fqdn": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "realm": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "machineId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "virtualization": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "containers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContainerRuntime"
+            }
+          },
+          "proxmox": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProxmoxInfo"
+              }
+            ]
+          },
+          "os": {
+            "$ref": "#/components/schemas/LinuxOsInfo"
+          },
+          "bootTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastShutdown": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LinuxShutdownInfo"
+              }
+            ]
+          },
+          "updates": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LinuxUpdatesInfo"
+              }
+            ]
+          },
+          "time": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LinuxTimeInfo"
+              }
+            ]
+          },
+          "security": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LinuxSecurityInfo"
+              }
+            ]
+          },
+          "administrators": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinuxAdmin"
+            }
+          },
+          "sudoRules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SudoRule"
+            }
+          },
+          "accounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinuxAccount"
+            }
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionInfo"
+            }
+          }
+        }
+      },
+      "LinuxTimeInfo": {
+        "required": [
+          "timeZone",
+          "ntpEnabled",
+          "ntpSynchronized",
+          "service"
+        ],
+        "type": "object",
+        "properties": {
+          "timeZone": {
+            "type": "string"
+          },
+          "ntpEnabled": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "ntpSynchronized": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "service": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "LinuxUpdatesInfo": {
+        "required": [
+          "upgradable",
+          "security",
+          "securityPackages",
+          "listsUpdatedAt",
+          "unattendedInstalled",
+          "unattendedEnabled",
+          "unattendedLastRun",
+          "rebootPending",
+          "rebootReasons"
+        ],
+        "type": "object",
+        "properties": {
+          "upgradable": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "security": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "securityPackages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "listsUpdatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "unattendedInstalled": {
+            "type": "boolean"
+          },
+          "unattendedEnabled": {
+            "type": "boolean"
+          },
+          "unattendedLastRun": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "rebootPending": {
+            "type": "boolean"
+          },
+          "rebootReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "esmEnabled": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
       "ListenerInfo": {
         "required": [
           "protocol",
@@ -15993,6 +17767,81 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "LoggingCheck": {
+        "required": [
+          "journalPersistent",
+          "oldestEntryAt",
+          "spanDays",
+          "journalBytes",
+          "sshdLogLevel",
+          "sudoLogging",
+          "fixes"
+        ],
+        "type": "object",
+        "properties": {
+          "journalPersistent": {
+            "type": "boolean"
+          },
+          "oldestEntryAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "spanDays": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "journalBytes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "sshdLogLevel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sudoLogging": {
+            "type": "boolean"
+          },
+          "fixes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoggingFix"
+            }
+          }
+        }
+      },
+      "LoggingFix": {
+        "required": [
+          "key",
+          "problem",
+          "fix"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "problem": {
+            "type": "string"
+          },
+          "fix": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -20733,6 +22582,41 @@
           }
         }
       },
+      "ProxmoxInfo": {
+        "required": [
+          "version",
+          "clusterName",
+          "node",
+          "nodes"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "clusterName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "node": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "Ref": {
         "required": [
           "id",
@@ -22141,6 +24025,237 @@
           null
         ]
       },
+      "SshdKeySettings": {
+        "required": [
+          "authorizedKeysFiles",
+          "authorizedKeysCommand",
+          "authorizedKeysCommandUser",
+          "trustedUserCaKeys",
+          "authorizedPrincipalsFile",
+          "pubkeyAuthentication",
+          "permitRootLogin",
+          "strictModes",
+          "matchBlocks",
+          "available"
+        ],
+        "type": "object",
+        "properties": {
+          "authorizedKeysFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "authorizedKeysCommand": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "authorizedKeysCommandUser": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "trustedUserCaKeys": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "authorizedPrincipalsFile": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pubkeyAuthentication": {
+            "type": "boolean"
+          },
+          "permitRootLogin": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "strictModes": {
+            "type": "boolean"
+          },
+          "matchBlocks": {
+            "type": "boolean"
+          },
+          "available": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SshdSettings": {
+        "required": [
+          "ports",
+          "listenAddresses",
+          "permitRootLogin",
+          "passwordAuthentication",
+          "kbdInteractiveAuthentication",
+          "pubkeyAuthentication",
+          "allowUsers",
+          "allowGroups",
+          "denyUsers",
+          "denyGroups",
+          "allowAgentForwarding",
+          "allowTcpForwarding",
+          "x11Forwarding",
+          "maxAuthTries",
+          "logLevel",
+          "matchBlocks",
+          "authorizedKeysCommand",
+          "trustedUserCaKeys",
+          "socketActivated",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "ports": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "listenAddresses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "permitRootLogin": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "passwordAuthentication": {
+            "type": "boolean"
+          },
+          "kbdInteractiveAuthentication": {
+            "type": "boolean"
+          },
+          "pubkeyAuthentication": {
+            "type": "boolean"
+          },
+          "allowUsers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowGroups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "denyUsers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "denyGroups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowAgentForwarding": {
+            "type": "boolean"
+          },
+          "allowTcpForwarding": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "x11Forwarding": {
+            "type": "boolean"
+          },
+          "maxAuthTries": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "logLevel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "matchBlocks": {
+            "type": "boolean"
+          },
+          "authorizedKeysCommand": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "trustedUserCaKeys": {
+            "type": "boolean"
+          },
+          "socketActivated": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SshKeysSection": {
+        "required": [
+          "sshd",
+          "files",
+          "caKeys",
+          "totalKeys",
+          "truncated",
+          "notes"
+        ],
+        "type": "object",
+        "properties": {
+          "sshd": {
+            "$ref": "#/components/schemas/SshdKeySettings"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthorizedKeysFile"
+            }
+          },
+          "caKeys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CaKey"
+            }
+          },
+          "totalKeys": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "StateChange": {
         "required": [
           "at",
@@ -22256,6 +24371,30 @@
             ]
           },
           "hasValue": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SudoRule": {
+        "required": [
+          "who",
+          "file",
+          "line",
+          "noPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "who": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "noPassword": {
             "type": "boolean"
           }
         }
@@ -22554,6 +24693,47 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "TimerEntry": {
+        "required": [
+          "name",
+          "unit",
+          "lastRun",
+          "nextRun",
+          "unitFileState"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastRun": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "nextRun": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "unitFileState": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -26265,6 +28445,9 @@
     },
     {
       "name": "KeyValues"
+    },
+    {
+      "name": "LinuxServers"
     },
     {
       "name": "MailInputRules"

@@ -5,16 +5,19 @@ using PNMTD.Lib.Agent;
 
 namespace PNMTD.Cli;
 
-/// <summary>What a simulated agent keeps between runs: PNMT, its identity and key, and PNMTD's pinned key.</summary>
-public sealed record SimulatedAgentState(string Url, Guid AgentId, Guid SensorId, string PrivateKey, string PnmtdKey, string Hostname);
+/// <summary>What a simulated agent keeps between runs: PNMT, its identity and key, PNMTD's pinned key, and its platform.</summary>
+public sealed record SimulatedAgentState(string Url, Guid AgentId, Guid SensorId, string PrivateKey, string PnmtdKey, string Hostname,
+    AgentPlatform Platform = AgentPlatform.Windows);
 
 /// <summary>
 /// A fake agent (docs/windows-sensor-plan.md §11; docs/linux-sensor-plan.md §9.4), for development without the server and for
 /// the tests: it joins with a token, connects with the same session code as the real agent, sends heartbeats and canned
-/// sections and logins, and answers collect, run-diagnostics and send-log. A Windows agent for now: Linux's canned sections
-/// come with the Linux agent (L3).
+/// sections and logins, and answers collect, run-diagnostics and send-log. A Windows agent (<see cref="SimulatedSections"/>), or a
+/// Linux one (<see cref="SimulatedLinux"/>: a Debian 12 server's eight sections, SSH key logins, sudo, file transfers, failures and
+/// the internet's invalid users), whose hello carries the rights <see cref="AllowKeyRemoval"/> and <see cref="AllowScripts"/> give.
 /// </summary>
-public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<CancellationToken, Task<WebSocket>> connect, TextWriter output) : IAgentSessionHandler
+public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<CancellationToken, Task<WebSocket>> connect, TextWriter output,
+    AgentPlatform platform = AgentPlatform.Windows) : IAgentSessionHandler
 {
     public const string AgentVersion = "0.0.0-sim";
 
@@ -30,8 +33,18 @@ public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<Cancellati
 
     private readonly System.Security.Cryptography.ECDiffieHellman encryption = System.Security.Cryptography.ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
 
-    /// <summary>Whether an administrator allowed scripts on this (simulated) server (§7.2): off, as on a real one.</summary>
+    /// <summary>Whether an administrator allowed scripts on this (simulated) server (§7.2; Linux: config.yaml's scripts.enabled): off, as on a real one.</summary>
     public bool AllowScripts { get; set; }
+
+    /// <summary>Linux: whether config.yaml allows PNMT to remove keys (docs/linux-sensor-plan.md §4.6), for deploy and www: off, as on a real one.</summary>
+    public bool AllowKeyRemoval { get; set; }
+
+    public AgentPlatform Platform { get; } = platform;
+
+    private bool Linux => Platform == AgentPlatform.Linux;
+
+    /// <summary>The OS this simulator reports: Windows Server 2019, or Debian 12.</summary>
+    public AgentOs CurrentOs => Linux ? SimulatedLinux.Os : Os;
 
     /// <summary>Heartbeats sent, for the tests.</summary>
     public int Heartbeats { get; private set; }
@@ -45,24 +58,30 @@ public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<Cancellati
         var info = await AgentJoinClient.InfoAsync(http, baseUrl, ct);
         Write($"PNMT {info.PnmtVersion}, its key {info.SigningKeyFingerprint}");
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var request = new JoinRequest(token, AgentSigning.PublicKey(key), hostname, $"{hostname.ToLowerInvariant()}.sim.example", "SIM", Os, AgentVersion, "x64",
-            Guid.NewGuid().ToString(), name);
+        // Linux (§4.4): no domain, and /etc/machine-id's 32 hex digits.
+        var request = new JoinRequest(token, AgentSigning.PublicKey(key), hostname, $"{hostname.ToLowerInvariant()}.sim.example", Linux ? null : "SIM", CurrentOs,
+            AgentVersion, "x64", Linux ? Guid.NewGuid().ToString("N") : Guid.NewGuid().ToString(), name, Platform);
         var (response, grant) = await AgentJoinClient.JoinAsync(http, baseUrl, request, ct);
         Write($"Joined as {grant.HostName} / {grant.SensorName}: agent {grant.AgentId}, this key {grant.AgentKeyFingerprint}");
         return new SimulatedAgentState(baseUrl.ToString(), grant.AgentId, grant.SensorId, Convert.ToBase64String(key.ExportPkcs8PrivateKey()),
-            response.SigningPublicKey, hostname);
+            response.SigningPublicKey, hostname, Platform);
     }
 
     /// <summary>Connects and reports until <paramref name="ct"/> ends, reconnecting after a second; <paramref name="heartbeats"/> stops after so many.</summary>
     public async Task<AgentSessionEnd> RunAsync(SimulatedAgentState state, CancellationToken ct, TimeSpan? interval = null, int? heartbeats = null)
     {
         hostname = state.Hostname;
+        if (state.Platform != Platform)
+        {
+            throw new InvalidOperationException($"The state is a {state.Platform} agent's, and this simulator is a {Platform} agent.");
+        }
         using var agentKey = ECDsa.Create();
         agentKey.ImportPkcs8PrivateKey(Convert.FromBase64String(state.PrivateKey), out _);
         using var pnmtdKey = AgentSigning.ImportPublicKey(state.PnmtdKey) ?? throw new InvalidOperationException("The state's PNMTD key is invalid.");
-        var capabilities = Capabilities.Append(AgentCapabilities.Parse).Concat(AllowScripts ? [AgentCapabilities.Scripts] : Array.Empty<string>()).ToList();
-        var identity = new AgentIdentity(state.AgentId, agentKey, pnmtdKey, AgentSigning.Origin(baseUrl), AgentVersion, "x64", Os, capabilities,
-            Convert.ToBase64String(encryption.ExportSubjectPublicKeyInfo()));
+        var capabilities = Linux ? SimulatedLinux.Capabilities(AllowKeyRemoval, AllowScripts)
+            : Capabilities.Append(AgentCapabilities.Parse).Concat(AllowScripts ? [AgentCapabilities.Scripts] : Array.Empty<string>()).ToList();
+        var identity = new AgentIdentity(state.AgentId, agentKey, pnmtdKey, AgentSigning.Origin(baseUrl), AgentVersion, "x64", CurrentOs, capabilities,
+            Convert.ToBase64String(encryption.ExportSubjectPublicKeyInfo()), Platform, Linux ? SimulatedLinux.Rights(AllowKeyRemoval, AllowScripts) : null);
         while (!ct.IsCancellationRequested)
         {
             var socket = await connect(ct);
@@ -130,7 +149,7 @@ public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<Cancellati
     private async Task ReportAsync(AgentSession current, TimeSpan interval, int? count, CancellationToken ct)
     {
         await SendSectionsAsync(current, [], ct);
-        await current.SendAsync(AgentMessageTypes.Access, SimulatedSections.Logins(hostname), ct);
+        await current.SendAsync(AgentMessageTypes.Access, Linux ? SimulatedLinux.Logins(hostname) : SimulatedSections.Logins(hostname), ct);
         while (!ct.IsCancellationRequested && (count is null || Heartbeats < count))
         {
             await current.SendAsync(AgentMessageTypes.Heartbeat, Heartbeat(current), ct);
@@ -142,12 +161,14 @@ public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<Cancellati
         }
     }
 
-    public Heartbeat Heartbeat(AgentSession current) => new(DateTimeOffset.UtcNow, bootTime, 7.5 + Random.Shared.NextDouble() * 10, 41.2, "C:", 63.5,
-        [new SessionInfo("SIM\\admin", "Rdp", "Active", "10.0.4.17")], false, SimulatedSections.Hashes(hostname), current.Config.ConfigVersion, AgentVersion, 0,
-        hostname, "Restarted for updates (planned)");
+    public Heartbeat Heartbeat(AgentSession current) => Linux ? SimulatedLinux.Heartbeat(hostname, current.Config.ConfigVersion, AgentVersion, AllowKeyRemoval)
+        : new(DateTimeOffset.UtcNow, bootTime, 7.5 + Random.Shared.NextDouble() * 10, 41.2, "C:", 63.5,
+            [new SessionInfo("SIM\\admin", "Rdp", "Active", "10.0.4.17")], false, SimulatedSections.Hashes(hostname), current.Config.ConfigVersion, AgentVersion, 0,
+            hostname, "Restarted for updates (planned)");
 
-    private Task SendSectionsAsync(AgentSession current, IReadOnlyList<string> names, CancellationToken ct) =>
-        SimulatedSections.SendAsync(current, hostname, names, ct, LastConfig ?? current.Config);
+    private Task SendSectionsAsync(AgentSession current, IReadOnlyList<string> names, CancellationToken ct) => Linux
+        ? SimulatedLinux.SendAsync(current, hostname, names, AllowKeyRemoval, ct)
+        : SimulatedSections.SendAsync(current, hostname, names, ct, LastConfig ?? current.Config);
 
     /// <summary>The last configuration received, for the tests.</summary>
     public AgentConfig? LastConfig { get; private set; }
@@ -163,6 +184,10 @@ public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<Cancellati
     {
         Requests.Add(request.Type);
         Write($"Request {request.Type} ({request.RequestId})");
+        if (Linux && await OnLinuxRequestAsync(current, request, ct) is { } answered)
+        {
+            return answered;
+        }
         switch (request.Type)
         {
             case AgentMessageTypes.Collect:
@@ -206,6 +231,18 @@ public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<Cancellati
                 return new Ack(request.RequestId, false, $"The simulator does not know \"{request.Type}\".");
         }
     }
+
+    /// <summary>
+    /// What only a Linux agent answers (docs/linux-sensor-plan.md §6.5, §8): null for the shared requests (collect, diagnostics,
+    /// send-log, scripts), which the switch above answers. L6 adds <c>remove-ssh-key</c> here, refused unless
+    /// <see cref="AllowKeyRemoval"/> (as config.yaml would), and answered with a <c>key-removal</c>.
+    /// </summary>
+    private Task<Ack?> OnLinuxRequestAsync(AgentSession current, SignedContent request, CancellationToken ct) => request.Type switch
+    {
+        AgentMessageTypes.RemoveSshKey => Task.FromResult<Ack?>(new Ack(request.RequestId, false,
+            AllowKeyRemoval ? "The simulator does not remove keys yet." : "config.yaml doesn't allow PNMT to remove keys here (ssh_keys.remove: false).")),
+        _ => Task.FromResult<Ack?>(null),
+    };
 
     public void OnIgnored(string type, string reason) => Write($"Ignored {type}: {reason}");
 

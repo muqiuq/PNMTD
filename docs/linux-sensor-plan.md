@@ -1589,6 +1589,76 @@ The phases as they were built, with what differs from the plan above.
   - real hardware: DMI, SMART, TPM and Secure Boot, which containers don't have; the sandbox's lines against them;
   - Proxmox VE, and Ubuntu 22.04 and 26.04.
 
+### L3 and L4: the server side
+
+- **The migration `AddLinuxAgents`** (§9.3):
+  - `agents`: **`Rights`** (jsonb, the hello's `AgentRightsSummary`), **`KeyAddedEvents`** (true), **`SecurityUpdateEvents`** (false), **`SecurityUpdateDays`** (7), `SecurityUpdatesSince`, `SecurityUpdates` (the count) and `SecurityPackages` (the first eight names, for 462's message), `KernelRelease`, `Distribution`;
+  - `agent_logins`: **`KeyFingerprint`** (indexed), `TargetUser`, `Command`, `TriedUsers` (text[]);
+  - existing rows get a new server's defaults. `has-pending-model-changes` finds none.
+  - **Reused, not added:** the admin-login, failed-login (with its threshold) and critical-entry switches mean the same on Linux. `CriticalEvents` is 463's switch.
+- **Heartbeats** (`AgentReportService`), in this order:
+  - the clock off: **461**, without Windows' Kerberos remark;
+  - problems in three heartbeats in a row: **461**;
+  - the boot time moved: **261**, with the heartbeat's `LastShutdown` ("clean shutdown at …", "unexpected shutdown before …"), or "whether the last shutdown was clean is not known";
+  - **a refused config.yaml** (`Rights.Source` is `refused`): **461** while it lasts, "web-01: /etc/pnmt-agent/config.yaml is refused (…): it grants PNMT nothing";
+  - **462** while the switch is on and security updates have been pending longer than the days: "web-01: 3 security updates pending since 2026-11-05, more than 7 days: libssl3, openssl, …";
+  - else **260**, as L1 made it.
+  - **Deviation:** 462's message names the date and the threshold rather than "since 9 days", so it stays the same while the same updates are pending and collapses by the dedupe.
+  - **A key or protocol problem is as on Windows:** the agent log (`AuthFailed`, the closing codes), and no 451 or 461. Windows writes no 451 for them either.
+- **The hello** (`AgentHub`):
+  - `Hello.Rights` is capped (`ServerRights.Bounded`) and kept in `agents.Rights`. *Connected* names them ("rights on the server: key removal allowed for deploy, www (1 protected keys); scripts off");
+  - **a change since the last hello** is a warning of its own: "Rights changed on the server: …", with both in its details;
+  - **Linux:** `KernelRelease` from the hello's build, `Distribution` from its pretty name until a system section gives the point release ("Debian 12.8", "Proxmox VE 9.0.10").
+- **Typed sections:** **`GET /api/v1/linux/servers/{id}/sections/{s}`** (`Api/V1/LinuxControllers.cs`, CanRead) answers **`LinuxSectionView`**:
+  - typed by Linux's records, hardware and network by the shared ones;
+  - `access`, `journal` and `ssh-keys` need CanWrite (403 for a viewer);
+  - 404 for a Windows server, as Windows' answers 404 for Linux;
+  - a section PNMT can't read names the reason first in its errors;
+  - L1 already stored only `SectionNames.IsKnown(platform, name)`: a Linux agent's `event-log` is refused and logged.
+- **Logins** (`AgentAccessService`):
+  - stored once per channel and record id, as before; a resent record updates its count, last time and logoff, and now its key, target user, command and tried names;
+  - **264** for a new admin's SSH or console login within the hour: "root: SSH from 10.0.4.17 with key SHA256:Kq1f9hJ0…rS2A" (`SshKeys.Short`), "root: SSH from 10.0.4.17 (password)", "root: console (tty1, password)". sudo, su and file transfers are stored and never page;
+  - **464**, Linux's rules apart from Windows': the threshold of failures within the window from one source, or for one user (sudo and su have no source), and each new `not in sudoers` and `locked`. **Records whose reason is `invalid user` never count.** The users in the message are sorted, so it stays the same;
+  - `GET …/logins` takes `kind` (Sudo, Su, Sftp too) and **`keyFingerprint`** (with or without `SHA256:`). The items carry `keyFingerprint`, `targetUser`, `command` and `triedUsers`.
+  - **The hook for L5's key names:** `AgentAccessService.KeyText(fingerprint, SshKeyName?)` is the one place that words a key, and `KeyNamesAsync(db, fingerprints, ct)` answers the registered names. It answers none today; L5 reads `ssh_keys` there, and 264 says "with key Philipp, laptop (philipp)".
+- **Changes** (`PNMTD/Linux/LinuxDiffers.cs`, dispatched by `AgentChanges` by platform):
+  - **`Summaries`** keep the row current from every stored section: the kernel, the distribution, the security updates and since when (cleared at none), the remote access summary, the logging check's gaps (the list's *audit gaps* column);
+  - **the lines of §5.8**, all notable unless said: the release and point release, the kernel, Proxmox VE's version, the realm, local administrators ("deploy added to sudo", "deploy has uid 0"), sudoers rules giving ALL, accounts that can log in with a password, accounts added and removed (not notable), the firewall's kind, state and input policy, AppArmor on or off (its profile counts not notable); services added, removed, or with a new unit file state, class or account (a new program or a failure not notable); timers; cron entries by their line's hash; every sshd setting of §5.5 ("sshd: password authentication turned on"); remote access features as on Windows, with the firewall's verdict; the journal's persistence, sshd's LogLevel and sudo's logging;
+  - **hardware and network** are Windows' differs (`WindowsDiffers.HardwareChanges`, `NetworkChanges`, now internal), with "Proxy" for Linux where Windows says "WinHTTP proxy";
+  - **463** for new journal entries at priority 2 or less, "smartd.service (crit): …", when `CriticalEvents` is on;
+  - **the hook for L5's ssh-keys differ:** `LinuxDiffers.SshKeyChanges` answers nothing, and `AgentChanges.StoredAsync` marks where `SshKeyAuthorizations` takes every stored ssh-keys section (465 and 263 by registration, key files' permissions).
+- **`PUT …/settings`** takes `keyAddedEvents` (stored, used from L5), `securityUpdateEvents` and `securityUpdateDays` (1 to 365), applied to Linux servers only. The audit line names them.
+- **The downloads** (`AgentDownloads`, `AgentDownloadEndpoint`, `DownloadGuard`):
+  - **the folder** is `Agents__DownloadFolder` (`/var/lib/pnmtd/downloads`; a relative one is the working directory's, so `dist` works from the repository). A file is verified against its `.sha256` (the hash, and a name that is the file's, `*` and a path allowed), by size and time, its hash kept;
+  - **a file that isn't there is fetched** from `{AgentDownloadBaseUrl}/sensor-{version}/{file}`: the `.sha256` first, then the file into a temporary name, hashed while written, renamed into place only when it matches. **One fetch per file**: requests wait for it. A failure is remembered for 10 minutes with its reason;
+  - **a file that is there and doesn't match is never replaced by itself**, and never served; *Fetch again* replaces it;
+  - **the release's hashes** are still read and cached as before (all four files now, in parallel), for the links and lines of files that aren't here yet;
+  - **`GET /agent/v1/download`**: the manifest of the files here and verified, signed as `download-manifest` for `Guid.Empty`, with the key's fingerprint. `pnmt-agent update` asks for a Linux file, so the missing Linux files are fetched first and waited for at most 30 s;
+  - **`GET /agent/v1/download/{asset}`**: `AgentDownloadAssets.All` only, `application/octet-stream` with `Content-Length`. The file is opened and served only while the open handle has the verified size and time. A `.sha256` is served as the verified line. 404 otherwise, with the reason;
+  - **limits:** `Agents__DownloadsPerHour` (20) per address, in an hour's window, 429 with `Retry-After`; the manifest doesn't count. `Agents__ServeDownloads=false` or the agents turned off: both 404;
+  - both paths are in `EndpointAuditTests`' anonymous allowlist. `AgentPaths` covers them already (`/agent`).
+  - **`GET /api/v1/agents/downloads`** (Admin): `files` (Windows' links as before, now with PNMT's), **`assets`** (each file: PNMT's and GitHub's link, the SHA-256, the size, the state *Here*, *Fetching*, *Failed* with the reason, or *NotFetched*, when it was fetched), **`linux`** (per architecture §4.4's line from PNMT and GitHub, with wget and with `curl -fsSLo`, `--allow-http` for an http:// PNMT, null while the hash isn't known), `updateLine` (`pnmt-agent update`), `serveDownloads`, `url` and **`tokenPlaceholder`** (`xxxx-xxxx`). PNMT's URL is `PublicUrls.Base`, as Windows' command line has it. A line in `sudo sh -c '…'` is the UI's.
+  - **`POST /api/v1/agents/downloads/fetch`** (Admin, audited as `AgentDownloadsFetched`) takes `{ files? }` and answers at once with the files being fetched.
+  - **A Linux join token** starts fetching the Linux files ahead (not waiting), waits up to 5 s for the release's hashes, and its **`commandLine` is the x64 line from PNMT with wget**, the token in it; only the join while no hash is known. A Windows token's is as before.
+  - **The fetcher is the HTTP client `AgentDownloads`.** The tests replace its handler with a stub release; `TestDefaults` points every test at `http://127.0.0.1:9` and a scratch folder, so no test reaches GitHub or `/var/lib`.
+  - **Deviation, for L8:** `deploy/docker-compose.yml` runs the app with **`read_only: true`**, so the default folder can't be written there. A fetch then fails with "the download folder … can't be written: Read-only file system", and PNMT's links 404 while GitHub's work. The folder needs a mount: a named volume would keep an old version's files across an update; a `tmpfs` with a size keeps §4.4's "starts empty". Not changed here.
+- **The fleet and the detail:**
+  - `AgentServerItem` gains `distribution`, `kernelRelease`, `securityUpdates` and `keyRemovalAllowed` (null on Windows), and `GET …/servers` the filters `securityUpdates` and `keyRemoval`, and searches the distribution;
+  - `AgentServerDetail` gains `rights` and `securityUpdatesSince`, and its settings the Linux switches.
+- **The simulator:** `pnmtd agent simulate --platform linux --url … --token … [--allow-key-removal] [--allow-scripts]` (`--hostname` sim-web-01, `--state` pnmt-agent-sim.json; the state file keeps the platform):
+  - joins as Linux, and its hello carries the rights (`config.yaml` with removal for deploy and www and one protected key, scripts as root and deploy; else the defaults) and their capabilities (`keys.v1`, `keys.remove.v1`, `scripts.v1`);
+  - **`Cli/SimulatedLinux.cs`:** a Debian 12 web server's eight sections (Debian 12.8, three security updates, nftables, AppArmor, a LUKS volume, Docker and Zabbix as third-party, an unpackaged failing service, cron and timers, sshd's settings, the logging check with sshd at INFO, three journal entries, and two key files: root's with a key without `from=`, a backup key with a forced command and a weak RSA 1024 key, and deploy's), and a Proxmox VE 9 node's for the seed;
+  - logins: root's and deploy's SSH key logins with fingerprints, a sudo, an Sftp aggregate, wrong passwords for root, and an invalid-user aggregate with ten tried names;
+  - **for L6:** `OnLinuxRequestAsync` is where `remove-ssh-key` is answered; it refuses today, with config.yaml's reason when removal isn't allowed.
+- **The seed** (§12): *web-01* (Debian 12, on its host, key removal allowed) and *pve-01* (Proxmox VE 9, **on a host of its own**: the seed now has 51 hosts), with every section, a week of SSH logins with keys, sudo, the backup's transfers and scanner noise, a burst and a `not in sudoers`, changes with their 263, 261, 264 and 464, and *branch connectivity* assigned to web-01. The six sensors failing now are unchanged.
+- **The web UI:** `openapi.json` and `schema.d.ts` regenerated; nothing else needed changing, and the web checks are green. The Linux pages, the *Download* tab's lines and states and *Add server*'s line are the UI's part of L3 and L4.
+- **Tests:** `PNMTD.Tests/Linux/LinuxAgentTests.cs` (9: heartbeats, the refused file and the rights, the typed sections and the viewer's 403, a Windows section refused, logins and 264, 464 and invalid users, 462 on and off, 263 and 463, the differs) and `PNMTD.Tests/Agents/AgentDownloadTests.cs` (6: verified files only, unknown names, the limit and turned off, the manifest, the Admin's states and lines, a fetch from a stub release). `EndpointAuditTests` has the two anonymous paths and the two new endpoints; `DevSeedTests` the Linux servers.
+  - **Results:** PNMTD.Tests 507 tests, 503 passed and 4 skipped (as before), in Europe/Zurich and America/New_York; the web checks green.
+- **Not done here:**
+  - the key manager, `last used` from key logins, 465 and the ssh-keys differ (L5); removals (L6); bash scripts (L7);
+  - the *unregistered keys* column of the fleet (L5);
+  - the compose file's mount for the download folder (L8, above).
+
 ---
 
 ## Appendix: configuration and file changes

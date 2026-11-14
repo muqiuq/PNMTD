@@ -17,10 +17,12 @@ internal static class AgentCommand
           agent tokens revoke <prefix|id>       revokes a pending token
           agent simulate --url <PNMT URL> [--platform windows|linux] [--token <xxxx-xxxx>] [--name <name>]
                          [--hostname <name>] [--state <file>] [--interval <seconds>] [--count <n>]
-                                                a fake agent: joins with the token (or uses --state,
-                                                default pnmt-sensor-sim.json), connects, sends heartbeats,
-                                                sections and logins, answers collect, diagnostics and send-log.
-                                                Windows for now: Linux comes with the Linux agent
+                         [--allow-scripts] [--allow-key-removal]
+                                                a fake agent: joins with the token (or uses --state, default
+                                                pnmt-sensor-sim.json, or pnmt-agent-sim.json for Linux), connects,
+                                                sends heartbeats, sections and logins, answers collect, diagnostics
+                                                and send-log. Linux: a Debian 12 server with SSH key logins, sudo
+                                                and scanners; --allow-* go into its hello as config.yaml's rights
         """;
 
     public static int Run(string[] args, Func<PnmtdDbContext> database) => args switch
@@ -83,18 +85,20 @@ internal static class AgentCommand
             "linux" => AgentPlatform.Linux,
             var other => throw new CommandLineException($"--platform windows or linux, not {other}."),
         };
+        var linux = platform == AgentPlatform.Linux;
         var token = o.Optional("--token");
         var name = o.Optional("--name");
-        var hostname = o.Optional("--hostname") ?? "SIM-SRV01";
-        var statePath = o.Optional("--state") ?? "pnmt-sensor-sim.json";
+        var hostname = o.Optional("--hostname") ?? (linux ? "sim-web-01" : "SIM-SRV01");
+        var statePath = o.Optional("--state") ?? (linux ? "pnmt-agent-sim.json" : "pnmt-sensor-sim.json");
         var interval = o.Optional("--interval") is { } i ? TimeSpan.FromSeconds(int.Parse(i, System.Globalization.CultureInfo.InvariantCulture)) : (TimeSpan?)null;
         var count = o.Optional("--count") is { } c ? int.Parse(c, System.Globalization.CultureInfo.InvariantCulture) : (int?)null;
+        // docs/linux-sensor-plan.md §4.6, §9.4: what config.yaml (Linux) or the agent's window (Windows) would allow.
+        var allowScripts = o.Flag("--allow-scripts");
+        var allowKeyRemoval = o.Flag("--allow-key-removal");
         o.EnsureAllUsed();
-        if (platform == AgentPlatform.Linux)
+        if (allowKeyRemoval && !linux)
         {
-            // docs/linux-sensor-plan.md §9.4: the Linux simulator's canned sections come with the Linux agent (L3).
-            Console.Error.WriteLine("Not yet: the simulated Linux agent comes with the Linux agent (docs/linux-sensor-plan.md, L3). Use --platform windows.");
-            return 1;
+            throw new CommandLineException("--allow-key-removal is a Linux agent's right: --platform linux.");
         }
 
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
@@ -111,7 +115,11 @@ internal static class AgentCommand
             socket.Options.KeepAliveInterval = AgentProtocol.KeepAlive;
             await socket.ConnectAsync(AgentSimulator.WebSocketUrl(url), ct);
             return socket;
-        }, Console.Out);
+        }, Console.Out, platform)
+        {
+            AllowScripts = allowScripts,
+            AllowKeyRemoval = allowKeyRemoval,
+        };
 
         SimulatedAgentState state;
         if (token is not null)
@@ -123,6 +131,10 @@ internal static class AgentCommand
         else if (File.Exists(statePath))
         {
             state = AgentSimulator.Load(File.ReadAllText(statePath));
+            if (state.Platform != platform)
+            {
+                throw new CommandLineException($"{statePath} is a {state.Platform} agent's: --platform {state.Platform.ToString().ToLowerInvariant()}.");
+            }
         }
         else
         {

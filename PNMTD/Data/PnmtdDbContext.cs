@@ -293,6 +293,8 @@ namespace PNMTD.Data
                 e.HasIndex(l => new { l.SensorId, l.Channel, l.RecordId }).IsUnique();
                 e.HasIndex(l => new { l.SensorId, l.At });
                 e.HasIndex(l => l.At);
+                // Linux (docs/linux-sensor-plan.md §5.6, §6.3): the logins with a key, for the filter and the keys' last use.
+                e.HasIndex(l => l.KeyFingerprint);
             });
             modelBuilder.Entity<AgentChangeEntity>(e =>
             {

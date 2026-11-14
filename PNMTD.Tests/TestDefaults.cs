@@ -37,6 +37,9 @@ public static class TestDefaults
 
         var scratch = Directory.CreateTempSubdirectory("pnmtd-tests-");
         Environment.SetEnvironmentVariable("DataProtection__KeysPath", Path.Combine(scratch.FullName, "keys"));
+        // The agents' files (docs/linux-sensor-plan.md §4.4): never GitHub, and a scratch folder rather than /var/lib/pnmtd/downloads.
+        Environment.SetEnvironmentVariable("Agents__AgentDownloadBaseUrl", "http://127.0.0.1:9/releases/download");
+        Environment.SetEnvironmentVariable("Agents__DownloadFolder", Path.Combine(scratch.FullName, "downloads"));
         WebRoot = CreateWebRoot(scratch.FullName);
 
         Configuration = new ConfigurationBuilder().AddEnvironmentVariables().Build();

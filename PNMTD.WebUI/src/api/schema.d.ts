@@ -22,6 +22,8 @@ export interface paths {
                     remoteAccess?: boolean;
                     auditGaps?: boolean;
                     diagnosticsFailing?: boolean;
+                    securityUpdates?: boolean;
+                    keyRemoval?: boolean;
                     hostId?: string;
                     page?: number;
                     pageSize?: number;
@@ -107,6 +109,7 @@ export interface paths {
                     outcome?: components["schemas"]["LogonOutcome"];
                     admin?: boolean;
                     kind?: components["schemas"]["LogonKind"];
+                    keyFingerprint?: string;
                     user?: string;
                     source?: string;
                     from?: string;
@@ -636,6 +639,49 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/downloads/fetch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentDownloadFetchRequest"];
+                    "text/json": components["schemas"]["AgentDownloadFetchRequest"];
+                    "application/*+json": components["schemas"]["AgentDownloadFetchRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentDownloadLinks"];
+                        "text/json": components["schemas"]["AgentDownloadLinks"];
+                        "text/plain": components["schemas"]["AgentDownloadLinks"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -3601,6 +3647,46 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/servers/{id}/sections/{section}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    section: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LinuxSectionView"];
+                        "text/json": components["schemas"]["LinuxSectionView"];
+                        "text/plain": components["schemas"]["LinuxSectionView"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -8322,18 +8408,44 @@ export interface components {
         AgentCollectRequest: {
             sections: null | string[];
         };
+        AgentDownloadFetchRequest: {
+            files: null | string[];
+        };
+        AgentDownloadFile: {
+            name: string;
+            platform: components["schemas"]["AgentPlatform"];
+            architecture: string;
+            pnmtUrl: null | string;
+            gitHubUrl: string;
+            sha256: null | string;
+            /** Format: int64 */
+            size: null | number;
+            state: components["schemas"]["AgentDownloadState"];
+            error: null | string;
+            /** Format: date-time */
+            fetchedAt: null | string;
+        };
         AgentDownloadLink: {
             architecture: string;
             fileName: string;
             url: string;
             sha256: null | string;
+            pnmtUrl?: null | string;
         };
         AgentDownloadLinks: {
             version: string;
             files: components["schemas"]["AgentDownloadLink"][];
             releaseUrl: null | string;
             note: null | string;
+            assets: components["schemas"]["AgentDownloadFile"][];
+            linux: components["schemas"]["LinuxInstallLines"][];
+            updateLine: string;
+            serveDownloads: boolean;
+            url: string;
+            tokenPlaceholder: string;
         };
+        /** @enum {unknown} */
+        AgentDownloadState: "Here" | "Fetching" | "Failed" | "NotFetched";
         AgentJoinTokenCreated: {
             item: components["schemas"]["AgentJoinTokenItem"];
             token: string;
@@ -8402,6 +8514,10 @@ export interface components {
             /** Format: date-time */
             loggedOffAt: null | string;
             channel: string;
+            keyFingerprint?: null | string;
+            targetUser?: null | string;
+            command?: null | string;
+            triedUsers?: null | string[];
         };
         AgentLogItem: {
             /** Format: uuid */
@@ -8430,6 +8546,24 @@ export interface components {
         };
         AgentRevokeRequest: {
             reason: null | string;
+        };
+        AgentRightsSummary: {
+            source: string;
+            problem: null | string;
+            keyRemoval: boolean;
+            keyRemovalUsers: string[];
+            /** Format: int32 */
+            protectedKeys: number;
+            writablePaths: string[];
+            scripts: boolean;
+            scriptRunAs: string[];
+            /** Format: int32 */
+            allowedScriptHashes: number;
+            /** Format: int32 */
+            maxScriptTimeoutMinutes: number;
+            sudoCommands: boolean;
+            cronCommands: boolean;
+            warnings?: null | string[];
         };
         AgentScriptDetail: {
             /** Format: uuid */
@@ -8573,6 +8707,9 @@ export interface components {
             /** Format: date-time */
             uninstalledAt: null | string;
             pnmtVersion: string;
+            rights?: null | components["schemas"]["AgentRightsSummary"];
+            /** Format: date-time */
+            securityUpdatesSince?: null | string;
         };
         AgentServerItem: {
             /** Format: uuid */
@@ -8608,6 +8745,11 @@ export interface components {
             auditGaps: number;
             /** Format: int32 */
             diagnosticsFailing: number;
+            distribution?: null | string;
+            kernelRelease?: null | string;
+            /** Format: int32 */
+            securityUpdates?: null | number;
+            keyRemovalAllowed?: null | boolean;
         };
         AgentServerSettings: {
             adminLoginEvents: boolean;
@@ -8615,6 +8757,15 @@ export interface components {
             /** Format: int32 */
             failedLoginThreshold: number;
             criticalEvents: boolean;
+            /** @default true */
+            keyAddedEvents: boolean;
+            /** @default false */
+            securityUpdateEvents: boolean;
+            /**
+             * Format: int32
+             * @default 7
+             */
+            securityUpdateDays: number;
         };
         AiAnalysisQueued: {
             /** Format: uuid */
@@ -8811,6 +8962,13 @@ export interface components {
         AiWorkState: "Queued" | "Running" | "WaitingRetry" | "WaitingBudget" | "Succeeded" | "Failed" | "Cancelled";
         /** @enum {unknown} */
         AnalysisRunState: "Queued" | "Done" | "Failed" | "Cancelled";
+        AppArmorInfo: {
+            enabled: boolean;
+            /** Format: int32 */
+            enforcing: number;
+            /** Format: int32 */
+            complaining: number;
+        };
         /** @enum {unknown} */
         AssignMode: "Add" | "Remove";
         AuditSetting: {
@@ -8835,6 +8993,40 @@ export interface components {
             userAgent: null | string;
             detail: null | string;
         };
+        AuthorizedKey: {
+            /** Format: int32 */
+            line: number;
+            type: string;
+            /** Format: int32 */
+            bits: null | number;
+            fingerprint: string;
+            comment: null | string;
+            options: string[];
+            key: string;
+            notes: string[];
+            protected: boolean;
+            protectedBecause?: null | string;
+        };
+        AuthorizedKeysFile: {
+            account: string;
+            path: string;
+            target: null | string;
+            exists: boolean;
+            owner: null | string;
+            group: null | string;
+            mode: null | string;
+            /** Format: int64 */
+            size: null | number;
+            /** Format: date-time */
+            modifiedAt: null | string;
+            sha256: null | string;
+            clusterWide: boolean;
+            problems: string[];
+            keys: components["schemas"]["AuthorizedKey"][];
+            invalidLines: number[];
+            removable: boolean;
+            notRemovable: null | string;
+        };
         BatteryInfo: {
             name: string;
             /** Format: int32 */
@@ -8846,9 +9038,22 @@ export interface components {
             protection: string;
             conversion: null | string;
         };
+        CaKey: {
+            source: string;
+            type: string;
+            /** Format: int32 */
+            bits: null | number;
+            fingerprint: string;
+            comment: null | string;
+        };
         ChangePasswordRequest: {
             currentPassword?: null | string;
             newPassword?: null | string;
+        };
+        ContainerRuntime: {
+            name: string;
+            installed: boolean;
+            running: boolean;
         };
         CreatedUser: {
             user: components["schemas"]["UserItem"];
@@ -8858,6 +9063,14 @@ export interface components {
             username?: null | string;
             displayName?: null | string;
             role?: null | string;
+        };
+        CronEntry: {
+            file: string;
+            user: string;
+            schedule: string;
+            program: string;
+            command: null | string;
+            lineHash: string;
         };
         CurrentUser: {
             /** Format: uuid */
@@ -9282,6 +9495,11 @@ export interface components {
         };
         /** @enum {unknown} */
         DnsZoneResourceType: "A" | "AAAA" | "CNAME" | "TXT" | "MX" | "SOA" | "PTR" | "SRV" | "NS";
+        EncryptedVolume: {
+            device: string;
+            mount: null | string;
+            kind: string;
+        };
         EntityTagHeaderValue: {
             tag?: components["schemas"]["StringSegment"];
             isWeak?: boolean;
@@ -9319,6 +9537,17 @@ export interface components {
         };
         EventLogSection: {
             entries: components["schemas"]["EventEntry"][];
+        };
+        Fail2banInfo: {
+            running: boolean;
+            jails: components["schemas"]["Fail2banJail"][];
+        };
+        Fail2banJail: {
+            name: string;
+            /** Format: int32 */
+            banned: number;
+            /** Format: int32 */
+            totalBanned: number;
         };
         FileContentResult: {
             /** Format: byte */
@@ -9488,6 +9717,24 @@ export interface components {
          * @enum {unknown}
          */
         IpFamily: "Any" | "IPv4" | "IPv6";
+        JournalEntry: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int32 */
+            priority: number;
+            level: string;
+            unit: null | string;
+            identifier: null | string;
+            /** Format: int32 */
+            pid: null | number;
+            boot: null | string;
+            message: string;
+            cursor: string;
+        };
+        JournalSection: {
+            entries: components["schemas"]["JournalEntry"][];
+            persistent: boolean;
+        };
         /** @enum {unknown} */
         KeyFamily: "HmacSha256" | "Aes" | "HmacSha1" | "HmacMd5";
         KeyValueItem: {
@@ -9515,6 +9762,185 @@ export interface components {
             hostId: string;
             hostName: string;
         };
+        LinuxAccessSection: {
+            sessions: components["schemas"]["SessionInfo"][];
+            logging: components["schemas"]["LoggingCheck"];
+            last24Hours: null | components["schemas"]["AccessCounts"];
+            /** Format: int32 */
+            invalidUserFailures24Hours: number;
+            /** Format: int32 */
+            elevations24Hours: number;
+            gaps: string[];
+        };
+        LinuxAccount: {
+            name: string;
+            /** Format: int32 */
+            uid: number;
+            /** Format: int32 */
+            gid: number;
+            home: null | string;
+            shell: null | string;
+            loginShell: boolean;
+            groups: string[];
+            passwordSet: null | boolean;
+            locked: null | boolean;
+            systemAccount: boolean;
+        };
+        LinuxAdmin: {
+            name: string;
+            via: string;
+        };
+        LinuxFirewallInfo: {
+            kind: string;
+            active: boolean;
+            inputPolicy: null | string;
+            notes: string[];
+        };
+        LinuxInstallLines: {
+            architecture: string;
+            fileName: string;
+            sha256: null | string;
+            pnmt: null | string;
+            pnmtCurl: null | string;
+            gitHub: null | string;
+            gitHubCurl: null | string;
+        };
+        LinuxOsInfo: {
+            prettyName: string;
+            id: string;
+            idLike: string[];
+            versionId: null | string;
+            codename: null | string;
+            debianVersion: null | string;
+            kernelRelease: string;
+            kernelVersion: null | string;
+            architecture: string;
+            supported: boolean;
+            distribution: null | string;
+            systemdVersion: null | string;
+        };
+        LinuxRemoteAccessSection: {
+            sshd: null | components["schemas"]["SshdSettings"];
+            features: components["schemas"]["LinuxRemoteFeature"][];
+            summary: string;
+            firewallKind: null | string;
+        };
+        LinuxRemoteFeature: {
+            key: string;
+            name: string;
+            installed: boolean;
+            active: boolean;
+            ports: number[];
+            listening: boolean;
+            firewall: string;
+            notes: string[];
+            /** @default false */
+            highlight: boolean;
+        };
+        LinuxSectionView: {
+            name: string;
+            /** Format: date-time */
+            collectedAt: string;
+            /** Format: date-time */
+            receivedAt: string;
+            /** Format: date-time */
+            changedAt: string;
+            errors: string[];
+            system?: null | components["schemas"]["LinuxSystemSection"];
+            hardware?: null | components["schemas"]["HardwareSection"];
+            network?: null | components["schemas"]["NetworkSection"];
+            services?: null | components["schemas"]["LinuxServicesSection"];
+            remoteAccess?: null | components["schemas"]["LinuxRemoteAccessSection"];
+            access?: null | components["schemas"]["LinuxAccessSection"];
+            journal?: null | components["schemas"]["JournalSection"];
+            sshKeys?: null | components["schemas"]["SshKeysSection"];
+        };
+        LinuxSecurityInfo: {
+            firewall: null | components["schemas"]["LinuxFirewallInfo"];
+            appArmor: null | components["schemas"]["AppArmorInfo"];
+            secureBoot: null | boolean;
+            encrypted: components["schemas"]["EncryptedVolume"][];
+            fail2ban: null | components["schemas"]["Fail2banInfo"];
+        };
+        /** @enum {unknown} */
+        LinuxServiceClass: "Distribution" | "ThirdParty" | "Unpackaged" | "Pnmt" | "Unknown";
+        LinuxServiceEntry: {
+            name: string;
+            description: null | string;
+            loadState: string;
+            activeState: string;
+            subState: string;
+            unitFileState: null | string;
+            user: null | string;
+            /** Format: int32 */
+            pid: null | number;
+            program: null | string;
+            unitFile: null | string;
+            unitSource: null | string;
+            package: null | string;
+            origin: null | string;
+            snap: null | string;
+            class: components["schemas"]["LinuxServiceClass"];
+            enabledNotRunning: boolean;
+            failed: boolean;
+            type?: null | string;
+        };
+        LinuxServicesSection: {
+            services: components["schemas"]["LinuxServiceEntry"][];
+            timers: components["schemas"]["TimerEntry"][];
+            cron: components["schemas"]["CronEntry"][];
+            /** Format: int32 */
+            packages: number;
+            cronCommands: boolean;
+        };
+        LinuxShutdownInfo: {
+            /** Format: date-time */
+            at: null | string;
+            clean: null | boolean;
+            boot: null | string;
+        };
+        LinuxSystemSection: {
+            hostname: string;
+            fqdn: null | string;
+            realm: null | string;
+            machineId: null | string;
+            virtualization: null | string;
+            containers: components["schemas"]["ContainerRuntime"][];
+            proxmox: null | components["schemas"]["ProxmoxInfo"];
+            os: components["schemas"]["LinuxOsInfo"];
+            /** Format: date-time */
+            bootTime: string;
+            lastShutdown: null | components["schemas"]["LinuxShutdownInfo"];
+            updates: null | components["schemas"]["LinuxUpdatesInfo"];
+            time: null | components["schemas"]["LinuxTimeInfo"];
+            security: null | components["schemas"]["LinuxSecurityInfo"];
+            administrators: components["schemas"]["LinuxAdmin"][];
+            sudoRules: components["schemas"]["SudoRule"][];
+            accounts: components["schemas"]["LinuxAccount"][];
+            sessions: components["schemas"]["SessionInfo"][];
+        };
+        LinuxTimeInfo: {
+            timeZone: string;
+            ntpEnabled: null | boolean;
+            ntpSynchronized: null | boolean;
+            service: null | string;
+        };
+        LinuxUpdatesInfo: {
+            /** Format: int32 */
+            upgradable: number;
+            /** Format: int32 */
+            security: number;
+            securityPackages: string[];
+            /** Format: date-time */
+            listsUpdatedAt: null | string;
+            unattendedInstalled: boolean;
+            unattendedEnabled: boolean;
+            /** Format: date-time */
+            unattendedLastRun: null | string;
+            rebootPending: boolean;
+            rebootReasons: string[];
+            esmEnabled?: null | boolean;
+        };
         ListenerInfo: {
             protocol: string;
             address: string;
@@ -9529,6 +9955,23 @@ export interface components {
             name: string;
             kind: string;
             members?: null | string[];
+        };
+        LoggingCheck: {
+            journalPersistent: boolean;
+            /** Format: date-time */
+            oldestEntryAt: null | string;
+            /** Format: double */
+            spanDays: null | number;
+            /** Format: int64 */
+            journalBytes: null | number;
+            sshdLogLevel: null | string;
+            sudoLogging: boolean;
+            fixes: components["schemas"]["LoggingFix"][];
+        };
+        LoggingFix: {
+            key: string;
+            problem: string;
+            fix: null | string;
         };
         LoginRequest: {
             username?: null | string;
@@ -10766,6 +11209,12 @@ export interface components {
             /** Format: int32 */
             maxClockMhz: null | number;
         };
+        ProxmoxInfo: {
+            version: null | string;
+            clusterName: null | string;
+            node: null | string;
+            nodes: string[];
+        };
         Ref: {
             /** Format: uuid */
             id: string;
@@ -11096,6 +11545,50 @@ export interface components {
         };
         /** @enum {unknown} */
         SituationStatus: "Normal" | "Degraded" | "Incident" | null;
+        SshdKeySettings: {
+            authorizedKeysFiles: string[];
+            authorizedKeysCommand: null | string;
+            authorizedKeysCommandUser: null | string;
+            trustedUserCaKeys: null | string;
+            authorizedPrincipalsFile: null | string;
+            pubkeyAuthentication: boolean;
+            permitRootLogin: null | string;
+            strictModes: boolean;
+            matchBlocks: boolean;
+            available: boolean;
+        };
+        SshdSettings: {
+            ports: number[];
+            listenAddresses: string[];
+            permitRootLogin: null | string;
+            passwordAuthentication: boolean;
+            kbdInteractiveAuthentication: boolean;
+            pubkeyAuthentication: boolean;
+            allowUsers: string[];
+            allowGroups: string[];
+            denyUsers: string[];
+            denyGroups: string[];
+            allowAgentForwarding: boolean;
+            allowTcpForwarding: null | string;
+            x11Forwarding: boolean;
+            /** Format: int32 */
+            maxAuthTries: null | number;
+            logLevel: null | string;
+            matchBlocks: boolean;
+            authorizedKeysCommand: null | string;
+            trustedUserCaKeys: boolean;
+            socketActivated: boolean;
+            version: null | string;
+        };
+        SshKeysSection: {
+            sshd: components["schemas"]["SshdKeySettings"];
+            files: components["schemas"]["AuthorizedKeysFile"][];
+            caKeys: components["schemas"]["CaKey"][];
+            /** Format: int32 */
+            totalKeys: number;
+            truncated: boolean;
+            notes: string[];
+        };
         StateChange: {
             /** Format: date-time */
             at: string;
@@ -11131,6 +11624,13 @@ export interface components {
             length?: number;
             value?: null | string;
             hasValue?: boolean;
+        };
+        SudoRule: {
+            who: string;
+            file: string;
+            /** Format: int32 */
+            line: number;
+            noPassword: boolean;
         };
         SystemInfo: {
             identity: string;
@@ -11193,6 +11693,15 @@ export interface components {
             source: null | string;
             /** Format: date-time */
             lastSync: null | string;
+        };
+        TimerEntry: {
+            name: string;
+            unit: null | string;
+            /** Format: date-time */
+            lastRun: null | string;
+            /** Format: date-time */
+            nextRun: null | string;
+            unitFileState: null | string;
         };
         TokenLookupRequest: {
             token?: null | string;

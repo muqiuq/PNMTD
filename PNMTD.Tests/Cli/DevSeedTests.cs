@@ -6,7 +6,8 @@ namespace PNMTD.Tests.Cli;
 
 /// <summary>
 /// `pnmtd dev seed` (§6.2): the browser tests and the dashboard's acceptance targets (§5.5) rely on its
-/// shape: 50 hosts, 300 sensors, exactly 6 sensors failing now in 3 hosts, and an empty database only.
+/// shape: 50 hosts (and pve-01), 300 sensors (and the servers with an agent), exactly 6 sensors failing now in 3 hosts, and an
+/// empty database only.
 /// </summary>
 [TestClass]
 public sealed class DevSeedTests
@@ -20,12 +21,18 @@ public sealed class DevSeedTests
 
         Assert.AreEqual(0, DevSeedCommand.Run(["seed"], () => Data.PnmtdDbContext.Create(connection), NullLogger.Instance));
 
-        Assert.AreEqual(50, await db.Hosts.CountAsync());
-        // 300, and two Windows servers with their diagnostics sensors (docs/windows-sensor-plan.md §11).
-        Assert.AreEqual(304, await db.Sensors.CountAsync());
-        Assert.AreEqual(2, await db.Agents.CountAsync());
-        Assert.AreEqual(2 * Lib.Agent.SectionNames.Windows.Count, await db.AgentSections.CountAsync());
-        Assert.AreEqual(2, await db.DiagnosticAssignments.CountAsync());
+        // 50, and pve-01 for its Proxmox VE server (docs/linux-sensor-plan.md §12).
+        Assert.AreEqual(51, await db.Hosts.CountAsync());
+        // 300; two Windows servers with their diagnostics sensors (docs/windows-sensor-plan.md §11); two Linux servers, and web-01's
+        // diagnostics sensor (docs/linux-sensor-plan.md §12).
+        Assert.AreEqual(307, await db.Sensors.CountAsync());
+        Assert.AreEqual(4, await db.Agents.CountAsync());
+        Assert.AreEqual(2, await db.Agents.CountAsync(a => a.Platform == Lib.Agent.AgentPlatform.Linux));
+        Assert.AreEqual(2 * Lib.Agent.SectionNames.Windows.Count + 2 * Lib.Agent.SectionNames.Linux.Count, await db.AgentSections.CountAsync());
+        Assert.IsTrue(await db.AgentLogins.AnyAsync(l => l.KeyFingerprint != null && l.Kind == Lib.Agent.LogonKind.Ssh), "SSH logins with keys");
+        Assert.IsTrue(await db.AgentLogins.AnyAsync(l => l.Kind == Lib.Agent.LogonKind.Sudo && l.TargetUser == "root"), "sudo");
+        Assert.IsTrue(await db.AgentLogins.AnyAsync(l => l.FailureReason == Lib.Agent.LinuxLogins.InvalidUser && l.TriedUsers != null), "the scanners");
+        Assert.AreEqual(3, await db.DiagnosticAssignments.CountAsync());
         Assert.IsTrue(await db.DiagnosticRuns.AnyAsync(r => r.Outcome == Lib.Agent.DiagnosticOutcome.Fail), "the Basel gateway's half hour");
         Assert.IsGreaterThan(150_000, await db.Events.CountAsync());
         // UDP nodes (docs/udp-iot-plan.md U6): four fan sensors became nodes, with the real codec's packets.

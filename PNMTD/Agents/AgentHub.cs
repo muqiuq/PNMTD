@@ -309,9 +309,30 @@ public sealed class AgentHub(
         {
             agent.EncryptionKey = encryptionKey;
         }
+        // docs/linux-sensor-plan.md §4.6: the rights the server's own configuration gives PNMT, as the hello announces them. The
+        // connection names them; a change since the last hello is a line of its own.
+        var rights = hello.Rights is { } announced ? ServerRights.Bounded(announced) : null;
+        var rightsJson = rights is null ? null : AgentJson.Serialize(rights);
+        var previousRights = ServerRights.Read(agent.Rights);
+        var rightsChanged = agent.Rights is not null && rightsJson != agent.Rights;
+        agent.Rights = rightsJson;
+        if (agent.Platform == AgentPlatform.Linux)
+        {
+            // §9.3: the kernel and distribution for the fleet; the system section sets the distribution's point release.
+            agent.KernelRelease = Cuts.CutOrNull(hello.Os.Build, 100);
+            agent.Distribution ??= Cuts.CutOrNull(hello.Os.Caption, 200);
+        }
         AgentLog.Add(db, agent.SensorId, name, AgentLogKind.Connected,
-            $"Connected: agent {agent.AgentVersion} ({agent.Architecture}) on {agent.OsCaption} {agent.OsBuild}{(hello.Os.Supported ? "" : ", not a supported version")}.",
-            new { hello.Capabilities }, address);
+            $"Connected: agent {agent.AgentVersion} ({agent.Architecture}) on {agent.OsCaption} {agent.OsBuild}{(hello.Os.Supported ? "" : ", not a supported version")}"
+            + (rights is null ? "." : $"; rights on the server: {ServerRights.Describe(rights)}."),
+            rights is null ? new { hello.Capabilities } : new { hello.Capabilities, Rights = rights }, address);
+        if (rightsChanged)
+        {
+            AgentLog.Add(db, agent.SensorId, name, AgentLogKind.Warning,
+                rights is null ? "The agent announced no rights any more: PNMT treats the server as granting nothing."
+                    : $"Rights changed on the server: {ServerRights.Describe(rights)}.",
+                new { Before = previousRights, After = rights }, address);
+        }
         if (hello.Platform != agent.Platform)
         {
             // The row's platform is the token's, and authoritative; the hello's is only noted.

@@ -17,7 +17,8 @@ namespace PNMTD.Services.Domain;
 /// <summary>
 /// Servers with an agent in the API (docs/windows-sensor-plan.md §9.2; docs/linux-sensor-plan.md §10), of both platforms:
 /// the fleet, a server's agent, its switches, revoking and re-joining, requests to the agent, the agent log, join tokens and
-/// the downloads; and a Windows server's typed sections and WMI, which stay under /api/v1/windows/.
+/// the downloads; a Windows server's typed sections and WMI, which stay under /api/v1/windows/, and a Linux server's typed
+/// sections under /api/v1/linux/.
 /// </summary>
 public sealed class AgentServerService(
     PnmtdDbContext db,
@@ -45,8 +46,10 @@ public sealed class AgentServerService(
             .Where(i => query.RemoteAccess is not { } r || !string.IsNullOrEmpty(i.RemoteAccess) == r)
             .Where(i => query.AuditGaps is not { } g || i.AuditGaps > 0 == g)
             .Where(i => query.DiagnosticsFailing is not { } d || i.DiagnosticsFailing > 0 == d)
+            .Where(i => query.SecurityUpdates is not { } u || (i.SecurityUpdates ?? 0) > 0 == u)
+            .Where(i => query.KeyRemoval is not { } k || (i.KeyRemovalAllowed ?? false) == k)
             .Where(i => Text.Contains(i.Name, query.Search) || Text.Contains(i.Host.Name, query.Search) || Text.Contains(i.Hostname, query.Search)
-                || Text.Contains(i.OsCaption, query.Search));
+                || Text.Contains(i.OsCaption, query.Search) || Text.Contains(i.Distribution, query.Search));
         IOrderedEnumerable<AgentServerItem> sorted = field switch
         {
             "name" => filtered.OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
@@ -78,11 +81,19 @@ public sealed class AgentServerService(
         }).ToList();
     }
 
-    private AgentServerItem ToItem(AgentEntity a, string name, Ref host, SensorStatus? status, AgentExtras extras) => new(
-        a.SensorId, host, name, a.Platform, status?.State ?? SensorState.NoData, status?.LastCode, status?.LastMessage, a.Hostname, a.Domain, a.OsCaption, a.OsBuild,
-        a.OsSupported, a.Architecture, a.AgentVersion, IsOutdated(a.AgentVersion), a.Connected && hub.IsConnected(a.SensorId), a.LastSeenAt, a.BootTime,
-        a.ClockSkewSeconds, a.RevokedAt is not null, a.UninstalledAt is not null, a.LastProblemAt,
-        extras.RemoteAccess.GetValueOrDefault(a.SensorId), extras.AuditGaps.GetValueOrDefault(a.SensorId), extras.DiagnosticsFailing.GetValueOrDefault(a.SensorId));
+    private AgentServerItem ToItem(AgentEntity a, string name, Ref host, SensorStatus? status, AgentExtras extras)
+    {
+        var linux = a.Platform == AgentPlatform.Linux;
+        var rights = linux ? ServerRights.Read(a.Rights) : null;
+        return new(
+            a.SensorId, host, name, a.Platform, status?.State ?? SensorState.NoData, status?.LastCode, status?.LastMessage, a.Hostname, a.Domain, a.OsCaption, a.OsBuild,
+            a.OsSupported, a.Architecture, a.AgentVersion, IsOutdated(a.AgentVersion), a.Connected && hub.IsConnected(a.SensorId), a.LastSeenAt, a.BootTime,
+            a.ClockSkewSeconds, a.RevokedAt is not null, a.UninstalledAt is not null, a.LastProblemAt,
+            extras.RemoteAccess.GetValueOrDefault(a.SensorId), extras.AuditGaps.GetValueOrDefault(a.SensorId), extras.DiagnosticsFailing.GetValueOrDefault(a.SensorId),
+            // Linux (docs/linux-sensor-plan.md §10): for the fleet's columns and filters.
+            linux ? a.Distribution ?? a.OsCaption : null, linux ? a.KernelRelease ?? a.OsBuild : null, linux ? a.SecurityUpdates : null,
+            linux ? rights is not null && rights.KeyRemoval && !ServerRights.IsRefused(rights) : null);
+    }
 
     /// <summary>An agent older than PNMTD (§10.1): the release of PNMTD's version is newer.</summary>
     public static bool IsOutdated(string? agentVersion) =>
@@ -117,23 +128,35 @@ public sealed class AgentServerService(
         return new AgentServerDetail(items[0], agent.AgentId, agent.KeyFingerprint, key.Fingerprint, agent.JoinedAt, agent.ConnectedAt,
             agent.DisconnectedAt, agent.RemoteAddress, agent.Fqdn, agent.OsEdition, agent.OsDisplayVersion, agent.MachineId, agent.Capabilities,
             agent.ConfigVersion, settings.ConfigVersion, heartbeat,
-            new AgentServerSettings(agent.AdminLoginEvents, agent.FailedLoginEvents, agent.FailedLoginThreshold, agent.CriticalEvents),
-            problems, same, sections, agent.RevokedReason, agent.RevokedAt, agent.UninstalledAt, ServerInfo.Version);
+            new AgentServerSettings(agent.AdminLoginEvents, agent.FailedLoginEvents, agent.FailedLoginThreshold, agent.CriticalEvents,
+                agent.KeyAddedEvents, agent.SecurityUpdateEvents, agent.SecurityUpdateDays),
+            problems, same, sections, agent.RevokedReason, agent.RevokedAt, agent.UninstalledAt, ServerInfo.Version,
+            ServerRights.Read(agent.Rights), agent.Platform == AgentPlatform.Linux ? agent.SecurityUpdatesSince : null);
     }
 
+    /// <summary>The switches (§4.7, §4.8); a Linux server's own too (docs/linux-sensor-plan.md §11.3). Audited.</summary>
     public async Task<AgentServerDetail> SettingsAsync(Guid id, AgentServerSettings request, CancellationToken ct)
     {
         new ApiValidator()
             .Check(request.FailedLoginThreshold is >= 2 and <= 1000, "failedLoginThreshold", "Between 2 and 1000 failed logins.")
+            .Check(request.SecurityUpdateDays is >= 1 and <= 365, "securityUpdateDays", "Between 1 and 365 days.")
             .ThrowIfInvalid();
         var agent = await db.Agents.SingleOrDefaultAsync(a => a.SensorId == id, ct) ?? throw ApiException.NotFound("Server");
         agent.AdminLoginEvents = request.AdminLoginEvents;
         agent.FailedLoginEvents = request.FailedLoginEvents;
         agent.FailedLoginThreshold = request.FailedLoginThreshold;
         agent.CriticalEvents = request.CriticalEvents;
+        var linux = "";
+        if (agent.Platform == AgentPlatform.Linux)
+        {
+            agent.KeyAddedEvents = request.KeyAddedEvents;
+            agent.SecurityUpdateEvents = request.SecurityUpdateEvents;
+            agent.SecurityUpdateDays = request.SecurityUpdateDays;
+            linux = $", unregistered keys {On(request.KeyAddedEvents)}, security updates {On(request.SecurityUpdateEvents)} ({request.SecurityUpdateDays} days)";
+        }
         UdpViews.Audit(db, accessor, AuthEvents.AgentSettingsChanged,
             $"{await AgentLog.NameAsync(db, id, ct)}: admin logins {On(request.AdminLoginEvents)}, failed-login bursts {On(request.FailedLoginEvents)} " +
-            $"({request.FailedLoginThreshold}), critical entries {On(request.CriticalEvents)}");
+            $"({request.FailedLoginThreshold}), critical entries {On(request.CriticalEvents)}{linux}");
         await db.SaveChangesAsync(ct);
         return await DetailAsync(id, ct);
     }
@@ -277,6 +300,50 @@ public sealed class AgentServerService(
         return view;
     }
 
+    /// <summary>
+    /// A Linux server's section, typed by Linux's records (docs/linux-sensor-plan.md §10): 404 for a Windows server, as Windows'
+    /// sections are for a Linux one. access, journal and ssh-keys need CanWrite: user names, addresses, key comments.
+    /// </summary>
+    public async Task<LinuxSectionView> LinuxSectionAsync(Guid id, string section, bool canWrite, CancellationToken ct)
+    {
+        if ((await AgentAsync(id, ct)).Platform != AgentPlatform.Linux)
+        {
+            throw ApiException.NotFound("Linux server");
+        }
+        if (!SectionNames.IsKnown(AgentPlatform.Linux, section))
+        {
+            throw ApiException.NotFound("Section");
+        }
+        if (section is SectionNames.Access or SectionNames.Journal or SectionNames.SshKeys && !canWrite)
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "forbidden",
+                "Logins, the journal and the SSH keys need the User role: they hold user names, addresses and key comments.");
+        }
+        var row = await db.AgentSections.AsNoTracking().SingleOrDefaultAsync(s => s.SensorId == id && s.Section == section, ct)
+            ?? throw ApiException.NotFound("Section (not reported yet)");
+        var view = new LinuxSectionView(row.Section, row.CollectedAt, row.ReceivedAt, row.ChangedAt, row.Errors);
+        string? error = null;
+        T? Read<T>() where T : class => AgentSections.Parse<T>(row.Content, out error);
+        view = section switch
+        {
+            SectionNames.System => view with { System = Read<LinuxSystemSection>() },
+            SectionNames.Hardware => view with { Hardware = Read<HardwareSection>() },
+            SectionNames.Network => view with { Network = Read<NetworkSection>() },
+            SectionNames.Services => view with { Services = Read<LinuxServicesSection>() },
+            SectionNames.RemoteAccess => view with { RemoteAccess = Read<LinuxRemoteAccessSection>() },
+            SectionNames.Access => view with { Access = Read<LinuxAccessSection>() },
+            SectionNames.Journal => view with { Journal = Read<JournalSection>() },
+            SectionNames.SshKeys => view with { SshKeys = Read<SshKeysSection>() },
+            _ => view,
+        };
+        if (error is not null)
+        {
+            logger.LogWarning("Linux server {Id}: the section {Section} could not be read: {Error}", id, section, error);
+            view = view with { Errors = [error, .. view.Errors] };
+        }
+        return view;
+    }
+
     /// <summary>Logins and connections (§4.7), newest first. CanWrite: they hold user names and addresses.</summary>
     public async Task<Paged<AgentLoginItem>> LoginsAsync(Guid id, AgentLoginQuery query, CancellationToken ct)
     {
@@ -293,6 +360,11 @@ public sealed class AgentServerService(
         if (query.Kind is { } kind)
         {
             q = q.Where(l => l.Kind == kind);
+        }
+        if (!string.IsNullOrWhiteSpace(query.KeyFingerprint))
+        {
+            var fingerprint = SshKeys.NormalizeFingerprint(query.KeyFingerprint) ?? query.KeyFingerprint.Trim();
+            q = q.Where(l => l.KeyFingerprint == fingerprint);
         }
         if (Text.Pattern(query.User) is { } user)
         {
@@ -315,7 +387,8 @@ public sealed class AgentServerService(
             q = q.Where(l => l.At <= to.ToUniversalTime());
         }
         return await Paging.PageAsync(q.OrderByDescending(l => l.LastAt ?? l.At).Select(l => new AgentLoginItem(l.Id, l.At, l.LastAt, l.Count, l.Outcome,
-            l.FailureReason, l.User, l.Domain, l.IsAdmin, l.Kind, l.AuthPackage, l.SourceAddress, l.SourcePort, l.Workstation, l.Elevated, l.LoggedOffAt, l.Channel)),
+            l.FailureReason, l.User, l.Domain, l.IsAdmin, l.Kind, l.AuthPackage, l.SourceAddress, l.SourcePort, l.Workstation, l.Elevated, l.LoggedOffAt, l.Channel,
+            l.KeyFingerprint, l.TargetUser, l.Command, l.TriedUsers)),
             query, ct);
     }
 
@@ -472,11 +545,17 @@ public sealed class AgentServerService(
 
         var key = await keys.GetAsync(ct);
         var url = urls.Base;
-        var downloadInfo = await downloads.GetAsync(ct, wait: false);
-        // Plain http:// works after a confirmation: on the command line, --allow-http. Windows' command line; Linux's install line
-        // comes with its agent's release (docs/linux-sensor-plan.md §4.4, L3).
+        if (platform == AgentPlatform.Linux && settings.ServeDownloads)
+        {
+            // docs/linux-sensor-plan.md §4.4: the dialog asks ahead, so the line's download finds the files here.
+            downloads.FetchAhead(AgentDownloads.Of(AgentPlatform.Linux));
+        }
+        // A Linux token's line needs the binary's hash: the release's is waited for (at most 5 s), as the Download tab does.
+        var downloadInfo = await downloads.GetAsync(url, ct, wait: platform == AgentPlatform.Linux);
+        // Plain http:// works after a confirmation: on the command line, --allow-http.
         var plainHttp = url.StartsWith("http://", StringComparison.OrdinalIgnoreCase);
-        var command = $"pnmt-sensor-x64.exe join --url {url} --token {token}{(entity.Name is { } n ? $" --name \"{n.Replace("\"", "")}\"" : "")}{(plainHttp ? " --allow-http" : "")}";
+        var command = platform == AgentPlatform.Linux ? LinuxCommandLine(downloadInfo, url, token)
+            : $"pnmt-sensor-x64.exe join --url {url} --token {token}{(entity.Name is { } n ? $" --name \"{n.Replace("\"", "")}\"" : "")}{(plainHttp ? " --allow-http" : "")}";
         var sensors = rejoin is { } r ? new Dictionary<Guid, string> { [r] = $"{host.Name} / {name}" } : new Dictionary<Guid, string>();
         return new AgentJoinTokenCreated(ToItem(entity, new Dictionary<Guid, string> { [host.Id] = host.Name }, sensors, Clock.UtcNow),
             token, url, key.Fingerprint, command, downloadInfo);
@@ -497,7 +576,40 @@ public sealed class AgentServerService(
         }
     }
 
-    public Task<AgentDownloadLinks> DownloadsAsync(CancellationToken ct) => downloads.GetAsync(ct, wait: true);
+    /// <summary>
+    /// A Linux token's one line (docs/linux-sensor-plan.md §4.4): x64, from PNMT (GitHub when PNMT doesn't serve the files), with wget,
+    /// the token in it; only the join while the binary's hash isn't known.
+    /// </summary>
+    private static string LinuxCommandLine(AgentDownloadLinks downloads, string url, string token)
+    {
+        var x64 = downloads.Linux.FirstOrDefault(l => l.Architecture == "x64");
+        var line = x64?.Pnmt ?? x64?.GitHub;
+        return line is null ? AgentDownloads.JoinLine(url, token) : line.Replace(AgentDownloads.TokenPlaceholder, token, StringComparison.Ordinal);
+    }
+
+    public Task<AgentDownloadLinks> DownloadsAsync(CancellationToken ct) => downloads.GetAsync(urls.Base, ct, wait: true);
+
+    /// <summary>
+    /// <i>Fetch again</i> (docs/linux-sensor-plan.md §4.4): the files named (or every one that isn't here and verified) from the
+    /// release, replacing those that don't match. Answers at once, with the files being fetched. Audited.
+    /// </summary>
+    public async Task<AgentDownloadLinks> FetchDownloadsAsync(AgentDownloadFetchRequest request, CancellationToken ct)
+    {
+        var names = (request.Files ?? []).Select(f => f.Trim()).Where(f => f.Length > 0).Distinct().ToList();
+        new ApiValidator()
+            .Check(names.All(AgentDownloadAssets.Executables.Contains), "files", "Only the agents' files: " + string.Join(", ", AgentDownloadAssets.Executables) + ".")
+            .ThrowIfInvalid();
+        if (!options.CurrentValue.ServeDownloads || !options.CurrentValue.Enabled)
+        {
+            throw ApiException.Conflict("downloads_off", "PNMT doesn't serve the agents' files (Agents__ServeDownloads, Agents__Enabled): GitHub's links remain.");
+        }
+        var files = names.Count > 0 ? names : AgentDownloadAssets.Executables.Where(e => downloads.Check(e).File is null).ToList();
+        downloads.FetchAhead(files, again: true);
+        UdpViews.Audit(db, accessor, AuthEvents.AgentDownloadsFetched,
+            files.Count == 0 ? "fetch again: every file is here and verified" : $"fetch again: {string.Join(", ", files)}");
+        await db.SaveChangesAsync(ct);
+        return await downloads.GetAsync(urls.Base, ct, wait: false);
+    }
 
     private async Task<AgentEntity> AgentAsync(Guid id, CancellationToken ct) =>
         await db.Agents.AsNoTracking().SingleOrDefaultAsync(a => a.SensorId == id && AgentPlatformInfo.SensorTypes.Contains(a.Sensor.Type), ct)

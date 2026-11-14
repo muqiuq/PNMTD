@@ -4,7 +4,8 @@ namespace PNMTD.Agents;
 
 /// <summary>
 /// The agents' paths (docs/windows-sensor-plan.md §9.1), for every platform, on PNMT's existing address and port: no cookie authentication, no
-/// CSRF, no ProblemDetails, as the sensor API's paths. Each request authenticates by its join token or the agent's key.
+/// CSRF, no ProblemDetails, as the sensor API's paths. Each request authenticates by its join token or the agent's key, except the
+/// agents' files (<see cref="AgentProtocol.DownloadPath"/>, docs/linux-sensor-plan.md §4.4), which are public as on GitHub.
 /// </summary>
 public static class AgentPaths
 {

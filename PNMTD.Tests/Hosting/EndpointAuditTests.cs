@@ -39,6 +39,9 @@ public sealed class EndpointAuditTests
         "GET /agent/v1/join",
         "POST /agent/v1/join",
         "GET /agent/v1/ws",
+        // The agents' files (docs/linux-sensor-plan.md §4.4, §9.7): public as on GitHub, fixed names only, limited per address.
+        "GET /agent/v1/download",
+        "GET /agent/v1/download/{asset}",
     ];
 
     /// <summary>
@@ -248,6 +251,7 @@ public sealed class EndpointAuditTests
         ["DELETE /api/v1/agents/join-tokens/{id:guid}"] = Roles.Admin,
         ["GET /api/v1/agents/agent-log"] = Roles.Admin,
         ["GET /api/v1/agents/downloads"] = Roles.Admin,
+        ["POST /api/v1/agents/downloads/fetch"] = Roles.Admin,
         // Scripts (docs/windows-sensor-plan.md §7; docs/linux-sensor-plan.md §8): Admin only.
         ["GET /api/v1/agents/scripts"] = Roles.Admin,
         ["GET /api/v1/agents/scripts/{id:guid}"] = Roles.Admin,
@@ -270,6 +274,8 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/windows/run-as"] = Roles.Admin,
         ["PUT /api/v1/windows/run-as/{id:guid}"] = Roles.Admin,
         ["DELETE /api/v1/windows/run-as/{id:guid}"] = Roles.Admin,
+        // Linux's own (docs/linux-sensor-plan.md §10): the typed sections; access, journal and ssh-keys check CanWrite inside.
+        ["GET /api/v1/linux/servers/{id:guid}/sections/{section}"] = Roles.Viewer,
         // Diagnostics (docs/windows-sensor-plan.md §9.2): reading CanRead, changing Admin, Run now CanWrite.
         ["GET /api/v1/diagnostics/sets"] = Roles.Viewer,
         ["GET /api/v1/diagnostics/sets/{id:guid}"] = Roles.Viewer,

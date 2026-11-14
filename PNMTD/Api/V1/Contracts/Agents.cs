@@ -7,7 +7,10 @@ namespace PNMTD.Api.V1.Contracts;
 // Servers with an agent, Windows and Linux (docs/windows-sensor-plan.md §9.2; docs/linux-sensor-plan.md §10): under
 // /api/v1/agents/ since L1. A Windows server's typed sections and WMI are in Windows.cs.
 
-/// <summary>A server in the fleet list (§10.1), of either platform.</summary>
+/// <summary>
+/// A server in the fleet list (§10.1), of either platform. Linux (docs/linux-sensor-plan.md §10) adds the distribution, the kernel,
+/// the security updates pending, and whether config.yaml allows key removal; null on Windows.
+/// </summary>
 public sealed record AgentServerItem(
     Guid SensorId,
     Ref Host,
@@ -33,7 +36,11 @@ public sealed record AgentServerItem(
     DateTime? LastProblemAt,
     string? RemoteAccess,
     int AuditGaps,
-    int DiagnosticsFailing);
+    int DiagnosticsFailing,
+    string? Distribution = null,
+    string? KernelRelease = null,
+    int? SecurityUpdates = null,
+    bool? KeyRemovalAllowed = null);
 
 public sealed class AgentServerQuery : PageQuery
 {
@@ -59,13 +66,22 @@ public sealed class AgentServerQuery : PageQuery
     /// <summary>Only servers with a failing diagnostics assignment.</summary>
     public bool? DiagnosticsFailing { get; set; }
 
+    /// <summary>Linux: only servers with security updates pending.</summary>
+    public bool? SecurityUpdates { get; set; }
+
+    /// <summary>Linux: only servers whose config.yaml allows PNMT to remove keys.</summary>
+    public bool? KeyRemoval { get; set; }
+
     public Guid? HostId { get; set; }
 }
 
 /// <summary>When a section was collected, and its collector's errors.</summary>
 public sealed record AgentSectionInfo(string Name, DateTime CollectedAt, DateTime ReceivedAt, IReadOnlyList<string> Errors);
 
-/// <summary>A server's page (§10.2): the agent, its connection, the last heartbeat, its switches and recent problems.</summary>
+/// <summary>
+/// A server's page (§10.2): the agent, its connection, the last heartbeat, its switches and recent problems. On Linux
+/// (docs/linux-sensor-plan.md §4.6, §11.3) also the rights its config.yaml gives PNMT, and since when security updates are pending.
+/// </summary>
 public sealed record AgentServerDetail(
     AgentServerItem Server,
     Guid AgentId,
@@ -90,10 +106,17 @@ public sealed record AgentServerDetail(
     string? RevokedReason,
     DateTime? RevokedAt,
     DateTime? UninstalledAt,
-    string PnmtVersion);
+    string PnmtVersion,
+    AgentRightsSummary? Rights = null,
+    DateTime? SecurityUpdatesSince = null);
 
-/// <summary>A server's event switches (§4.7, §4.8), with its platform's codes (254, 454, 453; 264, 464, 463).</summary>
-public sealed record AgentServerSettings(bool AdminLoginEvents, bool FailedLoginEvents, int FailedLoginThreshold, bool CriticalEvents);
+/// <summary>
+/// A server's event switches (§4.7, §4.8), with its platform's codes (254, 454, 453; 264, 464, 463). Linux's own
+/// (docs/linux-sensor-plan.md §9.2, §11.3): <see cref="KeyAddedEvents"/> (465, from L5), <see cref="SecurityUpdateEvents"/> (462)
+/// after <see cref="SecurityUpdateDays"/> (1 to 365); Windows servers ignore them.
+/// </summary>
+public sealed record AgentServerSettings(bool AdminLoginEvents, bool FailedLoginEvents, int FailedLoginThreshold, bool CriticalEvents,
+    bool KeyAddedEvents = true, bool SecurityUpdateEvents = false, int SecurityUpdateDays = 7);
 
 public sealed record AgentLogItem(Guid Id, Guid? SensorId, string AgentName, DateTime At, AgentLogKind Kind, string Message,
     string? Details, string? Address);
@@ -140,8 +163,10 @@ public sealed record AgentJoinTokenRequest(Guid HostId, string? Name, int? Valid
 public sealed record AgentRejoinTokenRequest(int? ValidHours);
 
 /// <summary>
-/// The new token, shown once, with what the server's administrator needs. <see cref="CommandLine"/> and
-/// <see cref="Downloads"/> are Windows' for now: the Linux agent's install line comes with its release (L3).
+/// The new token, shown once, with what the server's administrator needs. <see cref="CommandLine"/>: Windows' command line for
+/// unattended installs; for a Linux token the one install line (docs/linux-sensor-plan.md §4.4: x64, from PNMT, with wget, the
+/// token in it), or only the join when the binary's hash isn't known yet. <see cref="Downloads"/>' lines carry
+/// <see cref="AgentDownloadLinks.TokenPlaceholder"/>.
 /// </summary>
 public sealed record AgentJoinTokenCreated(
     AgentJoinTokenItem Item,
@@ -151,10 +176,56 @@ public sealed record AgentJoinTokenCreated(
     string CommandLine,
     AgentDownloadLinks Downloads);
 
-/// <summary>PNMTD's version and the agent's release links (§10.1), with the SHA-256 when GitHub could be asked. Windows' for now.</summary>
-public sealed record AgentDownloadLinks(string Version, IReadOnlyList<AgentDownloadLink> Files, string? ReleaseUrl, string? Note);
+/// <summary>
+/// PNMTD's version and the agents' files (§10.1; docs/linux-sensor-plan.md §4.4, §10). <see cref="Files"/>: Windows' executables
+/// as before L3 (GitHub's link, the release's SHA-256, PNMT's link). <see cref="Assets"/>: every file of both platforms with its
+/// state in PNMT's download folder. <see cref="Linux"/>: the install lines per architecture, from PNMT and GitHub, with wget and
+/// curl, PNMT's URL (<see cref="Url"/>) and <see cref="TokenPlaceholder"/> for the token. <see cref="ServeDownloads"/> false: PNMT's
+/// links are null, GitHub's remain.
+/// </summary>
+public sealed record AgentDownloadLinks(
+    string Version,
+    IReadOnlyList<AgentDownloadLink> Files,
+    string? ReleaseUrl,
+    string? Note,
+    IReadOnlyList<AgentDownloadFile> Assets,
+    IReadOnlyList<LinuxInstallLines> Linux,
+    string UpdateLine,
+    bool ServeDownloads,
+    string Url,
+    string TokenPlaceholder);
 
-public sealed record AgentDownloadLink(string Architecture, string FileName, string Url, string? Sha256);
+public sealed record AgentDownloadLink(string Architecture, string FileName, string Url, string? Sha256, string? PnmtUrl = null);
+
+/// <summary>Where an agent's file is (docs/linux-sensor-plan.md §4.4): here and verified, being fetched, failed (with the reason), or not fetched yet.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<AgentDownloadState>))]
+public enum AgentDownloadState { Here, Fetching, Failed, NotFetched }
+
+/// <summary>
+/// An agent's file: PNMT's link (null when PNMT doesn't serve them), GitHub's, the SHA-256 (verified when it is here, else the
+/// release's), its size when here, its state, why it failed, and when PNMT fetched it.
+/// </summary>
+public sealed record AgentDownloadFile(
+    string Name,
+    AgentPlatform Platform,
+    string Architecture,
+    string? PnmtUrl,
+    string GitHubUrl,
+    string? Sha256,
+    long? Size,
+    AgentDownloadState State,
+    string? Error,
+    DateTime? FetchedAt);
+
+/// <summary>
+/// The one line of docs/linux-sensor-plan.md §4.4 for an architecture: download, <c>sha256sum -c</c>, install, join. From PNMT
+/// (<see cref="Pnmt"/>, <see cref="PnmtCurl"/>; null when PNMT doesn't serve the files) or GitHub, with wget or curl; null while the
+/// hash isn't known. For <c>sudo sh -c '…'</c> the line goes in single quotes as it is.
+/// </summary>
+public sealed record LinuxInstallLines(string Architecture, string FileName, string? Sha256, string? Pnmt, string? PnmtCurl, string? GitHub, string? GitHubCurl);
+
+/// <summary><i>Fetch again</i>: these files (empty: every file that isn't here and verified).</summary>
+public sealed record AgentDownloadFetchRequest(IReadOnlyList<string>? Files);
 
 public sealed record AgentRevokeRequest(string? Reason);
 
@@ -167,7 +238,10 @@ public sealed record AgentRequestResult(bool Ok, string? Error);
 /// <summary>The last lines of the agent's log file.</summary>
 public sealed record AgentLogFile(DateTime At, IReadOnlyList<string> Lines);
 
-/// <summary>A login or connection (§4.7): an aggregate when <see cref="Count"/> is above 1.</summary>
+/// <summary>
+/// A login or connection (§4.7): an aggregate when <see cref="Count"/> is above 1. On Linux (docs/linux-sensor-plan.md §5.6) the key
+/// of a key login, whom sudo or su became, sudo's command (where config.yaml sends it), and the names an "invalid user" source tried.
+/// </summary>
 public sealed record AgentLoginItem(
     Guid Id,
     DateTime At,
@@ -185,7 +259,11 @@ public sealed record AgentLoginItem(
     string? Workstation,
     bool? Elevated,
     DateTime? LoggedOffAt,
-    string Channel);
+    string Channel,
+    string? KeyFingerprint = null,
+    string? TargetUser = null,
+    string? Command = null,
+    IReadOnlyList<string>? TriedUsers = null);
 
 public sealed class AgentLoginQuery : PageQuery
 {
@@ -193,7 +271,11 @@ public sealed class AgentLoginQuery : PageQuery
 
     public bool? Admin { get; set; }
 
+    /// <summary>The kind; on Linux also Sudo, Su and Sftp (docs/linux-sensor-plan.md §10).</summary>
     public LogonKind? Kind { get; set; }
+
+    /// <summary>Linux: the logins with this key (<c>SHA256:…</c>, as pasted: the prefix and padding are optional).</summary>
+    public string? KeyFingerprint { get; set; }
 
     public string? User { get; set; }
 

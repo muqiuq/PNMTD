@@ -191,6 +191,41 @@ public class AgentEntity
     /// <summary>Windows only. WMI (§16): built-in queries switched off or with another timeout, and own queries, as JSON (<see cref="Lib.Agent.WmiConfig"/>).</summary>
     public string? WmiSettings { get; set; }
 
+    // --- Linux (docs/linux-sensor-plan.md §9.3, migration AddLinuxAgents) --------------------------------------
+
+    /// <summary>
+    /// What the server's own configuration allows PNMT, from its last hello (<see cref="Lib.Agent.AgentRightsSummary"/>, §4.6): on
+    /// Linux from /etc/pnmt-agent/config.yaml. Null when the agent announced none (Windows today).
+    /// </summary>
+    [Column(TypeName = "jsonb")]
+    public string? Rights { get; set; }
+
+    /// <summary>Linux: 465 for a key that isn't registered as active (§6.3). Stored now, used from L5 on.</summary>
+    public bool KeyAddedEvents { get; set; } = true;
+
+    /// <summary>Linux: 462 when security updates have been pending longer than <see cref="SecurityUpdateDays"/> (§9.2). Off by default.</summary>
+    public bool SecurityUpdateEvents { get; set; }
+
+    public int SecurityUpdateDays { get; set; } = 7;
+
+    /// <summary>Linux: when the system section first reported pending security updates; cleared when none are pending.</summary>
+    public DateTime? SecurityUpdatesSince { get; set; }
+
+    /// <summary>Linux: the security updates pending now, from the system section, for the list and 462.</summary>
+    public int SecurityUpdates { get; set; }
+
+    /// <summary>Linux: the first of their packages, for 462's message: "openssl, libssl3, …".</summary>
+    [MaxLength(500)]
+    public string? SecurityPackages { get; set; }
+
+    /// <summary>Linux: the kernel's release (6.1.0-28-amd64), from the hello and the system section.</summary>
+    [MaxLength(100)]
+    public string? KernelRelease { get; set; }
+
+    /// <summary>Linux: the distribution with its point release (Debian 12.8, Proxmox VE 9.0.10), from the system section; the pretty name before.</summary>
+    [MaxLength(200)]
+    public string? Distribution { get; set; }
+
     public DateTime? RevokedAt { get; set; }
 
     [MaxLength(500)]
@@ -286,7 +321,8 @@ public class AgentSectionEntity
 
 /// <summary>
 /// A login or connection (docs/windows-sensor-plan.md §4.7, §8.3), or an aggregate of identical ones, deduplicated by its log
-/// and the record id of its first event: sent again, it is updated (a higher count, a logoff). Kept 180 days.
+/// and the record id of its first event: sent again, it is updated (a higher count, a logoff). Kept 180 days. On Linux
+/// (docs/linux-sensor-plan.md §5.6) also sudo and su, file transfers, and the key of a key login.
 /// </summary>
 [Table("agent_logins")]
 public class AgentLoginEntity
@@ -339,6 +375,23 @@ public class AgentLoginEntity
     public string Channel { get; set; } = "";
 
     public long RecordId { get; set; }
+
+    // --- Linux (docs/linux-sensor-plan.md §5.6, migration AddLinuxAgents) --------------------------------------
+
+    /// <summary>The key of an SSH key login (<c>SHA256:…</c>), which the key manager names (§6.4).</summary>
+    [MaxLength(100)]
+    public string? KeyFingerprint { get; set; }
+
+    /// <summary>Whom sudo or su became.</summary>
+    [MaxLength(256)]
+    public string? TargetUser { get; set; }
+
+    /// <summary>sudo's command, only where config.yaml's collect.sudo_commands sends it.</summary>
+    [MaxLength(2000)]
+    public string? Command { get; set; }
+
+    /// <summary>For the "invalid user" aggregate: the first 10 names the source tried.</summary>
+    public List<string>? TriedUsers { get; set; }
 }
 
 /// <summary>A readable change of a section (§4.9): "Service AnyDesk added (third-party, automatic, running)". Kept 180 days.</summary>

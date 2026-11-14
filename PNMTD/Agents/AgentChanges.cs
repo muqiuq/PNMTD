@@ -3,6 +3,7 @@ using PNMTD.Data;
 using PNMTD.Lib.Agent;
 using PNMTD.Lib.Helper;
 using PNMTD.Models.Db;
+using PNMTD.Linux;
 using PNMTD.Services.Events;
 using PNMTD.Windows;
 
@@ -13,9 +14,9 @@ public sealed record AgentChange(string Summary, bool Notable, object? Before = 
 
 /// <summary>
 /// Changes (docs/windows-sensor-plan.md §4.9; docs/linux-sensor-plan.md §5.8), of every platform: a section with a new hash
-/// is compared with the stored one by its platform's differs (<see cref="WindowsDiffers"/>; Linux's come with L4), whose
+/// is compared with the stored one by its platform's differs (<see cref="WindowsDiffers"/>, <see cref="LinuxDiffers"/>), whose
 /// readable lines go to agent_changes; notable ones write the platform's change code (253, 263) with a summary. A new
-/// critical entry writes the platform's code for it (453) when the server asks for it.
+/// critical entry writes the platform's code for it (453 for the event log, 463 for the journal) when the server asks for it.
 /// </summary>
 public sealed class AgentChanges
 {
@@ -26,6 +27,13 @@ public sealed class AgentChanges
         {
             WindowsDiffers.Summaries(agent, message);
         }
+        else
+        {
+            LinuxDiffers.Summaries(agent, message, Clock.UtcNow);
+        }
+        // L5 (docs/linux-sensor-plan.md §6.3): the ssh-keys section goes to the key manager here, for every stored section with a
+        // new hash, the first included: SshKeyAuthorizations (where each key is authorized, 465 for keys not registered as active,
+        // 263 for registered ones). LinuxDiffers.SshKeyChanges is its differ.
         if (previous is null)
         {
             return;
@@ -68,12 +76,18 @@ public sealed class AgentChanges
     public static IReadOnlyList<AgentChange> Compare(AgentPlatform platform, string section, string before, string after) => platform switch
     {
         AgentPlatform.Windows => WindowsDiffers.Compare(section, before, after),
+        AgentPlatform.Linux => LinuxDiffers.Compare(section, before, after),
         _ => [],
     };
 
-    /// <summary>The new critical entries of a log section, as the events' messages: Windows' event log (453).</summary>
-    private static IEnumerable<string> NewCritical(AgentPlatform platform, string section, string before, string after) =>
-        platform == AgentPlatform.Windows && section == SectionNames.EventLog
-            ? WindowsDiffers.NewCritical(before, after).Select(e => $"{e.Source} {e.EventId}: {e.Message}")
-            : [];
+    /// <summary>
+    /// The new critical entries of a log section, as the events' messages: Windows' event log (453), Linux's journal at emerg, alert
+    /// and crit (463).
+    /// </summary>
+    private static IEnumerable<string> NewCritical(AgentPlatform platform, string section, string before, string after) => (platform, section) switch
+    {
+        (AgentPlatform.Windows, SectionNames.EventLog) => WindowsDiffers.NewCritical(before, after).Select(e => $"{e.Source} {e.EventId}: {e.Message}"),
+        (AgentPlatform.Linux, SectionNames.Journal) => LinuxDiffers.NewCritical(before, after),
+        _ => [],
+    };
 }

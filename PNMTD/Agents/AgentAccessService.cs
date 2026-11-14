@@ -11,9 +11,11 @@ namespace PNMTD.Agents;
 /// <summary>
 /// Logins and connections (docs/windows-sensor-plan.md §4.7; docs/linux-sensor-plan.md §5.6), of every platform: stored once
 /// per log and record id (a record sent again updates its count, its last time and its logoff); the platform's admin login
-/// (254, 264) for a new admin login of a kind that pages there (Windows: console, RDP, SSH, WinRM); its login failures
-/// (454, 464) for a burst of failed logins from one source or for one user, or a lockout. Both optional per server, on by
-/// default.
+/// (254, 264) for a new admin login of a kind that pages there (Windows: console, RDP, SSH, WinRM; Linux: SSH and console,
+/// with the key of a key login), within the last hour; its login failures (454, 464) for a burst of failed logins from one
+/// source or for one user, or a lockout. On Linux a <c>not in sudoers</c> pages too, and failures for accounts that don't
+/// exist (<see cref="LinuxLogins.InvalidUser"/>, the internet's scanners) never count. sudo and su are stored, never page. Both
+/// optional per server, on by default.
 /// </summary>
 public sealed class AgentAccessService(IDbContextFactory<PnmtdDbContext> dbs, IOptionsMonitor<AgentOptions> options)
 {
@@ -53,15 +55,19 @@ public sealed class AgentAccessService(IDbContextFactory<PnmtdDbContext> dbs, IO
         var write = agent.Sensor.Enabled && agent.Sensor.Parent.Enabled;
         if (write && agent.AdminLoginEvents)
         {
-            foreach (var login in fresh.Where(l => l.Outcome == LogonOutcome.Success && l.IsAdmin && platform.AdminLoginKinds.Contains(l.Kind) && l.At > now.AddHours(-1)))
+            var admins = fresh.Where(l => l.Outcome == LogonOutcome.Success && l.IsAdmin && platform.AdminLoginKinds.Contains(l.Kind) && l.At > now.AddHours(-1)).ToList();
+            var keyNames = agent.Platform == AgentPlatform.Linux ? await KeyNamesAsync(db, admins.Select(l => l.KeyFingerprint).OfType<string>().ToList(), ct) : null;
+            foreach (var login in admins)
             {
-                await SensorEventWriter.WriteAsync(db, agent.SensorId, platform.AdminLoginCode, AdminMessage(login), platform.EventSource, ct);
+                var message = agent.Platform == AgentPlatform.Linux ? LinuxAdminMessage(login, keyNames!) : AdminMessage(login);
+                await SensorEventWriter.WriteAsync(db, agent.SensorId, platform.AdminLoginCode, message, platform.EventSource, ct);
             }
         }
         await db.SaveChangesAsync(ct);
         if (write && agent.FailedLoginEvents && records.Any(r => r.Outcome == LogonOutcome.Failure))
         {
-            foreach (var message in await BurstsAsync(db, agent, records, ct))
+            var messages = agent.Platform == AgentPlatform.Linux ? await LinuxBurstsAsync(db, agent, fresh, ct) : await BurstsAsync(db, agent, records, ct);
+            foreach (var message in messages)
             {
                 await SensorEventWriter.WriteAsync(db, agent.SensorId, platform.LoginFailuresCode, message, platform.EventSource, ct);
             }
@@ -88,6 +94,11 @@ public sealed class AgentAccessService(IDbContextFactory<PnmtdDbContext> dbs, IO
         row.Elevated = record.Elevated;
         row.LogonId = Cuts.CutOrNull(record.LogonId, 40);
         row.LoggedOffAt = record.LoggedOffAt?.UtcDateTime ?? row.LoggedOffAt;
+        // Linux (docs/linux-sensor-plan.md §5.6).
+        row.KeyFingerprint = Cuts.CutOrNull(record.KeyFingerprint, 100);
+        row.TargetUser = Cuts.CutOrNull(record.TargetUser, 256);
+        row.Command = Cuts.CutOrNull(record.Command, 2000);
+        row.TriedUsers = record.TriedUsers is { Count: > 0 } tried ? tried.Take(10).Select(u => Cuts.Cut(u, 256)).ToList() : null;
     }
 
     /// <summary>"CONTOSO\jdoe: RDP from 10.0.4.17 (Kerberos)" (§4.7).</summary>
@@ -105,6 +116,79 @@ public sealed class AgentAccessService(IDbContextFactory<PnmtdDbContext> dbs, IO
         var from = login.SourceAddress is null ? "" : $" from {login.SourceAddress}";
         var details = string.Join(", ", new[] { login.AuthPackage, login.Elevated == true ? "elevated" : null }.Where(d => d is not null));
         return $"{user}: {how}{from}{(details.Length > 0 ? $" ({details})" : "")}";
+    }
+
+    /// <summary>
+    /// Linux's 264 (docs/linux-sensor-plan.md §5.6): "root: SSH from 10.0.4.17 with key SHA256:Kq1f9hJ0…rS2A", "root: SSH from
+    /// 10.0.4.17 (password)", "root: console (tty1, password)".
+    /// </summary>
+    public static string LinuxAdminMessage(AgentLoginEntity login, IReadOnlyDictionary<string, SshKeyName> keyNames)
+    {
+        var how = login.Kind == LogonKind.Console ? "console" : login.Kind.ToString().ToUpperInvariant();
+        var from = login.SourceAddress is not null ? $" from {login.SourceAddress}" : "";
+        var with = login.KeyFingerprint is { } fingerprint ? $" with {KeyText(fingerprint, keyNames.GetValueOrDefault(fingerprint))}" : "";
+        var details = new[] { login.SourceAddress is null ? login.Workstation : null, login.KeyFingerprint is null ? login.AuthPackage : null }.OfType<string>().ToList();
+        return $"{login.User}: {how}{from}{with}{(details.Count > 0 ? $" ({string.Join(", ", details)})" : "")}";
+    }
+
+    /// <summary>
+    /// How a key is named in events and messages: "key SHA256:Kq1f9hJ0…rS2A" while it isn't registered; with the key manager
+    /// (docs/linux-sensor-plan.md §6.4, L5) "key Philipp, laptop (philipp)". The one place that words a key.
+    /// </summary>
+    public static string KeyText(string fingerprint, SshKeyName? name = null) =>
+        name is null ? $"key {SshKeys.Short(fingerprint)}" : $"key {name.Name}{(name.Owner is { Length: > 0 } owner ? $" ({owner})" : "")}";
+
+    /// <summary>
+    /// The registered names of these keys, by fingerprint: none until the key manager exists. L5 (docs/linux-sensor-plan.md
+    /// §6.4) answers them from <c>ssh_keys</c> here, and every message that names a key follows.
+    /// </summary>
+    public static Task<IReadOnlyDictionary<string, SshKeyName>> KeyNamesAsync(PnmtdDbContext db, IReadOnlyCollection<string> fingerprints, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyDictionary<string, SshKeyName>>(new Dictionary<string, SshKeyName>(StringComparer.Ordinal));
+
+    /// <summary>
+    /// Linux's 464 (docs/linux-sensor-plan.md §5.6): the threshold of failures against existing accounts within the window from one
+    /// source or for one user (sudo and su have no source), and each new <c>not in sudoers</c> and lockout. Failures for accounts
+    /// that don't exist (<see cref="LinuxLogins.InvalidUser"/>) never count. Stable while a burst lasts, so it collapses by the dedupe.
+    /// </summary>
+    private async Task<List<string>> LinuxBurstsAsync(PnmtdDbContext db, AgentEntity agent, IReadOnlyList<AgentLoginEntity> fresh, CancellationToken ct)
+    {
+        var minutes = Math.Clamp(options.CurrentValue.FailedLoginWindowMinutes, 1, 60);
+        var since = Clock.UtcNow.AddMinutes(-minutes);
+        var failures = await db.AgentLogins.AsNoTracking()
+            .Where(l => l.SensorId == agent.SensorId && l.Outcome == LogonOutcome.Failure && (l.LastAt ?? l.At) >= since
+                && (l.FailureReason == null || l.FailureReason != LinuxLogins.InvalidUser))
+            .Select(l => new { l.User, l.SourceAddress, l.Count, l.Kind, l.FailureReason })
+            .ToListAsync(ct);
+        var threshold = Math.Max(2, agent.FailedLoginThreshold);
+        var messages = new List<string>();
+        foreach (var source in failures.Where(f => f.SourceAddress is not null).GroupBy(f => f.SourceAddress!))
+        {
+            if (source.Sum(f => f.Count) >= threshold)
+            {
+                var users = source.Select(f => f.User).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).Take(5).ToList();
+                messages.Add($"Failed logins from {source.Key}: at least {threshold} in {minutes} min (users: {string.Join(", ", users)})");
+            }
+        }
+        foreach (var user in failures.GroupBy(f => f.User, StringComparer.Ordinal))
+        {
+            // Once from one source, the source's message says it already.
+            var sources = user.Select(f => f.SourceAddress).Distinct().ToList();
+            if (user.Sum(f => f.Count) >= threshold && (sources.Count > 1 || sources[0] is null))
+            {
+                var kinds = string.Join(", ", user.Select(f => f.Kind.ToString()).Distinct().Order(StringComparer.Ordinal));
+                messages.Add($"Failed logins for {user.Key}: at least {threshold} in {minutes} min ({kinds})");
+            }
+        }
+        foreach (var refused in fresh.Where(l => l.Outcome == LogonOutcome.Failure && l.FailureReason == LinuxLogins.NotInSudoers))
+        {
+            messages.Add($"{refused.User}: not in sudoers ({refused.Kind.ToString().ToLowerInvariant()}{(refused.Workstation is { } tty ? " on " + tty : "")})");
+        }
+        foreach (var locked in fresh.Where(l => l.Outcome == LogonOutcome.Failure && l.FailureReason == LinuxLogins.Lockout))
+        {
+            var from = locked.SourceAddress ?? locked.Workstation;
+            messages.Add($"{locked.User} locked{(from is null ? "" : $" (from {from})")}");
+        }
+        return messages.Distinct().Take(10).ToList();
     }
 
     /// <summary>
@@ -145,3 +229,6 @@ public sealed class AgentAccessService(IDbContextFactory<PnmtdDbContext> dbs, IO
         return messages.Distinct().Take(10).ToList();
     }
 }
+
+/// <summary>A key's registered name and owner (docs/linux-sensor-plan.md §6.4): what <see cref="AgentAccessService.KeyText"/> names it by.</summary>
+public sealed record SshKeyName(string Name, string? Owner);

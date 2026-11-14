@@ -100,9 +100,17 @@ public sealed class AgentsController(AgentServerService servers) : V1ControllerB
     public async Task<ActionResult<Paged<AgentLogItem>>> AgentLog([FromQuery] AgentLogQuery query, CancellationToken ct) =>
         await servers.LogAsync(null, query, ct);
 
-    /// <summary>The agent of PNMTD's version: its release links and SHA-256 (§10.1). Before L1 <c>GET /api/v1/windows/agent</c>.</summary>
+    /// <summary>
+    /// The agents of PNMTD's version (§10.1; docs/linux-sensor-plan.md §4.4, §10): each file's PNMT and GitHub links, SHA-256, size
+    /// and state in PNMT's download folder, and the Linux install and update lines. Before L1 <c>GET /api/v1/windows/agent</c>.
+    /// </summary>
     [HttpGet("downloads")]
     public async Task<ActionResult<AgentDownloadLinks>> Downloads(CancellationToken ct) => await servers.DownloadsAsync(ct);
+
+    /// <summary><i>Fetch again</i>: the files from the release into PNMT's download folder; answers at once. Audited.</summary>
+    [HttpPost("downloads/fetch")]
+    public async Task<ActionResult<AgentDownloadLinks>> FetchDownloads(AgentDownloadFetchRequest request, CancellationToken ct) =>
+        await servers.FetchDownloadsAsync(request, ct);
 }
 
 /// <summary>Scripts (docs/windows-sensor-plan.md §7, W6; docs/linux-sensor-plan.md §8): the library, runs and their history. Admin, audited.</summary>

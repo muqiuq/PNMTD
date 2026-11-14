@@ -103,7 +103,8 @@ public static class WindowsDiffers
         return changes;
     }
 
-    private static List<AgentChange> HardwareChanges(HardwareSection? a, HardwareSection? b)
+    /// <summary>Disks, memory and volumes: the shared record, so Linux's differs use it too (docs/linux-sensor-plan.md §5.3).</summary>
+    internal static List<AgentChange> HardwareChanges(HardwareSection? a, HardwareSection? b)
     {
         var changes = new List<AgentChange>();
         if (a is null || b is null)
@@ -134,7 +135,11 @@ public static class WindowsDiffers
 
     private static long Gib(long bytes) => (long)Math.Round(bytes / (1024.0 * 1024 * 1024));
 
-    private static List<AgentChange> NetworkChanges(NetworkSection? a, NetworkSection? b)
+    /// <summary>
+    /// Adapters, addresses, gateways, DNS servers, listeners and the proxy: the shared record, so Linux's differs use it too
+    /// (docs/linux-sensor-plan.md §5.3), with its own name for the proxy.
+    /// </summary>
+    internal static List<AgentChange> NetworkChanges(NetworkSection? a, NetworkSection? b, string proxy = "WinHTTP proxy")
     {
         var changes = new List<AgentChange>();
         if (a is null || b is null)
@@ -182,12 +187,12 @@ public static class WindowsDiffers
         }
         if (a.Proxy != b.Proxy)
         {
-            changes.Add(new($"WinHTTP proxy: {a.Proxy ?? "direct"} → {b.Proxy ?? "direct"}", false));
+            changes.Add(new($"{proxy}: {a.Proxy ?? "direct"} → {b.Proxy ?? "direct"}", false));
         }
         return changes;
     }
 
-    private static string List(IReadOnlyList<string> values) => values.Count == 0 ? "none" : string.Join(", ", values);
+    internal static string List(IReadOnlyList<string> values) => values.Count == 0 ? "none" : string.Join(", ", values);
 
     private static string ClassLabel(ServiceClass c) => c switch
     {
@@ -367,7 +372,7 @@ public static class WindowsDiffers
         return changes;
     }
 
-    private static void Sets(List<AgentChange> changes, IEnumerable<string> before, IEnumerable<string> after, Func<string, string> added, Func<string, string> removed, bool notable)
+    internal static void Sets(List<AgentChange> changes, IEnumerable<string> before, IEnumerable<string> after, Func<string, string> added, Func<string, string> removed, bool notable)
     {
         var a = before.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var b = after.ToHashSet(StringComparer.OrdinalIgnoreCase);

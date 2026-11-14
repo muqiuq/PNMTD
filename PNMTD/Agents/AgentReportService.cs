@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using PNMTD.Data;
 using PNMTD.Lib.Agent;
 using PNMTD.Lib.Helper;
+using PNMTD.Lib.Models;
 using PNMTD.Models.Db;
 using PNMTD.Services.Events;
 
@@ -12,8 +13,9 @@ namespace PNMTD.Agents;
 /// <summary>
 /// What agents report (docs/windows-sensor-plan.md §3.5, §3.8, §8.2), with the codes of their platform
 /// (docs/linux-sensor-plan.md §9.2): heartbeats become OK (250, 260), or a restart (251, 261) after the boot time moved, or an
-/// agent problem (451, 461) for a clock that is off or problems in three heartbeats in a row; problems go to the agent log;
-/// <c>bye</c> marks the server uninstalled.
+/// agent problem (451, 461) for a clock that is off or problems in three heartbeats in a row; on Linux also 461 while
+/// config.yaml is refused, and 462 while security updates are pending too long (the server's switch). Problems go to the agent
+/// log; <c>bye</c> marks the server uninstalled.
 /// </summary>
 public sealed class AgentReportService(IDbContextFactory<PnmtdDbContext> dbs, IOptionsMonitor<AgentOptions> options, AgentChanges changes,
     ILogger<AgentReportService> logger)
@@ -83,10 +85,46 @@ public sealed class AgentReportService(IDbContextFactory<PnmtdDbContext> dbs, IO
         if (restarted)
         {
             var at = heartbeat.BootTime.UtcDateTime.ToString("yyyy-MM-dd HH:mm 'UTC'", CultureInfo.InvariantCulture);
-            return (platform.RestartedCode,
-                $"{agent.Hostname}: restarted at {at}{(string.IsNullOrWhiteSpace(heartbeat.LastShutdown) ? "" : "; " + Cuts.Cut(heartbeat.LastShutdown, 300))}");
+            // Linux (docs/linux-sensor-plan.md §9.2): the message says whether the last shutdown was clean, or that it isn't known.
+            var shutdown = !string.IsNullOrWhiteSpace(heartbeat.LastShutdown) ? "; " + Cuts.Cut(heartbeat.LastShutdown, 300)
+                : platform.Platform == AgentPlatform.Linux ? "; whether the last shutdown was clean is not known" : "";
+            return (platform.RestartedCode, $"{agent.Hostname}: restarted at {at}{shutdown}");
+        }
+        if (platform.Platform == AgentPlatform.Linux)
+        {
+            // §4.6: an unsafe or broken config.yaml grants nothing, and is a problem while it lasts (461).
+            if (ServerRights.Read(agent.Rights) is { } rights && ServerRights.IsRefused(rights))
+            {
+                return (platform.ProblemCode,
+                    $"{agent.Hostname}: /etc/pnmt-agent/config.yaml is refused{(rights.Problem is { } problem ? $" ({Cuts.Cut(problem, 300)})" : "")}: it grants PNMT nothing");
+            }
+            if (SecurityUpdatesMessage(agent, Clock.UtcNow) is { } updates)
+            {
+                return (PNMTStatusCodes.LINUX_SECURITY_UPDATES, updates);
+            }
         }
         return (platform.OkCode, platform.OkMessage(agent));
+    }
+
+    /// <summary>
+    /// 462 (docs/linux-sensor-plan.md §9.2), when the server's switch is on and security updates have been pending longer than its
+    /// days: "web-01: 12 security updates pending since 2026-11-05, more than 7 days: openssl, libssl3, …". Stable while the same
+    /// updates are pending, so it collapses by the dedupe.
+    /// </summary>
+    public static string? SecurityUpdatesMessage(AgentEntity agent, DateTime now)
+    {
+        if (!agent.SecurityUpdateEvents || agent.SecurityUpdates <= 0 || agent.SecurityUpdatesSince is not { } since)
+        {
+            return null;
+        }
+        var days = Math.Clamp(agent.SecurityUpdateDays, 1, 365);
+        if (now - since <= TimeSpan.FromDays(days))
+        {
+            return null;
+        }
+        var what = agent.SecurityUpdates == 1 ? "1 security update" : $"{agent.SecurityUpdates} security updates";
+        return $"{agent.Hostname}: {what} pending since {since.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}, more than {days} days"
+            + (string.IsNullOrEmpty(agent.SecurityPackages) ? "" : ": " + agent.SecurityPackages);
     }
 
     public async Task ProblemsAsync(AgentConnection connection, ProblemBatch batch, CancellationToken ct)

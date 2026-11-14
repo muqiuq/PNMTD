@@ -91,6 +91,9 @@ public static class AuthEvents
     public const string AgentScriptChanged = "AgentScriptChanged";
     public const string AgentScriptRun = "AgentScriptRun";
 
+    /// <summary>Fetch again of the agents' files (docs/linux-sensor-plan.md §4.4).</summary>
+    public const string AgentDownloadsFetched = "AgentDownloadsFetched";
+
     public static readonly string[] All =
     [
         LoginSucceeded, LoginFailed, LockedOut, TotpFailed, Logout, TotpEnabled, TotpDisabled, TotpReset, PasswordChanged,
@@ -104,7 +107,7 @@ public static class AuthEvents
         WireGuardTunnelCreated, WireGuardTunnelChanged, WireGuardTunnelDeleted, WireGuardTunnelDownloaded,
         DebugNotificationSent, DebugAiTested, AiWorkRetried, AiWorkCancelled, AiBackfillStarted, AiAnalysisStarted,
         AgentJoinTokenCreated, AgentJoinTokenRevoked, AgentJoined, AgentJoinFailed, AgentRevoked, AgentSettingsChanged, WindowsSettingsChanged,
-        DiagnosticsSetChanged, DiagnosticsAssignmentChanged, AgentScriptChanged, AgentScriptRun,
+        DiagnosticsSetChanged, DiagnosticsAssignmentChanged, AgentScriptChanged, AgentScriptRun, AgentDownloadsFetched,
     ];
 }
 

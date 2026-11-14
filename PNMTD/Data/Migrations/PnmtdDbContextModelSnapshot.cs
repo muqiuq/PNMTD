@@ -107,6 +107,10 @@ namespace PNMTD.Data.Migrations
                     b.Property<DateTime?>("DisconnectedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Distribution")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("Domain")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -134,6 +138,13 @@ namespace PNMTD.Data.Migrations
 
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("KernelRelease")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("KeyAddedEvents")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("KeyFingerprint")
                         .IsRequired()
@@ -191,6 +202,25 @@ namespace PNMTD.Data.Migrations
                     b.Property<string>("RevokedReason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Rights")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("SecurityPackages")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("SecurityUpdateDays")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("SecurityUpdateEvents")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SecurityUpdates")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SecurityUpdatesSince")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("UninstalledAt")
                         .HasColumnType("timestamp with time zone");
@@ -336,6 +366,10 @@ namespace PNMTD.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("Command")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<int>("Count")
                         .HasColumnType("integer");
 
@@ -352,6 +386,10 @@ namespace PNMTD.Data.Migrations
 
                     b.Property<bool>("IsAdmin")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("KeyFingerprint")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("Kind")
                         .HasColumnType("integer");
@@ -382,6 +420,13 @@ namespace PNMTD.Data.Migrations
                     b.Property<int?>("SourcePort")
                         .HasColumnType("integer");
 
+                    b.Property<string>("TargetUser")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.PrimitiveCollection<List<string>>("TriedUsers")
+                        .HasColumnType("text[]");
+
                     b.Property<string>("User")
                         .IsRequired()
                         .HasMaxLength(256)
@@ -394,6 +439,8 @@ namespace PNMTD.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("At");
+
+                    b.HasIndex("KeyFingerprint");
 
                     b.HasIndex("SensorId", "At");
 
