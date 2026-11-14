@@ -41,6 +41,10 @@ namespace PNMTD.Data
 
         public DbSet<UserEntity> Users { get; set; }
 
+        // Redmine (docs/audit-redmine-zabbix-plan.md §6.5, §6.7).
+        public DbSet<RedmineLinkEntity> RedmineLinks { get; set; }
+        public DbSet<RedmineIssueEntity> RedmineIssues { get; set; }
+
         // Groups and rights (docs/audit-redmine-zabbix-plan.md §5).
         public DbSet<GroupEntity> Groups { get; set; }
         public DbSet<GroupRightEntity> GroupRights { get; set; }
@@ -179,6 +183,21 @@ namespace PNMTD.Data
             modelBuilder.Entity<EventEntity>().HasIndex(e => e.Created);
 
             modelBuilder.Entity<UserEntity>().HasIndex(u => u.NormalizedUsername).IsUnique();
+            // Redmine's links (docs/audit-redmine-zabbix-plan.md §6.5): exactly one target, removed with it; a ticket once per target.
+            modelBuilder.Entity<RedmineLinkEntity>(e =>
+            {
+                e.ToTable(t => t.HasCheckConstraint("CK_redmine_links_one_target", "num_nonnulls(\"PageId\", \"LocationId\", \"HostId\", \"SensorId\") = 1"));
+                e.HasOne<KbPageEntity>().WithMany().HasForeignKey(l => l.PageId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<LocationEntity>().WithMany().HasForeignKey(l => l.LocationId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<HostEntity>().WithMany().HasForeignKey(l => l.HostId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(l => l.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(l => new { l.PageId, l.IssueId }).IsUnique().HasFilter("\"PageId\" IS NOT NULL");
+                e.HasIndex(l => new { l.LocationId, l.IssueId }).IsUnique().HasFilter("\"LocationId\" IS NOT NULL");
+                e.HasIndex(l => new { l.HostId, l.IssueId }).IsUnique().HasFilter("\"HostId\" IS NOT NULL");
+                e.HasIndex(l => new { l.SensorId, l.IssueId }).IsUnique().HasFilter("\"SensorId\" IS NOT NULL");
+                e.HasIndex(l => l.IssueId);
+            });
+
             // Groups (docs/audit-redmine-zabbix-plan.md §5.1): levels as text, so a renamed enum member can't shift them.
             modelBuilder.Entity<GroupEntity>().HasIndex(g => g.NormalizedName).IsUnique();
             modelBuilder.Entity<GroupRightEntity>(e =>

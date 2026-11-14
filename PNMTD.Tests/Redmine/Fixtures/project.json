@@ -1,0 +1,14 @@
+{
+ "project": {
+  "id": 1,
+  "name": "IT Support",
+  "identifier": "it-support",
+  "description": null,
+  "homepage": "",
+  "status": 1,
+  "is_public": true,
+  "inherit_members": false,
+  "created_on": "2026-11-14T13:56:24Z",
+  "updated_on": "2026-11-14T13:56:24Z"
+ }
+}

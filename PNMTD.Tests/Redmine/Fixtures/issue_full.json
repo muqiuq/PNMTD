@@ -1,0 +1,99 @@
+{
+ "issue": {
+  "id": 9,
+  "project": {
+   "id": 1,
+   "name": "IT Support"
+  },
+  "tracker": {
+   "id": 3,
+   "name": "Support"
+  },
+  "status": {
+   "id": 2,
+   "name": "In Progress",
+   "is_closed": false
+  },
+  "priority": {
+   "id": 4,
+   "name": "Urgent"
+  },
+  "author": {
+   "id": 1,
+   "name": "Redmine Admin"
+  },
+  "subject": "Printer on floor 2 does not print",
+  "description": "The **printer** in room 204 shows error E3.\r\n\r\nSee #2 and the photo: ![](photo.png)",
+  "start_date": "2026-11-14",
+  "due_date": null,
+  "done_ratio": 0,
+  "is_private": false,
+  "estimated_hours": null,
+  "total_estimated_hours": null,
+  "created_on": "2026-11-14T13:57:32Z",
+  "updated_on": "2026-11-14T13:57:32Z",
+  "closed_on": null,
+  "attachments": [],
+  "relations": [
+   {
+    "id": 1,
+    "issue_id": 9,
+    "issue_to_id": 10,
+    "relation_type": "relates",
+    "delay": null
+   }
+  ],
+  "journals": [
+   {
+    "id": 3,
+    "user": {
+     "id": 1,
+     "name": "Redmine Admin"
+    },
+    "notes": "Called the vendor; a technician comes on **Monday**.",
+    "created_on": "2026-11-14T13:57:32Z",
+    "updated_on": "2026-11-14T13:57:32Z",
+    "private_notes": false,
+    "details": [
+     {
+      "property": "attr",
+      "name": "status_id",
+      "old_value": "1",
+      "new_value": "2"
+     }
+    ]
+   },
+   {
+    "id": 4,
+    "user": {
+     "id": 1,
+     "name": "Redmine Admin"
+    },
+    "notes": "Internal: the vendor contract number is 4711.",
+    "created_on": "2026-11-14T13:57:32Z",
+    "updated_on": "2026-11-14T13:57:32Z",
+    "private_notes": true,
+    "details": []
+   },
+   {
+    "id": 5,
+    "user": {
+     "id": 1,
+     "name": "Redmine Admin"
+    },
+    "notes": "",
+    "created_on": "2026-11-14T13:57:32Z",
+    "updated_on": "2026-11-14T13:57:32Z",
+    "private_notes": false,
+    "details": [
+     {
+      "property": "relation",
+      "name": "relates",
+      "old_value": null,
+      "new_value": "10"
+     }
+    ]
+   }
+  ]
+ }
+}

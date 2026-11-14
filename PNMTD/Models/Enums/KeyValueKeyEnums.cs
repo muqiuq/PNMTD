@@ -32,6 +32,9 @@
         // The audit log's daily retention (docs/audit-redmine-zabbix-plan.md §3.8).
         LAST_AUDIT_RETENTION = 260,
 
+        // Redmine's copy of linked tickets (docs/audit-redmine-zabbix-plan.md §6.7).
+        LAST_REDMINE_SYNC = 270,
+
         UNUSED = 999,
     }
 }

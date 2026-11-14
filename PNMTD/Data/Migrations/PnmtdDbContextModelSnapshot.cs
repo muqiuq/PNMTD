@@ -3045,6 +3045,126 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("notificationrulesensor", (string)null);
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.RedmineIssueEntity", b =>
+                {
+                    b.Property<int>("IssueId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("AssignedToName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("DueDate")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTime>("FetchedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsClosed")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Missing")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("PriorityId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PriorityName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProjectName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("StatusName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("TrackerName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("UpdatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("IssueId");
+
+                    b.ToTable("redmine_issues");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.RedmineLinkEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("HostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("IssueId")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("PageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IssueId");
+
+                    b.HasIndex("HostId", "IssueId")
+                        .IsUnique()
+                        .HasFilter("\"HostId\" IS NOT NULL");
+
+                    b.HasIndex("LocationId", "IssueId")
+                        .IsUnique()
+                        .HasFilter("\"LocationId\" IS NOT NULL");
+
+                    b.HasIndex("PageId", "IssueId")
+                        .IsUnique()
+                        .HasFilter("\"PageId\" IS NOT NULL");
+
+                    b.HasIndex("SensorId", "IssueId")
+                        .IsUnique()
+                        .HasFilter("\"SensorId\" IS NOT NULL");
+
+                    b.ToTable("redmine_links", t =>
+                        {
+                            t.HasCheckConstraint("CK_redmine_links_one_target", "num_nonnulls(\"PageId\", \"LocationId\", \"HostId\", \"SensorId\") = 1");
+                        });
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.SensorEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4643,6 +4763,29 @@ namespace PNMTD.Data.Migrations
                     b.Navigation("NotificationRule");
 
                     b.Navigation("Sensor");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.RedmineLinkEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.HostEntity", null)
+                        .WithMany()
+                        .HasForeignKey("HostId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PNMTD.Models.Db.LocationEntity", null)
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PNMTD.Models.Db.KbPageEntity", null)
+                        .WithMany()
+                        .HasForeignKey("PageId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.SensorEntity", b =>

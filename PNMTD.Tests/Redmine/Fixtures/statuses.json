@@ -1,0 +1,40 @@
+{
+ "issue_statuses": [
+  {
+   "id": 1,
+   "name": "New",
+   "is_closed": false,
+   "description": null
+  },
+  {
+   "id": 2,
+   "name": "In Progress",
+   "is_closed": false,
+   "description": null
+  },
+  {
+   "id": 3,
+   "name": "Resolved",
+   "is_closed": false,
+   "description": null
+  },
+  {
+   "id": 4,
+   "name": "Feedback",
+   "is_closed": false,
+   "description": null
+  },
+  {
+   "id": 5,
+   "name": "Closed",
+   "is_closed": true,
+   "description": null
+  },
+  {
+   "id": 6,
+   "name": "Rejected",
+   "is_closed": true,
+   "description": null
+  }
+ ]
+}

@@ -58,6 +58,9 @@ namespace PNMTD.Lib.Models
         /// <summary>The files folder (docs/locations-knowledge-plan.md §5.5): missing or not writable, its disk nearly full, or files missing or changed.</summary>
         public const int FILE_STORAGE_PROBLEM = 428;
 
+        /// <summary>Redmine (docs/audit-redmine-zabbix-plan.md §8.5): it didn't answer, refused the key, or a project is missing, twice in a row.</summary>
+        public const int REDMINE_FAILING = 429;
+
         /// <summary>Windows servers (docs/windows-sensor-plan.md §8.2): the heartbeat, a restart, a notable change, admin logins; the agent's problems, critical entries, login failures.</summary>
         public const int WINDOWS_OK = 250;
         public const int WINDOWS_RESTARTED = 251;

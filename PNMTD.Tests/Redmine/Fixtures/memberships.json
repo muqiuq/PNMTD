@@ -1,0 +1,24 @@
+{
+ "memberships": [
+  {
+   "id": 1,
+   "project": {
+    "id": 1,
+    "name": "IT Support"
+   },
+   "user": {
+    "id": 5,
+    "name": "Anna Muster"
+   },
+   "roles": [
+    {
+     "id": 4,
+     "name": "Developer"
+    }
+   ]
+  }
+ ],
+ "total_count": 1,
+ "offset": 0,
+ "limit": 25
+}

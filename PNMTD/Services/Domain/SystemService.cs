@@ -32,6 +32,8 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
             c => c.GetValue("Mikrotik:Enabled", true) && c.GetValue("Mikrotik:VersionCheck:Enabled", true)),
         // docs/audit-redmine-zabbix-plan.md §3.8: once a day.
         new("Audit retention", KeyValueKeyEnums.LAST_AUDIT_RETENTION, 24 * 3600, _ => true),
+        // docs/audit-redmine-zabbix-plan.md §6.7, §8.5: the copy of linked tickets, every Redmine:SyncMinutes (10).
+        new("Redmine sync", KeyValueKeyEnums.LAST_REDMINE_SYNC, 600, c => Redmine.RedmineSetup.Configured(c)),
     ];
 
     public static bool MailboxConfigured(IConfiguration c) =>
@@ -48,7 +50,7 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
             return new SystemInfo(ServerInfo.Identity);
         }
         return new SystemInfo(ServerInfo.Identity, ServerInfo.Version, urls.Configured, Clock.TimeZone.Id,
-            configuration["Auth:TotpPolicy"] ?? "Optional", configuration.GetValue("WireGuard:Enabled", false));
+            configuration["Auth:TotpPolicy"] ?? "Optional", configuration.GetValue("WireGuard:Enabled", false), Redmine.RedmineSetup.Configured(configuration));
     }
 
     public async Task<UplinkStatus> UplinkAsync(CancellationToken ct)
@@ -134,6 +136,7 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.AI_BUDGET_80, "AI_BUDGET_80", false, "AI spending reached 80 % of the budget."),
         new(PNMTStatusCodes.AI_BUDGET_90, "AI_BUDGET_90", false, "AI spending reached 90 % of the budget."),
         new(PNMTStatusCodes.AI_BUDGET_REACHED, "AI_BUDGET_REACHED", false, "AI spending reached the budget: AI work waits until the next period."),
+        new(PNMTStatusCodes.REDMINE_FAILING, "REDMINE_FAILING", false, "Redmine didn't answer, refused PNMT's API key, or a configured project is missing, twice in a row."),
         new(PNMTStatusCodes.FILE_STORAGE_PROBLEM, "FILE_STORAGE_PROBLEM", false, "The files folder is missing or not writable, its disk has less free space than KnowledgeBase:MinFreeMb, or files are missing or changed."),
         new(PNMTStatusCodes.WINDOWS_AGENT_PROBLEM, "WINDOWS_AGENT_PROBLEM", false, "A Windows server's agent has a problem: its clock is off, it reported failures in three heartbeats in a row, or its key or protocol is wrong."),
         new(PNMTStatusCodes.WINDOWS_CRITICAL_EVENT, "WINDOWS_CRITICAL_EVENT", false, "A new Critical entry in a Windows server's System or Application log (optional, off by default)."),

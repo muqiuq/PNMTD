@@ -1,0 +1,16 @@
+{
+ "user": {
+  "id": 1,
+  "login": "admin",
+  "admin": true,
+  "firstname": "Redmine",
+  "lastname": "Admin",
+  "mail": "admin@example.net",
+  "created_on": "2026-11-14T13:55:42Z",
+  "updated_on": "2026-11-14T13:56:24Z",
+  "last_login_on": null,
+  "passwd_changed_on": "2026-11-14T13:56:24Z",
+  "twofa_scheme": null,
+  "status": 1
+ }
+}

@@ -7,7 +7,7 @@ using PNMTD.Locations;
 
 namespace PNMTD.Services.Domain;
 
-public sealed partial class SearchService(PnmtdDbContext db, LocationTree locations)
+public sealed partial class SearchService(PnmtdDbContext db, LocationTree locations, IHttpContextAccessor accessor, IServiceProvider services)
 {
     /// <summary>
     /// Hosts and sensors whose name contains q (hosts also by location text), locations by name (with their paths), and
@@ -22,9 +22,10 @@ public sealed partial class SearchService(PnmtdDbContext db, LocationTree locati
             .Check(limit is >= 1 and <= 100, "limit", "Between 1 and 100.")
             .ThrowIfInvalid();
         var term = q!.Trim();
+        var tickets = await TicketsAsync(term, pattern!, limit, ct);
         if (term.StartsWith('#'))
         {
-            return new SearchResult([], [], [], await PagesByTagAsync(term.TrimStart('#').Trim().ToLowerInvariant(), limit, ct));
+            return new SearchResult([], [], [], await PagesByTagAsync(term.TrimStart('#').Trim().ToLowerInvariant(), limit, ct), tickets);
         }
         var hosts = await db.Hosts.AsNoTracking()
             .Where(h => EF.Functions.ILike(h.Name, pattern!, @"\") || (h.Location != null && EF.Functions.ILike(h.Location, pattern!, @"\")))
@@ -48,7 +49,39 @@ public sealed partial class SearchService(PnmtdDbContext db, LocationTree locati
             .OrderBy(l => l.Path, StringComparer.OrdinalIgnoreCase)
             .Take(limit)
             .ToList();
-        return new SearchResult(hosts, sensors, locationResults, await PagesAsync(term, pattern!, limit, ct));
+        return new SearchResult(hosts, sensors, locationResults, await PagesAsync(term, pattern!, limit, ct), tickets);
+    }
+
+    /// <summary>Tickets, for Redmine's View: a number from PNMT's copy or Redmine itself, other text among the linked ones' subjects.</summary>
+    private async Task<IReadOnlyList<SearchTicket>> TicketsAsync(string term, string pattern, int limit, CancellationToken ct)
+    {
+        if (accessor.HttpContext?.User is not { } user || !Auth.Rights.RightsExtensions.Has(user, Auth.Rights.Area.Redmine, Auth.Rights.Level.View)
+            || services.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<Redmine.RedmineOptions>>().CurrentValue is not { Enabled: true })
+        {
+            return [];
+        }
+        if (int.TryParse(term.TrimStart('#'), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var number))
+        {
+            var copy = await db.RedmineIssues.AsNoTracking().Where(i => i.IssueId == number && !i.Missing)
+                .Select(i => new SearchTicket(i.IssueId, i.Subject, i.StatusName, i.IsClosed)).FirstOrDefaultAsync(ct);
+            if (copy is not null)
+            {
+                return [copy];
+            }
+            try
+            {
+                var found = await services.GetRequiredService<Redmine.RedmineService>()
+                    .SearchAsync(new RedmineQuery { Search = number.ToString(System.Globalization.CultureInfo.InvariantCulture) }, ct);
+                return found.Items.Select(i => new SearchTicket(i.Id, i.Subject, i.Status, i.IsClosed)).ToList();
+            }
+            catch (Redmine.RedmineException)
+            {
+                return [];
+            }
+        }
+        return await db.RedmineIssues.AsNoTracking().Where(i => !i.Missing && EF.Functions.ILike(i.Subject, pattern, @""))
+            .OrderBy(i => i.IsClosed).ThenByDescending(i => i.UpdatedOn).Take(limit)
+            .Select(i => new SearchTicket(i.IssueId, i.Subject, i.StatusName, i.IsClosed)).ToListAsync(ct);
     }
 
     /// <summary><c>KB-42</c>, <c>kb42</c> or <c>42</c>.</summary>

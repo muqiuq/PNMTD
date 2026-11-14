@@ -22,6 +22,9 @@ public static class SystemSensorKeys
 
     /// <summary>The files folder of the locations and the knowledge base (docs/locations-knowledge-plan.md §5.5).</summary>
     public const string Files = "files";
+
+    /// <summary>Redmine (docs/audit-redmine-zabbix-plan.md §8.5).</summary>
+    public const string Redmine = "redmine";
 }
 
 /// <summary>A system sensor: its key, its name, its importance, and when it exists.</summary>
@@ -52,6 +55,7 @@ public sealed class SystemSensors(IDbContextFactory<PnmtdDbContext> dbs, IConfig
         new(SystemSensorKeys.RouterOsAdvisories, "RouterOS advisories", Importance.High,
             c => c.GetValue("Mikrotik:Enabled", true) && c.GetValue("Mikrotik:Advisories:Enabled", true)),
         new(SystemSensorKeys.Files, "File storage", Importance.High, _ => true),
+        new(SystemSensorKeys.Redmine, "Redmine", Importance.Normal, PNMTD.Redmine.RedmineSetup.Configured),
     ];
 
     private readonly ConcurrentDictionary<string, Guid> ids = new();

@@ -1,0 +1,190 @@
+{
+ "issues": [
+  {
+   "id": 15,
+   "project": {
+    "id": 1,
+    "name": "IT Support"
+   },
+   "tracker": {
+    "id": 3,
+    "name": "Support"
+   },
+   "status": {
+    "id": 5,
+    "name": "Closed",
+    "is_closed": true
+   },
+   "priority": {
+    "id": 2,
+    "name": "Normal"
+   },
+   "author": {
+    "id": 1,
+    "name": "Redmine Admin"
+   },
+   "subject": "Old ticket, done",
+   "description": null,
+   "start_date": "2026-11-14",
+   "due_date": null,
+   "done_ratio": 0,
+   "is_private": false,
+   "estimated_hours": null,
+   "total_estimated_hours": null,
+   "created_on": "2026-11-14T13:57:32Z",
+   "updated_on": "2026-11-14T13:57:32Z",
+   "closed_on": "2026-11-14T13:57:32Z"
+  },
+  {
+   "id": 12,
+   "project": {
+    "id": 3,
+    "name": "Network"
+   },
+   "tracker": {
+    "id": 3,
+    "name": "Support"
+   },
+   "status": {
+    "id": 1,
+    "name": "New",
+    "is_closed": false
+   },
+   "priority": {
+    "id": 2,
+    "name": "Normal"
+   },
+   "author": {
+    "id": 1,
+    "name": "Redmine Admin"
+   },
+   "assigned_to": {
+    "id": 5,
+    "name": "Anna Muster"
+   },
+   "subject": "VPN slow for the Zurich office",
+   "description": null,
+   "start_date": "2026-11-14",
+   "due_date": null,
+   "done_ratio": 0,
+   "is_private": false,
+   "estimated_hours": null,
+   "total_estimated_hours": null,
+   "created_on": "2026-11-14T13:57:32Z",
+   "updated_on": "2026-11-14T13:57:32Z",
+   "closed_on": null
+  },
+  {
+   "id": 11,
+   "project": {
+    "id": 3,
+    "name": "Network"
+   },
+   "tracker": {
+    "id": 3,
+    "name": "Support"
+   },
+   "status": {
+    "id": 1,
+    "name": "New",
+    "is_closed": false
+   },
+   "priority": {
+    "id": 3,
+    "name": "High"
+   },
+   "author": {
+    "id": 1,
+    "name": "Redmine Admin"
+   },
+   "assigned_to": {
+    "id": 5,
+    "name": "Anna Muster"
+   },
+   "subject": "Replace the switch in rack 4",
+   "description": null,
+   "start_date": "2026-10-25",
+   "due_date": "2026-11-11",
+   "done_ratio": 0,
+   "is_private": false,
+   "estimated_hours": null,
+   "total_estimated_hours": null,
+   "created_on": "2026-11-14T13:57:32Z",
+   "updated_on": "2026-11-14T13:57:32Z",
+   "closed_on": null
+  },
+  {
+   "id": 10,
+   "project": {
+    "id": 1,
+    "name": "IT Support"
+   },
+   "tracker": {
+    "id": 3,
+    "name": "Support"
+   },
+   "status": {
+    "id": 1,
+    "name": "New",
+    "is_closed": false
+   },
+   "priority": {
+    "id": 2,
+    "name": "Normal"
+   },
+   "author": {
+    "id": 1,
+    "name": "Redmine Admin"
+   },
+   "subject": "New laptop for Ben",
+   "description": null,
+   "start_date": "2026-11-14",
+   "due_date": null,
+   "done_ratio": 0,
+   "is_private": false,
+   "estimated_hours": null,
+   "total_estimated_hours": null,
+   "created_on": "2026-11-14T13:57:32Z",
+   "updated_on": "2026-11-14T13:57:32Z",
+   "closed_on": null
+  },
+  {
+   "id": 9,
+   "project": {
+    "id": 1,
+    "name": "IT Support"
+   },
+   "tracker": {
+    "id": 3,
+    "name": "Support"
+   },
+   "status": {
+    "id": 2,
+    "name": "In Progress",
+    "is_closed": false
+   },
+   "priority": {
+    "id": 4,
+    "name": "Urgent"
+   },
+   "author": {
+    "id": 1,
+    "name": "Redmine Admin"
+   },
+   "subject": "Printer on floor 2 does not print",
+   "description": "The **printer** in room 204 shows error E3.\r\n\r\nSee #2 and the photo: ![](photo.png)",
+   "start_date": "2026-11-14",
+   "due_date": null,
+   "done_ratio": 0,
+   "is_private": false,
+   "estimated_hours": null,
+   "total_estimated_hours": null,
+   "created_on": "2026-11-14T13:57:32Z",
+   "updated_on": "2026-11-14T13:57:32Z",
+   "closed_on": null
+  }
+ ],
+ "total_count": 5,
+ "offset": 0,
+ "limit": 25
+}
