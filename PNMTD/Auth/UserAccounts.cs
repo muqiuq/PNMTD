@@ -109,6 +109,13 @@ public static class AuthEvents
     public const string LocationDeleted = "LocationDeleted";
     public const string LocationFieldDeleted = "LocationFieldDeleted";
 
+    // The knowledge base (docs/locations-knowledge-plan.md §8.7): a page deleted, its sensitive mark, a redaction (never the
+    // text), a tag deleted.
+    public const string KbPageDeleted = "KbPageDeleted";
+    public const string KbPageSensitivityChanged = "KbPageSensitivityChanged";
+    public const string KbRevisionRedacted = "KbRevisionRedacted";
+    public const string KbTagDeleted = "KbTagDeleted";
+
     public static readonly string[] All =
     [
         LoginSucceeded, LoginFailed, LockedOut, TotpFailed, Logout, TotpEnabled, TotpDisabled, TotpReset, PasswordChanged,
@@ -126,6 +133,7 @@ public static class AuthEvents
         SshKeyRegistered, SshKeyChanged, SshKeyRetired, SshKeyDeleted, SshKeyRemoved,
         FileDeleted,
         LocationDeleted, LocationFieldDeleted,
+        KbPageDeleted, KbPageSensitivityChanged, KbRevisionRedacted, KbTagDeleted,
     ];
 }
 

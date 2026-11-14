@@ -333,6 +333,29 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/location-fields/{id:guid}/archive"] = Roles.Admin,
         ["POST /api/v1/location-fields/{id:guid}/restore"] = Roles.Admin,
         ["DELETE /api/v1/location-fields/{id:guid}"] = Roles.Admin,
+        // The knowledge base (docs/locations-knowledge-plan.md §8.1, §9): every role reads and counts a view; Users write, mark
+        // sensitive and run AI tags; Admins delete archived pages, redact, and rename and delete tags.
+        ["GET /api/v1/kb/pages"] = Roles.Viewer,
+        ["POST /api/v1/kb/pages"] = Roles.User,
+        ["GET /api/v1/kb/pages/{number:int}"] = Roles.Viewer,
+        ["PUT /api/v1/kb/pages/{id:guid}"] = Roles.User,
+        ["POST /api/v1/kb/pages/{id:guid}/archive"] = Roles.User,
+        ["POST /api/v1/kb/pages/{id:guid}/restore"] = Roles.User,
+        ["DELETE /api/v1/kb/pages/{id:guid}"] = Roles.Admin,
+        ["POST /api/v1/kb/pages/{id:guid}/views"] = Roles.Viewer,
+        ["POST /api/v1/kb/pages/{id:guid}/editing"] = Roles.User,
+        ["GET /api/v1/kb/pages/{id:guid}/revisions"] = Roles.Viewer,
+        ["GET /api/v1/kb/pages/{id:guid}/revisions/{number:int}"] = Roles.Viewer,
+        ["GET /api/v1/kb/pages/{id:guid}/diff"] = Roles.Viewer,
+        ["POST /api/v1/kb/pages/{id:guid}/revisions/{number:int}/restore"] = Roles.User,
+        ["POST /api/v1/kb/pages/{id:guid}/redact"] = Roles.Admin,
+        ["PUT /api/v1/kb/pages/{id:guid}/sensitive"] = Roles.User,
+        ["POST /api/v1/kb/pages/{id:guid}/ai-tags"] = Roles.User,
+        ["GET /api/v1/kb/pages/{id:guid}/ai-tags/{workId:guid}"] = Roles.User,
+        ["GET /api/v1/kb/related"] = Roles.Viewer,
+        ["GET /api/v1/kb/tags"] = Roles.Viewer,
+        ["PUT /api/v1/kb/tags/{id:guid}"] = Roles.Admin,
+        ["DELETE /api/v1/kb/tags/{id:guid}"] = Roles.Admin,
         // Uploaded files (docs/locations-knowledge-plan.md §9): uploading is a write, reading every role's, the overview and deleting the Admin's.
         ["POST /api/v1/files"] = Roles.User,
         ["GET /api/v1/files/{id:guid}/{name}"] = Roles.Viewer,
@@ -377,9 +400,11 @@ public sealed class EndpointAuditTests
         {
             var policies = e.Endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>().Select(a => a.Policy).ToList();
             Assert.IsTrue(policies.Count > 0 && policies.All(p => known.Contains(p)), $"{e.Key}: policies {string.Join(",", policies)}");
-            // Writes need CanWrite, except one's own session and account, which every role manages.
+            // Writes need CanWrite, except one's own session and account, which every role manages, and a page's view, which
+            // every role counts (docs/locations-knowledge-plan.md §6.6).
             var selfService = e.Pattern.StartsWith("/api/v1/auth/", StringComparison.Ordinal)
-                || e.Pattern.StartsWith("/api/v1/account/", StringComparison.Ordinal);
+                || e.Pattern.StartsWith("/api/v1/account/", StringComparison.Ordinal)
+                || e.Key == "POST /api/v1/kb/pages/{id:guid}/views";
             if (e.Method != "GET" && !selfService)
             {
                 Assert.IsTrue(policies.Contains(Policies.CanWrite) || policies.Contains(Policies.Admin), $"{e.Key} writes without CanWrite");
@@ -412,9 +437,11 @@ public sealed class EndpointAuditTests
         foreach (var (key, minimum) in Matrix)
         {
             var method = key[..key.IndexOf(' ')];
-            // A long id (an AI request's) needs a number to match its route.
+            // A long id (an AI request's) and a page's number need a number to match their route.
             var path = System.Text.RegularExpressions.Regex.Replace(key[(key.IndexOf(' ') + 1)..], @"\{[^}]+\}",
-                m => m.Value.EndsWith(":long}", StringComparison.Ordinal) ? Random.Shared.NextInt64(1L << 40, 1L << 50).ToString() : Guid.NewGuid().ToString());
+                m => m.Value.EndsWith(":long}", StringComparison.Ordinal) ? Random.Shared.NextInt64(1L << 40, 1L << 50).ToString()
+                    : m.Value.EndsWith(":int}", StringComparison.Ordinal) ? Random.Shared.Next(1 << 24, int.MaxValue).ToString()
+                    : Guid.NewGuid().ToString());
             foreach (var role in new string?[] { null, Roles.Viewer, Roles.User, Roles.Admin })
             {
                 using var request = new HttpRequestMessage(new HttpMethod(method), path);

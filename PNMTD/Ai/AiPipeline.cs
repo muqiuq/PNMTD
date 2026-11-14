@@ -135,7 +135,11 @@ public sealed class AiPipeline(ChatClient chat, DecisionClient decisions, IOptio
                 ids.Add(decided.RequestId);
                 guard = decided.Answers;
                 injection = decided.Answers["injection"].Probability ?? 0;
-                if (injection >= o.Guard.Threshold)
+                // A task's own noul questions stop it like the injection question (docs/locations-knowledge-plan.md §7.3:
+                // credentials, personal data); the caller reads in Guard which one tripped.
+                var tripped = (guardQuestions ?? new Dictionary<string, DecisionQuestion>())
+                    .Any(q => q.Value.Type == "noul" && decided.Answers.TryGetValue(q.Key, out var a) && (a.Probability ?? 0) >= o.Guard.Threshold);
+                if (injection >= o.Guard.Threshold || tripped)
                 {
                     return new AiPipelineResult<TOut>("guard", null, null, injection, scan, guard, ids);
                 }

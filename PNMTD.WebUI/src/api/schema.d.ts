@@ -3960,6 +3960,823 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/kb/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                    tags?: string;
+                    status?: components["schemas"]["KbPageStatus"];
+                    location?: string;
+                    host?: string;
+                    sensor?: string;
+                    archived?: boolean;
+                    sort?: string;
+                    period?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfKbPageListItem"];
+                        "text/json": components["schemas"]["PagedOfKbPageListItem"];
+                        "text/plain": components["schemas"]["PagedOfKbPageListItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["KbPageRequest"];
+                    "text/json": components["schemas"]["KbPageRequest"];
+                    "application/*+json": components["schemas"]["KbPageRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbSaveResult"];
+                        "text/json": components["schemas"]["KbSaveResult"];
+                        "text/plain": components["schemas"]["KbSaveResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    number: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbPageDetail"];
+                        "text/json": components["schemas"]["KbPageDetail"];
+                        "text/plain": components["schemas"]["KbPageDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["KbPageRequest"];
+                    "text/json": components["schemas"]["KbPageRequest"];
+                    "application/*+json": components["schemas"]["KbPageRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbSaveResult"];
+                        "text/json": components["schemas"]["KbSaveResult"];
+                        "text/plain": components["schemas"]["KbSaveResult"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbPageDetail"];
+                        "text/json": components["schemas"]["KbPageDetail"];
+                        "text/plain": components["schemas"]["KbPageDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbPageDetail"];
+                        "text/json": components["schemas"]["KbPageDetail"];
+                        "text/plain": components["schemas"]["KbPageDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}/views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}/editing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": null | components["schemas"]["KbEditingRequest"];
+                    "text/json": null | components["schemas"]["KbEditingRequest"];
+                    "application/*+json": null | components["schemas"]["KbEditingRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbEditor"][];
+                        "text/json": components["schemas"]["KbEditor"][];
+                        "text/plain": components["schemas"]["KbEditor"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbRevisionItem"][];
+                        "text/json": components["schemas"]["KbRevisionItem"][];
+                        "text/plain": components["schemas"]["KbRevisionItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}/revisions/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    number: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbRevisionDetail"];
+                        "text/json": components["schemas"]["KbRevisionDetail"];
+                        "text/plain": components["schemas"]["KbRevisionDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: number;
+                    to?: number;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbDiff"];
+                        "text/json": components["schemas"]["KbDiff"];
+                        "text/plain": components["schemas"]["KbDiff"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}/revisions/{number}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    number: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbPageDetail"];
+                        "text/json": components["schemas"]["KbPageDetail"];
+                        "text/plain": components["schemas"]["KbPageDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}/redact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["KbRedactRequest"];
+                    "text/json": components["schemas"]["KbRedactRequest"];
+                    "application/*+json": components["schemas"]["KbRedactRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbRedactResult"];
+                        "text/json": components["schemas"]["KbRedactResult"];
+                        "text/plain": components["schemas"]["KbRedactResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}/sensitive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["KbSensitiveRequest"];
+                    "text/json": components["schemas"]["KbSensitiveRequest"];
+                    "application/*+json": components["schemas"]["KbSensitiveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbPageDetail"];
+                        "text/json": components["schemas"]["KbPageDetail"];
+                        "text/plain": components["schemas"]["KbPageDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}/ai-tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["KbAiTagsRequest"];
+                    "text/json": components["schemas"]["KbAiTagsRequest"];
+                    "application/*+json": components["schemas"]["KbAiTagsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbAiTagsStatus"];
+                        "text/json": components["schemas"]["KbAiTagsStatus"];
+                        "text/plain": components["schemas"]["KbAiTagsStatus"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}/ai-tags/{workId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    workId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbAiTagsStatus"];
+                        "text/json": components["schemas"]["KbAiTagsStatus"];
+                        "text/plain": components["schemas"]["KbAiTagsStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/related": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    locationId?: string;
+                    hostId?: string;
+                    sensorId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbRelated"];
+                        "text/json": components["schemas"]["KbRelated"];
+                        "text/plain": components["schemas"]["KbRelated"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbTagItem"][];
+                        "text/json": components["schemas"]["KbTagItem"][];
+                        "text/plain": components["schemas"]["KbTagItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/tags/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["KbTagRequest"];
+                    "text/json": components["schemas"]["KbTagRequest"];
+                    "application/*+json": components["schemas"]["KbTagRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbTagChange"];
+                        "text/json": components["schemas"]["KbTagChange"];
+                        "text/plain": components["schemas"]["KbTagChange"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/linux/servers/{id}/sections/{section}": {
         parameters: {
             query?: never;
@@ -11463,8 +12280,270 @@ export interface components {
             persistent: boolean;
         };
         JsonElement: unknown;
+        KbAiTagsRequest: {
+            /** Format: int32 */
+            revision?: number;
+            statements?: components["schemas"]["KbStatements"];
+        };
+        KbAiTagsStatus: {
+            /** Format: uuid */
+            workId: string;
+            state: components["schemas"]["AiWorkState"];
+            added: string[];
+            /** Format: int32 */
+            revision: null | number;
+            blockedBy: null | string;
+            message: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            finishedAt: null | string;
+        };
+        KbChange: {
+            kind: string;
+            text: string;
+        };
+        KbDeclaration: {
+            byName: string;
+            /** Format: date-time */
+            at: string;
+            statements: string[];
+            /** Format: int32 */
+            revision: number;
+        };
+        KbDiff: {
+            /** Format: int32 */
+            from: number;
+            /** Format: int32 */
+            to: number;
+            changes: components["schemas"]["KbChange"][];
+            /** Format: int32 */
+            added: number;
+            /** Format: int32 */
+            removed: number;
+            fromContent: string;
+            toContent: string;
+            hunks: components["schemas"]["KbDiffHunk"][];
+        };
+        KbDiffHunk: {
+            /** Format: int32 */
+            oldStart: number;
+            /** Format: int32 */
+            oldCount: number;
+            /** Format: int32 */
+            newStart: number;
+            /** Format: int32 */
+            newCount: number;
+            lines: components["schemas"]["KbDiffLine"][];
+        };
+        KbDiffLine: {
+            kind: components["schemas"]["DiffLineKind"];
+            text: string;
+            /** Format: int32 */
+            oldNumber: null | number;
+            /** Format: int32 */
+            newNumber: null | number;
+        };
+        KbEditingRequest: {
+            stopped?: boolean;
+        };
+        KbEditor: {
+            name: string;
+            /** Format: date-time */
+            since: string;
+        };
+        KbLinkItem: {
+            kind: components["schemas"]["KbLinkKind"];
+            /** Format: uuid */
+            id: string;
+            name: string;
+            detail: null | string;
+            /** @default true */
+            exists: boolean;
+        };
+        /** @enum {unknown} */
+        KbLinkKind: "Location" | "Host" | "Sensor";
+        KbLinkRequest: {
+            kind?: components["schemas"]["KbLinkKind"];
+            /** Format: uuid */
+            id?: string;
+        };
+        KbPageDetail: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            title: string;
+            summary: null | string;
+            content: string;
+            status: components["schemas"]["KbPageStatus"];
+            tags: components["schemas"]["KbPageTag"][];
+            links: components["schemas"]["KbLinkItem"][];
+            sensitive: boolean;
+            /** Format: int32 */
+            revision: number;
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: null | string;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedByName: null | string;
+            /** Format: date-time */
+            archivedAt: null | string;
+            archivedByName: null | string;
+            /** Format: int32 */
+            views: number;
+            files: components["schemas"]["FileItem"][];
+            linkedFrom: components["schemas"]["KbPageRef"][];
+            linksTo: components["schemas"]["KbPageRef"][];
+            editing: components["schemas"]["KbEditor"][];
+            aiTags: boolean;
+        };
+        KbPageListItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            title: string;
+            status: components["schemas"]["KbPageStatus"];
+            summary: null | string;
+            snippet: null | string;
+            tags: components["schemas"]["KbPageTag"][];
+            hasAttachments: boolean;
+            sensitive: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: null | string;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedByName: null | string;
+            /** Format: date-time */
+            archivedAt: null | string;
+            /** Format: int32 */
+            views: number;
+            /** Format: int32 */
+            recentViews: number;
+            /** Format: int32 */
+            edits: number;
+            /** Format: int32 */
+            recentEdits: number;
+        };
+        KbPageRef: {
+            /** Format: int32 */
+            number: number;
+            title: null | string;
+            archived: boolean;
+        };
+        KbPageRequest: {
+            title?: string;
+            summary?: null | string;
+            content?: string;
+            tags?: string[];
+            aiTags?: null | string[];
+            status?: components["schemas"]["KbPageStatus"];
+            links?: components["schemas"]["KbLinkRequest"][];
+            /** Format: int32 */
+            revision?: null | number;
+            note?: null | string;
+            acknowledgeCredentials?: boolean;
+            markSensitive?: boolean;
+        };
         /** @enum {unknown} */
         KbPageStatus: "Draft" | "Published" | "NeedsReview";
+        KbPageTag: {
+            name: string;
+            source: components["schemas"]["KbTagSource"];
+        };
+        KbRedactRequest: {
+            text?: string;
+        };
+        KbRedactResult: {
+            /** Format: int32 */
+            revisions: number;
+            /** Format: int32 */
+            occurrences: number;
+            page: components["schemas"]["KbPageDetail"];
+        };
+        KbRelated: {
+            pages: components["schemas"]["KbPageListItem"][];
+            via: components["schemas"]["KbRelatedGroup"][];
+        };
+        KbRelatedGroup: {
+            kind: components["schemas"]["KbLinkKind"];
+            /** Format: uuid */
+            id: null | string;
+            name: string;
+            pages: components["schemas"]["KbPageListItem"][];
+        };
+        KbRevisionDetail: {
+            /** Format: int32 */
+            number: number;
+            /** Format: date-time */
+            at: string;
+            byName: string;
+            note: null | string;
+            changes: components["schemas"]["KbChange"][];
+            declaration: null | components["schemas"]["KbDeclaration"];
+            title: string;
+            summary: null | string;
+            content: string;
+            tags: string[];
+            status: components["schemas"]["KbPageStatus"];
+            sensitive: boolean;
+            archived: boolean;
+            links: components["schemas"]["KbLinkItem"][];
+            files: components["schemas"]["FileItem"][];
+        };
+        KbRevisionItem: {
+            /** Format: int32 */
+            number: number;
+            /** Format: date-time */
+            at: string;
+            byName: string;
+            note: null | string;
+            /** Format: int32 */
+            added: number;
+            /** Format: int32 */
+            removed: number;
+            changes: components["schemas"]["KbChange"][];
+            isEdit: boolean;
+            declaration: null | components["schemas"]["KbDeclaration"];
+            title: string;
+            status: components["schemas"]["KbPageStatus"];
+        };
+        KbSaveResult: {
+            page: components["schemas"]["KbPageDetail"];
+            askAiTags: boolean;
+            sameTitle: components["schemas"]["KbPageRef"][];
+        };
+        KbSensitiveRequest: {
+            sensitive?: boolean;
+            /** Format: int32 */
+            revision?: null | number;
+            statements?: null | components["schemas"]["KbStatements"];
+        };
+        KbStatements: {
+            noCredentials?: boolean;
+            noPersonalData?: boolean;
+        };
+        KbTagChange: {
+            tag: components["schemas"]["KbTagItem"];
+            merged: boolean;
+            /** Format: int32 */
+            pages: number;
+        };
+        KbTagItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: int32 */
+            pages: number;
+        };
+        KbTagRequest: {
+            name?: string;
+        };
+        /** @enum {unknown} */
+        KbTagSource: "Manual" | "Ai";
         /** @enum {unknown} */
         KeyFamily: "HmacSha256" | "Aes" | "HmacSha1" | "HmacMd5";
         KeyValueItem: {
@@ -12967,6 +14046,15 @@ export interface components {
         };
         PagedOfHostListItem: {
             items: components["schemas"]["HostListItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfKbPageListItem: {
+            items: components["schemas"]["KbPageListItem"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */

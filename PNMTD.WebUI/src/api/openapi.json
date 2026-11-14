@@ -5271,6 +5271,1094 @@
         }
       }
     },
+    "/api/v1/kb/pages": {
+      "get": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/KbPageStatus"
+            }
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "host",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sensor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "archived",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfKbPageListItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfKbPageListItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfKbPageListItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbPageRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbPageRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbPageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbSaveResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbSaveResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbSaveResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{number}": {
+      "get": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}": {
+      "put": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbPageRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbPageRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbPageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbSaveResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbSaveResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbSaveResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}/archive": {
+      "post": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}/restore": {
+      "post": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}/views": {
+      "post": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}/editing": {
+      "post": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/KbEditingRequest"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/KbEditingRequest"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/KbEditingRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbEditor"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbEditor"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbEditor"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}/revisions": {
+      "get": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbRevisionItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbRevisionItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbRevisionItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}/revisions/{number}": {
+      "get": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbRevisionDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbRevisionDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbRevisionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}/diff": {
+      "get": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbDiff"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbDiff"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbDiff"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}/revisions/{number}/restore": {
+      "post": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}/redact": {
+      "post": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbRedactRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbRedactRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbRedactRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbRedactResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbRedactResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbRedactResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}/sensitive": {
+      "put": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbSensitiveRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbSensitiveRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbSensitiveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}/ai-tags": {
+      "post": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbAiTagsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbAiTagsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbAiTagsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbAiTagsStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbAiTagsStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbAiTagsStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}/ai-tags/{workId}": {
+      "get": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "workId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbAiTagsStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbAiTagsStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbAiTagsStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/related": {
+      "get": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "hostId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sensorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbRelated"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbRelated"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbRelated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/tags": {
+      "get": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbTagItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbTagItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbTagItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/tags/{id}": {
+      "put": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbTagRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbTagRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbTagRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbTagChange"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbTagChange"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbTagChange"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/linux/servers/{id}/sections/{section}": {
       "get": {
         "tags": [
@@ -19195,11 +20283,1006 @@
         }
       },
       "JsonElement": { },
+      "KbAiTagsRequest": {
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "statements": {
+            "$ref": "#/components/schemas/KbStatements"
+          }
+        }
+      },
+      "KbAiTagsStatus": {
+        "required": [
+          "workId",
+          "state",
+          "added",
+          "revision",
+          "blockedBy",
+          "message",
+          "createdAt",
+          "finishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "workId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/AiWorkState"
+          },
+          "added": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "blockedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "KbChange": {
+        "required": [
+          "kind",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "KbDeclaration": {
+        "required": [
+          "byName",
+          "at",
+          "statements",
+          "revision"
+        ],
+        "type": "object",
+        "properties": {
+          "byName": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "statements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "KbDiff": {
+        "required": [
+          "from",
+          "to",
+          "changes",
+          "added",
+          "removed",
+          "fromContent",
+          "toContent",
+          "hunks"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "to": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbChange"
+            }
+          },
+          "added": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "removed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fromContent": {
+            "type": "string"
+          },
+          "toContent": {
+            "type": "string"
+          },
+          "hunks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbDiffHunk"
+            }
+          }
+        }
+      },
+      "KbDiffHunk": {
+        "required": [
+          "oldStart",
+          "oldCount",
+          "newStart",
+          "newCount",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "oldStart": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "oldCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "newStart": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "newCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbDiffLine"
+            }
+          }
+        }
+      },
+      "KbDiffLine": {
+        "required": [
+          "kind",
+          "text",
+          "oldNumber",
+          "newNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/DiffLineKind"
+          },
+          "text": {
+            "type": "string"
+          },
+          "oldNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "newNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "KbEditingRequest": {
+        "type": "object",
+        "properties": {
+          "stopped": {
+            "type": "boolean"
+          }
+        }
+      },
+      "KbEditor": {
+        "required": [
+          "name",
+          "since"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "KbLinkItem": {
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/KbLinkKind"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "exists": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "KbLinkKind": {
+        "enum": [
+          "Location",
+          "Host",
+          "Sensor"
+        ]
+      },
+      "KbLinkRequest": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/KbLinkKind"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "KbPageDetail": {
+        "required": [
+          "id",
+          "number",
+          "title",
+          "summary",
+          "content",
+          "status",
+          "tags",
+          "links",
+          "sensitive",
+          "revision",
+          "createdAt",
+          "createdByName",
+          "updatedAt",
+          "updatedByName",
+          "archivedAt",
+          "archivedByName",
+          "views",
+          "files",
+          "linkedFrom",
+          "linksTo",
+          "editing",
+          "aiTags"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "content": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/KbPageStatus"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbPageTag"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbLinkItem"
+            }
+          },
+          "sensitive": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "archivedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "archivedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "views": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileItem"
+            }
+          },
+          "linkedFrom": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbPageRef"
+            }
+          },
+          "linksTo": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbPageRef"
+            }
+          },
+          "editing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbEditor"
+            }
+          },
+          "aiTags": {
+            "type": "boolean"
+          }
+        }
+      },
+      "KbPageListItem": {
+        "required": [
+          "id",
+          "number",
+          "title",
+          "status",
+          "summary",
+          "snippet",
+          "tags",
+          "hasAttachments",
+          "sensitive",
+          "createdAt",
+          "createdByName",
+          "updatedAt",
+          "updatedByName",
+          "archivedAt",
+          "views",
+          "recentViews",
+          "edits",
+          "recentEdits"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/KbPageStatus"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "snippet": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbPageTag"
+            }
+          },
+          "hasAttachments": {
+            "type": "boolean"
+          },
+          "sensitive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "archivedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "views": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "recentViews": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "edits": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "recentEdits": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "KbPageRef": {
+        "required": [
+          "number",
+          "title",
+          "archived"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        }
+      },
+      "KbPageRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "content": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "aiTags": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/KbPageStatus"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbLinkRequest"
+            }
+          },
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "acknowledgeCredentials": {
+            "type": "boolean"
+          },
+          "markSensitive": {
+            "type": "boolean"
+          }
+        }
+      },
       "KbPageStatus": {
         "enum": [
           "Draft",
           "Published",
           "NeedsReview"
+        ]
+      },
+      "KbPageTag": {
+        "required": [
+          "name",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/KbTagSource"
+          }
+        }
+      },
+      "KbRedactRequest": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "KbRedactResult": {
+        "required": [
+          "revisions",
+          "occurrences",
+          "page"
+        ],
+        "type": "object",
+        "properties": {
+          "revisions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "occurrences": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "$ref": "#/components/schemas/KbPageDetail"
+          }
+        }
+      },
+      "KbRelated": {
+        "required": [
+          "pages",
+          "via"
+        ],
+        "type": "object",
+        "properties": {
+          "pages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbPageListItem"
+            }
+          },
+          "via": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbRelatedGroup"
+            }
+          }
+        }
+      },
+      "KbRelatedGroup": {
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "pages"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/KbLinkKind"
+          },
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbPageListItem"
+            }
+          }
+        }
+      },
+      "KbRevisionDetail": {
+        "required": [
+          "number",
+          "at",
+          "byName",
+          "note",
+          "changes",
+          "declaration",
+          "title",
+          "summary",
+          "content",
+          "tags",
+          "status",
+          "sensitive",
+          "archived",
+          "links",
+          "files"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "byName": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbChange"
+            }
+          },
+          "declaration": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/KbDeclaration"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "content": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/KbPageStatus"
+          },
+          "sensitive": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbLinkItem"
+            }
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileItem"
+            }
+          }
+        }
+      },
+      "KbRevisionItem": {
+        "required": [
+          "number",
+          "at",
+          "byName",
+          "note",
+          "added",
+          "removed",
+          "changes",
+          "isEdit",
+          "declaration",
+          "title",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "byName": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "added": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "removed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbChange"
+            }
+          },
+          "isEdit": {
+            "type": "boolean"
+          },
+          "declaration": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/KbDeclaration"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/KbPageStatus"
+          }
+        }
+      },
+      "KbSaveResult": {
+        "required": [
+          "page",
+          "askAiTags",
+          "sameTitle"
+        ],
+        "type": "object",
+        "properties": {
+          "page": {
+            "$ref": "#/components/schemas/KbPageDetail"
+          },
+          "askAiTags": {
+            "type": "boolean"
+          },
+          "sameTitle": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbPageRef"
+            }
+          }
+        }
+      },
+      "KbSensitiveRequest": {
+        "type": "object",
+        "properties": {
+          "sensitive": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "statements": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/KbStatements"
+              }
+            ]
+          }
+        }
+      },
+      "KbStatements": {
+        "type": "object",
+        "properties": {
+          "noCredentials": {
+            "type": "boolean"
+          },
+          "noPersonalData": {
+            "type": "boolean"
+          }
+        }
+      },
+      "KbTagChange": {
+        "required": [
+          "tag",
+          "merged",
+          "pages"
+        ],
+        "type": "object",
+        "properties": {
+          "tag": {
+            "$ref": "#/components/schemas/KbTagItem"
+          },
+          "merged": {
+            "type": "boolean"
+          },
+          "pages": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "KbTagItem": {
+        "required": [
+          "id",
+          "name",
+          "pages"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pages": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "KbTagRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "KbTagSource": {
+        "enum": [
+          "Manual",
+          "Ai"
         ]
       },
       "KeyFamily": {
@@ -25444,6 +27527,35 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/HostListItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfKbPageListItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbPageListItem"
             }
           },
           "page": {
@@ -34005,6 +36117,9 @@
     },
     {
       "name": "KeyValues"
+    },
+    {
+      "name": "KnowledgeBase"
     },
     {
       "name": "LinuxServers"

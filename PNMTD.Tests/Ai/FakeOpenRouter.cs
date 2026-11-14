@@ -19,6 +19,9 @@ public sealed class FakeOpenRouter
 
     public double Injection { get; set; } = 0.01;
 
+    /// <summary>Other noul questions' answers by name (the knowledge base's credentials and personalData); <see cref="Injection"/> otherwise.</summary>
+    public ConcurrentDictionary<string, double> Nouls { get; } = new();
+
     /// <summary>Failures for the next chat requests: an HTTP status, or 0 for a timeout-like exception.</summary>
     public ConcurrentQueue<int> Failures { get; } = new();
 
@@ -52,7 +55,7 @@ public sealed class FakeOpenRouter
                 foreach (var (name, q) in json["questions"]!.AsObject())
                 {
                     answers[name] = q!["type"]!.GetValue<string>() == "noul"
-                        ? new JsonObject { ["type"] = "noul", ["noul"] = owner.Injection }
+                        ? new JsonObject { ["type"] = "noul", ["noul"] = owner.Nouls.TryGetValue(name, out var p) ? p : owner.Injection }
                         : new JsonObject { ["type"] = "choice", ["choice"] = "other", ["probabilities"] = new JsonObject { ["other"] = 0.9 }, ["confidence"] = 0.9 };
                 }
                 answers["usage"] = new JsonObject { ["cost"] = 0.00001 };

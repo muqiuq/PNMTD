@@ -1,3 +1,5 @@
+using PNMTD.Knowledge;
+
 namespace PNMTD.Services.Domain;
 
 /// <summary>
@@ -54,6 +56,8 @@ public static class DomainServicesSetup
         services.AddScoped<Locations.LocationService>();
         services.AddScoped<Locations.LocationValues>();
         services.AddScoped<Locations.LocationFieldService>();
+        // The knowledge base (docs/locations-knowledge-plan.md §6, §7).
+        services.AddKnowledgeBase();
         return services;
     }
 }
