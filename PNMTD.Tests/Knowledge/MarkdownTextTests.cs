@@ -57,6 +57,14 @@ public sealed class MarkdownTextTests
     }
 
     [TestMethod]
+    public void The_visual_editors_empty_lines_are_line_breaks_not_the_word_br()
+    {
+        // What Crepe saves for two empty lines between a sentence and an image, and a break inside a line.
+        var facts = MarkdownText.Read($"This is nice\n\n<br />\n\n<BR>\n\n![cage](/api/v1/files/{Image}/cage.png)\n\nline one<br/>line two");
+        Assert.AreEqual("This is nice\n\ncage\nline one\nline two", facts.PlainText);
+    }
+
+    [TestMethod]
     public void Files_and_pages_are_read_from_links_and_images_once_each_in_order()
     {
         var facts = MarkdownText.Read($"""

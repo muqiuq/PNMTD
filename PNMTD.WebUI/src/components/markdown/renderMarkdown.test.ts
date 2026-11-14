@@ -109,6 +109,33 @@ describe('renderMarkdown', () => {
     expect(root.querySelector('b')).toBeNull()
   })
 
+  it('renders the visual editor’s empty lines (a bare <br />) as line breaks, not text', () => {
+    // What Crepe saves for "This is nice", two empty lines, then an image.
+    const root = assertInert('This is nice\n\n<br />\n\n<BR>\n\nline one<br/>line two')
+    expect(root.textContent).not.toContain('<br')
+    expect(root.textContent).not.toContain('<BR')
+    const paragraphs = Array.from(root.querySelectorAll('p'))
+    expect(paragraphs.map((p) => p.innerHTML.replace(/\n/g, ''))).toEqual([
+      'This is nice',
+      '<br>',
+      '<br>',
+      'line one<br>line two',
+    ])
+  })
+
+  it('keeps a <br> with anything more as text', () => {
+    const root = assertInert('<br onclick="alert(1)">\n\na <br class="x"> b')
+    expect(root.querySelectorAll('br')).toHaveLength(0)
+    expect(root.textContent).toContain('<br onclick="alert(1)">')
+    expect(root.textContent).toContain('<br class="x">')
+  })
+
+  it('breaks the line at a bare <br> next to other HTML, which stays text', () => {
+    const root = assertInert('<br><script>alert(1)</script>')
+    expect(root.querySelectorAll('br')).toHaveLength(1)
+    expect(root.textContent).toContain('<script>alert(1)</script>')
+  })
+
   it('makes a link with a forbidden scheme its text', () => {
     const root = assertInert('[click me](javascript:alert(1))')
     expect(root.querySelector('a')).toBeNull()

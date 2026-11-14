@@ -131,7 +131,16 @@ export const sanitizeSchema: SanitizeSchema = {
   clobberPrefix,
 }
 
-/** Raw HTML as text (§5.1): an inline tag stays inline, a block of HTML becomes a paragraph. */
+/**
+ * A bare `<br>` (no attributes), as Milkdown's own pattern reads it: the visual editor writes every empty line the
+ * person typed as `<br />`, and GitHub and VS Code render one as a line break.
+ */
+const bareBreak = /^<br\s*\/?\s*>$/i
+
+/**
+ * Raw HTML as text (§5.1): an inline tag stays inline, a block of HTML becomes a paragraph. The one exception is a
+ * bare `<br>`, which becomes Markdown's own line break (an empty line where it stands alone), never HTML.
+ */
 function htmlAsText() {
   return (tree: MdRoot) => {
     const walk = (node: MdNodes) => {
@@ -143,6 +152,12 @@ function htmlAsText() {
         if (child.type !== 'html') {
           walk(child)
           return child
+        }
+        if (bareBreak.test(child.value.trim())) {
+          const lineBreak = { type: 'break' as const, position: child.position }
+          return block
+            ? ({ type: 'paragraph', children: [lineBreak], position: child.position } as Paragraph)
+            : lineBreak
         }
         const text = { type: 'text' as const, value: child.value, position: child.position }
         return block ? ({ type: 'paragraph', children: [text], position: child.position } as Paragraph) : text

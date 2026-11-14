@@ -59,6 +59,9 @@ public static partial class MarkdownText
         return new MarkdownFacts(reader.Text(), fileIds, reader.PageNumbers);
     }
 
+    [GeneratedRegex(@"<br\s*/?\s*>", RegexOptions.IgnoreCase, 250)]
+    private static partial Regex BareBreak();
+
     [GeneratedRegex(@"/api/v1/files/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?![0-9a-fA-F])", RegexOptions.None, 1000)]
     private static partial Regex AnyFileUrl();
 
@@ -89,7 +92,9 @@ public static partial class MarkdownText
         /// <summary>The text, with each line's trailing spaces and runs of empty lines gone.</summary>
         public string Text()
         {
-            var lines = text.ToString().Split('\n').Select(l => l.TrimEnd());
+            // The visual editor writes each empty line as a bare <br />, which DisableHtml leaves as text: a line break,
+            // as the reader sees it (docs/locations-knowledge-plan.md §5.6), not the word "br" in the search.
+            var lines = BareBreak().Replace(text.ToString(), "\n").Split('\n').Select(l => l.TrimEnd());
             var result = new StringBuilder();
             var blank = true;
             foreach (var line in lines)

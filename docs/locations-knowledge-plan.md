@@ -341,7 +341,7 @@ For Markdown fields, *Show changes* opens the diff of §6.3. Restoring an old va
   - bash, PowerShell, YAML, JSON, XML, INI/TOML, SQL, Python, JavaScript, C#, Dockerfile, diff and nginx;
   - RouterOS when reading, which highlight.js knows.
 - **A fenced block named `mermaid` is a diagram** (§5.8). It is still an ordinary code block, so any other Markdown viewer shows its source.
-- **Raw HTML is not part of it:** it is shown as text when reading, and the editors don't produce it.
+- **Raw HTML is not part of it:** it is shown as text when reading. **One exception: a bare `<br>`** (no attributes) is a line break, as GitHub renders it. The visual editor writes every empty line the person typed as `<br />`.
 - **Files point to PNMT:**
   - an image: `![Alt text](/api/v1/files/0193…/cage-b.png)`;
   - an attachment: an ordinary link, `[UPS manual.pdf](/api/v1/files/0194…/ups-manual.pdf)`.
@@ -1460,6 +1460,7 @@ None.
   - they use `XMLHttpRequest`, for progress. A 401 says *your session has ended* without client.ts's redirect to the sign-in;
   - **uploads in *Try it*** (the documentation's sandbox) are real; the cleanup removes them after a day.
 - **Ctrl/⌘ K inside Monaco** starts VS Code's chords; the global search opens from outside the editor.
+- **A bare `<br>` is rendered as a line break** (§5.1), not shown as text. Milkdown saves every empty line the person typed as `<br />`, and pages showed them literally. Only Markdown's own break node is made, never HTML; a `<br>` with anything more stays text. The search text reads it as a line break too.
 - **Two bugs the knowledge base agent found were fixed** (79a4423):
   - **A save right after typing lost the last keystrokes:** Milkdown reports changes 200 ms late. Saves, drafts, dialogs and switches now read the active editor directly.
   - **Text typed while Crepe was starting went nowhere:** the text is now shown read-only until it is ready.
