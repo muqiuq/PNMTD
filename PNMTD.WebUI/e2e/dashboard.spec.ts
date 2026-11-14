@@ -35,11 +35,15 @@ test('1440×900: the summary, all problems and 20 host rows without scrolling', 
   await page.getByRole('button', { name: 'Light theme' }).click()
 })
 
-test('1920×1080: the recent state changes too', async ({ page }) => {
+// With Cookie's card heading the left side (docs/cookie-plan.md §19.8), the recent changes begin above the fold: their
+// heading and the newest of them.
+test('1920×1080: the recent state changes begin too', async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 })
   await signIn(page)
   await expect(page.locator('.problems .sensor')).toHaveCount(6)
-  expect(await inView(page, '.recent')).toBe(true)
+  expect(await inView(page, '.problems')).toBe(true)
+  expect(await inView(page, '.recent .panel-header')).toBe(true)
+  expect(await inView(page, '.recent .change')).toBe(true)
   await shot(page, 'dashboard-1920')
 })
 

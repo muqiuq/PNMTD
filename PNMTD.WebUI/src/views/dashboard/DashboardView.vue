@@ -41,13 +41,12 @@ const session = useSession()
     <template v-else-if="dashboard.data.value">
       <SummaryStrip :summary="dashboard.data.value.summary" class="summary" />
       <div class="left">
+        <CookieCard />
         <ProblemsPanel
           :problems="dashboard.data.value.problems"
           :sensor-count="dashboard.data.value.summary.sensors.ok"
         />
         <RecentChanges :changes="dashboard.data.value.recentChanges" :collapsible="phone" />
-        <!-- Below the problems and the recent changes: the dashboard's targets keep those above the fold (webui-migration-plan §5.5). -->
-        <CookieCard />
       </div>
       <HostsPanel :hosts="dashboard.data.value.hosts" class="right" />
     </template>

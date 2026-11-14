@@ -1114,7 +1114,7 @@ All under `/api/v1/cookie`. **The dashboard section needs no right; the window n
 
 **The web UI (A3, B3):**
 
-- **The dashboard's card sits below the problems and the recent changes,** not at the top, so that the dashboard's targets hold (docs/webui-migration-plan.md §5.5: the recent changes above the fold on 1920×1080). **It is hidden where `Cookie__Enabled` isn't set.** Cookie's own state is in its header, and the summary marks the lines that need the reader.
+- **The dashboard's card heads the left side,** above the problems. At 1920×1080 the recent changes then begin above the fold rather than fitting whole, and docs/webui-migration-plan.md §5.5's target says so. **It is hidden where `Cookie__Enabled` isn't set.** Cookie's own state is in its header, and the summary marks the lines that need the reader.
 - **The prompts are on the *Identity* tab,** as §9.3 has them, each with *Reset to default* and *Preview*.
 - **Cookie's window** (*Overview → Cookie*) has three tabs: *Cases*, *Trace* and *Chat*. The trace is polled every 2 seconds while Cookie works and every 15 otherwise. The chat is polled every 2 seconds while a reply is awaited.
 - **Admin → Cookie names users and groups through its own lookup** (`admin/people`), because *Cookie: Manage* may not open *Admin → Users*.
