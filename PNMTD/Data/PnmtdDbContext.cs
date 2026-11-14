@@ -45,6 +45,9 @@ namespace PNMTD.Data
         public DbSet<RedmineLinkEntity> RedmineLinks { get; set; }
         public DbSet<RedmineIssueEntity> RedmineIssues { get; set; }
 
+        // Zabbix (docs/audit-redmine-zabbix-plan.md §7.3): the hosts' mirror.
+        public DbSet<ZabbixHostEntity> ZabbixHosts { get; set; }
+
         // Groups and rights (docs/audit-redmine-zabbix-plan.md §5).
         public DbSet<GroupEntity> Groups { get; set; }
         public DbSet<GroupRightEntity> GroupRights { get; set; }
@@ -183,6 +186,13 @@ namespace PNMTD.Data
             modelBuilder.Entity<EventEntity>().HasIndex(e => e.Created);
 
             modelBuilder.Entity<UserEntity>().HasIndex(u => u.NormalizedUsername).IsUnique();
+            // Zabbix's hosts (docs/audit-redmine-zabbix-plan.md §7.3): found by their names.
+            modelBuilder.Entity<ZabbixHostEntity>(e =>
+            {
+                e.HasIndex(h => h.TechnicalName);
+                e.HasIndex(h => h.VisibleName);
+            });
+
             // Redmine's links (docs/audit-redmine-zabbix-plan.md §6.5): exactly one target, removed with it; a ticket once per target.
             modelBuilder.Entity<RedmineLinkEntity>(e =>
             {

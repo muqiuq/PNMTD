@@ -1,0 +1,14 @@
+{
+  "jsonrpc": "2.0",
+  "result": [
+    {
+      "groupid": "23",
+      "name": "PNMT Network"
+    },
+    {
+      "groupid": "22",
+      "name": "PNMT Servers"
+    }
+  ],
+  "id": 1
+}

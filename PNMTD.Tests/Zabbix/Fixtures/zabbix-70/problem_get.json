@@ -1,0 +1,172 @@
+{
+  "jsonrpc": "2.0",
+  "result": [
+    {
+      "eventid": "27",
+      "source": "0",
+      "object": "0",
+      "objectid": "25230",
+      "clock": "1794666995",
+      "ns": "892536949",
+      "r_eventid": "0",
+      "r_clock": "0",
+      "r_ns": "0",
+      "correlationid": "0",
+      "userid": "0",
+      "name": "Port 12 down",
+      "acknowledged": "0",
+      "severity": "5",
+      "cause_eventid": "0",
+      "suppressed": "0",
+      "acknowledges": [],
+      "opdata": "",
+      "suppression_data": [],
+      "tags": [
+        {
+          "tag": "class",
+          "value": "network"
+        },
+        {
+          "tag": "component",
+          "value": "network"
+        },
+        {
+          "tag": "scope",
+          "value": "availability"
+        }
+      ],
+      "urls": []
+    },
+    {
+      "eventid": "26",
+      "source": "0",
+      "object": "0",
+      "objectid": "25229",
+      "clock": "1794666995",
+      "ns": "782832461",
+      "r_eventid": "0",
+      "r_clock": "0",
+      "r_ns": "0",
+      "correlationid": "0",
+      "userid": "0",
+      "name": "Replication lag above 60 s",
+      "acknowledged": "0",
+      "severity": "2",
+      "cause_eventid": "0",
+      "suppressed": "1",
+      "acknowledges": [],
+      "opdata": "",
+      "suppression_data": [
+        {
+          "maintenanceid": "1",
+          "suppress_until": "1795271460",
+          "userid": "0"
+        }
+      ],
+      "tags": [
+        {
+          "tag": "class",
+          "value": "database"
+        },
+        {
+          "tag": "scope",
+          "value": "performance"
+        }
+      ],
+      "urls": []
+    },
+    {
+      "eventid": "25",
+      "source": "0",
+      "object": "0",
+      "objectid": "25228",
+      "clock": "1794666995",
+      "ns": "676236547",
+      "r_eventid": "0",
+      "r_clock": "0",
+      "r_ns": "0",
+      "correlationid": "0",
+      "userid": "0",
+      "name": "High CPU load",
+      "acknowledged": "0",
+      "severity": "3",
+      "cause_eventid": "0",
+      "suppressed": "0",
+      "acknowledges": [],
+      "opdata": "",
+      "suppression_data": [],
+      "tags": [
+        {
+          "tag": "class",
+          "value": "os"
+        },
+        {
+          "tag": "component",
+          "value": "cpu"
+        },
+        {
+          "tag": "scope",
+          "value": "performance"
+        },
+        {
+          "tag": "env",
+          "value": "prod"
+        }
+      ],
+      "urls": []
+    },
+    {
+      "eventid": "24",
+      "source": "0",
+      "object": "0",
+      "objectid": "25227",
+      "clock": "1794666995",
+      "ns": "572222125",
+      "r_eventid": "0",
+      "r_clock": "0",
+      "r_ns": "0",
+      "correlationid": "0",
+      "userid": "0",
+      "name": "/var is 95 % full",
+      "acknowledged": "1",
+      "severity": "4",
+      "cause_eventid": "0",
+      "suppressed": "0",
+      "acknowledges": [
+        {
+          "acknowledgeid": "1",
+          "userid": "1",
+          "clock": "1794667004",
+          "message": "Looking into it, Anna",
+          "action": "6",
+          "old_severity": "0",
+          "new_severity": "0",
+          "suppress_until": "0",
+          "taskid": "0"
+        }
+      ],
+      "opdata": "Used: 95 %",
+      "suppression_data": [],
+      "tags": [
+        {
+          "tag": "class",
+          "value": "os"
+        },
+        {
+          "tag": "component",
+          "value": "storage"
+        },
+        {
+          "tag": "scope",
+          "value": "capacity"
+        },
+        {
+          "tag": "env",
+          "value": "prod"
+        }
+      ],
+      "urls": []
+    }
+  ],
+  "id": 1
+}

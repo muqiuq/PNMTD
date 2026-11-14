@@ -1,0 +1,112 @@
+{
+  "jsonrpc": "2.0",
+  "result": [
+    {
+      "hostid": "10818",
+      "host": "web01.example.com",
+      "name": "Web 01",
+      "status": "0",
+      "maintenance_status": "0",
+      "description": "The public web server.",
+      "parentTemplates": [],
+      "tags": [
+        {
+          "tag": "env",
+          "value": "prod"
+        }
+      ],
+      "hostgroups": [
+        {
+          "groupid": "22",
+          "name": "PNMT Servers"
+        }
+      ],
+      "inventory": {
+        "type": "",
+        "type_full": "",
+        "name": "",
+        "alias": "",
+        "os": "Debian 12",
+        "os_full": "",
+        "os_short": "",
+        "serialno_a": "",
+        "serialno_b": "",
+        "tag": "",
+        "asset_tag": "",
+        "macaddress_a": "",
+        "macaddress_b": "",
+        "hardware": "",
+        "hardware_full": "",
+        "software": "",
+        "software_full": "",
+        "software_app_a": "",
+        "software_app_b": "",
+        "software_app_c": "",
+        "software_app_d": "",
+        "software_app_e": "",
+        "contact": "Anna Muster",
+        "location": "Zurich, rack 4",
+        "location_lat": "",
+        "location_lon": "",
+        "notes": "",
+        "chassis": "",
+        "model": "",
+        "hw_arch": "",
+        "vendor": "",
+        "contract_number": "",
+        "installer_name": "",
+        "deployment_status": "",
+        "url_a": "",
+        "url_b": "",
+        "url_c": "",
+        "host_networks": "",
+        "host_netmask": "",
+        "host_router": "",
+        "oob_ip": "",
+        "oob_netmask": "",
+        "oob_router": "",
+        "date_hw_purchase": "",
+        "date_hw_install": "",
+        "date_hw_expiry": "",
+        "date_hw_decomm": "",
+        "site_address_a": "",
+        "site_address_b": "",
+        "site_address_c": "",
+        "site_city": "",
+        "site_state": "",
+        "site_country": "",
+        "site_zip": "",
+        "site_rack": "",
+        "site_notes": "",
+        "poc_1_name": "",
+        "poc_1_email": "",
+        "poc_1_phone_a": "",
+        "poc_1_phone_b": "",
+        "poc_1_cell": "",
+        "poc_1_screen": "",
+        "poc_1_notes": "",
+        "poc_2_name": "",
+        "poc_2_email": "",
+        "poc_2_phone_a": "",
+        "poc_2_phone_b": "",
+        "poc_2_cell": "",
+        "poc_2_screen": "",
+        "poc_2_notes": ""
+      },
+      "interfaces": [
+        {
+          "interfaceid": "81",
+          "type": "1",
+          "main": "1",
+          "useip": "1",
+          "ip": "10.0.4.17",
+          "dns": "web01.example.com",
+          "port": "10050",
+          "available": "0",
+          "error": ""
+        }
+      ]
+    }
+  ],
+  "id": 1
+}

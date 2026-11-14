@@ -15244,6 +15244,452 @@
           }
         }
       }
+    },
+    "/api/v1/zabbix/status": {
+      "get": {
+        "tags": [
+          "Zabbix"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZabbixStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZabbixStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZabbixStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/zabbix/summary": {
+      "get": {
+        "tags": [
+          "Zabbix"
+        ],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "suppressed",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZabbixSummary"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZabbixSummary"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZabbixSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/zabbix/problems": {
+      "get": {
+        "tags": [
+          "Zabbix"
+        ],
+        "parameters": [
+          {
+            "name": "minSeverity",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ZabbixSeverity"
+            }
+          },
+          {
+            "name": "group",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "host",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hostId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "acknowledged",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "suppressed",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "olderThanMinutes",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfZabbixProblemItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfZabbixProblemItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfZabbixProblemItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/zabbix/problems/{eventId}": {
+      "get": {
+        "tags": [
+          "Zabbix"
+        ],
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZabbixProblemDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZabbixProblemDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZabbixProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/zabbix/hosts": {
+      "get": {
+        "tags": [
+          "Zabbix"
+        ],
+        "parameters": [
+          {
+            "name": "group",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "availability",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ZabbixAvailability"
+            }
+          },
+          {
+            "name": "attached",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfZabbixHostItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfZabbixHostItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfZabbixHostItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/zabbix/hosts/{hostId}": {
+      "get": {
+        "tags": [
+          "Zabbix"
+        ],
+        "parameters": [
+          {
+            "name": "hostId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZabbixHostDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZabbixHostDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZabbixHostDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/zabbix/hosts/{hostId}/items": {
+      "get": {
+        "tags": [
+          "Zabbix"
+        ],
+        "parameters": [
+          {
+            "name": "hostId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ZabbixItemItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ZabbixItemItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ZabbixItemItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/zabbix/test": {
+      "post": {
+        "tags": [
+          "Zabbix"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZabbixTestResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZabbixTestResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZabbixTestResult"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -29750,6 +30196,64 @@
           }
         }
       },
+      "PagedOfZabbixHostItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ZabbixHostItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfZabbixProblemItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ZabbixProblemItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "ParsedScript": {
         "required": [
           "parameters",
@@ -31553,7 +32057,8 @@
           "sensors",
           "locations",
           "pages",
-          "tickets"
+          "tickets",
+          "zabbixHosts"
         ],
         "type": "object",
         "properties": {
@@ -31585,6 +32090,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SearchTicket"
+            }
+          },
+          "zabbixHosts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchZabbixHost"
             }
           }
         }
@@ -31639,6 +32150,33 @@
           },
           "isClosed": {
             "type": "boolean"
+          }
+        }
+      },
+      "SearchZabbixHost": {
+        "required": [
+          "id",
+          "name",
+          "technicalName",
+          "address"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "technicalName": {
+            "type": "string"
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -38684,6 +39222,719 @@
             }
           }
         }
+      },
+      "ZabbixAvailability": {
+        "enum": [
+          "Unknown",
+          "Available",
+          "Unavailable"
+        ]
+      },
+      "ZabbixCategoryRow": {
+        "required": [
+          "name",
+          "counts",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "counts": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ZabbixFieldItem": {
+        "required": [
+          "name",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "ZabbixHostCounts": {
+        "required": [
+          "total",
+          "monitored",
+          "disabled",
+          "unavailable",
+          "inMaintenance",
+          "attached"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "monitored": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "disabled": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unavailable": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inMaintenance": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "attached": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ZabbixHostDetail": {
+        "required": [
+          "host",
+          "description",
+          "templates",
+          "tags",
+          "inventory",
+          "problems",
+          "links",
+          "fromMirror",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "host": {
+            "$ref": "#/components/schemas/ZabbixHostItem"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ZabbixTagItem"
+            }
+          },
+          "inventory": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ZabbixFieldItem"
+            }
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ZabbixProblemItem"
+            }
+          },
+          "links": {
+            "$ref": "#/components/schemas/ZabbixHostLinks"
+          },
+          "fromMirror": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ZabbixHostItem": {
+        "required": [
+          "id",
+          "name",
+          "technicalName",
+          "monitored",
+          "inMaintenance",
+          "groups",
+          "addresses",
+          "interfaces",
+          "availability",
+          "problems",
+          "worstSeverity",
+          "pnmtHost",
+          "sensorId",
+          "gone"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "technicalName": {
+            "type": "string"
+          },
+          "monitored": {
+            "type": "boolean"
+          },
+          "inMaintenance": {
+            "type": "boolean"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "interfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ZabbixInterfaceItem"
+            }
+          },
+          "availability": {
+            "$ref": "#/components/schemas/ZabbixAvailability"
+          },
+          "problems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "worstSeverity": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ZabbixSeverity"
+              }
+            ]
+          },
+          "pnmtHost": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "gone": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ZabbixHostLinks": {
+        "required": [
+          "open",
+          "dashboards",
+          "problems",
+          "latest",
+          "configuration"
+        ],
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "string"
+          },
+          "dashboards": {
+            "type": "string"
+          },
+          "problems": {
+            "type": "string"
+          },
+          "latest": {
+            "type": "string"
+          },
+          "configuration": {
+            "type": "string"
+          }
+        }
+      },
+      "ZabbixHostRef": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "ZabbixInterfaceItem": {
+        "required": [
+          "type",
+          "address",
+          "port",
+          "availability",
+          "error",
+          "main"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "port": {
+            "type": "string"
+          },
+          "availability": {
+            "$ref": "#/components/schemas/ZabbixAvailability"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "main": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ZabbixItemItem": {
+        "required": [
+          "id",
+          "name",
+          "key",
+          "value",
+          "units",
+          "at",
+          "error",
+          "graphUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "units": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "graphUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "ZabbixProblemDetail": {
+        "required": [
+          "id",
+          "description",
+          "triggerUrl",
+          "updates"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "triggerUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "updates": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ZabbixUpdateItem"
+            }
+          }
+        }
+      },
+      "ZabbixProblemItem": {
+        "required": [
+          "id",
+          "name",
+          "operationalData",
+          "severity",
+          "since",
+          "acknowledged",
+          "updates",
+          "suppressed",
+          "tags",
+          "hosts",
+          "pnmtHost",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "operationalData": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "severity": {
+            "$ref": "#/components/schemas/ZabbixSeverity"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "acknowledged": {
+            "type": "boolean"
+          },
+          "updates": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "suppressed": {
+            "type": "boolean"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ZabbixTagItem"
+            }
+          },
+          "hosts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ZabbixHostRef"
+            }
+          },
+          "pnmtHost": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "ZabbixSeverity": {
+        "enum": [
+          "NotClassified",
+          "Information",
+          "Warning",
+          "Average",
+          "High",
+          "Disaster"
+        ]
+      },
+      "ZabbixSeverityCount": {
+        "required": [
+          "severity",
+          "count",
+          "unacknowledged"
+        ],
+        "type": "object",
+        "properties": {
+          "severity": {
+            "$ref": "#/components/schemas/ZabbixSeverity"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unacknowledged": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ZabbixStatus": {
+        "required": [
+          "enabled",
+          "version",
+          "url",
+          "hostGroups",
+          "groupsNotFound",
+          "asOf",
+          "hostsSyncedAt",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hostGroups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "groupsNotFound": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "asOf": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "hostsSyncedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ZabbixSummary": {
+        "required": [
+          "asOf",
+          "stale",
+          "error",
+          "category",
+          "tagNames",
+          "severities",
+          "categories",
+          "hosts",
+          "suppressed",
+          "dashboardUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "category": {
+            "type": "string"
+          },
+          "tagNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "severities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ZabbixSeverityCount"
+            }
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ZabbixCategoryRow"
+            }
+          },
+          "hosts": {
+            "$ref": "#/components/schemas/ZabbixHostCounts"
+          },
+          "suppressed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dashboardUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "ZabbixTagItem": {
+        "required": [
+          "tag",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "ZabbixTestResult": {
+        "required": [
+          "version",
+          "hosts",
+          "problems",
+          "hostGroups",
+          "notFound"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "hosts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "problems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hostGroups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notFound": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ZabbixUpdateItem": {
+        "required": [
+          "at",
+          "user",
+          "actions",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "type": "string"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       }
     }
   },
@@ -38831,6 +40082,9 @@
     },
     {
       "name": "AccountTunnels"
+    },
+    {
+      "name": "Zabbix"
     }
   ]
 }

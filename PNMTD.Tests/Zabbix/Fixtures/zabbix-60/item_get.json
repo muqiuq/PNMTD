@@ -1,0 +1,30 @@
+{
+  "jsonrpc": "2.0",
+  "result": [
+    {
+      "itemid": "47915",
+      "name": "CPU load",
+      "key_": "cpu.load",
+      "units": "",
+      "value_type": "0",
+      "status": "0",
+      "state": "0",
+      "error": "",
+      "lastclock": "1794667009",
+      "lastvalue": "7.5"
+    },
+    {
+      "itemid": "47914",
+      "name": "Disk /var used",
+      "key_": "vfs.var.pused",
+      "units": "%",
+      "value_type": "0",
+      "status": "0",
+      "state": "0",
+      "error": "",
+      "lastclock": "1794667009",
+      "lastvalue": "95"
+    }
+  ],
+  "id": 1
+}

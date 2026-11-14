@@ -1,0 +1,146 @@
+{
+  "jsonrpc": "2.0",
+  "result": [
+    {
+      "hostid": "10643",
+      "host": "web01.example.com",
+      "name": "Web 01",
+      "status": "0",
+      "maintenance_status": "0",
+      "groups": [
+        {
+          "groupid": "20",
+          "name": "PNMT Servers"
+        }
+      ],
+      "tags": [
+        {
+          "tag": "env",
+          "value": "prod"
+        }
+      ],
+      "interfaces": [
+        {
+          "interfaceid": "31",
+          "type": "1",
+          "main": "1",
+          "useip": "1",
+          "ip": "10.0.4.17",
+          "dns": "web01.example.com",
+          "port": "10050",
+          "available": "0",
+          "error": ""
+        }
+      ]
+    },
+    {
+      "hostid": "10644",
+      "host": "db02",
+      "name": "db02",
+      "status": "0",
+      "maintenance_status": "1",
+      "groups": [
+        {
+          "groupid": "20",
+          "name": "PNMT Servers"
+        }
+      ],
+      "tags": [],
+      "interfaces": [
+        {
+          "interfaceid": "32",
+          "type": "1",
+          "main": "1",
+          "useip": "1",
+          "ip": "10.0.4.18",
+          "dns": "",
+          "port": "10050",
+          "available": "0",
+          "error": ""
+        }
+      ]
+    },
+    {
+      "hostid": "10645",
+      "host": "sw-core",
+      "name": "Core switch",
+      "status": "0",
+      "maintenance_status": "0",
+      "groups": [
+        {
+          "groupid": "21",
+          "name": "PNMT Network"
+        }
+      ],
+      "tags": [],
+      "interfaces": [
+        {
+          "interfaceid": "33",
+          "type": "2",
+          "main": "1",
+          "useip": "1",
+          "ip": "10.0.0.2",
+          "dns": "",
+          "port": "161",
+          "available": "0",
+          "error": ""
+        }
+      ]
+    },
+    {
+      "hostid": "10646",
+      "host": "nas01",
+      "name": "nas01",
+      "status": "0",
+      "maintenance_status": "0",
+      "groups": [
+        {
+          "groupid": "20",
+          "name": "PNMT Servers"
+        }
+      ],
+      "tags": [],
+      "interfaces": [
+        {
+          "interfaceid": "34",
+          "type": "1",
+          "main": "1",
+          "useip": "1",
+          "ip": "127.0.0.1",
+          "dns": "",
+          "port": "10050",
+          "available": "2",
+          "error": "Get value from agent failed: cannot connect to [[127.0.0.1]:10050]: [111] Connection refused"
+        }
+      ]
+    },
+    {
+      "hostid": "10647",
+      "host": "old01",
+      "name": "old01",
+      "status": "1",
+      "maintenance_status": "0",
+      "groups": [
+        {
+          "groupid": "20",
+          "name": "PNMT Servers"
+        }
+      ],
+      "tags": [],
+      "interfaces": [
+        {
+          "interfaceid": "35",
+          "type": "1",
+          "main": "1",
+          "useip": "1",
+          "ip": "10.0.4.99",
+          "dns": "",
+          "port": "10050",
+          "available": "0",
+          "error": ""
+        }
+      ]
+    }
+  ],
+  "id": 1
+}

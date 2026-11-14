@@ -25,7 +25,7 @@ public sealed partial class SearchService(PnmtdDbContext db, LocationTree locati
         var tickets = await TicketsAsync(term, pattern!, limit, ct);
         if (term.StartsWith('#'))
         {
-            return new SearchResult([], [], [], await PagesByTagAsync(term.TrimStart('#').Trim().ToLowerInvariant(), limit, ct), tickets);
+            return new SearchResult([], [], [], await PagesByTagAsync(term.TrimStart('#').Trim().ToLowerInvariant(), limit, ct), tickets, []);
         }
         var hosts = await db.Hosts.AsNoTracking()
             .Where(h => EF.Functions.ILike(h.Name, pattern!, @"\") || (h.Location != null && EF.Functions.ILike(h.Location, pattern!, @"\")))
@@ -49,7 +49,8 @@ public sealed partial class SearchService(PnmtdDbContext db, LocationTree locati
             .OrderBy(l => l.Path, StringComparer.OrdinalIgnoreCase)
             .Take(limit)
             .ToList();
-        return new SearchResult(hosts, sensors, locationResults, await PagesAsync(term, pattern!, limit, ct), tickets);
+        return new SearchResult(hosts, sensors, locationResults, await PagesAsync(term, pattern!, limit, ct), tickets,
+            await ZabbixHostsAsync(pattern!, limit, ct));
     }
 
     /// <summary>Tickets, for Redmine's View: a number from PNMT's copy or Redmine itself, other text among the linked ones' subjects.</summary>
@@ -82,6 +83,23 @@ public sealed partial class SearchService(PnmtdDbContext db, LocationTree locati
         return await db.RedmineIssues.AsNoTracking().Where(i => !i.Missing && EF.Functions.ILike(i.Subject, pattern, @"\"))
             .OrderBy(i => i.IsClosed).ThenByDescending(i => i.UpdatedOn).Take(limit)
             .Select(i => new SearchTicket(i.IssueId, i.Subject, i.StatusName, i.IsClosed)).ToListAsync(ct);
+    }
+
+    /// <summary>Zabbix's hosts from the mirror, for Zabbix's View: by visible or technical name, or an address.</summary>
+    private async Task<IReadOnlyList<SearchZabbixHost>> ZabbixHostsAsync(string pattern, int limit, CancellationToken ct)
+    {
+        if (accessor.HttpContext?.User is not { } user || !Auth.Rights.RightsExtensions.Has(user, Auth.Rights.Area.Zabbix, Auth.Rights.Level.View)
+            || services.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<Zabbix.ZabbixOptions>>().CurrentValue is not { Enabled: true })
+        {
+            return [];
+        }
+        var found = await db.ZabbixHosts.AsNoTracking()
+            .Where(h => h.GoneAt == null && (EF.Functions.ILike(h.VisibleName, pattern, @"\") || EF.Functions.ILike(h.TechnicalName, pattern, @"\")
+                || h.Addresses.Any(a => EF.Functions.ILike(a, pattern, @"\"))))
+            .OrderBy(h => h.VisibleName).Take(limit)
+            .Select(h => new { h.HostId, h.VisibleName, h.TechnicalName, h.Addresses })
+            .ToListAsync(ct);
+        return found.Select(h => new SearchZabbixHost(h.HostId, h.VisibleName, h.TechnicalName, h.Addresses.FirstOrDefault())).ToList();
     }
 
     /// <summary><c>KB-42</c>, <c>kb42</c> or <c>42</c>.</summary>

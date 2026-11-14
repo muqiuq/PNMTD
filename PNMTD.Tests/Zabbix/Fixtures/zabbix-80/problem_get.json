@@ -1,0 +1,199 @@
+{
+  "jsonrpc": "2.0",
+  "result": [
+    {
+      "eventid": "5",
+      "source": "0",
+      "object": "0",
+      "objectid": "33180",
+      "clock": "1794667082",
+      "ns": "416462916",
+      "r_eventid": "0",
+      "r_clock": "0",
+      "r_ns": "0",
+      "correlationid": "0",
+      "userid": "0",
+      "name": "Port 12 down",
+      "acknowledged": "0",
+      "severity": "5",
+      "cause_eventid": "0",
+      "cep_ruleid": "0",
+      "flags": "0",
+      "suppressed": "0",
+      "acknowledges": [],
+      "opdata": "",
+      "suppression_data": [],
+      "tags": [
+        {
+          "tag": "class",
+          "value": "network"
+        },
+        {
+          "tag": "component",
+          "value": "network"
+        },
+        {
+          "tag": "scope",
+          "value": "availability"
+        }
+      ],
+      "urls": []
+    },
+    {
+      "eventid": "4",
+      "source": "0",
+      "object": "0",
+      "objectid": "33179",
+      "clock": "1794667082",
+      "ns": "309923210",
+      "r_eventid": "0",
+      "r_clock": "0",
+      "r_ns": "0",
+      "correlationid": "0",
+      "userid": "0",
+      "name": "Replication lag above 60 s",
+      "acknowledged": "0",
+      "severity": "2",
+      "cause_eventid": "0",
+      "cep_ruleid": "0",
+      "flags": "0",
+      "suppressed": "1",
+      "acknowledges": [
+        {
+          "acknowledgeid": "1",
+          "userid": "0",
+          "clock": "1794667082",
+          "message": "",
+          "action": "512",
+          "old_severity": "0",
+          "new_severity": "0",
+          "suppress_until": "1795271520",
+          "taskid": "0",
+          "maintenanceid": "1",
+          "details": "",
+          "cep_ruleid": "0"
+        }
+      ],
+      "opdata": "",
+      "suppression_data": [
+        {
+          "maintenanceid": "1",
+          "suppress_until": "1795271520",
+          "userid": "0",
+          "cep_ruleid": "0"
+        }
+      ],
+      "tags": [
+        {
+          "tag": "class",
+          "value": "database"
+        },
+        {
+          "tag": "scope",
+          "value": "performance"
+        }
+      ],
+      "urls": []
+    },
+    {
+      "eventid": "3",
+      "source": "0",
+      "object": "0",
+      "objectid": "33178",
+      "clock": "1794667082",
+      "ns": "211264145",
+      "r_eventid": "0",
+      "r_clock": "0",
+      "r_ns": "0",
+      "correlationid": "0",
+      "userid": "0",
+      "name": "High CPU load",
+      "acknowledged": "0",
+      "severity": "3",
+      "cause_eventid": "0",
+      "cep_ruleid": "0",
+      "flags": "0",
+      "suppressed": "0",
+      "acknowledges": [],
+      "opdata": "",
+      "suppression_data": [],
+      "tags": [
+        {
+          "tag": "class",
+          "value": "os"
+        },
+        {
+          "tag": "component",
+          "value": "cpu"
+        },
+        {
+          "tag": "scope",
+          "value": "performance"
+        },
+        {
+          "tag": "env",
+          "value": "prod"
+        }
+      ],
+      "urls": []
+    },
+    {
+      "eventid": "2",
+      "source": "0",
+      "object": "0",
+      "objectid": "33177",
+      "clock": "1794667082",
+      "ns": "109366175",
+      "r_eventid": "0",
+      "r_clock": "0",
+      "r_ns": "0",
+      "correlationid": "0",
+      "userid": "0",
+      "name": "/var is 95 % full",
+      "acknowledged": "1",
+      "severity": "4",
+      "cause_eventid": "0",
+      "cep_ruleid": "0",
+      "flags": "0",
+      "suppressed": "0",
+      "acknowledges": [
+        {
+          "acknowledgeid": "2",
+          "userid": "1",
+          "clock": "1794667090",
+          "message": "Looking into it, Anna",
+          "action": "6",
+          "old_severity": "0",
+          "new_severity": "0",
+          "suppress_until": "0",
+          "taskid": "0",
+          "maintenanceid": "0",
+          "details": "",
+          "cep_ruleid": "0"
+        }
+      ],
+      "opdata": "Used: 95 %",
+      "suppression_data": [],
+      "tags": [
+        {
+          "tag": "class",
+          "value": "os"
+        },
+        {
+          "tag": "component",
+          "value": "storage"
+        },
+        {
+          "tag": "scope",
+          "value": "capacity"
+        },
+        {
+          "tag": "env",
+          "value": "prod"
+        }
+      ],
+      "urls": []
+    }
+  ],
+  "id": 1
+}

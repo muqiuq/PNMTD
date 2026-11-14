@@ -1,0 +1,119 @@
+{
+  "version": "6.0.49",
+  "bearer": {
+    "jsonrpc": "2.0",
+    "error": {
+      "code": -32602,
+      "message": "Invalid params.",
+      "data": "Not authorized."
+    },
+    "id": 1
+  },
+  "auth_field": {
+    "jsonrpc": "2.0",
+    "result": [
+      {
+        "hostid": "10643"
+      }
+    ],
+    "id": 1
+  },
+  "bad_token": {
+    "jsonrpc": "2.0",
+    "error": {
+      "code": -32602,
+      "message": "Invalid params.",
+      "data": "Not authorized."
+    },
+    "id": 1
+  },
+  "not_allowed_method": {
+    "jsonrpc": "2.0",
+    "error": {
+      "code": -32602,
+      "message": "Invalid params.",
+      "data": "No permissions to call \"user.get\"."
+    },
+    "id": 1
+  },
+  "version_with_token": {
+    "jsonrpc": "2.0",
+    "error": {
+      "code": -32602,
+      "message": "Invalid params.",
+      "data": "The \"apiinfo.version\" method must be called without the \"auth\" parameter."
+    },
+    "id": 1
+  },
+  "other_groups_key": {
+    "jsonrpc": "2.0",
+    "result": [
+      {
+        "hostid": "10643"
+      }
+    ],
+    "id": 1
+  },
+  "urls": {
+    "dashboard": {
+      "path": "zabbix.php?action=dashboard.view",
+      "status": 200,
+      "final": "/zabbix.php?action=dashboard.view",
+      "problems": [],
+      "title": "Zabbix docker: Dashboard"
+    },
+    "host_view": {
+      "path": "zabbix.php?action=host.view&filter_set=1&filter_host=web01",
+      "status": 200,
+      "final": "/zabbix.php?action=host.view&filter_set=1&filter_host=web01",
+      "problems": [],
+      "title": "Zabbix docker: Hosts"
+    },
+    "host_dashboards": {
+      "path": "zabbix.php?action=host.dashboard.view&hostid=10643",
+      "status": 200,
+      "final": "/zabbix.php?action=host.dashboard.view&hostid=10643",
+      "problems": [],
+      "title": "Zabbix docker: Dashboards"
+    },
+    "host_problems": {
+      "path": "zabbix.php?action=problem.view&filter_set=1&hostids%5B%5D=10643",
+      "status": 200,
+      "final": "/zabbix.php?action=problem.view&filter_set=1&hostids%5B%5D=10643",
+      "problems": [],
+      "title": "Zabbix docker: Problems"
+    },
+    "host_latest": {
+      "path": "zabbix.php?action=latest.view&filter_set=1&hostids%5B%5D=10643",
+      "status": 200,
+      "final": "/zabbix.php?action=latest.view&filter_set=1&hostids%5B%5D=10643",
+      "problems": [],
+      "title": "Zabbix docker: Latest data"
+    },
+    "host_edit_70": {
+      "path": "zabbix.php?action=host.edit&hostid=10643",
+      "status": 200,
+      "final": "/zabbix.php?action=host.edit&hostid=10643",
+      "problems": [],
+      "title": "Zabbix docker: Configuration of host"
+    },
+    "host_edit_60": {
+      "path": "hosts.php?form=update&hostid=10643",
+      "status": 404
+    },
+    "event": {
+      "path": "tr_events.php?triggerid=24292&eventid=21",
+      "status": 200,
+      "final": "/tr_events.php?triggerid=24292&eventid=21",
+      "problems": [],
+      "title": "Zabbix docker: Event details"
+    },
+    "graph": {
+      "path": "history.php?action=showgraph&itemids%5B%5D=47915",
+      "status": 200,
+      "final": "/history.php?action=showgraph&itemids%5B%5D=47915",
+      "problems": [],
+      "title": "Zabbix docker: History [refreshed every 30 sec.]"
+    }
+  }
+}

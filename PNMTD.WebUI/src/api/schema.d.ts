@@ -11643,6 +11643,335 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/zabbix/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ZabbixStatus"];
+                        "text/json": components["schemas"]["ZabbixStatus"];
+                        "text/plain": components["schemas"]["ZabbixStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/zabbix/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    category?: string;
+                    suppressed?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ZabbixSummary"];
+                        "text/json": components["schemas"]["ZabbixSummary"];
+                        "text/plain": components["schemas"]["ZabbixSummary"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/zabbix/problems": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    minSeverity?: components["schemas"]["ZabbixSeverity"];
+                    group?: string;
+                    tag?: string;
+                    host?: string;
+                    hostId?: number;
+                    acknowledged?: boolean;
+                    suppressed?: boolean;
+                    olderThanMinutes?: number;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfZabbixProblemItem"];
+                        "text/json": components["schemas"]["PagedOfZabbixProblemItem"];
+                        "text/plain": components["schemas"]["PagedOfZabbixProblemItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/zabbix/problems/{eventId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ZabbixProblemDetail"];
+                        "text/json": components["schemas"]["ZabbixProblemDetail"];
+                        "text/plain": components["schemas"]["ZabbixProblemDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/zabbix/hosts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    group?: string;
+                    status?: string;
+                    availability?: components["schemas"]["ZabbixAvailability"];
+                    attached?: boolean;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfZabbixHostItem"];
+                        "text/json": components["schemas"]["PagedOfZabbixHostItem"];
+                        "text/plain": components["schemas"]["PagedOfZabbixHostItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/zabbix/hosts/{hostId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    hostId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ZabbixHostDetail"];
+                        "text/json": components["schemas"]["ZabbixHostDetail"];
+                        "text/plain": components["schemas"]["ZabbixHostDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/zabbix/hosts/{hostId}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    hostId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ZabbixItemItem"][];
+                        "text/json": components["schemas"]["ZabbixItemItem"][];
+                        "text/plain": components["schemas"]["ZabbixItemItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/zabbix/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ZabbixTestResult"];
+                        "text/json": components["schemas"]["ZabbixTestResult"];
+                        "text/plain": components["schemas"]["ZabbixTestResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -15206,6 +15535,24 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
+        PagedOfZabbixHostItem: {
+            items: components["schemas"]["ZabbixHostItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfZabbixProblemItem: {
+            items: components["schemas"]["ZabbixProblemItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         ParsedScript: {
             parameters: components["schemas"]["ScriptParameter"][];
             help: null | components["schemas"]["ScriptHelp"];
@@ -15656,6 +16003,7 @@ export interface components {
             locations: components["schemas"]["SearchLocation"][];
             pages: components["schemas"]["SearchPage"][];
             tickets: components["schemas"]["SearchTicket"][];
+            zabbixHosts: components["schemas"]["SearchZabbixHost"][];
         };
         SearchSensor: {
             /** Format: uuid */
@@ -15672,6 +16020,13 @@ export interface components {
             subject: string;
             status: string;
             isClosed: boolean;
+        };
+        SearchZabbixHost: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            technicalName: string;
+            address: null | string;
         };
         SecurityInfo: {
             defender: null | components["schemas"]["DefenderInfo"];
@@ -17364,6 +17719,170 @@ export interface components {
             queries: components["schemas"]["WmiQueryState"][];
             custom: components["schemas"]["CustomWmiResult"][];
             locallyOff: string[];
+        };
+        /** @enum {unknown} */
+        ZabbixAvailability: "Unknown" | "Available" | "Unavailable";
+        ZabbixCategoryRow: {
+            name: string;
+            counts: number[];
+            /** Format: int32 */
+            total: number;
+        };
+        ZabbixFieldItem: {
+            name: string;
+            value: string;
+        };
+        ZabbixHostCounts: {
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            monitored: number;
+            /** Format: int32 */
+            disabled: number;
+            /** Format: int32 */
+            unavailable: number;
+            /** Format: int32 */
+            inMaintenance: number;
+            /** Format: int32 */
+            attached: number;
+        };
+        ZabbixHostDetail: {
+            host: components["schemas"]["ZabbixHostItem"];
+            description: null | string;
+            templates: string[];
+            tags: components["schemas"]["ZabbixTagItem"][];
+            inventory: null | components["schemas"]["ZabbixFieldItem"][];
+            problems: components["schemas"]["ZabbixProblemItem"][];
+            links: components["schemas"]["ZabbixHostLinks"];
+            fromMirror: boolean;
+            error: null | string;
+        };
+        ZabbixHostItem: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            technicalName: string;
+            monitored: boolean;
+            inMaintenance: boolean;
+            groups: string[];
+            addresses: string[];
+            interfaces: components["schemas"]["ZabbixInterfaceItem"][];
+            availability: components["schemas"]["ZabbixAvailability"];
+            /** Format: int32 */
+            problems: number;
+            worstSeverity: null | components["schemas"]["ZabbixSeverity"];
+            pnmtHost: null | components["schemas"]["Ref"];
+            /** Format: uuid */
+            sensorId: null | string;
+            gone: boolean;
+        };
+        ZabbixHostLinks: {
+            open: string;
+            dashboards: string;
+            problems: string;
+            latest: string;
+            configuration: string;
+        };
+        ZabbixHostRef: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+        };
+        ZabbixInterfaceItem: {
+            type: string;
+            address: string;
+            port: string;
+            availability: components["schemas"]["ZabbixAvailability"];
+            error: null | string;
+            main: boolean;
+        };
+        ZabbixItemItem: {
+            id: string;
+            name: string;
+            key: string;
+            value: null | string;
+            units: null | string;
+            /** Format: date-time */
+            at: null | string;
+            error: null | string;
+            graphUrl: string;
+        };
+        ZabbixProblemDetail: {
+            id: string;
+            description: null | string;
+            triggerUrl: null | string;
+            updates: null | components["schemas"]["ZabbixUpdateItem"][];
+        };
+        ZabbixProblemItem: {
+            id: string;
+            name: string;
+            operationalData: null | string;
+            severity: components["schemas"]["ZabbixSeverity"];
+            /** Format: date-time */
+            since: string;
+            acknowledged: boolean;
+            /** Format: int32 */
+            updates: number;
+            suppressed: boolean;
+            tags: components["schemas"]["ZabbixTagItem"][];
+            hosts: components["schemas"]["ZabbixHostRef"][];
+            pnmtHost: null | components["schemas"]["Ref"];
+            url: string;
+        };
+        /** @enum {unknown} */
+        ZabbixSeverity: "NotClassified" | "Information" | "Warning" | "Average" | "High" | "Disaster";
+        ZabbixSeverityCount: {
+            severity: components["schemas"]["ZabbixSeverity"];
+            /** Format: int32 */
+            count: number;
+            /** Format: int32 */
+            unacknowledged: number;
+        };
+        ZabbixStatus: {
+            enabled: boolean;
+            version: null | string;
+            url: null | string;
+            hostGroups: string[];
+            groupsNotFound: string[];
+            /** Format: date-time */
+            asOf: null | string;
+            /** Format: date-time */
+            hostsSyncedAt: null | string;
+            error: null | string;
+        };
+        ZabbixSummary: {
+            /** Format: date-time */
+            asOf: null | string;
+            stale: boolean;
+            error: null | string;
+            category: string;
+            tagNames: string[];
+            severities: components["schemas"]["ZabbixSeverityCount"][];
+            categories: components["schemas"]["ZabbixCategoryRow"][];
+            hosts: components["schemas"]["ZabbixHostCounts"];
+            /** Format: int32 */
+            suppressed: number;
+            dashboardUrl: string;
+        };
+        ZabbixTagItem: {
+            tag: string;
+            value: string;
+        };
+        ZabbixTestResult: {
+            version: string;
+            /** Format: int32 */
+            hosts: number;
+            /** Format: int32 */
+            problems: number;
+            hostGroups: string[];
+            notFound: string[];
+        };
+        ZabbixUpdateItem: {
+            /** Format: date-time */
+            at: string;
+            user: string;
+            actions: string[];
+            message: null | string;
         };
     };
     responses: never;

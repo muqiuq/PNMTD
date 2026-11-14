@@ -96,8 +96,8 @@ public sealed class RedmineClient(IHttpClientFactory http, IOptionsMonitor<Redmi
     }
 
     /// <summary>
-    /// The handler: the system's certificate validation, or with Redmine__CertificateSha256 exactly that certificate
-    /// (its SHA-256, colons and case ignored) and no other.
+    /// The handler: the system's certificate validation, and with Redmine__CertificateSha256 also that certificate (its
+    /// SHA-256, colons and case ignored), for a server with a certificate of its own.
     /// </summary>
     public static HttpMessageHandler Handler(string? pinnedSha256)
     {

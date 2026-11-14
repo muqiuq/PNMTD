@@ -34,6 +34,9 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new("Audit retention", KeyValueKeyEnums.LAST_AUDIT_RETENTION, 24 * 3600, _ => true),
         // docs/audit-redmine-zabbix-plan.md §6.7, §8.5: the copy of linked tickets, every Redmine:SyncMinutes (10).
         new("Redmine sync", KeyValueKeyEnums.LAST_REDMINE_SYNC, 600, c => Redmine.RedmineSetup.Configured(c)),
+        // docs/audit-redmine-zabbix-plan.md §7.3, §8.5: the problems every Zabbix:PollSeconds (60), the hosts every Zabbix:HostSyncMinutes (10).
+        new("Zabbix problems", KeyValueKeyEnums.LAST_ZABBIX_POLL, 60, c => Zabbix.ZabbixSetup.Configured(c)),
+        new("Zabbix hosts", KeyValueKeyEnums.LAST_ZABBIX_HOST_SYNC, 600, c => Zabbix.ZabbixSetup.Configured(c)),
     ];
 
     public static bool MailboxConfigured(IConfiguration c) =>
@@ -50,7 +53,8 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
             return new SystemInfo(ServerInfo.Identity);
         }
         return new SystemInfo(ServerInfo.Identity, ServerInfo.Version, urls.Configured, Clock.TimeZone.Id,
-            configuration["Auth:TotpPolicy"] ?? "Optional", configuration.GetValue("WireGuard:Enabled", false), Redmine.RedmineSetup.Configured(configuration));
+            configuration["Auth:TotpPolicy"] ?? "Optional", configuration.GetValue("WireGuard:Enabled", false), Redmine.RedmineSetup.Configured(configuration),
+            Zabbix.ZabbixSetup.Configured(configuration));
     }
 
     public async Task<UplinkStatus> UplinkAsync(CancellationToken ct)
@@ -137,6 +141,7 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.AI_BUDGET_90, "AI_BUDGET_90", false, "AI spending reached 90 % of the budget."),
         new(PNMTStatusCodes.AI_BUDGET_REACHED, "AI_BUDGET_REACHED", false, "AI spending reached the budget: AI work waits until the next period."),
         new(PNMTStatusCodes.REDMINE_FAILING, "REDMINE_FAILING", false, "Redmine didn't answer, refused PNMT's API key, or a configured project is missing, twice in a row."),
+        new(PNMTStatusCodes.ZABBIX_FAILING, "ZABBIX_FAILING", false, "Zabbix didn't answer, refused PNMT's API token, or a configured host group is missing, twice in a row. Zabbix sensors keep their state meanwhile."),
         new(PNMTStatusCodes.FILE_STORAGE_PROBLEM, "FILE_STORAGE_PROBLEM", false, "The files folder is missing or not writable, its disk has less free space than KnowledgeBase:MinFreeMb, or files are missing or changed."),
         new(PNMTStatusCodes.WINDOWS_AGENT_PROBLEM, "WINDOWS_AGENT_PROBLEM", false, "A Windows server's agent has a problem: its clock is off, it reported failures in three heartbeats in a row, or its key or protocol is wrong."),
         new(PNMTStatusCodes.WINDOWS_CRITICAL_EVENT, "WINDOWS_CRITICAL_EVENT", false, "A new Critical entry in a Windows server's System or Application log (optional, off by default)."),

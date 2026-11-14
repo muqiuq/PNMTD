@@ -1,0 +1,62 @@
+{
+  "jsonrpc": "2.0",
+  "result": [
+    {
+      "triggerid": "25227",
+      "description": "/var is 95 % full",
+      "priority": "4",
+      "comments": "The partition /var is almost full.",
+      "url": "",
+      "hosts": [
+        {
+          "hostid": "10683",
+          "host": "web01.example.com",
+          "name": "Web 01"
+        }
+      ]
+    },
+    {
+      "triggerid": "25228",
+      "description": "High CPU load",
+      "priority": "3",
+      "comments": "",
+      "url": "",
+      "hosts": [
+        {
+          "hostid": "10683",
+          "host": "web01.example.com",
+          "name": "Web 01"
+        }
+      ]
+    },
+    {
+      "triggerid": "25229",
+      "description": "Replication lag above 60 s",
+      "priority": "2",
+      "comments": "",
+      "url": "",
+      "hosts": [
+        {
+          "hostid": "10684",
+          "host": "db02",
+          "name": "db02"
+        }
+      ]
+    },
+    {
+      "triggerid": "25230",
+      "description": "Port 12 down",
+      "priority": "5",
+      "comments": "",
+      "url": "",
+      "hosts": [
+        {
+          "hostid": "10685",
+          "host": "sw-core",
+          "name": "Core switch"
+        }
+      ]
+    }
+  ],
+  "id": 1
+}

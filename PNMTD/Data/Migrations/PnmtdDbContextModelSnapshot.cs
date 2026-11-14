@@ -4291,6 +4291,57 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("windows_run_as");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.ZabbixHostEntity", b =>
+                {
+                    b.Property<long>("HostId")
+                        .HasColumnType("bigint");
+
+                    b.PrimitiveCollection<List<string>>("Addresses")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<int>("Availability")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("GoneAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.PrimitiveCollection<List<string>>("Groups")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<bool>("InMaintenance")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Interfaces")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("Monitored")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("SyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TechnicalName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("VisibleName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("HostId");
+
+                    b.HasIndex("TechnicalName");
+
+                    b.HasIndex("VisibleName");
+
+                    b.ToTable("zabbix_hosts");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.AgentChangeEntity", b =>
                 {
                     b.HasOne("PNMTD.Models.Db.SensorEntity", null)

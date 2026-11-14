@@ -130,6 +130,10 @@ public static class AuditEvents
     public const string RedmineLinkRemoved = "RedmineLinkRemoved";
     public const string RedmineTested = "RedmineTested";
 
+    // Zabbix (docs/audit-redmine-zabbix-plan.md §7.8): the connection's test, and attaching hosts in bulk.
+    public const string ZabbixTested = "ZabbixTested";
+    public const string ZabbixHostsAttached = "ZabbixHostsAttached";
+
     // Every other operation (docs/audit-redmine-zabbix-plan.md §3.9, Appendix A).
     public const string HostsImportanceChanged = "HostsImportanceChanged";
     public const string HostsLocationChanged = "HostsLocationChanged";
@@ -312,6 +316,8 @@ public static class AuditCatalog
         Add(AuditCategory.Hosts, AuditTargets.Host, AuditEvents.HostCreated, AuditEvents.HostUpdated, AuditEvents.HostDeleted);
         Add(AuditCategory.Redmine, AuditTargets.RedmineTicket, AuditEvents.RedmineLinkAdded, AuditEvents.RedmineLinkChanged, AuditEvents.RedmineLinkRemoved);
         Add(AuditCategory.Redmine, null, AuditEvents.RedmineTested);
+        Add(AuditCategory.Zabbix, AuditTargets.ZabbixHost, AuditEvents.ZabbixHostsAttached);
+        Add(AuditCategory.Zabbix, null, AuditEvents.ZabbixTested);
         Add(AuditCategory.Hosts, AuditTargets.Host, AuditEvents.HostsImportanceChanged, AuditEvents.HostsLocationChanged);
         Add(AuditCategory.Sensors, AuditTargets.Sensor, AuditEvents.SensorCreated, AuditEvents.SensorUpdated, AuditEvents.SensorDeleted, AuditEvents.SensorTokensRotated, AuditEvents.SensorsImportanceChanged);
         Add(AuditCategory.Notifications, AuditTargets.NotificationRule, AuditEvents.NotificationRuleCreated, AuditEvents.NotificationRuleUpdated, AuditEvents.NotificationRuleDeleted, AuditEvents.NotificationRuleSensorLinked, AuditEvents.NotificationRuleSensorUnlinked, AuditEvents.NotificationRuleScopesChanged, AuditEvents.NotificationRuleExclusionAdded, AuditEvents.NotificationRuleExclusionRemoved);

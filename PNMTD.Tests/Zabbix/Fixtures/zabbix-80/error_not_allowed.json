@@ -1,0 +1,9 @@
+{
+  "jsonrpc": "2.0",
+  "error": {
+    "code": -32500,
+    "message": "Application error.",
+    "data": "No permissions to call \"user.get\"."
+  },
+  "id": 1
+}

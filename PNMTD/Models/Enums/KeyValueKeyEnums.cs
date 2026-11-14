@@ -35,6 +35,10 @@
         // Redmine's copy of linked tickets (docs/audit-redmine-zabbix-plan.md §6.7).
         LAST_REDMINE_SYNC = 270,
 
+        // Zabbix's problems and hosts (docs/audit-redmine-zabbix-plan.md §7.3).
+        LAST_ZABBIX_POLL = 280,
+        LAST_ZABBIX_HOST_SYNC = 281,
+
         UNUSED = 999,
     }
 }
