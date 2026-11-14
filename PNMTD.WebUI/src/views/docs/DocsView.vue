@@ -14,6 +14,7 @@ import { humanize, typeIcon, typeLabel, useRuleTypes, useSensorTypes, useStatusC
 import { useSession } from '@/stores/session'
 import { recipientHint } from '../rules/ruleHelp'
 import AccessDocs from './AccessDocs.vue'
+import IntegrationsDocs from './IntegrationsDocs.vue'
 import MarkdownDocs from './MarkdownDocs.vue'
 
 /**
@@ -145,6 +146,7 @@ const visibleRules = computed(() => ruleTypes.list.value.filter((r) => has(r.typ
 
     <MarkdownDocs :search="search" />
     <AccessDocs :search="search" />
+    <IntegrationsDocs :search="search" />
 
     <section v-if="visibleCodes.length" class="panel" aria-labelledby="codes-title">
       <div id="codes-title" class="panel-header">Status codes</div>

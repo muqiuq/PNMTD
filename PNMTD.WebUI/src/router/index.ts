@@ -76,7 +76,7 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'Locations', right: ['Locations', 'View'] },
   },
   {
-    path: '/locations/:id/:tab(overview|information|pages|history)?',
+    path: '/locations/:id/:tab(overview|information|pages|tickets|history)?',
     name: 'location',
     component: () => import('@/views/locations/LocationView.vue'),
     meta: { title: 'Location', right: ['Locations', 'View'] },
@@ -235,6 +235,19 @@ export const routes: RouteRecordRaw[] = [
     name: 'users',
     component: () => import('@/views/admin/UsersView.vue'),
     meta: { title: 'Users', right: 'admin' },
+  },
+  // Redmine (docs/audit-redmine-zabbix-plan.md §6.3, §6.4): the overview and the search, and a ticket's own page.
+  {
+    path: '/redmine/:tab(overview|search)?',
+    name: 'redmine',
+    component: () => import('@/views/redmine/RedmineView.vue'),
+    meta: { title: 'Redmine', right: ['Redmine', 'View'] },
+  },
+  {
+    path: '/redmine/issues/:id(\\d+)',
+    name: 'redmine-issue',
+    component: () => import('@/views/redmine/RedmineIssueView.vue'),
+    meta: { title: 'Ticket', right: ['Redmine', 'View'] },
   },
   // Groups and rights (docs/audit-redmine-zabbix-plan.md §5.5): admins only.
   {

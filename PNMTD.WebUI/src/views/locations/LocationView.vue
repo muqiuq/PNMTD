@@ -18,6 +18,8 @@ import { downloadText, fileSlug } from '@/format/markdown'
 import { useSession } from '@/stores/session'
 import HostsPanel from '@/views/dashboard/HostsPanel.vue'
 import KbPanel from '@/views/kb/KbPanel.vue'
+import RedminePanel from '@/views/redmine/RedminePanel.vue'
+import { useRelated } from '@/views/redmine/useRelated'
 import AddHostsDialog from './AddHostsDialog.vue'
 import FieldCard from './FieldCard.vue'
 import LocationDialog from './LocationDialog.vue'
@@ -65,6 +67,8 @@ const related = useQuery({
   queryKey: computed(() => kbKeys.related({ locationId: id.value })),
   queryFn: () => kbApi.related({ locationId: id.value }),
 })
+// The Tickets tab (docs/audit-redmine-zabbix-plan.md §6.6) counts the location's own open tickets; only with Redmine.
+const tickets = useRelated(computed(() => ({ locationId: id.value })))
 const tabs = computed(() => [
   { key: 'overview', label: 'Overview', to: { name: 'location', params: { id: id.value } } },
   { key: 'information', label: 'Information', to: { name: 'location', params: { id: id.value, tab: 'information' } } },
@@ -74,6 +78,16 @@ const tabs = computed(() => [
     to: { name: 'location', params: { id: id.value, tab: 'pages' } },
     badge: related.data.value?.pages.length || null,
   },
+  ...(tickets.shown.value
+    ? [
+        {
+          key: 'tickets',
+          label: 'Tickets',
+          to: { name: 'location', params: { id: id.value, tab: 'tickets' } },
+          badge: tickets.openCount.value || null,
+        },
+      ]
+    : []),
   { key: 'history', label: 'History', to: { name: 'location', params: { id: id.value, tab: 'history' } } },
 ])
 const crumbs = computed(() => [
@@ -259,6 +273,7 @@ async function fillIn() {
           </section>
           <!-- The knowledge base: the pages linked to the location, at most 10, with All pages… (§3.4, §6.5). -->
           <KbPanel :location-id="location.id" :name="location.name" :limit="10" own-only />
+          <RedminePanel :location-id="location.id" :name="location.name" :path="`/locations/${location.id}`" own-only />
         </div>
       </div>
 
@@ -296,6 +311,11 @@ async function fillIn() {
       <div v-else-if="tab === 'pages'" class="pages">
         <!-- The knowledge base's panel for this location (§3.4, §6.5): its pages, then folded those of its ancestors and hosts. -->
         <KbPanel :location-id="location.id" :name="location.name" :limit="200" />
+      </div>
+
+      <div v-else-if="tab === 'tickets'" class="pages">
+        <!-- All its tickets: its own, its sub-locations' and its hosts' (§6.6). -->
+        <RedminePanel :location-id="location.id" :name="location.name" :path="`/locations/${location.id}`" deep />
       </div>
 
       <LocationHistory v-else-if="tab === 'history'" :location="location" :fields="fields" :can-write="canWrite" />

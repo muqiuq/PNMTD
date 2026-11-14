@@ -28,6 +28,8 @@ import { importanceOptions } from '@/views/notifications/importance'
 import AddServerDialog from '@/views/admin/servers/AddServerDialog.vue'
 import HostLocationField from '@/views/locations/HostLocationField.vue'
 import KbPanel from '@/views/kb/KbPanel.vue'
+import RedminePanel from '@/views/redmine/RedminePanel.vue'
+import TicketCount from '@/views/redmine/TicketCount.vue'
 
 /**
  * A host (§5.6): its state and 90 days, its properties edited in place, and every sensor with its
@@ -116,6 +118,7 @@ const more = computed(() => [
             >{{ host.assignedLocation.path }}</RouterLink
           >
           <span v-if="host.location" class="muted">{{ host.location }}</span>
+          <TicketCount :target="{ hostId: host.id }" />
         </template>
         <template #actions>
           <Button
@@ -284,6 +287,8 @@ const more = computed(() => [
           </section>
           <!-- Its pages, then its location's and that one's parents' (docs/locations-knowledge-plan.md §6.5). -->
           <KbPanel :host-id="host.id" :name="host.name" />
+          <!-- Its tickets, then those via its location (docs/audit-redmine-zabbix-plan.md §6.6). -->
+          <RedminePanel :host-id="host.id" :name="host.name" :path="`/hosts/${host.id}`" />
         </div>
       </template>
     </template>

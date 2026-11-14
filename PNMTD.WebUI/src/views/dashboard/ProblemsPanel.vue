@@ -12,6 +12,7 @@ import { useActions } from '@/composables/useActions'
 import { typeIcon, useStatusCodes } from '@/composables/useLookups'
 import { useUndo } from '@/composables/useUndo'
 import { useSession } from '@/stores/session'
+import SensorTicket from '@/views/redmine/SensorTicket.vue'
 
 /**
  * What is wrong now (§5.5): failing sensors that are not ignored, grouped by host, longest failing
@@ -102,6 +103,8 @@ async function ignore(host: S['ProblemHost'], sensor: S['ProblemSensor']) {
                 sensor.name
               }}</RouterLink>
               <CodeTag :code="sensor.code" :name="codes.nameOf(sensor.code)" />
+              <!-- Someone is on it: an open ticket linked to it, its host or location (docs/audit-redmine-zabbix-plan.md §6.6). -->
+              <SensorTicket :sensor-id="sensor.id" />
               <span class="spacer" />
               <span class="since"><span class="muted">since</span> <SinceText :since="sensor.failingSince" /></span>
             </div>

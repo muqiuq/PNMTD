@@ -14,6 +14,8 @@
 #   tools/e2e.sh -g "phone"      arguments go to `playwright test`
 #   E2E_NAME=pnmtd-e2e-2 E2E_PORT=7498 E2E_UDP_PORT=7497 tools/e2e.sh
 #                                another stack beside this one (containers, volumes and folders named after it)
+#   E2E_ENV=$'Redmine__Url=…\nRedmine__ApiKey=…' tools/e2e.sh
+#                                settings of its own for the stack, one per line (an integration to test against)
 #
 # AI is on against an address that never answers, with its scheduled uses off: the knowledge base's AI question opens
 # (docs/locations-knowledge-plan.md §7.2), and nothing is sent.
@@ -40,6 +42,7 @@ export ENV_FILE="$PWD/.tmpcheck/${E2E_NAME}.env"
 (umask 077 && printf '%s\n' 'Auth__LoginRateLimit__PermitLimit=1000' \
   'Ai__Enabled=true' 'Ai__ApiKey=e2e-no-provider' 'Ai__BaseUrl=http://127.0.0.1:9/api/v1' 'Ai__Guard__Url=http://127.0.0.1:9/api/alpha/decisions' \
   'Ai__Mail__Enabled=false' 'Ai__Analysis__Enabled=false' 'Mikrotik__Advisories__Enabled=false' >"$ENV_FILE")
+[[ -z "${E2E_ENV:-}" ]] || printf '%s\n' "$E2E_ENV" >>"$ENV_FILE"
 
 cleanup() {
   if [[ "$KEEP" != "1" ]]; then

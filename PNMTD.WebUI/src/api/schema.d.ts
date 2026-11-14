@@ -7935,6 +7935,431 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/redmine/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RedmineStatus"];
+                        "text/json": components["schemas"]["RedmineStatus"];
+                        "text/plain": components["schemas"]["RedmineStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/redmine/lookups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RedmineLookupsItem"];
+                        "text/json": components["schemas"]["RedmineLookupsItem"];
+                        "text/plain": components["schemas"]["RedmineLookupsItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/redmine/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    project?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RedmineOverview"];
+                        "text/json": components["schemas"]["RedmineOverview"];
+                        "text/plain": components["schemas"]["RedmineOverview"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/redmine/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    project?: number;
+                    status?: string;
+                    tracker?: number;
+                    priority?: number;
+                    assignee?: string;
+                    overdue?: boolean;
+                    linked?: boolean;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfRedmineIssueItem"];
+                        "text/json": components["schemas"]["PagedOfRedmineIssueItem"];
+                        "text/plain": components["schemas"]["PagedOfRedmineIssueItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/redmine/issues/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RedmineIssueDetail"];
+                        "text/json": components["schemas"]["RedmineIssueDetail"];
+                        "text/plain": components["schemas"]["RedmineIssueDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/redmine/related": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    pageId?: string;
+                    locationId?: string;
+                    hostId?: string;
+                    sensorId?: string;
+                    deep?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RedmineRelated"];
+                        "text/json": components["schemas"]["RedmineRelated"];
+                        "text/plain": components["schemas"]["RedmineRelated"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/redmine/problems": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RedmineProblemTicket"][];
+                        "text/json": components["schemas"]["RedmineProblemTicket"][];
+                        "text/plain": components["schemas"]["RedmineProblemTicket"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/redmine/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RedmineLinkRequest"];
+                    "text/json": components["schemas"]["RedmineLinkRequest"];
+                    "application/*+json": components["schemas"]["RedmineLinkRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RedmineLinkItem"];
+                        "text/json": components["schemas"]["RedmineLinkItem"];
+                        "text/plain": components["schemas"]["RedmineLinkItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/redmine/links/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RedmineLinkNoteRequest"];
+                    "text/json": components["schemas"]["RedmineLinkNoteRequest"];
+                    "application/*+json": components["schemas"]["RedmineLinkNoteRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RedmineLinkItem"];
+                        "text/json": components["schemas"]["RedmineLinkItem"];
+                        "text/plain": components["schemas"]["RedmineLinkItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/redmine/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RedmineTestResult"];
+                        "text/json": components["schemas"]["RedmineTestResult"];
+                        "text/plain": components["schemas"]["RedmineTestResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sensors": {
         parameters: {
             query?: never;
@@ -14682,6 +15107,15 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
+        PagedOfRedmineIssueItem: {
+            items: components["schemas"]["RedmineIssueItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfSensorListItem: {
             items: components["schemas"]["SensorListItem"][];
             /** Format: int32 */
@@ -14849,6 +15283,225 @@ export interface components {
             node: null | string;
             nodes: string[];
         };
+        RedmineAttachmentItem: {
+            /** Format: int32 */
+            id: number;
+            filename: string;
+            /** Format: int64 */
+            size: number;
+            contentType: null | string;
+            author: null | string;
+            /** Format: date-time */
+            createdOn: string;
+            url: string;
+        };
+        RedmineChange: {
+            field: string;
+            old: null | string;
+            new: null | string;
+        };
+        RedmineFieldItem: {
+            name: string;
+            value: string;
+        };
+        RedmineIssueDetail: {
+            /** Format: int32 */
+            id: number;
+            project: components["schemas"]["RedmineProjectItem"];
+            tracker: null | string;
+            status: string;
+            isClosed: boolean;
+            priority: null | string;
+            author: null | string;
+            assignedTo: null | string;
+            subject: string;
+            description: null | components["schemas"]["RedmineText"];
+            startDate: null | string;
+            dueDate: null | string;
+            /** Format: int32 */
+            doneRatio: null | number;
+            /** Format: double */
+            estimatedHours: null | number;
+            /** Format: date-time */
+            createdOn: string;
+            /** Format: date-time */
+            updatedOn: string;
+            /** Format: date-time */
+            closedOn: null | string;
+            isPrivate: boolean;
+            fields: components["schemas"]["RedmineFieldItem"][];
+            journals: components["schemas"]["RedmineJournalItem"][];
+            attachments: components["schemas"]["RedmineAttachmentItem"][];
+            related: components["schemas"]["RedmineRelatedItem"][];
+            links: components["schemas"]["RedmineLinkItem"][];
+            url: string;
+        };
+        RedmineIssueItem: {
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            projectId: number;
+            projectName: string;
+            tracker: null | string;
+            status: string;
+            isClosed: boolean;
+            priority: null | string;
+            subject: string;
+            assignedTo: null | string;
+            /** Format: date-time */
+            updatedOn: string;
+            dueDate: null | string;
+            url: string;
+            /** Format: int32 */
+            links: number;
+        };
+        RedmineJournalItem: {
+            /** Format: int32 */
+            id: number;
+            user: null | string;
+            /** Format: date-time */
+            createdOn: string;
+            notes: null | components["schemas"]["RedmineText"];
+            changes: components["schemas"]["RedmineChange"][];
+            private: boolean;
+        };
+        RedmineLinkedTicket: {
+            /** Format: uuid */
+            linkId: string;
+            note: null | string;
+            ticket: components["schemas"]["RedmineIssueItem"];
+        };
+        RedmineLinkItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            issueId: number;
+            kind: components["schemas"]["RedmineLinkKind"];
+            /** Format: uuid */
+            targetId: string;
+            targetName: string;
+            note: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: null | string;
+        };
+        /** @enum {unknown} */
+        RedmineLinkKind: "Page" | "Location" | "Host" | "Sensor";
+        RedmineLinkNoteRequest: {
+            note?: null | string;
+        };
+        RedmineLinkRequest: {
+            /** Format: int32 */
+            issueId?: number;
+            /** Format: uuid */
+            pageId?: null | string;
+            /** Format: uuid */
+            locationId?: null | string;
+            /** Format: uuid */
+            hostId?: null | string;
+            /** Format: uuid */
+            sensorId?: null | string;
+            note?: null | string;
+        };
+        RedmineLookupsItem: {
+            projects: components["schemas"]["RedmineProjectItem"][];
+            trackers: components["schemas"]["RedmineNamed"][];
+            statuses: components["schemas"]["RedmineStatusItem"][];
+            priorities: components["schemas"]["RedminePriorityItem"][];
+            members: components["schemas"]["RedmineNamed"][];
+        };
+        RedmineNamed: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+        };
+        RedmineOverview: {
+            /** Format: date-time */
+            asOf: string;
+            /** Format: int32 */
+            staleDays: number;
+            tiles: components["schemas"]["RedmineOverviewTiles"];
+            urgent: components["schemas"]["RedmineIssueItem"][];
+            unassigned: components["schemas"]["RedmineIssueItem"][];
+            overdue: components["schemas"]["RedmineIssueItem"][];
+            problems: components["schemas"]["RedmineIssueItem"][];
+            stale: components["schemas"]["RedmineIssueItem"][];
+            recent: components["schemas"]["RedmineIssueItem"][];
+        };
+        RedmineOverviewTiles: {
+            /** Format: int32 */
+            open: number;
+            /** Format: int32 */
+            urgent: number;
+            /** Format: int32 */
+            unassigned: number;
+            /** Format: int32 */
+            overdue: number;
+            /** Format: int32 */
+            stale: number;
+        };
+        RedminePriorityItem: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            isDefault: boolean;
+        };
+        RedmineProblemTicket: {
+            /** Format: uuid */
+            sensorId: string;
+            ticket: components["schemas"]["RedmineIssueItem"];
+        };
+        RedmineProjectItem: {
+            /** Format: int32 */
+            id: number;
+            identifier: string;
+            name: string;
+            /** Format: int32 */
+            parentId: null | number;
+            url: string;
+        };
+        RedmineRelated: {
+            own: components["schemas"]["RedmineLinkedTicket"][];
+            via: components["schemas"]["RedmineRelatedGroup"][];
+            /** Format: date-time */
+            asOf: null | string;
+        };
+        RedmineRelatedGroup: {
+            kind: components["schemas"]["RedmineLinkKind"];
+            /** Format: uuid */
+            id: null | string;
+            name: string;
+            tickets: components["schemas"]["RedmineLinkedTicket"][];
+        };
+        RedmineRelatedItem: {
+            /** Format: int32 */
+            id: number;
+            relation: string;
+            subject: null | string;
+            status: null | string;
+            isClosed: null | boolean;
+        };
+        RedmineStatus: {
+            enabled: boolean;
+            url: null | string;
+            projects: components["schemas"]["RedmineProjectItem"][];
+            error: null | string;
+        };
+        RedmineStatusItem: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            isClosed: boolean;
+        };
+        RedmineTestResult: {
+            account: string;
+            projects: components["schemas"]["RedmineProjectItem"][];
+            notFound: string[];
+        };
+        RedmineText: {
+            format: string;
+            text: string;
+        };
         Ref: {
             /** Format: uuid */
             id: string;
@@ -15002,6 +15655,7 @@ export interface components {
             sensors: components["schemas"]["SearchSensor"][];
             locations: components["schemas"]["SearchLocation"][];
             pages: components["schemas"]["SearchPage"][];
+            tickets: components["schemas"]["SearchTicket"][];
         };
         SearchSensor: {
             /** Format: uuid */
@@ -15011,6 +15665,13 @@ export interface components {
             /** Format: uuid */
             hostId: string;
             hostName: string;
+        };
+        SearchTicket: {
+            /** Format: int32 */
+            id: number;
+            subject: string;
+            status: string;
+            isClosed: boolean;
         };
         SecurityInfo: {
             defender: null | components["schemas"]["DefenderInfo"];
@@ -15715,6 +16376,8 @@ export interface components {
             timeZone?: null | string;
             totpPolicy?: null | string;
             wireGuard?: null | boolean;
+            redmine?: null | boolean;
+            zabbix?: null | boolean;
         };
         SystemSection: {
             hostname: string;

@@ -79,7 +79,7 @@ public sealed partial class SearchService(PnmtdDbContext db, LocationTree locati
                 return [];
             }
         }
-        return await db.RedmineIssues.AsNoTracking().Where(i => !i.Missing && EF.Functions.ILike(i.Subject, pattern, @""))
+        return await db.RedmineIssues.AsNoTracking().Where(i => !i.Missing && EF.Functions.ILike(i.Subject, pattern, @"\"))
             .OrderBy(i => i.IsClosed).ThenByDescending(i => i.UpdatedOn).Take(limit)
             .Select(i => new SearchTicket(i.IssueId, i.Subject, i.StatusName, i.IsClosed)).ToListAsync(ct);
     }

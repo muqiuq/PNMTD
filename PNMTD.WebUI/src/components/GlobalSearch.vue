@@ -11,15 +11,16 @@ import { useSession } from '@/stores/session'
  * The global search (§5.4), Ctrl/⌘ K: hosts and sensors by name; for User and Admin also a sensor's
  * exact write or read token, which replaces v0.12's token box on the dashboard. Locations by name
  * with their paths, and pages by number, title, summary and tag; #tag searches tags only
- * (docs/locations-knowledge-plan.md §6.7, §10.4).
+ * (docs/locations-knowledge-plan.md §6.7, §10.4). With Redmine, #1234 finds the ticket, and text the linked tickets by
+ * subject (docs/audit-redmine-zabbix-plan.md §6.6).
  */
 interface Suggestion {
-  kind: 'host' | 'sensor' | 'token' | 'location' | 'page'
+  kind: 'host' | 'sensor' | 'token' | 'location' | 'page' | 'ticket'
   id: string
   label: string
   detail: string
   icon: string
-  /** A page's number: its route is /kb/42. */
+  /** A page's or a ticket's number: their routes are /kb/42 and /redmine/issues/1234. */
   number?: number
 }
 
@@ -84,6 +85,14 @@ async function complete(event: { query: string }) {
       detail: p.tags.length ? p.tags.map((t) => `#${t}`).join(' ') : 'page',
       icon: p.sensitive ? 'pi pi-lock' : 'pi pi-book',
     })),
+    ...(result.tickets ?? []).map((t) => ({
+      kind: 'ticket' as const,
+      id: String(t.id),
+      number: t.id,
+      label: `#${t.id} · ${t.subject}`,
+      detail: t.isClosed ? `ticket, ${t.status}` : t.status,
+      icon: 'pi pi-ticket',
+    })),
   )
   suggestions.value = found
 }
@@ -94,10 +103,12 @@ async function open(event: { value: Suggestion }) {
   await router.push(
     item.kind === 'page'
       ? `/kb/${item.number}`
-      : {
-          name: item.kind === 'host' ? 'host' : item.kind === 'location' ? 'location' : 'sensor',
-          params: { id: item.id },
-        },
+      : item.kind === 'ticket'
+        ? { name: 'redmine-issue', params: { id: item.number } }
+        : {
+            name: item.kind === 'host' ? 'host' : item.kind === 'location' ? 'location' : 'sensor',
+            params: { id: item.id },
+          },
   )
   ;(document.activeElement as HTMLElement | null)?.blur()
 }

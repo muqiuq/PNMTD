@@ -38,6 +38,8 @@ import { useServerTable } from '@/composables/useServerTable'
 import { formatAbsolute, formatPercent } from '@/format'
 import { useSession } from '@/stores/session'
 import KbPanel from '@/views/kb/KbPanel.vue'
+import RedminePanel from '@/views/redmine/RedminePanel.vue'
+import SensorTicket from '@/views/redmine/SensorTicket.vue'
 import BackupsTab from './mikrotik/BackupsTab.vue'
 import MikrotikCommandsTab from './mikrotik/CommandsTab.vue'
 import UpdatesTab from './mikrotik/UpdatesTab.vue'
@@ -425,6 +427,7 @@ const more = computed(() =>
           <span class="muted type"><i :class="typeIcon(sensor.type)" /> {{ typeLabel(sensor.type) }}</span>
           <CodeTag :code="sensor.lastCode" :name="codes.nameOf(sensor.lastCode)" />
           <span v-if="sensor.state === 'Failing'" class="muted">since <SinceText :since="sensor.failingSince" /></span>
+          <SensorTicket v-if="sensor.state === 'Failing'" :sensor-id="sensor.id" />
         </template>
         <template #actions>
           <MoreMenu v-if="canWrite && more.length" :items="more" label="More actions for the sensor" />
@@ -537,6 +540,12 @@ const more = computed(() =>
         />
         <AgentTab v-else-if="tab === 'agent'" :server="agent.server.value" :can-write="canWrite" :is-admin="isAdmin" />
         <KbPanel v-if="tab === 'overview'" :sensor-id="sensor.id" :name="sensor.name" />
+        <RedminePanel
+          v-if="tab === 'overview'"
+          :sensor-id="sensor.id"
+          :name="`${sensor.host.name} / ${sensor.name}`"
+          :path="`/sensors/${sensor.id}`"
+        />
       </template>
 
       <div v-else class="two-columns">
@@ -763,6 +772,12 @@ const more = computed(() =>
           </section>
           <!-- Its pages, then its host's, the host's location's and that one's parents' (docs/locations-knowledge-plan.md §6.5). -->
           <KbPanel :sensor-id="sensor.id" :name="sensor.name" />
+          <!-- Its tickets, then those via its host and locations (docs/audit-redmine-zabbix-plan.md §6.6). -->
+          <RedminePanel
+            :sensor-id="sensor.id"
+            :name="`${sensor.host.name} / ${sensor.name}`"
+            :path="`/sensors/${sensor.id}`"
+          />
         </div>
 
         <div class="column">

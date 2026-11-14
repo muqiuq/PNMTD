@@ -175,6 +175,22 @@ export const api = {
     members: (id: Id, userIds: Id[]) =>
       call(client.PUT('/api/v1/groups/{id}/members', { params: { path: { id } }, body: { userIds } })),
   },
+  // --- Redmine (docs/audit-redmine-zabbix-plan.md §6): tickets for Redmine's View, links for its Link ------------------------
+  redmine: {
+    status: () => call(client.GET('/api/v1/redmine/status')),
+    lookups: () => call(client.GET('/api/v1/redmine/lookups')),
+    overview: (project?: number) => call(client.GET('/api/v1/redmine/overview', { params: { query: { project } } })),
+    issues: (query: ListQuery & RedmineFilters) => call(client.GET('/api/v1/redmine/issues', { params: { query } })),
+    issue: (id: number) => call(client.GET('/api/v1/redmine/issues/{id}', { params: { path: { id } } })),
+    related: (query: RedmineTarget & { deep?: boolean }) =>
+      call(client.GET('/api/v1/redmine/related', { params: { query } })),
+    problems: () => call(client.GET('/api/v1/redmine/problems')),
+    link: (body: S['RedmineLinkRequest']) => call(client.POST('/api/v1/redmine/links', { body })),
+    note: (id: Id, note: string | null) =>
+      call(client.PUT('/api/v1/redmine/links/{id}', { params: { path: { id } }, body: { note } })),
+    unlink: (id: Id) => call(client.DELETE('/api/v1/redmine/links/{id}', { params: { path: { id } } })),
+    test: () => call(client.POST('/api/v1/redmine/test')),
+  },
   rights: {
     catalog: () => call(client.GET('/api/v1/rights')),
     mine: () => call(client.GET('/api/v1/account/access')),
@@ -618,6 +634,25 @@ export const api = {
 }
 
 /** Query keys: a change invalidates its resource's prefix (and the dashboard). */
+/** Redmine's search filters (docs/audit-redmine-zabbix-plan.md §6.3). */
+export interface RedmineFilters {
+  project?: number
+  status?: 'open' | 'closed' | 'all'
+  tracker?: number
+  priority?: number
+  assignee?: string
+  overdue?: boolean
+  linked?: boolean
+}
+
+/** What a ticket can be linked to (§6.5): exactly one of them. */
+export interface RedmineTarget {
+  pageId?: Id
+  locationId?: Id
+  hostId?: Id
+  sensorId?: Id
+}
+
 /** The audit log's filters (docs/audit-redmine-zabbix-plan.md §4.2), all in the page's URL. */
 export interface AuditFilters {
   search?: string
@@ -652,6 +687,7 @@ export const keys = {
   users: ['users'] as const,
   groups: ['groups'] as const,
   rights: ['rights'] as const,
+  redmine: ['redmine'] as const,
   audit: ['audit'] as const,
   system: ['system'] as const,
   /** Everything UDP: the admin page's lists, a node's packets, commands and updates, the protocol examples. */

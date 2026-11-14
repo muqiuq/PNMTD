@@ -34,6 +34,7 @@ import { downloadText, fileSlug } from '@/format/markdown'
 import { useSession } from '@/stores/session'
 import AiTagsDialog from './AiTagsDialog.vue'
 import LinkPicker, { type LinkTarget } from './LinkPicker.vue'
+import RedminePanel from '@/views/redmine/RedminePanel.vue'
 
 /**
  * A page (docs/locations-knowledge-plan.md §6.1): its title, status, tags and a lock if sensitive; the content as read;
@@ -333,6 +334,14 @@ const more = computed(() => {
               <LinkPicker v-if="writable" class="picker" :exclude="page.links" @pick="addLink" />
             </div>
           </section>
+
+          <!-- Its tickets (docs/audit-redmine-zabbix-plan.md §6.6), next to its links. -->
+          <RedminePanel
+            :page-id="page.id"
+            :name="`${kbNumber(page.number)} ${page.title}`"
+            :path="`/kb/${page.number}`"
+            own-only
+          />
 
           <section v-if="attachments.length" class="panel" aria-labelledby="kb-files-title">
             <div id="kb-files-title" class="panel-header">Attachments</div>

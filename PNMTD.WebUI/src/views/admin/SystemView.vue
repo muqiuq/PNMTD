@@ -9,10 +9,12 @@ import RelativeTime from '@/components/RelativeTime.vue'
 import StatusBadge, { type Status } from '@/components/StatusBadge.vue'
 import { formatDuration } from '@/format'
 import { useSession } from '@/stores/session'
+import IntegrationsPanel from './IntegrationsPanel.vue'
 
 /**
  * System health (§5.6), new in 1.0: every background task's last run against its interval, the
- * uplink check, the UDP listener (docs/udp-iot-plan.md §6.7), and what this instance is.
+ * uplink check, the UDP listener (docs/udp-iot-plan.md §6.7), the integrations (docs/audit-redmine-zabbix-plan.md §6.1),
+ * and what this instance is.
  */
 const session = useSession()
 const tasks = useQuery({ queryKey: [...keys.system, 'tasks'], queryFn: api.system.tasks, refetchInterval: 15_000 })
@@ -127,6 +129,7 @@ const info = computed(() => session.info)
           </dl>
           <div v-else-if="udp.isError.value" class="panel-body muted">Could not load the listener's state.</div>
         </section>
+        <IntegrationsPanel />
         <section class="panel" aria-labelledby="instance-title">
           <div id="instance-title" class="panel-header">Instance</div>
           <dl v-if="info" class="panel-body facts">

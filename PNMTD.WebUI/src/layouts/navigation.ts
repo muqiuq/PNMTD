@@ -7,6 +7,8 @@ export interface NavItem {
   name: string
   /** What its page needs (docs/audit-redmine-zabbix-plan.md §10.1); without, every signed-in user's. */
   right?: Right
+  /** An integration's page: only while it is configured (§10.1). */
+  feature?: 'redmine' | 'zabbix'
 }
 
 export interface NavGroup {
@@ -60,6 +62,20 @@ export const navigation: NavGroup[] = [
     // The knowledge base (docs/locations-knowledge-plan.md §10.1).
     label: 'Knowledge',
     items: [{ label: 'Knowledge base', icon: 'pi pi-book', to: '/kb', name: 'kb', right: ['KnowledgeBase', 'View'] }],
+  },
+  {
+    // Redmine and Zabbix (docs/audit-redmine-zabbix-plan.md §10.1): each only when configured.
+    label: 'Integrations',
+    items: [
+      {
+        label: 'Redmine',
+        icon: 'pi pi-ticket',
+        to: '/redmine',
+        name: 'redmine',
+        right: ['Redmine', 'View'],
+        feature: 'redmine',
+      },
+    ],
   },
   {
     label: 'Admin',
@@ -128,8 +144,14 @@ export const navigation: NavGroup[] = [
   },
 ]
 
-export function visibleNavigation(allows: (right: Right) => boolean): NavGroup[] {
+export function visibleNavigation(
+  allows: (right: Right) => boolean,
+  configured: (feature: 'redmine' | 'zabbix') => boolean = () => true,
+): NavGroup[] {
   return navigation
-    .map((g) => ({ ...g, items: g.items.filter((i) => !i.right || allows(i.right)) }))
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((i) => (!i.right || allows(i.right)) && (!i.feature || configured(i.feature))),
+    }))
     .filter((g) => g.items.length > 0)
 }
