@@ -77,6 +77,35 @@ public sealed class DevSeedTests
         CollectionAssert.AreEqual(
             new[] { "backup-srv/backup", "backup-srv/disk /", "fw-01/ping", "web-03/cert", "web-03/http", "web-03/load" }, failing);
         Assert.IsTrue(await db.MailLogs.AllAsync(m => m.Processed), "the mail task must find nothing to do");
+        // Locations and the knowledge base (docs/locations-knowledge-plan.md K7), which the browser tests use: two sites, one with two
+        // sub-locations and a level below; hosts assigned, and others with only their texts for From the hosts' texts…
+        Assert.AreEqual(5, await db.Locations.CountAsync());
+        Assert.AreEqual(2, await db.Locations.CountAsync(l => l.ParentId == null));
+        Assert.IsTrue(await db.Locations.AnyAsync(l => l.Name == "Rack B4" && l.Parent!.Name == "Cage B" && l.Parent.Parent!.Name == "Zurich DC"));
+        Assert.IsGreaterThanOrEqualTo(20, await db.Hosts.CountAsync(h => h.LocationId != null));
+        Assert.IsTrue(await db.Hosts.AnyAsync(h => h.LocationId == null && h.Location == "Lugano office"), "a text for From the hosts' texts…");
+        // The typical fields with values: Markdown, inherited, sensitive, and one overridden in a sub-location.
+        Assert.IsGreaterThanOrEqualTo(12, await db.LocationFields.CountAsync());
+        Assert.IsTrue(await db.LocationValues.AnyAsync(v => v.Field!.Sensitive && v.Value != null));
+        Assert.IsTrue(await db.LocationValues.AnyAsync(v => v.Field!.Inherited && db.Locations.Any(l => l.Id == v.LocationId && l.ParentId != null)),
+            "an inherited field overridden");
+        // About twenty pages: statuses, one sensitive and one archived, revisions with notes, links, views over the last 30 days.
+        Assert.IsGreaterThanOrEqualTo(20, await db.KbPages.CountAsync());
+        Assert.AreEqual(1, await db.KbPages.CountAsync(p => p.Sensitive));
+        Assert.AreEqual(1, await db.KbPages.CountAsync(p => p.ArchivedAt != null));
+        Assert.AreEqual(3, await db.KbPages.Select(p => p.Status).Distinct().CountAsync());
+        Assert.IsGreaterThanOrEqualTo(10, await db.KbRevisions.CountAsync(r => r.Number > 1 && r.Note != null));
+        Assert.IsTrue(await db.KbLinks.AnyAsync(l => l.SensorId != null) && await db.KbLinks.AnyAsync(l => l.LocationId != null));
+        Assert.IsTrue(await db.KbPageRefs.AnyAsync(), "pages linking pages");
+        Assert.IsGreaterThan(10, await db.KbPageViews.Select(v => v.Day).Distinct().CountAsync());
+        Assert.IsTrue(await db.KbPages.AnyAsync(p => p.Content.Contains("```mermaid")));
+        // An image on a page and one on a location, an attachment: through the store, so they are in the files folder.
+        var files = await db.Files.ToListAsync();
+        Assert.AreEqual(2, files.Count(f => f.Kind == Models.Db.FileKind.Image));
+        Assert.AreEqual(1, files.Count(f => f.Kind == Models.Db.FileKind.Attachment));
+        var folder = Environment.GetEnvironmentVariable("KnowledgeBase__FilesPath")!;
+        Assert.IsTrue(files.All(f => new FileInfo(Path.Combine(folder, f.Path)).Length == f.Size), "the files on disk");
+        Assert.AreEqual(files.Count, await db.FileUses.Select(u => u.FileId).Distinct().CountAsync(), "every file used");
 
         Assert.AreEqual(1, DevSeedCommand.Run(["seed"], () => Data.PnmtdDbContext.Create(connection), NullLogger.Instance),
             "only into a database without hosts");

@@ -6,7 +6,8 @@
 #   ./start.sh                     build and (re)start: http://localhost:7327/pnmt-admin/
 #   WEB=dev ./start.sh             also Vite with HMR: http://localhost:5173/pnmt-admin/, edits of
 #                                  PNMTD.WebUI are live (/api, /event and /read go to the app)
-#   SEED=1 ./start.sh              on an empty database: demo data (50 hosts, 300 sensors, 90 days)
+#   SEED=1 ./start.sh              on an empty database: demo data (50 hosts, 300 sensors, 90 days, locations and
+#                                  knowledge base pages, their files in FILES_DIR)
 #   LEGACY_DIR=~/pnmt/pnmtd-data ./start.sh
 #                                  on an empty database: import that v0.12 data folder (its pnmtd.db),
 #                                  as the real upgrade does; the folder is mounted read-only
@@ -189,11 +190,21 @@ if [[ -n "$LEGACY_DIR" ]] && [[ "$hosts" == "0" || "$IMPORT" != "0" ]]; then
   imported=1
 fi
 
+# The uploaded files (docs/locations-knowledge-plan.md §8.5): a folder, not a volume, as deployed. Podman on macOS shares
+# /Users, where the repository lies, and the app's user writes there as it is; on Linux the folder is given to it (uid 1654).
+# Before the seed, whose image and attachment go there.
+mkdir -p "$FILES_DIR"
+files_abs="$(cd "$FILES_DIR" && pwd)"
+if [[ "$(uname -s)" == Linux ]]; then
+  "$ENGINE" run --rm --user 0 --entrypoint sh -v "${files_abs}:/files" "$IMAGE" -c 'chown 1654:1654 /files && chmod 0750 /files' >/dev/null 2>&1 \
+    || echo "Could not give ${FILES_DIR} to the app's user (uid 1654): uploads may fail." >&2
+fi
+
 seeded=0
 if [[ "$SEED" != "0" && "$imported" == "0" ]]; then
   if [[ "$hosts" == "0" ]]; then
     echo "Seeding demo data…"
-    pnmtd -e ASPNETCORE_ENVIRONMENT=Development "$IMAGE" dev seed >"$scratch/seed.log" 2>&1 \
+    pnmtd -e ASPNETCORE_ENVIRONMENT=Development -v "${files_abs}:/var/lib/pnmtd/files" "$IMAGE" dev seed >"$scratch/seed.log" 2>&1 \
       || { cat "$scratch/seed.log" >&2; die "The seed failed."; }
     seeded=1
   else
@@ -212,14 +223,6 @@ downloads=(-v "${DOWNLOADS_VOLUME}:/var/lib/pnmtd/downloads")
 if [[ -n "$AGENT_FILES" ]]; then
   [[ -d "$AGENT_FILES" ]] || die "AGENT_FILES=${AGENT_FILES} is not a folder."
   downloads=(-v "$(cd "$AGENT_FILES" && pwd):/var/lib/pnmtd/downloads:ro")
-fi
-# The uploaded files (docs/locations-knowledge-plan.md §8.5): a folder, not a volume, as deployed. Podman on macOS shares
-# /Users, where the repository lies, and the app's user writes there as it is; on Linux the folder is given to it (uid 1654).
-mkdir -p "$FILES_DIR"
-files_abs="$(cd "$FILES_DIR" && pwd)"
-if [[ "$(uname -s)" == Linux ]]; then
-  "$ENGINE" run --rm --user 0 --entrypoint sh -v "${files_abs}:/files" "$IMAGE" -c 'chown 1654:1654 /files && chmod 0750 /files' >/dev/null 2>&1 \
-    || echo "Could not give ${FILES_DIR} to the app's user (uid 1654): uploads may fail." >&2
 fi
 # As hardened as in deploy/docker-compose.yml, so what fails there fails here first.
 "$ENGINE" run -d --name "$NAME" --hostname "$NAME" --network "$NETWORK" \

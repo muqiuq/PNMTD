@@ -34,7 +34,8 @@ namespace PNMTD.Cli
               users set-role <name> <admin|user|viewer>
 
               dev seed                              Development only: demo data (50 hosts, 300 sensors,
-                                                    90 days of events, UDP nodes) into a database without hosts
+                                                    90 days of events, UDP nodes, locations, knowledge base
+                                                    pages and their files) into a database without hosts
 
             """ + UdpCommand.Usage + "\n" + MikrotikCommand.Usage + "\n" + WireGuardCommand.Usage + "\n" + AgentCommand.Usage + """
 

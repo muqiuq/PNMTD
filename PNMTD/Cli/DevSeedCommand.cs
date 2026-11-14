@@ -15,7 +15,8 @@ namespace PNMTD.Cli;
 /// <summary>
 /// `pnmtd dev seed` (docs/webui-migration-plan.md §6.2): demo data for `SEED=1 ./start.sh` and the
 /// browser tests, at the dashboard's scale (§5.5): 50 hosts, 300 sensors, 90 days of events, and
-/// 6 sensors failing now in 3 hosts. Five of the sensors are MikroTik routers (DevSeedMikrotik). Development only, and only into a database without hosts.
+/// 6 sensors failing now in 3 hosts. Five of the sensors are MikroTik routers (DevSeedMikrotik); locations and the knowledge base
+/// come last (DevSeedKnowledge), their files into KnowledgeBase:FilesPath. Development only, and only into a database without hosts.
 /// <list type="bullet">
 /// <item>Stable while the stack runs: pings go to 127.0.0.1 (one to a TEST-NET address that never
 ///   answers, as a failure should), heartbeats are daily, DNS zones are due tomorrow.</item>
@@ -64,8 +65,9 @@ internal static class DevSeedCommand
             Console.WriteLine(generated is null ? $"Created the first admin {admin.Username} with Auth:InitialAdmin:Password."
                 : $"Created the first admin {admin.Username} with the password {generated}. Change it at the first sign-in.");
         }
-        var counts = Seed(db);
-        Console.WriteLine($"Seeded {counts.Hosts} hosts, {counts.Sensors} sensors, {counts.Events:N0} events.");
+        var counts = Seed(db, database, configuration ?? new ConfigurationBuilder().AddEnvironmentVariables().Build());
+        Console.WriteLine($"Seeded {counts.Hosts} hosts, {counts.Sensors} sensors, {counts.Events:N0} events; {counts.Knowledge.Locations} locations, "
+            + $"{counts.Knowledge.Pages} knowledge base pages, {counts.Knowledge.Files} files.");
         return 0;
     }
 
@@ -141,7 +143,8 @@ internal static class DevSeedCommand
         ("app-02", "load", TimeSpan.FromHours(20), TimeSpan.FromMinutes(35)),
     ];
 
-    private static (int Hosts, int Sensors, long Events) Seed(PnmtdDbContext db)
+    private static (int Hosts, int Sensors, long Events, DevSeedKnowledge.Counts Knowledge) Seed(PnmtdDbContext db, Func<PnmtdDbContext> database,
+        IConfiguration configuration)
     {
         var random = new Random(42);
         var now = Clock.UtcNow;
@@ -211,7 +214,8 @@ internal static class DevSeedCommand
             db.SetKeyValueEntryByEnum(key, now.ToString("o", CultureInfo.InvariantCulture));
         }
         db.Database.ExecuteSqlRaw("ANALYZE events");
-        return (hosts.Count, counter, events);
+        var knowledge = DevSeedKnowledge.Seed(database, configuration, hosts, now);
+        return (hosts.Count, counter, events, knowledge);
     }
 
     /// <summary>
