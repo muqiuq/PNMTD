@@ -4,7 +4,7 @@
 |---|---|
 | Status | **Revision 7: changes to package nine, planned** (§20). **Package nine (A and B) is built** (§19, §19.8). Package nine point five is planned only. **Two packages: nine (Cookie watches) and nine point five (Cookie acts), §3.4.** The models are in §14, the big brother in §15, the review's answers in §16, the critical review in §17, and its answers in §18. The default prompts are in docs/cookie-prompts.md |
 | Date | 2026-11-14 |
-| Revision | 7: **changes to package nine** (§20):<ul><li>**a person can stop a case, with a comment,** and anyone may comment on a case (§4.3);</li><li>**the dashboard's card in Cookie's window** too (§9.2);</li><li>**contact details on the user:** e-mail, Pushover key, Redmine user (§8.1);</li><li>**the availability plan,** a page of its own: per day, who is responsible in working hours and in off hours, with a fallback per day and a global one, and everyone's availability. It replaces *who gets what*, Cookie's working hours and people's quiet hours (§8.2, §8.3, §9.4)</li></ul>6: **package nine is built** (§19, As built §19.8), and **Cookie and MCP** (§3.5): one set of read tools, built here, called directly by Cookie and offered over MCP by package eight.<br>5: **the critical review's answers applied** (§18):<ul><li>**two packages** (§3.4);</li><li>**Admin → Cookie** sets almost everything: working hours, who gets notified, output limits, case instructions, and prompts that ship with defaults (§9.3, docs/cookie-prompts.md);</li><li>**output limits in code** (§6.1);</li><li>**Seraph only on what leaves PNMT or reaches people** (§5);</li><li>**mute, away and suppress as objects** (§10.3);</li><li>**the trace by rights** (§9.2);</li><li>**privacy: `Code` by default, people only** (§13.2);</li><li>**the ticket clock** (§7.2).</li></ul>4: **a critical review** (§17), from two independent reads, with 18 questions on what to change (§18). The big brother cost in §15.5 is corrected.<br>3: **the big brother** (§15): **two models**, Kimi K3.1 Pro as the primary and a proposed backup, compared with the Claude, Gemini and OpenAI models. Each call picks one at random. Cookie asks for a solution when something important needs fixing and nobody is taking care of it. And a correction in §14.2 (Terminal-Bench, not SRE Bench).<br>2: **the review applied** (§16):<ul><li>working hours per weekday, plus holidays with their own hours (§7.3);</li><li>after a restart, Cookie resumes;</li><li>*AI every time* mail rules go to Cookie (§12);</li><li>temporary instructions, for whoever has the right *Cookie: Instruct* (§10);</li><li>package eight's tool for talking to the AI sends a message to Cookie;</li><li>escalations go to a PNMT group.</li></ul>1: the first draft, with the model research (§14) |
+| Revision | 7: **changes to package nine** (§20):<ul><li>**a person can stop a case, with a comment,** and anyone may comment on a case (§4.3);</li><li>**the dashboard's card in Cookie's window** too (§9.2);</li><li>**on the user:** e-mail, Pushover key, Redmine user, and for the plan a short code, a colour and a default week (§8.1);</li><li>**the availability plan,** a page of its own, after the team's Excel plan: a row per day with the responsible, the fallback and a comment, count columns, and each person's availability by type, always filled for 365 days ahead. **It is the base for Cookie's decisions about people,** and replaces *who gets what*, Cookie's working hours and people's quiet hours (§8.2 to §8.4, §9.4)</li></ul>6: **package nine is built** (§19, As built §19.8), and **Cookie and MCP** (§3.5): one set of read tools, built here, called directly by Cookie and offered over MCP by package eight.<br>5: **the critical review's answers applied** (§18):<ul><li>**two packages** (§3.4);</li><li>**Admin → Cookie** sets almost everything: working hours, who gets notified, output limits, case instructions, and prompts that ship with defaults (§9.3, docs/cookie-prompts.md);</li><li>**output limits in code** (§6.1);</li><li>**Seraph only on what leaves PNMT or reaches people** (§5);</li><li>**mute, away and suppress as objects** (§10.3);</li><li>**the trace by rights** (§9.2);</li><li>**privacy: `Code` by default, people only** (§13.2);</li><li>**the ticket clock** (§7.2).</li></ul>4: **a critical review** (§17), from two independent reads, with 18 questions on what to change (§18). The big brother cost in §15.5 is corrected.<br>3: **the big brother** (§15): **two models**, Kimi K3.1 Pro as the primary and a proposed backup, compared with the Claude, Gemini and OpenAI models. Each call picks one at random. Cookie asks for a solution when something important needs fixing and nobody is taking care of it. And a correction in §14.2 (Terminal-Bench, not SRE Bench).<br>2: **the review applied** (§16):<ul><li>working hours per weekday, plus holidays with their own hours (§7.3);</li><li>after a restart, Cookie resumes;</li><li>*AI every time* mail rules go to Cookie (§12);</li><li>temporary instructions, for whoever has the right *Cookie: Instruct* (§10);</li><li>package eight's tool for talking to the AI sends a message to Cookie;</li><li>escalations go to a PNMT group.</li></ul>1: the first draft, with the model research (§14) |
 | Scope | Package nine of docs/ideas2.md: Cookie (the assistant loop), Seraph (the reviewer), the big brother, the privacy filter, the decision log with feedback, and Cookie's three pages. **Built as two packages** (§3.4): **nine**, the bookkeeping in code and Cookie watching, and **nine point five**, Cookie acting |
 | Non-goals | **Deleting or changing anything** (Cookie only adds things). **Cookie changing its own configuration.** **Access to server consoles** (package ten). **Replacing notification rules:** they keep running whether Cookie is there or not. Training or fine-tuning |
 | Depends on | Package one's AI foundation (`PNMTD/Ai/`: provider, Jev, request log, budget, decisions inbox). Five point five (groups and rights, audit with `Actor = Cookie / Seraph`). Six and seven (Redmine, Zabbix). **Not on eight:** Cookie comes first and builds the read tools that package eight's MCP server will offer (§3.5) |
@@ -67,7 +67,7 @@
 | R20 | Per case, a person tells Cookie not to go on with it, and leaves a comment (revision 7) | §4.3 |
 | R21 | The summary on the dashboard is in Cookie's window too (revision 7) | §9.2 |
 | R22 | The Pushover key, the Redmine user name and the e-mail address are set on the user, not under Cookie (revision 7) | §8.1 |
-| R23 | An availability plan, its own admin page: per day of the year, who gets the messages in working hours and in off hours, and a global fallback. Columns: date, weekday (2 letters), day responsible, fallback responsible, off-hours responsible. Everyone sets their own availability, of types set in the plan's settings (revision 7) | §8.2, §9.4 |
+| R23 | An availability plan, its own admin page, like the team's Excel plan: one row per day with the responsible, the fallback and a comment, count columns, and each person's availability, always filled for the next 365 days, with a button that fills it. Types with checkboxes (vacation, holiday, on site, work travel, home office, compensation) and a default. On the user: a short code of 3 letters, a colour, and the days they usually work. Everyone edits their own availability; some may edit everything. A table to scroll into the past and the future, with a button for today. **The base for Cookie's decisions about people** (revision 7) | §8.1, §8.2, §8.4, §9.4 |
 
 ---
 
@@ -251,7 +251,7 @@
 | Status and personal summaries on the dashboard | Only what the reader may see (§8) | Auto |
 | Reply in Cookie's window | Within the asker's rights (§10) | Auto |
 | A note on a host, sensor or location | Add only | Auto |
-| **Pushover** to a person | Only when **very urgent**. Only PNMT users with a Pushover key. At most 3 per person per day. Outside working hours only to whoever is responsible then (§8.3) | Auto |
+| **Pushover** to a person | Only when **very urgent**. Only PNMT users with a Pushover key. At most 3 per person per day. Only in working hours (§8.3) | Auto |
 | **E-mail** to a person | Urgent or important. Only PNMT users' own addresses | Auto |
 | **Create a Redmine ticket** | §7.1. **Never while an open ticket is linked to the case.** At most N per day. Needs the separate write key (audit plan §8.7) | Propose |
 | **Add a note to a Redmine ticket** | A private note to staff (reminders) or **a public answer** (§7.2) | Private: Auto · Public: Propose |
@@ -326,71 +326,113 @@
 
 ### 7.3 Working hours and holidays
 
-- **The working hours come from the availability plan** (§8.2, revision 7). Each weekday has default hours: one or more from–to periods, or *closed*.
-- **A day of the plan can have other hours:** *closed*, or special hours (for example 24 Dec, 08:00–12:00). That is how a holiday is entered, with its name, and its hours replace the weekday's.
+- **The working hours and holidays are in the availability plan's settings** (§8.2, revision 7). Each weekday has one or more from–to periods, or is *closed*.
+- **Holidays are a list of dates, each with its own hours:** *closed*, or special hours (for example 24 Dec, 08:00–12:00). A holiday's hours replace that weekday's hours. Closed days are greyed in the plan.
 - **The 4 hours of §7.2 count only working hours.** A ticket that arrives on Friday at 16:00, with hours of 08:00–17:00, is due on Monday at 11:00.
 - **The 14 days count calendar days.** A reminder or escalation that falls outside working hours goes out when the next working period begins.
-- **The hours are set in the availability plan** (§9.4), in PNMT's time zone. **There are no personal quiet hours any more:** outside working hours, only whoever is responsible then is reached (§8.3).
+- **Everything is in PNMT's time zone.** **There are no personal quiet hours any more:** outside working hours, Cookie reaches nobody (§8.3).
 
 ---
 
 ## 8. People, relevance and summaries
 
-### 8.1 Contact details on the user
+### 8.1 The user: contact details, short code and colour
 
-**Revision 7: a person's contact details are on their PNMT user, not under Cookie.** Cookie, its duties, and anything else in PNMT that writes to a person use them.
+**Revision 7: what belongs to a person is on their PNMT user, not under Cookie.** Cookie, its duties, the availability plan, and anything else in PNMT that names or reaches a person use it.
 
-- **Each user has:**
+- **Contact details:**
   - **an e-mail address;**
   - **a Pushover user key;**
   - **a Redmine user:** the name Redmine shows on tickets, which is how an assignee is found.
-- **Each user sets their own e-mail address and Pushover key** on *Account*, with *Send a test*. **Admins set all three** on *Admin → Users*. **Only admins set the Redmine user,** because it decides whose tickets' reminders a person gets.
+- **For the availability plan** (§8.2):
+  - **takes part:** the user has a column in the plan;
+  - **a short code** of 3 letters, unique (*NME*), and **a colour.** The plan shows the person by them everywhere: in the column's header, and as responsible or fallback;
+  - **the default week:** for each weekday, whether the person usually works, and with which type when it isn't the default (for example *HOME* on Fridays). The fill uses it.
+- **Who sets what:**
+  - each user sets their own e-mail address and Pushover key on *Account*, with *Send a test*;
+  - admins set everything on *Admin → Users*, and *Availability: Manage* sets the plan's fields on the plan's *People* tab;
+  - **only admins set the Redmine user,** because it decides whose tickets' reminders a person gets.
 - **The notification rules keep their own recipients** (`pushover://…`, addresses), and don't change.
 
 ### 8.2 The availability plan
 
-**Who gets Cookie's messages, and when, is one plan:** *Admin → Availability plan*, a page of its own (§9.4). It replaces Cookie's recipient rules by scope, its *Working hours* tab and people's quiet hours (revision 7).
+**The availability plan is the base for Cookie's decisions about people** (revision 7): who is responsible, who works, and where. It is *Admin → Availability plan*, a page of its own (§9.4). It follows the Excel plan the team uses today, and replaces Cookie's recipient rules, its *Working hours* tab and people's quiet hours.
 
-- **One row for each day of the year:**
+- **A table with one row per day.** It scrolls into the past and the future, and **Today** jumps back:
 
-  | Date | Weekday | Day responsible | Fallback responsible | Off-hours responsible |
-  |---|---|---|---|---|
-  | 2026-12-23 | We | Anna | Ben | Carla |
-  | 2026-12-24 | Th | Ben | Anna | Carla |
+  | Day | Date | Responsible | Fallback | Comment | Infra on site | Remote | … | OAR | RSO | … | NME | LMA |
+  |---|---|---|---|---|---|---|---|---|---|---|---|---|
+  | Tu | 17.11.2026 | NME | LMA | | 3 | 0 | | ANWE | ANWE | | ANWE | ANWE |
+  | We | 18.11.2026 | LMA | PAL | | **1** | 3 | | EXTN | HOME | | UNAV | ANWE |
+  | Sa | 21.11.2026 | | | | | | | | | | | |
 
-  The date cell also shows the day's working hours, and a day with other hours than its weekday (a holiday) is marked with its name.
-- **The day's working hours** come from the defaults per weekday (for example Mo–Fr 08:00–17:00), and one day's can be changed: *closed*, or other hours (§7.3). **The rest of the day is off hours.** A closed day, such as a Sunday or a holiday, is off hours all day.
-- **Who is responsible at a moment:**
-  1. in working hours, the day responsible; in off hours, the off-hours responsible;
-  2. if that person is away (below), or nobody is set: **the day's fallback responsible;**
-  3. if the fallback is away or not set too: **the global fallback,** a user or a PNMT group from the plan's settings;
-  4. if nobody is left, the message is held back in the outbox as *nobody to reach*, and the plan flags the day.
-- **Everyone sets their own availability** (*My availability*): from a date to a date, all day or certain hours, a type and a note. The plan's managers set it for anyone.
-- **The availability types are set in the plan's settings.** Each type has:
-  - a name, a two-letter code and a colour;
-  - **reachable or away:** *Home office* is reachable, *Vacation*, *Sick* and *Training* are away;
-  - **whether others see it:** the type, or only *away*.
-  
-  **An absence can be a health matter.** So *Sick* shows as *away* to everyone except the person and the plan's managers, and the note is only for them.
-- **A person who is away gets nothing from Cookie or its duties:**
-  - a responsible's messages go to the next one in the list above;
-  - an assignee's reminders go to the project's escalation group (§7.2);
-  - members of a group who are away are skipped.
-- **The plan shows the gaps:** a day whose responsible is away is marked, with who stands in, and a day where nobody would be reached is flagged.
-- **Many days are set at once:** select the days, then set a column. Every change is in the audit log.
-- **Code reads the plan; Cookie doesn't route.** Cookie's brief only says who is responsible now, as a placeholder. It never says why anyone is away.
+  - **Responsible and fallback:** one person each, by their code and colour;
+  - **a comment** for the day;
+  - **the count columns** (below);
+  - **one column per person taking part,** with the day's availability type, by its code and colour.
+
+  **Weekends and closed holidays are greyed,** and need nothing.
+- **The availability types are set in the plan's settings.** Each type has a name, a short code (*ANWE*, *HOME*, *VACA*, *UNAV*, *EXTN*, *KOMP*), a colour, and **what it means, as checkboxes:** *vacation*, *holiday*, *on site*, *work travel*, *home office*, *compensation*.
+  - **Several can be checked, and nothing checks them against each other:** *vacation* with *holiday* is fine. A type with none checked, such as *UNAV*, means not working.
+  - **One type is the default** (*ANWE*), and **one is for the days a person doesn't work** (*UNAV*).
+- **Who works:** a person works on a day when its type is checked *on site*, *work travel* or *home office*, and none of *vacation*, *holiday* or *compensation*. Code reads the checkboxes, never the names.
+- **The count columns** count the people of a day by the checkboxes. For each one the settings have:
+  - a name, such as *Infra on site*, *In office* or *Remote*;
+  - which checkboxes count, any of them: *home office* or *work travel* for *Remote*, for example;
+  - which people count: everyone, or a PNMT group;
+  - **a minimum,** if wanted. Below it the cell turns red, as the 1 on 18.11. does in the Excel plan;
+  - whether it is shown.
+- **The plan is always filled for the next 365 days:**
+  - **Fill** writes every empty working day from each person's default week (§8.1). It writes the weekday's type on the days they work and the type for days off on the others;
+  - **a nightly task fills the day that newly comes into reach,** so the plan never runs short;
+  - **the fill never overwrites what a person set.** *Fill again*, after a default week changed, replaces only what the fill wrote.
+- **Who edits:**
+  - **everyone taking part edits their own column,** from today on;
+  - ***Availability: Edit*** edits everything: every column, the past, the responsible, the fallback and the comments;
+  - ***Availability: Manage*** sets the settings and the people.
+
+  Every save is in the audit log.
+- **The working hours and holidays are in the settings too** (§7.3). The ticket clocks count them.
+- **Who is responsible**, in working hours:
+  1. the day's responsible, if they work that day;
+  2. otherwise the day's fallback, if they work;
+  3. otherwise **the global fallback,** a user or a PNMT group from the settings;
+  4. if nobody is left, the message is held back in the outbox as *nobody to reach*.
+- **The plan warns in red:**
+  - a responsible or fallback who doesn't work that day;
+  - a working day without a responsible;
+  - a count below its minimum;
+  - an empty cell within the next 365 days.
 
 ### 8.3 Who gets what
 
-- **What concerns a case without a person of its own goes to whoever is responsible at that moment** (§8.2). In package nine, that is a missed deadline. In nine point five, it is also Cookie's own messages about problems.
+- **What concerns a case without a person of its own goes to whoever is responsible** (§8.2). In package nine, that is a missed deadline. In nine point five, it is also Cookie's own messages about problems.
 - **A ticket's messages:**
-  - **a reminder** goes to the assignee, found by their Redmine user (§8.1). It goes to the project's escalation group when nobody is assigned, or when the assignee is away or isn't a PNMT user;
-  - **a missed deadline** goes to the assignee, the escalation group and whoever is responsible then;
+  - **a reminder** goes to the assignee, found by their Redmine user (§8.1). It goes to the project's escalation group when nobody is assigned, or when the assignee doesn't work that day or isn't a PNMT user;
+  - **a missed deadline** goes to the assignee, the escalation group and whoever is responsible;
   - **a project without an escalation group** has whoever is responsible stand in for it.
+- **Members of a group who don't work that day are skipped.**
 - **The channel follows the urgency:** *important* by e-mail, *urgent* by e-mail and Pushover, each only when the person has an address or a key.
-- **Outside working hours, only whoever is responsible then is reached.** Everything else waits for the next working period.
+- **Only in working hours.** Outside them, Cookie reaches nobody, and its messages wait for the next working period. **PNMT's notification rules still alert at any hour.** The plan has no off-hours column. If Cookie is to wake someone at night, one comes back.
 
-### 8.4 Summaries and the status
+### 8.4 What Cookie does with the plan
+
+- **Code routes** (§8.3). **Cookie reads the plan to judge and to explain.**
+- **Its brief has today's staffing:**
+  - who is responsible, and the fallback;
+  - who works, and where: on site, travelling, at home;
+  - the counts below their minimum;
+  - the day's comment.
+
+  **People are placeholders** (`PERSON_n`), never their codes, and the codes in the comment are replaced as well.
+- **A read tool, `availability_get`,** gives Cookie a range of days in the same form, for questions such as "who is on site tomorrow?". It needs *Availability: View* in Cookie's group.
+- **What Cookie does with it:**
+  - **in its status and the summaries:** "you are responsible today", "the responsible is on vacation, the fallback stands in", "only 1 on site on Wednesday". **The code's status says *Info* when a count is below its minimum today, or nobody responsible works;**
+  - **for a problem that needs hands on site** (a host that is off, a broken disk): it names who is on site, in its note and in the chat;
+  - **in nine point five:** it proposes a message to someone on site, through Seraph and the limits.
+- **Cookie never changes the plan.**
+
+### 8.5 Summaries and the status
 
 - **"Needs you" comes from code:** the tickets assigned to the reader, and the open problems while the reader is responsible (§8.2).
 - **For the summaries, Cookie also uses** Redmine assignees and watchers, each person's rights, the interests people set themselves (locations, hosts, topics), and what they have already seen.
@@ -447,24 +489,24 @@
 
 ### 9.4 Admin → Availability plan
 
-**A page of its own in the admin menu** (revision 7), for the plan of §8.2. Cookie uses it, and nothing in it is Cookie's: it works the same whether Cookie runs or not.
+**A page of its own in the admin menu** (revision 7), for the plan of §8.2. It works whether Cookie is enabled or not; Cookie and its duties are what use it so far.
 
 | Tab | What is there |
 |---|---|
-| **Plan** | The days of a year, from today: date, weekday, day responsible, fallback responsible, off-hours responsible, and the day's hours. Select days and set a column. A responsible who is away is marked, with who stands in, and a day where nobody would be reached is flagged |
-| **Availability** | Everyone's availability, people by days. The types show as §8.2 allows, otherwise as *away* |
-| **Settings** | **The availability types** (§8.2), **the working hours for each weekday**, and **the global fallback** |
+| **Plan** | **The table of §8.2, like a spreadsheet:**<ul><li>the header and the first columns stay in place;</li><li>it scrolls into the past and the future, loading as it goes;</li><li>**Today** jumps back, and today's row is marked;</li><li>click a cell to pick a type, or type its code;</li><li>select several cells to set them at once;</li><li>**Fill** and *Fill again*;</li><li>the warnings of §8.2 in red</li></ul> |
+| **People** | Who takes part and in which order, with their short code, colour and default week (§8.1) |
+| **Settings** | **The availability types** with their checkboxes, the default and the type for days off; **the count columns**; **the working hours and holidays**; **the global fallback** |
 
-- ***My availability*** is under *Account*, for every user, and needs no right.
+- **The menu entry shows for everyone taking part,** who opens the plan without a right and edits their own column there, and for *Availability: View*.
 - **A new area *Availability*:**
 
   | Level | What it allows |
   |---|---|
-  | **View** | The plan and who is away, without the types and notes others may not see |
-  | **Edit** | View, plus setting the responsibles and a day's hours |
-  | ***Manage*** | Edit, plus the settings, and everyone's availability with its types and notes |
+  | **View** | The plan |
+  | **Edit** | View, plus every column, the past, the responsible, the fallback, the comments, and *Fill* for everyone |
+  | ***Manage*** | Edit, plus *People* and *Settings* |
 
-  Admins have every level. No group has them until an admin gives them.
+  Admins have every level. No group has them until an admin gives them. **Cookie's group needs *View*** for Cookie to read the plan (§8.4).
 
 ## 10. Talking to Cookie and Seraph
 
@@ -501,7 +543,7 @@ Cookie gets its own area in the groups-and-rights model of five point five (audi
 | Object | What it does | Example |
 |---|---|---|
 | **Mute** | No messages, tickets or big brother calls for a host, a sensor, a location or a case. Cases still open and are still shown | "Ignore host X this weekend" |
-| ~~**Away**~~ | **Replaced in revision 7 by people's availability** (§8.2): set by the person or the plan's managers, and code sends what would go to them to whoever stands in | "Anna is away until Friday": her own entry in *My availability* |
+| ~~**Away**~~ | **Replaced in revision 7 by people's availability** (§8.2): set by the person or by *Availability: Edit*, and code sends what would go to them to whoever stands in | "Anna is away until Friday": her *VACA* days in the plan |
 | **Suppress** | No messages of one kind (a category, a channel, a sensor type) | "No Pushover for toner warnings" |
 
 - **Whoever has *Cookie: Instruct* can create them in the chat.** Cookie fills in the object, the person checks it and confirms. They can also be created on the admin page (§9.3).
@@ -1220,71 +1262,93 @@ All under `/api/v1/cookie`. **The dashboard section needs no right; the window n
 
 ## 20. Building revision 7 (planned)
 
-**Revision 7 changes package nine as built (§19.8).** It brings case stops and comments (§4.3), the card in Cookie's window (§9.2), contact details on the user (§8.1) and the availability plan (§8.2, §8.3, §9.4). It is built like package nine: in phases, each with its tests, as commits on master, before 1.5 is released. **The release notes for 1.5 describe the result.**
+**Revision 7 changes package nine as built (§19.8).** It brings:
+
+- case stops and comments (§4.3);
+- the card in Cookie's window (§9.2);
+- the user's contact details, short code and colour (§8.1);
+- the availability plan, the routing on it, and what Cookie reads from it (§8.2 to §8.4, §9.4).
+
+It is built like package nine: in phases, each with its tests, as commits on master, before 1.5 is released. **The release notes for 1.5 describe the result.**
 
 ### 20.1 Data model
 
 | Table | What changes |
 |---|---|
-| `users` | **New:** the e-mail address, the Pushover user key and the Redmine user (§8.1) |
-| `availability_settings` | **New, one row:** the working hours for each weekday, and the global fallback (a user or a group) |
-| `availability_types` | **New:** name, two-letter code, colour, reachable or away, shown to others or not, order. A type in use is retired, not deleted |
-| `availability_days` | **New, one row per day that has something set:** the date; its hours and name, when they differ from the weekday's; the day, fallback and off-hours responsible |
-| `availability_entries` | **New:** a person's availability: who, from, to, all day or the hours, the type, a note, who entered it and when |
+| `users` | **New:**<ul><li>the e-mail address, the Pushover user key and the Redmine user;</li><li>whether they take part in the plan, the short code (unique), the colour, the default week, and the column's place (§8.1)</li></ul> |
+| `availability_types` | **New:** name, short code, colour, the six checkboxes, *default*, *for days off*, order. A type in use is retired, not deleted |
+| `availability_entries` | **New, one row per person and day:** the type, whether the fill wrote it, who set it and when |
+| `availability_days` | **New, one row per day that has something set:** the responsible, the fallback, the comment |
+| `availability_settings` | **New, one row:**<ul><li>the count columns;</li><li>the working hours for each weekday, and the holidays;</li><li>the global fallback (a user or a group)</li></ul> |
 | `cookie_cases` | **New:** stopped, with when, by whom and the comment |
 | `cookie_case_entries` | **New kinds:** *comment*, *stopped*, *go on* |
 | `cookie_duties` | **New state:** *Stopped* |
 | `cookie_settings` | The sections `hours` and `notifications` go |
 
-**What is there already moves:** a migration copies Cookie's contacts to their users, its weekly hours to the plan's settings, and its holidays to the plan's days. **The recipient rules and quiet hours are dropped.** 1.5 isn't released, so no installation depends on them.
+**A migration moves what is there:**
+
+- Cookie's contacts go to their users;
+- its weekly hours and holidays go to the plan's settings;
+- the types of the Excel plan (*ANWE*, *HOME*, *VACA*, *UNAV*, *EXTN*, *KOMP*) are created with their checkboxes, *ANWE* as the default and *UNAV* for days off;
+- the seed gives Cookie's group *Availability: View*.
+
+**The recipient rules and quiet hours are dropped.** 1.5 isn't released, so no installation depends on them.
 
 ### 20.2 Server
 
 | Piece | Job |
 |---|---|
-| `AvailabilityPlan` | Who is responsible at a moment (§8.2), whether a person is away, a day's working hours, the gaps. `WorkingCalendar` keeps its arithmetic, on the plan's hours |
-| `Recipients` | From the plan, the assignee's Redmine user and the escalation group, instead of the recipient rules (§8.3) |
-| `CaseBook` | A stopped case: no duties, *Info* at most, and a problem case goes on when a new member joins |
-| `CookieRound` | Leaves stopped cases out of the work, and reads the comments, screened and pseudonymised |
+| `AvailabilityPlan` | Who works on a day, who is responsible (§8.2), the counts and the warnings, a day's working hours. `WorkingCalendar` keeps its arithmetic, on the plan's hours |
+| `AvailabilityFill` | *Fill* and *Fill again*, and the nightly task that keeps 365 days filled |
+| `Recipients` | The routing of §8.3: from the plan, the assignee's Redmine user and the escalation group, instead of the recipient rules |
+| `CaseBook` | A stopped case has no duties, raises the state to *Info* at most, and a problem case goes on when a new member joins. The code's status reads the plan (§8.4) |
+| `CookieRound` | Today's staffing in the brief. Leaves stopped cases out of the work, and reads the comments, screened and pseudonymised |
+| `CookieTools` | `availability_get` (§8.4) |
 | `Summaries` | *Needs you* from the plan instead of the recipient rules |
 
 ### 20.3 API
 
 | Endpoint | What | Right |
 |---|---|---|
-| `GET availability/plan?from&to` | The days, who is responsible, who is away, the gaps | *Availability: View* |
-| `PUT availability/days` | A column, or the hours, for several days | *Availability: Edit* |
-| `GET`, `POST`, `PUT`, `DELETE availability/entries` | Everyone's availability | *Availability: Manage* |
-| `GET`, `POST`, `PUT`, `DELETE availability/mine` | One's own availability | signed in |
-| `GET`, `PUT availability/settings` | The types, the weekly hours, the global fallback | *Availability: Manage* |
+| `GET availability/plan?from&to` | The days: responsible, fallback, comment, counts, everyone's types, the warnings | *Availability: View*, or taking part |
+| `PUT availability/entries` | Types for several people and days at once | one's own column from today: taking part; the rest: *Edit* |
+| `PUT availability/days` | The responsible, the fallback or the comment, for several days | *Availability: Edit* |
+| `POST availability/fill` | *Fill* or *Fill again*, for everyone or for oneself | *Edit*; for oneself: taking part |
+| `GET`, `PUT availability/settings` | The types, the count columns, the hours and holidays, the global fallback | *Availability: Manage* |
+| `GET`, `PUT availability/people` | Who takes part, their codes, colours, default weeks and order | *Availability: Manage* |
 | `PUT account/contact`, `POST account/contact/test` | One's own e-mail and Pushover key, and a test message | signed in |
-| The user's endpoints under *Admin → Users* | The three fields of §8.1 | admin |
+| The user's endpoints under *Admin → Users* | The fields of §8.1 | admin |
 | `POST cookie/cases/{id}/comments` | A comment | *Cookie: Use*, and seeing the case |
 | `POST cookie/cases/{id}/stop`, `…/go-on` | Stop a case, or let Cookie go on | *Cookie: Instruct*, and seeing the case |
 
-**Every write is audited and in the access matrix.** `GET availability/plan` and `…/entries` leave out the types and notes the reader may not see (§8.2).
+**Every write is audited and in the access matrix.**
 
 ### 20.4 Web UI
 
 - **Cookie's window:** the dashboard's card above the tabs. On a case: its comments, *Comment*, *Stop* and *Go on*.
-- ***Account*:** the e-mail address and the Pushover key, with *Send a test*, and *My availability*. ***Admin → Users*:** the three fields.
-- ***Admin → Availability plan*:** the tabs *Plan*, *Availability* and *Settings* (§9.4).
+- ***Account*:** the e-mail address and the Pushover key, with *Send a test*. ***Admin → Users*:** the fields of §8.1.
+- ***Admin → Availability plan*:** the tabs *Plan*, *People* and *Settings* (§9.4). **The table renders only the rows in view,** so years of days for a dozen people stay quick.
 - ***Admin → Cookie*** loses *Working hours* and *Notifications*. *Redmine* keeps the escalation groups.
 
 ### 20.5 Phases
 
 | Phase | Content |
 |---|---|
-| **A4** | **Contact details on the user:** the fields, *Account* and *Admin → Users*, the test message, the duties reading them, the migration; the *Notifications* tab goes |
-| **A5** | **The availability plan:** the area *Availability*, the tables, the settings and types, the plan and the availability, the routing of §8.3, the working hours moved; its pages |
-| **A6** | **Cases:** comments, *Stop* and *Go on*, in the case book, the round and the window |
+| **A4** | **The user:** contact details, short code, colour, default week; *Account* and *Admin → Users*; the test message; the duties reading the contacts; the migration of the contacts; the *Notifications* tab goes |
+| **A5** | **The availability plan:** the area *Availability*, the types, entries, days and settings, the fill and its nightly task, the counts and warnings, the pages *Plan*, *People* and *Settings*, the working hours moved |
+| **A6** | **The routing on the plan** (§8.3) **and what Cookie reads** (§8.4): `Recipients`, the brief, `availability_get`, the code's status |
+| **A7** | **Cases:** comments, *Stop* and *Go on*, in the case book, the round and the window |
 | **B5** | **The finish:** the card in Cookie's window, the documentation and the 1.5 release notes, and an *As built* for revision 7 |
 
 ### 20.6 Testing
 
-- **The plan:** who is responsible in working hours, in off hours, on a closed day, when the responsible is away, and when nobody is set (the fallback, then the global fallback, then *nobody to reach*); a day with other hours.
-- **The routing:** an away assignee's reminder goes to the escalation group; a missed deadline reaches whoever is responsible; outside working hours nobody else is reached.
-- **Privacy:** a type that others may not see reads *away* for everyone except the person and *Availability: Manage*, and its note isn't sent.
+- **Who works:** the checkboxes decide, not the names; *on site* with *vacation* doesn't work; a type without checkboxes doesn't work.
+- **Who is responsible:** the responsible; the fallback when the responsible doesn't work; the global fallback; *nobody to reach*; nobody outside working hours.
+- **The fill:** the default week and the type for days off; closed days skipped; nothing a person set overwritten; *Fill again* replaces only what the fill wrote; the nightly task adds the new day.
+- **The counts:** by checkboxes and group; a count below its minimum is flagged, and gives the code's status *Info* today.
+- **Editing:** one's own column from today on, not another's and not the past; *Edit* everything.
+- **The routing:** a reminder for an assignee who doesn't work goes to the escalation group; a missed deadline reaches whoever is responsible.
+- **Cookie:** the brief's staffing and `availability_get` carry placeholders, not codes; the tool refuses without *View*.
 - **Cases:** a stopped case's due duties are closed as *stopped*, Cookie doesn't work it, and a new member lets it go on; a comment reaches the brief, screened.
-- **The migration** copies the contacts and the hours.
+- **The migration** moves the contacts and the hours, and creates the types.
 - **The endpoints** in the access matrix.
