@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Status | **Revision 6: package nine (A and B) is built** (§19, §19.8). Package nine point five is planned only. **Two packages: nine (Cookie watches) and nine point five (Cookie acts), §3.4.** The models are in §14, the big brother in §15, the review's answers in §16, the critical review in §17, and its answers in §18. The default prompts are in docs/cookie-prompts.md |
+| Status | **Revision 7: changes to package nine, planned** (§20). **Package nine (A and B) is built** (§19, §19.8). Package nine point five is planned only. **Two packages: nine (Cookie watches) and nine point five (Cookie acts), §3.4.** The models are in §14, the big brother in §15, the review's answers in §16, the critical review in §17, and its answers in §18. The default prompts are in docs/cookie-prompts.md |
 | Date | 2026-11-14 |
-| Revision | 6: **package nine is built** (§19, As built §19.8), and **Cookie and MCP** (§3.5): one set of read tools, built here, called directly by Cookie and offered over MCP by package eight.<br>5: **the critical review's answers applied** (§18):<ul><li>**two packages** (§3.4);</li><li>**Admin → Cookie** sets almost everything: working hours, who gets notified, output limits, case instructions, and prompts that ship with defaults (§9.3, docs/cookie-prompts.md);</li><li>**output limits in code** (§6.1);</li><li>**Seraph only on what leaves PNMT or reaches people** (§5);</li><li>**mute, away and suppress as objects** (§10.3);</li><li>**the trace by rights** (§9.2);</li><li>**privacy: `Code` by default, people only** (§13.2);</li><li>**the ticket clock** (§7.2).</li></ul>4: **a critical review** (§17), from two independent reads, with 18 questions on what to change (§18). The big brother cost in §15.5 is corrected.<br>3: **the big brother** (§15): **two models**, Kimi K3.1 Pro as the primary and a proposed backup, compared with the Claude, Gemini and OpenAI models. Each call picks one at random. Cookie asks for a solution when something important needs fixing and nobody is taking care of it. And a correction in §14.2 (Terminal-Bench, not SRE Bench).<br>2: **the review applied** (§16):<ul><li>working hours per weekday, plus holidays with their own hours (§7.3);</li><li>after a restart, Cookie resumes;</li><li>*AI every time* mail rules go to Cookie (§12);</li><li>temporary instructions, for whoever has the right *Cookie: Instruct* (§10);</li><li>package eight's tool for talking to the AI sends a message to Cookie;</li><li>escalations go to a PNMT group.</li></ul>1: the first draft, with the model research (§14) |
+| Revision | 7: **changes to package nine** (§20):<ul><li>**a person can stop a case, with a comment,** and anyone may comment on a case (§4.3);</li><li>**the dashboard's card in Cookie's window** too (§9.2);</li><li>**contact details on the user:** e-mail, Pushover key, Redmine user (§8.1);</li><li>**the availability plan,** a page of its own: per day, who is responsible in working hours and in off hours, with a fallback per day and a global one, and everyone's availability. It replaces *who gets what*, Cookie's working hours and people's quiet hours (§8.2, §8.3, §9.4)</li></ul>6: **package nine is built** (§19, As built §19.8), and **Cookie and MCP** (§3.5): one set of read tools, built here, called directly by Cookie and offered over MCP by package eight.<br>5: **the critical review's answers applied** (§18):<ul><li>**two packages** (§3.4);</li><li>**Admin → Cookie** sets almost everything: working hours, who gets notified, output limits, case instructions, and prompts that ship with defaults (§9.3, docs/cookie-prompts.md);</li><li>**output limits in code** (§6.1);</li><li>**Seraph only on what leaves PNMT or reaches people** (§5);</li><li>**mute, away and suppress as objects** (§10.3);</li><li>**the trace by rights** (§9.2);</li><li>**privacy: `Code` by default, people only** (§13.2);</li><li>**the ticket clock** (§7.2).</li></ul>4: **a critical review** (§17), from two independent reads, with 18 questions on what to change (§18). The big brother cost in §15.5 is corrected.<br>3: **the big brother** (§15): **two models**, Kimi K3.1 Pro as the primary and a proposed backup, compared with the Claude, Gemini and OpenAI models. Each call picks one at random. Cookie asks for a solution when something important needs fixing and nobody is taking care of it. And a correction in §14.2 (Terminal-Bench, not SRE Bench).<br>2: **the review applied** (§16):<ul><li>working hours per weekday, plus holidays with their own hours (§7.3);</li><li>after a restart, Cookie resumes;</li><li>*AI every time* mail rules go to Cookie (§12);</li><li>temporary instructions, for whoever has the right *Cookie: Instruct* (§10);</li><li>package eight's tool for talking to the AI sends a message to Cookie;</li><li>escalations go to a PNMT group.</li></ul>1: the first draft, with the model research (§14) |
 | Scope | Package nine of docs/ideas2.md: Cookie (the assistant loop), Seraph (the reviewer), the big brother, the privacy filter, the decision log with feedback, and Cookie's three pages. **Built as two packages** (§3.4): **nine**, the bookkeeping in code and Cookie watching, and **nine point five**, Cookie acting |
 | Non-goals | **Deleting or changing anything** (Cookie only adds things). **Cookie changing its own configuration.** **Access to server consoles** (package ten). **Replacing notification rules:** they keep running whether Cookie is there or not. Training or fine-tuning |
 | Depends on | Package one's AI foundation (`PNMTD/Ai/`: provider, Jev, request log, budget, decisions inbox). Five point five (groups and rights, audit with `Actor = Cookie / Seraph`). Six and seven (Redmine, Zabbix). **Not on eight:** Cookie comes first and builds the read tools that package eight's MCP server will offer (§3.5) |
@@ -64,6 +64,10 @@
 | R17 | Cookie is stopped by default, even when enabled in `.env`. An admin starts it | §9.3 |
 | R18 | Cookie only adds information. It never deletes or edits | §6 |
 | R19 | The "big brother": two stronger models (a primary and a backup, picked at random). When something important needs fixing and nobody is taking care of it, Cookie asks one of them for a solution and puts it into the decisions inbox or the ticket (added in review) | §15 |
+| R20 | Per case, a person tells Cookie not to go on with it, and leaves a comment (revision 7) | §4.3 |
+| R21 | The summary on the dashboard is in Cookie's window too (revision 7) | §9.2 |
+| R22 | The Pushover key, the Redmine user name and the e-mail address are set on the user, not under Cookie (revision 7) | §8.1 |
+| R23 | An availability plan, its own admin page: per day of the year, who gets the messages in working hours and in off hours, and a global fallback. Columns: date, weekday (2 letters), day responsible, fallback responsible, off-hours responsible. Everyone sets their own availability, of types set in the plan's settings (revision 7) | §8.2, §9.4 |
 
 ---
 
@@ -112,7 +116,7 @@
 
 | Step | What it brings |
 |---|---|
-| **A: the bookkeeping, in code, with no AI** | <ul><li>**the case book** (§4.3);</li><li>**the deadlines,** with working hours and holidays (§7);</li><li>**reminders and escalations sent by code,** from template texts;</li><li>**the ticket after 2 days,** from a template;</li><li>**the overall status,** computed from sensors, cases and deadlines;</li><li>**the output limits** (§6.1);</li><li>**who gets what** (§8);</li><li>**Admin → Cookie**, with everything these need (§9.3)</li></ul> |
+| **A: the bookkeeping, in code, with no AI** | <ul><li>**the case book** (§4.3);</li><li>**the deadlines,** with working hours and holidays (§7);</li><li>**reminders and escalations sent by code,** from template texts;</li><li>**the ticket after 2 days,** from a template;</li><li>**the overall status,** computed from sensors, cases and deadlines;</li><li>**the output limits** (§6.1);</li><li>**who gets what** (§8): since revision 7, the availability plan and the contact details on the user;</li><li>**Admin → Cookie**, with everything these need (§9.3)</li></ul> |
 | **B: Cookie watches** | <ul><li>Cookie's loop, **reading only;**</li><li>the status, as Cookie sees it, with its explanation;</li><li>**the personal summaries;**</li><li>**the chat** with Cookie;</li><li>**the trace** (§9.2);</li><li>the privacy filter in `Code` mode (§13.2);</li><li>**the prompts and case instructions** on the admin page, with their defaults (docs/cookie-prompts.md);</li><li>package one's situation analysis is removed (§12)</li></ul> |
 
 **Package nine point five: Cookie acts.** It builds on nine.
@@ -120,7 +124,7 @@
 | Step | What it brings |
 |---|---|
 | **C: actions** | <ul><li>the actions of §6, **with Seraph** (§5);</li><li>the levels *Off · Propose · Auto*;</li><li>the rollout from *Propose* to *Auto* (§13.4);</li><li>**Cookie writes the reminders and escalations itself.** Code's templates stay as the fallback whenever Cookie is stopped or paused;</li><li>package one's mail analysis and the *AI every time* rules go to Cookie (§12)</li></ul> |
-| **D: the rest** | <ul><li>**the big brother** (§15);</li><li>**ratings and lessons** (§11);</li><li>**mute, away and suppress** (§10.3);</li><li>the chat with Seraph;</li><li>messages from MCP (§10.2)</li></ul> |
+| **D: the rest** | <ul><li>**the big brother** (§15);</li><li>**ratings and lessons** (§11);</li><li>**mute and suppress** (§10.3);</li><li>the chat with Seraph;</li><li>messages from MCP (§10.2)</li></ul> |
 
 ### 3.5 Cookie and MCP (package eight)
 
@@ -136,7 +140,7 @@
 
 - **Cookie only gets the read tools.** MCP's write tools (UDP commands, adding hosts) are never in Cookie's list; code filters on the read/write mark. Cookie acts only through the closed list of §6.
 - **Cookie's tools leave out MCP-only tools,** above all "talk to Cookie", so Cookie can't message itself.
-- **Over MCP, a client can read** Cookie's status, the person's summary, cases and the trace (by the rights of §9.2), and **send messages** (§10.2). **Approving a proposal and confirming a mute, away or suppress happen only in PNMT's UI,** so an AI behind an MCP client can never approve another AI's proposal.
+- **Over MCP, a client can read** Cookie's status, the person's summary, cases and the trace (by the rights of §9.2), and **send messages** (§10.2). **Approving a proposal and confirming a mute or a suppress happen only in PNMT's UI,** so an AI behind an MCP client can never approve another AI's proposal.
 - **Messages to Cookie are capped per token** (in code), because each one starts a round and costs budget.
 - **Cookie doesn't use MCP servers outside PNMT.** That would widen what Cookie can reach, and what can reach it.
 
@@ -185,12 +189,20 @@
 - **A case holds:** its links (host, sensor, location, ticket, Zabbix problem), a timeline, Cookie's notes, its deadlines, and the actions taken so far.
 - **Related things become one case.** A bad sensor, a Zabbix problem on the same host and a ticket about it are one case. Code proposes the grouping (by host and location), and Cookie can merge or split cases.
 - **Cookie never reads the raw streams.** It sees cases, which keeps its context small, current and cheap.
+- **People comment on a case** (revision 7). Whoever may see the case and has *Cookie: Use* adds a comment. It goes into the case's timeline with its author, and **Cookie reads it in the next round,** screened and pseudonymised like a message (§13).
+- **A person can stop a case:** *Don't go on with this*, with a comment that says why. It needs *Cookie: Instruct*. Then:
+  - **Cookie leaves the case alone:** no triage, no tool work, no notes. The brief lists it in one line, as stopped, with the comment;
+  - **its duties stop:** what is due is closed as *stopped*, and nothing new falls due;
+  - **it raises the overall state to *Info* at most,** and no summary says it needs anyone;
+  - **it stays open and visible,** marked *stopped*, with who, when and why.
+- **A stop ends** when the case closes, when someone with *Instruct* lets Cookie go on (*Go on*, with a comment if they like), or, for a problem case, **when a new member joins** (another sensor of the host goes bad, or a new Zabbix problem). The problem has grown, so the case goes on by itself, and its timeline says why.
+- **Comments, stops and *Go on* are in the audit log.** PNMT's notification rules don't change: they still fire for a stopped case's sensors.
 
 ### 4.4 What makes Cookie smart
 
 - **A fresh, small context** every round (the brief plus the cases), and **tools to look deeper** when it needs to.
 - **It looks before it writes.** Before answering a ticket, Cookie searches the knowledge base and similar closed tickets, and uses them as evidence.
-- **It knows the people.** Who gets what is set on the admin page (§8, §9.3). Redmine assignees and watchers, rights, and each person's own interests add to it.
+- **It knows the people.** Who gets what comes from the availability plan (§8.2, §8.3). Redmine assignees and watchers, rights, and each person's own interests add to it.
 - **Lessons from feedback** are part of every prompt (§11).
 - **A confidence threshold per action.** Below the threshold, the action goes to a person instead (§6).
 - **A second opinion.** Seraph catches mistakes before anyone sees them.
@@ -239,7 +251,7 @@
 | Status and personal summaries on the dashboard | Only what the reader may see (§8) | Auto |
 | Reply in Cookie's window | Within the asker's rights (§10) | Auto |
 | A note on a host, sensor or location | Add only | Auto |
-| **Pushover** to a person | Only when **very urgent**. Only PNMT users with a Pushover key. At most 3 per person per day, and quiet hours apply | Auto |
+| **Pushover** to a person | Only when **very urgent**. Only PNMT users with a Pushover key. At most 3 per person per day. Outside working hours only to whoever is responsible then (§8.3) | Auto |
 | **E-mail** to a person | Urgent or important. Only PNMT users' own addresses | Auto |
 | **Create a Redmine ticket** | §7.1. **Never while an open ticket is linked to the case.** At most N per day. Needs the separate write key (audit plan §8.7) | Propose |
 | **Add a note to a Redmine ticket** | A private note to staff (reminders) or **a public answer** (§7.2) | Private: Auto · Public: Propose |
@@ -314,25 +326,73 @@
 
 ### 7.3 Working hours and holidays
 
-- **Working hours are set for each day of the week:** one or more from–to periods, or *closed*.
-- **Holidays are a list of dates, each with its own hours:** *closed*, or special hours (for example 24 Dec, 08:00–12:00). A holiday's hours replace that weekday's hours.
+- **The working hours come from the availability plan** (§8.2, revision 7). Each weekday has default hours: one or more from–to periods, or *closed*.
+- **A day of the plan can have other hours:** *closed*, or special hours (for example 24 Dec, 08:00–12:00). That is how a holiday is entered, with its name, and its hours replace the weekday's.
 - **The 4 hours of §7.2 count only working hours.** A ticket that arrives on Friday at 16:00, with hours of 08:00–17:00, is due on Monday at 11:00.
 - **The 14 days count calendar days.** A reminder or escalation that falls outside working hours goes out when the next working period begins.
-- **The hours are set on the admin page** (§9.3), in PNMT's time zone. People's own quiet hours (§8) still apply as well.
+- **The hours are set in the availability plan** (§9.4), in PNMT's time zone. **There are no personal quiet hours any more:** outside working hours, only whoever is responsible then is reached (§8.3).
 
 ---
 
 ## 8. People, relevance and summaries
 
-- **Who gets what is set on the admin page** (§9.3, *Notifications*). PNMT has no owner on hosts or locations. Instead, admins define **recipients**:
-  - **the scope:** everything, a location, a host, a Redmine project, or a kind of case;
-  - **the urgency:** *info*, *important*, *urgent*;
-  - **when:** in working hours, outside them, or always;
-  - **who:** users or PNMT groups;
-  - **the channels:** dashboard, e-mail, Pushover.
+### 8.1 Contact details on the user
+
+**Revision 7: a person's contact details are on their PNMT user, not under Cookie.** Cookie, its duties, and anything else in PNMT that writes to a person use them.
+
+- **Each user has:**
+  - **an e-mail address;**
+  - **a Pushover user key;**
+  - **a Redmine user:** the name Redmine shows on tickets, which is how an assignee is found.
+- **Each user sets their own e-mail address and Pushover key** on *Account*, with *Send a test*. **Admins set all three** on *Admin → Users*. **Only admins set the Redmine user,** because it decides whose tickets' reminders a person gets.
+- **The notification rules keep their own recipients** (`pushover://…`, addresses), and don't change.
+
+### 8.2 The availability plan
+
+**Who gets Cookie's messages, and when, is one plan:** *Admin → Availability plan*, a page of its own (§9.4). It replaces Cookie's recipient rules by scope, its *Working hours* tab and people's quiet hours (revision 7).
+
+- **One row for each day of the year:**
+
+  | Date | Weekday | Day responsible | Fallback responsible | Off-hours responsible |
+  |---|---|---|---|---|
+  | 2026-12-23 | We | Anna | Ben | Carla |
+  | 2026-12-24 | Th | Ben | Anna | Carla |
+
+  The date cell also shows the day's working hours, and a day with other hours than its weekday (a holiday) is marked with its name.
+- **The day's working hours** come from the defaults per weekday (for example Mo–Fr 08:00–17:00), and one day's can be changed: *closed*, or other hours (§7.3). **The rest of the day is off hours.** A closed day, such as a Sunday or a holiday, is off hours all day.
+- **Who is responsible at a moment:**
+  1. in working hours, the day responsible; in off hours, the off-hours responsible;
+  2. if that person is away (below), or nobody is set: **the day's fallback responsible;**
+  3. if the fallback is away or not set too: **the global fallback,** a user or a PNMT group from the plan's settings;
+  4. if nobody is left, the message is held back in the outbox as *nobody to reach*, and the plan flags the day.
+- **Everyone sets their own availability** (*My availability*): from a date to a date, all day or certain hours, a type and a note. The plan's managers set it for anyone.
+- **The availability types are set in the plan's settings.** Each type has:
+  - a name, a two-letter code and a colour;
+  - **reachable or away:** *Home office* is reachable, *Vacation*, *Sick* and *Training* are away;
+  - **whether others see it:** the type, or only *away*.
   
-  Code picks the recipients from these rules. Cookie only ranks what matters most.
-- **The contact details are on the admin page too:** each recipient's Pushover key and e-mail address. Today Pushover keys only exist on notification rules.
+  **An absence can be a health matter.** So *Sick* shows as *away* to everyone except the person and the plan's managers, and the note is only for them.
+- **A person who is away gets nothing from Cookie or its duties:**
+  - a responsible's messages go to the next one in the list above;
+  - an assignee's reminders go to the project's escalation group (§7.2);
+  - members of a group who are away are skipped.
+- **The plan shows the gaps:** a day whose responsible is away is marked, with who stands in, and a day where nobody would be reached is flagged.
+- **Many days are set at once:** select the days, then set a column. Every change is in the audit log.
+- **Code reads the plan; Cookie doesn't route.** Cookie's brief only says who is responsible now, as a placeholder. It never says why anyone is away.
+
+### 8.3 Who gets what
+
+- **What concerns a case without a person of its own goes to whoever is responsible at that moment** (§8.2). In package nine, that is a missed deadline. In nine point five, it is also Cookie's own messages about problems.
+- **A ticket's messages:**
+  - **a reminder** goes to the assignee, found by their Redmine user (§8.1). It goes to the project's escalation group when nobody is assigned, or when the assignee is away or isn't a PNMT user;
+  - **a missed deadline** goes to the assignee, the escalation group and whoever is responsible then;
+  - **a project without an escalation group** has whoever is responsible stand in for it.
+- **The channel follows the urgency:** *important* by e-mail, *urgent* by e-mail and Pushover, each only when the person has an address or a key.
+- **Outside working hours, only whoever is responsible then is reached.** Everything else waits for the next working period.
+
+### 8.4 Summaries and the status
+
+- **"Needs you" comes from code:** the tickets assigned to the reader, and the open problems while the reader is responsible (§8.2).
 - **For the summaries, Cookie also uses** Redmine assignees and watchers, each person's rights, the interests people set themselves (locations, hosts, topics), and what they have already seen.
 - **The personal summary is short:** at most 5 lines, **"needs you" first**, then what changed since the person's last visit. **It is written when the person opens the dashboard,** and cached for 15 minutes.
 - **Rights are filtered in code before Cookie writes anything.** A summary only ever contains what that person may see, and it carries the areas of its sources (§9.2).
@@ -352,6 +412,8 @@
 
 ### 9.2 Cookie's window
 
+- **The dashboard's card heads the window too** (revision 7), above its tabs: the overall state and your summary, the same as on the dashboard and from the same cache, so it costs no second call.
+- **The cases:** the ones the reader may see, each with its timeline, deadlines and comments. ***Comment*** for *Cookie: Use*, ***Stop*** and ***Go on*** for *Cookie: Instruct* (§4.3).
 - **A live trace, like Copilot in VS Code:**
   - rounds, with their steps;
   - Cookie's reasoning;
@@ -374,14 +436,35 @@
 | **Overview** | **Start · Stop · Run now.** Cookie's state, the last rounds, the budget used, the limits hit (§6.1), and what is waiting at *Propose*. `Cookie__Enabled=true` only makes Cookie *available*: it is **Stopped** until an admin starts it. **After a restart it resumes** if it was running. Only a fresh installation, or the first time `Cookie__Enabled` is set, starts *Stopped*. Every start and stop is in the audit log |
 | **Identity** | Name, **personality, tone, language**, "created by Philipp". **The prompts:**<ul><li>Cookie's identity and goals;</li><li>Cookie's rules;</li><li>Seraph's;</li><li>the big brother's;</li><li>the summary;</li><li>the status explanation;</li><li>the lessons summariser</li></ul>Each prompt has *Reset to default* and a preview of the full prompt, as a model receives it |
 | **Cases** | **An instruction for each kind of case.** What Cookie should look at, what counts as urgent, what to do, and what never to do. The kinds:<ul><li>a bad sensor;</li><li>a Zabbix problem;</li><li>a problem that keeps coming back;</li><li>many things failing at once;</li><li>a problem unresolved for 2 days;</li><li>a support ticket waiting for its first answer;</li><li>a ticket without an update;</li><li>a mail from an *AI every time* rule;</li><li>a person's request</li></ul>**Admins can add instructions for a narrower scope**, such as a location, a host, a Redmine project or a sensor type. The narrower instruction is added after the general one |
-| **Working hours** | Hours for **each day of the week**, and **holidays** with their own hours (§7.3) |
-| **Notifications** | **Who gets what** (§8): recipients by scope, urgency and time, their channels, and **their contact details** (Pushover key, e-mail). Quiet hours per person |
 | **Redmine** | The watched projects. For each one:<ul><li>its deadlines;</li><li>its escalation group;</li><li>**the roles that count as staff;**</li><li>**the statuses that stop the clock;**</li><li>the project for Cookie's own tickets;</li><li>categories and requesters excluded from Cookie's answers (§7.2)</li></ul> |
 | **Actions** | For each action of §6:<ul><li>its level (*Off · Propose · Auto*);</li><li>its confidence threshold;</li><li>**its output limits** (§6.1)</li></ul> |
-| **Mute, away, suppress** | The active objects of §10.3, who created them, until when, and *End now*. New ones can be created here too |
+| **Mute, suppress** | The active objects of §10.3, who created them, until when, and *End now*. New ones can be created here too |
 | **Lessons** | What Cookie learned (§11): see, edit, disable |
 | **Models** | Cookie's, Seraph's and the big brother's models and providers, which override the `.env` defaults. Also reasoning effort per step, the budgets, the limits per round, and Seraph's sample rate |
 | **Rights** | **Cookie's group:** the rights Cookie reads with. Never the admin flag (audit plan §5.7) |
+
+**Revision 7 removed two tabs.** *Working hours* is in the availability plan now (§9.4). *Notifications* is gone: who gets what is the availability plan (§8.2, §8.3), and the contact details are on the user (§8.1).
+
+### 9.4 Admin → Availability plan
+
+**A page of its own in the admin menu** (revision 7), for the plan of §8.2. Cookie uses it, and nothing in it is Cookie's: it works the same whether Cookie runs or not.
+
+| Tab | What is there |
+|---|---|
+| **Plan** | The days of a year, from today: date, weekday, day responsible, fallback responsible, off-hours responsible, and the day's hours. Select days and set a column. A responsible who is away is marked, with who stands in, and a day where nobody would be reached is flagged |
+| **Availability** | Everyone's availability, people by days. The types show as §8.2 allows, otherwise as *away* |
+| **Settings** | **The availability types** (§8.2), **the working hours for each weekday**, and **the global fallback** |
+
+- ***My availability*** is under *Account*, for every user, and needs no right.
+- **A new area *Availability*:**
+
+  | Level | What it allows |
+  |---|---|
+  | **View** | The plan and who is away, without the types and notes others may not see |
+  | **Edit** | View, plus setting the responsibles and a day's hours |
+  | ***Manage*** | Edit, plus the settings, and everyone's availability with its types and notes |
+
+  Admins have every level. No group has them until an admin gives them.
 
 ## 10. Talking to Cookie and Seraph
 
@@ -391,8 +474,8 @@ Cookie gets its own area in the groups-and-rights model of five point five (audi
 
 | Level | What it allows |
 |---|---|
-| **Use** | Cookie's window: the trace (within the person's other rights), the chat with Cookie and Seraph, rating decisions |
-| **Instruct** | Use, plus **temporary instructions** (§10.3) and *Ask the big brother* (§15.2) |
+| **Use** | Cookie's window: the trace (within the person's other rights), the chat with Cookie and Seraph, rating decisions, **comments on cases** (§4.3) |
+| **Instruct** | Use, plus **stopping a case and letting Cookie go on with it** (§4.3), **temporary instructions** (§10.3) and *Ask the big brother* (§15.2) |
 | ***Manage*** | Instruct, plus *Admin → Cookie*: the configuration, *Start*, *Stop* (§9.3) |
 
 **Everyone sees their own dashboard section** (§9.1). It needs no level.
@@ -418,7 +501,7 @@ Cookie gets its own area in the groups-and-rights model of five point five (audi
 | Object | What it does | Example |
 |---|---|---|
 | **Mute** | No messages, tickets or big brother calls for a host, a sensor, a location or a case. Cases still open and are still shown | "Ignore host X this weekend" |
-| **Away** | A person gets nothing, and what would go to them goes to someone else or to a group | "Anna is away until Friday, her tickets go to the team" |
+| ~~**Away**~~ | **Replaced in revision 7 by people's availability** (§8.2): set by the person or the plan's managers, and code sends what would go to them to whoever stands in | "Anna is away until Friday": her own entry in *My availability* |
 | **Suppress** | No messages of one kind (a category, a channel, a sensor type) | "No Pushover for toner warnings" |
 
 - **Whoever has *Cookie: Instruct* can create them in the chat.** Cookie fills in the object, the person checks it and confirms. They can also be created on the admin page (§9.3).
@@ -936,7 +1019,7 @@ Cookie__BigBrother__BudgetUsd=30                                    # shared by 
 | # | Finding | Answer | Where |
 |---|---|---|---|
 | 1 | §17.1: build in steps | **Adopted, as two packages:** nine (A and B) and nine point five (C and D). There are no measures (see 15) | §3.4 |
-| 2 | §17.2: owners, *I'm on it*, maintenance windows, contact settings, on duty | **Changed:** no owners, acknowledgements, maintenance windows or rota in PNMT. **Who gets what is set on the admin page,** next to the working hours: recipients by scope, urgency and time, with their contact details | §8, §9.3 |
+| 2 | §17.2: owners, *I'm on it*, maintenance windows, contact settings, on duty | **Changed:** no owners, acknowledgements, maintenance windows or rota in PNMT. **Who gets what is set on the admin page,** next to the working hours: recipients by scope, urgency and time, with their contact details.<br>**Revision 7: a rota after all,** the availability plan (§8.2), and the contact details on the user (§8.1) | §8, §9.3, §9.4 |
 | 3 | §17.3: flooding | **Partly adopted: output limits in code** (§6.1). No baseline, *known issue* state or ticket reuse | §6.1 |
 | 4 | §17.4: escalation layer only | Not adopted | |
 | 5 | §17.5: status from code | Not adopted as such. But step A computes a status in code, so Cookie's status replaces it while Cookie runs, and code's is shown when it doesn't | §3.4, §8 |
@@ -968,7 +1051,7 @@ Cookie__BigBrother__BudgetUsd=30                                    # shared by 
 - **The AI in package nine only writes inside PNMT:** the status line, case notes, summaries, chat replies and the trace. **No AI text leaves PNMT,** so Seraph isn't needed yet (§5: Seraph reviews what leaves PNMT).
 - **A problem case is per host.** The bad sensors of a host and the Zabbix problems of its Zabbix host are its members. It closes when no member is bad. **A ticket case is per Redmine ticket** in a watched project. A ticket linked to a host (§6.5 of the audit plan) shows in that host's problem case and counts as its progress; the ticket's own clock stays on the ticket case.
 - **A first answer** is a public note or a status change by staff. **An update** is the same, later. Staff are the members of the project with one of the roles set on the admin page; **with no roles set, everyone but the ticket's author counts as staff.** A ticket written by staff has no first-answer deadline.
-- **Who is told:**
+- **Who is told** (as built; **revision 7 changes it,** §8.3, §20):
   - **a ticket reminder** goes to the assignee, found by the *Redmine name* in the assignee's contact (§9.3, *Notifications*), and **to the project's escalation group when nobody is assigned** or no contact matches;
   - **a missed deadline** goes to the assignee and the escalation group;
   - **the recipient rules** of §8 add whoever they name for that scope, urgency and time, by their channels;
@@ -1074,6 +1157,8 @@ All under `/api/v1/cookie`. **The dashboard section needs no right; the window n
 | 254fd5d | B3 and B4: the trace and the chat in the web UI, and the situation analysis removed |
 | d5c2c96, 4559e89, 9e6b154, a1a74bc | the seed and the operators' documentation, and fixes from review |
 
+**Revision 7 changes some of this** (§20): the contacts, the recipient rules, quiet hours, and the *Working hours* and *Notifications* tabs.
+
 **Release notes:** [docs/release-notes-1.5.md](release-notes-1.5.md), written for 1.5.0. Nothing is pushed or tagged, and the version isn't bumped. Where the code differs from the sections above, this section says so; the rest is as planned.
 
 **The bookkeeping (A):**
@@ -1130,3 +1215,76 @@ All under `/api/v1/cookie`. **The dashboard section needs no right; the window n
 
   The audit catalog keeps `AiAnalysisStarted` for the old entries. **The scrubber stays,** in `PNMTD/Ai/`, for the knowledge base's AI tags and Cookie's privacy filter.
 - **The e2e stack enables Cookie,** and `e2e/cookie.spec.ts` covers Admin → Cookie, the card, the cases, the trace and the chat on a stopped Cookie.
+
+---
+
+## 20. Building revision 7 (planned)
+
+**Revision 7 changes package nine as built (§19.8).** It brings case stops and comments (§4.3), the card in Cookie's window (§9.2), contact details on the user (§8.1) and the availability plan (§8.2, §8.3, §9.4). It is built like package nine: in phases, each with its tests, as commits on master, before 1.5 is released. **The release notes for 1.5 describe the result.**
+
+### 20.1 Data model
+
+| Table | What changes |
+|---|---|
+| `users` | **New:** the e-mail address, the Pushover user key and the Redmine user (§8.1) |
+| `availability_settings` | **New, one row:** the working hours for each weekday, and the global fallback (a user or a group) |
+| `availability_types` | **New:** name, two-letter code, colour, reachable or away, shown to others or not, order. A type in use is retired, not deleted |
+| `availability_days` | **New, one row per day that has something set:** the date; its hours and name, when they differ from the weekday's; the day, fallback and off-hours responsible |
+| `availability_entries` | **New:** a person's availability: who, from, to, all day or the hours, the type, a note, who entered it and when |
+| `cookie_cases` | **New:** stopped, with when, by whom and the comment |
+| `cookie_case_entries` | **New kinds:** *comment*, *stopped*, *go on* |
+| `cookie_duties` | **New state:** *Stopped* |
+| `cookie_settings` | The sections `hours` and `notifications` go |
+
+**What is there already moves:** a migration copies Cookie's contacts to their users, its weekly hours to the plan's settings, and its holidays to the plan's days. **The recipient rules and quiet hours are dropped.** 1.5 isn't released, so no installation depends on them.
+
+### 20.2 Server
+
+| Piece | Job |
+|---|---|
+| `AvailabilityPlan` | Who is responsible at a moment (§8.2), whether a person is away, a day's working hours, the gaps. `WorkingCalendar` keeps its arithmetic, on the plan's hours |
+| `Recipients` | From the plan, the assignee's Redmine user and the escalation group, instead of the recipient rules (§8.3) |
+| `CaseBook` | A stopped case: no duties, *Info* at most, and a problem case goes on when a new member joins |
+| `CookieRound` | Leaves stopped cases out of the work, and reads the comments, screened and pseudonymised |
+| `Summaries` | *Needs you* from the plan instead of the recipient rules |
+
+### 20.3 API
+
+| Endpoint | What | Right |
+|---|---|---|
+| `GET availability/plan?from&to` | The days, who is responsible, who is away, the gaps | *Availability: View* |
+| `PUT availability/days` | A column, or the hours, for several days | *Availability: Edit* |
+| `GET`, `POST`, `PUT`, `DELETE availability/entries` | Everyone's availability | *Availability: Manage* |
+| `GET`, `POST`, `PUT`, `DELETE availability/mine` | One's own availability | signed in |
+| `GET`, `PUT availability/settings` | The types, the weekly hours, the global fallback | *Availability: Manage* |
+| `PUT account/contact`, `POST account/contact/test` | One's own e-mail and Pushover key, and a test message | signed in |
+| The user's endpoints under *Admin → Users* | The three fields of §8.1 | admin |
+| `POST cookie/cases/{id}/comments` | A comment | *Cookie: Use*, and seeing the case |
+| `POST cookie/cases/{id}/stop`, `…/go-on` | Stop a case, or let Cookie go on | *Cookie: Instruct*, and seeing the case |
+
+**Every write is audited and in the access matrix.** `GET availability/plan` and `…/entries` leave out the types and notes the reader may not see (§8.2).
+
+### 20.4 Web UI
+
+- **Cookie's window:** the dashboard's card above the tabs. On a case: its comments, *Comment*, *Stop* and *Go on*.
+- ***Account*:** the e-mail address and the Pushover key, with *Send a test*, and *My availability*. ***Admin → Users*:** the three fields.
+- ***Admin → Availability plan*:** the tabs *Plan*, *Availability* and *Settings* (§9.4).
+- ***Admin → Cookie*** loses *Working hours* and *Notifications*. *Redmine* keeps the escalation groups.
+
+### 20.5 Phases
+
+| Phase | Content |
+|---|---|
+| **A4** | **Contact details on the user:** the fields, *Account* and *Admin → Users*, the test message, the duties reading them, the migration; the *Notifications* tab goes |
+| **A5** | **The availability plan:** the area *Availability*, the tables, the settings and types, the plan and the availability, the routing of §8.3, the working hours moved; its pages |
+| **A6** | **Cases:** comments, *Stop* and *Go on*, in the case book, the round and the window |
+| **B5** | **The finish:** the card in Cookie's window, the documentation and the 1.5 release notes, and an *As built* for revision 7 |
+
+### 20.6 Testing
+
+- **The plan:** who is responsible in working hours, in off hours, on a closed day, when the responsible is away, and when nobody is set (the fallback, then the global fallback, then *nobody to reach*); a day with other hours.
+- **The routing:** an away assignee's reminder goes to the escalation group; a missed deadline reaches whoever is responsible; outside working hours nobody else is reached.
+- **Privacy:** a type that others may not see reads *away* for everyone except the person and *Availability: Manage*, and its note isn't sent.
+- **Cases:** a stopped case's due duties are closed as *stopped*, Cookie doesn't work it, and a new member lets it go on; a comment reaches the brief, screened.
+- **The migration** copies the contacts and the hours.
+- **The endpoints** in the access matrix.
