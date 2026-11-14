@@ -144,7 +144,139 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         var heldBack = await db.CookieOutbox.CountAsync(o => o.CreatedAt >= today && o.State == CookieOutboxState.HeldBack, ct);
         return new CookieAdminOverview(status, runtime.CodeReason, runtime.CodeStatus, runtime.CaseBookAt, runtime.TicketsAt, runtime.CaseBookError,
             open.Where(o => o.Key == CookieCaseKind.Problem).Sum(o => o.Count), open.Where(o => o.Key == CookieCaseKind.Ticket).Sum(o => o.Count),
-            due, r.Enabled, r.CanWrite, ai.CurrentValue.Usable, counts, heldBack);
+            due, r.Enabled, r.CanWrite, ai.CurrentValue.Usable, counts, heldBack, await BudgetAsync(ct),
+            (await settings.GetAsync<CookieRightsSettings>(ct)).GroupId is not null);
+    }
+
+    private async Task<CookieBudgetItem> BudgetAsync(CancellationToken ct)
+    {
+        var model = services.GetRequiredService<CookieModel>();
+        return new CookieBudgetItem(await model.BudgetLimitAsync(ct), await model.SpentAsync(ct));
+    }
+
+    // --- Start, stop, run now (§9.3) -------------------------------------------------------------------------------------
+
+    public async Task<CookieStatusItem> StartAsync(ClaimsPrincipal user, CancellationToken ct)
+    {
+        if (!options.CurrentValue.Enabled)
+        {
+            throw ApiException.Conflict("cookie_not_enabled", "Cookie__Enabled=true is needed first.");
+        }
+        var runtime = await CaseBook.RuntimeAsync(db, ct);
+        runtime.Running = true;
+        runtime.StartedAt = Clock.UtcNow;
+        runtime.StartedBy = user.Identity?.Name;
+        runtime.Failures = 0;
+        runtime.PausedUntil = null;
+        await db.SaveChangesAsync(ct);
+        services.GetRequiredService<CookieSignals>().Raise("started");
+        AuditLog.Summary("Cookie started");
+        return await StatusAsync(user, ct);
+    }
+
+    public async Task<CookieStatusItem> StopAsync(ClaimsPrincipal user, CancellationToken ct)
+    {
+        var runtime = await CaseBook.RuntimeAsync(db, ct);
+        runtime.Running = false;
+        runtime.StoppedAt = Clock.UtcNow;
+        runtime.StoppedBy = user.Identity?.Name;
+        runtime.State = CookieState.Stopped;
+        runtime.StateReason = $"Stopped by {user.Identity?.Name}.";
+        runtime.NextRoundAt = null;
+        await db.SaveChangesAsync(ct);
+        services.GetRequiredService<CookieSignals>().Raise("stopped");
+        AuditLog.Summary("Cookie stopped: the case book and the duties keep running");
+        return await StatusAsync(user, ct);
+    }
+
+    public async Task<CookieStatusItem> RunNowAsync(ClaimsPrincipal user, CancellationToken ct)
+    {
+        var runtime = await db.CookieRuntime.AsNoTracking().SingleOrDefaultAsync(ct);
+        if (runtime is not { Running: true })
+        {
+            throw ApiException.Conflict("cookie_stopped", "Cookie is stopped: start it first.");
+        }
+        services.GetRequiredService<CookieSignals>().Raise("run now");
+        AuditLog.Summary("Cookie: run now");
+        return await StatusAsync(user, ct);
+    }
+
+    public async Task<IReadOnlyList<CookieRoundItem>> RoundsAsync(CancellationToken ct) =>
+        await db.CookieRounds.AsNoTracking().OrderByDescending(r => r.Id).Take(50)
+            .Select(r => new CookieRoundItem(r.Id, r.StartedAt, r.EndedAt, r.Trigger, r.Outcome, r.Cases, r.Calls, r.ToolCalls, r.Cost, r.Error)).ToListAsync(ct);
+
+    /// <summary>A prompt as the model receives it (§9.3, Identity): prompts 1 to 3 and the step's, or a kind of case's instructions.</summary>
+    public async Task<CookiePromptPreview> PreviewAsync(string key, CancellationToken ct)
+    {
+        var brain = services.GetRequiredService<CookieBrain>();
+        var values = await brain.ValuesAsync(ct);
+        foreach (var name in new[] { "brief", "cases", "state", "reader", "last_visit", "reader_profile", "working_hours_state", "max_cases", "count", "days",
+            "age", "summary", "elapsed", "status", "escalation_group", "ticket_project", "asker", "asker_rights", "rule_name", "rule_purpose", "case",
+            "question", "proposal", "evidence", "ratings" })
+        {
+            values.TryAdd(name, $"[{name.Replace('_', ' ')}]");
+        }
+        var basePrompt = await brain.BaseAsync(values, ct);
+        string text;
+        if (key.StartsWith("case:", StringComparison.Ordinal) && CookiePrompts.CaseKinds.ContainsKey(key[5..]))
+        {
+            text = $"{basePrompt}\n\n{CookiePrompts.Fill(await brain.CaseInstructionAsync(key[5..], ct), values)}\n\n{CookieBrain.WatchOnly}\n\n" +
+                "The case:\n[the case]";
+        }
+        else if (CookiePrompts.Defaults.ContainsKey(key))
+        {
+            text = key is "identity" or "goals" or "rules" ? basePrompt : $"{basePrompt}\n\n{CookiePrompts.Fill(await brain.PromptAsync(key, ct), values)}";
+        }
+        else
+        {
+            throw ApiException.NotFound("Prompt");
+        }
+        return new CookiePromptPreview(key, text);
+    }
+
+    // --- The trace (§9.2) ------------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// The full trace, reasoning and tool results too, for <i>Cookie: Manage</i> and for readers whose rights cover all of
+    /// Cookie's group's; everyone else sees the notes and the status of the cases they may see. Every entry only to readers
+    /// with all the areas of its sources.
+    /// </summary>
+    public async Task<CookieTrace> TraceAsync(CookieTraceQuery query, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var rights = user.Rights();
+        var cookieRights = await services.GetRequiredService<CookieRound>().RightsAsync(ct);
+        var full = rights.Has(Area.Cookie, Level.Manage) || (cookieRights is not null && cookieRights.Levels.All(l => rights.Has(l.Key, l.Value)));
+        IQueryable<CookieTraceEntity> q = db.CookieTrace.AsNoTracking();
+        if (query.CaseId is { } caseId)
+        {
+            q = q.Where(t => t.CaseId == caseId);
+        }
+        if (query.RoundId is { } roundId)
+        {
+            q = q.Where(t => t.RoundId == roundId);
+        }
+        if (!string.IsNullOrWhiteSpace(query.Kind))
+        {
+            q = q.Where(t => t.Kind == query.Kind);
+        }
+        if (query.AfterId is { } after)
+        {
+            q = q.Where(t => t.Id > after);
+        }
+        if (!full)
+        {
+            q = q.Where(t => t.CaseId != null && (t.Kind == "note" || t.Kind == "status"));
+        }
+        var rows = await q.OrderByDescending(t => t.Id).Take(Math.Clamp(query.Limit, 1, 500) * 2).ToListAsync(ct);
+        var caseIds = rows.Where(t => t.CaseId is not null).Select(t => t.CaseId!.Value).Distinct().ToList();
+        var cases = await db.CookieCases.AsNoTracking().Where(c => caseIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id, ct);
+        var privacy = services.GetRequiredService<PrivacyFilter>();
+        await privacy.EnsureLoadedAsync(ct);
+        var visible = rows.Where(t => CookieAccess.CanSee(rights, t.Areas)
+                && (t.CaseId is not { } id || (cases.TryGetValue(id, out var c) && CookieAccess.CanSee(rights, user.UserId(), c))))
+            .Take(Math.Clamp(query.Limit, 1, 500))
+            .Select(t => new CookieTraceItem(t.Id, t.RoundId, t.CaseId, t.At, t.Kind, privacy.Unmask(t.Title), privacy.Unmask(t.Body), t.Areas)).ToList();
+        return new CookieTrace(visible, full);
     }
 
     public async Task<Paged<CookieOutboxItem>> OutboxAsync(CookieOutboxQuery query, CancellationToken ct)

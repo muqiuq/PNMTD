@@ -115,6 +115,15 @@ public class CookieRuntimeEntity
 
     [MaxLength(500)]
     public string? CaseBookError { get; set; }
+
+    /// <summary>The last round's brief, hashed: the same brief again is a quiet round, with no call (§3.3).</summary>
+    [MaxLength(64)]
+    public string? BriefHash { get; set; }
+
+    /// <summary>Rounds that failed in a row; at 3, Cookie pauses for a while.</summary>
+    public int Failures { get; set; }
+
+    public DateTime? PausedUntil { get; set; }
 }
 
 /// <summary>
@@ -207,6 +216,9 @@ public class CookieCaseEntity
     public string? CookieUrgency { get; set; }
 
     public DateTime? CookieNoteAt { get; set; }
+
+    /// <summary>The areas the note's sources came from: only readers with all of them see it (§9.2).</summary>
+    public List<string> CookieNoteAreas { get; set; } = [];
 
     /// <summary>The areas its sources come from (Monitoring, Zabbix, Redmine): only readers with all of them see it (§9.2).</summary>
     public List<string> Areas { get; set; } = [];
@@ -321,4 +333,120 @@ public class CookieOutboxEntity
 
     [MaxLength(200)]
     public string? SentByName { get; set; }
+}
+
+/// <summary>One of Cookie's rounds (docs/cookie-plan.md §4.2): why it ran, what it did, what it cost.</summary>
+[Table("cookie_rounds")]
+[NotAudited("Cookie's rounds, for its window and Admin → Cookie")]
+public class CookieRoundEntity
+{
+    [Key]
+    public long Id { get; set; }
+
+    public DateTime StartedAt { get; set; }
+
+    public DateTime? EndedAt { get; set; }
+
+    [MaxLength(300)]
+    public string Trigger { get; set; } = "";
+
+    /// <summary>quiet, worked, failed, stopped.</summary>
+    [MaxLength(16)]
+    public string Outcome { get; set; } = "";
+
+    public int Cases { get; set; }
+
+    public int Calls { get; set; }
+
+    public int ToolCalls { get; set; }
+
+    public decimal Cost { get; set; }
+
+    [MaxLength(1000)]
+    public string? Error { get; set; }
+}
+
+/// <summary>
+/// A step of a round, for Cookie's window (docs/cookie-plan.md §9.2): triage, reasoning, a tool call, a note, the status, an
+/// error. Kept with the areas of its sources and its case, so that each reader sees what their rights allow.
+/// </summary>
+[Table("cookie_trace")]
+[NotAudited("Cookie's trace, written by Cookie")]
+public class CookieTraceEntity
+{
+    [Key]
+    public long Id { get; set; }
+
+    public long? RoundId { get; set; }
+
+    public Guid? CaseId { get; set; }
+
+    public DateTime At { get; set; }
+
+    /// <summary>round, triage, reasoning, tool, note, status, summary, reply, error.</summary>
+    [MaxLength(16)]
+    public string Kind { get; set; } = "";
+
+    [MaxLength(300)]
+    public string Title { get; set; } = "";
+
+    public string Body { get; set; } = "";
+
+    public List<string> Areas { get; set; } = [];
+}
+
+/// <summary>A message in a person's chat with Cookie (docs/cookie-plan.md §10.2), and Cookie's replies.</summary>
+[Table("cookie_messages")]
+[NotAudited("a person's chat with Cookie")]
+public class CookieMessageEntity
+{
+    [Key]
+    public long Id { get; set; }
+
+    /// <summary>The person whose thread it is.</summary>
+    public Guid UserId { get; set; }
+
+    public DateTime At { get; set; }
+
+    /// <summary>person or cookie.</summary>
+    [MaxLength(16)]
+    public string From { get; set; } = "person";
+
+    public string Text { get; set; } = "";
+
+    /// <summary>A person's message waits for a reply until a round answers it.</summary>
+    public bool Answered { get; set; }
+
+    public Guid? CaseId { get; set; }
+
+    public long? RoundId { get; set; }
+
+    /// <summary>A reply's sources' areas (§9.2).</summary>
+    public List<string> Areas { get; set; } = [];
+}
+
+/// <summary>The privacy filter's mapping (docs/cookie-plan.md §13.2): a value and its stable placeholder, PERSON_1, EMAIL_2.</summary>
+[Table("cookie_pseudonyms")]
+[NotAudited("the privacy filter's mapping, kept by code")]
+public class CookiePseudonymEntity
+{
+    [Key]
+    public long Id { get; set; }
+
+    /// <summary>PERSON, EMAIL or PHONE.</summary>
+    [MaxLength(16)]
+    public string Kind { get; set; } = "";
+
+    /// <summary>The value as found, lower-cased: one placeholder per value.</summary>
+    [MaxLength(300)]
+    public string Value { get; set; } = "";
+
+    /// <summary>The value as first found, for restoring it.</summary>
+    [MaxLength(300)]
+    public string Original { get; set; } = "";
+
+    [MaxLength(32)]
+    public string Placeholder { get; set; } = "";
+
+    public DateTime CreatedAt { get; set; }
 }

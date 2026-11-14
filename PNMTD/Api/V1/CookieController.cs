@@ -26,6 +26,11 @@ public sealed class CookieController(CookieService cookie) : V1ControllerBase
     [HttpGet("cases/{id:guid}")]
     [RequireRight(Area.Cookie, Level.Use)]
     public async Task<CookieCaseDetail> Case(Guid id, CancellationToken ct) => await cookie.CaseAsync(id, User, ct);
+
+    /// <summary>The trace by the reader's rights (§9.2); <c>afterId</c> for polling while a round runs.</summary>
+    [HttpGet("trace")]
+    [RequireRight(Area.Cookie, Level.Use)]
+    public async Task<CookieTrace> Trace([FromQuery] CookieTraceQuery query, CancellationToken ct) => await cookie.TraceAsync(query, User, ct);
 }
 
 /// <summary>Admin → Cookie (docs/cookie-plan.md §9.3): <i>Cookie: Manage</i>. Cookie's own tools never reach any of it.</summary>
@@ -35,6 +40,25 @@ public sealed class CookieAdminController(CookieService cookie) : V1ControllerBa
 {
     [HttpGet("overview")]
     public async Task<CookieAdminOverview> Overview(CancellationToken ct) => await cookie.OverviewAsync(User, ct);
+
+    [HttpPost("start")]
+    [Audit(AuditEvents.CookieStarted)]
+    public async Task<CookieStatusItem> Start(CancellationToken ct) => await cookie.StartAsync(User, ct);
+
+    [HttpPost("stop")]
+    [Audit(AuditEvents.CookieStopped)]
+    public async Task<CookieStatusItem> Stop(CancellationToken ct) => await cookie.StopAsync(User, ct);
+
+    [HttpPost("run")]
+    [Audit(AuditEvents.CookieRunRequested)]
+    public async Task<CookieStatusItem> Run(CancellationToken ct) => await cookie.RunNowAsync(User, ct);
+
+    [HttpGet("rounds")]
+    public async Task<IReadOnlyList<CookieRoundItem>> Rounds(CancellationToken ct) => await cookie.RoundsAsync(ct);
+
+    /// <summary>A prompt as the model receives it: a prompt's key, or "case:" and a kind of case.</summary>
+    [HttpGet("prompts/preview")]
+    public async Task<CookiePromptPreview> Preview([FromQuery] string key, CancellationToken ct) => await cookie.PreviewAsync(key, ct);
 
     [HttpGet("settings")]
     public async Task<CookieAllSettings> Settings(CancellationToken ct) => await cookie.SettingsAsync(ct);

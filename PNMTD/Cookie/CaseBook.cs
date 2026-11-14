@@ -109,7 +109,7 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
         {
             Group($"host:{s.Info.HostId}", s.Info.HostId, null, s.Info.HostName).Members.Add(new CaseMember(CaseMember.Sensor, s.Info.Id.ToString(),
                 s.Info.Name, Clock.AsUtc(s.FailingSince ?? s.LastEventAt ?? now), s.LastCode, Cut(s.LastMessage, 300), null, false,
-                s.Info.EffectiveImportance.ToString()));
+                s.Info.EffectiveImportance.ToString(), SensorType: s.Info.Type.ToString()));
         }
 
         var problems = zabbix.Current.Problems.Where(p => p.Severity >= caseSettings.ZabbixMinSeverity && !p.Suppressed && p.Hosts.Count > 0).ToList();
@@ -513,13 +513,8 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
     /// <summary>The one runtime row, created on first use.</summary>
     public static async Task<CookieRuntimeEntity> RuntimeAsync(PnmtdDbContext db, CancellationToken ct)
     {
-        var runtime = await db.CookieRuntime.SingleOrDefaultAsync(r => r.SingletonId == CookieRuntimeEntity.Id, ct);
-        if (runtime is null)
-        {
-            runtime = new CookieRuntimeEntity();
-            db.CookieRuntime.Add(runtime);
-        }
-        return runtime;
+        await CookieLoop.EnsureAsync(db, ct);
+        return await db.CookieRuntime.SingleAsync(r => r.SingletonId == CookieRuntimeEntity.Id, ct);
     }
 
     public static void Entry(PnmtdDbContext db, Guid caseId, DateTime at, string kind, string text, string actor = "code", string? actorName = null) =>

@@ -15,7 +15,8 @@ public sealed record CaseMember(
     string? Severity = null,
     bool Acknowledged = false,
     string? Importance = null,
-    string? NotesHash = null)
+    string? NotesHash = null,
+    string? SensorType = null)
 {
     public const string Sensor = "sensor";
     public const string Zabbix = "zabbix";

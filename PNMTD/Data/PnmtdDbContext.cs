@@ -152,6 +152,10 @@ namespace PNMTD.Data
         public DbSet<CookieCaseEntryEntity> CookieCaseEntries { get; set; }
         public DbSet<CookieDutyEntity> CookieDuties { get; set; }
         public DbSet<CookieOutboxEntity> CookieOutbox { get; set; }
+        public DbSet<CookieRoundEntity> CookieRounds { get; set; }
+        public DbSet<CookieTraceEntity> CookieTrace { get; set; }
+        public DbSet<CookieMessageEntity> CookieMessages { get; set; }
+        public DbSet<CookiePseudonymEntity> CookiePseudonyms { get; set; }
 
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
@@ -691,6 +695,24 @@ namespace PNMTD.Data
                 e.HasIndex(o => o.CreatedAt);
                 e.HasIndex(o => new { o.Channel, o.UserId, o.CreatedAt });
                 e.HasIndex(o => new { o.IssueId, o.CreatedAt });
+            });
+            modelBuilder.Entity<CookieRoundEntity>().HasIndex(r => r.StartedAt);
+            modelBuilder.Entity<CookieTraceEntity>(e =>
+            {
+                e.HasIndex(t => t.RoundId);
+                e.HasIndex(t => new { t.CaseId, t.Id });
+                e.HasIndex(t => t.At);
+            });
+            modelBuilder.Entity<CookieMessageEntity>(e =>
+            {
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(m => new { m.UserId, m.Id });
+                e.HasIndex(m => m.Answered).HasFilter("NOT \"Answered\"");
+            });
+            modelBuilder.Entity<CookiePseudonymEntity>(e =>
+            {
+                e.HasIndex(p => new { p.Kind, p.Value }).IsUnique();
+                e.HasIndex(p => p.Placeholder).IsUnique();
             });
         }
 

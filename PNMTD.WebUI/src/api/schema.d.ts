@@ -2591,6 +2591,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cookie/trace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    caseId?: string;
+                    roundId?: number;
+                    kind?: string;
+                    afterId?: number;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieTrace"];
+                        "text/json": components["schemas"]["CookieTrace"];
+                        "text/plain": components["schemas"]["CookieTrace"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cookie/admin/overview": {
         parameters: {
             query?: never;
@@ -2616,6 +2659,193 @@ export interface paths {
                         "application/json": components["schemas"]["CookieAdminOverview"];
                         "text/json": components["schemas"]["CookieAdminOverview"];
                         "text/plain": components["schemas"]["CookieAdminOverview"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieStatusItem"];
+                        "text/json": components["schemas"]["CookieStatusItem"];
+                        "text/plain": components["schemas"]["CookieStatusItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieStatusItem"];
+                        "text/json": components["schemas"]["CookieStatusItem"];
+                        "text/plain": components["schemas"]["CookieStatusItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieStatusItem"];
+                        "text/json": components["schemas"]["CookieStatusItem"];
+                        "text/plain": components["schemas"]["CookieStatusItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/rounds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieRoundItem"][];
+                        "text/json": components["schemas"]["CookieRoundItem"][];
+                        "text/plain": components["schemas"]["CookieRoundItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/prompts/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    key?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookiePromptPreview"];
+                        "text/json": components["schemas"]["CookiePromptPreview"];
+                        "text/plain": components["schemas"]["CookiePromptPreview"];
                     };
                 };
             };
@@ -13698,6 +13928,7 @@ export interface components {
             acknowledged: boolean;
             importance?: null | string;
             notesHash?: null | string;
+            sensorType?: null | string;
             ref?: null | string;
         };
         CaseSettings: {
@@ -13739,6 +13970,8 @@ export interface components {
             duties: components["schemas"]["CookieDutyCount"][];
             /** Format: int32 */
             heldBackToday: number;
+            budget: components["schemas"]["CookieBudgetItem"];
+            hasGroup: boolean;
         };
         CookieAllSettings: {
             identity: components["schemas"]["IdentitySettings"];
@@ -13750,6 +13983,12 @@ export interface components {
             actions: components["schemas"]["ActionSettings"];
             models: components["schemas"]["ModelSettings"];
             rights: components["schemas"]["CookieRightsSettings"];
+        };
+        CookieBudgetItem: {
+            /** Format: double */
+            limit: number;
+            /** Format: double */
+            spent: number;
         };
         CookieCaseDetail: {
             case: components["schemas"]["CookieCaseItem"];
@@ -13877,6 +14116,10 @@ export interface components {
             text: string;
             required: string[];
         };
+        CookiePromptPreview: {
+            key: string;
+            text: string;
+        };
         CookieRedmineLookups: {
             configured: boolean;
             writable: boolean;
@@ -13896,6 +14139,25 @@ export interface components {
         CookieRightsSettings: {
             /** Format: uuid */
             groupId?: null | string;
+        };
+        CookieRoundItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            endedAt: null | string;
+            trigger: string;
+            outcome: string;
+            /** Format: int32 */
+            cases: number;
+            /** Format: int32 */
+            calls: number;
+            /** Format: int32 */
+            toolCalls: number;
+            /** Format: double */
+            cost: number;
+            error: null | string;
         };
         CookieSaved: {
             section: string;
@@ -13942,6 +14204,24 @@ export interface components {
             /** Format: int32 */
             ownIssueId: null | number;
             issueUrl: null | string;
+        };
+        CookieTrace: {
+            items: components["schemas"]["CookieTraceItem"][];
+            full: boolean;
+        };
+        CookieTraceItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            roundId: null | number;
+            /** Format: uuid */
+            caseId: null | string;
+            /** Format: date-time */
+            at: string;
+            kind: string;
+            title: string;
+            body: string;
+            areas: string[];
         };
         CreatedUser: {
             user: components["schemas"]["UserItem"];

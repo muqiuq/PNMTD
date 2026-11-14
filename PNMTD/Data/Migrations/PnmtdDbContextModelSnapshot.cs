@@ -1169,6 +1169,10 @@ namespace PNMTD.Data.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.PrimitiveCollection<List<string>>("CookieNoteAreas")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
                     b.Property<DateTime?>("CookieNoteAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1359,6 +1363,52 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("cookie_duties");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.CookieMessageEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("Answered")
+                        .HasColumnType("boolean");
+
+                    b.PrimitiveCollection<List<string>>("Areas")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("From")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<long?>("RoundId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Answered")
+                        .HasFilter("NOT \"Answered\"");
+
+                    b.HasIndex("UserId", "Id");
+
+                    b.ToTable("cookie_messages");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.CookieOutboxEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -1438,10 +1488,103 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("cookie_outbox");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.CookiePseudonymEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Original")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Placeholder")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Placeholder")
+                        .IsUnique();
+
+                    b.HasIndex("Kind", "Value")
+                        .IsUnique();
+
+                    b.ToTable("cookie_pseudonyms");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.CookieRoundEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("Calls")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Cases")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Cost")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ToolCalls")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Trigger")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StartedAt");
+
+                    b.ToTable("cookie_rounds");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.CookieRuntimeEntity", b =>
                 {
                     b.Property<int>("SingletonId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("BriefHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<DateTime?>("CaseBookAt")
                         .HasColumnType("timestamp with time zone");
@@ -1482,10 +1625,16 @@ namespace PNMTD.Data.Migrations
                     b.Property<DateTime?>("CookieStatusAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("Failures")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("LastRoundAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("NextRoundAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("PausedUntil")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("Running")
@@ -1563,6 +1712,52 @@ namespace PNMTD.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("cookie_settings");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.CookieTraceEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.PrimitiveCollection<List<string>>("Areas")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<long?>("RoundId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.HasIndex("RoundId");
+
+                    b.HasIndex("CaseId", "Id");
+
+                    b.ToTable("cookie_trace");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.DecisionEntity", b =>
@@ -4938,6 +5133,15 @@ namespace PNMTD.Data.Migrations
                     b.HasOne("PNMTD.Models.Db.CookieCaseEntity", null)
                         .WithMany()
                         .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.CookieMessageEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

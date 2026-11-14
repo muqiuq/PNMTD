@@ -3368,6 +3368,76 @@
         }
       }
     },
+    "/api/v1/cookie/trace": {
+      "get": {
+        "tags": [
+          "Cookie"
+        ],
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "roundId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "afterId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieTrace"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieTrace"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieTrace"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cookie/admin/overview": {
       "get": {
         "tags": [
@@ -3390,6 +3460,169 @@
               "text/plain": {
                 "schema": {
                   "$ref": "#/components/schemas/CookieAdminOverview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/start": {
+      "post": {
+        "tags": [
+          "CookieAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieStatusItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieStatusItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieStatusItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/stop": {
+      "post": {
+        "tags": [
+          "CookieAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieStatusItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieStatusItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieStatusItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/run": {
+      "post": {
+        "tags": [
+          "CookieAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieStatusItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieStatusItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieStatusItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/rounds": {
+      "get": {
+        "tags": [
+          "CookieAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CookieRoundItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CookieRoundItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CookieRoundItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/prompts/preview": {
+      "get": {
+        "tags": [
+          "CookieAdmin"
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookiePromptPreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookiePromptPreview"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookiePromptPreview"
                 }
               }
             }
@@ -20134,6 +20367,12 @@
               "string"
             ]
           },
+          "sensorType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "ref": {
             "type": [
               "null",
@@ -20217,7 +20456,9 @@
           "redmineWritable",
           "aiUsable",
           "duties",
-          "heldBackToday"
+          "heldBackToday",
+          "budget",
+          "hasGroup"
         ],
         "type": "object",
         "properties": {
@@ -20280,6 +20521,12 @@
           "heldBackToday": {
             "type": "integer",
             "format": "int32"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/CookieBudgetItem"
+          },
+          "hasGroup": {
+            "type": "boolean"
           }
         }
       },
@@ -20323,6 +20570,23 @@
           },
           "rights": {
             "$ref": "#/components/schemas/CookieRightsSettings"
+          }
+        }
+      },
+      "CookieBudgetItem": {
+        "required": [
+          "limit",
+          "spent"
+        ],
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number",
+            "format": "double"
+          },
+          "spent": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -20845,6 +21109,21 @@
           }
         }
       },
+      "CookiePromptPreview": {
+        "required": [
+          "key",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
       "CookieRedmineLookups": {
         "required": [
           "configured",
@@ -20929,6 +21208,66 @@
               "string"
             ],
             "format": "uuid"
+          }
+        }
+      },
+      "CookieRoundItem": {
+        "required": [
+          "id",
+          "startedAt",
+          "endedAt",
+          "trigger",
+          "outcome",
+          "cases",
+          "calls",
+          "toolCalls",
+          "cost",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "trigger": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "cases": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "calls": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "toolCalls": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cost": {
+            "type": "number",
+            "format": "double"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -21114,6 +21453,76 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "CookieTrace": {
+        "required": [
+          "items",
+          "full"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CookieTraceItem"
+            }
+          },
+          "full": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CookieTraceItem": {
+        "required": [
+          "id",
+          "roundId",
+          "caseId",
+          "at",
+          "kind",
+          "title",
+          "body",
+          "areas"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "roundId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "caseId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "areas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

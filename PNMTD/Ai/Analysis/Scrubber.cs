@@ -81,7 +81,7 @@ public sealed partial class Scrubber
     private static partial Regex Url();
 
     [GeneratedRegex(@"\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b", RegexOptions.IgnoreCase, 250)]
-    private static partial Regex Mail();
+    internal static partial Regex Mail();
 
     [GeneratedRegex(@"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", RegexOptions.IgnoreCase, 250)]
     private static partial Regex Guid();
@@ -103,10 +103,10 @@ public sealed partial class Scrubber
     /// parentheses between them; checked by <see cref="IsPhoneNumber"/>.
     /// </summary>
     [GeneratedRegex(@"(?<![\w.:/+-])(?:\+|\(|0)[0-9(][0-9 ()/-]{4,22}[0-9](?![\w:/-]|\.\w|[ ]?[0-9])", RegexOptions.None, 250)]
-    private static partial Regex Phone();
+    internal static partial Regex Phone();
 
     /// <summary>7 to 15 digits (E.164), 8 or more after a <c>+</c>; not a date (<c>01/02/2026</c>, <c>01-02-2026</c>).</summary>
-    private static bool IsPhoneNumber(string candidate)
+    internal static bool IsPhoneNumber(string candidate)
     {
         var digits = candidate.Count(char.IsAsciiDigit);
         if (digits is < 7 or > 15 || (candidate.StartsWith('+') && digits < 8))

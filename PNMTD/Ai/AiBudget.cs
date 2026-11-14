@@ -35,7 +35,8 @@ public sealed class AiBudget(IDbContextFactory<PnmtdDbContext> dbs, IOptionsMoni
     {
         var (_, first, next, _) = Period();
         await using var db = await dbs.CreateDbContextAsync(ct);
-        return await db.AiSpending.Where(s => s.Day >= first && s.Day < next).SumAsync(s => (decimal?)s.Cost, ct) ?? 0m;
+        // Cookie's calls (cookie.*) count against Cookie's own budget (docs/cookie-plan.md §19.1), not this one.
+        return await db.AiSpending.Where(s => s.Day >= first && s.Day < next && !s.Purpose.StartsWith("cookie.")).SumAsync(s => (decimal?)s.Cost, ct) ?? 0m;
     }
 
     /// <summary>Throws <see cref="AiBudgetExceededException"/> when the period's budget is spent.</summary>

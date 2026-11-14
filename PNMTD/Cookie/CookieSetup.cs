@@ -48,6 +48,12 @@ public static class CookieSetup
         services.AddSingleton<Outbox>();
         services.AddSingleton<DutyRunner>();
         services.AddSingleton<CaseBookTask>();
+        // Cookie itself (package nine, B): the model, the prompts, the privacy filter, a round, the loop.
+        services.AddSingleton<CookieModel>();
+        services.AddSingleton<CookieBrain>();
+        services.AddSingleton<PrivacyFilter>();
+        services.AddSingleton<CookieRound>();
+        services.AddSingleton<CookieLoop>();
         services.AddScoped<CookieService>();
         return services;
     }
@@ -80,6 +86,15 @@ public sealed class CookieSignals
 
     /// <summary>True when raised within <paramref name="timeout"/>.</summary>
     public async Task<bool> WaitAsync(TimeSpan timeout, CancellationToken ct) => await signal.WaitAsync(timeout, ct);
+
+    /// <summary>The reasons so far, without taking them.</summary>
+    public IReadOnlyList<string> Peek()
+    {
+        lock (gate)
+        {
+            return [.. reasons];
+        }
+    }
 
     /// <summary>The reasons since the last call.</summary>
     public IReadOnlyList<string> Take()

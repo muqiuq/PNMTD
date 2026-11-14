@@ -80,7 +80,9 @@ public sealed record CookieAdminOverview(
     bool RedmineWritable,
     bool AiUsable,
     IReadOnlyList<CookieDutyCount> Duties,
-    int HeldBackToday);
+    int HeldBackToday,
+    CookieBudgetItem Budget,
+    bool HasGroup);
 
 /// <summary>How the duties of one kind ended in the last 7 days.</summary>
 public sealed record CookieDutyCount(CookieDutyKind Kind, bool On, int Due, int Done, int HeldBack, int Off, int Failed);
@@ -129,3 +131,20 @@ public sealed record CookieOutboxItem(
     Guid? CaseId,
     DateTime? SentAt,
     string? SentByName);
+
+/// <summary>A step of Cookie's trace (§9.2), placeholders restored.</summary>
+public sealed record CookieTraceItem(long Id, long? RoundId, Guid? CaseId, DateTime At, string Kind, string Title, string Body, IReadOnlyList<string> Areas);
+
+public sealed record CookieTraceQuery(Guid? CaseId = null, long? RoundId = null, string? Kind = null, long? AfterId = null, int Limit = 100);
+
+/// <summary>The trace the reader may see: <see cref="Full"/> with reasoning and tool results, otherwise per case (§9.2).</summary>
+public sealed record CookieTrace(IReadOnlyList<CookieTraceItem> Items, bool Full);
+
+public sealed record CookieRoundItem(long Id, DateTime StartedAt, DateTime? EndedAt, string Trigger, string Outcome, int Cases, int Calls, int ToolCalls,
+    decimal Cost, string? Error);
+
+/// <summary>Cookie's budget this month (§19.1).</summary>
+public sealed record CookieBudgetItem(decimal Limit, decimal Spent);
+
+/// <summary>A prompt as the model receives it, with what code fills in at the time of the call shown in brackets.</summary>
+public sealed record CookiePromptPreview(string Key, string Text);

@@ -17,6 +17,9 @@ public sealed class FakeOpenRouter
 {
     public Func<string, JsonNode, string>? Answer { get; set; }
 
+    /// <summary>A whole message (tool calls, reasoning) for a chat request; null falls back to <see cref="Answer"/>.</summary>
+    public Func<JsonNode, JsonObject?>? Message { get; set; }
+
     public double Injection { get; set; } = 0.01;
 
     /// <summary>Other noul questions' answers by name (the knowledge base's credentials and personalData); <see cref="Injection"/> otherwise.</summary>
@@ -69,14 +72,16 @@ public sealed class FakeOpenRouter
                 }
                 return Json((HttpStatusCode)status, new JsonObject { ["error"] = new JsonObject { ["message"] = $"scripted {status}", ["code"] = status } }.ToJsonString());
             }
-            var schema = json["response_format"]!["json_schema"]!;
-            var content = owner.Answer?.Invoke(schema["name"]!.GetValue<string>(), json) ?? """{"answer":"pong"}""";
+            // Cookie's tool turns have no schema (docs/cookie-plan.md §14.3); Message answers them with a whole message.
+            var schemaName = json["response_format"]?["json_schema"]?["name"]?.GetValue<string>() ?? "";
+            var message = owner.Message?.Invoke(json);
+            var content = message is null ? owner.Answer?.Invoke(schemaName, json) ?? """{"answer":"pong"}""" : null;
             var response = new JsonObject
             {
                 ["id"] = $"gen-{owner.Requests.Count}",
                 ["model"] = json["model"]!.GetValue<string>(),
                 ["provider"] = "FakeProvider",
-                ["choices"] = new JsonArray(new JsonObject { ["message"] = new JsonObject { ["role"] = "assistant", ["content"] = content } }),
+                ["choices"] = new JsonArray(new JsonObject { ["message"] = message ?? new JsonObject { ["role"] = "assistant", ["content"] = content } }),
                 ["usage"] = new JsonObject
                 {
                     ["prompt_tokens"] = 120, ["completion_tokens"] = 30, ["total_tokens"] = 150, ["cost"] = 0.0012,
