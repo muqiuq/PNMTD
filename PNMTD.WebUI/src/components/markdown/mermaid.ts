@@ -111,6 +111,9 @@ export function mermaidConfig(theme: DiagramTheme): MermaidConfig {
       clusterBorder: theme.border,
       titleColor: theme.text,
       edgeLabelBackground: theme.panel,
+      // Bar and line charts: the primary colour, then amber and green. Mermaid's own palette tints primaryColor, which is
+      // the soft one here: bars and lines nearly vanished on the panel (K7).
+      xyChart: { plotColorPalette: `${theme.primary}, ${theme.dark ? '#f0b35a, #7cc4a4' : '#d97706, #15803d'}` },
     },
   }
 }
