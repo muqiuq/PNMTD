@@ -1,9 +1,15 @@
-# PNMT 1.3: locations and the knowledge base
+# PNMT 1.3: servers with an agent, locations and the knowledge base
 
 Version 1.3.0.
 
 ## What's new
 
+- **Windows and Linux servers report through PNMT's agent,** on PNMT's own address and port: nothing to open. *Admin → Servers* lists them, issues join tokens and offers the downloads.
+  - **Windows** servers and PCs (Server 2016–2025, Windows 10 Pro and 11) run one executable, `pnmt-sensor-x64.exe` or `-arm64.exe`, joined with a token.
+  - **Linux** servers (Debian 12 and 13; Proxmox VE and Ubuntu LTS too) run `pnmt-agent`, installed with one line copied from PNMT, as a systemd service with a command line.
+  - **Both report** the system, hardware, network, services, every way in with the firewall, admin logins and failed ones, the event log's or journal's errors, and readable changes. **Diagnostics** (ping and DNS sets) run on them, each a sensor of its own.
+  - **Scripts** from PNMT, PowerShell or bash, run only where the server itself allows them.
+  - **The SSH key manager** (*Admin → SSH keys*): every `authorized_keys` file on Linux servers is read and watched, each key gets a name and an owner, an unregistered key raises an event, and a departing colleague's keys can be removed from every server in one step, where the server's `/etc/pnmt-agent/config.yaml` allows it.
 - **Locations.** A location is an object of its own, and locations nest: a site, its buildings, their rooms, a rack.
   - A host can be assigned to one location and keeps its free text, now *Location text*, for the rack or the unit.
   - *Locations → From the hosts' texts…* turns the texts hosts use into locations, when you choose to; nothing is converted by itself.
@@ -32,6 +38,8 @@ In the `deploy/` folder: `git pull` for the new `docker-compose.yml`, which moun
   - SELinux hosts label it with `:z` ([deploy/README.md](../deploy/README.md#uploaded-files)).
 - **Backups now hold `files.tar`,** the folder's files, next to `database.pgdump` and `keys.tar.gz`. `./backup.sh --no-files` leaves it out, for a host that backs the folder up with its own tools. `./restore.sh` puts the files back as the app's user; a backup from 1.2 restores as before.
 - **A reverse proxy needs a body limit of 32 MB** for uploads: `client_max_body_size 32m;` (nginx) or `request_body { max_size 32MB }` (Caddy); Traefik has no limit. It replaces the 20 MB for firmware images. The UI names a proxy's refusal (413) as such.
+- **The agents' files** come from PNMT itself: PNMTD fetches its version's files from the GitHub release `sensor-1.3.0` when first asked for, checks their SHA-256 and keeps them in the new volume `pnmtd-downloads`. Without internet, mount a folder with the release's files instead ([deploy/README.md](../deploy/README.md#servers-with-an-agent)).
+- **Behind nginx, the agents need the WebSocket lines** for `/agent/v1/ws` and a `proxy_read_timeout` above 30 s ([deploy/README.md](../deploy/README.md#behind-a-reverse-proxy)); Caddy and Traefik pass WebSockets as they are.
 - **Hosts keep their location texts,** and a new location field, *Overview*, is there to fill. Nothing else changes until someone creates a location or a page.
 
 From v0.12, [deploy/UPGRADING-1.0.md](../deploy/UPGRADING-1.0.md) applies as it is: `./init.sh` creates the files folder.
