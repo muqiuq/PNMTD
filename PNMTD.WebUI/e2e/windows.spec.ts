@@ -90,7 +90,7 @@ test('scripts: a new one from the template, and the run-as accounts', async ({ p
   await signIn(page)
   await page.goto('/pnmt-admin/admin/servers/scripts')
   await page.getByRole('button', { name: 'New script' }).click()
-  await expect(page.getByLabel('PowerShell')).toHaveValue(/\[CmdletBinding\(\)\]/)
+  await expect(page.getByRole('textbox', { name: 'PowerShell script' })).toHaveValue(/\[CmdletBinding\(\)\]/)
   await page.getByLabel('Name', { exact: true }).fill('e2e greeting')
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('link', { name: 'e2e greeting' })).toBeVisible()

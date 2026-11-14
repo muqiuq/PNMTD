@@ -11,7 +11,7 @@ import AgentOverviewPanels from '../agent/AgentOverviewPanels.vue'
 import AgentSessions from '../agent/AgentSessions.vue'
 import { useLinuxSection } from '../agent/useAgentSection'
 import LinuxSystemPanel from './LinuxSystemPanel.vue'
-import { keyGlance, rightsSource, shortFingerprint, verdictSeverity } from './linuxFormat'
+import { keyGlance, keyLabel, rightsSource, verdictSeverity } from './linuxFormat'
 
 /**
  * A Linux server's overview (docs/linux-sensor-plan.md §11.2): who is logged in now and the system (host, distribution,
@@ -119,8 +119,8 @@ const tab = (t: string) => ({ name: 'sensor', params: { id: id.value, tab: t } }
               }}<template v-if="l.targetUser"> → {{ l.targetUser }}</template>
               <span v-if="l.sourceAddress" class="mono muted"> from {{ l.sourceAddress }}</span>
               <span v-else-if="l.workstation" class="mono muted"> on {{ l.workstation }}</span>
-              <span v-if="l.keyFingerprint" class="mono muted small" :title="l.keyFingerprint">
-                · key {{ shortFingerprint(l.keyFingerprint) }}</span
+              <span v-if="l.keyFingerprint" class="muted small" :class="{ mono: !l.keyName }" :title="l.keyFingerprint">
+                · key {{ keyLabel(l) }}</span
               >
             </li>
             <li v-if="admins.isPending.value" class="muted">Loading…</li>
@@ -154,6 +154,16 @@ const tab = (t: string) => ({ name: 'sensor', params: { id: id.value, tab: t } }
                 >.
               </p>
               <div class="tags">
+                <Tag
+                  v-if="server.server.unregisteredKeys"
+                  :value="`${server.server.unregisteredKeys} unregistered`"
+                  severity="warn"
+                />
+                <Tag
+                  v-if="server.server.retiredKeysAuthorized"
+                  :value="`${server.server.retiredKeysAuthorized} retired, still here`"
+                  severity="danger"
+                />
                 <Tag v-if="glance.weak" :value="`${glance.weak} weak`" severity="danger" />
                 <Tag
                   v-if="glance.rootWithoutFrom"

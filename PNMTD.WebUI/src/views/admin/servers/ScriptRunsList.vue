@@ -12,7 +12,7 @@ import RelativeTime from '@/components/RelativeTime.vue'
 import { useActions } from '@/composables/useActions'
 import { useCopy } from '@/composables/useCopy'
 import { useServerTable } from '@/composables/useServerTable'
-import { runStateSeverity, versionLabel } from './scriptFormat'
+import { runAccount, runStateSeverity, versionLabel } from './scriptFormat'
 
 /** The scripts' runs (docs/windows-sensor-plan.md §7.3): who ran what where, as whom, with the output; arguments can be redacted. */
 const props = defineProps<{ sensorId?: string }>()
@@ -36,7 +36,7 @@ const { run, ask } = useActions()
 const copy = useCopy()
 /** A registered script's account as the server names it; a library run's account by its name in PNMT and the account. */
 const runAsText = (r: S['AgentScriptRunItem']) =>
-  r.versionNumber === 0 ? r.runAsName : `${r.runAsName} (${r.account ?? 'LocalSystem'})`
+  r.versionNumber === 0 ? r.runAsName : `${r.runAsName} (${runAccount(r)})`
 async function redact() {
   if (!(await ask('Redact the arguments?', 'They are removed from this run for good.', 'Redact'))) return
   await run(() => api.agents.redactRun(selected.value!), { success: 'Redacted', invalidate: [keys.agents] })
@@ -63,7 +63,7 @@ async function redact() {
       </Column>
       <Column header="As" style="width: 12rem">
         <template #body="{ data }"
-          ><span class="small">{{ data.account ?? 'LocalSystem' }}</span></template
+          ><span class="small">{{ runAccount(data) }}</span></template
         >
       </Column>
       <Column header="By" style="width: 9rem">

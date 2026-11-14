@@ -16,8 +16,8 @@ import { connection, platformIcon, platforms, uptime } from './agentFormat'
 /**
  * The fleet of both platforms (docs/windows-sensor-plan.md §10.1; docs/linux-sensor-plan.md §11.1): the platform, state,
  * host, OS (for Linux the distribution and the kernel), agent, connection, remote access, audit gaps and diagnostics, Linux's
- * pending security updates and whether its config.yaml allows key removal, with filters. Add server makes a join token for an
- * existing host.
+ * pending security updates, unregistered and retired keys still authorized, and whether its config.yaml allows key removal,
+ * with filters. Add server makes a join token for an existing host.
  */
 const platform = ref<S['AgentPlatform'] | null>(null)
 const filter = ref<
@@ -31,6 +31,8 @@ const filter = ref<
   | 'diagnosticsFailing'
   | 'securityUpdates'
   | 'keyRemoval'
+  | 'unregisteredKeys'
+  | 'retiredKeys'
 >('')
 const filters = computed(() => ({
   platform: platform.value ?? undefined,
@@ -43,6 +45,8 @@ const filters = computed(() => ({
   diagnosticsFailing: filter.value === 'diagnosticsFailing' ? true : undefined,
   securityUpdates: filter.value === 'securityUpdates' ? true : undefined,
   keyRemoval: filter.value === 'keyRemoval' ? true : undefined,
+  unregisteredKeys: filter.value === 'unregisteredKeys' ? true : undefined,
+  retiredKeys: filter.value === 'retiredKeys' ? true : undefined,
 }))
 type Server = S['AgentServerItem'] & { id: string }
 const table = useServerTable<Server>({
@@ -67,6 +71,8 @@ const choices = [
   { label: 'Diagnostics failing', value: 'diagnosticsFailing' },
   { label: 'Security updates pending (Linux)', value: 'securityUpdates' },
   { label: 'Key removal allowed (Linux)', value: 'keyRemoval' },
+  { label: 'Unregistered keys (Linux)', value: 'unregisteredKeys' },
+  { label: 'Retired keys still authorized (Linux)', value: 'retiredKeys' },
 ]
 const adding = ref(false)
 </script>
@@ -153,6 +159,18 @@ const adding = ref(false)
               :value="`${data.securityUpdates} security updates`"
               severity="danger"
               icon="pi pi-shield"
+            />
+            <Tag
+              v-if="data.unregisteredKeys"
+              :value="`${data.unregisteredKeys} unregistered keys`"
+              severity="warn"
+              icon="pi pi-key"
+            />
+            <Tag
+              v-if="data.retiredKeysAuthorized"
+              :value="`${data.retiredKeysAuthorized} retired keys`"
+              severity="danger"
+              icon="pi pi-key"
             />
             <Tag v-if="data.keyRemovalAllowed" value="key removal allowed" severity="info" icon="pi pi-key" />
           </div>

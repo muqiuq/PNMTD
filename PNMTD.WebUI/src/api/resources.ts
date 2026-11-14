@@ -312,6 +312,8 @@ export const api = {
         diagnosticsFailing?: boolean
         securityUpdates?: boolean
         keyRemoval?: boolean
+        unregisteredKeys?: boolean
+        retiredKeys?: boolean
         hostId?: Id
       },
     ) => call(client.GET('/api/v1/agents/servers', { params: { query } })),
@@ -323,6 +325,7 @@ export const api = {
         admin?: boolean
         kind?: S['LogonKind']
         keyFingerprint?: string
+        keyOwner?: string
         user?: string
         source?: string
         from?: string
@@ -348,12 +351,20 @@ export const api = {
     revokeToken: (id: Id) => call(client.DELETE('/api/v1/agents/join-tokens/{id}', { params: { path: { id } } })),
     agentLog: (query: ListQuery & { kind?: S['AgentLogKind']; sensorId?: Id }) =>
       call(client.GET('/api/v1/agents/agent-log', { params: { query } })),
+    /** A Linux server's SSH keys with their registrations, last use and removability (docs/linux-sensor-plan.md §6.3). CanWrite. */
+    serverSshKeys: (id: Id) => call(client.GET('/api/v1/agents/servers/{id}/ssh-keys', { params: { path: { id } } })),
+    /** The accounts a Linux server's config.yaml lets scripts run as (§8.4). Admin. */
+    runAsAccounts: (id: Id) =>
+      call(client.GET('/api/v1/agents/servers/{id}/run-as-accounts', { params: { path: { id } } })),
     downloads: () => call(client.GET('/api/v1/agents/downloads')),
     /** Fetch again (docs/linux-sensor-plan.md §4.4): the files named, or every one that isn't here and verified. */
     fetchDownloads: (files: string[] | null = null) =>
       call(client.POST('/api/v1/agents/downloads/fetch', { body: { files } })),
     // --- scripts (docs/windows-sensor-plan.md §7; docs/linux-sensor-plan.md §8): Admin --------------------------
-    scripts: (query: ListQuery) => call(client.GET('/api/v1/agents/scripts', { params: { query } })),
+    scripts: (query: ListQuery & { language?: S['ScriptLanguage'] }) =>
+      call(client.GET('/api/v1/agents/scripts', { params: { query } })),
+    scriptTemplate: (language: S['ScriptLanguage']) =>
+      call(client.GET('/api/v1/agents/scripts/template', { params: { query: { language } } })),
     script: (id: Id) => call(client.GET('/api/v1/agents/scripts/{id}', { params: { path: { id } } })),
     createScript: (body: S['AgentScriptRequest']) => call(client.POST('/api/v1/agents/scripts', { body })),
     updateScript: (id: Id, body: S['AgentScriptRequest']) =>
@@ -396,6 +407,51 @@ export const api = {
   linux: {
     section: (id: Id, section: string) =>
       call(client.GET('/api/v1/linux/servers/{id}/sections/{section}', { params: { path: { id, section } } })),
+  },
+
+  /**
+   * The SSH key manager (docs/linux-sensor-plan.md §6.4, §6.5, §11.4): the register, the keys found unregistered on servers, and
+   * removals. Admin and audited; mine for every role.
+   */
+  sshKeys: {
+    list: (query: ListQuery & { owner?: string; kind?: S['SshKeyKind']; state?: S['SshKeyState']; filter?: string }) =>
+      call(client.GET('/api/v1/ssh-keys', { params: { query } })),
+    summary: () => call(client.GET('/api/v1/ssh-keys/summary')),
+    unregistered: (query: ListQuery & { sensorId?: Id; filter?: string }) =>
+      call(client.GET('/api/v1/ssh-keys/unregistered', { params: { query } })),
+    /** One or more public keys, line by line: fingerprints, names, and what would be refused. Stores and logs nothing. */
+    parse: (text: string) => call(client.POST('/api/v1/ssh-keys/parse', { body: { text } })),
+    register: (body: S['SshKeyRegisterRequest']) => call(client.POST('/api/v1/ssh-keys', { body })),
+    get: (id: Id) => call(client.GET('/api/v1/ssh-keys/{id}', { params: { path: { id } } })),
+    update: (id: Id, body: S['SshKeyUpdateRequest']) =>
+      call(client.PUT('/api/v1/ssh-keys/{id}', { params: { path: { id } }, body })),
+    remove: (id: Id) => call(client.DELETE('/api/v1/ssh-keys/{id}', { params: { path: { id } } })),
+    retire: (id: Id) => call(client.POST('/api/v1/ssh-keys/{id}/retire', { params: { path: { id } } })),
+    reactivate: (id: Id) => call(client.POST('/api/v1/ssh-keys/{id}/reactivate', { params: { path: { id } } })),
+    /** The removal preview for every place a key is authorized. */
+    removalItems: (id: Id) => call(client.POST('/api/v1/ssh-keys/{id}/removal-items', { params: { path: { id } } })),
+    user: (userId: Id) => call(client.GET('/api/v1/ssh-keys/users/{userId}', { params: { path: { userId } } })),
+    userRemovalItems: (userId: Id) =>
+      call(client.POST('/api/v1/ssh-keys/users/{userId}/removal-items', { params: { path: { userId } } })),
+    /** Offboarding: retires the user's keys and removes each from every server; confirm is the number of removals. */
+    offboard: (userId: Id, confirm: number) =>
+      call(
+        client.POST('/api/v1/ssh-keys/users/{userId}/offboard', { params: { path: { userId } }, body: { confirm } }),
+      ),
+    preview: (items: S['SshKeyRemovalTarget'][]) =>
+      call(client.POST('/api/v1/ssh-keys/remove/preview', { body: { items } })),
+    removeKeys: (body: S['SshKeyRemoveRequest']) => call(client.POST('/api/v1/ssh-keys/remove', { body })),
+    mine: () => call(client.GET('/api/v1/ssh-keys/mine')),
+    removals: (
+      query: ListQuery & {
+        sensorId?: Id
+        fingerprint?: string
+        owner?: string
+        state?: S['SshKeyRemovalState']
+        reason?: S['SshKeyRemovalReason']
+        batchId?: Id
+      },
+    ) => call(client.GET('/api/v1/ssh-key-removals', { params: { query } })),
   },
 
   /** Diagnostics (docs/windows-sensor-plan.md §5): reading CanRead, changing Admin, Run now CanWrite. */
@@ -516,6 +572,8 @@ export const keys = {
   /** Servers with an agent, of every platform (docs/windows-sensor-plan.md §10; docs/linux-sensor-plan.md §11). */
   agents: ['agents'] as const,
   agentServer: (id: Id) => ['agents', 'server', id] as const,
+  /** The SSH key manager (docs/linux-sensor-plan.md §11.4): the register, unregistered keys, removals, a user's keys. */
+  sshKeys: ['ssh-keys'] as const,
   /** Diagnostics: sets, assignments and runs (docs/windows-sensor-plan.md §10.3). */
   diagnostics: ['diagnostics'] as const,
   /** The uplink page and its checks (docs/ai-operations-plan.md §7.3). */

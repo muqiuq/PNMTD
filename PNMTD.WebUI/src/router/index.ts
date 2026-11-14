@@ -207,6 +207,13 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'Servers', role: 'Admin' },
   },
   {
+    // The SSH key manager (docs/linux-sensor-plan.md §11.4): the register, unregistered keys, removals; ?key= opens a key.
+    path: '/admin/ssh-keys/:tab(keys|unregistered|removals)?',
+    name: 'ssh-keys',
+    component: () => import('@/views/admin/sshkeys/SshKeysView.vue'),
+    meta: { title: 'SSH keys', role: 'Admin' },
+  },
+  {
     // docs/mikrotik-plan.md §11.2: the routers and the tunnel network, ?tab=network|routers.
     path: '/admin/mikrotik',
     name: 'mikrotik',

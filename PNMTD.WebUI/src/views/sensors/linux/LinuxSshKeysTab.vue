@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useQuery } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
@@ -7,41 +8,55 @@ import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import { computed, ref, toRef } from 'vue'
-import type { S } from '@/api/resources'
+import { api, keys, type S } from '@/api/resources'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { useCopy } from '@/composables/useCopy'
-import { bytes } from '@/views/admin/servers/agentFormat'
+import AddKeysDialog from '@/views/admin/sshkeys/AddKeysDialog.vue'
+import RemoveKeysDialog from '@/views/admin/sshkeys/RemoveKeysDialog.vue'
+import type { RemovalSource } from '@/views/admin/sshkeys/sshKeyFormat'
 import SectionBar from '../agent/SectionBar.vue'
 import { useLinuxSection } from '../agent/useAgentSection'
-import { invalidLinesText, keyGlance, optionSeverity, rootLogin, shortFingerprint, weakKey } from './linuxFormat'
+import { invalidLinesText, optionSeverity, rootLogin, rootWithoutFrom, shortFingerprint, weakKey } from './linuxFormat'
 
 /**
- * A Linux server's SSH keys (docs/linux-sensor-plan.md §6.1, §6.3): sshd's key settings and the CA keys it trusts; then per
+ * A Linux server's SSH keys (docs/linux-sensor-plan.md §6.1, §6.3, §6.5): sshd's key settings and the CA keys it trusts; then per
  * account and file the path (and a followed symlink's target), cluster-wide on Proxmox VE, owner and mode, the file's problems,
  * whether PNMT may remove keys here (from config.yaml, with the reason when not), the lines that aren't keys (by number only),
- * and each key: type and bits, fingerprint (with copy, and its logins), comment, options, notes, protected. Read-only: the key
- * manager (L5, L6) fills the Admin slots with Register… and Remove…, and adds each key's registered name and last use. The User
- * role: key comments name people.
- *
- * Slots, for Admins only: `actions` (the toolbar: Register…, Remove… for the selection), `file-actions` (a file's header) and
- * `key-actions` (a column per key).
+ * and each key: its registered name and owner (or unregistered), type and bits, fingerprint (with copy, and its logins),
+ * comment, options, notes, protected, last use, and whether PNMT may remove it here or why not. For Admins: Register… (prefilled
+ * from the keys) and Remove… for the chosen keys. The User role: key comments name people.
  */
 const props = defineProps<{ server: S['AgentServerDetail']; canWrite: boolean; isAdmin: boolean }>()
-defineSlots<{
-  actions?: (p: { section: S['SshKeysSection'] }) => unknown
-  'file-actions'?: (p: { file: S['AuthorizedKeysFile'] }) => unknown
-  'key-actions'?: (p: { file: S['AuthorizedKeysFile']; item: S['AuthorizedKey'] }) => unknown
-}>()
 const id = toRef(() => props.server.server.sensorId)
 const section = useLinuxSection(id, 'ssh-keys')
-const data = computed(() => section.data.value?.sshKeys ?? null)
-const glance = computed(() => (data.value ? keyGlance(data.value) : null))
+const view = useQuery({
+  queryKey: computed(() => [...keys.agentServer(id.value), 'ssh-keys-view']),
+  queryFn: async () => {
+    try {
+      return await api.agents.serverSshKeys(id.value)
+    } catch (e) {
+      if ((e as { status?: number }).status === 404) return null
+      throw e
+    }
+  },
+  refetchInterval: 60_000,
+})
+const data = computed(() => view.data.value ?? null)
+const allKeys = computed(() => (data.value?.files ?? []).flatMap((f) => f.keys))
+const glance = computed(() => ({
+  distinct: new Set(allKeys.value.map((k) => k.fingerprint)).size,
+  weak: allKeys.value.filter((k) => k.weakness || weakKey(k)).length,
+  rootWithoutFrom: allKeys.value.filter(rootWithoutFrom).length,
+  problems: (data.value?.files ?? []).reduce((n, f) => n + f.problems.length, 0),
+}))
 const search = ref('')
 const missing = ref(false)
 const query = computed(() => search.value.trim().toLowerCase())
-const keyMatches = (k: S['AuthorizedKey']) =>
-  [k.fingerprint, k.comment, k.type, ...k.options, ...k.notes].some((v) => v?.toLowerCase().includes(query.value))
-/** The files with the keys that match the search; files sshd would read that don't exist only on request. */
+const keyMatches = (k: S['SshKeyServerKey']) =>
+  [k.fingerprint, k.comment, k.type, k.registration?.name, k.registration?.owner.name, ...k.options, ...k.notes].some(
+    (v) => v?.toLowerCase().includes(query.value),
+  )
+/** The files with the keys that match the search, root's first; files sshd would read that don't exist only on request. */
 const files = computed(() =>
   (data.value?.files ?? [])
     .filter((f) => f.exists || missing.value)
@@ -69,6 +84,37 @@ const loginsWith = (fingerprint: string) => ({
   params: { id: id.value, tab: 'access' },
   query: { key: fingerprint },
 })
+
+// --- the Admin's choice, Register… and Remove… (§6.3, §6.5) ---------------------------------------------------------------
+type Chosen = { file: S['SshKeyServerFile']; key: S['SshKeyServerKey'] }
+const chosen = ref(new Map<string, Chosen>())
+const slot = (f: S['SshKeyServerFile'], k: S['SshKeyServerKey']) => `${f.path}\n${k.line}`
+const toggle = (f: S['SshKeyServerFile'], k: S['SshKeyServerKey'], value: boolean) => {
+  const next = new Map(chosen.value)
+  if (value) next.set(slot(f, k), { file: f, key: k })
+  else next.delete(slot(f, k))
+  chosen.value = next
+}
+const chosenList = computed(() => [...chosen.value.values()])
+const unregisteredChosen = computed(() => chosenList.value.filter((c) => !c.key.registration))
+const registering = ref<string | null>(null)
+const registerOpen = computed({ get: () => registering.value !== null, set: (v) => !v && (registering.value = null) })
+const removing = ref<RemovalSource | null>(null)
+const register = (list: Chosen[]) =>
+  (registering.value = [...new Map(list.map((c) => [c.key.fingerprint, c.key.publicKey])).values()].join('\n'))
+const remove = (list: Chosen[]) =>
+  (removing.value = {
+    kind: 'items',
+    items: list.map((c) => ({
+      sensorId: id.value,
+      account: c.file.account,
+      path: c.file.path,
+      fingerprint: c.key.fingerprint,
+    })),
+    reason: 'Server',
+    title: `Remove keys from ${props.server.server.host.name} / ${props.server.server.name}`,
+  })
+const clear = () => (chosen.value = new Map())
 </script>
 
 <template>
@@ -91,10 +137,10 @@ const loginsWith = (fingerprint: string) => ({
         <section class="panel">
           <div class="panel-header">sshd's key settings</div>
           <div class="panel-body content">
-            <Message v-if="!data.sshd.available" severity="warn" :closable="false" size="small">
+            <Message v-if="!data.sshd?.available" severity="warn" :closable="false" size="small">
               sshd's settings could not be read (sshd -T): the files are those of sshd's defaults.
             </Message>
-            <dl class="facts">
+            <dl v-if="data.sshd" class="facts">
               <dt>AuthorizedKeysFile</dt>
               <dd class="mono small">{{ data.sshd.authorizedKeysFiles.join(' ') || '–' }}</dd>
               <dt>Public keys</dt>
@@ -139,18 +185,34 @@ const loginsWith = (fingerprint: string) => ({
           <div class="panel-header">
             Keys
             <span class="spacer" />
-            <span v-if="glance" class="muted small">{{ glance.keys }} in {{ glance.files }} files</span>
+            <span class="muted small"
+              >{{ data.totalKeys }} in {{ data.files.filter((f) => f.exists).length }} files</span
+            >
           </div>
           <div class="panel-body content">
-            <div v-if="glance" class="tags">
+            <div class="tags">
               <Tag :value="`${glance.distinct} different`" severity="secondary" />
-              <Tag v-if="glance.weak" :value="`${glance.weak} weak`" severity="danger" />
+              <Tag v-if="data.unregistered" :value="`${data.unregistered} unregistered`" severity="warn" />
+              <Tag
+                v-if="data.retiredAuthorized"
+                :value="`${data.retiredAuthorized} retired, still here`"
+                severity="danger"
+              />
+              <Tag v-if="data.weak" :value="`${data.weak} weak`" severity="danger" />
               <Tag
                 v-if="glance.rootWithoutFrom"
                 :value="`${glance.rootWithoutFrom} of root's without from=`"
                 severity="warn"
               />
               <Tag v-if="glance.problems" :value="`${glance.problems} file problems`" severity="warn" />
+            </div>
+            <div class="small">
+              <template v-if="data.removalAllowed">
+                PNMT may remove keys here<template v-if="data.removalUsers.length">
+                  for {{ data.removalUsers.join(', ') }}</template
+                ><template v-else> for every account</template>.
+              </template>
+              <span v-else class="muted">PNMT may not remove keys here: {{ data.removalRefused }}</span>
             </div>
             <div>
               <div class="small muted">CA keys sshd trusts: certificates they sign get in.</div>
@@ -177,7 +239,7 @@ const loginsWith = (fingerprint: string) => ({
       <div class="toolbar">
         <InputText
           v-model="search"
-          placeholder="Search accounts, files, fingerprints, comments"
+          placeholder="Search names, accounts, files, fingerprints, comments"
           size="small"
           class="search"
         />
@@ -186,13 +248,30 @@ const loginsWith = (fingerprint: string) => ({
           <span>files that don't exist ({{ absent }})</span>
         </label>
         <span class="spacer" />
-        <!-- The key manager (docs/linux-sensor-plan.md §6.3, §6.5): Register… and Remove… for Admins. -->
-        <slot v-if="isAdmin" name="actions" :section="data" />
+        <template v-if="isAdmin">
+          <span v-if="chosenList.length" class="muted small">{{ chosenList.length }} chosen</span>
+          <Button
+            label="Register…"
+            icon="pi pi-key"
+            size="small"
+            :disabled="!unregisteredChosen.length"
+            @click="register(unregisteredChosen)"
+          />
+          <Button
+            label="Remove…"
+            icon="pi pi-trash"
+            size="small"
+            severity="danger"
+            outlined
+            :disabled="!chosenList.length"
+            @click="remove(chosenList)"
+          />
+        </template>
       </div>
       <p v-if="!files.length" class="muted">
         {{ query ? `No key or file matches “${search.trim()}”.` : 'No key file found.' }}
       </p>
-      <section v-for="{ file: f, keys } in files" :key="`${f.account}:${f.path}`" class="panel">
+      <section v-for="{ file: f, keys: fileKeys } in files" :key="`${f.account}:${f.path}`" class="panel">
         <div class="panel-header file-header">
           <span class="account">{{ f.account }}</span>
           <span class="mono small">{{ f.path }}</span>
@@ -214,11 +293,10 @@ const loginsWith = (fingerprint: string) => ({
           />
           <span class="spacer" />
           <span v-if="f.exists" class="muted small mono">{{ f.owner }}:{{ f.group }} {{ f.mode }}</span>
-          <slot v-if="isAdmin" name="file-actions" :file="f" />
         </div>
         <div v-if="f.exists" class="panel-body content">
           <div class="muted small">
-            {{ bytes(f.size) }}<template v-if="f.modifiedAt"> · changed <RelativeTime :value="f.modifiedAt" /></template
+            <template v-if="f.modifiedAt">changed <RelativeTime :value="f.modifiedAt" /></template
             ><template v-if="f.notRemovable"> · not removable: {{ f.notRemovable }}</template>
           </div>
           <Message v-for="p in f.problems" :key="p" severity="warn" :closable="false" size="small">{{ p }}</Message>
@@ -226,18 +304,40 @@ const loginsWith = (fingerprint: string) => ({
             {{ invalidLinesText(f.invalidLines) }} (their text is never sent).
           </div>
         </div>
-        <DataTable v-if="f.exists" :value="keys" size="small" data-key="line">
+        <DataTable v-if="f.exists" :value="fileKeys" size="small" data-key="line">
           <template #empty><p class="empty muted">No keys.</p></template>
-          <Column header="Line" style="width: 4rem">
+          <Column v-if="isAdmin" style="width: 3rem">
+            <template #body="{ data: k }">
+              <Checkbox
+                :model-value="chosen.has(slot(f, k))"
+                binary
+                :aria-label="`Choose the key on line ${k.line} of ${f.path}`"
+                @update:model-value="(v: boolean) => toggle(f, k, v)"
+              />
+            </template>
+          </Column>
+          <Column header="Line" style="width: 3.5rem">
             <template #body="{ data: k }"
               ><span class="muted mono small">{{ k.line }}</span></template
             >
           </Column>
-          <Column header="Key" style="width: 11rem">
+          <Column header="Key">
             <template #body="{ data: k }">
-              {{ k.type.replace(/^ssh-/, '') }} <span v-if="k.bits" class="muted">{{ k.bits }}</span>
-              <div v-if="k.protected" class="tags">
-                <Tag value="protected" severity="success" class="small" :title="k.protectedBecause ?? undefined" />
+              <template v-if="k.registration">
+                <RouterLink
+                  v-if="isAdmin"
+                  :to="{ name: 'ssh-keys', params: { tab: 'keys' }, query: { key: k.registration.id } }"
+                  class="strong"
+                  >{{ k.registration.name }}</RouterLink
+                >
+                <strong v-else>{{ k.registration.name }}</strong>
+                <span class="muted small"> {{ k.registration.owner.name }}</span>
+                <Tag v-if="k.registration.state === 'Retired'" value="retired" severity="danger" class="small" />
+              </template>
+              <Tag v-else value="unregistered" severity="warn" class="small" />
+              <div class="small muted">
+                {{ k.type.replace(/^ssh-/, '') }} <template v-if="k.bits">{{ k.bits }}</template>
+                <template v-if="k.comment"> · {{ k.comment }}</template>
               </div>
             </template>
           </Column>
@@ -264,14 +364,16 @@ const loginsWith = (fingerprint: string) => ({
               </span>
             </template>
           </Column>
-          <Column header="Comment">
-            <template #body="{ data: k }">
-              <span class="small">{{ k.comment ?? '' }}</span>
-            </template>
-          </Column>
           <Column header="Options and notes">
             <template #body="{ data: k }">
               <div class="tags">
+                <Tag
+                  v-if="k.protected"
+                  value="protected"
+                  severity="success"
+                  class="small"
+                  :title="k.protectedBecause ?? undefined"
+                />
                 <Tag v-for="o in k.options" :key="o" :value="o" :severity="optionSeverity(o)" class="small mono" />
                 <Tag
                   v-for="n in k.notes"
@@ -283,12 +385,55 @@ const loginsWith = (fingerprint: string) => ({
               </div>
             </template>
           </Column>
-          <Column v-if="isAdmin && $slots['key-actions']" header="" style="width: 8rem">
-            <template #body="{ data: k }"><slot name="key-actions" :file="f" :item="k" /></template>
+          <Column header="Last used" style="width: 10rem">
+            <template #body="{ data: k }">
+              <template v-if="k.lastUsedAt">
+                <RelativeTime :value="k.lastUsedAt" />
+                <div class="mono small muted">{{ k.lastUsedFrom }}</div>
+              </template>
+              <span v-else-if="k.firstSeenAt" class="muted small"
+                >first seen <RelativeTime :value="k.firstSeenAt"
+              /></span>
+              <div v-if="!k.canRemove" class="small muted" :title="k.cannotRemove ?? undefined">
+                <i class="pi pi-lock" /> PNMT can't remove it
+              </div>
+            </template>
+          </Column>
+          <Column v-if="isAdmin" style="width: 6rem">
+            <template #body="{ data: k }">
+              <span class="row-actions">
+                <Button
+                  v-if="!k.registration"
+                  v-tooltip.top="'Register…'"
+                  icon="pi pi-key"
+                  text
+                  size="small"
+                  :aria-label="`Register the key on line ${k.line} of ${f.path}`"
+                  @click="register([{ file: f, key: k }])"
+                />
+                <Button
+                  v-tooltip.top="'Remove…'"
+                  icon="pi pi-trash"
+                  text
+                  size="small"
+                  severity="danger"
+                  :aria-label="`Remove the key on line ${k.line} of ${f.path}`"
+                  @click="remove([{ file: f, key: k }])"
+                />
+              </span>
+            </template>
           </Column>
         </DataTable>
       </section>
     </template>
+    <AddKeysDialog
+      v-if="isAdmin"
+      v-model:visible="registerOpen"
+      :prefill="registering"
+      title="Register keys found on this server"
+      @registered="clear"
+    />
+    <RemoveKeysDialog v-if="isAdmin" v-model:source="removing" />
   </div>
 </template>
 
@@ -320,12 +465,13 @@ const loginsWith = (fingerprint: string) => ({
   padding-bottom: var(--pnmt-space-1);
 }
 
-.account {
+.account,
+.strong {
   font-weight: 600;
 }
 
 .search {
-  width: 22rem;
+  width: 24rem;
   max-width: 100%;
 }
 
@@ -345,7 +491,8 @@ const loginsWith = (fingerprint: string) => ({
   padding: 0;
 }
 
-.key {
+.key,
+.row-actions {
   display: inline-flex;
   align-items: center;
   white-space: nowrap;

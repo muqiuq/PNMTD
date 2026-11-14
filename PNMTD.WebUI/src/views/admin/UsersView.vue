@@ -21,11 +21,15 @@ import { useActions } from '@/composables/useActions'
 import { useServerTable } from '@/composables/useServerTable'
 import { formatAbsolute } from '@/format'
 import { useSession } from '@/stores/session'
+import RemoveKeysDialog from './sshkeys/RemoveKeysDialog.vue'
+import type { RemovalSource } from './sshkeys/sshKeyFormat'
+import UserKeys from './sshkeys/UserKeys.vue'
 
 /**
- * Users (§4.9, §5.6): role, 2FA, last sign-in, locked or not. A row opens its drawer: edit, reset
- * the password (a temporary one, shown once), reset 2FA, unlock, delete. The server refuses to
- * leave no active admin (409 last_admin) and says so.
+ * Users (§4.9, §5.6): role, 2FA, last sign-in, locked or not, their SSH keys. A row opens its drawer: edit, reset
+ * the password (a temporary one, shown once), reset 2FA, unlock, delete; their keys with where each is authorized, and
+ * Remove all from every server… (docs/linux-sensor-plan.md §6.4). Deactivating a user who has keys asks whether to retire
+ * them and remove them now. The server refuses to leave no active admin (409 last_admin) and says so.
  */
 const session = useSession()
 const queryClient = useQueryClient()
@@ -61,8 +65,13 @@ async function refresh(id?: string) {
   }
 }
 
+// Offboarding (docs/linux-sensor-plan.md §6.4): their keys retired and removed from every server.
+const removing = ref<RemovalSource | null>(null)
+const offboard = (u: S['UserItem']) => (removing.value = { kind: 'user', userId: u.id, name: u.username })
+
 async function saveUser() {
   const u = selected.value!
+  const deactivated = u.isActive && !edit.value.isActive
   try {
     await api.users.update(u.id, edit.value)
     notify.success(
@@ -70,6 +79,16 @@ async function saveUser() {
       edit.value.role !== u.role || edit.value.isActive !== u.isActive ? 'Their sessions end.' : undefined,
     )
     await refresh(u.id)
+    if (
+      deactivated &&
+      u.sshKeys > 0 &&
+      (await ask(
+        `Retire ${u.username}'s SSH keys?`,
+        `They have ${u.sshKeys} registered ${u.sshKeys === 1 ? 'key' : 'keys'}. Retire them and remove them from every server now? The next step shows each place first.`,
+        'Retire and remove…',
+      ))
+    )
+      offboard(u)
   } catch (e) {
     if (e instanceof ApiError && Object.keys(e.errors).length) {
       editErrors.value = { displayName: e.field('displayName'), role: e.field('role') }
@@ -205,6 +224,12 @@ async function create() {
           <span v-else class="muted">active</span>
         </template>
       </Column>
+      <Column header="SSH keys" style="width: 6rem">
+        <template #body="{ data }">
+          <span v-if="data.sshKeys">{{ data.sshKeys }}</span>
+          <span v-else class="muted">–</span>
+        </template>
+      </Column>
       <Column field="lastlogin" header="Last sign-in" sortable style="width: 9rem">
         <template #body="{ data }"><RelativeTime :value="data.lastLoginAt" /></template>
       </Column>
@@ -311,8 +336,13 @@ async function create() {
             @click="remove"
           />
         </div>
+        <section class="ssh-keys">
+          <h3>SSH keys</h3>
+          <UserKeys :user-id="selected.id" @offboard="offboard(selected)" />
+        </section>
       </template>
     </Drawer>
+    <RemoveKeysDialog v-model:source="removing" />
 
     <Dialog v-model:visible="creating" header="New user" modal :style="{ width: '26rem' }">
       <form id="new-user" class="form" novalidate @submit.prevent="create">
@@ -403,6 +433,19 @@ async function create() {
   margin-top: var(--pnmt-space-4);
   padding-top: var(--pnmt-space-4);
   border-top: 1px solid var(--pnmt-border);
+}
+
+.ssh-keys {
+  margin-top: var(--pnmt-space-4);
+  padding-top: var(--pnmt-space-4);
+  border-top: 1px solid var(--pnmt-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-2);
+}
+
+.ssh-keys h3 {
+  margin: 0;
 }
 
 .log-link {

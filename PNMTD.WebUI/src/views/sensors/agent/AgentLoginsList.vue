@@ -11,7 +11,7 @@ import RelativeTime from '@/components/RelativeTime.vue'
 import { useCopy } from '@/composables/useCopy'
 import { useServerTable } from '@/composables/useServerTable'
 import { logonKindLabel, logonKinds } from '@/views/admin/servers/agentFormat'
-import { shortFingerprint } from '../linux/linuxFormat'
+import { keyLabel } from '../linux/linuxFormat'
 
 /**
  * The logins and connections of a server (docs/windows-sensor-plan.md §4.7; docs/linux-sensor-plan.md §5.6), with their
@@ -130,10 +130,11 @@ const copy = useCopy()
           <span v-if="data.keyFingerprint" class="key">
             <Button
               v-tooltip.top="`Only logins with ${data.keyFingerprint}`"
-              :label="shortFingerprint(data.keyFingerprint)"
+              :label="keyLabel(data)"
               link
               size="small"
-              class="mono fingerprint"
+              class="fingerprint"
+              :class="{ mono: !data.keyName }"
               @click="filterByKey(data.keyFingerprint)"
             />
             <Button
@@ -164,7 +165,7 @@ const copy = useCopy()
         </div>
         <div class="small muted">
           <RelativeTime :value="item.lastAt ?? item.at" /> · {{ item.sourceAddress }}
-          <span v-if="item.keyFingerprint" class="mono"> · {{ shortFingerprint(item.keyFingerprint) }}</span>
+          <span v-if="item.keyFingerprint"> · {{ keyLabel(item) }}</span>
         </div>
       </template>
     </ListTable>

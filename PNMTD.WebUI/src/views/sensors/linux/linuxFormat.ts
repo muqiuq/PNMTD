@@ -12,6 +12,19 @@ export function shortFingerprint(fingerprint: string | null | undefined): string
   return fingerprint.length > 22 ? `${fingerprint.slice(0, 16)}…${fingerprint.slice(-4)}` : fingerprint
 }
 
+/**
+ * The key a login used (§6.4): its registered name and owner, "Philipp, laptop (philipp)", as 264 words it; else the short
+ * fingerprint.
+ */
+export function keyLabel(l: {
+  keyName?: string | null
+  keyOwner?: string | null
+  keyFingerprint?: string | null
+}): string {
+  if (l.keyName) return l.keyOwner ? `${l.keyName} (${l.keyOwner})` : l.keyName
+  return shortFingerprint(l.keyFingerprint)
+}
+
 /** A note on a setting, with how much it matters. */
 export interface Note {
   text: string

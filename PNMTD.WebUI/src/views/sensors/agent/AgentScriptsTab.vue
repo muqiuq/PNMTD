@@ -9,8 +9,8 @@ import WindowsLocalScripts from '../windows/WindowsLocalScripts.vue'
 
 /**
  * A server's scripts (docs/windows-sensor-plan.md §7.2, §7.3; docs/linux-sensor-plan.md §8): on Windows the scripts an
- * administrator registered in the agent's window there, each runnable from here; Run… for the library; and the server's
- * runs. Admin.
+ * administrator registered in the agent's window there, each runnable from here; Run… for the library's scripts of the server's
+ * language (bash on Linux, as root or an account its config.yaml allows); and the server's runs. Admin.
  */
 const props = defineProps<{ server: S['AgentServerDetail'] }>()
 const allowed = computed(() => props.server.capabilities.includes('scripts.v1'))
@@ -43,7 +43,7 @@ const runDialog = (name: string | null) => {
     </Message>
     <WindowsLocalScripts v-if="windows" :server="server" :allowed="allowed" @run="runDialog" />
     <div class="toolbar">
-      <span class="muted small">From PNMT's library:</span>
+      <span class="muted small">From PNMT's library{{ windows ? '' : ' (bash scripts)' }}:</span>
       <span class="spacer" />
       <Button label="Run a script…" icon="pi pi-play" size="small" :disabled="!allowed" @click="runDialog(null)" />
     </div>
@@ -53,6 +53,7 @@ const runDialog = (name: string | null) => {
       :script-id="null"
       :sensor-id="server.server.sensorId"
       :local-name="localName"
+      :platform="server.server.platform"
     />
   </div>
 </template>
