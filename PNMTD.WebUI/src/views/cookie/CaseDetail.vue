@@ -58,9 +58,9 @@ const zabbixSeverity = (m: S['CaseMember']) => m.severity as S['ZabbixSeverity']
         <dd><RelativeTime :value="c.changedAt" /></dd>
         <dt>Last progress</dt>
         <dd><RelativeTime :value="c.progressAt" /></dd>
-        <template v-if="c.nextDueAt">
+        <template v-if="c.next?.dueAt">
           <dt>Next deadline</dt>
-          <dd>{{ dutyName(c.nextDue) }}, {{ formatAbsolute(c.nextDueAt) }}</dd>
+          <dd>{{ dutyName(c.next?.kind) }}, {{ formatAbsolute(c.next?.dueAt) }}</dd>
         </template>
         <template v-if="c.hostId || c.locationId">
           <dt>Where</dt>

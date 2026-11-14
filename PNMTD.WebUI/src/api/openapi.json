@@ -3904,6 +3904,35 @@
         }
       }
     },
+    "/api/v1/cookie/admin/people": {
+      "get": {
+        "tags": [
+          "CookieAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookiePeople"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookiePeople"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookiePeople"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cookie/admin/redmine": {
       "get": {
         "tags": [
@@ -20769,10 +20798,11 @@
           "hostId",
           "locationId",
           "issueId",
+          "hostName",
+          "locationName",
           "cookieNote",
           "cookieUrgency",
-          "nextDueAt",
-          "nextDue"
+          "next"
         ],
         "type": "object",
         "properties": {
@@ -20832,6 +20862,18 @@
             ],
             "format": "int32"
           },
+          "hostName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "locationName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "cookieNote": {
             "type": [
               "null",
@@ -20844,20 +20886,13 @@
               "string"
             ]
           },
-          "nextDueAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "nextDue": {
+          "next": {
             "oneOf": [
               {
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/CookieDutyKind"
+                "$ref": "#/components/schemas/CookieNextDuty"
               }
             ]
           }
@@ -20947,7 +20982,9 @@
           "prompts",
           "caseKinds",
           "ceilings",
-          "limits"
+          "limits",
+          "newProject",
+          "env"
         ],
         "type": "object",
         "properties": {
@@ -20968,6 +21005,12 @@
           },
           "limits": {
             "$ref": "#/components/schemas/OutputLimits"
+          },
+          "newProject": {
+            "$ref": "#/components/schemas/WatchedProject"
+          },
+          "env": {
+            "$ref": "#/components/schemas/CookieEnvDefaults"
           }
         }
       },
@@ -21062,8 +21105,7 @@
           "UpdateReminder",
           "UpdateMissed",
           "ProblemTicket",
-          "ClosingNote",
-          null
+          "ClosingNote"
         ]
       },
       "CookieDutyState": {
@@ -21107,6 +21149,58 @@
           }
         }
       },
+      "CookieEnvDefaults": {
+        "required": [
+          "enabled",
+          "privacy",
+          "model",
+          "providers",
+          "zdr",
+          "minQuantization",
+          "budgetUsd"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "privacy": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "providers": {
+            "type": "string"
+          },
+          "zdr": {
+            "type": "boolean"
+          },
+          "minQuantization": {
+            "type": "string"
+          },
+          "budgetUsd": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "CookieGroupRef": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
       "CookieMessageItem": {
         "required": [
           "id",
@@ -21144,6 +21238,22 @@
         "properties": {
           "text": {
             "type": "string"
+          }
+        }
+      },
+      "CookieNextDuty": {
+        "required": [
+          "kind",
+          "dueAt"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/CookieDutyKind"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -21234,6 +21344,51 @@
           "Simulated"
         ]
       },
+      "CookiePeople": {
+        "required": [
+          "users",
+          "groups"
+        ],
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CookiePerson"
+            }
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CookieGroupRef"
+            }
+          }
+        }
+      },
+      "CookiePerson": {
+        "required": [
+          "id",
+          "username",
+          "displayName",
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
       "CookiePromptItem": {
         "required": [
           "key",
@@ -21287,7 +21442,8 @@
           "roles",
           "statuses",
           "trackers",
-          "error"
+          "error",
+          "rolesError"
         ],
         "type": "object",
         "properties": {
@@ -21322,6 +21478,12 @@
             }
           },
           "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rolesError": {
             "type": [
               "null",
               "string"

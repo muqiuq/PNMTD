@@ -91,9 +91,9 @@ const kindOptions = [{ label: 'Every kind', value: null }, ...caseKinds.map((k) 
         </Column>
         <Column header="Next deadline" style="width: 10rem">
           <template #body="{ data }">
-            <template v-if="data.nextDueAt">
-              <div class="ellipsis small">{{ dutyName(data.nextDue) }}</div>
-              <RelativeTime :value="data.nextDueAt" class="small" />
+            <template v-if="data.next?.dueAt">
+              <div class="ellipsis small">{{ dutyName(data.next?.kind) }}</div>
+              <RelativeTime :value="data.next?.dueAt" class="small" />
             </template>
             <span v-else class="muted">–</span>
           </template>
@@ -102,8 +102,8 @@ const kindOptions = [{ label: 'Every kind', value: null }, ...caseKinds.map((k) 
           <div class="ellipsis">{{ item.title }}</div>
           <div class="muted small">
             {{ item.kind }} · {{ item.importance
-            }}<template v-if="item.nextDueAt">
-              · {{ dutyName(item.nextDue) }} <RelativeTime :value="item.nextDueAt"
+            }}<template v-if="item.next?.dueAt">
+              · {{ dutyName(item.next?.kind) }} <RelativeTime :value="item.next?.dueAt"
             /></template>
           </div>
         </template>

@@ -3116,6 +3116,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cookie/admin/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookiePeople"];
+                        "text/json": components["schemas"]["CookiePeople"];
+                        "text/plain": components["schemas"]["CookiePeople"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cookie/admin/redmine": {
         parameters: {
             query?: never;
@@ -14122,11 +14159,11 @@ export interface components {
             locationId: null | string;
             /** Format: int32 */
             issueId: null | number;
+            hostName: null | string;
+            locationName: null | string;
             cookieNote: null | string;
             cookieUrgency: null | string;
-            /** Format: date-time */
-            nextDueAt: null | string;
-            nextDue: null | components["schemas"]["CookieDutyKind"];
+            next: null | components["schemas"]["CookieNextDuty"];
         };
         /** @enum {unknown} */
         CookieCaseKind: "Problem" | "Ticket" | "Request";
@@ -14151,6 +14188,8 @@ export interface components {
             caseKinds: components["schemas"]["CookiePromptItem"][];
             ceilings: components["schemas"]["OutputLimits"];
             limits: components["schemas"]["OutputLimits"];
+            newProject: components["schemas"]["WatchedProject"];
+            env: components["schemas"]["CookieEnvDefaults"];
         };
         CookieDutyCount: {
             kind: components["schemas"]["CookieDutyKind"];
@@ -14179,7 +14218,7 @@ export interface components {
             outcome: null | string;
         };
         /** @enum {unknown} */
-        CookieDutyKind: "FirstAnswerReminder" | "FirstAnswerMissed" | "UpdateReminder" | "UpdateMissed" | "ProblemTicket" | "ClosingNote" | null;
+        CookieDutyKind: "FirstAnswerReminder" | "FirstAnswerMissed" | "UpdateReminder" | "UpdateMissed" | "ProblemTicket" | "ClosingNote";
         /** @enum {unknown} */
         CookieDutyState: "Due" | "Done" | "HeldBack" | "Off" | "NotPossible" | "Failed";
         CookieEntryItem: {
@@ -14189,6 +14228,21 @@ export interface components {
             text: string;
             actor: string;
             actorName: null | string;
+        };
+        CookieEnvDefaults: {
+            enabled: boolean;
+            privacy: string;
+            model: string;
+            providers: string;
+            zdr: boolean;
+            minQuantization: string;
+            /** Format: double */
+            budgetUsd: number;
+        };
+        CookieGroupRef: {
+            /** Format: uuid */
+            id: string;
+            name: string;
         };
         CookieMessageItem: {
             /** Format: int64 */
@@ -14201,6 +14255,11 @@ export interface components {
         };
         CookieMessageRequest: {
             text: string;
+        };
+        CookieNextDuty: {
+            kind: components["schemas"]["CookieDutyKind"];
+            /** Format: date-time */
+            dueAt: string;
         };
         CookieOutboxItem: {
             /** Format: int64 */
@@ -14224,6 +14283,17 @@ export interface components {
         };
         /** @enum {unknown} */
         CookieOutboxState: "Sent" | "HeldBack" | "Failed" | "Simulated";
+        CookiePeople: {
+            users: components["schemas"]["CookiePerson"][];
+            groups: components["schemas"]["CookieGroupRef"][];
+        };
+        CookiePerson: {
+            /** Format: uuid */
+            id: string;
+            username: string;
+            displayName: string;
+            isActive: boolean;
+        };
         CookiePromptItem: {
             key: string;
             label: string;
@@ -14243,6 +14313,7 @@ export interface components {
             statuses: components["schemas"]["RedmineNamed"][];
             trackers: components["schemas"]["RedmineNamed"][];
             error: null | string;
+            rolesError: null | string;
         };
         CookieRedmineSettings: {
             projects?: components["schemas"]["WatchedProject"][];

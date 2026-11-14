@@ -35,10 +35,14 @@ public sealed record CookieCaseItem(
     Guid? HostId,
     Guid? LocationId,
     int? IssueId,
+    string? HostName,
+    string? LocationName,
     string? CookieNote,
     string? CookieUrgency,
-    DateTime? NextDueAt,
-    CookieDutyKind? NextDue);
+    CookieNextDuty? Next);
+
+/// <summary>A case's next deadline.</summary>
+public sealed record CookieNextDuty(CookieDutyKind Kind, DateTime DueAt);
 
 public sealed record CookieEntryItem(DateTime At, string Kind, string Text, string Actor, string? ActorName);
 
@@ -106,13 +110,25 @@ public sealed record CookieDefaults(
     IReadOnlyList<CookiePromptItem> Prompts,
     IReadOnlyList<CookiePromptItem> CaseKinds,
     OutputLimits Ceilings,
-    OutputLimits Limits);
+    OutputLimits Limits,
+    WatchedProject NewProject,
+    CookieEnvDefaults Env);
+
+/// <summary>What .env sets (§13.3, §14.3), in force where Admin → Cookie → Models leaves a field empty.</summary>
+public sealed record CookieEnvDefaults(bool Enabled, string Privacy, string Model, string Providers, bool Zdr, string MinQuantization, decimal BudgetUsd);
+
+/// <summary>Who Admin → Cookie can name: users and groups, for Cookie: Manage, which may not open Admin → Users.</summary>
+public sealed record CookiePeople(IReadOnlyList<CookiePerson> Users, IReadOnlyList<CookieGroupRef> Groups);
+
+public sealed record CookiePerson(Guid Id, string Username, string DisplayName, bool IsActive);
+
+public sealed record CookieGroupRef(Guid Id, string Name);
 
 public sealed record CookiePromptItem(string Key, string Label, string UsedFor, string Text, IReadOnlyList<string> Required);
 
 /// <summary>What Admin → Cookie → Redmine chooses from: the projects PNMT shows, their roles and the statuses.</summary>
 public sealed record CookieRedmineLookups(bool Configured, bool Writable, IReadOnlyList<RedmineNamed> Projects, IReadOnlyList<RedmineNamed> Roles,
-    IReadOnlyList<RedmineNamed> Statuses, IReadOnlyList<RedmineNamed> Trackers, string? Error);
+    IReadOnlyList<RedmineNamed> Statuses, IReadOnlyList<RedmineNamed> Trackers, string? Error, string? RolesError);
 
 public sealed record CookieOutboxQuery(CookieOutboxState? State = null, CookieChannel? Channel = null, int Page = 1, int PageSize = 50);
 

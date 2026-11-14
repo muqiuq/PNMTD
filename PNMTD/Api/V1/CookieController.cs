@@ -87,6 +87,9 @@ public sealed class CookieAdminController(CookieService cookie) : V1ControllerBa
     [HttpGet("defaults")]
     public CookieDefaults Defaults() => cookie.Defaults();
 
+    [HttpGet("people")]
+    public async Task<CookiePeople> People(CancellationToken ct) => await cookie.PeopleAsync(ct);
+
     [HttpGet("redmine")]
     public async Task<CookieRedmineLookups> Redmine(CancellationToken ct) => await cookie.RedmineLookupsAsync(ct);
 

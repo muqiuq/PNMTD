@@ -88,7 +88,8 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         var visible = all.Where(c => CookieAccess.CanSee(rights, user.UserId(), c)).ToList();
         var items = visible.Skip((page - 1) * size).Take(size).ToList();
         var next = await NextDutiesAsync(items.Select(c => c.Id).ToList(), ct);
-        return new Paged<CookieCaseItem>(items.Select(c => Item(c, next.GetValueOrDefault(c.Id))).ToList(), page, size, visible.Count);
+        var names = await NamesAsync(items, ct);
+        return new Paged<CookieCaseItem>(items.Select(c => Item(c, next.GetValueOrDefault(c.Id), names)).ToList(), page, size, visible.Count);
     }
 
     public async Task<CookieCaseDetail> CaseAsync(Guid id, ClaimsPrincipal user, CancellationToken ct)
@@ -110,7 +111,8 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
             ? new CookieTicketClock(issueId, c.AuthorName, c.AuthorIsStaff, c.AssigneeName, c.StatusName, c.TicketCreatedAt, c.FirstAnswerAt,
                 c.LastStaffUpdateAt, c.OwnIssueId, Url(issueId))
             : null;
-        return new CookieCaseDetail(Item(c, next is null ? null : (next.DueAt, next.Kind)), members, entries, duties, ticket, Url(c.OwnIssueId));
+        return new CookieCaseDetail(Item(c, next is null ? null : (next.DueAt, next.Kind), await NamesAsync([c], ct)), members, entries, duties, ticket,
+            Url(c.OwnIssueId));
     }
 
     private async Task<Dictionary<Guid, (DateTime DueAt, CookieDutyKind Kind)>> NextDutiesAsync(List<Guid> ids, CancellationToken ct) =>
@@ -118,9 +120,24 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
             .Select(d => new { d.CaseId, d.DueAt, d.Kind }).ToListAsync(ct))
         .GroupBy(d => d.CaseId).ToDictionary(g => g.Key, g => g.OrderBy(d => d.DueAt).Select(d => (d.DueAt, d.Kind)).First());
 
-    private static CookieCaseItem Item(CookieCaseEntity c, (DateTime DueAt, CookieDutyKind Kind)? next) => new(c.Id, c.Kind, c.Open, c.Title, c.Importance,
-        c.OpenedAt, c.ClosedAt, c.ChangedAt, c.ProgressAt, c.HostId, c.LocationId, c.IssueId ?? c.OwnIssueId, c.CookieNote, c.CookieUrgency,
-        next?.DueAt, next?.Kind);
+    private static CookieCaseItem Item(CookieCaseEntity c, (DateTime DueAt, CookieDutyKind Kind)? next,
+        (Dictionary<Guid, string> Hosts, Dictionary<Guid, string> Locations) names) => new(c.Id, c.Kind, c.Open, c.Title, c.Importance,
+        c.OpenedAt, c.ClosedAt, c.ChangedAt, c.ProgressAt, c.HostId, c.LocationId, c.IssueId ?? c.OwnIssueId,
+        c.HostId is { } h ? names.Hosts.GetValueOrDefault(h) : null, c.LocationId is { } l ? names.Locations.GetValueOrDefault(l) : null, c.CookieNote,
+        c.CookieUrgency, next is { } n ? new CookieNextDuty(n.Kind, n.DueAt) : null);
+
+    private async Task<(Dictionary<Guid, string> Hosts, Dictionary<Guid, string> Locations)> NamesAsync(IReadOnlyList<CookieCaseEntity> cases, CancellationToken ct)
+    {
+        var hostIds = cases.Where(c => c.HostId is not null).Select(c => c.HostId!.Value).Distinct().ToList();
+        var locationIds = cases.Where(c => c.LocationId is not null).Select(c => c.LocationId!.Value).Distinct().ToList();
+        return (await db.Hosts.AsNoTracking().Where(h => hostIds.Contains(h.Id)).ToDictionaryAsync(h => h.Id, h => h.Name, ct),
+            await db.Locations.AsNoTracking().Where(l => locationIds.Contains(l.Id)).ToDictionaryAsync(l => l.Id, l => l.Name, ct));
+    }
+
+    /// <summary>The users and groups Admin → Cookie can name (contacts, rules, escalation groups, Cookie's group).</summary>
+    public async Task<CookiePeople> PeopleAsync(CancellationToken ct) => new(
+        await db.Users.AsNoTracking().OrderBy(u => u.DisplayName).Select(u => new CookiePerson(u.Id, u.Username, u.DisplayName, u.IsActive)).ToListAsync(ct),
+        await db.Groups.AsNoTracking().OrderBy(g => g.Name).Select(g => new CookieGroupRef(g.Id, g.Name)).ToListAsync(ct));
 
     // --- Admin → Cookie ------------------------------------------------------------------------------------------------
 
@@ -382,17 +399,22 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         return new CookieSaved(section, saved);
     }
 
-    public CookieDefaults Defaults() => new(
-        CookiePrompts.Defaults.Select(p => new CookiePromptItem(p.Key, p.Value.Label, p.Value.UsedFor, p.Value.Text, CookiePrompts.Required(p.Key))).ToList(),
-        CookiePrompts.CaseKinds.Select(p => new CookiePromptItem(p.Key, p.Value.Label, p.Value.UsedFor, p.Value.Text, [])).ToList(),
-        OutputLimits.Ceilings, new OutputLimits());
+    public CookieDefaults Defaults()
+    {
+        var o = options.CurrentValue;
+        return new(
+            CookiePrompts.Defaults.Select(p => new CookiePromptItem(p.Key, p.Value.Label, p.Value.UsedFor, p.Value.Text, CookiePrompts.Required(p.Key))).ToList(),
+            CookiePrompts.CaseKinds.Select(p => new CookiePromptItem(p.Key, p.Value.Label, p.Value.UsedFor, p.Value.Text, [])).ToList(),
+            OutputLimits.Ceilings, new OutputLimits(), WatchedProject.Default(0),
+            new CookieEnvDefaults(o.Enabled, o.Privacy, o.Model, o.Providers, o.Zdr, o.MinQuantization, o.BudgetUsd));
+    }
 
     public async Task<CookieRedmineLookups> RedmineLookupsAsync(CancellationToken ct)
     {
         var o = redmineOptions.CurrentValue;
         if (!o.Enabled)
         {
-            return new CookieRedmineLookups(false, false, [], [], [], [], null);
+            return new CookieRedmineLookups(false, false, [], [], [], [], null, null);
         }
         try
         {
@@ -400,23 +422,25 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
             var client = services.GetRequiredService<RedmineClient>();
             var lookups = await redmine.LookupsAsync(ct);
             IReadOnlyList<RmRef> roles;
+            string? rolesError = null;
             try
             {
                 roles = (await client.GetAsync<RmRoles>("/roles.json", ct)).Roles;
             }
-            catch (RedmineException)
+            catch (RedmineException e)
             {
                 roles = [];
+                rolesError = $"Redmine's roles can't be read: {e.Message}";
             }
             return new CookieRedmineLookups(true, o.CanWrite,
                 lookups.Projects.Where(p => lookups.Allowed.Contains(p.Id)).Select(p => new RedmineNamed(p.Id, p.Name)).ToList(),
                 roles.Select(r => new RedmineNamed(r.Id, r.Name ?? $"#{r.Id}")).ToList(),
                 lookups.Statuses.Select(s => new RedmineNamed(s.Id, s.Name)).ToList(),
-                lookups.Trackers.Select(t => new RedmineNamed(t.Id, t.Name ?? $"#{t.Id}")).ToList(), null);
+                lookups.Trackers.Select(t => new RedmineNamed(t.Id, t.Name ?? $"#{t.Id}")).ToList(), null, rolesError);
         }
         catch (RedmineException e)
         {
-            return new CookieRedmineLookups(true, o.CanWrite, [], [], [], [], e.Message);
+            return new CookieRedmineLookups(true, o.CanWrite, [], [], [], [], e.Message, null);
         }
     }
 

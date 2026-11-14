@@ -42,7 +42,7 @@ export const dutyLabel: Record<DutyKind, string> = {
   ClosingNote: 'Closing note',
 }
 
-export const dutyName = (kind: S['CookieDutyKind']) => (kind ? dutyLabel[kind] : '–')
+export const dutyName = (kind: S['CookieDutyKind'] | null | undefined) => (kind ? dutyLabel[kind] : '–')
 
 export const dutyStateLabel: Record<S['CookieDutyState'], string> = {
   Due: 'Due',
