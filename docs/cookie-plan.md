@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Status | **Revision 6: package nine (A and B) is being built** (§19). Package nine point five is planned only. **Two packages: nine (Cookie watches) and nine point five (Cookie acts), §3.4.** The models are in §14, the big brother in §15, the review's answers in §16, the critical review in §17, and its answers in §18. The default prompts are in docs/cookie-prompts.md |
+| Status | **Revision 6: package nine (A and B) is built** (§19, §19.8). Package nine point five is planned only. **Two packages: nine (Cookie watches) and nine point five (Cookie acts), §3.4.** The models are in §14, the big brother in §15, the review's answers in §16, the critical review in §17, and its answers in §18. The default prompts are in docs/cookie-prompts.md |
 | Date | 2026-11-14 |
-| Revision | 6: **package nine is being built** (§19), and **Cookie and MCP** (§3.5): one set of read tools, built here, called directly by Cookie and offered over MCP by package eight.<br>5: **the critical review's answers applied** (§18):<ul><li>**two packages** (§3.4);</li><li>**Admin → Cookie** sets almost everything: working hours, who gets notified, output limits, case instructions, and prompts that ship with defaults (§9.3, docs/cookie-prompts.md);</li><li>**output limits in code** (§6.1);</li><li>**Seraph only on what leaves PNMT or reaches people** (§5);</li><li>**mute, away and suppress as objects** (§10.3);</li><li>**the trace by rights** (§9.2);</li><li>**privacy: `Code` by default, people only** (§13.2);</li><li>**the ticket clock** (§7.2).</li></ul>4: **a critical review** (§17), from two independent reads, with 18 questions on what to change (§18). The big brother cost in §15.5 is corrected.<br>3: **the big brother** (§15): **two models**, Kimi K3.1 Pro as the primary and a proposed backup, compared with the Claude, Gemini and OpenAI models. Each call picks one at random. Cookie asks for a solution when something important needs fixing and nobody is taking care of it. And a correction in §14.2 (Terminal-Bench, not SRE Bench).<br>2: **the review applied** (§16):<ul><li>working hours per weekday, plus holidays with their own hours (§7.3);</li><li>after a restart, Cookie resumes;</li><li>*AI every time* mail rules go to Cookie (§12);</li><li>temporary instructions, for whoever has the right *Cookie: Instruct* (§10);</li><li>package eight's tool for talking to the AI sends a message to Cookie;</li><li>escalations go to a PNMT group.</li></ul>1: the first draft, with the model research (§14) |
+| Revision | 6: **package nine is built** (§19, As built §19.8), and **Cookie and MCP** (§3.5): one set of read tools, built here, called directly by Cookie and offered over MCP by package eight.<br>5: **the critical review's answers applied** (§18):<ul><li>**two packages** (§3.4);</li><li>**Admin → Cookie** sets almost everything: working hours, who gets notified, output limits, case instructions, and prompts that ship with defaults (§9.3, docs/cookie-prompts.md);</li><li>**output limits in code** (§6.1);</li><li>**Seraph only on what leaves PNMT or reaches people** (§5);</li><li>**mute, away and suppress as objects** (§10.3);</li><li>**the trace by rights** (§9.2);</li><li>**privacy: `Code` by default, people only** (§13.2);</li><li>**the ticket clock** (§7.2).</li></ul>4: **a critical review** (§17), from two independent reads, with 18 questions on what to change (§18). The big brother cost in §15.5 is corrected.<br>3: **the big brother** (§15): **two models**, Kimi K3.1 Pro as the primary and a proposed backup, compared with the Claude, Gemini and OpenAI models. Each call picks one at random. Cookie asks for a solution when something important needs fixing and nobody is taking care of it. And a correction in §14.2 (Terminal-Bench, not SRE Bench).<br>2: **the review applied** (§16):<ul><li>working hours per weekday, plus holidays with their own hours (§7.3);</li><li>after a restart, Cookie resumes;</li><li>*AI every time* mail rules go to Cookie (§12);</li><li>temporary instructions, for whoever has the right *Cookie: Instruct* (§10);</li><li>package eight's tool for talking to the AI sends a message to Cookie;</li><li>escalations go to a PNMT group.</li></ul>1: the first draft, with the model research (§14) |
 | Scope | Package nine of docs/ideas2.md: Cookie (the assistant loop), Seraph (the reviewer), the big brother, the privacy filter, the decision log with feedback, and Cookie's three pages. **Built as two packages** (§3.4): **nine**, the bookkeeping in code and Cookie watching, and **nine point five**, Cookie acting |
 | Non-goals | **Deleting or changing anything** (Cookie only adds things). **Cookie changing its own configuration.** **Access to server consoles** (package ten). **Replacing notification rules:** they keep running whether Cookie is there or not. Training or fine-tuning |
 | Depends on | Package one's AI foundation (`PNMTD/Ai/`: provider, Jev, request log, budget, decisions inbox). Five point five (groups and rights, audit with `Actor = Cookie / Seraph`). Six and seven (Redmine, Zabbix). **Not on eight:** Cookie comes first and builds the read tools that package eight's MCP server will offer (§3.5) |
@@ -1062,7 +1062,19 @@ All under `/api/v1/cookie`. **The dashboard section needs no right; the window n
 
 ### 19.8 As built (2026-11-14)
 
-**On master, package nine's server is built:** A1 c7b6da5, A2 6920418, B1 4ef9f4e, B2 3dc05e2, the seed and the operators' documentation d5c2c96, review fixes 4559e89. **The web UI (A3, B3) and the finish (B4) follow.** Where the code differs from the sections above, this says so; the rest is as planned.
+**Package nine is built, on master:**
+
+| Commit | Phase |
+|---|---|
+| c7b6da5 | A1: the case book and the clock |
+| 6920418 | A2: the duties and the outbox |
+| 9a9a28e | A3: the web UI for the bookkeeping |
+| 4ef9f4e | B1: the loop, the model client, the read tools, the privacy filter, the trace |
+| 3dc05e2 | B2: the personal summary and the chat |
+| 254fd5d | B3 and B4: the trace and the chat in the web UI, and the situation analysis removed |
+| d5c2c96, 4559e89, 9e6b154, a1a74bc | the seed and the operators' documentation, and fixes from review |
+
+**Release notes:** [docs/release-notes-1.5.md](release-notes-1.5.md), written for 1.5.0. Nothing is pushed or tagged, and the version isn't bumped. Where the code differs from the sections above, this section says so; the rest is as planned.
 
 **The bookkeeping (A):**
 
@@ -1099,3 +1111,22 @@ All under `/api/v1/cookie`. **The dashboard section needs no right; the window n
 - **The trace** is polled (`afterId`), not streamed. It is kept 30 days; closed cases and the outbox a year.
 - **Package one's AI budget no longer counts `cookie.*`** (§19.1).
 - **Not in package nine:** the *Mute, away, suppress* and *Lessons* tabs, and *Cookie: Instruct* grants nothing more than *Use* yet.
+
+**The web UI (A3, B3):**
+
+- **The dashboard's card sits below the problems and the recent changes,** not at the top, so that the dashboard's targets hold (docs/webui-migration-plan.md §5.5: the recent changes above the fold on 1920×1080). **It is hidden where `Cookie__Enabled` isn't set.** Cookie's own state is in its header, and the summary marks the lines that need the reader.
+- **The prompts are on the *Identity* tab,** as §9.3 has them, each with *Reset to default* and *Preview*.
+- **Cookie's window** (*Overview → Cookie*) has three tabs: *Cases*, *Trace* and *Chat*. The trace is polled every 2 seconds while Cookie works and every 15 otherwise. The chat is polled every 2 seconds while a reply is awaited.
+- **Admin → Cookie names users and groups through its own lookup** (`admin/people`), because *Cookie: Manage* may not open *Admin → Users*.
+- **A summary written by code is kept a minute,** not 15, so that one written before the case book's first run doesn't stay.
+
+**The finish (B4):**
+
+- **The situation analysis is removed** (§12). The migration `RemoveSituationAnalysis`:
+  - drops its runs and findings;
+  - deletes its three system sensors, with their events and their notification links;
+  - deletes its decisions;
+  - cancels its queued work.
+
+  The audit catalog keeps `AiAnalysisStarted` for the old entries. **The scrubber stays,** in `PNMTD/Ai/`, for the knowledge base's AI tags and Cookie's privacy filter.
+- **The e2e stack enables Cookie,** and `e2e/cookie.spec.ts` covers Admin → Cookie, the card, the cases, the trace and the chat on a stopped Cookie.
