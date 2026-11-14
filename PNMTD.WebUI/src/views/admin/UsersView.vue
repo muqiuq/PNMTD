@@ -383,7 +383,7 @@ async function create() {
             @click="unlock"
           />
           <RouterLink
-            :to="{ name: 'auth-log', query: { userId: selected.id, user: selected.username } }"
+            :to="{ name: 'audit-log', query: { userId: selected.id, user: selected.username } }"
             class="log-link"
             >Audit log ›</RouterLink
           >

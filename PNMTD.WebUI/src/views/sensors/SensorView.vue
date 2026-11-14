@@ -11,6 +11,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, keys, sensorRequest, type S } from '@/api/resources'
 import { HOST, sensorImportanceOptions } from '@/views/notifications/importance'
+import AuditHistory from '@/components/AuditHistory.vue'
 import CodeTag from '@/components/CodeTag.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ErrorState from '@/components/ErrorState.vue'
@@ -122,6 +123,7 @@ const isAgent = computed(() => isWindows.value || isLinux.value)
 const agent = useAgentServer(id, isAgent)
 const tab = computed(
   () =>
+    (route.params.tab === 'history' && 'history') ||
     ((isUdp.value || isMikrotik.value || isAgent.value) && typeof route.params.tab === 'string' && route.params.tab) ||
     (isAgent.value ? 'overview' : 'events'),
 )
@@ -164,6 +166,7 @@ const linuxTabs = computed(() => {
     // Bash scripts (§8): Admin.
     ...(isAdmin.value ? [{ key: 'scripts', label: 'Scripts', icon: 'pi pi-code', to: to('scripts') }] : []),
     agentTab(to),
+    { key: 'history', label: 'History', icon: 'pi pi-history', to: to('history') },
   ]
 })
 const windowsTabs = computed(() => {
@@ -189,6 +192,7 @@ const windowsTabs = computed(() => {
     // WMI (§16): the agent's queries, their switches and timeouts, and own queries. Admin.
     ...(isAdmin.value ? [{ key: 'wmi', label: 'WMI', icon: 'pi pi-database', to: to('wmi') }] : []),
     agentTab(to),
+    { key: 'history', label: 'History', icon: 'pi pi-history', to: to('history') },
   ]
 })
 const mikrotikTabs = computed(() => {
@@ -222,6 +226,7 @@ const mikrotikTabs = computed(() => {
           ...(canWrite.value ? [{ key: 'commands', label: 'Commands', icon: 'pi pi-code', to: to('commands') }] : []),
         ]
       : []),
+    { key: 'history', label: 'History', icon: 'pi pi-history', to: to('history') },
   ]
 })
 const routerSettingsOpen = ref(false)
@@ -239,8 +244,19 @@ const tabs = computed(() => {
     },
     { key: 'firmware', label: 'Firmware', icon: 'pi pi-upload', to: to('firmware') },
     { key: 'protocol', label: 'Protocol', icon: 'pi pi-book', to: to('protocol') },
+    { key: 'history', label: 'History', icon: 'pi pi-history', to: to('history') },
   ]
 })
+// Every other sensor: its page, and its History (docs/audit-redmine-zabbix-plan.md §4.3).
+const plainTabs = computed(() => [
+  { key: 'events', label: 'Overview', icon: 'pi pi-list', to: { name: 'sensor', params: { id: id.value } } },
+  {
+    key: 'history',
+    label: 'History',
+    icon: 'pi pi-history',
+    to: { name: 'sensor', params: { id: id.value, tab: 'history' } },
+  },
+])
 const settingsOpen = ref(false)
 const secretsOpen = ref(false)
 const secretsMode = ref<'manual' | 'regenerate'>('manual')
@@ -427,9 +443,11 @@ const more = computed(() =>
         <AgentStatusStrip :server="agent.server.value" />
         <TabNav :items="agentTabs" :active="tab" label="Server pages" />
       </template>
+      <TabNav v-else :items="plainTabs" :active="tab" label="Sensor pages" />
 
+      <AuditHistory v-if="tab === 'history'" :subject-id="sensor.id" :name="sensor.name" />
       <SetupTab
-        v-if="isMikrotik && tab === 'setup'"
+        v-else-if="isMikrotik && tab === 'setup'"
         :sensor="sensor"
         :can-write="canWrite"
         :is-admin="isAdmin"

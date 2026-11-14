@@ -13,6 +13,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import { humanize, typeIcon, typeLabel, useRuleTypes, useSensorTypes, useStatusCodes } from '@/composables/useLookups'
 import { useSession } from '@/stores/session'
 import { recipientHint } from '../rules/ruleHelp'
+import AccessDocs from './AccessDocs.vue'
 import MarkdownDocs from './MarkdownDocs.vue'
 
 /**
@@ -143,6 +144,7 @@ const visibleRules = computed(() => ruleTypes.list.value.filter((r) => has(r.typ
     </section>
 
     <MarkdownDocs :search="search" />
+    <AccessDocs :search="search" />
 
     <section v-if="visibleCodes.length" class="panel" aria-labelledby="codes-title">
       <div id="codes-title" class="panel-header">Status codes</div>

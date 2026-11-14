@@ -74,10 +74,10 @@ export const navigation: NavGroup[] = [
       { label: 'Users', icon: 'pi pi-users', to: '/admin/users', name: 'users', right: 'admin' },
       { label: 'Groups', icon: 'pi pi-sitemap', to: '/admin/groups', name: 'groups', right: 'admin' },
       {
-        label: 'Auth log',
+        label: 'Audit log',
         icon: 'pi pi-history',
-        to: '/admin/auth-log',
-        name: 'auth-log',
+        to: '/admin/audit-log',
+        name: 'audit-log',
         right: ['AuditLog', 'View'],
       },
       {

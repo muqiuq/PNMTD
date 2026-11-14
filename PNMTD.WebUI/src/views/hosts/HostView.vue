@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, hostRequest, keys, type S } from '@/api/resources'
+import AuditHistory from '@/components/AuditHistory.vue'
 import CodeTag from '@/components/CodeTag.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ErrorState from '@/components/ErrorState.vue'
@@ -16,6 +17,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import SinceText from '@/components/SinceText.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import TabNav from '@/components/TabNav.vue'
 import UptimeBar from '@/components/UptimeBar.vue'
 import { useActions } from '@/composables/useActions'
 import { typeIcon, typeLabel, useStatusCodes } from '@/composables/useLookups'
@@ -40,6 +42,17 @@ const phone = useMedia('(max-width: 599px)')
 const queryClient = useQueryClient()
 
 const id = computed(() => String(route.params.id))
+// Overview, and History from the audit log (docs/audit-redmine-zabbix-plan.md §4.3).
+const tab = computed(() => (route.params.tab === 'history' ? 'history' : 'overview'))
+const tabs = computed(() => [
+  { key: 'overview', label: 'Overview', icon: 'pi pi-server', to: { name: 'host', params: { id: id.value } } },
+  {
+    key: 'history',
+    label: 'History',
+    icon: 'pi pi-history',
+    to: { name: 'host', params: { id: id.value, tab: 'history' } },
+  },
+])
 const query = useQuery({
   queryKey: computed(() => keys.host(id.value)),
   queryFn: () => api.hosts.get(id.value),
@@ -115,160 +128,164 @@ const more = computed(() => [
           <MoreMenu v-if="canWrite" :items="more" label="More actions for the host" />
         </template>
       </PageHeader>
+      <TabNav :items="tabs" :active="tab" label="Host" />
 
-      <section class="panel strip" aria-label="Uptime">
-        <dl class="numbers">
-          <div>
-            <dt>24 h</dt>
-            <dd>{{ formatPercent(host.uptime24Hours, 2) }}</dd>
-          </div>
-          <div>
-            <dt>30 days</dt>
-            <dd>{{ formatPercent(host.uptime30Days, 2) }}</dd>
-          </div>
-          <div>
-            <dt>Last event</dt>
-            <dd><RelativeTime :value="host.lastEventAt" /></dd>
-          </div>
-        </dl>
-        <div class="bar90">
-          <UptimeBar :values="host.days.values ?? []" :start="host.days.start" :height="22" />
-          <div class="bar-legend muted"><span>90 days ago</span><span>today</span></div>
-        </div>
-      </section>
-
-      <div class="two-columns">
-        <section class="panel" aria-labelledby="props-title">
-          <div id="props-title" class="panel-header">Properties</div>
-          <dl class="panel-body facts">
-            <dt>Name</dt>
-            <dd>
-              <InlineField
-                :value="host.name"
-                label="Name"
-                field="name"
-                :readonly="!canWrite"
-                :save="(v) => save({ name: String(v) })"
-              />
-            </dd>
-            <dt>Location</dt>
-            <dd>
-              <HostLocationField :host="host" :readonly="!canWrite" :save="save" />
-            </dd>
-            <dt>Importance</dt>
-            <dd>
-              <InlineField
-                :value="host.importance ?? 'Normal'"
-                type="enum"
-                :options="importanceOptions"
-                label="Importance"
-                :readonly="!canWrite"
-                :save="(v) => save({ importance: v as S['Importance'] })"
-              />
-            </dd>
-            <dt>Enabled</dt>
-            <dd>
-              <InlineField
-                :value="host.enabled"
-                type="bool"
-                label="Enabled"
-                :readonly="!canWrite"
-                :save="(v) => save({ enabled: Boolean(v) })"
-              />
-            </dd>
-            <dt>Notes</dt>
-            <dd>
-              <InlineField
-                :value="host.notes"
-                type="textarea"
-                label="Notes"
-                field="notes"
-                placeholder="No notes"
-                :readonly="!canWrite"
-                :save="(v) => save({ notes: v ? String(v) : null })"
-              />
-            </dd>
-            <dt>Created</dt>
-            <dd>{{ formatAbsolute(host.created) }}</dd>
-            <dt>Events</dt>
-            <dd>
-              <RouterLink :to="{ name: 'events', query: { hostId: host.id } }">{{
-                host.eventCount.toLocaleString()
-              }}</RouterLink>
-            </dd>
+      <AuditHistory v-if="tab === 'history'" :subject-id="host.id" :name="host.name" />
+      <template v-else>
+        <section class="panel strip" aria-label="Uptime">
+          <dl class="numbers">
+            <div>
+              <dt>24 h</dt>
+              <dd>{{ formatPercent(host.uptime24Hours, 2) }}</dd>
+            </div>
+            <div>
+              <dt>30 days</dt>
+              <dd>{{ formatPercent(host.uptime30Days, 2) }}</dd>
+            </div>
+            <div>
+              <dt>Last event</dt>
+              <dd><RelativeTime :value="host.lastEventAt" /></dd>
+            </div>
           </dl>
+          <div class="bar90">
+            <UptimeBar :values="host.days.values ?? []" :start="host.days.start" :height="22" />
+            <div class="bar-legend muted"><span>90 days ago</span><span>today</span></div>
+          </div>
         </section>
 
-        <section class="panel" aria-labelledby="sensors-title">
-          <div id="sensors-title" class="panel-header">
-            Sensors
-            <span class="muted counts">
-              {{ host.sensorCounts.ok }} ok · {{ host.sensorCounts.failing }} failing · {{ host.sensorCounts.total }} in
-              all
-            </span>
-          </div>
-          <EmptyState v-if="!sensors.length" title="No sensors yet." text="Add one to start monitoring this host." />
-          <ul v-else-if="phone" class="mobile-sensors">
-            <li
-              v-for="s in sensors"
-              :key="s.id"
-              :class="{ 'row-muted': s.state === 'Disabled' || s.state === 'Ignored' }"
+        <div class="two-columns">
+          <section class="panel" aria-labelledby="props-title">
+            <div id="props-title" class="panel-header">Properties</div>
+            <dl class="panel-body facts">
+              <dt>Name</dt>
+              <dd>
+                <InlineField
+                  :value="host.name"
+                  label="Name"
+                  field="name"
+                  :readonly="!canWrite"
+                  :save="(v) => save({ name: String(v) })"
+                />
+              </dd>
+              <dt>Location</dt>
+              <dd>
+                <HostLocationField :host="host" :readonly="!canWrite" :save="save" />
+              </dd>
+              <dt>Importance</dt>
+              <dd>
+                <InlineField
+                  :value="host.importance ?? 'Normal'"
+                  type="enum"
+                  :options="importanceOptions"
+                  label="Importance"
+                  :readonly="!canWrite"
+                  :save="(v) => save({ importance: v as S['Importance'] })"
+                />
+              </dd>
+              <dt>Enabled</dt>
+              <dd>
+                <InlineField
+                  :value="host.enabled"
+                  type="bool"
+                  label="Enabled"
+                  :readonly="!canWrite"
+                  :save="(v) => save({ enabled: Boolean(v) })"
+                />
+              </dd>
+              <dt>Notes</dt>
+              <dd>
+                <InlineField
+                  :value="host.notes"
+                  type="textarea"
+                  label="Notes"
+                  field="notes"
+                  placeholder="No notes"
+                  :readonly="!canWrite"
+                  :save="(v) => save({ notes: v ? String(v) : null })"
+                />
+              </dd>
+              <dt>Created</dt>
+              <dd>{{ formatAbsolute(host.created) }}</dd>
+              <dt>Events</dt>
+              <dd>
+                <RouterLink :to="{ name: 'events', query: { hostId: host.id } }">{{
+                  host.eventCount.toLocaleString()
+                }}</RouterLink>
+              </dd>
+            </dl>
+          </section>
+
+          <section class="panel" aria-labelledby="sensors-title">
+            <div id="sensors-title" class="panel-header">
+              Sensors
+              <span class="muted counts">
+                {{ host.sensorCounts.ok }} ok · {{ host.sensorCounts.failing }} failing ·
+                {{ host.sensorCounts.total }} in all
+              </span>
+            </div>
+            <EmptyState v-if="!sensors.length" title="No sensors yet." text="Add one to start monitoring this host." />
+            <ul v-else-if="phone" class="mobile-sensors">
+              <li
+                v-for="s in sensors"
+                :key="s.id"
+                :class="{ 'row-muted': s.state === 'Disabled' || s.state === 'Ignored' }"
+              >
+                <RouterLink :to="{ name: 'sensor', params: { id: s.id } }" class="line">
+                  <StatusBadge :status="s.state" icon-only />
+                  <span class="strong">{{ s.name }}</span>
+                  <CodeTag :code="s.lastCode" compact :name="codes.nameOf(s.lastCode)" />
+                  <RelativeTime :value="s.lastEventAt" class="muted right" />
+                </RouterLink>
+                <div v-if="s.lastMessage" class="message muted ellipsis">{{ s.lastMessage }}</div>
+              </li>
+            </ul>
+            <DataTable
+              v-else
+              :value="sensors"
+              size="small"
+              data-key="id"
+              :row-class="
+                (s: S['SensorSummary']) => (s.state === 'Disabled' || s.state === 'Ignored' ? 'row-muted' : undefined)
+              "
             >
-              <RouterLink :to="{ name: 'sensor', params: { id: s.id } }" class="line">
-                <StatusBadge :status="s.state" icon-only />
-                <span class="strong">{{ s.name }}</span>
-                <CodeTag :code="s.lastCode" compact :name="codes.nameOf(s.lastCode)" />
-                <RelativeTime :value="s.lastEventAt" class="muted right" />
-              </RouterLink>
-              <div v-if="s.lastMessage" class="message muted ellipsis">{{ s.lastMessage }}</div>
-            </li>
-          </ul>
-          <DataTable
-            v-else
-            :value="sensors"
-            size="small"
-            data-key="id"
-            :row-class="
-              (s: S['SensorSummary']) => (s.state === 'Disabled' || s.state === 'Ignored' ? 'row-muted' : undefined)
-            "
-          >
-            <Column header="" style="width: 2.25rem">
-              <template #body="{ data }"><StatusBadge :status="data.state" icon-only /></template>
-            </Column>
-            <Column header="Sensor">
-              <template #body="{ data }">
-                <span class="name-cell">
-                  <i :class="typeIcon(data.type)" class="muted" :title="typeLabel(data.type)" aria-hidden="true" />
-                  <RouterLink :to="{ name: 'sensor', params: { id: data.id } }" class="strong">{{
-                    data.name
-                  }}</RouterLink>
-                  <span v-if="data.childCount" class="muted">({{ data.childCount }})</span>
-                </span>
-              </template>
-            </Column>
-            <Column header="Code">
-              <template #body="{ data }"
-                ><CodeTag :code="data.lastCode" :name="codes.nameOf(data.lastCode)"
-              /></template>
-            </Column>
-            <Column header="Message" style="max-width: 16rem">
-              <template #body="{ data }">
-                <span class="ellipsis message-cell" :title="data.lastMessage ?? ''">{{ data.lastMessage }}</span>
-              </template>
-            </Column>
-            <Column header="Last event" style="width: 7rem">
-              <template #body="{ data }"><RelativeTime :value="data.lastEventAt" /></template>
-            </Column>
-            <Column header="Failing" style="width: 6rem">
-              <template #body="{ data }">
-                <SinceText v-if="data.state === 'Failing'" :since="data.failingSince" />
-              </template>
-            </Column>
-          </DataTable>
-        </section>
-        <!-- Its pages, then its location's and that one's parents' (docs/locations-knowledge-plan.md §6.5). -->
-        <KbPanel :host-id="host.id" :name="host.name" />
-      </div>
+              <Column header="" style="width: 2.25rem">
+                <template #body="{ data }"><StatusBadge :status="data.state" icon-only /></template>
+              </Column>
+              <Column header="Sensor">
+                <template #body="{ data }">
+                  <span class="name-cell">
+                    <i :class="typeIcon(data.type)" class="muted" :title="typeLabel(data.type)" aria-hidden="true" />
+                    <RouterLink :to="{ name: 'sensor', params: { id: data.id } }" class="strong">{{
+                      data.name
+                    }}</RouterLink>
+                    <span v-if="data.childCount" class="muted">({{ data.childCount }})</span>
+                  </span>
+                </template>
+              </Column>
+              <Column header="Code">
+                <template #body="{ data }"
+                  ><CodeTag :code="data.lastCode" :name="codes.nameOf(data.lastCode)"
+                /></template>
+              </Column>
+              <Column header="Message" style="max-width: 16rem">
+                <template #body="{ data }">
+                  <span class="ellipsis message-cell" :title="data.lastMessage ?? ''">{{ data.lastMessage }}</span>
+                </template>
+              </Column>
+              <Column header="Last event" style="width: 7rem">
+                <template #body="{ data }"><RelativeTime :value="data.lastEventAt" /></template>
+              </Column>
+              <Column header="Failing" style="width: 6rem">
+                <template #body="{ data }">
+                  <SinceText v-if="data.state === 'Failing'" :since="data.failingSince" />
+                </template>
+              </Column>
+            </DataTable>
+          </section>
+          <!-- Its pages, then its location's and that one's parents' (docs/locations-knowledge-plan.md §6.5). -->
+          <KbPanel :host-id="host.id" :name="host.name" />
+        </div>
+      </template>
     </template>
     <AddServerDialog v-if="host" v-model:visible="addingServer" :host-id="host.id" />
   </div>

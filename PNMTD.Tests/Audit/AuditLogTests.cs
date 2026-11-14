@@ -132,6 +132,39 @@ public sealed class AuditLogTests
         Assert.IsNull(entry.Changes);
     }
 
+    /// <summary>The export (§4.2): CSV of what the filters show, never a formula for a spreadsheet, and an entry itself.</summary>
+    [TestMethod]
+    public async Task TheExportIsCsvAndAnEntryItself()
+    {
+        var name = $"=HYPERLINK({Guid.NewGuid():N})"[..28];
+        var host = await CreateHostAsync(name);
+        var admin = app.Client(Roles.Admin);
+        var response = await admin.GetAsync($"/api/v1/audit-log/export?search={Uri.EscapeDataString(name)}");
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.AreEqual("text/csv", response.Content.Headers.ContentType?.MediaType);
+        var csv = await response.Content.ReadAsStringAsync();
+        StringAssert.StartsWith(csv, "time,user,actor,event,category,outcome");
+        StringAssert.Contains(csv, $"'{name}");
+        Assert.IsFalse(csv.Contains($",{name}", StringComparison.Ordinal), "a field starting with = is defused");
+
+        await using var db = app.NewDb();
+        var export = await db.AuditLog.AsNoTracking().Where(l => l.EventType == AuditEvents.AuditLogExported && l.UserId == TestUsers.Admin)
+            .OrderByDescending(l => l.CreatedAt).FirstAsync();
+        Assert.AreEqual($"filters: search {name}", export.Detail);
+    }
+
+    /// <summary>A host's History (§4.3): for Monitoring's View, its own entries and its sensors', without address or browser.</summary>
+    [TestMethod]
+    public async Task AHostsHistoryHasNoAddresses()
+    {
+        var host = await CreateHostAsync($"audit-history-{Guid.NewGuid():N}"[..24]);
+        var page = await (await viewer.GetAsync($"/api/v1/audit-log/subjects/{host.Id}")).ReadAsync<Paged<AuditLogItem>>();
+        var created = page.Items.Single(i => i.EventType == AuditEvents.HostCreated);
+        Assert.IsNull(created.IpAddress);
+        Assert.IsNull(created.UserAgent);
+        Assert.AreEqual(TestUsers.NameOf(Roles.User), created.Username);
+    }
+
     [TestMethod]
     public async Task ARefusalIsDenied()
     {

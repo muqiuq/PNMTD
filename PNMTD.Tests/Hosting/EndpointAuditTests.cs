@@ -132,6 +132,8 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/account/access"] = ("signed-in", Roles.Viewer),
         ["GET /api/v1/audit-log"] = ("AuditLog:View", Roles.Admin),
         ["GET /api/v1/audit-log/types"] = ("AuditLog:View", Roles.Admin),
+        ["GET /api/v1/audit-log/export"] = ("AuditLog:View", Roles.Admin),
+        ["GET /api/v1/audit-log/subjects/{id:guid}"] = ("Monitoring:View", Roles.Viewer),
         ["GET /api/v1/key-values"] = ("System:Manage", Roles.Admin),
         ["GET /api/v1/key-values/{id:guid}"] = ("System:Manage", Roles.Admin),
         ["POST /api/v1/key-values"] = ("System:Manage", Roles.Admin),

@@ -182,9 +182,20 @@ export const api = {
 
   // --- the audit log (docs/audit-redmine-zabbix-plan.md §4.2) ------------------------------------
   audit: {
-    log: (query: ListQuery & { userId?: Id; type?: string }) =>
-      call(client.GET('/api/v1/audit-log', { params: { query } })),
+    log: (query: ListQuery & AuditFilters) => call(client.GET('/api/v1/audit-log', { params: { query } })),
     types: () => call(client.GET('/api/v1/audit-log/types')),
+    /** An object's history (§4.3): its own entries and what belongs to it, without addresses. */
+    subject: (id: Id, query: ListQuery) =>
+      call(client.GET('/api/v1/audit-log/subjects/{id}', { params: { path: { id }, query } })),
+    /** The CSV export of what the filters show (§4.2): a plain link, the browser downloads it. */
+    exportUrl: (filters: AuditFilters) => {
+      const params = new URLSearchParams()
+      for (const [k, v] of Object.entries(filters)) {
+        for (const item of Array.isArray(v) ? v : [v])
+          if (item !== undefined && item !== null && item !== '') params.append(k, String(item))
+      }
+      return `${typeof location !== 'undefined' ? location.origin : ''}/api/v1/audit-log/export${params.size ? `?${params}` : ''}`
+    },
   },
 
   mikrotik: {
@@ -607,6 +618,20 @@ export const api = {
 }
 
 /** Query keys: a change invalidates its resource's prefix (and the dashboard). */
+/** The audit log's filters (docs/audit-redmine-zabbix-plan.md §4.2), all in the page's URL. */
+export interface AuditFilters {
+  search?: string
+  userId?: Id
+  type?: string
+  categories?: S['AuditCategory'][]
+  outcome?: S['AuditOutcome']
+  actor?: S['AuditActor']
+  subject?: Id
+  from?: string
+  to?: string
+  correlationId?: string
+}
+
 export const keys = {
   dashboard: ['dashboard'] as const,
   hosts: ['hosts'] as const,
