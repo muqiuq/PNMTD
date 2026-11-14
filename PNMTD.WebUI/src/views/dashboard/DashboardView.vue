@@ -6,6 +6,7 @@ import ErrorState from '@/components/ErrorState.vue'
 import { useDashboard } from '@/composables/useDashboard'
 import { useMedia } from '@/composables/useMedia'
 import { useSession } from '@/stores/session'
+import CookieCard from './CookieCard.vue'
 import HostsPanel from './HostsPanel.vue'
 import ProblemsPanel from './ProblemsPanel.vue'
 import RecentChanges from './RecentChanges.vue'
@@ -15,7 +16,8 @@ import SummaryStrip from './SummaryStrip.vue'
 /**
  * "Is anything wrong, and what exactly?" at a glance (§5.5): the summary strip, the problems and the
  * recent changes on the left, every host on the right in a panel that scrolls by itself. Stale data
- * stays visible while a refetch fails. With the AI on, its latest situation analysis heads the left side.
+ * stays visible while a refetch fails. Cookie's card heads the left side, for everyone (docs/cookie-plan.md §9.1); with the
+ * AI on, its latest situation analysis follows it.
  */
 const dashboard = useDashboard()
 const phone = useMedia('(max-width: 599px)')
@@ -28,16 +30,19 @@ const session = useSession()
     <Message v-if="dashboard.data.value && dashboard.isError.value" severity="warn" :closable="false" class="lost">
       Connection lost, retrying. The data below is from the last successful update.
     </Message>
-    <EmptyState
-      v-if="!session.can('Monitoring', 'View')"
-      icon="pi pi-lock"
-      title="You don't have access to anything yet."
-      text="Ask an admin to add you to a group. Your account is under Account and Security."
-      class="no-access"
-    />
+    <template v-if="!session.can('Monitoring', 'View')">
+      <CookieCard class="no-access" />
+      <EmptyState
+        icon="pi pi-lock"
+        title="You don't have access to anything yet."
+        text="Ask an admin to add you to a group. Your account is under Account and Security."
+        class="no-access"
+      />
+    </template>
     <template v-else-if="dashboard.data.value">
       <SummaryStrip :summary="dashboard.data.value.summary" class="summary" />
       <div class="left">
+        <CookieCard />
         <SituationCard />
         <ProblemsPanel
           :problems="dashboard.data.value.problems"

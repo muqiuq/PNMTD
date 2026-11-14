@@ -78,6 +78,13 @@ describe('visibleNavigation', () => {
     expect(navigation.flatMap((g) => g.items.map((i) => i.name))).not.toContain('docs')
   })
 
+  it("shows Cookie's window with Cookie's Use and Admin → Cookie only with its Manage (docs/cookie-plan.md §10.1)", () => {
+    const use = names(visibleNavigation((r) => r !== 'admin' && r[0] === 'Cookie' && r[1] === 'Use'))
+    expect(use).toEqual(['dashboard', 'cookie'])
+    const manage = names(visibleNavigation((r) => r !== 'admin' && r[0] === 'Cookie'))
+    expect(manage).toEqual(['dashboard', 'cookie', 'cookie-admin'])
+  })
+
   it('drops the Mail group when Mail__HideMenu hides its entries', () => {
     expect(
       visibleNavigation(

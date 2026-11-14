@@ -32,6 +32,7 @@ export const navigation: NavGroup[] = [
       { label: 'Dashboard', icon: 'pi pi-th-large', to: '/', name: 'dashboard' },
       { label: 'Decisions', icon: 'pi pi-inbox', to: '/decisions', name: 'decisions', right: ['Decisions', 'Decide'] },
       { label: 'Events', icon: 'pi pi-list', to: '/events', name: 'events', right: ['Monitoring', 'View'] },
+      { label: 'Cookie', icon: 'pi pi-microchip-ai', to: '/cookie', name: 'cookie', right: ['Cookie', 'Use'] },
     ],
   },
   {
@@ -162,6 +163,7 @@ export const navigation: NavGroup[] = [
       },
       { label: 'System health', icon: 'pi pi-heart', to: '/admin/system', name: 'system', right: ['System', 'Manage'] },
       { label: 'AI', icon: 'pi pi-sparkles', to: '/admin/ai', name: 'ai', right: ['Ai', 'Manage'] },
+      { label: 'Cookie', icon: 'pi pi-cog', to: '/admin/cookie', name: 'cookie-admin', right: ['Cookie', 'Manage'] },
       {
         label: 'Location fields',
         icon: 'pi pi-list-check',

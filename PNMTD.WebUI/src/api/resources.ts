@@ -397,6 +397,57 @@ export const api = {
   },
 
   /**
+   * Cookie (docs/cookie-plan.md §19.4): the status every signed-in user's, the cases Cookie's Use, each filtered by the
+   * reader's rights; Admin → Cookie (§9.3) Cookie's Manage.
+   */
+  cookie: {
+    status: () => call(client.GET('/api/v1/cookie/status')),
+    cases: (query: ListQuery & { open?: boolean; kind?: S['CookieCaseKind'] }) =>
+      call(client.GET('/api/v1/cookie/cases', { params: { query } })),
+    case: (id: Id) => call(client.GET('/api/v1/cookie/cases/{id}', { params: { path: { id } } })),
+    // --- Admin → Cookie: Cookie's Manage ----------------------------------------------------------------------------
+    overview: () => call(client.GET('/api/v1/cookie/admin/overview')),
+    settings: () => call(client.GET('/api/v1/cookie/admin/settings')),
+    defaults: () => call(client.GET('/api/v1/cookie/admin/defaults')),
+    /** Redmine's projects, roles, statuses and trackers for the pickers, and whether Redmine can be written. */
+    redmine: () => call(client.GET('/api/v1/cookie/admin/redmine')),
+    /** Each section as a whole: a new version; a 400 names the fields. */
+    save: {
+      identity: (body: S['IdentitySettings']) => call(client.PUT('/api/v1/cookie/admin/settings/identity', { body })),
+      prompts: (body: S['PromptSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/prompts', { body })),
+      cases: (body: S['CaseSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/cases', { body })),
+      hours: (body: S['HoursSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/hours', { body })),
+      notifications: (body: S['NotificationSettings']) =>
+        call(client.PUT('/api/v1/cookie/admin/settings/notifications', { body })),
+      redmine: (body: S['CookieRedmineSettings']) =>
+        call(client.PUT('/api/v1/cookie/admin/settings/redmine', { body })),
+      actions: (body: S['ActionSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/actions', { body })),
+      models: (body: S['ModelSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/models', { body })),
+      rights: (body: S['CookieRightsSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/rights', { body })),
+    },
+    versions: (section: string) =>
+      call(client.GET('/api/v1/cookie/admin/settings/{section}/versions', { params: { path: { section } } })),
+    /** A version's values as saved: raw JSON. */
+    version: (section: string, version: number) =>
+      call(
+        client.GET('/api/v1/cookie/admin/settings/{section}/versions/{version}', {
+          params: { path: { section, version } },
+        }),
+      ),
+    /** The old version's values, saved as a new version. */
+    rollback: (section: string, version: number) =>
+      call(
+        client.POST('/api/v1/cookie/admin/settings/{section}/rollback/{version}', {
+          params: { path: { section, version } },
+        }),
+      ),
+    outbox: (query: ListQuery & { state?: S['CookieOutboxState']; channel?: S['CookieChannel'] }) =>
+      call(client.GET('/api/v1/cookie/admin/outbox', { params: { query } })),
+    /** What a limit held back, sent now (409 for anything else). */
+    send: (id: number) => call(client.POST('/api/v1/cookie/admin/outbox/{id}/send', { params: { path: { id } } })),
+  },
+
+  /**
    * Servers with an agent, Windows and Linux (docs/windows-sensor-plan.md §9.2; docs/linux-sensor-plan.md §10): the fleet
    * CanRead, requests CanWrite, tokens, the agent log, the downloads and the scripts Admin.
    */
@@ -749,6 +800,8 @@ export const keys = {
   ai: ['ai'] as const,
   /** Decisions and their count (docs/ai-operations-plan.md §5.3). */
   decisions: ['decisions'] as const,
+  /** Cookie: the status, the cases, and Admin → Cookie's sections, defaults, versions and outbox (docs/cookie-plan.md §19.4). */
+  cookie: ['cookie'] as const,
 }
 
 /** The request of a resource as it is, with some fields changed: v1's PUT takes every writable field. */

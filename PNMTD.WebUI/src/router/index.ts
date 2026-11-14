@@ -213,6 +213,13 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'Decisions', right: ['Decisions', 'Decide'] },
   },
   {
+    // Cookie's window (docs/cookie-plan.md §9.2): the cases now, the trace and the chat with step B; ?case= opens a case.
+    path: '/cookie/:tab(cases)?',
+    name: 'cookie',
+    component: () => import('@/views/cookie/CookieView.vue'),
+    meta: { title: 'Cookie', right: ['Cookie', 'Use'] },
+  },
+  {
     path: '/notifications',
     name: 'notifications',
     component: () => import('@/views/notifications/NotificationsView.vue'),
@@ -329,6 +336,13 @@ export const routes: RouteRecordRaw[] = [
     name: 'ai',
     component: () => import('@/views/admin/ai/AiView.vue'),
     meta: { title: 'AI', right: ['Ai', 'Manage'] },
+  },
+  {
+    // Admin → Cookie (docs/cookie-plan.md §9.3): one tab per section, each versioned.
+    path: '/admin/cookie/:tab(overview|identity|cases|hours|notifications|redmine|actions|models|rights)?',
+    name: 'cookie-admin',
+    component: () => import('@/views/admin/cookie/CookieAdminView.vue'),
+    meta: { title: 'Cookie', right: ['Cookie', 'Manage'] },
   },
   {
     path: '/admin/location-fields',
