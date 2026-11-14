@@ -17957,6 +17957,61 @@
           }
         }
       },
+      "FileItem": {
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "contentType",
+          "size",
+          "width",
+          "height",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/FileKind"
+          },
+          "name": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "width": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "height": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "FileKind": {
+        "enum": [
+          "Image",
+          "Attachment"
+        ]
+      },
       "FindingEvidence": {
         "required": [
           "key",
@@ -20004,6 +20059,7 @@
           "subLocations",
           "hosts",
           "values",
+          "files",
           "createdAt",
           "createdByName",
           "updatedAt",
@@ -20066,6 +20122,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LocationValueItem"
+            }
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileItem"
             }
           },
           "createdAt": {
@@ -20191,6 +20253,15 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LocationFieldTemplate"
+            }
+          },
+          "users": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Ref"
             }
           }
         }

@@ -66,8 +66,8 @@ public sealed class LocationQuery
 
 /// <summary>
 /// <c>GET /locations/{id}</c> (§3.4): the breadcrumb, the state and counts with sub-locations, the sub-locations, the hosts
-/// as the dashboard's panel shows them (with sub-locations' unless <c>?own=true</c>; each names its location), and every
-/// field's value that isn't archived, in the fields' order.
+/// as the dashboard's panel shows them (with sub-locations' unless <c>?own=true</c>; each names its location), every
+/// field's value that isn't archived, in the fields' order, and the files its Markdown values show (§5.6).
 /// </summary>
 public sealed record LocationDetail(
     Guid Id,
@@ -82,6 +82,7 @@ public sealed record LocationDetail(
     IReadOnlyList<LocationChild> SubLocations,
     IReadOnlyList<DashboardHost> Hosts,
     IReadOnlyList<LocationValueItem> Values,
+    IReadOnlyList<FileItem> Files,
     DateTime CreatedAt,
     string? CreatedByName,
     DateTime UpdatedAt,
@@ -203,9 +204,11 @@ public sealed record LocationFieldOptions
 
 /// <summary>
 /// <c>GET /location-fields</c> (§4.2, §10.5): every field in order, archived ones included, and the checklist of
-/// <i>Add typical fields…</i> (§4.4), each created through <c>POST /location-fields</c>.
+/// <i>Add typical fields…</i> (§4.4), each created through <c>POST /location-fields</c>. For Users and Admins,
+/// <see cref="Users"/> lists the active users a User field can name, by display name; null for Viewers.
 /// </summary>
-public sealed record LocationFieldList(IReadOnlyList<LocationFieldItem> Items, IReadOnlyList<LocationFieldTemplate> Typical);
+public sealed record LocationFieldList(IReadOnlyList<LocationFieldItem> Items, IReadOnlyList<LocationFieldTemplate> Typical,
+    IReadOnlyList<Ref>? Users = null);
 
 /// <summary>A field's definition (§4.2), and how many locations have a value of their own (<see cref="Filled"/>).</summary>
 public sealed record LocationFieldItem(

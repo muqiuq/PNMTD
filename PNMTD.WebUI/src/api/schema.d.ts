@@ -11056,6 +11056,22 @@ export interface components {
             entityTag?: null | components["schemas"]["EntityTagHeaderValue"];
             enableRangeProcessing?: boolean;
         };
+        FileItem: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["FileKind"];
+            name: string;
+            contentType: string;
+            /** Format: int64 */
+            size: number;
+            /** Format: int32 */
+            width: null | number;
+            /** Format: int32 */
+            height: null | number;
+            url: string;
+        };
+        /** @enum {unknown} */
+        FileKind: "Image" | "Attachment";
         FindingEvidence: {
             key: string;
             kind: string;
@@ -11519,6 +11535,7 @@ export interface components {
             subLocations: components["schemas"]["LocationChild"][];
             hosts: components["schemas"]["DashboardHost"][];
             values: components["schemas"]["LocationValueItem"][];
+            files: components["schemas"]["FileItem"][];
             /** Format: date-time */
             createdAt: string;
             createdByName: null | string;
@@ -11550,6 +11567,7 @@ export interface components {
         LocationFieldList: {
             items: components["schemas"]["LocationFieldItem"][];
             typical: components["schemas"]["LocationFieldTemplate"][];
+            users?: null | components["schemas"]["Ref"][];
         };
         LocationFieldOptions: {
             choices?: null | string[];

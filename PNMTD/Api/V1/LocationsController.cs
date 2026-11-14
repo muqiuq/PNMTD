@@ -82,9 +82,12 @@ public sealed class LocationsController(LocationService locations, LocationValue
 [Authorize(Policy = Policies.CanRead)]
 public sealed class LocationFieldsController(LocationFieldService fields) : V1ControllerBase
 {
-    /// <summary>Every field in order, archived ones included, with how many locations filled it; and the typical fields (§4.4).</summary>
+    /// <summary>
+    /// Every field in order, archived ones included, with how many locations filled it; the typical fields (§4.4); for
+    /// Users and Admins, the users a User field can name.
+    /// </summary>
     [HttpGet]
-    public async Task<ActionResult<LocationFieldList>> List(CancellationToken ct) => await fields.ListAsync(ct);
+    public async Task<ActionResult<LocationFieldList>> List(CancellationToken ct) => await fields.ListAsync(CanSeeSecrets, ct);
 
     [HttpPost]
     [Authorize(Policy = Policies.Admin)]

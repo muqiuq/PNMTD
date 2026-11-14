@@ -6,6 +6,8 @@ using PNMTD.Api;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
 using PNMTD.Data;
+using PNMTD.Files;
+using PNMTD.Knowledge;
 using PNMTD.Lib.Helper;
 using PNMTD.Models.Db;
 using PNMTD.Services.Domain;
@@ -141,12 +143,28 @@ public sealed partial class LocationService(
                 .ToDictionaryAsync(l => l.Id, l => l.Description, ct);
             children = children.Select(c => c with { Description = descriptions.GetValueOrDefault(c.Id) }).ToList();
         }
-        var fieldValues = await values.ItemsAsync(await values.ResolveAsync(id, ct), ct);
+        var resolved = await values.ResolveAsync(id, ct);
+        var fieldValues = await values.ItemsAsync(resolved, ct);
         return new LocationDetail(location.Id, location.ParentId, location.Name, location.Description, snapshot.Path(id),
             snapshot.Ancestors(id).Reverse().Select(a => new Ref(a.Id, a.Name)).ToList(), snapshot.Depth(id),
             StateOf(hosts), Counts(hosts, id), children,
             own ? hosts.Where(h => h.AssignedLocation?.Id == id).ToList() : hosts,
-            fieldValues, location.CreatedAt, location.CreatedByName, location.UpdatedAt, location.UpdatedByName);
+            fieldValues, await FilesAsync(resolved, ct), location.CreatedAt, location.CreatedByName, location.UpdatedAt, location.UpdatedByName);
+    }
+
+    /// <summary>The files the Markdown values shown reference, inherited ones included, for attachment chips (§5.6).</summary>
+    private async Task<IReadOnlyList<FileItem>> FilesAsync(IReadOnlyList<EffectiveValue> resolved, CancellationToken ct)
+    {
+        var ids = resolved.Where(v => v.Field.Type == LocationFieldType.Markdown && v.Value is not null)
+            .SelectMany(v => MarkdownText.Read(LocationValues.ReadString(v.Value) ?? "").FileIds)
+            .Distinct()
+            .ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+        var files = await db.Files.AsNoTracking().Where(f => ids.Contains(f.Id) && f.DeletedAt == null).ToListAsync(ct);
+        return files.Select(FileNames.Item).ToList();
     }
 
     // --- Creating, changing, moving, deleting (§3.1, §3.3) ---------------------------------------------------------------

@@ -260,6 +260,38 @@ public sealed class LocationsApiTests
     }
 
     [TestMethod]
+    public async Task MarkdownValuesRecordTheirFilesAndThePageNamesThem()
+    {
+        var site = await CreateAsync(user);
+        var room = await CreateAsync(user, "Room", site.Id);
+        var plan = await FieldAsync(new { label = V1.Unique("Plan"), type = "Markdown", inherited = true });
+        var file = new FileEntity
+        {
+            Id = Guid.NewGuid(), Kind = FileKind.Image, Name = "cage b.png", ContentType = "image/png", Size = 1234, Width = 10, Height = 20,
+            Sha256 = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N"), Path = "2026/11/x.png", CreatedAt = Clock.UtcNow,
+        };
+        using (var db = app.NewDb())
+        {
+            db.Files.Add(file);
+            await db.SaveChangesAsync();
+        }
+
+        var markdown = $"# Cage B\n\n![The cage](/api/v1/files/{file.Id}/cage-b.png)\n";
+        var saved = await (await SetAsync(user, site.Id, plan.Id, markdown, 0)).ReadAsync<LocationValueItem>();
+        Assert.AreEqual(markdown, saved.Value!.Value.GetString(), "stored exactly as written");
+
+        using (var db = app.NewDb())
+        {
+            Assert.IsTrue(await db.FileUses.AnyAsync(u => u.FileId == file.Id && u.LocationId == site.Id));
+        }
+        var detail = await (await viewer.GetAsync($"/api/v1/locations/{room.Id}")).ReadAsync<LocationDetail>();
+        var shown = detail.Files.Single();
+        Assert.AreEqual(file.Id, shown.Id);
+        Assert.AreEqual(1234, shown.Size);
+        Assert.AreEqual(site.Id, detail.Values.Single(v => v.FieldId == plan.Id).InheritedFrom!.Id);
+    }
+
+    [TestMethod]
     public async Task UserAndHostValuesNameTheirTargetsAndADeletedHostClearsItsValues()
     {
         var contact = await FieldAsync(new { label = V1.Unique("Contact"), type = "User" });

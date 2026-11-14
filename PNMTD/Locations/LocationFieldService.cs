@@ -41,15 +41,23 @@ public sealed partial class LocationFieldService(PnmtdDbContext db, LocationTree
         new() { Label = "Floor plan", Type = LocationFieldType.Markdown, Help = "An image of the floor plan: paste it." },
     ];
 
-    public async Task<LocationFieldList> ListAsync(CancellationToken ct)
+    /// <summary>Every field, the typical ones, and with <paramref name="withUsers"/> the users a User field can name.</summary>
+    public async Task<LocationFieldList> ListAsync(bool withUsers, CancellationToken ct)
     {
         var fields = await db.LocationFields.AsNoTracking().OrderBy(f => f.Position).ThenBy(f => f.Label).ToListAsync(ct);
         var filled = await FilledAsync(null, ct);
         var keys = fields.Select(f => f.Key).ToHashSet(StringComparer.Ordinal);
+        var users = withUsers
+            ? (await db.Users.AsNoTracking().Where(u => u.IsActive).Select(u => new { u.Id, u.DisplayName, u.Username }).ToListAsync(ct))
+                .Select(u => new Ref(u.Id, string.IsNullOrEmpty(u.DisplayName) ? u.Username : u.DisplayName))
+                .OrderBy(u => u.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList()
+            : null;
         return new LocationFieldList(
             fields.Select(f => Item(f, filled.GetValueOrDefault(f.Id))).ToList(),
             Typical.Select(t => new LocationFieldTemplate(Slug(t.Label!), t.Label!, t.Type, t.Overview, t.Inherited, t.Sensitive, t.Help,
-                keys.Contains(Slug(t.Label!)))).ToList());
+                keys.Contains(Slug(t.Label!)))).ToList(),
+            users);
     }
 
     public async Task<LocationFieldItem> GetAsync(Guid id, CancellationToken ct)
@@ -178,7 +186,7 @@ public sealed partial class LocationFieldService(PnmtdDbContext db, LocationTree
             ordered[i].Position = i;
         }
         await db.SaveChangesAsync(ct);
-        return await ListAsync(ct);
+        return await ListAsync(true, ct);
     }
 
     /// <summary>Hidden everywhere, its values kept (§4.3).</summary>

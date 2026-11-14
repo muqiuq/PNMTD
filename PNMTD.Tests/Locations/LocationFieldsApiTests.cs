@@ -64,6 +64,11 @@ public sealed class LocationFieldsApiTests
         Assert.AreEqual(10, list.Typical.Count);
         Assert.AreEqual("on-site-contact", list.Typical.Single(t => t.Label == "On-site contact").Key);
 
+        // The users a User field can name, for those who fill fields only.
+        Assert.IsNull(list.Users);
+        var forUsers = await (await user.GetAsync("/api/v1/location-fields")).ReadAsync<LocationFieldList>();
+        Assert.AreEqual("Test Viewer", forUsers.Users!.Single(u => u.Id == TestUsers.Viewer).Name);
+
         using var forbidden = await user.PostJsonAsync("/api/v1/location-fields", new { label = "x", type = "Text" });
         Assert.AreEqual(HttpStatusCode.Forbidden, forbidden.StatusCode);
         using var invalid = await admin.PostJsonAsync("/api/v1/location-fields", new { label = "", type = "Choice", options = new { choices = new[] { "a", "A" } } });
