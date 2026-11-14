@@ -145,7 +145,17 @@ const resultText = computed(() => {
   if (s.state === 'Succeeded' && s.added.length) {
     return `${s.added.length} tag${s.added.length === 1 ? '' : 's'} added: ${s.added.join(', ')}.`
   }
-  return s.message ?? (s.state === 'Succeeded' ? 'No new tags.' : `The scan ended: ${s.state.toLowerCase()}.`)
+  if (s.state === 'Failed') {
+    return `The scan failed${s.message ? `: ${s.message}` : '.'} It runs once; ask again later.`
+  }
+  if (s.state === 'Cancelled') {
+    return `The scan was cancelled${s.message ? `: ${s.message}` : '.'}`
+  }
+  return s.message ?? 'No new tags.'
+})
+const resultSeverity = computed(() => {
+  const s = status.value
+  return !s ? 'info' : s.added.length ? 'success' : s.state === 'Failed' ? 'error' : s.blockedBy ? 'warn' : 'info'
 })
 </script>
 
@@ -193,7 +203,7 @@ const resultText = computed(() => {
       <ProgressSpinner style="width: 28px; height: 28px" />
       <span>{{ status.state === 'Queued' ? 'Waiting for the AI…' : 'The AI is reading the page…' }}</span>
     </div>
-    <Message v-else-if="finished" :severity="status.added.length ? 'success' : status.blockedBy ? 'warn' : 'info'">
+    <Message v-else-if="finished" :severity="resultSeverity">
       {{ resultText }}
     </Message>
     <Message v-if="problem" severity="warn" class="problem">{{ problem }}</Message>
