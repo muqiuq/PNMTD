@@ -82,7 +82,7 @@ public sealed class MikrotikBackupSettingsService(PnmtdDbContext db, IHttpContex
         }
         if (encryption.Count > 0)
         {
-            UdpViews.Audit(db, accessor, AuthEvents.MikrotikBackupEncryptionChanged,
+            UdpViews.Audit(db, accessor, AuditEvents.MikrotikBackupEncryptionChanged,
                 $"backups encrypted {(request.EncryptBackups == true ? "on" : "off")} for {encryption.Count} router(s): {string.Join(", ", encryption.Take(20))}");
         }
         await db.SaveChangesAsync(ct);
@@ -123,7 +123,7 @@ public sealed class MikrotikBackupSettingsService(PnmtdDbContext db, IHttpContex
             replaced = before.Fingerprint;
         }
         settings.BackupKeyId = key.Id;
-        UdpViews.Audit(db, accessor, AuthEvents.MikrotikBackupKeySet, replaced is null ? $"backup key {fingerprint} set" : $"backup key {fingerprint} replaces {replaced}");
+        UdpViews.Audit(db, accessor, AuditEvents.MikrotikBackupKeySet, replaced is null ? $"backup key {fingerprint} set" : $"backup key {fingerprint} replaces {replaced}");
         await db.SaveChangesAsync(ct);
         return await GetAsync(ct);
     }
@@ -144,7 +144,7 @@ public sealed class MikrotikBackupSettingsService(PnmtdDbContext db, IHttpContex
         {
             router.EncryptBackups = false;
         }
-        UdpViews.Audit(db, accessor, AuthEvents.MikrotikBackupKeyRetired, $"backup key {key.Fingerprint} retired: encryption off for {routers.Count} router(s)");
+        UdpViews.Audit(db, accessor, AuditEvents.MikrotikBackupKeyRetired, $"backup key {key.Fingerprint} retired: encryption off for {routers.Count} router(s)");
         await db.SaveChangesAsync(ct);
         return await GetAsync(ct);
     }

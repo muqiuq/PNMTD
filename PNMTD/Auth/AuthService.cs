@@ -48,7 +48,7 @@ public sealed class AuthService(PnmtdDbContext db, UserAccounts accounts, TotpSe
 
         if (user?.LockoutEnd is { } lockedUntil && lockedUntil > now)
         {
-            accounts.Log(AuthEvents.LoginFailed, user, audit, "locked out");
+            accounts.Log(AuditEvents.LoginFailed, user, audit, "locked out");
             await accounts.SaveAsync(ct);
             return new LoginOutcome(LoginStatus.LockedOut, RetryAfter: lockedUntil - now);
         }
@@ -61,7 +61,7 @@ public sealed class AuthService(PnmtdDbContext db, UserAccounts accounts, TotpSe
             : null;
         if (failure is not null)
         {
-            accounts.Log(AuthEvents.LoginFailed, user, audit, failure, typed.Length > 128 ? typed[..128] : typed);
+            accounts.Log(AuditEvents.LoginFailed, user, audit, failure, typed.Length > 128 ? typed[..128] : typed);
             if (user is not null && !passwordValid)
             {
                 CountFailure(user, audit, now);
@@ -84,7 +84,7 @@ public sealed class AuthService(PnmtdDbContext db, UserAccounts accounts, TotpSe
         }
         UserAccounts.Unlock(user);
         user.LastLoginAt = now;
-        accounts.Log(AuthEvents.LoginSucceeded, user, audit, detail);
+        accounts.Log(AuditEvents.LoginSucceeded, user, audit, detail);
         await accounts.SaveAsync(ct);
         return new LoginOutcome(LoginStatus.Success, user);
     }
@@ -104,7 +104,7 @@ public sealed class AuthService(PnmtdDbContext db, UserAccounts accounts, TotpSe
         var now = Clock.UtcNow;
         if (user.LockoutEnd is { } lockedUntil && lockedUntil > now)
         {
-            accounts.Log(AuthEvents.TotpFailed, user, audit, "locked out");
+            accounts.Log(AuditEvents.TotpFailed, user, audit, "locked out");
             await accounts.SaveAsync(ct);
             return new LoginOutcome(LoginStatus.LockedOut, RetryAfter: lockedUntil - now);
         }
@@ -113,7 +113,7 @@ public sealed class AuthService(PnmtdDbContext db, UserAccounts accounts, TotpSe
         var check = secret is null ? TotpCheck.Invalid : TotpService.Check(secret, code, now, user.TotpLastUsedStep, out step);
         if (check != TotpCheck.Valid)
         {
-            accounts.Log(AuthEvents.TotpFailed, user, audit,
+            accounts.Log(AuditEvents.TotpFailed, user, audit,
                 secret is null ? "secret unreadable (Data Protection keys lost?)" : check == TotpCheck.Reused ? "code already used" : "wrong code");
             CountFailure(user, audit, now);
             await accounts.SaveAsync(ct);
@@ -122,7 +122,7 @@ public sealed class AuthService(PnmtdDbContext db, UserAccounts accounts, TotpSe
         user.TotpLastUsedStep = step;
         UserAccounts.Unlock(user);
         user.LastLoginAt = now;
-        accounts.Log(AuthEvents.LoginSucceeded, user, audit, "with 2FA");
+        accounts.Log(AuditEvents.LoginSucceeded, user, audit, "with 2FA");
         await accounts.SaveAsync(ct);
         return new LoginOutcome(LoginStatus.Success, user);
     }
@@ -136,7 +136,7 @@ public sealed class AuthService(PnmtdDbContext db, UserAccounts accounts, TotpSe
             user.LockoutEnd = now + duration;
             user.LockoutCount++;
             user.FailedLoginCount = 0;
-            accounts.Log(AuthEvents.LockedOut, user, audit, $"{duration.TotalMinutes:0} minutes");
+            accounts.Log(AuditEvents.LockedOut, user, audit, $"{duration.TotalMinutes:0} minutes");
         }
     }
 

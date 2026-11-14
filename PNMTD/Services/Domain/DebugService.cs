@@ -85,7 +85,7 @@ public sealed class DebugService(PnmtdDbContext db, PushoverNotification pushove
 
     private DebugResult Audit(string provider, string target, DeliveryResult result)
     {
-        UdpViews.Audit(db, accessor, AuthEvents.DebugNotificationSent, $"{provider} to {target}: {(result.Ok ? "sent" : "failed")}");
+        UdpViews.Audit(db, accessor, AuditEvents.DebugNotificationSent, $"{provider} to {target}: {(result.Ok ? "sent" : "failed")}");
         db.SaveChanges();
         return new DebugResult(result.Ok, provider, target, result.Detail, (int)result.Duration.TotalMilliseconds, Clock.UtcNow);
     }

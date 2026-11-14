@@ -237,7 +237,7 @@ public sealed class AgentDownloadTests
         Assert.AreEqual(AgentDownloadState.Here, fetched.Assets.Single(a => a.Name == AgentDownloadAssets.LinuxX64).State);
         Assert.AreEqual(HttpStatusCode.BadRequest, (await admin.PostJsonAsync("/api/v1/agents/downloads/fetch", new AgentDownloadFetchRequest(["notes.txt"]))).StatusCode);
         await using var db = app.NewDb();
-        Assert.IsTrue(await db.AuthLog.AnyAsync(l => l.EventType == AuthEvents.AgentDownloadsFetched && l.Detail!.Contains(AgentDownloadAssets.LinuxArm64)));
+        Assert.IsTrue(await db.AuditLog.AnyAsync(l => l.EventType == AuditEvents.AgentDownloadsFetched && l.Detail!.Contains(AgentDownloadAssets.LinuxArm64)));
         await db.Hosts.Where(h => h.Id == hostId).ExecuteUpdateAsync(u => u.SetProperty(h => h.Enabled, false));
     }
 

@@ -210,14 +210,10 @@ public sealed partial class FileStore(IDbContextFactory<PnmtdDbContext> dbs, IOp
         }
         RemoveFromDisk(file);
         db.Files.Remove(file);
-        var origin = actor.Audit.Origin;
-        var detail = $"{file.Name} ({file.Kind}, {file.Size} bytes, {file.Id})";
-        db.AuthLog.Add(new AuthLogEntity
-        {
-            Id = Guid.NewGuid(), CreatedAt = Clock.UtcNow, UserId = actor.UserId, Username = actor.Username ?? "", EventType = AuthEvents.FileDeleted,
-            IpAddress = actor.Audit.IpAddress, UserAgent = string.IsNullOrEmpty(actor.Audit.UserAgent) ? null : actor.Audit.UserAgent,
-            Detail = origin is null ? detail : $"{origin}: {detail}",
-        });
+        var who = actor.Audit.Origin == "cli" ? AuditWho.Cli
+            : new AuditWho(AuditActor.User, actor.UserId, actor.Username ?? "", null, actor.Audit.IpAddress, actor.Audit.UserAgent);
+        AuditLog.Record(db, AuditEvents.FileDeleted, $"{file.Name} ({file.Kind}, {file.Size} bytes)", who,
+            AuditTarget.Of(AuditTargets.File, file.Id, file.Name));
         await db.SaveChangesAsync(ct);
         logger.LogWarning("File {Id} ({Name}) deleted by {User}", file.Id, file.Name, actor.Username);
         return true;

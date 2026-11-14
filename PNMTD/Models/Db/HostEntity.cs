@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace PNMTD.Models.Db
 {
     [Table("hosts")]
+    [PNMTD.Audit.Audited]
     public class HostEntity
     {
         [Key]

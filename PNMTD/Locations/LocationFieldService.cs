@@ -219,7 +219,7 @@ public sealed partial class LocationFieldService(PnmtdDbContext db, LocationTree
             throw ApiException.Conflict(LocationErrors.NotArchived, "Archive the field first: only an archived field can be deleted.");
         }
         var filled = (await FilledAsync(id, ct)).GetValueOrDefault(id);
-        UdpViews.Audit(db, accessor, AuthEvents.LocationFieldDeleted,
+        UdpViews.Audit(db, accessor, AuditEvents.LocationFieldDeleted,
             Cuts.Cut($"{field.Label} ({field.Key}, {field.Type}): {filled} {(filled == 1 ? "value" : "values")} deleted", 1000));
         db.LocationFields.Remove(field);
         await db.SaveChangesAsync(ct);

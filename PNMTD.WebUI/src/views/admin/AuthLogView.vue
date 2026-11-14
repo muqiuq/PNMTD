@@ -3,6 +3,7 @@ import Chip from 'primevue/chip'
 import Column from 'primevue/column'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
+import { useQuery } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, keys, type S } from '@/api/resources'
@@ -16,44 +17,13 @@ import { useServerTable } from '@/composables/useServerTable'
 const route = useRoute()
 const router = useRouter()
 
-const types = [
-  'LoginSucceeded',
-  'LoginFailed',
-  'LockedOut',
-  'TotpFailed',
-  'Logout',
-  'TotpEnabled',
-  'TotpDisabled',
-  'TotpReset',
-  'PasswordChanged',
-  'PasswordReset',
-  'SessionsRevoked',
-  'UserCreated',
-  'UserUpdated',
-  'UserUnlocked',
-  'RoleChanged',
-  'UserDeleted',
-  'UdpKeyChanged',
-  'UdpCounterReset',
-  'UdpSessionReset',
-  'UdpFirmwareUploaded',
-  'UdpFirmwareDeleted',
-  'UdpUpdateStarted',
-  'UdpUpdateCancelled',
-]
-const label = (t: string) =>
-  t
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace('Totp', '2FA')
-    .replace(/^Udp /, 'UDP ')
-const severity = (t: string) =>
-  /Failed|LockedOut/.test(t)
-    ? 'danger'
-    : /Deleted|Reset|Revoked|Disabled|Cancelled/.test(t)
-      ? 'warn'
-      : /Succeeded|Enabled|Created/.test(t)
-        ? 'success'
-        : 'secondary'
+// The server's catalog (docs/audit-redmine-zabbix-plan.md §3.9): every type, labelled, so the filter can't fall behind.
+const catalog = useQuery({ queryKey: [...keys.audit, 'types'], queryFn: api.audit.types, staleTime: Infinity })
+const byType = computed(() => new Map((catalog.data.value ?? []).map((t) => [t.type, t])))
+const types = computed(() => (catalog.data.value ?? []).map((t) => ({ value: t.type, label: t.label })))
+const label = (t: string) => byType.value.get(t)?.label ?? t
+const tones = { Success: 'success', Warn: 'warn', Danger: 'danger', Neutral: 'secondary' } as const
+const severity = (t: string) => tones[byType.value.get(t)?.tone ?? 'Neutral']
 
 const type = ref(typeof route.query.type === 'string' ? route.query.type : '')
 const userId = ref(typeof route.query.userId === 'string' ? route.query.userId : '')
@@ -70,9 +40,9 @@ watch([type, userId], () =>
   }),
 )
 const filters = computed(() => ({ type: type.value || undefined, userId: userId.value || undefined }))
-const table = useServerTable<S['AuthLogItem']>({
-  key: [...keys.users, 'log'],
-  fetch: (q) => api.users.log(q),
+const table = useServerTable<S['AuditLogItem']>({
+  key: [...keys.audit, 'log'],
+  fetch: (q) => api.audit.log(q),
   filters,
   syncUrl: true,
 })
@@ -88,7 +58,7 @@ const table = useServerTable<S['AuthLogItem']>({
     >
       <Select
         v-model="type"
-        :options="types.map((t) => ({ value: t, label: label(t) }))"
+        :options="types"
         option-label="label"
         option-value="value"
         placeholder="All events"

@@ -1609,6 +1609,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    userId?: string;
+                    type?: string;
+                    categories?: components["schemas"]["AuditCategory"][];
+                    outcome?: components["schemas"]["AuditOutcome"];
+                    actor?: components["schemas"]["AuditActor"];
+                    subject?: string;
+                    from?: string;
+                    to?: string;
+                    correlationId?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfAuditLogItem"];
+                        "text/json": components["schemas"]["PagedOfAuditLogItem"];
+                        "text/plain": components["schemas"]["PagedOfAuditLogItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit-log/types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuditEventTypeItem"][];
+                        "text/json": components["schemas"]["AuditEventTypeItem"][];
+                        "text/plain": components["schemas"]["AuditEventTypeItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -2211,50 +2299,6 @@ export interface paths {
                 };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth-log": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    userId?: string;
-                    type?: string;
-                    page?: number;
-                    pageSize?: number;
-                    sort?: string;
-                    search?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PagedOfAuthLogItem"];
-                        "text/json": components["schemas"]["PagedOfAuthLogItem"];
-                        "text/plain": components["schemas"]["PagedOfAuthLogItem"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -11426,6 +11470,51 @@ export interface components {
         };
         /** @enum {unknown} */
         AssignMode: "Add" | "Remove";
+        /** @enum {unknown} */
+        AuditActor: "User" | "Cli" | "Agent" | "System";
+        /** @enum {unknown} */
+        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix";
+        AuditChange: {
+            object: null | string;
+            field: string;
+            old: null | string;
+            new: null | string;
+            kind?: null | string;
+            summary?: null | string;
+        };
+        AuditEventTypeItem: {
+            type: string;
+            category: components["schemas"]["AuditCategory"];
+            label: string;
+            tone: components["schemas"]["AuditTone"];
+            targetType: null | string;
+        };
+        AuditLogItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            userId: null | string;
+            username: string;
+            eventType: string;
+            category: components["schemas"]["AuditCategory"];
+            actor: components["schemas"]["AuditActor"];
+            actorRef: null | string;
+            outcome: components["schemas"]["AuditOutcome"];
+            error: null | string;
+            ipAddress: null | string;
+            userAgent: null | string;
+            detail: null | string;
+            targetType: null | string;
+            targetId: null | string;
+            targetName: null | string;
+            request: null | string;
+            correlationId: null | string;
+            changes: components["schemas"]["AuditChange"][];
+        };
+        /** @enum {unknown} */
+        AuditOutcome: "Succeeded" | "Failed" | "Denied";
         AuditSetting: {
             subcategory: string;
             guid: string;
@@ -11435,19 +11524,8 @@ export interface components {
             needsFailure: boolean;
             fix: null | string;
         };
-        AuthLogItem: {
-            /** Format: uuid */
-            id: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: uuid */
-            userId: null | string;
-            username: string;
-            eventType: string;
-            ipAddress: null | string;
-            userAgent: null | string;
-            detail: null | string;
-        };
+        /** @enum {unknown} */
+        AuditTone: "Neutral" | "Success" | "Warn" | "Danger";
         AuthorizedKey: {
             /** Format: int32 */
             line: number;
@@ -13966,8 +14044,8 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
-        PagedOfAuthLogItem: {
-            items: components["schemas"]["AuthLogItem"][];
+        PagedOfAuditLogItem: {
+            items: components["schemas"]["AuditLogItem"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */

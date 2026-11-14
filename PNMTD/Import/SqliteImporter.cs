@@ -233,8 +233,10 @@ namespace PNMTD.Import
                     INSERT INTO users ("Id", "Username", "NormalizedUsername", "DisplayName", "PasswordHash", "Role", "IsActive",
                         "MustChangePassword", "SecurityStamp", "IsTotpEnabled", "FailedLoginCount", "LockoutCount", "CreatedAt")
                     VALUES (@id, @username, @normalized, @display, @hash, @role, TRUE, @mustChange, @stamp, FALSE, 0, 0, @created);
-                    INSERT INTO auth_log ("Id", "CreatedAt", "UserId", "Username", "EventType", "Detail")
-                    VALUES (@logId, @created, @id, @username, 'UserCreated', 'import of users.json: ' || @role);
+                    INSERT INTO audit_log ("Id", "CreatedAt", "Username", "EventType", "Category", "Actor", "Outcome", "Detail",
+                        "TargetType", "TargetId", "TargetName", "Subjects")
+                    VALUES (@logId, @created, '', 'UserCreated', 'Users', 'Cli', 'Succeeded', 'import of users.json: ' || @role,
+                        'User', @id::text, @username, ARRAY[@id]::uuid[]);
                     """, connection, transaction);
                 command.Parameters.AddWithValue("id", user.Id);
                 command.Parameters.AddWithValue("username", user.Username);

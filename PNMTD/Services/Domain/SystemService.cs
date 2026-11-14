@@ -30,6 +30,8 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new("MikroTik poller", KeyValueKeyEnums.LAST_MIKROTIK_POLL_RUN, 10, c => c.GetValue("Mikrotik:Enabled", true)),
         new("MikroTik version check", KeyValueKeyEnums.LAST_MIKROTIK_VERSION_CHECK, 6 * 3600,
             c => c.GetValue("Mikrotik:Enabled", true) && c.GetValue("Mikrotik:VersionCheck:Enabled", true)),
+        // docs/audit-redmine-zabbix-plan.md §3.8: once a day.
+        new("Audit retention", KeyValueKeyEnums.LAST_AUDIT_RETENTION, 24 * 3600, _ => true),
     ];
 
     public static bool MailboxConfigured(IConfiguration c) =>

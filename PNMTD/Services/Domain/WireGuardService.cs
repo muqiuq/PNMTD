@@ -156,7 +156,7 @@ public sealed class WireGuardService(PnmtdDbContext db, WireGuardNetwork network
         n.ChangedBy = UdpViews.User(accessor).Id;
         if (changes.Count > 0)
         {
-            UdpViews.Audit(db, accessor, AuthEvents.WireGuardNetworkChanged, string.Join("; ", changes));
+            UdpViews.Audit(db, accessor, AuditEvents.WireGuardNetworkChanged, string.Join("; ", changes));
         }
         await db.SaveChangesAsync(ct);
         await WireGuardNetwork.NotifyAsync(db, ct);

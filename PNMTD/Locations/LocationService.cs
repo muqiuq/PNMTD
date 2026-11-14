@@ -294,7 +294,7 @@ public sealed partial class LocationService(
             }
             var hostCount = await db.Hosts.CountAsync(h => h.LocationId == id, ct);
             var valueCount = await db.LocationValues.CountAsync(v => v.LocationId == id && v.Value != null, ct);
-            UdpViews.Audit(db, accessor, AuthEvents.LocationDeleted,
+            UdpViews.Audit(db, accessor, AuditEvents.LocationDeleted,
                 Cuts.Cut($"{snapshot.Path(id)}: {Plural(hostCount, "host")} without a location now, {Plural(valueCount, "value")} deleted", 1000));
             await db.SaveChangesAsync(ct);
             // Hosts are set to none (ON DELETE SET NULL); values, history, file uses and page links cascade.

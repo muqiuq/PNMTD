@@ -242,7 +242,7 @@ public sealed class KbPageTests
         Assert.IsFalse(await db.KbRevisions.AnyAsync(r => r.PageId == page.Id));
         Assert.IsNotNull((await db.Files.SingleAsync(f => f.Id == file)).DeletedAt, "used by no other page");
         Assert.IsNull((await db.Files.SingleAsync(f => f.Id == other)).DeletedAt, "still used");
-        var log = await db.AuthLog.Where(l => l.EventType == AuthEvents.KbPageDeleted).OrderByDescending(l => l.CreatedAt).FirstAsync();
+        var log = await db.AuditLog.Where(l => l.EventType == AuditEvents.KbPageDeleted).OrderByDescending(l => l.CreatedAt).FirstAsync();
         StringAssert.Contains(log.Detail, $"KB-{page.Number} “Delete me”");
         Assert.AreEqual(elsewhere.Page.Id, (await db.FileUses.SingleAsync(u => u.FileId == other)).PageId);
         _ = archived;
@@ -269,7 +269,7 @@ public sealed class KbPageTests
         Assert.AreEqual(2, revisions.Count(r => r.Content.Contains("[redacted]")));
         Assert.IsTrue(KbRevisions.Changes(revisions.Single(r => r.Number == 4).Changes).Any(c => c.Kind == KbChangeKinds.Redacted && c.Text == "1 text in 2 revisions"));
         Assert.AreEqual(0, (await ListAsync($"q={Uri.EscapeDataString(secret)}")).TotalCount);
-        var log = await db.AuthLog.Where(l => l.EventType == AuthEvents.KbRevisionRedacted).OrderByDescending(l => l.CreatedAt).FirstAsync();
+        var log = await db.AuditLog.Where(l => l.EventType == AuditEvents.KbRevisionRedacted).OrderByDescending(l => l.CreatedAt).FirstAsync();
         Assert.IsFalse(log.Detail!.Contains(secret));
     }
 
@@ -347,7 +347,7 @@ public sealed class KbPageTests
         Assert.AreEqual($"−{b}", deletion.Changes.Single().Text);
         Assert.AreEqual("The tag was deleted.", deletion.Note);
         await using var check = app.NewDb();
-        Assert.IsTrue(await check.AuthLog.AnyAsync(l => l.EventType == AuthEvents.KbTagDeleted && l.Detail!.Contains(b)));
+        Assert.IsTrue(await check.AuditLog.AnyAsync(l => l.EventType == AuditEvents.KbTagDeleted && l.Detail!.Contains(b)));
     }
 
     [TestMethod]

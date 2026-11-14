@@ -447,11 +447,9 @@ internal static class DevSeedAgents
                 UpdatedAt = now.AddDays(-daysAgo), UpdatedByName = "admin",
             };
             db.SshKeys.Add(entity);
-            db.AuthLog.Add(new AuthLogEntity
-            {
-                Id = Guid.NewGuid(), CreatedAt = entity.CreatedAt, Username = "admin", EventType = Auth.AuthEvents.SshKeyRegistered, IpAddress = "10.0.4.17",
-                Detail = $"{name} ({user?.Username ?? owner}, {kind.ToString().ToLowerInvariant()}): {key.Type} {key.Fingerprint} registered",
-            });
+            db.AuditLog.Add(AuditLog.Entry(AuditEvents.SshKeyRegistered, new AuditWho(AuditActor.User, null, "admin", null, "10.0.4.17", null),
+                $"{name} ({user?.Username ?? owner}, {kind.ToString().ToLowerInvariant()}): {key.Type} {key.Fingerprint} registered",
+                AuditTarget.Of(AuditTargets.SshKey, entity.Id, name), at: entity.CreatedAt));
             count++;
             return entity;
         }
@@ -463,11 +461,9 @@ internal static class DevSeedAgents
         jan.State = SshKeyState.Retired;
         jan.RetiredAt = now.AddDays(-3).AddHours(-1);
         jan.RetiredByName = "philipp";
-        db.AuthLog.Add(new AuthLogEntity
-        {
-            Id = Guid.NewGuid(), CreatedAt = jan.RetiredAt.Value, Username = "philipp", EventType = Auth.AuthEvents.SshKeyRetired, IpAddress = "10.0.4.17",
-            Detail = $"{jan.Name} ({jan.Fingerprint}) retired; still authorized on 1 servers",
-        });
+        db.AuditLog.Add(AuditLog.Entry(AuditEvents.SshKeyRetired, new AuditWho(AuditActor.User, null, "philipp", null, "10.0.4.17", null),
+            $"{jan.Name} ({jan.Fingerprint}) retired; still authorized on 1 servers", AuditTarget.Of(AuditTargets.SshKey, jan.Id, jan.Name),
+            at: jan.RetiredAt.Value));
 
         // Where each key is authorized, as the agents' sections say, with first seen and last use.
         void Places(SensorEntity sensor, SshKeysSection section, Action<SshKeyAuthorizationEntity> times)
@@ -550,11 +546,8 @@ internal static class DevSeedAgents
                 ($"1 removal asked for (retirement): Jan, old laptop (jdoe) ({SimulatedLinux.JanOldLaptop.Fingerprint}) from deploy's authorized_keys on {name}", now.AddHours(-1)),
             })
             {
-                db.AuthLog.Add(new AuthLogEntity
-                {
-                    Id = Guid.NewGuid(), CreatedAt = at, UserId = owners.Philipp.Id, Username = "philipp", EventType = Auth.AuthEvents.SshKeyRemoved, IpAddress = "10.0.4.17",
-                    Detail = detail,
-                });
+                db.AuditLog.Add(AuditLog.Entry(AuditEvents.SshKeyRemoved,
+                    new AuditWho(AuditActor.User, owners.Philipp.Id, "philipp", null, "10.0.4.17", null), detail, at: at));
             }
             count += 3;
         }

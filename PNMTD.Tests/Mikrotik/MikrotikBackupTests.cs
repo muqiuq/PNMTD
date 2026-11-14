@@ -204,7 +204,7 @@ public sealed class MikrotikBackupTests
         Assert.AreEqual(HttpStatusCode.Forbidden, (await user.GetAsync($"/api/v1/sensors/{id}/mikrotik/backups/{result.Backup.Id}/diff")).StatusCode);
         var content = await (await admin.GetAsync($"/api/v1/sensors/{id}/mikrotik/backups/{result.Backup.Id}")).ReadAsync<MikrotikBackupContent>();
         StringAssert.Contains(content.Content, "private-key=");
-        var log = await (await admin.GetAsync($"/api/v1/auth-log?type={AuthEvents.MikrotikBackupDownloaded}")).ReadAsync<Paged<AuthLogItem>>();
+        var log = await (await admin.GetAsync($"/api/v1/audit-log?type={AuditEvents.MikrotikBackupDownloaded}")).ReadAsync<Paged<AuditLogItem>>();
         Assert.IsTrue(log.Items.Any(i => i.Detail!.Contains($"router router {routers.LastTarget!.Host}") && i.Detail.Contains("with secrets")));
     }
 

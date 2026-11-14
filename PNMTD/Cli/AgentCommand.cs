@@ -70,7 +70,8 @@ internal static class AgentCommand
             return 1;
         }
         matches[0].RevokedAt = now;
-        Agents.AgentLog.Audit(db, Auth.AuthEvents.AgentJoinTokenRevoked, $"cli: token {matches[0].Prefix}… revoked", null);
+        AuditLog.Record(db, AuditEvents.AgentJoinTokenRevoked, $"token {matches[0].Prefix}… revoked", AuditWho.Cli,
+            AuditTarget.Of(AuditTargets.JoinToken, matches[0].Id, matches[0].Prefix + "…"));
         db.SaveChanges();
         Console.WriteLine($"Revoked {matches[0].Prefix}….");
         return 0;

@@ -99,15 +99,4 @@ public sealed record TemporaryPassword(string Password, DateTime ExpiresAt);
 
 public sealed record CreatedUser(UserItem User, TemporaryPassword TemporaryPassword);
 
-/// <summary>An entry of the audit log.</summary>
-public sealed record AuthLogItem(Guid Id, DateTime CreatedAt, Guid? UserId, string Username, string EventType, string? IpAddress,
-    string? UserAgent, string? Detail);
 
-/// <summary><c>GET /auth-log</c>: newest first. Search: username and detail.</summary>
-public sealed class AuthLogQuery : PageQuery
-{
-    public Guid? UserId { get; set; }
-
-    /// <summary>An event type, such as LoginFailed.</summary>
-    public string? Type { get; set; }
-}

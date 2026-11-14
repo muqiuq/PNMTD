@@ -144,7 +144,7 @@ public sealed class TwoFactorService(PnmtdDbContext db, UserAccounts accounts, T
         user.PendingTotpSecretProtected = null;
         user.PendingTotpCreatedAt = null;
         user.SecurityStamp = UserAccounts.NewStamp();
-        accounts.Log(AuthEvents.TotpEnabled, user, audit, null);
+        accounts.Log(AuditEvents.TotpEnabled, user, audit, null);
         await accounts.SaveAsync(ct);
         sessions.Forget(user.Id);
     }
@@ -178,13 +178,13 @@ public sealed class TwoFactorService(PnmtdDbContext db, UserAccounts accounts, T
         }
         if (!passwordValid || check != TotpCheck.Valid)
         {
-            accounts.Log(AuthEvents.TotpFailed, user, audit, "turning 2FA off refused: " + (passwordValid ? "wrong code" : "wrong password"));
+            accounts.Log(AuditEvents.TotpFailed, user, audit, "turning 2FA off refused: " + (passwordValid ? "wrong code" : "wrong password"));
             await accounts.SaveAsync(ct);
         }
         v.ThrowIfInvalid();
         UserAccounts.ClearTotp(user);
         user.SecurityStamp = UserAccounts.NewStamp();
-        accounts.Log(AuthEvents.TotpDisabled, user, audit, null);
+        accounts.Log(AuditEvents.TotpDisabled, user, audit, null);
         await accounts.SaveAsync(ct);
         sessions.Forget(user.Id);
     }

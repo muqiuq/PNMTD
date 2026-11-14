@@ -66,8 +66,8 @@ public sealed class MikrotikKeyRotationTests
         Assert.AreEqual(1, router.OfferedKeys);
 
         await using var db = app.NewDb();
-        Assert.IsTrue(await db.AuthLog.AnyAsync(a => a.EventType == AuthEvents.MikrotikSshKeyRotated));
-        Assert.IsTrue(await db.AuthLog.AnyAsync(a => a.EventType == AuthEvents.MikrotikSshKeyRetired));
+        Assert.IsTrue(await db.AuditLog.AnyAsync(a => a.EventType == AuditEvents.MikrotikSshKeyRotated));
+        Assert.IsTrue(await db.AuditLog.AnyAsync(a => a.EventType == AuditEvents.MikrotikSshKeyRetired));
         Assert.AreEqual(HttpStatusCode.Forbidden, (await app.Client(Roles.User).PostAsync("/api/v1/mikrotik/ssh-keys/rotate", null)).StatusCode);
     }
 }

@@ -63,7 +63,7 @@ public sealed class DebugTests
         Assert.AreEqual(1, sent.GetProperty("priority").GetInt32());
         StringAssert.StartsWith(sent.GetProperty("title").GetString(), "PNMT test from ");
 
-        var log = await (await admin.GetAsync($"/api/v1/auth-log?type={AuthEvents.DebugNotificationSent}")).ReadAsync<Paged<AuthLogItem>>();
+        var log = await (await admin.GetAsync($"/api/v1/audit-log?type={AuditEvents.DebugNotificationSent}")).ReadAsync<Paged<AuditLogItem>>();
         Assert.IsTrue(log.Items.Any(l => l.Detail == "pushover to a typed key: sent"));
         Assert.IsFalse(log.Items.Any(l => l.Detail?.Contains("u-typed-key") == true));
     }

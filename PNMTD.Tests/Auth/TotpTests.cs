@@ -175,7 +175,7 @@ public sealed class TwoFactorLoginTests
     private static async Task<List<string>> AuditAsync(Guid userId)
     {
         await using var db = app.NewDb();
-        return await db.AuthLog.Where(l => l.UserId == userId).OrderBy(l => l.CreatedAt).Select(l => l.EventType + ":" + l.Detail).ToListAsync();
+        return await db.AuditLog.Where(l => l.UserId == userId || l.Subjects.Contains(userId)).OrderBy(l => l.CreatedAt).Select(l => l.EventType + ":" + l.Detail).ToListAsync();
     }
 
     private static async Task<string?> CodeOf(HttpResponseMessage response) =>

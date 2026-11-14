@@ -60,27 +60,3 @@ public class UserEntity
     public DateTime? PasswordChangedAt { get; set; }
 }
 
-/// <summary>The audit log of sign-ins and account changes; the newest 10,000 entries are kept.</summary>
-[Table("auth_log")]
-public class AuthLogEntity
-{
-    [Key]
-    public Guid Id { get; set; }
-
-    public DateTime CreatedAt { get; set; }
-
-    /// <summary>No foreign key: the entries outlive a deleted user.</summary>
-    public Guid? UserId { get; set; }
-
-    /// <summary>As the user typed it, for failed logins with unknown names too.</summary>
-    public required string Username { get; set; }
-
-    public required string EventType { get; set; }
-
-    public string? IpAddress { get; set; }
-
-    public string? UserAgent { get; set; }
-
-    /// <summary>Why a login failed, what changed, or "cli" for the deploy scripts.</summary>
-    public string? Detail { get; set; }
-}

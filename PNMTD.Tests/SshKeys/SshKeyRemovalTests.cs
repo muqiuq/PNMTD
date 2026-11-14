@@ -150,7 +150,7 @@ public sealed class SshKeyRemovalTests
             Assert.IsFalse(changes.Any(c => c.Contains("outside PNMT")), string.Join("\n", changes));
             var log = await db.AgentLog.AsNoTracking().Where(l => l.SensorId == sensor && l.Kind == AgentLogKind.Request).Select(l => l.Message).ToListAsync();
             Assert.IsTrue(log.Any(l => l.StartsWith("Key removal: ") && l.Contains("removed (1 line, backup /var/lib/pnmt-agent/state/key-backups/deploy/")), string.Join("\n", log));
-            var audit = await db.AuthLog.AsNoTracking().Where(l => l.EventType == AuthEvents.SshKeyRemoved && l.Detail!.Contains(removal.ServerName)).Select(l => l.Detail!)
+            var audit = await db.AuditLog.AsNoTracking().Where(l => l.EventType == AuditEvents.SshKeyRemoved && l.Detail!.Contains(removal.ServerName)).Select(l => l.Detail!)
                 .ToListAsync();
             Assert.AreEqual(2, audit.Count, "asked for, and done: " + string.Join("\n", audit));
         }

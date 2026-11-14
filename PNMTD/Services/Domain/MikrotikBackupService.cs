@@ -125,7 +125,7 @@ public sealed partial class MikrotikBackupService(PnmtdDbContext db, RouterPollS
     {
         var backup = await db.MikrotikBackups.SingleOrDefaultAsync(b => b.Id == backupId && b.SensorId == sensorId, ct)
             ?? throw ApiException.NotFound("Backup");
-        UdpViews.Audit(db, accessor, AuthEvents.MikrotikBackupDeleted, $"router {backup.RouterName}: version {backup.Number} of {Instants.Utc(backup.CreatedAt):yyyy-MM-dd HH:mm} UTC deleted");
+        UdpViews.Audit(db, accessor, AuditEvents.MikrotikBackupDeleted, $"router {backup.RouterName}: version {backup.Number} of {Instants.Utc(backup.CreatedAt):yyyy-MM-dd HH:mm} UTC deleted");
         db.MikrotikBackups.Remove(backup);
         // The next export is compared with what is left, not with the deleted version: the newest export's digests go.
         var router = await db.MikrotikRouters.SingleOrDefaultAsync(r => r.SensorId == sensorId, ct);
@@ -163,7 +163,7 @@ public sealed partial class MikrotikBackupService(PnmtdDbContext db, RouterPollS
     {
         if (backup.IncludesSecrets || backup.Kind == MikrotikBackupKind.Binary)
         {
-            UdpViews.Audit(db, accessor, AuthEvents.MikrotikBackupDownloaded,
+            UdpViews.Audit(db, accessor, AuditEvents.MikrotikBackupDownloaded,
                 $"router {backup.RouterName}: version {backup.Number} ({(backup.Kind == MikrotikBackupKind.Binary ? "binary" : "with secrets")}) {what}");
         }
     }

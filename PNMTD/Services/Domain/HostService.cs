@@ -187,6 +187,9 @@ public sealed class HostService(PnmtdDbContext db, MonitoringReader reader, Loca
         await db.LocationValues.Where(v => v.Field!.Type == LocationFieldType.Host && v.Value == named)
             .ExecuteUpdateAsync(u => u.SetProperty(v => v.Value, (string?)null).SetProperty(v => v.Revision, v => v.Revision + 1), ct);
         var host = await db.Hosts.AsNoTracking().Where(h => h.Id == id).Select(h => new { h.Name, h.LocationId }).SingleAsync(ct);
+        // The bulk deletes below bypass the change tracker: the audit learns the host here (docs/audit-redmine-zabbix-plan.md §3.3).
+        AuditLog.Target(AuditTarget.Host(id, host.Name, host.LocationId));
+        AuditLog.Summary(sensorIds.Count == 0 ? $"{host.Name} deleted" : $"{host.Name} deleted, with {sensorIds.Count} sensor{(sensorIds.Count == 1 ? "" : "s")}");
         if (host.LocationId is not null)
         {
             LocationService.HostsMoved(db, LocationActor.Of(accessor), [(host.Name, host.LocationId, null)]);

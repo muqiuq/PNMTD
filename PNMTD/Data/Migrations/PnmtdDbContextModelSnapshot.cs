@@ -1036,11 +1036,32 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("ai_work");
                 });
 
-            modelBuilder.Entity("PNMTD.Models.Db.AuthLogEntity", b =>
+            modelBuilder.Entity("PNMTD.Models.Db.AuditLogEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Actor")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ActorRef")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Changes")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1048,12 +1069,41 @@ namespace PNMTD.Data.Migrations
                     b.Property<string>("Detail")
                         .HasColumnType("text");
 
+                    b.Property<string>("Error")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("EventType")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("IpAddress")
                         .HasColumnType("text");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Request")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.PrimitiveCollection<List<Guid>>("Subjects")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
+                    b.Property<string>("TargetId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("TargetName")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("TargetType")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("UserAgent")
                         .HasColumnType("text");
@@ -1069,9 +1119,17 @@ namespace PNMTD.Data.Migrations
 
                     b.HasIndex("CreatedAt");
 
+                    b.HasIndex("Subjects");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Subjects"), "gin");
+
+                    b.HasIndex("TargetId");
+
+                    b.HasIndex("EventType", "CreatedAt");
+
                     b.HasIndex("UserId", "CreatedAt");
 
-                    b.ToTable("auth_log");
+                    b.ToTable("audit_log");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.DecisionEntity", b =>

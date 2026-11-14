@@ -77,7 +77,7 @@ public sealed class SshKeyManagerTests
         Assert.AreEqual("Tester, laptop", registered[0].Name);
         Assert.AreEqual(("test-user", TestUsers.User), (registered[0].Owner.Name, registered[0].Owner.UserId));
         CollectionAssert.Contains(registered[1].Notes.ToList(), "weak");
-        var audit = await AuditAsync(AuthEvents.SshKeyRegistered, SshKeysTests.Ed25519Fingerprint);
+        var audit = await AuditAsync(AuditEvents.SshKeyRegistered, SshKeysTests.Ed25519Fingerprint);
         Assert.AreEqual(1, audit.Count);
 
         // Registered before, twice in the text, no owner, a name template: refused, or named from the comment.
@@ -114,7 +114,7 @@ public sealed class SshKeyManagerTests
         await using (var db = app.NewDb())
         {
             Assert.IsFalse(await db.SshKeys.AnyAsync(k => k.Fingerprint == withPrivate.Fingerprint || k.PublicKey.Contains(secret) || k.Name == "oops"));
-            Assert.IsFalse(await db.AuthLog.AnyAsync(l => l.Detail != null && l.Detail.Contains(secret)));
+            Assert.IsFalse(await db.AuditLog.AnyAsync(l => l.Detail != null && l.Detail.Contains(secret)));
             Assert.IsFalse(await db.AgentLog.AnyAsync(l => l.Message.Contains(secret)));
         }
 
@@ -142,9 +142,9 @@ public sealed class SshKeyManagerTests
         Assert.AreEqual(SshKeyState.Retired, (await (await admin.PostJsonAsync($"/api/v1/ssh-keys/{id}/retire", new { })).ReadAsync<SshKeyDetail>()).Key.State);
         Assert.AreEqual(SshKeyState.Active, (await (await admin.PostJsonAsync($"/api/v1/ssh-keys/{id}/reactivate", new { })).ReadAsync<SshKeyDetail>()).Key.State);
         Assert.AreEqual(HttpStatusCode.NoContent, (await admin.DeleteAsync($"/api/v1/ssh-keys/{registered[1].Id}")).StatusCode);
-        Assert.AreEqual(1, (await AuditAsync(AuthEvents.SshKeyChanged, SshKeysTests.Ed25519Fingerprint)).Count(l => l.Contains("name Tester, laptop → Tester, new laptop")));
-        Assert.AreEqual(1, (await AuditAsync(AuthEvents.SshKeyRetired, SshKeysTests.Ed25519Fingerprint)).Count);
-        Assert.AreEqual(1, (await AuditAsync(AuthEvents.SshKeyDeleted, SshKeysTests.Rsa2048Fingerprint)).Count);
+        Assert.AreEqual(1, (await AuditAsync(AuditEvents.SshKeyChanged, SshKeysTests.Ed25519Fingerprint)).Count(l => l.Contains("name Tester, laptop → Tester, new laptop")));
+        Assert.AreEqual(1, (await AuditAsync(AuditEvents.SshKeyRetired, SshKeysTests.Ed25519Fingerprint)).Count);
+        Assert.AreEqual(1, (await AuditAsync(AuditEvents.SshKeyDeleted, SshKeysTests.Rsa2048Fingerprint)).Count);
         var history = (await (await admin.GetAsync($"/api/v1/ssh-keys/{id}")).ReadAsync<SshKeyDetail>()).History;
         Assert.IsTrue(history.Count >= 4 && history.All(h => h.Source == "audit"), string.Join("\n", history.Select(h => h.Text)));
     }
@@ -152,7 +152,7 @@ public sealed class SshKeyManagerTests
     private static async Task<List<string>> AuditAsync(string type, string fingerprint)
     {
         await using var db = app.NewDb();
-        return await db.AuthLog.AsNoTracking().Where(l => l.EventType == type && l.Detail != null && l.Detail.Contains(fingerprint)).Select(l => l.Detail!).ToListAsync();
+        return await db.AuditLog.AsNoTracking().Where(l => l.EventType == type && l.Detail != null && l.Detail.Contains(fingerprint)).Select(l => l.Detail!).ToListAsync();
     }
 
     [TestMethod]

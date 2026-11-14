@@ -115,7 +115,7 @@ public sealed partial class AgentScriptService(
         };
         script.Versions.Add(Version(script.Id, 1, request.Text, language));
         db.AgentScripts.Add(script);
-        UdpViews.Audit(db, accessor, AuthEvents.AgentScriptChanged,
+        UdpViews.Audit(db, accessor, AuditEvents.AgentScriptChanged,
             $"script {script.Name} created ({language}, v1, {script.Versions[0].Hash[..12]})");
         await db.SaveChangesAsync(ct);
         await results.ParsePendingAsync(null, ct);
@@ -138,7 +138,7 @@ public sealed partial class AgentScriptService(
             var next = Version(script.Id, script.CurrentVersion + 1, request.Text, script.Language);
             db.AgentScriptVersions.Add(next);
             script.CurrentVersion = next.Number;
-            UdpViews.Audit(db, accessor, AuthEvents.AgentScriptChanged, $"script {script.Name}: v{next.Number} ({next.Hash[..12]})");
+            UdpViews.Audit(db, accessor, AuditEvents.AgentScriptChanged, $"script {script.Name}: v{next.Number} ({next.Hash[..12]})");
         }
         await db.SaveChangesAsync(ct);
         await results.ParsePendingAsync(null, ct);
@@ -164,7 +164,7 @@ public sealed partial class AgentScriptService(
     {
         var script = await db.AgentScripts.SingleOrDefaultAsync(s => s.Id == id, ct) ?? throw ApiException.NotFound("Script");
         db.AgentScripts.Remove(script);
-        UdpViews.Audit(db, accessor, AuthEvents.AgentScriptChanged, $"script {script.Name} deleted (its runs stay in the history)");
+        UdpViews.Audit(db, accessor, AuditEvents.AgentScriptChanged, $"script {script.Name} deleted (its runs stay in the history)");
         await db.SaveChangesAsync(ct);
     }
 
@@ -224,7 +224,7 @@ public sealed partial class AgentScriptService(
         row.Kind = request.Kind;
         row.Account = account;
         row.Description = Text.Trimmed(request.Description);
-        UdpViews.Audit(db, accessor, AuthEvents.AgentScriptChanged, $"run-as account {row.Name} ({row.Kind}{(account is null ? "" : $", {account}")}) saved");
+        UdpViews.Audit(db, accessor, AuditEvents.AgentScriptChanged, $"run-as account {row.Name} ({row.Kind}{(account is null ? "" : $", {account}")}) saved");
         await db.SaveChangesAsync(ct);
         return new WindowsRunAsItem(row.Id, row.Name, row.Kind, row.Account, row.Description, row.CreatedAt);
     }
@@ -233,7 +233,7 @@ public sealed partial class AgentScriptService(
     {
         var row = await db.WindowsRunAs.SingleOrDefaultAsync(r => r.Id == id, ct) ?? throw ApiException.NotFound("Run-as account");
         db.WindowsRunAs.Remove(row);
-        UdpViews.Audit(db, accessor, AuthEvents.AgentScriptChanged, $"run-as account {row.Name} deleted");
+        UdpViews.Audit(db, accessor, AuditEvents.AgentScriptChanged, $"run-as account {row.Name} deleted");
         await db.SaveChangesAsync(ct);
     }
 
@@ -339,7 +339,7 @@ public sealed partial class AgentScriptService(
             db.AgentScriptRuns.Add(row);
             rows.Add((row, refused));
         }
-        UdpViews.Audit(db, accessor, AuthEvents.AgentScriptRun,
+        UdpViews.Audit(db, accessor, AuditEvents.AgentScriptRun,
             $"script {script.Name} v{version.Number} ({script.Language}) on {string.Join(", ", servers.Select(s => s.Name))} as {runAsName} ({kind}), batch {batch}"
             + (rows.Any(r => r.Refused is not null) ? $"; refused on {string.Join(", ", rows.Where(r => r.Refused is not null).Select(r => r.Row.ServerName))}" : ""));
         await db.SaveChangesAsync(ct);
@@ -533,7 +533,7 @@ public sealed partial class AgentScriptService(
             StartedAt = Clock.UtcNow, State = ScriptRunState.Sent, TimeoutSeconds = timeout,
         };
         db.AgentScriptRuns.Add(row);
-        UdpViews.Audit(db, accessor, AuthEvents.AgentScriptRun,
+        UdpViews.Audit(db, accessor, AuditEvents.AgentScriptRun,
             $"script {script.Name} registered on {server.Name} ({script.Sha256[..12]}) as {row.RunAsName}, batch {row.BatchId}");
         await db.SaveChangesAsync(ct);
         await SendAsync(row, server.EncryptionKey, script.Text, arguments, secure, null, shell, AgentPlatform.Windows, ct);
@@ -597,7 +597,7 @@ public sealed partial class AgentScriptService(
         var row = await db.AgentScriptRuns.SingleOrDefaultAsync(r => r.Id == id, ct) ?? throw ApiException.NotFound("Run");
         row.Arguments = null;
         row.Redacted = true;
-        UdpViews.Audit(db, accessor, AuthEvents.AgentScriptRun, $"run {id} of {row.ScriptName}: arguments redacted");
+        UdpViews.Audit(db, accessor, AuditEvents.AgentScriptRun, $"run {id} of {row.ScriptName}: arguments redacted");
         await db.SaveChangesAsync(ct);
         return await RunDetailAsync(id, ct);
     }

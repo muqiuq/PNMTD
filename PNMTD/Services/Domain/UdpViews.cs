@@ -120,23 +120,9 @@ internal static class UdpViews
 
     public static UdpNumbers Numbers(UdpNodeNumbers n) => new(n.Accepted, n.Rejected, n.BytesIn, n.BytesOut, n.Loss, Reasons(n.RejectedByReason));
 
-    /// <summary>An entry in the audit log (auth_log), as the user changes do: who, from where, what. Never a secret.</summary>
-    public static void Audit(PnmtdDbContext db, IHttpContextAccessor accessor, string eventType, string detail)
-    {
-        var http = accessor.HttpContext;
-        var audit = http is null ? AuditContext.Cli : AuditContext.From(http);
-        db.AuthLog.Add(new AuthLogEntity
-        {
-            Id = Guid.NewGuid(),
-            CreatedAt = Clock.UtcNow,
-            UserId = http?.User.UserId(),
-            Username = http?.User.Identity?.Name ?? "",
-            EventType = eventType,
-            IpAddress = audit.IpAddress,
-            UserAgent = string.IsNullOrEmpty(audit.UserAgent) ? null : audit.UserAgent,
-            Detail = audit.Origin is null ? detail : $"{audit.Origin}: {detail}",
-        });
-    }
+    /// <summary>An entry in the audit log: who (the request's user, or the CLI), from where, what. Never a secret.</summary>
+    public static void Audit(PnmtdDbContext db, IHttpContextAccessor accessor, string eventType, string detail, AuditTarget? target = null) =>
+        AuditLog.Record(db, eventType, detail, AuditWho.From(accessor), target);
 
     public static (Guid? Id, string? Name) User(IHttpContextAccessor accessor) =>
         (accessor.HttpContext?.User.UserId(), accessor.HttpContext?.User.Identity?.Name);

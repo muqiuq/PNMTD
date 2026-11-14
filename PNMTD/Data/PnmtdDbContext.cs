@@ -41,7 +41,7 @@ namespace PNMTD.Data
 
         public DbSet<UserEntity> Users { get; set; }
 
-        public DbSet<AuthLogEntity> AuthLog { get; set; }
+        public DbSet<AuditLogEntity> AuditLog { get; set; }
 
         // UDP nodes (docs/udp-iot-plan.md §4.3).
         public DbSet<UdpNodeEntity> UdpNodes { get; set; }
@@ -142,7 +142,7 @@ namespace PNMTD.Data
         /// would be a round trip (and PostgreSQL has no MARS for one inside an open reader).
         /// </summary>
         public static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) =>
-            options.UseNpgsql(connectionString);
+            options.UseNpgsql(connectionString).AddInterceptors(Audit.AuditChangesInterceptor.Instance);
 
         public static PnmtdDbContext Create(string connectionString) =>
             new(((DbContextOptionsBuilder<PnmtdDbContext>)Configure(new DbContextOptionsBuilder<PnmtdDbContext>(), connectionString)).Options);
@@ -174,8 +174,18 @@ namespace PNMTD.Data
             modelBuilder.Entity<EventEntity>().HasIndex(e => e.Created);
 
             modelBuilder.Entity<UserEntity>().HasIndex(u => u.NormalizedUsername).IsUnique();
-            modelBuilder.Entity<AuthLogEntity>().HasIndex(l => l.CreatedAt);
-            modelBuilder.Entity<AuthLogEntity>().HasIndex(l => new { l.UserId, l.CreatedAt });
+            // The audit log (docs/audit-redmine-zabbix-plan.md §3.2): text for the enums, so that later actors need no migration.
+            modelBuilder.Entity<AuditLogEntity>(e =>
+            {
+                e.Property(l => l.Category).HasConversion<string>().HasMaxLength(32);
+                e.Property(l => l.Actor).HasConversion<string>().HasMaxLength(32);
+                e.Property(l => l.Outcome).HasConversion<string>().HasMaxLength(16);
+                e.HasIndex(l => l.CreatedAt);
+                e.HasIndex(l => new { l.UserId, l.CreatedAt });
+                e.HasIndex(l => new { l.EventType, l.CreatedAt });
+                e.HasIndex(l => l.TargetId);
+                e.HasIndex(l => l.Subjects).HasMethod("gin");
+            });
 
             // UDP nodes. The node and its last packets go with the sensor; commands, their log and
             // updates are permanent and keep a snapshot of the node instead (§4.3).

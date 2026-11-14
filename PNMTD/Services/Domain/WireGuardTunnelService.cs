@@ -60,7 +60,7 @@ public sealed class WireGuardTunnelService(PnmtdDbContext db, WireGuardNetwork n
         var peer = await network.NewPeerAsync(db, WgPeerKind.Custom, request.Name!.Trim(), UdpViews.User(accessor).Id, ct);
         Apply(peer, request);
         SetAccess(peer.Id, request);
-        UdpViews.Audit(db, accessor, AuthEvents.WireGuardTunnelCreated, $"tunnel {peer.Name} ({peer.Address}): {Describe(request)}");
+        UdpViews.Audit(db, accessor, AuditEvents.WireGuardTunnelCreated, $"tunnel {peer.Name} ({peer.Address}): {Describe(request)}");
         await db.SaveChangesAsync(ct);
         await WireGuardNetwork.NotifyAsync(db, ct);
         return await ItemAsync(peer.Id, ct);
@@ -74,7 +74,7 @@ public sealed class WireGuardTunnelService(PnmtdDbContext db, WireGuardNetwork n
         Apply(peer, request);
         await db.WgPeerAccess.Where(a => a.PeerId == id).ExecuteDeleteAsync(ct);
         SetAccess(id, request);
-        UdpViews.Audit(db, accessor, AuthEvents.WireGuardTunnelChanged, $"tunnel {peer.Name} ({peer.Address}): {Describe(request)}");
+        UdpViews.Audit(db, accessor, AuditEvents.WireGuardTunnelChanged, $"tunnel {peer.Name} ({peer.Address}): {Describe(request)}");
         await db.SaveChangesAsync(ct);
         await WireGuardNetwork.NotifyAsync(db, ct);
         return await ItemAsync(id, ct);
@@ -83,7 +83,7 @@ public sealed class WireGuardTunnelService(PnmtdDbContext db, WireGuardNetwork n
     public async Task DeleteAsync(Guid id, CancellationToken ct)
     {
         var peer = await TunnelAsync(id, ct);
-        UdpViews.Audit(db, accessor, AuthEvents.WireGuardTunnelDeleted, $"tunnel {peer.Name} ({peer.Address}) deleted");
+        UdpViews.Audit(db, accessor, AuditEvents.WireGuardTunnelDeleted, $"tunnel {peer.Name} ({peer.Address}) deleted");
         db.WgPeers.Remove(peer);
         await db.SaveChangesAsync(ct);
         await WireGuardNetwork.NotifyAsync(db, ct);
@@ -94,7 +94,7 @@ public sealed class WireGuardTunnelService(PnmtdDbContext db, WireGuardNetwork n
     {
         var peer = await TunnelAsync(id, ct);
         network.Regenerate(peer, UdpViews.User(accessor).Id);
-        UdpViews.Audit(db, accessor, AuthEvents.WireGuardKeysRegenerated, $"tunnel {peer.Name}: keys regenerated");
+        UdpViews.Audit(db, accessor, AuditEvents.WireGuardKeysRegenerated, $"tunnel {peer.Name}: keys regenerated");
         await db.SaveChangesAsync(ct);
         await WireGuardNetwork.NotifyAsync(db, ct);
         return await ItemAsync(id, ct);
@@ -120,7 +120,7 @@ public sealed class WireGuardTunnelService(PnmtdDbContext db, WireGuardNetwork n
         var privateKey = network.Unprotect(peer.PrivateKeyProtected) ?? throw ApiException.Conflict("key_lost",
             "The tunnel's key cannot be decrypted (the key ring is gone): regenerate its keys.");
         var installation = await keys.GetAsync(ct);
-        UdpViews.Audit(db, accessor, AuthEvents.WireGuardTunnelDownloaded, $"tunnel {peer.Name} ({peer.Address}) downloaded");
+        UdpViews.Audit(db, accessor, AuditEvents.WireGuardTunnelDownloaded, $"tunnel {peer.Name} ({peer.Address}) downloaded");
         await db.SaveChangesAsync(ct);
         return new WireGuardTunnelConfig(WgQuickConfig.FileName(peer.Name),
             WgQuickConfig.Build(peer.Name, installation.Instance, privateKey, peer.Address, settings.Mtu, settings.GatewayPublicKey,

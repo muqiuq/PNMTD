@@ -117,7 +117,7 @@ public sealed class MikrotikCommandService(
                 vault.Put(batchId, username!, request.Password!);
             }
             db.MikrotikJobs.AddRange(created);
-            UdpViews.Audit(db, accessor, AuthEvents.MikrotikCommandStarted,
+            UdpViews.Audit(db, accessor, AuditEvents.MikrotikCommandStarted,
                 $"command on {created.Count} router(s) as {runAs} (batch {batchId}): {string.Join(", ", created.Select(j => j.RouterName))}");
             await db.SaveChangesAsync(ct);
             // The admin's group on each router, as checked (§7.2).
@@ -212,7 +212,7 @@ public sealed class MikrotikCommandService(
             job.FinishedAt = Clock.UtcNow;
             job.Error = "Cancelled before it started.";
         }
-        UdpViews.Audit(db, accessor, AuthEvents.MikrotikCommandCancelled, $"command on {job.RouterName} as {job.RunAs} cancelled (job {job.Id})");
+        UdpViews.Audit(db, accessor, AuditEvents.MikrotikCommandCancelled, $"command on {job.RouterName} as {job.RunAs} cancelled (job {job.Id})");
         await db.SaveChangesAsync(ct);
         runner.Cancel(job.Id);
         if (!await db.MikrotikJobs.AnyAsync(j => j.BatchId == job.BatchId && (j.State == MikrotikJobState.Queued || j.State == MikrotikJobState.Running), ct))
@@ -247,7 +247,7 @@ public sealed class MikrotikCommandService(
                 line.Message = $"Redacted by {name}.";
                 line.Output = null;
             }
-            UdpViews.Audit(db, accessor, AuthEvents.MikrotikCommandRedacted, $"command on {job.RouterName} as {job.RunAs} redacted (job {job.Id})");
+            UdpViews.Audit(db, accessor, AuditEvents.MikrotikCommandRedacted, $"command on {job.RouterName} as {job.RunAs} redacted (job {job.Id})");
             await db.SaveChangesAsync(ct);
         }
         return Item(job);

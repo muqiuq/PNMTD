@@ -35,7 +35,7 @@ public sealed class LoginTests
     private static async Task<List<string>> AuditAsync(Guid userId)
     {
         await using var db = app.NewDb();
-        return await db.AuthLog.Where(l => l.UserId == userId).OrderBy(l => l.CreatedAt).Select(l => l.EventType + ":" + l.Detail).ToListAsync();
+        return await db.AuditLog.Where(l => l.UserId == userId || l.Subjects.Contains(userId)).OrderBy(l => l.CreatedAt).Select(l => l.EventType + ":" + l.Detail).ToListAsync();
     }
 
     [TestMethod]
@@ -98,7 +98,7 @@ public sealed class LoginTests
         CollectionAssert.Contains(await AuditAsync(inactiveId), "LoginFailed:inactive");
         await using (var db = app.NewDb())
         {
-            Assert.IsTrue(await db.AuthLog.AnyAsync(l => l.Username == "nobody-here" && l.Detail == "unknown user" && l.UserId == null));
+            Assert.IsTrue(await db.AuditLog.AnyAsync(l => l.Username == "nobody-here" && l.Detail == "unknown user" && l.UserId == null));
         }
     }
 

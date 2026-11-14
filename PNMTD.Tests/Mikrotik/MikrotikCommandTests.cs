@@ -160,7 +160,7 @@ public sealed class MikrotikCommandTests
         Assert.IsTrue(events.Any(e => e.Message.StartsWith("Configuration changed by a command of", StringComparison.Ordinal) && e.Message.Contains("as admin")),
             string.Join("; ", events.Select(e => e.Message)));
         Assert.IsFalse(events.Any(e => e.Message.Contains("192.0.2.1", StringComparison.Ordinal)), "events never carry the text: Viewers see them");
-        Assert.IsTrue(await db.AuthLog.AnyAsync(a => a.EventType == AuthEvents.MikrotikCommandStarted && a.Detail!.Contains(created.BatchId.ToString())));
+        Assert.IsTrue(await db.AuditLog.AnyAsync(a => a.EventType == AuditEvents.MikrotikCommandStarted && a.Detail!.Contains(created.BatchId.ToString())));
         Assert.AreEqual(0, await CountMarkerAsync(app, MikrotikJobTests.AdminPassword), "the admin password must never be stored");
         Assert.IsGreaterThan(0, logs.Count, "the capture works");
         Assert.IsFalse(logs.Contains(MikrotikJobTests.AdminPassword), "nor logged");
@@ -281,7 +281,7 @@ public sealed class MikrotikCommandTests
         Assert.AreEqual("Redacted.", after.Command.Error);
         Assert.AreEqual(0, await CountMarkerAsync(app, "secret-Kq2"), "the text, the output and the router's error line are gone");
         await using var db = app.NewDb();
-        Assert.IsTrue(await db.AuthLog.AnyAsync(a => a.EventType == AuthEvents.MikrotikCommandRedacted && a.Detail!.Contains(done.Command.Id.ToString())));
+        Assert.IsTrue(await db.AuditLog.AnyAsync(a => a.EventType == AuditEvents.MikrotikCommandRedacted && a.Detail!.Contains(done.Command.Id.ToString())));
     }
 
     [TestMethod]

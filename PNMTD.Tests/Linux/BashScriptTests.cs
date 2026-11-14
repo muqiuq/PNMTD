@@ -186,7 +186,7 @@ public sealed class BashScriptTests
         {
             var row = await db.AgentScriptRuns.AsNoTracking().SingleAsync(r => r.Id == sent.Id);
             Assert.IsFalse((row.Arguments ?? "").Contains(token) || (row.Output ?? "").Contains(token));
-            Assert.IsFalse(await db.AuthLog.AnyAsync(l => l.Detail != null && l.Detail.Contains(token)));
+            Assert.IsFalse(await db.AuditLog.AnyAsync(l => l.Detail != null && l.Detail.Contains(token)));
             var log = await db.AgentLog.AsNoTracking().Where(l => l.SensorId == state.SensorId).Select(l => new { l.Message, l.Details }).ToListAsync();
             Assert.IsFalse(log.Any(l => l.Message.Contains(token) || (l.Details ?? "").Contains(token)));
         }

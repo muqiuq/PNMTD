@@ -199,8 +199,8 @@ public sealed class SshKeyService(PnmtdDbContext db, AgentHub hub, SshKeyRemoval
         var item = Item(row, places, servers, now);
 
         // Its history: the audit's lines that name it, the servers' change lines about it, its removals.
-        var auditTypes = new[] { AuthEvents.SshKeyRegistered, AuthEvents.SshKeyChanged, AuthEvents.SshKeyRetired, AuthEvents.SshKeyDeleted, AuthEvents.SshKeyRemoved };
-        var audit = await db.AuthLog.AsNoTracking().Where(l => auditTypes.Contains(l.EventType) && l.Detail != null && l.Detail.Contains(fingerprint))
+        var auditTypes = new[] { AuditEvents.SshKeyRegistered, AuditEvents.SshKeyChanged, AuditEvents.SshKeyRetired, AuditEvents.SshKeyDeleted, AuditEvents.SshKeyRemoved };
+        var audit = await db.AuditLog.AsNoTracking().Where(l => auditTypes.Contains(l.EventType) && l.Detail != null && l.Detail.Contains(fingerprint))
             .OrderByDescending(l => l.CreatedAt).Take(100).ToListAsync(ct);
         var key = JsonSerializer.Serialize(new { Key = fingerprint }, AgentJson.Options);
         var changes = await db.AgentChanges.AsNoTracking().Where(c => c.Section == SectionNames.SshKeys && c.Details != null && EF.Functions.JsonContains(c.Details, key))
@@ -332,7 +332,7 @@ public sealed class SshKeyService(PnmtdDbContext db, AgentHub hub, SshKeyRemoval
             };
             db.SshKeys.Add(entity);
             created.Add(entity);
-            UdpViews.Audit(db, accessor, AuthEvents.SshKeyRegistered,
+            UdpViews.Audit(db, accessor, AuditEvents.SshKeyRegistered,
                 Cuts.Cut($"{entity.Name} ({ownerName}, {entity.Kind.ToString().ToLowerInvariant()}): {entity.Type} {entity.Fingerprint} registered", 1000));
         }
         try
@@ -425,7 +425,7 @@ public sealed class SshKeyService(PnmtdDbContext db, AgentHub hub, SshKeyRemoval
             key.Note = Text.Trimmed(request.Note);
             key.UpdatedAt = Clock.UtcNow;
             key.UpdatedByName = UdpViews.User(accessor).Name;
-            UdpViews.Audit(db, accessor, AuthEvents.SshKeyChanged, Cuts.Cut($"{key.Name} ({key.Fingerprint}): {string.Join("; ", what)}", 1000));
+            UdpViews.Audit(db, accessor, AuditEvents.SshKeyChanged, Cuts.Cut($"{key.Name} ({key.Fingerprint}): {string.Join("; ", what)}", 1000));
             await db.SaveChangesAsync(ct);
         }
         return await DetailAsync(id, ct);
@@ -450,7 +450,7 @@ public sealed class SshKeyService(PnmtdDbContext db, AgentHub hub, SshKeyRemoval
             key.UpdatedAt = key.RetiredAt.Value;
             key.UpdatedByName = by;
             var servers = await db.SshKeyAuthorizations.Where(a => a.Fingerprint == key.Fingerprint).Select(a => a.SensorId).Distinct().CountAsync(ct);
-            UdpViews.Audit(db, accessor, AuthEvents.SshKeyRetired,
+            UdpViews.Audit(db, accessor, AuditEvents.SshKeyRetired,
                 Cuts.Cut($"{key.Name} ({key.Fingerprint}) retired{(servers > 0 ? $"; still authorized on {servers} servers" : "")}", 1000));
             await db.SaveChangesAsync(ct);
         }
@@ -467,7 +467,7 @@ public sealed class SshKeyService(PnmtdDbContext db, AgentHub hub, SshKeyRemoval
             key.RetiredByName = null;
             key.UpdatedAt = Clock.UtcNow;
             key.UpdatedByName = UdpViews.User(accessor).Name;
-            UdpViews.Audit(db, accessor, AuthEvents.SshKeyChanged, Cuts.Cut($"{key.Name} ({key.Fingerprint}) reactivated", 1000));
+            UdpViews.Audit(db, accessor, AuditEvents.SshKeyChanged, Cuts.Cut($"{key.Name} ({key.Fingerprint}) reactivated", 1000));
             await db.SaveChangesAsync(ct);
         }
         return await DetailAsync(id, ct);
@@ -479,7 +479,7 @@ public sealed class SshKeyService(PnmtdDbContext db, AgentHub hub, SshKeyRemoval
         var key = await db.SshKeys.SingleOrDefaultAsync(k => k.Id == id, ct) ?? throw ApiException.NotFound("SSH key");
         var servers = await db.SshKeyAuthorizations.Where(a => a.Fingerprint == key.Fingerprint).Select(a => a.SensorId).Distinct().CountAsync(ct);
         db.SshKeys.Remove(key);
-        UdpViews.Audit(db, accessor, AuthEvents.SshKeyDeleted,
+        UdpViews.Audit(db, accessor, AuditEvents.SshKeyDeleted,
             Cuts.Cut($"{key.Name} ({key.Fingerprint}) deleted: unregistered again{(servers > 0 ? $", still authorized on {servers} servers" : "")}", 1000));
         await db.SaveChangesAsync(ct);
     }
@@ -805,7 +805,7 @@ public sealed class SshKeyService(PnmtdDbContext db, AgentHub hub, SshKeyRemoval
         }).ToList();
         db.SshKeyRemovals.AddRange(rows);
         var allowed = rows.Count(r => r.State == SshKeyRemovalState.Pending);
-        UdpViews.Audit(db, accessor, AuthEvents.SshKeyRemoved, Cuts.Cut(
+        UdpViews.Audit(db, accessor, AuditEvents.SshKeyRemoved, Cuts.Cut(
             $"{rows.Count} {(rows.Count == 1 ? "removal" : "removals")} asked for ({reason.ToString().ToLowerInvariant()}, batch {batch}): {allowed} to send, "
             + $"{rows.Count - allowed} refused: " + string.Join("; ", rows.Select(r => $"{r.KeyName} ({r.Fingerprint}) from {SshKeyRegistry.File(r.Account, r.Path)} on {r.ServerName}")), 1000));
         await db.SaveChangesAsync(ct);
@@ -845,7 +845,7 @@ public sealed class SshKeyService(PnmtdDbContext db, AgentHub hub, SshKeyRemoval
             key.UpdatedAt = now;
             key.UpdatedByName = by;
             retired++;
-            UdpViews.Audit(db, accessor, AuthEvents.SshKeyRetired, Cuts.Cut($"{key.Name} ({key.Fingerprint}) retired: offboarding of {user.Username}", 1000));
+            UdpViews.Audit(db, accessor, AuditEvents.SshKeyRetired, Cuts.Cut($"{key.Name} ({key.Fingerprint}) retired: offboarding of {user.Username}", 1000));
         }
         await db.SaveChangesAsync(ct);
         var removal = items.Count == 0 ? new SshKeyRemoveResult(Guid.Empty, [], 0, 0, 0) : await RemoveCoreAsync(items, SshKeyRemovalReason.Offboarding, ct);

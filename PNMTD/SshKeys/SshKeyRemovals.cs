@@ -18,7 +18,7 @@ namespace PNMTD.SshKeyManager;
 /// is connected and announces <c>keys.remove.v1</c>, then <c>Sent</c> as a signed <c>remove-ssh-key</c>; the agent answers an
 /// <c>ack</c> and a <c>key-removal</c> (in either order), whose outcome the row keeps (removed, not found, refused, failed). A removal
 /// waits at most Agents__KeyRemovalPendingDays for an offline server, then <c>Expired</c>. Each result goes to the agent log, the
-/// audit (<see cref="AuthEvents.SshKeyRemoved"/>) and, when the key was removed, a change line with 263: "Jan, old laptop (jdoe)
+/// audit (<see cref="AuditEvents.SshKeyRemoved"/>) and, when the key was removed, a change line with 263: "Jan, old laptop (jdoe)
 /// removed from root's authorized_keys by PNMT (philipp)".
 /// </summary>
 public sealed class SshKeyRemovals(IDbContextFactory<PnmtdDbContext> dbs, AgentKeyStore keys, IOptionsMonitor<AgentOptions> options,
@@ -194,11 +194,10 @@ public sealed class SshKeyRemovals(IDbContextFactory<PnmtdDbContext> dbs, AgentK
         AgentLog.Add(db, connection.SensorId, connection.AgentName, AgentLogKind.Request, message,
             new { Removal = row.Id, row.Account, row.Path, row.Fingerprint, row.State, row.LinesRemoved, row.Backup, row.NewFileHash, row.RequestedByName },
             connection.Address);
-        db.AuthLog.Add(new AuthLogEntity
-        {
-            Id = Guid.NewGuid(), CreatedAt = Clock.UtcNow, UserId = row.RequestedBy, Username = row.RequestedByName ?? "agent", EventType = AuthEvents.SshKeyRemoved,
-            IpAddress = connection.Address, Detail = Cuts.Cut($"agent {row.ServerName}: {what}: {outcome}", 1000),
-        });
+        // The agent did it, for the person who asked: theirs, so that the user filter finds it, with the agent as the actor.
+        AuditLog.Record(db, AuditEvents.SshKeyRemoved, $"{row.ServerName}: {what}: {outcome}",
+            new AuditWho(AuditActor.Agent, row.RequestedBy, row.RequestedByName ?? "agent", row.ServerName, connection.Address, null),
+            AuditTarget.Of(AuditTargets.Sensor, connection.SensorId, row.ServerName));
     }
 
     /// <summary>

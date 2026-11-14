@@ -158,7 +158,7 @@ public sealed class MikrotikRouterTests
         Assert.AreEqual("pnmt-join.rsc", script.FileName);
         var viewer = app.Client(Roles.Viewer);
         Assert.AreEqual(HttpStatusCode.Forbidden, (await viewer.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/join-script")).StatusCode);
-        var log = await (await admin.GetAsync($"/api/v1/auth-log?type={AuthEvents.MikrotikJoinScriptViewed}")).ReadAsync<Paged<AuthLogItem>>();
+        var log = await (await admin.GetAsync($"/api/v1/audit-log?type={AuditEvents.MikrotikJoinScriptViewed}")).ReadAsync<Paged<AuditLogItem>>();
         Assert.IsTrue(log.Items.Any(i => i.Detail!.Contains(sensor.Name)), "the view is audit-logged");
         var removal = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/removal-script")).ReadAsync<MikrotikScript>();
         StringAssert.Contains(removal.Script, "/user remove [find where comment~\"^pnmt:\"]");

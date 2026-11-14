@@ -157,7 +157,7 @@ public sealed class AgentServerService(
             agent.SecurityUpdateDays = request.SecurityUpdateDays;
             linux = $", unregistered keys {On(request.KeyAddedEvents)}, security updates {On(request.SecurityUpdateEvents)} ({request.SecurityUpdateDays} days)";
         }
-        UdpViews.Audit(db, accessor, AuthEvents.AgentSettingsChanged,
+        UdpViews.Audit(db, accessor, AuditEvents.AgentSettingsChanged,
             $"{await AgentLog.NameAsync(db, id, ct)}: admin logins {On(request.AdminLoginEvents)}, failed-login bursts {On(request.FailedLoginEvents)} " +
             $"({request.FailedLoginThreshold}), critical entries {On(request.CriticalEvents)}{linux}");
         await db.SaveChangesAsync(ct);
@@ -215,7 +215,7 @@ public sealed class AgentServerService(
         var settings = new WmiConfig(overrides, custom);
         var before = WindowsWmi.Settings(agent.WmiSettings);
         agent.WmiSettings = overrides.Count == 0 && custom.Count == 0 ? null : AgentJson.Serialize(settings);
-        UdpViews.Audit(db, accessor, AuthEvents.WindowsSettingsChanged,
+        UdpViews.Audit(db, accessor, AuditEvents.WindowsSettingsChanged,
             $"{await AgentLog.NameAsync(db, id, ct)}: WMI {overrides.Count(o => !o.Enabled)} built-in queries off, {overrides.Count(o => o.TimeoutSeconds is not null)} " +
             $"with another timeout, {custom.Count} own queries ({string.Join(", ", custom.Select(c => $"{c.Name}: {c.Namespace} {c.Wql}"))})" +
             (before.Custom.Count == custom.Count && before.Overrides.Count == overrides.Count ? "" : $"; before {before.Overrides.Count} settings, {before.Custom.Count} own"));
@@ -239,7 +239,7 @@ public sealed class AgentServerService(
         agent.Connected = false;
         var (_, user) = UdpViews.User(accessor);
         AgentLog.Add(db, id, name, AgentLogKind.Revoked, $"Revoked by {user ?? "an admin"}{(reason is null ? "" : ": " + reason)}. Its key ({agent.KeyFingerprint}) is deleted.");
-        UdpViews.Audit(db, accessor, AuthEvents.AgentRevoked, $"{name}: revoked{(reason is null ? "" : ": " + reason)}");
+        UdpViews.Audit(db, accessor, AuditEvents.AgentRevoked, $"{name}: revoked{(reason is null ? "" : ": " + reason)}");
         await db.SaveChangesAsync(ct);
         await hub.DisconnectAsync(id, AgentCloseCodes.Revoked, $"revoked{(reason is null ? "" : ": " + reason)}");
         return await DetailAsync(id, ct);
@@ -557,7 +557,7 @@ public sealed class AgentServerService(
         };
         db.AgentJoinTokens.Add(entity);
         var what = rejoin is null ? $"host {host.Name}{(name is null ? "" : $", name {name}")}" : $"re-join of {host.Name} / {name}";
-        UdpViews.Audit(db, accessor, AuthEvents.AgentJoinTokenCreated, $"{platform} token {entity.Prefix}… for {what}, valid {hours} h");
+        UdpViews.Audit(db, accessor, AuditEvents.AgentJoinTokenCreated, $"{platform} token {entity.Prefix}… for {what}, valid {hours} h");
         await db.SaveChangesAsync(ct);
 
         var key = await keys.GetAsync(ct);
@@ -588,7 +588,7 @@ public sealed class AgentServerService(
         if (token.RevokedAt is null)
         {
             token.RevokedAt = Clock.UtcNow;
-            UdpViews.Audit(db, accessor, AuthEvents.AgentJoinTokenRevoked, $"token {token.Prefix}… revoked");
+            UdpViews.Audit(db, accessor, AuditEvents.AgentJoinTokenRevoked, $"token {token.Prefix}… revoked");
             await db.SaveChangesAsync(ct);
         }
     }
@@ -622,7 +622,7 @@ public sealed class AgentServerService(
         }
         var files = names.Count > 0 ? names : AgentDownloadAssets.Executables.Where(e => downloads.Check(e).File is null).ToList();
         downloads.FetchAhead(files, again: true);
-        UdpViews.Audit(db, accessor, AuthEvents.AgentDownloadsFetched,
+        UdpViews.Audit(db, accessor, AuditEvents.AgentDownloadsFetched,
             files.Count == 0 ? "fetch again: every file is here and verified" : $"fetch again: {string.Join(", ", files)}");
         await db.SaveChangesAsync(ct);
         return await downloads.GetAsync(urls.Base, ct, wait: false);

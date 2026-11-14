@@ -235,8 +235,8 @@ public sealed class FileStoreTests
         Assert.IsFalse(File.Exists(Path.Combine(root, row.Path)));
         Assert.IsFalse(await db.Files.AnyAsync(f => f.Id == item.Id));
         Assert.AreEqual(HttpStatusCode.NotFound, (await app.Client(Roles.Viewer).GetAsync(item.Url)).StatusCode);
-        var log = await db.AuthLog.Where(l => l.EventType == AuthEvents.FileDeleted).OrderByDescending(l => l.CreatedAt).FirstAsync();
-        StringAssert.Contains(log.Detail, item.Id.ToString());
+        var log = await db.AuditLog.Where(l => l.EventType == AuditEvents.FileDeleted).OrderByDescending(l => l.CreatedAt).FirstAsync();
+        Assert.AreEqual(item.Id.ToString(), log.TargetId);
         Assert.AreEqual(TestUsers.IdOf(Roles.Admin), log.UserId);
         Assert.AreEqual(HttpStatusCode.NotFound, (await app.Client(Roles.Admin).DeleteAsync($"/api/v1/files/{item.Id}")).StatusCode);
     }

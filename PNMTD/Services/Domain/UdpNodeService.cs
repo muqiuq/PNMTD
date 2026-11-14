@@ -130,7 +130,7 @@ public sealed class UdpNodeService(
         }
         if (changedSecret && !creating)
         {
-            UdpViews.Audit(db, accessor, AuthEvents.UdpKeyChanged, $"node {sensor.Name} ({node.DeviceId}): settings saved with a new key or token");
+            UdpViews.Audit(db, accessor, AuditEvents.UdpKeyChanged, $"node {sensor.Name} ({node.DeviceId}): settings saved with a new key or token");
         }
         if (node.SessionMode == UdpSessionMode.None)
         {
@@ -328,7 +328,7 @@ public sealed class UdpNodeService(
         {
             SetToken(node, token, UdpSecretSource.Manual, userId, now);
         }
-        UdpViews.Audit(db, accessor, AuthEvents.UdpKeyChanged,
+        UdpViews.Audit(db, accessor, AuditEvents.UdpKeyChanged,
             $"node {node.Sensor.Name} ({node.DeviceId}): {Which(key is not null, token is not null)} entered manually");
         await db.SaveChangesAsync(ct);
         cache.Invalidate();
@@ -350,7 +350,7 @@ public sealed class UdpNodeService(
         {
             SetToken(node, UdpViews.NewSecret(SecuritySuites.TokenLength), UdpSecretSource.Generated, userId, now);
         }
-        UdpViews.Audit(db, accessor, AuthEvents.UdpKeyChanged,
+        UdpViews.Audit(db, accessor, AuditEvents.UdpKeyChanged,
             $"node {node.Sensor.Name} ({node.DeviceId}): {Which(request.Key, request.Token)} regenerated");
         await db.SaveChangesAsync(ct);
         cache.Invalidate();
@@ -370,7 +370,7 @@ public sealed class UdpNodeService(
         var node = await NodeAsync(sensorId, ct);
         cache.Invalidate();
         ResetCounter(node);
-        UdpViews.Audit(db, accessor, AuthEvents.UdpCounterReset, $"node {node.Sensor.Name} ({node.DeviceId}): counter window reset");
+        UdpViews.Audit(db, accessor, AuditEvents.UdpCounterReset, $"node {node.Sensor.Name} ({node.DeviceId}): counter window reset");
         await db.SaveChangesAsync(ct);
         cache.Invalidate();
     }
@@ -381,7 +381,7 @@ public sealed class UdpNodeService(
         var node = await NodeAsync(sensorId, ct);
         cache.Invalidate();
         ResetState(node);
-        UdpViews.Audit(db, accessor, AuthEvents.UdpSessionReset, $"node {node.Sensor.Name} ({node.DeviceId}): session reset");
+        UdpViews.Audit(db, accessor, AuditEvents.UdpSessionReset, $"node {node.Sensor.Name} ({node.DeviceId}): session reset");
         await db.SaveChangesAsync(ct);
         cache.Invalidate();
     }

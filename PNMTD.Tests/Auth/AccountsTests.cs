@@ -233,7 +233,8 @@ public sealed class AccountsTests
         Assert.AreEqual(0, Cli(null, "users", "unlock", name).Exit);
         db.ChangeTracker.Clear();
         Assert.IsNull(await db.Users.Where(u => u.Username == name).Select(u => u.LockoutEnd).SingleAsync());
-        Assert.IsTrue(await db.AuthLog.AnyAsync(l => l.Username == name && l.EventType == AuthEvents.PasswordReset && l.Detail == "cli: password set"));
+        Assert.IsTrue(await db.AuditLog.AnyAsync(l => l.TargetName == name && l.Actor == AuditActor.Cli && l.EventType == AuditEvents.PasswordReset
+            && l.Detail == "password set"));
 
         Assert.AreEqual(1, Cli(null, "users", "reset-password", "no-such-user").Exit);
         Assert.AreEqual(1, Cli("short", "users", "add", $"{name}x", "--password-stdin").Exit);
@@ -261,7 +262,7 @@ public sealed class AccountsTests
         var user = await db.Users.AsNoTracking().SingleAsync(u => u.Username == name);
         Assert.AreEqual((false, null, null, null), (user.IsTotpEnabled, user.TotpSecretProtected, user.TotpLastUsedStep, user.LockoutEnd));
         Assert.AreNotEqual(stamp, user.SecurityStamp, "the sessions end");
-        Assert.IsTrue(await db.AuthLog.AnyAsync(l => l.UserId == user.Id && l.EventType == AuthEvents.TotpReset && l.Detail == "cli"));
+        Assert.IsTrue(await db.AuditLog.AnyAsync(l => l.Subjects.Contains(user.Id) && l.Actor == AuditActor.Cli && l.EventType == AuditEvents.TotpReset && l.Detail == null));
 
         (exit, output) = Cli(null, "users", "reset-totp", name);
         Assert.AreEqual(0, exit, output);

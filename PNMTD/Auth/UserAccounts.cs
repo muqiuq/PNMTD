@@ -9,143 +9,18 @@ using PNMTD.Models.Db;
 
 namespace PNMTD.Auth;
 
-/// <summary>The auth_log event types (docs/webui-migration-plan.md §4.3).</summary>
-public static class AuthEvents
-{
-    public const string LoginSucceeded = "LoginSucceeded";
-    public const string LoginFailed = "LoginFailed";
-    public const string LockedOut = "LockedOut";
-    public const string TotpFailed = "TotpFailed";
-    public const string Logout = "Logout";
-    public const string TotpEnabled = "TotpEnabled";
-    public const string TotpDisabled = "TotpDisabled";
-    public const string TotpReset = "TotpReset";
-    public const string PasswordChanged = "PasswordChanged";
-    public const string PasswordReset = "PasswordReset";
-    public const string SessionsRevoked = "SessionsRevoked";
-    public const string UserCreated = "UserCreated";
-    public const string UserUpdated = "UserUpdated";
-    public const string UserUnlocked = "UserUnlocked";
-    public const string RoleChanged = "RoleChanged";
-    public const string UserDeleted = "UserDeleted";
-
-    // UDP nodes (docs/udp-iot-plan.md §4.3, §4.11): the security-relevant changes, never the key itself.
-    public const string UdpKeyChanged = "UdpKeyChanged";
-    public const string UdpCounterReset = "UdpCounterReset";
-    public const string UdpSessionReset = "UdpSessionReset";
-    public const string UdpFirmwareUploaded = "UdpFirmwareUploaded";
-    public const string UdpFirmwareDeleted = "UdpFirmwareDeleted";
-    public const string UdpUpdateStarted = "UdpUpdateStarted";
-    public const string UdpUpdateCancelled = "UdpUpdateCancelled";
-
-    // MikroTik routers (docs/mikrotik-plan.md §9.6): who saw a join script, and the security-relevant changes.
-    public const string MikrotikJoinScriptViewed = "MikrotikJoinScriptViewed";
-    public const string MikrotikHostKeyAccepted = "MikrotikHostKeyAccepted";
-    public const string MikrotikSecretsChanged = "MikrotikSecretsChanged";
-    public const string MikrotikManagementAccessChanged = "MikrotikManagementAccessChanged";
-    public const string MikrotikDiagnosticsChanged = "MikrotikDiagnosticsChanged";
-    public const string MikrotikBackupDownloaded = "MikrotikBackupDownloaded";
-    public const string MikrotikBackupDeleted = "MikrotikBackupDeleted";
-    public const string MikrotikUpdateStarted = "MikrotikUpdateStarted";
-    public const string MikrotikUpdateCancelled = "MikrotikUpdateCancelled";
-    public const string MikrotikCommandStarted = "MikrotikCommandStarted";
-    public const string MikrotikCommandCancelled = "MikrotikCommandCancelled";
-    public const string MikrotikCommandRedacted = "MikrotikCommandRedacted";
-    public const string MikrotikSshKeyRotated = "MikrotikSshKeyRotated";
-    public const string MikrotikSshKeyRetired = "MikrotikSshKeyRetired";
-
-    // The backups' one-way encryption (docs/mikrotik-backup-plan.md §3.3, §3.5).
-    public const string MikrotikBackupKeySet = "MikrotikBackupKeySet";
-    public const string MikrotikBackupKeyRetired = "MikrotikBackupKeyRetired";
-    public const string MikrotikBackupEncryptionChanged = "MikrotikBackupEncryptionChanged";
-
-    // The WireGuard network (docs/mikrotik-plan.md §9.6).
-    public const string WireGuardNetworkChanged = "WireGuardNetworkChanged";
-    public const string WireGuardKeysRegenerated = "WireGuardKeysRegenerated";
-    public const string WireGuardTunnelCreated = "WireGuardTunnelCreated";
-    public const string WireGuardTunnelChanged = "WireGuardTunnelChanged";
-    public const string WireGuardTunnelDeleted = "WireGuardTunnelDeleted";
-    public const string WireGuardTunnelDownloaded = "WireGuardTunnelDownloaded";
-
-    // The debug page's test sends (docs/ai-operations-plan.md §8).
-    public const string DebugNotificationSent = "DebugNotificationSent";
-    public const string DebugAiTested = "DebugAiTested";
-
-    // The AI's work (docs/ai-operations-plan.md §14).
-    public const string AiWorkRetried = "AiWorkRetried";
-    public const string AiWorkCancelled = "AiWorkCancelled";
-    public const string AiBackfillStarted = "AiBackfillStarted";
-    public const string AiAnalysisStarted = "AiAnalysisStarted";
-
-    // Servers with an agent and diagnostics (docs/windows-sensor-plan.md §9.2): Agent* for every platform since L1 of
-    // docs/linux-sensor-plan.md (§3.3; they were Windows* before), Windows* for what is Windows' own (WMI).
-    public const string AgentJoinTokenCreated = "AgentJoinTokenCreated";
-    public const string AgentJoinTokenRevoked = "AgentJoinTokenRevoked";
-    public const string AgentJoined = "AgentJoined";
-    public const string AgentJoinFailed = "AgentJoinFailed";
-    public const string AgentRevoked = "AgentRevoked";
-    public const string AgentSettingsChanged = "AgentSettingsChanged";
-    public const string WindowsSettingsChanged = "WindowsSettingsChanged";
-    public const string DiagnosticsSetChanged = "DiagnosticsSetChanged";
-    public const string DiagnosticsAssignmentChanged = "DiagnosticsAssignmentChanged";
-    public const string AgentScriptChanged = "AgentScriptChanged";
-    public const string AgentScriptRun = "AgentScriptRun";
-
-    /// <summary>Fetch again of the agents' files (docs/linux-sensor-plan.md §4.4).</summary>
-    public const string AgentDownloadsFetched = "AgentDownloadsFetched";
-
-    // The SSH key manager (docs/linux-sensor-plan.md §6.4, §6.5): registering, editing, retiring and deleting a key, and its
-    // removals from servers (asked for, and what the agent did).
-    public const string SshKeyRegistered = "SshKeyRegistered";
-    public const string SshKeyChanged = "SshKeyChanged";
-    public const string SshKeyRetired = "SshKeyRetired";
-    public const string SshKeyDeleted = "SshKeyDeleted";
-    public const string SshKeyRemoved = "SshKeyRemoved";
-
-    // Uploaded files (docs/locations-knowledge-plan.md §5.5, §8.7): an Admin's delete, at once.
-    public const string FileDeleted = "FileDeleted";
-
-    // Locations (docs/locations-knowledge-plan.md §8.7): what goes for good.
-    public const string LocationDeleted = "LocationDeleted";
-    public const string LocationFieldDeleted = "LocationFieldDeleted";
-
-    // The knowledge base (docs/locations-knowledge-plan.md §8.7): a page deleted, its sensitive mark, a redaction (never the
-    // text), a tag deleted.
-    public const string KbPageDeleted = "KbPageDeleted";
-    public const string KbPageSensitivityChanged = "KbPageSensitivityChanged";
-    public const string KbRevisionRedacted = "KbRevisionRedacted";
-    public const string KbTagDeleted = "KbTagDeleted";
-
-    public static readonly string[] All =
-    [
-        LoginSucceeded, LoginFailed, LockedOut, TotpFailed, Logout, TotpEnabled, TotpDisabled, TotpReset, PasswordChanged,
-        PasswordReset, SessionsRevoked, UserCreated, UserUpdated, UserUnlocked, RoleChanged, UserDeleted,
-        UdpKeyChanged, UdpCounterReset, UdpSessionReset, UdpFirmwareUploaded, UdpFirmwareDeleted, UdpUpdateStarted, UdpUpdateCancelled,
-        MikrotikJoinScriptViewed, MikrotikHostKeyAccepted, MikrotikSecretsChanged, MikrotikManagementAccessChanged, MikrotikDiagnosticsChanged,
-        MikrotikBackupDownloaded, MikrotikBackupDeleted, MikrotikUpdateStarted, MikrotikUpdateCancelled,
-        MikrotikCommandStarted, MikrotikCommandCancelled, MikrotikCommandRedacted, MikrotikSshKeyRotated, MikrotikSshKeyRetired,
-        MikrotikBackupKeySet, MikrotikBackupKeyRetired, MikrotikBackupEncryptionChanged,
-        WireGuardNetworkChanged, WireGuardKeysRegenerated,
-        WireGuardTunnelCreated, WireGuardTunnelChanged, WireGuardTunnelDeleted, WireGuardTunnelDownloaded,
-        DebugNotificationSent, DebugAiTested, AiWorkRetried, AiWorkCancelled, AiBackfillStarted, AiAnalysisStarted,
-        AgentJoinTokenCreated, AgentJoinTokenRevoked, AgentJoined, AgentJoinFailed, AgentRevoked, AgentSettingsChanged, WindowsSettingsChanged,
-        DiagnosticsSetChanged, DiagnosticsAssignmentChanged, AgentScriptChanged, AgentScriptRun, AgentDownloadsFetched,
-        SshKeyRegistered, SshKeyChanged, SshKeyRetired, SshKeyDeleted, SshKeyRemoved,
-        FileDeleted,
-        LocationDeleted, LocationFieldDeleted,
-        KbPageDeleted, KbPageSensitivityChanged, KbRevisionRedacted, KbTagDeleted,
-    ];
-}
-
 /// <summary>Who did something and from where, for the audit log. The deploy scripts are "cli".</summary>
-public sealed record AuditContext(string? IpAddress, string? UserAgent, string? Origin)
+public sealed record AuditContext(string? IpAddress, string? UserAgent, string? Origin, Guid? ActorId = null, string? ActorName = null)
 {
     public static readonly AuditContext Cli = new(null, null, "cli");
 
+    /// <summary>The request's address and browser, and its signed-in user (none during the sign-in's anonymous steps).</summary>
     public static AuditContext From(HttpContext http)
     {
         var agent = http.Request.Headers.UserAgent.ToString();
-        return new AuditContext(http.Connection.RemoteIpAddress?.ToString(), agent.Length > 256 ? agent[..256] : agent, null);
+        var signedIn = http.User.Identity?.IsAuthenticated == true;
+        return new AuditContext(http.Connection.RemoteIpAddress?.ToString(), agent.Length > 256 ? agent[..256] : agent, null,
+            signedIn ? http.User.UserId() : null, signedIn ? http.User.Identity!.Name : null);
     }
 }
 
@@ -156,9 +31,6 @@ public sealed record AuditContext(string? IpAddress, string? UserAgent, string? 
 public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = null)
 {
     public static readonly TimeSpan TemporaryPasswordLifetime = TimeSpan.FromDays(7);
-
-    /// <summary>The audit log keeps this many entries, like the other MAXIMUM_NUM_OF_* limits.</summary>
-    public const int MaximumAuthLogEntries = 10_000;
 
     private static readonly Regex UsernamePattern = new("^[A-Za-z0-9._@-]{2,64}$", RegexOptions.CultureInvariant);
 
@@ -220,7 +92,7 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
             PasswordChangedAt = now,
         };
         db.Users.Add(user);
-        Log(AuthEvents.UserCreated, user, audit, $"role {user.Role}");
+        Log(AuditEvents.UserCreated, user, audit, $"role {user.Role}");
         await SaveAsync(ct);
         return (user, temporary);
     }
@@ -242,13 +114,13 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
         user.DisplayName = displayName!.Trim();
         if (user.Role != canonicalRole)
         {
-            Log(AuthEvents.RoleChanged, user, audit, $"{user.Role} → {canonicalRole}");
+            Log(AuditEvents.RoleChanged, user, audit, $"{user.Role} → {canonicalRole}");
             user.Role = canonicalRole!;
             user.SecurityStamp = NewStamp();
         }
         if (user.IsActive != isActive)
         {
-            Log(AuthEvents.UserUpdated, user, audit, isActive ? "activated" : "deactivated");
+            Log(AuditEvents.UserUpdated, user, audit, isActive ? "activated" : "deactivated");
             user.IsActive = isActive;
             user.SecurityStamp = NewStamp();
         }
@@ -273,7 +145,7 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
             key.UpdatedAt = Clock.UtcNow;
         }
         db.Users.Remove(user);
-        Log(AuthEvents.UserDeleted, user, audit,
+        Log(AuditEvents.UserDeleted, user, audit,
             keys.Count == 0 ? null : $"{keys.Count} SSH {(keys.Count == 1 ? "key" : "keys")} now owned by \"{SshKeyManager.SshKeyRegistry.FormerUser(user.Username)}\"");
         await SaveAsync(ct);
         sessions?.Forget(user.Id);
@@ -298,7 +170,7 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
         user.PasswordChangedAt = now;
         user.SecurityStamp = NewStamp();
         Unlock(user);
-        Log(AuthEvents.PasswordReset, user, audit, temporary is not null ? "temporary password" : "password set");
+        Log(AuditEvents.PasswordReset, user, audit, temporary is not null ? "temporary password" : "password set");
         await SaveAsync(ct);
         sessions?.Forget(user.Id);
         return temporary;
@@ -316,7 +188,7 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
         ClearTotp(user);
         user.SecurityStamp = NewStamp();
         Unlock(user);
-        Log(AuthEvents.TotpReset, user, audit, wasEnabled ? null : "2FA was off");
+        Log(AuditEvents.TotpReset, user, audit, wasEnabled ? null : "2FA was off");
         await SaveAsync(ct);
         sessions?.Forget(user.Id);
         return wasEnabled;
@@ -326,7 +198,7 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
     {
         var user = await GetAsync(id, ct);
         Unlock(user);
-        Log(AuthEvents.UserUnlocked, user, audit, null);
+        Log(AuditEvents.UserUnlocked, user, audit, null);
         await SaveAsync(ct);
     }
 
@@ -354,7 +226,7 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
         user.TemporaryPasswordExpiresAt = null;
         user.PasswordChangedAt = Clock.UtcNow;
         user.SecurityStamp = NewStamp();
-        Log(AuthEvents.PasswordChanged, user, audit, null);
+        Log(AuditEvents.PasswordChanged, user, audit, null);
         await SaveAsync(ct);
         sessions?.Forget(user.Id);
     }
@@ -364,7 +236,7 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
     {
         var user = await GetAsync(id, ct);
         user.SecurityStamp = NewStamp();
-        Log(AuthEvents.SessionsRevoked, user, audit, null);
+        Log(AuditEvents.SessionsRevoked, user, audit, null);
         await SaveAsync(ct);
         sessions?.Forget(user.Id);
         return user;
@@ -425,30 +297,19 @@ public sealed class UserAccounts(PnmtdDbContext db, SessionCache? sessions = nul
         user.LockoutEnd = null;
     }
 
+    /// <summary>
+    /// An account's event (docs/audit-redmine-zabbix-plan.md §3.2). The actor is the signed-in user who did it, or the CLI;
+    /// during the sign-in, the person signing in. The account is the target, so its History and the user filter find it.
+    /// </summary>
     internal void Log(string eventType, UserEntity? user, AuditContext audit, string? detail, string? typedUsername = null)
     {
-        var origin = audit.Origin is null ? detail : detail is null ? audit.Origin : $"{audit.Origin}: {detail}";
-        db.AuthLog.Add(new AuthLogEntity
-        {
-            Id = Guid.NewGuid(),
-            CreatedAt = Clock.UtcNow,
-            UserId = user?.Id,
-            Username = user?.Username ?? typedUsername ?? "",
-            EventType = eventType,
-            IpAddress = audit.IpAddress,
-            UserAgent = string.IsNullOrEmpty(audit.UserAgent) ? null : audit.UserAgent,
-            Detail = origin,
-        });
+        var who = audit.Origin == "cli" ? AuditWho.Cli
+            : audit.ActorId is { } actor ? new AuditWho(AuditActor.User, actor, audit.ActorName ?? "", null, audit.IpAddress, audit.UserAgent)
+            : new AuditWho(AuditActor.User, user?.Id, user?.Username ?? typedUsername ?? "", null, audit.IpAddress, audit.UserAgent);
+        AuditLog.Record(db, eventType, detail, who, user is null ? null : AuditTarget.User(user.Id, user.Username));
     }
 
-    /// <summary>Saves, then keeps the newest <see cref="MaximumAuthLogEntries"/> audit entries.</summary>
-    internal async Task SaveAsync(CancellationToken ct)
-    {
-        await db.SaveChangesAsync(ct);
-        await db.Database.ExecuteSqlAsync($"""
-            DELETE FROM auth_log WHERE "Id" IN (SELECT "Id" FROM auth_log ORDER BY "CreatedAt" DESC OFFSET {MaximumAuthLogEntries})
-            """, ct);
-    }
+    internal Task SaveAsync(CancellationToken ct) => db.SaveChangesAsync(ct);
 }
 
 /// <summary>The claims of a session (§4.7): no secret, and the stamp the session is checked against.</summary>

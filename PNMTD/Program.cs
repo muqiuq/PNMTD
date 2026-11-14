@@ -96,6 +96,7 @@ public partial class Program
         builder.Services.AddWireGuard(builder.Configuration);
         builder.Services.AddAgents(builder.Configuration);
         builder.Services.AddFiles(builder.Configuration);
+        builder.Services.AddAudit(builder.Configuration);
 
         // The build writes the OpenAPI document by starting the host without a database (GetDocument.Insider).
         var documentBuild = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
@@ -132,6 +133,8 @@ public partial class Program
             // Uploaded files (docs/locations-knowledge-plan.md §5.5): the daily cleanup, and the check on the File storage sensor.
             builder.Services.AddHostedService(sp => sp.GetRequiredService<FileCleanupTask>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<FileCheckTask>());
+            // The audit log's retention (docs/audit-redmine-zabbix-plan.md §3.8).
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Audit.AuditRetentionTask>());
         }
 
         // UDP nodes (docs/udp-iot-plan.md §4.4): on unless Udp:Enabled=false, not tied to the

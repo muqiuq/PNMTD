@@ -185,14 +185,8 @@ internal static class UdpCommand
         node.LastUplinkDigest = null;
         node.LastUplinkAt = null;
         node.LastResponse = null;
-        db.AuthLog.Add(new AuthLogEntity
-        {
-            Id = Guid.NewGuid(),
-            CreatedAt = Clock.UtcNow,
-            Username = "",
-            EventType = AuthEvents.UdpCounterReset,
-            Detail = $"cli: node {node.Sensor.Name} ({node.DeviceId}): counter window reset",
-        });
+        AuditLog.Record(db, AuditEvents.UdpCounterReset, $"node {node.Sensor.Name} ({node.DeviceId}): counter window reset", AuditWho.Cli,
+            AuditTarget.Sensor(node.SensorId, node.Sensor.Name));
         db.SaveChanges();
         Console.WriteLine($"Node {node.Sensor.Name} ({deviceId}): the next packet sets a new counter window.");
         return 0;

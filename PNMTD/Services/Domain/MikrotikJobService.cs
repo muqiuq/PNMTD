@@ -109,7 +109,7 @@ public sealed class MikrotikJobService(
                 router.UpdateMethod = request.Method;
                 router.UpdateCheckStorage = request.CheckStorage;
             }
-            UdpViews.Audit(db, accessor, AuthEvents.MikrotikUpdateStarted,
+            UdpViews.Audit(db, accessor, AuditEvents.MikrotikUpdateStarted,
                 $"update of {jobs.Count} router(s) as {username}: {string.Join(", ", jobs.Select(j => $"{j.RouterName} → {j.ToVersion}"))}");
             await db.SaveChangesAsync(ct);
             runner.Wake();
@@ -207,7 +207,7 @@ public sealed class MikrotikJobService(
             job.FinishedAt = Clock.UtcNow;
             job.Error = "Cancelled before it started.";
         }
-        UdpViews.Audit(db, accessor, AuthEvents.MikrotikUpdateCancelled, $"update of {job.RouterName} to {job.ToVersion} cancelled");
+        UdpViews.Audit(db, accessor, AuditEvents.MikrotikUpdateCancelled, $"update of {job.RouterName} to {job.ToVersion} cancelled");
         await db.SaveChangesAsync(ct);
         if (!await db.MikrotikJobs.AnyAsync(j => j.BatchId == job.BatchId && (j.State == MikrotikJobState.Queued || j.State == MikrotikJobState.Running), ct))
         {

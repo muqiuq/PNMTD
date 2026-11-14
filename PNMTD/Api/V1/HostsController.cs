@@ -20,6 +20,7 @@ public sealed class HostsController(HostService hosts, LocationService locations
 
     [HttpPost]
     [Authorize(Policy = Policies.CanWrite)]
+    [Audit(AuditEvents.HostCreated)]
     public async Task<ActionResult<HostDetail>> Create(HostRequest request, CancellationToken ct)
     {
         var host = await hosts.CreateAsync(request, ct);
@@ -28,11 +29,13 @@ public sealed class HostsController(HostService hosts, LocationService locations
 
     [HttpPut("{id:guid}")]
     [Authorize(Policy = Policies.CanWrite)]
+    [Audit(AuditEvents.HostUpdated)]
     public async Task<ActionResult<HostDetail>> Update(Guid id, HostRequest request, CancellationToken ct) =>
         await hosts.UpdateAsync(id, request, ct);
 
     [HttpDelete("{id:guid}")]
     [Authorize(Policy = Policies.CanWrite)]
+    [Audit(AuditEvents.HostDeleted)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         await hosts.DeleteAsync(id, ct);

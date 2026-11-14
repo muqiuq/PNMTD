@@ -17,6 +17,20 @@ internal static class TestDatabases
         return server.ConnectionString;
     }
 
+    /// <summary>Dropped if it exists, and created empty, without the migrations (an upgrade's starting point).</summary>
+    public static PnmtdDbContext Empty(string name)
+    {
+        var server = new NpgsqlConnectionStringBuilder(ConnectionString("postgres"));
+        using (var connection = new NpgsqlConnection(server.ConnectionString))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = $"DROP DATABASE IF EXISTS {name} WITH (FORCE); CREATE DATABASE {name};";
+            command.ExecuteNonQuery();
+        }
+        return PnmtdDbContext.Create(ConnectionString(name));
+    }
+
     /// <summary>Dropped if it exists, created and migrated.</summary>
     public static PnmtdDbContext Fresh(string name)
     {

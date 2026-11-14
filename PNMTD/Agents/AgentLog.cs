@@ -31,18 +31,8 @@ public static class AgentLog
         await db.Sensors.Where(s => s.Id == sensorId).Select(s => s.Parent.Name + " / " + s.Name).SingleOrDefaultAsync(ct) ?? sensorId.ToString();
 
     /// <summary>An audit entry for something an agent did (a join): no user, the agent's address.</summary>
-    public static void Audit(PnmtdDbContext db, string eventType, string detail, string? address)
-    {
-        db.AuthLog.Add(new AuthLogEntity
-        {
-            Id = Guid.NewGuid(),
-            CreatedAt = Clock.UtcNow,
-            Username = "agent",
-            EventType = eventType,
-            IpAddress = address,
-            Detail = Cuts.Cut($"agent: {detail}", 1000),
-        });
-    }
+    public static void Audit(PnmtdDbContext db, string eventType, string detail, string? address, AuditTarget? target = null) =>
+        AuditLog.Record(db, eventType, detail, AuditWho.Agent(address), target);
 }
 
 internal static class Cuts

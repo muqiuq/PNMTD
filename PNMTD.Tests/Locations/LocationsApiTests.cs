@@ -150,7 +150,7 @@ public sealed class LocationsApiTests
         Assert.AreEqual(HttpStatusCode.NoContent, (await admin.DeleteAsync($"/api/v1/locations/{site.Id}")).StatusCode);
 
         using var db = app.NewDb();
-        var logged = await db.AuthLog.AsNoTracking().Where(l => l.EventType == AuthEvents.LocationDeleted && l.Detail!.Contains(site.Name)).ToListAsync();
+        var logged = await db.AuditLog.AsNoTracking().Where(l => l.EventType == AuditEvents.LocationDeleted && l.Detail!.Contains(site.Name)).ToListAsync();
         Assert.AreEqual(2, logged.Count);
         Assert.IsTrue(logged.Any(l => l.Detail!.Contains("1 host")));
     }

@@ -46,7 +46,7 @@ public sealed class AiAnalysisService(PnmtdDbContext db, SituationScheduler sche
             throw ApiException.Conflict("ai_not_configured", "The situation analysis is off: Ai__Enabled, Ai__ApiKey and Ai__Analysis__Enabled.");
         }
         var id = await scheduler.QueueAsync("manual", null, ct);
-        UdpViews.Audit(db, accessor, AuthEvents.AiAnalysisStarted, $"run {id}");
+        UdpViews.Audit(db, accessor, AuditEvents.AiAnalysisStarted, $"run {id}");
         await db.SaveChangesAsync(ct);
         return new AiAnalysisQueued(id);
     }

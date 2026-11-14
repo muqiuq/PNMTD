@@ -113,11 +113,16 @@ public sealed class UserAdminTests
         var created = await CreateAsync(Roles.User);
         await admin.PostAsync($"/api/v1/users/{created.User.Id}/reset-password", null);
 
-        var forUser = await (await admin.GetAsync($"/api/v1/auth-log?userId={created.User.Id}")).ReadAsync<Paged<AuthLogItem>>();
-        var resets = await (await admin.GetAsync($"/api/v1/auth-log?userId={created.User.Id}&type=PasswordReset")).ReadAsync<Paged<AuthLogItem>>();
+        var forUser = await (await admin.GetAsync($"/api/v1/audit-log?userId={created.User.Id}")).ReadAsync<Paged<AuditLogItem>>();
+        var resets = await (await admin.GetAsync($"/api/v1/audit-log?userId={created.User.Id}&type=PasswordReset")).ReadAsync<Paged<AuditLogItem>>();
 
         CollectionAssert.AreEqual(new[] { "PasswordReset", "UserCreated" }, forUser.Items.Select(l => l.EventType).ToArray(), "newest first");
-        Assert.AreEqual("temporary password", resets.Items.Single().Detail);
-        Assert.AreEqual(HttpStatusCode.BadRequest, (await admin.GetAsync("/api/v1/auth-log?type=Nonsense")).StatusCode);
+        var reset = resets.Items.Single();
+        Assert.AreEqual("temporary password", reset.Detail);
+        // Who did it is the admin; the account is the target (docs/audit-redmine-zabbix-plan.md §3.2).
+        Assert.AreNotEqual(created.User.Id, reset.UserId);
+        Assert.AreEqual(AuditTargets.User, reset.TargetType);
+        Assert.AreEqual(created.User.Username, reset.TargetName);
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await admin.GetAsync("/api/v1/audit-log?type=Nonsense")).StatusCode);
     }
 }

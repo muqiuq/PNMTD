@@ -97,7 +97,7 @@ public sealed class UdpOtaService(PnmtdDbContext db, UdpNodeCache cache, UdpFirm
             UploadedByName = userName,
         };
         db.UdpFirmware.Add(entity);
-        UdpViews.Audit(db, accessor, AuthEvents.UdpFirmwareUploaded,
+        UdpViews.Audit(db, accessor, AuditEvents.UdpFirmwareUploaded,
             $"{entity.Name} {entity.Version}, {entity.Size} bytes, SHA-256 {Convert.ToHexString(sha).ToLowerInvariant()}");
         await db.SaveChangesAsync(ct);
         var magic = Magic(content.Take(4).ToArray());
@@ -128,7 +128,7 @@ public sealed class UdpOtaService(PnmtdDbContext db, UdpNodeCache cache, UdpFirm
         {
             throw ApiException.Conflict("in_use", "An open update uses this image: cancel it first.");
         }
-        UdpViews.Audit(db, accessor, AuthEvents.UdpFirmwareDeleted, $"{image.Name} {image.Version}");
+        UdpViews.Audit(db, accessor, AuditEvents.UdpFirmwareDeleted, $"{image.Name} {image.Version}");
         await db.SaveChangesAsync(ct);
         await db.UdpFirmware.Where(f => f.Id == id).ExecuteDeleteAsync(ct);
         firmwareCache.Evict(id);
@@ -247,7 +247,7 @@ public sealed class UdpOtaService(PnmtdDbContext db, UdpNodeCache cache, UdpFirm
         }
         if (created.Count > 0)
         {
-            UdpViews.Audit(db, accessor, AuthEvents.UdpUpdateStarted,
+            UdpViews.Audit(db, accessor, AuditEvents.UdpUpdateStarted,
                 $"{image.Name} {image.Version} for {string.Join(", ", created.Select(j => $"{j.NodeName} ({j.DeviceId})"))}");
         }
         await db.SaveChangesAsync(ct);
@@ -322,7 +322,7 @@ public sealed class UdpOtaService(PnmtdDbContext db, UdpNodeCache cache, UdpFirm
             UserName = userName,
             Note = was == UdpOtaState.Downloading ? "during the download: the next GET is answered with abort" : $"while {was}",
         });
-        UdpViews.Audit(db, accessor, AuthEvents.UdpUpdateCancelled, $"{job.FirmwareName} {job.FirmwareVersion} for {job.NodeName} ({job.DeviceId})");
+        UdpViews.Audit(db, accessor, AuditEvents.UdpUpdateCancelled, $"{job.FirmwareName} {job.FirmwareVersion} for {job.NodeName} ({job.DeviceId})");
         await db.SaveChangesAsync(ct);
         cache.Invalidate();
     }

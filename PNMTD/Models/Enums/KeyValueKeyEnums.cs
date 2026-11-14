@@ -29,6 +29,9 @@
         LAST_MIKROTIK_POLL_RUN = 250,
         LAST_MIKROTIK_VERSION_CHECK = 251,
 
+        // The audit log's daily retention (docs/audit-redmine-zabbix-plan.md §3.8).
+        LAST_AUDIT_RETENTION = 260,
+
         UNUSED = 999,
     }
 }

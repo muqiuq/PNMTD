@@ -109,19 +109,19 @@ public sealed class MikrotikRouterService(
         {
             if (router.ManagementAccess != request.ManagementAccess)
             {
-                UdpViews.Audit(db, accessor, AuthEvents.MikrotikManagementAccessChanged, $"router {sensor.Name}: management access {(request.ManagementAccess ? "on" : "off")}");
+                UdpViews.Audit(db, accessor, AuditEvents.MikrotikManagementAccessChanged, $"router {sensor.Name}: management access {(request.ManagementAccess ? "on" : "off")}");
             }
             if (router.IncludeSecrets != request.IncludeSecrets)
             {
-                UdpViews.Audit(db, accessor, AuthEvents.MikrotikSecretsChanged, $"router {sensor.Name}: secrets in exports {(request.IncludeSecrets ? "on" : "off")}");
+                UdpViews.Audit(db, accessor, AuditEvents.MikrotikSecretsChanged, $"router {sensor.Name}: secrets in exports {(request.IncludeSecrets ? "on" : "off")}");
             }
             if (router.Diagnostics != request.Diagnostics)
             {
-                UdpViews.Audit(db, accessor, AuthEvents.MikrotikDiagnosticsChanged, $"router {sensor.Name}: diagnostics {(request.Diagnostics ? "on" : "off")}");
+                UdpViews.Audit(db, accessor, AuditEvents.MikrotikDiagnosticsChanged, $"router {sensor.Name}: diagnostics {(request.Diagnostics ? "on" : "off")}");
             }
             if (router.EncryptBackups != encrypt)
             {
-                UdpViews.Audit(db, accessor, AuthEvents.MikrotikBackupEncryptionChanged, $"router {sensor.Name}: backups encrypted {(encrypt ? "on" : "off")}");
+                UdpViews.Audit(db, accessor, AuditEvents.MikrotikBackupEncryptionChanged, $"router {sensor.Name}: backups encrypted {(encrypt ? "on" : "off")}");
             }
         }
         var address = Text.Trimmed(request.Address);
@@ -472,7 +472,7 @@ public sealed class MikrotikRouterService(
         {
             notes.Add("Without PNMTD's source address the user pnmt may log in from anywhere, with PNMTD's key only.");
         }
-        UdpViews.Audit(db, accessor, AuthEvents.MikrotikJoinScriptViewed, $"router {name}: join script ({router.Mode.Label()})");
+        UdpViews.Audit(db, accessor, AuditEvents.MikrotikJoinScriptViewed, $"router {name}: join script ({router.Mode.Label()})");
         router.ScriptGeneratedAt = now;
         await db.SaveChangesAsync(ct);
         return new MikrotikScript(JoinScript.Build(settings), "pnmt-join.rsc", router.Mode, now, notes);
@@ -501,7 +501,7 @@ public sealed class MikrotikRouterService(
         {
             throw ApiException.Conflict("no_pending_host_key", "The router has not presented another host key.");
         }
-        UdpViews.Audit(db, accessor, AuthEvents.MikrotikHostKeyAccepted,
+        UdpViews.Audit(db, accessor, AuditEvents.MikrotikHostKeyAccepted,
             $"router {router.Sensor.Name}: host key {router.PendingHostKeyType} SHA256:{router.PendingHostKeyFingerprint} accepted (was SHA256:{router.HostKeyFingerprint ?? "none"})");
         router.HostKeyType = router.PendingHostKeyType;
         router.HostKeyFingerprint = router.PendingHostKeyFingerprint;
@@ -525,7 +525,7 @@ public sealed class MikrotikRouterService(
             throw ApiException.Conflict("no_tunnel", "Only a router in a WireGuard mode has tunnel keys.");
         }
         wireGuard.Regenerate(peer, UdpViews.User(accessor).Id);
-        UdpViews.Audit(db, accessor, AuthEvents.WireGuardKeysRegenerated, $"router {router.Sensor.Name}: tunnel keys regenerated");
+        UdpViews.Audit(db, accessor, AuditEvents.WireGuardKeysRegenerated, $"router {router.Sensor.Name}: tunnel keys regenerated");
         await db.SaveChangesAsync(ct);
         await WireGuardNetwork.NotifyAsync(db, ct);
         return (await DetailAsync(sensorId, ct))!;
@@ -647,7 +647,7 @@ public sealed class MikrotikRouterService(
     public async Task<MikrotikSshKeyStatus> RotateSshKeyAsync(CancellationToken ct)
     {
         var key = await keys.RotateAsync(UdpViews.User(accessor).Id, ct);
-        UdpViews.Audit(db, accessor, AuthEvents.MikrotikSshKeyRotated, $"new SSH key {SshKeys.Fingerprint(key.PublicKey)} ({key.Comment})");
+        UdpViews.Audit(db, accessor, AuditEvents.MikrotikSshKeyRotated, $"new SSH key {SshKeys.Fingerprint(key.PublicKey)} ({key.Comment})");
         await db.SaveChangesAsync(ct);
         return await SshKeysAsync(ct);
     }
@@ -667,7 +667,7 @@ public sealed class MikrotikRouterService(
         var retired = await keys.RetireOlderAsync(ct);
         if (retired > 0)
         {
-            UdpViews.Audit(db, accessor, AuthEvents.MikrotikSshKeyRetired,
+            UdpViews.Audit(db, accessor, AuditEvents.MikrotikSshKeyRetired,
                 $"{retired} older SSH key(s) retired{(status.Waiting.Count > 0 ? $", {status.Waiting.Count} router(s) still waiting" : "")}");
             await db.SaveChangesAsync(ct);
         }

@@ -95,7 +95,7 @@ public sealed class AuthController(AuthService auth, UserAccounts accounts, Totp
     {
         if (User.UserId() is { } id && await db.Users.SingleOrDefaultAsync(u => u.Id == id, ct) is { } user)
         {
-            accounts.Log(AuthEvents.Logout, user, AuditContext.From(HttpContext), null);
+            accounts.Log(AuditEvents.Logout, user, AuditContext.From(HttpContext), null);
             await accounts.SaveAsync(ct);
         }
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -297,33 +297,4 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
     internal static UserItem ToItem(UserEntity u) => new(u.Id, u.Username, u.DisplayName, u.Role, u.IsActive, u.IsTotpEnabled,
         u.MustChangePassword, u.TemporaryPasswordExpiresAt, u.LockoutEnd is { } end && end > Clock.UtcNow ? end : null,
         u.FailedLoginCount, u.CreatedAt, u.LastLoginAt, u.PasswordChangedAt);
-}
-
-/// <summary>The audit log (§4.3): admins only.</summary>
-[Route("api/v1/auth-log")]
-[Authorize(Policy = Policies.Admin)]
-public sealed class AuthLogController(PnmtdDbContext db) : V1ControllerBase
-{
-    [HttpGet]
-    public async Task<ActionResult<Paged<AuthLogItem>>> List([FromQuery] AuthLogQuery query, CancellationToken ct)
-    {
-        new ApiValidator()
-            .Check(query.Type is null || AuthEvents.All.Contains(query.Type), "type", "One of: " + string.Join(", ", AuthEvents.All) + ".")
-            .ThrowIfInvalid();
-        var log = db.AuthLog.AsNoTracking();
-        if (query.UserId is { } userId)
-        {
-            log = log.Where(l => l.UserId == userId);
-        }
-        if (query.Type is { } type)
-        {
-            log = log.Where(l => l.EventType == type);
-        }
-        if (Services.Domain.Text.Pattern(query.Search) is { } pattern)
-        {
-            log = log.Where(l => EF.Functions.ILike(l.Username, pattern, @"\") || (l.Detail != null && EF.Functions.ILike(l.Detail, pattern, @"\")));
-        }
-        return await Services.Domain.Paging.PageAsync(log.OrderByDescending(l => l.CreatedAt).ThenBy(l => l.Id)
-            .Select(l => new AuthLogItem(l.Id, l.CreatedAt, l.UserId, l.Username, l.EventType, l.IpAddress, l.UserAgent, l.Detail)), query, ct);
-    }
 }

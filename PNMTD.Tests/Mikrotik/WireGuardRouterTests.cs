@@ -265,7 +265,7 @@ public sealed class WireGuardRouterTests
         Assert.IsFalse((await (await viewer.GetAsync("/api/v1/account/tunnels")).ReadAsync<List<WireGuardTunnelItem>>()).Any());
         Assert.AreEqual(HttpStatusCode.NotFound, (await viewer.GetAsync($"/api/v1/account/tunnels/{tunnel.Id}/config")).StatusCode);
         Assert.AreEqual(HttpStatusCode.Forbidden, (await user.GetAsync("/api/v1/wireguard/tunnels")).StatusCode);
-        var log = await (await admin.GetAsync($"/api/v1/auth-log?type={AuthEvents.WireGuardTunnelDownloaded}")).ReadAsync<Paged<AuthLogItem>>();
+        var log = await (await admin.GetAsync($"/api/v1/audit-log?type={AuditEvents.WireGuardTunnelDownloaded}")).ReadAsync<Paged<AuditLogItem>>();
         Assert.IsTrue(log.Items.Count(i => i.Detail!.Contains("alice-laptop")) >= 2);
 
         // Selected routers only, and an expired tunnel is not downloadable by its owner.

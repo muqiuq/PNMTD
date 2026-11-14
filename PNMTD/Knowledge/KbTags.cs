@@ -159,7 +159,7 @@ public sealed partial class KbTags(PnmtdDbContext db, IHttpContextAccessor acces
             await revisions.CommitAsync(page, before, "The tag was deleted.", null, ct);
         }
         db.KbTags.Remove(tag);
-        UdpViews.Audit(db, accessor, AuthEvents.KbTagDeleted, $"{tag.Name}: removed from {pageIds.Count} page{(pageIds.Count == 1 ? "" : "s")}");
+        UdpViews.Audit(db, accessor, AuditEvents.KbTagDeleted, $"{tag.Name}: removed from {pageIds.Count} page{(pageIds.Count == 1 ? "" : "s")}");
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
         return pageIds.Count;

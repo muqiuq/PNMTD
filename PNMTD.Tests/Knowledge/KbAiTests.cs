@@ -218,7 +218,7 @@ public sealed class KbAiTests
         Assert.AreEqual(marked.Revision, revisions[0].Declaration!.Revision);
         Assert.AreEqual("marked", revisions[1].Changes.Single().Text);
         await using var db = app.NewDb();
-        Assert.AreEqual(2, await db.AuthLog.CountAsync(l => l.EventType == AuthEvents.KbPageSensitivityChanged && l.Detail!.Contains($"KB-{page.Number} ")));
+        Assert.AreEqual(2, await db.AuditLog.CountAsync(l => l.EventType == AuditEvents.KbPageSensitivityChanged && l.Detail!.Contains($"KB-{page.Number} ")));
     }
 
     [TestMethod]

@@ -312,7 +312,7 @@ public sealed class UdpNodeTests
         var detail = await udp.Admin.GetAsync($"/api/v1/sensors/{sensor.Id}").Result.ReadAsync<SensorDetail>();
         Assert.AreEqual(UdpSecretSource.Manual, detail.Udp!.KeySource);
         Assert.AreEqual("test-admin", detail.Udp.KeyChangedBy);
-        var audit = await udp.WithDbAsync(db => db.AuthLog.Where(a => a.EventType == global::PNMTD.Auth.AuthEvents.UdpKeyChanged).OrderByDescending(a => a.CreatedAt).FirstAsync());
+        var audit = await udp.WithDbAsync(db => db.AuditLog.Where(a => a.EventType == global::PNMTD.Audit.AuditEvents.UdpKeyChanged).OrderByDescending(a => a.CreatedAt).FirstAsync());
         Assert.DoesNotContain(Convert.ToHexString(key), audit.Detail!, "never the key itself");
         Assert.DoesNotContain(Convert.ToHexString(key).ToLowerInvariant(), audit.Detail!);
     }

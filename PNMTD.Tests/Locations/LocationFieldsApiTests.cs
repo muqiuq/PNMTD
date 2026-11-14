@@ -181,7 +181,7 @@ public sealed class LocationFieldsApiTests
         using var db = app.NewDb();
         Assert.IsFalse(await db.LocationValues.AnyAsync(v => v.FieldId == field.Id));
         Assert.IsFalse(await db.LocationHistory.AnyAsync(h => h.FieldId == field.Id), "its history rows go with it");
-        var logged = await db.AuthLog.AsNoTracking().SingleAsync(l => l.EventType == AuthEvents.LocationFieldDeleted && l.Detail!.Contains(field.Key));
+        var logged = await db.AuditLog.AsNoTracking().SingleAsync(l => l.EventType == AuditEvents.LocationFieldDeleted && l.Detail!.Contains(field.Key));
         StringAssert.Contains(logged.Detail, "1 value deleted");
     }
 

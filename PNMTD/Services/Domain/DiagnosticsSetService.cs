@@ -53,7 +53,7 @@ public sealed class DiagnosticsSetService(PnmtdDbContext db, MonitoringReader re
         var set = new DiagnosticSetEntity { Id = Guid.NewGuid(), CreatedAt = now };
         Apply(set, request, now);
         db.DiagnosticSets.Add(set);
-        UdpViews.Audit(db, accessor, AuthEvents.DiagnosticsSetChanged, $"set {set.Name} created ({set.Checks.Count} checks)");
+        UdpViews.Audit(db, accessor, AuditEvents.DiagnosticsSetChanged, $"set {set.Name} created ({set.Checks.Count} checks)");
         await db.SaveChangesAsync(ct);
         return await SetAsync(set.Id, ct);
     }
@@ -65,7 +65,7 @@ public sealed class DiagnosticsSetService(PnmtdDbContext db, MonitoringReader re
         db.DiagnosticChecks.RemoveRange(set.Checks);
         set.Checks.Clear();
         Apply(set, request, Clock.UtcNow);
-        UdpViews.Audit(db, accessor, AuthEvents.DiagnosticsSetChanged, $"set {set.Name} changed ({set.Checks.Count} checks)");
+        UdpViews.Audit(db, accessor, AuditEvents.DiagnosticsSetChanged, $"set {set.Name} changed ({set.Checks.Count} checks)");
         // The assignments' sensors carry the set's name.
         var sensorIds = await db.DiagnosticAssignments.Where(a => a.SetId == id).Select(a => a.SensorId).ToListAsync(ct);
         await db.Sensors.Where(s => sensorIds.Contains(s.Id)).ExecuteUpdateAsync(u => u.SetProperty(s => s.Name, SensorName(set.Name)), ct);
@@ -83,7 +83,7 @@ public sealed class DiagnosticsSetService(PnmtdDbContext db, MonitoringReader re
             throw ApiException.Conflict("set_assigned", "The set is assigned: delete its assignments first (their sensors and history go with them).");
         }
         db.DiagnosticSets.Remove(set);
-        UdpViews.Audit(db, accessor, AuthEvents.DiagnosticsSetChanged, $"set {set.Name} deleted");
+        UdpViews.Audit(db, accessor, AuditEvents.DiagnosticsSetChanged, $"set {set.Name} deleted");
         await db.SaveChangesAsync(ct);
     }
 
@@ -234,7 +234,7 @@ public sealed class DiagnosticsSetService(PnmtdDbContext db, MonitoringReader re
             db.DiagnosticAssignments.Add(assignment);
             created.Add(assignment);
         }
-        UdpViews.Audit(db, accessor, AuthEvents.DiagnosticsAssignmentChanged,
+        UdpViews.Audit(db, accessor, AuditEvents.DiagnosticsAssignmentChanged,
             $"set {set!.Name} assigned to {string.Join(", ", servers.Select(s => s.Name))} ({Schedule(request.Mode, request.IntervalMinutes)})");
         await db.SaveChangesAsync(ct);
         await PushAsync(targets, ct);
@@ -254,7 +254,7 @@ public sealed class DiagnosticsSetService(PnmtdDbContext db, MonitoringReader re
         assignment.Enabled = request.Enabled;
         var interval = request.Mode == DiagnosticMode.Scheduled && request.Enabled ? request.IntervalMinutes * 60 : 0;
         await db.Sensors.Where(s => s.Id == assignment.SensorId).ExecuteUpdateAsync(u => u.SetProperty(s => s.Interval, interval), ct);
-        UdpViews.Audit(db, accessor, AuthEvents.DiagnosticsAssignmentChanged,
+        UdpViews.Audit(db, accessor, AuditEvents.DiagnosticsAssignmentChanged,
             $"assignment {id}: {Schedule(request.Mode, request.IntervalMinutes)}, {(request.Enabled ? "on" : "off")}");
         await db.SaveChangesAsync(ct);
         await PushAsync([assignment.TargetSensorId], ct);
@@ -266,7 +266,7 @@ public sealed class DiagnosticsSetService(PnmtdDbContext db, MonitoringReader re
     {
         var assignment = await db.DiagnosticAssignments.AsNoTracking().SingleOrDefaultAsync(a => a.Id == id, ct) ?? throw ApiException.NotFound("Assignment");
         await DeleteAssignmentsAsync(db, [assignment], ct);
-        UdpViews.Audit(db, accessor, AuthEvents.DiagnosticsAssignmentChanged, $"assignment {id} deleted with its sensor");
+        UdpViews.Audit(db, accessor, AuditEvents.DiagnosticsAssignmentChanged, $"assignment {id} deleted with its sensor");
         await db.SaveChangesAsync(ct);
         await PushAsync([assignment.TargetSensorId], ct);
     }

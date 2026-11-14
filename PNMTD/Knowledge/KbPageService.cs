@@ -411,7 +411,7 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         var files = await db.FileUses.Where(u => u.PageId == id).Select(u => u.FileId).ToListAsync(ct);
         var count = await db.KbRevisions.CountAsync(r => r.PageId == id, ct);
         db.KbPages.Remove(page);
-        UdpViews.Audit(db, accessor, AuthEvents.KbPageDeleted, Cut($"KB-{page.Number} “{page.Title}”, {count} revision{(count == 1 ? "" : "s")}", 1000));
+        UdpViews.Audit(db, accessor, AuditEvents.KbPageDeleted, Cut($"KB-{page.Number} “{page.Title}”, {count} revision{(count == 1 ? "" : "s")}", 1000));
         await db.SaveChangesAsync(ct);
         var now = Clock.UtcNow;
         await db.Files.Where(f => files.Contains(f.Id) && f.DeletedAt == null && !db.FileUses.Any(u => u.FileId == f.Id))
@@ -533,7 +533,7 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         // The redaction's own revision compares with the redacted history: only what it says.
         await revisions.CommitAsync(page, before with { Title = page.Title, Summary = page.Summary, Content = page.Content }, null,
             [new KbChange(KbChangeKinds.Redacted, summary)], ct);
-        UdpViews.Audit(db, accessor, AuthEvents.KbRevisionRedacted, $"KB-{page.Number}: {summary}");
+        UdpViews.Audit(db, accessor, AuditEvents.KbRevisionRedacted, $"KB-{page.Number}: {summary}");
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
         // A scan started meanwhile waited for the row lock and found the old revision: it goes stale, and stops here.
@@ -630,7 +630,7 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
     }
 
     private void AuditSensitivity(KbPageEntity page, KbStoredDeclaration? declaration) =>
-        UdpViews.Audit(db, accessor, AuthEvents.KbPageSensitivityChanged, page.Sensitive
+        UdpViews.Audit(db, accessor, AuditEvents.KbPageSensitivityChanged, page.Sensitive
             ? $"KB-{page.Number} marked sensitive"
             : $"KB-{page.Number} unmarked, with both statements for revision {declaration?.Revision}");
 

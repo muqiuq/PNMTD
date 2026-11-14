@@ -260,7 +260,7 @@ public static class AgentJoinEndpoint
                 AgentLog.Add(db, other.SensorId, other.Name, AgentLogKind.Warning, $"Possibly the same machine as {name}, which just joined (the same {machineIdName}).", address: address);
             }
         }
-        AgentLog.Audit(db, AuthEvents.AgentJoined, $"{name}: {agent.Hostname} joined with token {row.Prefix}… (key {fingerprint})", address);
+        AgentLog.Audit(db, AuditEvents.AgentJoined, $"{name}: {agent.Hostname} joined with token {row.Prefix}… (key {fingerprint})", address);
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
 
@@ -297,7 +297,7 @@ public static class AgentJoinEndpoint
     {
         guard.Failed();
         await using var db = await dbs.CreateDbContextAsync(ct);
-        AgentLog.Audit(db, AuthEvents.AgentJoinFailed, $"join refused: {why}", address);
+        AgentLog.Audit(db, AuditEvents.AgentJoinFailed, $"join refused: {why}", address);
         await db.SaveChangesAsync(ct);
     }
 

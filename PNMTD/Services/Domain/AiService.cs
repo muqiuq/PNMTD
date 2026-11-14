@@ -127,7 +127,7 @@ public sealed class AiService(PnmtdDbContext db, IOptionsMonitor<AiOptions> opti
         work.State = AiWorkState.WaitingRetry;
         work.NextAttemptAt = Clock.UtcNow;
         work.FinishedAt = null;
-        UdpViews.Audit(db, accessor, AuthEvents.AiWorkRetried, $"{work.Purpose} {work.Id}");
+        UdpViews.Audit(db, accessor, AuditEvents.AiWorkRetried, $"{work.Purpose} {work.Id}");
         await db.SaveChangesAsync(ct);
         worker.Wake();
     }
@@ -142,7 +142,7 @@ public sealed class AiService(PnmtdDbContext db, IOptionsMonitor<AiOptions> opti
         work.State = AiWorkState.Cancelled;
         work.FinishedAt = Clock.UtcNow;
         work.LastError = "Cancelled by an Admin.";
-        UdpViews.Audit(db, accessor, AuthEvents.AiWorkCancelled, $"{work.Purpose} {work.Id}");
+        UdpViews.Audit(db, accessor, AuditEvents.AiWorkCancelled, $"{work.Purpose} {work.Id}");
         await db.SaveChangesAsync(ct);
     }
 
@@ -178,7 +178,7 @@ public sealed class AiService(PnmtdDbContext db, IOptionsMonitor<AiOptions> opti
             await queue.EnqueueAsync("mail.analyse", "mail", mail.Id, null, ct);
             queued++;
         }
-        UdpViews.Audit(db, accessor, AuthEvents.AiBackfillStarted, $"{request.Days} days: {queued} queued, {attached} attached");
+        UdpViews.Audit(db, accessor, AuditEvents.AiBackfillStarted, $"{request.Days} days: {queued} queued, {attached} attached");
         await db.SaveChangesAsync(ct);
         return new MailBackfillResult(mails.Count, queued, attached);
     }
@@ -228,7 +228,7 @@ public sealed class AiService(PnmtdDbContext db, IOptionsMonitor<AiOptions> opti
                 results.Add(new DebugAiResult(AiRole.Guard, o.Guard.Model, false, ex.Message, (int)guardWatch.ElapsedMilliseconds, null, null));
             }
         }
-        UdpViews.Audit(db, accessor, AuthEvents.DebugAiTested, string.Join(", ", results.Select(r => $"{r.Role} {(r.Ok ? "ok" : "failed")}")));
+        UdpViews.Audit(db, accessor, AuditEvents.DebugAiTested, string.Join(", ", results.Select(r => $"{r.Role} {(r.Ok ? "ok" : "failed")}")));
         await db.SaveChangesAsync(ct);
         return results;
     }

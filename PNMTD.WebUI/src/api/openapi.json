@@ -2219,6 +2219,175 @@
         }
       }
     },
+    "/api/v1/audit-log": {
+      "get": {
+        "tags": [
+          "AuditLog"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categories",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/AuditCategory"
+              }
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AuditOutcome"
+            }
+          },
+          {
+            "name": "actor",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AuditActor"
+            }
+          },
+          {
+            "name": "subject",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "correlationId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAuditLogItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAuditLogItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfAuditLogItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audit-log/types": {
+      "get": {
+        "tags": [
+          "AuditLog"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEventTypeItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEventTypeItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEventTypeItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "tags": [
@@ -2804,82 +2973,6 @@
         "responses": {
           "200": {
             "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/auth-log": {
-      "get": {
-        "tags": [
-          "AuthLog"
-        ],
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "type",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfAuthLogItem"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfAuthLogItem"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/PagedOfAuthLogItem"
-                }
-              }
-            }
           }
         }
       }
@@ -16808,6 +16901,242 @@
           "Remove"
         ]
       },
+      "AuditActor": {
+        "enum": [
+          "User",
+          "Cli",
+          "Agent",
+          "System"
+        ]
+      },
+      "AuditCategory": {
+        "enum": [
+          "Auth",
+          "Users",
+          "Hosts",
+          "Sensors",
+          "Notifications",
+          "Locations",
+          "Knowledge",
+          "Files",
+          "Udp",
+          "Mikrotik",
+          "WireGuard",
+          "Agents",
+          "SshKeys",
+          "Diagnostics",
+          "Dns",
+          "Mail",
+          "Ai",
+          "Decisions",
+          "System",
+          "Redmine",
+          "Zabbix"
+        ]
+      },
+      "AuditChange": {
+        "required": [
+          "object",
+          "field",
+          "old",
+          "new"
+        ],
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "old": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "new": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AuditEventTypeItem": {
+        "required": [
+          "type",
+          "category",
+          "label",
+          "tone",
+          "targetType"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/AuditCategory"
+          },
+          "label": {
+            "type": "string"
+          },
+          "tone": {
+            "$ref": "#/components/schemas/AuditTone"
+          },
+          "targetType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AuditLogItem": {
+        "required": [
+          "id",
+          "createdAt",
+          "userId",
+          "username",
+          "eventType",
+          "category",
+          "actor",
+          "actorRef",
+          "outcome",
+          "error",
+          "ipAddress",
+          "userAgent",
+          "detail",
+          "targetType",
+          "targetId",
+          "targetName",
+          "request",
+          "correlationId",
+          "changes"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/AuditCategory"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/AuditActor"
+          },
+          "actorRef": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/AuditOutcome"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ipAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "userAgent": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "request": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditChange"
+            }
+          }
+        }
+      },
+      "AuditOutcome": {
+        "enum": [
+          "Succeeded",
+          "Failed",
+          "Denied"
+        ]
+      },
       "AuditSetting": {
         "required": [
           "subcategory",
@@ -16846,59 +17175,13 @@
           }
         }
       },
-      "AuthLogItem": {
-        "required": [
-          "id",
-          "createdAt",
-          "userId",
-          "username",
-          "eventType",
-          "ipAddress",
-          "userAgent",
-          "detail"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "userId": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uuid"
-          },
-          "username": {
-            "type": "string"
-          },
-          "eventType": {
-            "type": "string"
-          },
-          "ipAddress": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "userAgent": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "detail": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
+      "AuditTone": {
+        "enum": [
+          "Neutral",
+          "Success",
+          "Warn",
+          "Danger"
+        ]
       },
       "AuthorizedKey": {
         "required": [
@@ -27261,7 +27544,7 @@
           }
         }
       },
-      "PagedOfAuthLogItem": {
+      "PagedOfAuditLogItem": {
         "required": [
           "items",
           "page",
@@ -27273,7 +27556,7 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/AuthLogItem"
+              "$ref": "#/components/schemas/AuditLogItem"
             }
           },
           "page": {
@@ -36091,6 +36374,9 @@
       "name": "AiAnalysis"
     },
     {
+      "name": "AuditLog"
+    },
+    {
       "name": "Auth"
     },
     {
@@ -36098,9 +36384,6 @@
     },
     {
       "name": "Users"
-    },
-    {
-      "name": "AuthLog"
     },
     {
       "name": "Debug"

@@ -417,7 +417,7 @@ public sealed class AgentTests
         {
             Assert.IsTrue(await db.AgentJoinTokens.Where(t => t.Id == linuxToken.Item.Id || t.Id == windowsToken.Item.Id).AllAsync(t => t.UsedAt == null),
                 "a refused platform doesn't use the token up");
-            Assert.IsTrue(await db.AuthLog.AnyAsync(l => l.EventType == AuthEvents.AgentJoinFailed && l.Detail!.Contains("is for Linux, the agent runs on Windows")));
+            Assert.IsTrue(await db.AuditLog.AnyAsync(l => l.EventType == AuditEvents.AgentJoinFailed && l.Detail!.Contains("is for Linux, the agent runs on Windows")));
         }
 
         // The right agent joins with it; its re-join token is of its platform too.

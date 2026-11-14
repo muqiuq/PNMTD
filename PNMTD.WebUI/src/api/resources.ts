@@ -161,8 +161,13 @@ export const api = {
     resetPassword: (id: Id) => call(client.POST('/api/v1/users/{id}/reset-password', { params: { path: { id } } })),
     resetTotp: (id: Id) => call(client.POST('/api/v1/users/{id}/reset-totp', { params: { path: { id } } })),
     unlock: (id: Id) => call(client.POST('/api/v1/users/{id}/unlock', { params: { path: { id } } })),
+  },
+
+  // --- the audit log (docs/audit-redmine-zabbix-plan.md §4.2) ------------------------------------
+  audit: {
     log: (query: ListQuery & { userId?: Id; type?: string }) =>
-      call(client.GET('/api/v1/auth-log', { params: { query } })),
+      call(client.GET('/api/v1/audit-log', { params: { query } })),
+    types: () => call(client.GET('/api/v1/audit-log/types')),
   },
 
   mikrotik: {
@@ -603,6 +608,7 @@ export const keys = {
   mail: ['mail'] as const,
   keyValues: ['key-values'] as const,
   users: ['users'] as const,
+  audit: ['audit'] as const,
   system: ['system'] as const,
   /** Everything UDP: the admin page's lists, a node's packets, commands and updates, the protocol examples. */
   udp: ['udp'] as const,
