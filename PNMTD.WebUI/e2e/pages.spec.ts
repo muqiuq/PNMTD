@@ -19,6 +19,8 @@ test.afterEach(() => expect(problems).toEqual([]))
 
 const pages: [string, string, string][] = [
   ['/hosts', 'Hosts', 'hosts'],
+  ['/locations', 'Locations', 'locations'],
+  ['/kb', 'Knowledge base', 'kb'],
   ['/events', 'Events', 'events'],
   ['/dns-zones', 'DNS zones', 'dns-zones'],
   ['/mail-inputs', 'Mail inputs', 'mail-inputs'],
@@ -27,6 +29,8 @@ const pages: [string, string, string][] = [
   ['/admin/key-values', 'Key values', 'key-values'],
   ['/admin/users', 'Users', 'users'],
   ['/admin/auth-log', 'Auth log', 'auth-log'],
+  ['/admin/location-fields', 'Location fields', 'location-fields'],
+  ['/admin/knowledge-base', 'Knowledge base', 'admin-kb'],
   ['/admin/system', 'System health', 'system'],
   ['/docs', 'Documentation', 'docs'],
 ]
@@ -202,7 +206,16 @@ test('a viewer sees no tokens, no admin pages and no write buttons', async ({ pa
 test('the pages fit a phone', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 780 })
   await signIn(page)
-  for (const path of ['/hosts', '/events', '/notification-rules', '/dns-zones', '/admin/users', '/docs']) {
+  for (const path of [
+    '/hosts',
+    '/locations',
+    '/kb',
+    '/events',
+    '/notification-rules',
+    '/dns-zones',
+    '/admin/users',
+    '/docs',
+  ]) {
     await open(page, path)
     const wide = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)
     expect(wide, `${path} scrolls sideways`).toBe(false)

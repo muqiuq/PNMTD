@@ -12,6 +12,11 @@
 #   tools/e2e.sh                 all of it
 #   KEEP=1 tools/e2e.sh          leave the stack running afterwards
 #   tools/e2e.sh -g "phone"      arguments go to `playwright test`
+#   E2E_NAME=pnmtd-e2e-2 E2E_PORT=7498 E2E_UDP_PORT=7497 tools/e2e.sh
+#                                another stack beside this one (containers, volumes and folders named after it)
+#
+# AI is on against an address that never answers, with its scheduled uses off: the knowledge base's AI question opens
+# (docs/locations-knowledge-plan.md §7.2), and nothing is sent.
 #
 # Screenshots for review land in PNMTD.WebUI/test-results/screens/.
 set -euo pipefail
@@ -23,15 +28,18 @@ WEB_MODULES_VOLUME="${WEB_MODULES_VOLUME:-pnmtd-web-node-modules}"
 version="$(sed -n 's/.*"@playwright\/test": "\([0-9.]*\)".*/\1/p' PNMTD.WebUI/package.json)"
 PLAYWRIGHT_IMAGE="${PLAYWRIGHT_IMAGE:-mcr.microsoft.com/playwright:v${version}-noble}"
 
-export ENGINE NAME=pnmtd-e2e DB_NAME=pnmtd-e2e-db NETWORK=pnmtd-e2e PG_VOLUME=pnmtd-e2e-pgdata \
-  KEYS_VOLUME=pnmtd-e2e-keys DOWNLOADS_VOLUME=pnmtd-e2e-downloads PORT="${E2E_PORT:-7398}" UDP_PORT="${E2E_UDP_PORT:-7397}" WEB="" SEED=1 \
-  FILES_DIR="$PWD/.tmpcheck/e2e-files"
+E2E_NAME="${E2E_NAME:-pnmtd-e2e}"
+export ENGINE NAME="$E2E_NAME" DB_NAME="${E2E_NAME}-db" NETWORK="$E2E_NAME" PG_VOLUME="${E2E_NAME}-pgdata" \
+  KEYS_VOLUME="${E2E_NAME}-keys" DOWNLOADS_VOLUME="${E2E_NAME}-downloads" PORT="${E2E_PORT:-7398}" UDP_PORT="${E2E_UDP_PORT:-7397}" WEB="" SEED=1 \
+  FILES_DIR="$PWD/.tmpcheck/${E2E_NAME}-files"
 
 # Settings of their own: start.sh adds the generated passwords. The tests sign in more often than
 # the login rate limit allows from one address (10 a minute); the .NET tests cover the limit.
 mkdir -p .tmpcheck
-export ENV_FILE="$PWD/.tmpcheck/e2e.env"
-(umask 077 && printf '%s\n' 'Auth__LoginRateLimit__PermitLimit=1000' >"$ENV_FILE")
+export ENV_FILE="$PWD/.tmpcheck/${E2E_NAME}.env"
+(umask 077 && printf '%s\n' 'Auth__LoginRateLimit__PermitLimit=1000' \
+  'Ai__Enabled=true' 'Ai__ApiKey=e2e-no-provider' 'Ai__BaseUrl=http://127.0.0.1:9/api/v1' 'Ai__Guard__Url=http://127.0.0.1:9/api/alpha/decisions' \
+  'Ai__Mail__Enabled=false' 'Ai__Analysis__Enabled=false' 'Mikrotik__Advisories__Enabled=false' >"$ENV_FILE")
 
 cleanup() {
   if [[ "$KEEP" != "1" ]]; then
