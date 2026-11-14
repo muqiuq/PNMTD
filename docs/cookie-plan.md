@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Status | **Revision 7: changes to package nine, planned** (§20). **Package nine (A and B) is built** (§19, §19.8). Package nine point five is planned only. **Two packages: nine (Cookie watches) and nine point five (Cookie acts), §3.4.** The models are in §14, the big brother in §15, the review's answers in §16, the critical review in §17, and its answers in §18. The default prompts are in docs/cookie-prompts.md |
+| Status | **Revision 8: package nine point five (C and D) is being built** (§21), after **revision 7** (§20). **Package nine (A and B) is built** (§19, §19.8). Package nine point five is planned only. **Two packages: nine (Cookie watches) and nine point five (Cookie acts), §3.4.** The models are in §14, the big brother in §15, the review's answers in §16, the critical review in §17, and its answers in §18. The default prompts are in docs/cookie-prompts.md |
 | Date | 2026-11-14 |
-| Revision | 7: **changes to package nine** (§20):<ul><li>**a person can stop a case, with a comment,** and anyone may comment on a case (§4.3);</li><li>**the dashboard's card in Cookie's window** too (§9.2);</li><li>**on the user:** e-mail, Pushover key, Redmine user, and for the plan a short code, a colour and a default week (§8.1);</li><li>**the availability plan,** a page of its own, after the team's Excel plan: a row per day with the responsible, the fallback and a comment, count columns, and each person's availability by type, always filled for 365 days ahead. **It is the base for Cookie's decisions about people,** and replaces *who gets what*, Cookie's working hours and people's quiet hours (§8.2 to §8.4, §9.4)</li></ul>6: **package nine is built** (§19, As built §19.8), and **Cookie and MCP** (§3.5): one set of read tools, built here, called directly by Cookie and offered over MCP by package eight.<br>5: **the critical review's answers applied** (§18):<ul><li>**two packages** (§3.4);</li><li>**Admin → Cookie** sets almost everything: working hours, who gets notified, output limits, case instructions, and prompts that ship with defaults (§9.3, docs/cookie-prompts.md);</li><li>**output limits in code** (§6.1);</li><li>**Seraph only on what leaves PNMT or reaches people** (§5);</li><li>**mute, away and suppress as objects** (§10.3);</li><li>**the trace by rights** (§9.2);</li><li>**privacy: `Code` by default, people only** (§13.2);</li><li>**the ticket clock** (§7.2).</li></ul>4: **a critical review** (§17), from two independent reads, with 18 questions on what to change (§18). The big brother cost in §15.5 is corrected.<br>3: **the big brother** (§15): **two models**, Kimi K3.1 Pro as the primary and a proposed backup, compared with the Claude, Gemini and OpenAI models. Each call picks one at random. Cookie asks for a solution when something important needs fixing and nobody is taking care of it. And a correction in §14.2 (Terminal-Bench, not SRE Bench).<br>2: **the review applied** (§16):<ul><li>working hours per weekday, plus holidays with their own hours (§7.3);</li><li>after a restart, Cookie resumes;</li><li>*AI every time* mail rules go to Cookie (§12);</li><li>temporary instructions, for whoever has the right *Cookie: Instruct* (§10);</li><li>package eight's tool for talking to the AI sends a message to Cookie;</li><li>escalations go to a PNMT group.</li></ul>1: the first draft, with the model research (§14) |
+| Revision | 8: **building package nine point five** (§21): proposals through an executor and Seraph, the inbox for *Propose*, Cookie's texts for the duties, the *AI every time* mails, mute and suppress, the big brother, ratings and lessons. **Narrowed:** the unhandled-mail analysis stays with package one, and messages from MCP wait for package eight (§21.1).<br>7: **changes to package nine** (§20):<ul><li>**a person can stop a case, with a comment,** and anyone may comment on a case (§4.3);</li><li>**the dashboard's card in Cookie's window** too (§9.2);</li><li>**on the user:** e-mail, Pushover key, Redmine user, and for the plan a short code, a colour and a default week (§8.1);</li><li>**the availability plan,** a page of its own, after the team's Excel plan: a row per day with the responsible, the fallback and a comment, count columns, and each person's availability by type, always filled for 365 days ahead. **It is the base for Cookie's decisions about people,** and replaces *who gets what*, Cookie's working hours and people's quiet hours (§8.2 to §8.4, §9.4)</li></ul>6: **package nine is built** (§19, As built §19.8), and **Cookie and MCP** (§3.5): one set of read tools, built here, called directly by Cookie and offered over MCP by package eight.<br>5: **the critical review's answers applied** (§18):<ul><li>**two packages** (§3.4);</li><li>**Admin → Cookie** sets almost everything: working hours, who gets notified, output limits, case instructions, and prompts that ship with defaults (§9.3, docs/cookie-prompts.md);</li><li>**output limits in code** (§6.1);</li><li>**Seraph only on what leaves PNMT or reaches people** (§5);</li><li>**mute, away and suppress as objects** (§10.3);</li><li>**the trace by rights** (§9.2);</li><li>**privacy: `Code` by default, people only** (§13.2);</li><li>**the ticket clock** (§7.2).</li></ul>4: **a critical review** (§17), from two independent reads, with 18 questions on what to change (§18). The big brother cost in §15.5 is corrected.<br>3: **the big brother** (§15): **two models**, Kimi K3.1 Pro as the primary and a proposed backup, compared with the Claude, Gemini and OpenAI models. Each call picks one at random. Cookie asks for a solution when something important needs fixing and nobody is taking care of it. And a correction in §14.2 (Terminal-Bench, not SRE Bench).<br>2: **the review applied** (§16):<ul><li>working hours per weekday, plus holidays with their own hours (§7.3);</li><li>after a restart, Cookie resumes;</li><li>*AI every time* mail rules go to Cookie (§12);</li><li>temporary instructions, for whoever has the right *Cookie: Instruct* (§10);</li><li>package eight's tool for talking to the AI sends a message to Cookie;</li><li>escalations go to a PNMT group.</li></ul>1: the first draft, with the model research (§14) |
 | Scope | Package nine of docs/ideas2.md: Cookie (the assistant loop), Seraph (the reviewer), the big brother, the privacy filter, the decision log with feedback, and Cookie's three pages. **Built as two packages** (§3.4): **nine**, the bookkeeping in code and Cookie watching, and **nine point five**, Cookie acting |
 | Non-goals | **Deleting or changing anything** (Cookie only adds things). **Cookie changing its own configuration.** **Access to server consoles** (package ten). **Replacing notification rules:** they keep running whether Cookie is there or not. Training or fine-tuning |
 | Depends on | Package one's AI foundation (`PNMTD/Ai/`: provider, Jev, request log, budget, decisions inbox). Five point five (groups and rights, audit with `Actor = Cookie / Seraph`). Six and seven (Redmine, Zabbix). **Not on eight:** Cookie comes first and builds the read tools that package eight's MCP server will offer (§3.5) |
@@ -1352,3 +1352,94 @@ It is built like package nine: in phases, each with its tests, as commits on mas
 - **Cases:** a stopped case's due duties are closed as *stopped*, Cookie doesn't work it, and a new member lets it go on; a comment reaches the brief, screened.
 - **The migration** moves the contacts and the hours, and creates the types.
 - **The endpoints** in the access matrix.
+
+---
+
+## 21. Building package nine point five (C and D)
+
+**Decided on 2026-11-15: build C and D now, after revision 7.** This section says how, and where the build narrows the sections above. Package nine's rules stay: code keeps the books, every action only adds, and every limit is in code.
+
+### 21.1 What C and D mean in the code
+
+- **Cookie proposes; code decides whether it happens.** Each case's work ends, as in package nine, in one call with a strict schema and no tools. Its answer now has, besides the note, **proposals**: the action of §6, the targets as ids from the brief or the tools, the text, the reason, the evidence ids, a confidence and an urgency. Code never reads an address or a name from the text.
+- **The executor** takes each proposal through, in this order, and logs every step in **Cookie's decision log**:
+  1. **the action's level** (*Off · Propose · Auto*, per action, on *Actions*): *Off* drops it;
+  2. **the confidence threshold** (per action): below it, it goes to a person (*Propose*);
+  3. **the targets:** each id must exist, a person must be an active PNMT user with the channel's address, a ticket must be in a project PNMT shows, and Cookie's group must have the right for it (a note on a ticket: *Redmine: View*; a ticket: *Redmine: Link*; a note on a host: *Monitoring: Edit*);
+  4. **mute and suppress** (§10.3), and **the stop of its case** (§4.3);
+  5. **duplicates:** the same action on the same target for the same case within a day is dropped;
+  6. **Seraph,** for everything that leaves PNMT or reaches people (§5): *approve*, *revise* (Cookie gets one retry with Seraph's reason), *reject*, or *ask a person*. **Without Seraph** (no model, or it fails), the proposal goes to a person;
+  7. **the level again:** *Propose* puts it into **the decisions inbox** (a new kind, `cookie.action`: *Do it* · *Don't*, with a comment); *Auto* runs it;
+  8. **running it** through the outbox (§6.1), with the placeholders restored and Cookie's name as the signature.
+- **The default levels** follow §13.4: everything that leaves PNMT or reaches people starts at **Propose**; a note on a host, sensor or location, and the event of an *AI every time* rule, start at **Auto** (both stay inside PNMT, and the event has Seraph). **Thresholds start at 0.7.**
+- **Cookie writes the reminders and escalations itself** (§3.4 C) when *Actions → Cookie writes the duties' texts* is on and Cookie is running: code still decides when, to whom and through which limits; Cookie writes the text from the case, Seraph reviews it, and **the template is used whenever Cookie is stopped, paused, slow or rejected.**
+- **Mail rules set to *AI every time* go to Cookie** (§12) while `Cookie__Enabled=true`: a matching mail waits for Cookie's next round, Cookie decides *ok*, *fail* or *unknown* with a strict schema, the event is the action *MailEvent* (Seraph in place of the verification model), and *unknown*, a Jev hit or a rejection becomes the inbox's existing *The AI could not decide* decision. **While Cookie is stopped or paused, such mails wait, visible in the mail log.**
+- **Narrowed: the analysis of unhandled mails stays with package one.** It already proposes mail rules through the inbox; moving it into Cookie's round would only rename it. Cookie sees how many mails wait unhandled in its brief. To be moved when Cookie proposes rules itself.
+- **Mute and suppress** (§10.3) are rows code checks: *mute* a host, sensor, location or case; *suppress* a channel, a sensor type or a kind of case. Each has an end date, at most 30 days away. **In the chat, Cookie only fills in a draft for someone with *Instruct*; the person confirms it in PNMT's UI.** *Admin → Cookie → Mute, suppress* lists, creates and ends them. A free-text instruction with an end date goes into the prompts' `{instructions}`.
+- **The big brother** (§15): code offers a case when it matters and nobody has taken care of it for a working day (§15.2, conditions 2 and 3); Cookie confirms in its answer that it needs fixing; a person with *Instruct* can ask on the case. One of the two models at random, the other for a second call on the same case or when the first fails; read tools with Cookie's group's rights, up to 60 tool calls; its own budget (`Cookie__BigBrother__BudgetUsd`) and the limits of §15.5. **The solution goes into the case, and then as a private note on the case's ticket (a proposal like any other), or, without a ticket, into the inbox** (`cookie.solution`: *Open a ticket with it* · *Someone is on it* · *Not useful*).
+- **Ratings and lessons** (§11): every entry of the decision log can be rated *Right* or *Wrong* with a comment, by whoever may see its case. Once a day, or after 10 new ratings, the summariser turns them into **lessons, a versioned section** of *Admin → Cookie* (edit, disable, roll back). **A lesson marked as a suppress rule becomes a suppress object** for 30 days, shown on the admin page. Active lessons go into every prompt's `{lessons}`.
+- **Seraph** also answers in the chat (a person picks *Seraph*): it explains its verdicts from the decision log, and can't act. Once a day it writes **a drift report** from the last day's decisions and a sample of Cookie's notes (1 in 10) into the decision log.
+- **Narrowed: messages from MCP wait for package eight,** which has no server yet. Cookie's chat already takes a message with the asker's rights; package eight adds the token's source and the read-only rule (§10.2).
+
+### 21.2 Data model
+
+| Table | What it holds |
+|---|---|
+| `cookie_decisions` | **Cookie's decision log:** when, the case and the round, the action, the proposal (JSON), the confidence, Seraph's verdict and reason, the outcome (*done*, *proposed*, *rejected*, *off*, *below threshold*, *duplicate*, *muted*, *held back*, *failed*), the inbox decision, the outbox row, the model, the rating with its comment and who gave it, the source areas |
+| `cookie_instructions` | Mute, suppress and free-text instructions: kind, what (scope and value), the text, until, a draft or confirmed, by whom, ended by whom |
+| `cookie_cases` | **New:** the big brother asked (by whom, when), and the last solution |
+| `cookie_messages` | **New:** to Cookie or to Seraph; a draft instruction a reply carries |
+| `cookie_settings` | **New section** `lessons`; *Actions* gains the levels and thresholds, and *Cookie writes the duties' texts*; *Models* gains Seraph's and the big brother's models |
+| `maillogs` | **New AI state** *waiting for Cookie* |
+
+### 21.3 Server
+
+| Piece | Job |
+|---|---|
+| `CookieExecutor` | The steps of §21.1, the decision log, running an approved proposal |
+| `Seraph` | Reviews, the chat, the daily drift report |
+| `DutyWriter` | Cookie's text for a reminder or an escalation, with Seraph; the template otherwise |
+| `CookieMail` | The *AI every time* mails in Cookie's round |
+| `Instructions` | Mute, suppress and instructions: active ones, drafts, confirming, ending, the checks |
+| `BigBrother` | The offer, the call, the fallback, the solution, its budget |
+| `Lessons` | Ratings, the daily summariser, lessons into prompts, rule lessons into suppress objects |
+| `CookieActionDecision`, `CookieSolutionDecision` | The inbox's two new kinds |
+
+### 21.4 API
+
+| Endpoint | What | Right |
+|---|---|---|
+| `GET cookie/decisions` | The decision log, by the reader's rights (§9.2) | *Cookie: Use* |
+| `PUT cookie/decisions/{id}/rating` | *Right* or *Wrong*, with a comment | *Cookie: Use*, and seeing its case |
+| `POST cookie/cases/{id}/big-brother` | *Ask the big brother* | *Cookie: Instruct* |
+| `POST cookie/messages` | **Now with** *to Seraph* | *Cookie: Use* |
+| `POST cookie/instructions/{id}/confirm`, `…/end` | Confirm a draft from the chat; end one | *Cookie: Instruct* |
+| `GET`, `POST cookie/admin/instructions` | The list, and a new one | *Cookie: Manage* |
+| `PUT cookie/admin/settings/lessons` | The lessons (versioned) | *Cookie: Manage* |
+
+### 21.5 Web UI
+
+- **Cookie's window:** a *Decisions* tab (the log, with *Right* and *Wrong*); on a case, *Ask the big brother* and the solution; the chat with a choice of *Cookie* or *Seraph*, and *Confirm* on an instruction Cookie filled in.
+- **The decisions inbox** shows the two new kinds with their options.
+- ***Admin → Cookie*:** *Actions* gains the levels, thresholds and *Cookie writes the duties' texts*; new tabs *Mute, suppress* and *Lessons*; *Models* gains Seraph and the big brother; the Overview counts proposals, verdicts and the big brother's budget.
+
+### 21.6 Phases
+
+| Phase | Content |
+|---|---|
+| **C1** | **Proposals, the executor, Seraph and the inbox:** levels and thresholds, the decision log, `cookie.action`, the action kinds of §6 |
+| **C2** | **Cookie writes the duties' texts,** and **the *AI every time* mails** in Cookie's round |
+| **D1** | **Mute, suppress and instructions,** with drafts from the chat |
+| **D2** | **The big brother** |
+| **D3** | **Ratings and lessons, Seraph in the chat, the drift report** |
+| **CD-UI** | The web UI of §21.5, the documentation, the release notes, and an *As built* for C and D |
+
+### 21.7 Testing
+
+- **the executor,** with a fake model: a proposal below its threshold goes to a person; *Off* drops it; an unknown id or a missing right is refused; a duplicate is dropped; a muted host gets nothing; Seraph's *revise* gets one retry, *reject* stops it, no Seraph sends it to a person; *Propose* raises an inbox decision, and approving it sends through the outbox;
+- **the duties' texts:** Cookie's when approved, the template when Cookie is stopped or Seraph rejects;
+- **the mails:** an *AI every time* mail waits for Cookie, *ok* writes the rule's OK code, *unknown* raises the decision, a stopped Cookie leaves it waiting;
+- **instructions:** a draft does nothing until confirmed; an ended one stops counting; at most 30 days;
+- **the big brother:** the other model on the second call and on a failure; the limits and the budget send it to a person; the solution lands on the ticket or in the inbox;
+- **lessons:** a rating counts once; the summariser's suppress rule becomes a suppress object; the lessons reach the prompt;
+- **the endpoints** in the access matrix.
