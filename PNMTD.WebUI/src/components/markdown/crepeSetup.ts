@@ -300,7 +300,8 @@ function pastedHtml(
     } else if (/^data:image\//i.test(src) && upload) {
       const file = dataUrlToFile(src, alt.replace(/[^\p{L}\p{N}._-]+/gu, '-').slice(0, 60))
       if (file) {
-        const token = `pnmt-pending:${++counter}`
+        // A transparent pixel stands in while it uploads: img-src allows data:, an own scheme would be a CSP violation.
+        const token = `data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7#pnmt-upload-${++counter}`
         img.setAttribute('src', token)
         pending.set(token, file)
       } else {
@@ -399,7 +400,12 @@ export interface VisualEditorOptions {
   pickPage: (() => Promise<PageLink | null>) | null
   /** A diagram's preview for a `mermaid` code block, as an element; undefined while it draws. */
   renderDiagram: (source: string, apply: (preview: HTMLElement | null) => void) => void
-  onChange: (markdown: string) => void
+  /**
+   * The document changed. Called at once, for every change: Milkdown's own listener reports 200 ms
+   * late, which a save, a switch or leaving right after typing would miss. The Markdown is written
+   * when asked for (VisualEditorHandle.markdown()).
+   */
+  onDocChange: () => void
   notice: (message: string) => void
 }
 
@@ -549,7 +555,20 @@ export async function createVisualEditor(options: VisualEditorOptions): Promise<
     .use(imageBlockKeepingAlt)
     .use(uploadPlaceholders)
 
-  crepe.on((listener) => listener.markdownUpdated((_ctx, markdown) => options.onChange(markdown)))
+  crepe.editor.use(
+    $prose(
+      () =>
+        new Plugin({
+          view: () => ({
+            update: (view, previous) => {
+              if (!view.state.doc.eq(previous.doc)) {
+                options.onDocChange()
+              }
+            },
+          }),
+        }),
+    ),
+  )
 
   await crepe.create()
 

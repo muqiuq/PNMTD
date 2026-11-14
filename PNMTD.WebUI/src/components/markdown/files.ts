@@ -8,7 +8,8 @@ export function fileSize(bytes: number): string {
   if (bytes < 1024 * 1024) {
     return `${Math.round(bytes / 1024)} KB`
   }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  const mb = bytes / (1024 * 1024)
+  return Number.isInteger(mb) ? `${mb} MB` : `${mb.toFixed(1)} MB`
 }
 
 /** The lower-case extension of a file name, without the dot ("" without one). */

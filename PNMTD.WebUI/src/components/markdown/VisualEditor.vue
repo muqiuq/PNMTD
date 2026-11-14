@@ -23,6 +23,8 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   'update:modelValue': [markdown: string]
+  /** Edits not yet in v-model (they follow within 150 ms, or at once with flush()). */
+  pending: [pending: boolean]
   ready: [markdown: string]
   failed: [error: unknown]
   notice: [message: string]
@@ -36,15 +38,38 @@ let destroyed = false
 let original = props.modelValue
 let baseline: string | null = null
 let last = props.modelValue
+// Edits not yet written as Markdown: writing it is work for a long page, so it waits for a pause in
+// typing, or until someone asks (flush).
+let pending = false
+let pause: ReturnType<typeof setTimeout> | undefined
 
-function onChange(markdown: string) {
+/** Writes the document as Markdown now and updates v-model; returns the text. */
+function flush(): string {
+  clearTimeout(pause)
+  if (handle && baseline !== null && pending) {
+    const markdown = handle.markdown()
+    last = markdown === baseline ? original : markdown
+    if (last !== props.modelValue) {
+      emit('update:modelValue', last)
+    }
+  }
+  if (pending) {
+    pending = false
+    emit('pending', false)
+  }
+  return last
+}
+
+function onDocChange() {
   if (baseline === null) {
     return
   }
-  last = markdown === baseline ? original : markdown
-  if (last !== props.modelValue) {
-    emit('update:modelValue', last)
+  if (!pending) {
+    pending = true
+    emit('pending', true)
   }
+  clearTimeout(pause)
+  pause = setTimeout(flush, 150)
 }
 
 /** A `mermaid` block's diagram under its code (§5.2, §5.8). */
@@ -78,7 +103,7 @@ onMounted(async () => {
       upload: props.upload,
       pickPage: props.pickPage ?? null,
       renderDiagram,
-      onChange,
+      onDocChange,
       notice: (message) => emit('notice', message),
     })
     if (destroyed) {
@@ -107,6 +132,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  flush()
   destroyed = true
   void handle?.destroy()
   handle = null
@@ -115,6 +141,8 @@ onBeforeUnmount(() => {
 defineExpose({
   /** The Markdown Crepe writes for the document now. */
   markdown: () => handle?.markdown() ?? props.modelValue,
+  /** Brings v-model up to date with the document at once, and returns the text (before a save or a switch). */
+  flush,
   focus: () => handle?.focus(),
   /** Inserts Markdown at the cursor: an uploaded file, a link. */
   insertMarkdown: (markdown: string) => handle?.insertMarkdown(markdown),

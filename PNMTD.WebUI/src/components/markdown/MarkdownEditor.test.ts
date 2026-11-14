@@ -6,7 +6,10 @@ import ConfirmationService from 'primevue/confirmationservice'
 import ToastService from 'primevue/toastservice'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
+import { createMemoryHistory, createRouter, RouterView } from 'vue-router'
 import { usePreferences } from '@/stores/preferences'
+import Tooltip from 'primevue/tooltip'
+import { mount } from '@vue/test-utils'
 import { mountWithUi } from '@/test/mount'
 import MarkdownEditor from './MarkdownEditor.vue'
 import type { MarkdownSave } from './types'
@@ -18,7 +21,10 @@ vi.mock('./VisualEditor.vue', () => ({
   default: defineComponent({
     props: { modelValue: { type: String, required: true } },
     emits: ['ready', 'update:modelValue'],
-    setup: (props) => () => h('div', { class: 'visual-stand-in' }, props.modelValue),
+    setup: (props, { expose }) => {
+      expose({ flush: () => props.modelValue, markdown: () => props.modelValue, focus() {}, insertMarkdown() {} })
+      return () => h('div', { class: 'visual-stand-in' }, props.modelValue)
+    },
     mounted() {
       this.$emit('ready', this.modelValue.replace(/^\* /gm, '- '))
     },
@@ -239,5 +245,55 @@ describe('MarkdownEditor', () => {
     editor.find('textarea').element.dispatchEvent(paste)
     await flushPromises()
     expect(document.body.textContent).toContain('Files can’t be added here.')
+  })
+
+  it('fills the editing page: its slots, the folded details and Save', async () => {
+    const save = vi.fn<(s: MarkdownSave) => void>()
+    const Page = defineComponent({
+      setup: () => () =>
+        h(
+          MarkdownEditor,
+          {
+            modelValue: 'text',
+            mode: 'page',
+            backLabel: 'KB-42',
+            baseRevision: 2,
+            detailsSummary: 'summary · 2 tags',
+            onSave: save,
+          },
+          {
+            title: () => h('input', { class: 'title-field', value: 'Printer setup' }),
+            status: () => h('span', { class: 'status-field' }, 'Published'),
+            others: () => h('span', 'Anna Muster is editing this page'),
+            details: () => h('div', { class: 'details-field' }, 'tags'),
+          },
+        ),
+    })
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: Page }] })
+    await router.push('/')
+    const app = mount(RouterView, {
+      attachTo: document.body,
+      global: {
+        plugins: [router, [PrimeVue, { unstyled: true }], ToastService, ConfirmationService],
+        directives: { tooltip: Tooltip },
+      },
+    })
+    await flushPromises()
+    expect(app.find('.editing-header .title-field').exists()).toBe(true)
+    expect(app.find('.editing-header .status-field').text()).toBe('Published')
+    expect(app.text()).toContain('Anna Muster is editing this page')
+    expect(app.find('.details-toggle').text()).toContain('summary · 2 tags')
+    expect(app.find('.details-field').isVisible()).toBe(false)
+    await app.find('.details-toggle').trigger('click')
+    expect(app.find('.details-field').isVisible()).toBe(true)
+    expect(app.find('[aria-label="Editor"]').exists()).toBe(true)
+
+    Array.from(document.body.querySelectorAll('button'))
+      .find((b) => b.textContent?.trim() === 'Save')!
+      .click()
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, cancelable: true }))
+    expect(save).toHaveBeenCalledTimes(2)
+    expect(save.mock.calls[0]![0]).toMatchObject({ markdown: 'text', revision: 2 })
+    app.unmount()
   })
 })

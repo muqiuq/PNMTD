@@ -152,6 +152,18 @@ describe('drawing', () => {
     }
   })
 
+  it.each([
+    ['journey', 'journey\n  title A day\n  section Morning\n    Coffee: 5: Me', 'Coffee'],
+    ['timeline', 'timeline\n  2019 : opened\n  2026 : uplink', 'uplink'],
+  ])('draws a %s with its texts as SVG text, not in a foreignObject', async (_type, source, text) => {
+    const result = await drawDiagram(source, lightTheme)
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.svg).not.toMatch(/foreignObject/i)
+      expect(result.svg).toContain(text)
+    }
+  })
+
   it('shows a syntax error with its message', async () => {
     const result = await drawDiagram('flowchart LR\n  a -->', lightTheme)
     expect(result.ok).toBe(false)

@@ -193,7 +193,19 @@ const modeOptions = [
   { label: 'Markdown', value: 'markdown' },
 ]
 
-const visual = ref<{ markdown(): string; focus(): void; insertMarkdown(text: string): void } | null>(null)
+const visual = ref<{
+  markdown(): string
+  flush(): string
+  focus(): void
+  insertMarkdown(text: string): void
+} | null>(null)
+/** The visual editor has edits it hasn't written as Markdown yet (VisualEditor's `pending`). */
+const visualPending = ref(false)
+
+/** The text as it is now, the visual editor's latest edits included. */
+function current(): string {
+  return surface.value === 'visual' && visual.value ? visual.value.flush() : markdown.value
+}
 const code = ref<{ focus(): void; insertMarkdown(text: string): void; revealLine(line: number): void } | null>(null)
 const textarea = ref<HTMLTextAreaElement | null>(null)
 
@@ -208,6 +220,7 @@ function setMode(mode: EditorMode | null) {
     return
   }
   if (mode === 'markdown') {
+    current()
     checking.value = false
     wanted.value = 'markdown'
     return
@@ -245,7 +258,7 @@ const previewOpen = ref(false)
 // --- the text as it started, drafts (§5.7) -------------------------------------------------------
 
 const pristine = ref(markdown.value)
-const dirty = computed(() => markdown.value !== pristine.value || props.detailsDirty)
+const dirty = computed(() => markdown.value !== pristine.value || visualPending.value || props.detailsDirty)
 watch(dirty, (value) => emit('dirty', value))
 
 interface Draft {
@@ -339,7 +352,9 @@ function revision(): Revision | null {
 
 /** The server accepted the save: no draft, nothing unsaved (leaving doesn't ask). */
 function saved() {
-  pristine.value = markdown.value
+  // What was saved; anything typed while the save was on its way stays unsaved.
+  pristine.value = lastSave?.markdown ?? current()
+  lastSave = null
   draftRevision.value = undefined
   draftOffer.value = null
   removeDraft()
@@ -348,7 +363,8 @@ function saved() {
 /** Cancel or leaving, confirmed: the changes and their draft go. */
 function discard() {
   removeDraft()
-  pristine.value = markdown.value
+  visualPending.value = false
+  pristine.value = current()
 }
 
 // --- saving and its dialogs (§5.7) --------------------------------------------------------------
@@ -360,7 +376,7 @@ function save(flags: Partial<MarkdownSave> = {}) {
     return
   }
   lastSave = {
-    markdown: markdown.value,
+    markdown: current(),
     revision: revision(),
     overwrite: false,
     acknowledgeCredentials: false,
@@ -405,7 +421,7 @@ function answerCredentials(answer: 'save' | 'sensitive' | 'edit') {
   }
   save({
     ...(lastSave ?? {}),
-    markdown: markdown.value,
+    markdown: current(),
     acknowledgeCredentials: true,
     markSensitive: answer === 'sensitive',
   })
@@ -792,6 +808,7 @@ defineExpose({
         :pick-page="pickPage"
         :placeholder="placeholder"
         @ready="onVisualReady"
+        @pending="(p: boolean) => (visualPending = p)"
         @failed="(e: unknown) => fail('visual', e)"
         @notice="(text: string) => addNotice({ severity: 'info', text })"
       />

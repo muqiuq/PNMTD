@@ -83,6 +83,9 @@ export function mermaidConfig(theme: DiagramTheme): MermaidConfig {
     htmlLabels: false,
     // Deprecated for the root-level setting, but some diagram types still read their own.
     flowchart: { htmlLabels: false },
+    // These two place their texts in foreignObject by default, which the sanitiser removes (K0).
+    journey: { textPlacement: 'tspan' },
+    timeline: { textPlacement: 'tspan' },
     secure: secureKeys,
     maxTextSize,
     maxEdges,

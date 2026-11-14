@@ -31,7 +31,7 @@ async function open(markdown: string): Promise<{ handle: VisualEditorHandle; roo
     upload: null,
     pickPage: null,
     renderDiagram: () => {},
-    onChange: () => {},
+    onDocChange: () => {},
     notice: () => {},
   })
   return { handle, root }

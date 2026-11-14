@@ -45,7 +45,8 @@
   --crepe-color-surface-low: var(--pnmt-bg);
   --crepe-color-on-surface: var(--pnmt-text);
   --crepe-color-on-surface-variant: var(--pnmt-muted);
-  --crepe-color-outline: var(--pnmt-border);
+  /* Crepe draws its toolbar icons in the outline colour too: a mid tone, legible as an icon (4.7:1). */
+  --crepe-color-outline: var(--p-surface-500);
   --crepe-color-primary: var(--p-primary-color);
   --crepe-color-secondary: var(--p-highlight-background);
   --crepe-color-on-secondary: var(--p-highlight-color);
@@ -67,6 +68,7 @@
 }
 
 :root.pnmt-dark .pnmt-md-editor .milkdown {
+  --crepe-color-outline: var(--p-surface-400);
   --crepe-color-inline-code: var(--p-red-300);
   --crepe-color-inverse: var(--p-surface-100);
   --crepe-color-on-inverse: var(--p-surface-900);
