@@ -112,6 +112,26 @@ namespace PNMTD.Data
         public DbSet<WindowsRunAsEntity> WindowsRunAs { get; set; }
         public DbSet<AgentScriptRunEntity> AgentScriptRuns { get; set; }
 
+        // Locations (docs/locations-knowledge-plan.md §3, §4, §8.2).
+        public DbSet<LocationEntity> Locations { get; set; }
+        public DbSet<LocationFieldEntity> LocationFields { get; set; }
+        public DbSet<LocationValueEntity> LocationValues { get; set; }
+        public DbSet<LocationHistoryEntity> LocationHistory { get; set; }
+
+        // The knowledge base (docs/locations-knowledge-plan.md §6, §7, §8.2).
+        public DbSet<KbPageEntity> KbPages { get; set; }
+        public DbSet<KbRevisionEntity> KbRevisions { get; set; }
+        public DbSet<KbTagEntity> KbTags { get; set; }
+        public DbSet<KbPageTagEntity> KbPageTags { get; set; }
+        public DbSet<KbLinkEntity> KbLinks { get; set; }
+        public DbSet<KbPageRefEntity> KbPageRefs { get; set; }
+        public DbSet<KbPageViewEntity> KbPageViews { get; set; }
+        public DbSet<KbAiQuestionEntity> KbAiQuestions { get; set; }
+
+        // Uploaded files (docs/locations-knowledge-plan.md §5.5, §8.2): their metadata; the bytes are in the files folder.
+        public DbSet<FileEntity> Files { get; set; }
+        public DbSet<FileUseEntity> FileUses { get; set; }
+
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
         }
@@ -388,7 +408,169 @@ namespace PNMTD.Data
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(x => x.SensorId).OnDelete(DeleteBehavior.Cascade);
             });
 
+            ConfigureLocations(modelBuilder);
+            ConfigureKnowledgeBase(modelBuilder);
+            ConfigureFiles(modelBuilder);
+
             base.OnModelCreating(modelBuilder);
+        }
+
+        /// <summary>
+        /// Locations (docs/locations-knowledge-plan.md §8.2): a parent can't be deleted while it has sub-locations (§3.3);
+        /// deleting a location unassigns its hosts and takes its values and history along.
+        /// </summary>
+        private static void ConfigureLocations(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<LocationEntity>(e =>
+            {
+                e.HasOne(l => l.Parent).WithMany().HasForeignKey(l => l.ParentId).OnDelete(DeleteBehavior.Restrict);
+                // Names are unique among siblings, at the top level too, where ParentId is null (§3.1).
+                e.HasIndex(l => new { l.ParentId, l.NormalizedName }).IsUnique().AreNullsDistinct(false);
+            });
+            modelBuilder.Entity<HostEntity>(e =>
+            {
+                e.HasOne(h => h.AssignedLocation).WithMany().HasForeignKey(h => h.LocationId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(h => h.LocationId);
+            });
+            modelBuilder.Entity<LocationFieldEntity>(e =>
+            {
+                e.HasIndex(f => f.Key).IsUnique();
+                // A new installation can write about its locations at once (§4.4).
+                e.HasData(new LocationFieldEntity
+                {
+                    Id = LocationFieldEntity.OverviewId,
+                    Key = LocationFieldEntity.OverviewKey,
+                    Label = "Overview",
+                    Type = LocationFieldType.Markdown,
+                    Position = 0,
+                    Overview = true,
+                    Inherited = false,
+                    Sensitive = false,
+                    CreatedAt = new DateTime(2026, 11, 14, 0, 0, 0, DateTimeKind.Utc),
+                });
+            });
+            modelBuilder.Entity<LocationValueEntity>(e =>
+            {
+                e.HasKey(v => new { v.LocationId, v.FieldId });
+                e.HasOne<LocationEntity>().WithMany().HasForeignKey(v => v.LocationId).OnDelete(DeleteBehavior.Cascade);
+                // The field's filled count (§10.5) and deleting a field's values (§4.3).
+                e.HasOne(v => v.Field).WithMany().HasForeignKey(v => v.FieldId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(v => v.FieldId);
+            });
+            modelBuilder.Entity<LocationHistoryEntity>(e =>
+            {
+                e.HasOne<LocationEntity>().WithMany().HasForeignKey(h => h.LocationId).OnDelete(DeleteBehavior.Cascade);
+                // Deleting a field deletes its values and their history rows (§4.3).
+                e.HasOne<LocationFieldEntity>().WithMany().HasForeignKey(h => h.FieldId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(h => new { h.LocationId, h.At });
+                e.HasIndex(h => h.FieldId);
+            });
+        }
+
+        /// <summary>
+        /// The knowledge base (docs/locations-knowledge-plan.md §8.2): everything of a page goes with it (§6.2), and a link
+        /// goes with its target. The indexes serve the lists (§6.6) and the search (§6.7).
+        /// </summary>
+        private static void ConfigureKnowledgeBase(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<KbPageEntity>(e =>
+            {
+                // KB-42: a sequence, not the key, never reused (§6.1).
+                e.Property(p => p.Number).UseIdentityByDefaultColumn();
+                e.HasIndex(p => p.Number).IsUnique();
+                // A title and tags before the summary before the content (§6.7). `simple`: no stemming, German and English
+                // alike. The plain text is capped below tsvector's 1 MB, so a large page can't fail its save.
+                e.Property(p => p.SearchVector).HasComputedColumnSql(
+                    """
+                    setweight(to_tsvector('simple'::regconfig, coalesce("Title", '') || ' ' || coalesce("TagsText", '')), 'A') ||
+                    setweight(to_tsvector('simple'::regconfig, coalesce("Summary", '')), 'B') ||
+                    setweight(to_tsvector('simple'::regconfig, left(coalesce("PlainText", ''), 200000)), 'C')
+                    """, stored: true);
+                e.HasIndex(p => p.SearchVector).HasMethod("GIN");
+                // Newest, recently updated, most viewed of all time (§6.6).
+                e.HasIndex(p => p.CreatedAt);
+                e.HasIndex(p => p.UpdatedAt);
+                e.HasIndex(p => p.Views);
+                e.HasMany(p => p.Tags).WithOne().HasForeignKey(t => t.PageId).OnDelete(DeleteBehavior.Cascade);
+                e.HasMany(p => p.Links).WithOne().HasForeignKey(l => l.PageId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<KbRevisionEntity>(e =>
+            {
+                e.HasOne<KbPageEntity>().WithMany().HasForeignKey(r => r.PageId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(r => new { r.PageId, r.Number }).IsUnique();
+                // Most edited in the last 30 days (§6.6).
+                e.HasIndex(r => r.At);
+            });
+            modelBuilder.Entity<KbTagEntity>().HasIndex(t => t.NormalizedName).IsUnique();
+            modelBuilder.Entity<KbPageTagEntity>(e =>
+            {
+                e.HasKey(t => new { t.PageId, t.TagId });
+                // Pages by tag, and the counts of the tag browser (§6.6).
+                e.HasOne(t => t.Tag).WithMany().HasForeignKey(t => t.TagId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(t => t.TagId);
+            });
+            modelBuilder.Entity<KbLinkEntity>(e =>
+            {
+                e.ToTable(t => t.HasCheckConstraint("CK_kb_links_one_target",
+                    "num_nonnulls(\"LocationId\", \"HostId\", \"SensorId\") = 1"));
+                e.HasOne<LocationEntity>().WithMany().HasForeignKey(l => l.LocationId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<HostEntity>().WithMany().HasForeignKey(l => l.HostId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(l => l.SensorId).OnDelete(DeleteBehavior.Cascade);
+                // Once per page and target. The target leads, so the same indexes find a target's pages (GET /kb/related)
+                // and serve the cascades; the page's links have an index of their own.
+                e.HasIndex(l => new { l.LocationId, l.PageId }).IsUnique().HasFilter("\"LocationId\" IS NOT NULL");
+                e.HasIndex(l => new { l.HostId, l.PageId }).IsUnique().HasFilter("\"HostId\" IS NOT NULL");
+                e.HasIndex(l => new { l.SensorId, l.PageId }).IsUnique().HasFilter("\"SensorId\" IS NOT NULL");
+                e.HasIndex(l => l.PageId);
+            });
+            modelBuilder.Entity<KbPageRefEntity>(e =>
+            {
+                e.HasKey(r => new { r.FromPageId, r.ToNumber });
+                e.HasOne<KbPageEntity>().WithMany().HasForeignKey(r => r.FromPageId).OnDelete(DeleteBehavior.Cascade);
+                // Linked from (§6.1).
+                e.HasIndex(r => r.ToNumber);
+            });
+            modelBuilder.Entity<KbPageViewEntity>(e =>
+            {
+                e.HasKey(v => new { v.PageId, v.Day });
+                e.HasOne<KbPageEntity>().WithMany().HasForeignKey(v => v.PageId).OnDelete(DeleteBehavior.Cascade);
+                // Most viewed in the last 30 days (§6.6).
+                e.HasIndex(v => v.Day);
+            });
+            modelBuilder.Entity<KbAiQuestionEntity>(e =>
+            {
+                // One row per page and person, its time moved on each question (§7.2).
+                e.HasKey(q => new { q.PageId, q.UserId });
+                e.HasOne<KbPageEntity>().WithMany().HasForeignKey(q => q.PageId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(q => q.AskedAt);
+            });
+        }
+
+        /// <summary>
+        /// Uploaded files (docs/locations-knowledge-plan.md §5.5, §8.2): a use goes with its file, its page or its location.
+        /// </summary>
+        private static void ConfigureFiles(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<FileEntity>(e =>
+            {
+                // Stored once per content (§5.5): a file marked deleted no longer counts, so the same bytes can come back.
+                e.HasIndex(f => f.Sha256).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+                // The cleanup: unused uploads after 24 hours, deleted files after 7 days (§5.5).
+                e.HasIndex(f => f.CreatedAt);
+                e.HasIndex(f => f.DeletedAt);
+            });
+            modelBuilder.Entity<FileUseEntity>(e =>
+            {
+                e.ToTable(t => t.HasCheckConstraint("CK_file_uses_one_owner", "num_nonnulls(\"PageId\", \"LocationId\") = 1"));
+                e.HasOne<FileEntity>().WithMany().HasForeignKey(u => u.FileId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<KbPageEntity>().WithMany().HasForeignKey(u => u.PageId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<LocationEntity>().WithMany().HasForeignKey(u => u.LocationId).OnDelete(DeleteBehavior.Cascade);
+                // Once per file and owner. The owner leads: a page's attachments (§6.1) and the cascades; where a file is
+                // used, and whether at all, by FileId.
+                e.HasIndex(u => new { u.PageId, u.FileId }).IsUnique().HasFilter("\"PageId\" IS NOT NULL");
+                e.HasIndex(u => new { u.LocationId, u.FileId }).IsUnique().HasFilter("\"LocationId\" IS NOT NULL");
+                e.HasIndex(u => u.FileId);
+            });
         }
 
         private sealed class UtcDateTimeConverter() : ValueConverter<DateTime, DateTime>(

@@ -12,7 +12,13 @@ namespace PNMTD.Models.Db
 
         public string Name { get; set; }
 
+        /// <summary>The free text, shown as <i>Location text</i>: a rack or a room (docs/locations-knowledge-plan.md §3.2).</summary>
         public string? Location { get; set; }
+
+        /// <summary>The location the host is assigned to, at any level (§3.2); set to null when the location is deleted.</summary>
+        public Guid? LocationId { get; set; }
+
+        public LocationEntity? AssignedLocation { get; set; }
 
         public string? Notes { get; set; }
 
