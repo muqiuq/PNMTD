@@ -1,7 +1,10 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Data;
 using PNMTD.Lib.Helper;
+using PNMTD.Locations;
+using PNMTD.Models.Db;
 using PNMTD.Models.Enums;
 
 namespace PNMTD.Services.Domain;
@@ -16,7 +19,8 @@ public sealed class DashboardService(
     MonitoringReader reader,
     EventService events,
     SystemService system,
-    IConfiguration configuration)
+    IConfiguration configuration,
+    LocationTree locations)
 {
     public const int Days = 90;
 
@@ -24,28 +28,51 @@ public sealed class DashboardService(
 
     public Task<Dashboard> BuildAsync(CancellationToken ct) => BuildCoreAsync(ct);
 
-    private async Task<Dashboard> BuildCoreAsync(CancellationToken ct)
-    {
-        var now = Clock.UtcNow;
-        var hosts = await db.Hosts.AsNoTracking().Select(h => new { h.Id, h.Name, h.Location, h.Enabled }).ToListAsync(ct);
-        var snapshot = await reader.SnapshotAsync(null, ct);
-        var all = snapshot.Sensors.Values.ToList();
-        var active = all.Where(s => s.IsActive).ToList();
-        var days = await reader.DaysAsync(active.Select(s => s.Info.Id).ToList(), Days, ct);
+    private sealed record HostRow(Guid Id, string Name, string? Location, Guid? LocationId, bool Enabled);
 
-        // Hosts: failing first, then by name; disabled ones last.
-        var hostRows = hosts.Select(h =>
+    /// <summary>
+    /// Some hosts as the dashboard's panel shows them, built now rather than from the cache: a location's page
+    /// (docs/locations-knowledge-plan.md §3.4).
+    /// </summary>
+    public async Task<IReadOnlyList<DashboardHost>> HostsAsync(Expression<Func<HostEntity, bool>> filter, CancellationToken ct)
+    {
+        var hosts = await db.Hosts.AsNoTracking().Where(filter)
+            .Select(h => new HostRow(h.Id, h.Name, h.Location, h.LocationId, h.Enabled)).ToListAsync(ct);
+        if (hosts.Count == 0)
+        {
+            return [];
+        }
+        var ids = hosts.Select(h => h.Id).ToList();
+        var snapshot = await reader.SnapshotAsync(s => ids.Contains(s.ParentId), ct);
+        var days = await reader.DaysAsync(HostService.ActiveIds(snapshot.Sensors.Values), Days, ct);
+        return HostRows(hosts, snapshot, days, await locations.GetAsync(ct));
+    }
+
+    /// <summary>Hosts: failing first, then by name; disabled ones last. Each with its location's path (§3.2).</summary>
+    private static List<DashboardHost> HostRows(IEnumerable<HostRow> hosts, MonitoringSnapshot snapshot, UptimeTable days, LocationTreeSnapshot tree) =>
+        hosts.Select(h =>
             {
                 var sensors = snapshot.OfHost(h.Id).ToList();
                 var activeIds = HostService.ActiveIds(sensors);
                 var state = MonitoringSnapshot.HostStateOf(h.Enabled, sensors);
                 return new DashboardHost(h.Id, h.Name, h.Location, h.Enabled, state,
                     sensors.Count(s => s.IsActive && s.State == SensorState.Failing),
-                    days.AverageOverall(activeIds, 30), days.Series(days.Average(activeIds)));
+                    days.AverageOverall(activeIds, 30), days.Series(days.Average(activeIds)), HostService.LocationOf(tree, h.LocationId));
             })
             .OrderBy(h => HostService.StateOrder(h.State) == 0 ? 0 : h.Enabled ? 1 : 2)
             .ThenBy(h => h.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+
+    private async Task<Dashboard> BuildCoreAsync(CancellationToken ct)
+    {
+        var now = Clock.UtcNow;
+        var hosts = await db.Hosts.AsNoTracking().Select(h => new HostRow(h.Id, h.Name, h.Location, h.LocationId, h.Enabled)).ToListAsync(ct);
+        var snapshot = await reader.SnapshotAsync(null, ct);
+        var all = snapshot.Sensors.Values.ToList();
+        var active = all.Where(s => s.IsActive).ToList();
+        var days = await reader.DaysAsync(active.Select(s => s.Info.Id).ToList(), Days, ct);
+
+        var hostRows = HostRows(hosts, snapshot, days, await locations.GetAsync(ct));
 
         // Problems: failing active sensors by host, the most important and then the longest-failing first
         // (docs/ai-operations-plan.md §11.1).

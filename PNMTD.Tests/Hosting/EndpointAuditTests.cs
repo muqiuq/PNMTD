@@ -314,6 +314,25 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/diagnostics/assignments/{id:guid}/run"] = Roles.User,
         ["GET /api/v1/diagnostics/runs"] = Roles.Viewer,
         ["GET /api/v1/diagnostics/runs/{id:guid}"] = Roles.Viewer,
+        // Locations (docs/locations-knowledge-plan.md §8.1, §9): every role reads, Users write, Admins delete and define fields.
+        ["GET /api/v1/locations"] = Roles.Viewer,
+        ["GET /api/v1/locations/{id:guid}"] = Roles.Viewer,
+        ["POST /api/v1/locations"] = Roles.User,
+        ["PUT /api/v1/locations/{id:guid}"] = Roles.User,
+        ["POST /api/v1/locations/{id:guid}/move"] = Roles.User,
+        ["DELETE /api/v1/locations/{id:guid}"] = Roles.Admin,
+        ["PUT /api/v1/locations/{id:guid}/values/{fieldId:guid}"] = Roles.User,
+        ["GET /api/v1/locations/{id:guid}/history"] = Roles.Viewer,
+        ["GET /api/v1/locations/suggestions"] = Roles.User,
+        ["POST /api/v1/locations/from-text"] = Roles.User,
+        ["PUT /api/v1/hosts/location"] = Roles.User,
+        ["GET /api/v1/location-fields"] = Roles.Viewer,
+        ["POST /api/v1/location-fields"] = Roles.Admin,
+        ["PUT /api/v1/location-fields/{id:guid}"] = Roles.Admin,
+        ["PUT /api/v1/location-fields/order"] = Roles.Admin,
+        ["POST /api/v1/location-fields/{id:guid}/archive"] = Roles.Admin,
+        ["POST /api/v1/location-fields/{id:guid}/restore"] = Roles.Admin,
+        ["DELETE /api/v1/location-fields/{id:guid}"] = Roles.Admin,
     };
 
     private sealed record EndpointInfo(string Key, string Method, string Pattern, RouteEndpoint Endpoint);

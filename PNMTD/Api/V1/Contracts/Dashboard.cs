@@ -46,7 +46,10 @@ public sealed record ProblemSensor(
     DateTime? LastEventAt,
     IReadOnlyList<double?> Last24Hours);
 
-/// <summary>A host row: failing hosts first, then by name; disabled hosts last. 90 days of uptime.</summary>
+/// <summary>
+/// A host row: failing hosts first, then by name; disabled hosts last. 90 days of uptime. <see cref="Location"/> is the
+/// host's text; <see cref="AssignedLocation"/> the location it is assigned to (docs/locations-knowledge-plan.md §3.2).
+/// </summary>
 public sealed record DashboardHost(
     Guid Id,
     string Name,
@@ -55,4 +58,5 @@ public sealed record DashboardHost(
     HostState State,
     int FailingCount,
     double? Uptime30Days,
-    UptimeSeries Days);
+    UptimeSeries Days,
+    LocationRef? AssignedLocation = null);

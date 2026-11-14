@@ -2,13 +2,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
+using PNMTD.Locations;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Api.V1;
 
 [Route("api/v1/hosts")]
 [Authorize(Policy = Policies.CanRead)]
-public sealed class HostsController(HostService hosts) : V1ControllerBase
+public sealed class HostsController(HostService hosts, LocationService locations) : V1ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<Paged<HostListItem>>> List([FromQuery] HostQuery query, CancellationToken ct) =>
@@ -41,4 +42,9 @@ public sealed class HostsController(HostService hosts) : V1ControllerBase
     [HttpPut("importance")]
     [Authorize(Policy = Policies.CanWrite)]
     public async Task<ActionResult<int>> Importance(ImportanceRequest request, CancellationToken ct) => Ok(await hosts.SetImportanceAsync(request, ct));
+
+    /// <summary>Many hosts' location at once (docs/locations-knowledge-plan.md §3.2), null for none: how many changed.</summary>
+    [HttpPut("location")]
+    [Authorize(Policy = Policies.CanWrite)]
+    public async Task<ActionResult<int>> Location(HostLocationRequest request, CancellationToken ct) => Ok(await locations.SetHostsAsync(request, ct));
 }

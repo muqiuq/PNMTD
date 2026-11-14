@@ -102,6 +102,10 @@ public static class AuthEvents
     public const string SshKeyDeleted = "SshKeyDeleted";
     public const string SshKeyRemoved = "SshKeyRemoved";
 
+    // Locations (docs/locations-knowledge-plan.md §8.7): what goes for good.
+    public const string LocationDeleted = "LocationDeleted";
+    public const string LocationFieldDeleted = "LocationFieldDeleted";
+
     public static readonly string[] All =
     [
         LoginSucceeded, LoginFailed, LockedOut, TotpFailed, Logout, TotpEnabled, TotpDisabled, TotpReset, PasswordChanged,
@@ -117,6 +121,7 @@ public static class AuthEvents
         AgentJoinTokenCreated, AgentJoinTokenRevoked, AgentJoined, AgentJoinFailed, AgentRevoked, AgentSettingsChanged, WindowsSettingsChanged,
         DiagnosticsSetChanged, DiagnosticsAssignmentChanged, AgentScriptChanged, AgentScriptRun, AgentDownloadsFetched,
         SshKeyRegistered, SshKeyChanged, SshKeyRetired, SshKeyDeleted, SshKeyRemoved,
+        LocationDeleted, LocationFieldDeleted,
     ];
 }
 

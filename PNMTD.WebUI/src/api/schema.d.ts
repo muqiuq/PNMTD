@@ -3428,6 +3428,8 @@ export interface paths {
                 query?: {
                     state?: components["schemas"]["HostState"];
                     importance?: components["schemas"]["Importance"];
+                    locationId?: string;
+                    noLocation?: boolean;
                     page?: number;
                     pageSize?: number;
                     sort?: string;
@@ -3594,6 +3596,49 @@ export interface paths {
                     "application/json": components["schemas"]["ImportanceRequest"];
                     "text/json": components["schemas"]["ImportanceRequest"];
                     "application/*+json": components["schemas"]["ImportanceRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number;
+                        "text/json": number;
+                        "text/plain": number;
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hosts/location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["HostLocationRequest"];
+                    "text/json": components["schemas"]["HostLocationRequest"];
+                    "application/*+json": components["schemas"]["HostLocationRequest"];
                 };
             };
             responses: {
@@ -3807,6 +3852,626 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    search?: string;
+                    sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationList"];
+                        "text/json": components["schemas"]["LocationList"];
+                        "text/plain": components["schemas"]["LocationList"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LocationRequest"];
+                    "text/json": components["schemas"]["LocationRequest"];
+                    "application/*+json": components["schemas"]["LocationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationDetail"];
+                        "text/json": components["schemas"]["LocationDetail"];
+                        "text/plain": components["schemas"]["LocationDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/locations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    own?: boolean;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationDetail"];
+                        "text/json": components["schemas"]["LocationDetail"];
+                        "text/plain": components["schemas"]["LocationDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LocationRequest"];
+                    "text/json": components["schemas"]["LocationRequest"];
+                    "application/*+json": components["schemas"]["LocationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationDetail"];
+                        "text/json": components["schemas"]["LocationDetail"];
+                        "text/plain": components["schemas"]["LocationDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/locations/{id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LocationMoveRequest"];
+                    "text/json": components["schemas"]["LocationMoveRequest"];
+                    "application/*+json": components["schemas"]["LocationMoveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationDetail"];
+                        "text/json": components["schemas"]["LocationDetail"];
+                        "text/plain": components["schemas"]["LocationDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/locations/{id}/values/{fieldId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    fieldId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LocationValueRequest"];
+                    "text/json": components["schemas"]["LocationValueRequest"];
+                    "application/*+json": components["schemas"]["LocationValueRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationValueItem"];
+                        "text/json": components["schemas"]["LocationValueItem"];
+                        "text/plain": components["schemas"]["LocationValueItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/locations/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfLocationHistoryItem"];
+                        "text/json": components["schemas"]["PagedOfLocationHistoryItem"];
+                        "text/plain": components["schemas"]["PagedOfLocationHistoryItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/locations/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationSuggestion"][];
+                        "text/json": components["schemas"]["LocationSuggestion"][];
+                        "text/plain": components["schemas"]["LocationSuggestion"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/locations/from-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LocationFromTextRequest"];
+                    "text/json": components["schemas"]["LocationFromTextRequest"];
+                    "application/*+json": components["schemas"]["LocationFromTextRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationFromTextResult"];
+                        "text/json": components["schemas"]["LocationFromTextResult"];
+                        "text/plain": components["schemas"]["LocationFromTextResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/location-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationFieldList"];
+                        "text/json": components["schemas"]["LocationFieldList"];
+                        "text/plain": components["schemas"]["LocationFieldList"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LocationFieldRequest"];
+                    "text/json": components["schemas"]["LocationFieldRequest"];
+                    "application/*+json": components["schemas"]["LocationFieldRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationFieldItem"];
+                        "text/json": components["schemas"]["LocationFieldItem"];
+                        "text/plain": components["schemas"]["LocationFieldItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/location-fields/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LocationFieldRequest"];
+                    "text/json": components["schemas"]["LocationFieldRequest"];
+                    "application/*+json": components["schemas"]["LocationFieldRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationFieldItem"];
+                        "text/json": components["schemas"]["LocationFieldItem"];
+                        "text/plain": components["schemas"]["LocationFieldItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/location-fields/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LocationFieldOrderRequest"];
+                    "text/json": components["schemas"]["LocationFieldOrderRequest"];
+                    "application/*+json": components["schemas"]["LocationFieldOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationFieldList"];
+                        "text/json": components["schemas"]["LocationFieldList"];
+                        "text/plain": components["schemas"]["LocationFieldList"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/location-fields/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationFieldItem"];
+                        "text/json": components["schemas"]["LocationFieldItem"];
+                        "text/plain": components["schemas"]["LocationFieldItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/location-fields/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationFieldItem"];
+                        "text/json": components["schemas"]["LocationFieldItem"];
+                        "text/plain": components["schemas"]["LocationFieldItem"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -9962,6 +10627,7 @@ export interface components {
             /** Format: double */
             uptime30Days: null | number;
             days: components["schemas"]["UptimeSeries"];
+            assignedLocation?: null | components["schemas"]["LocationRef"];
         };
         DashboardSummary: {
             hosts: components["schemas"]["HostCounts"];
@@ -10500,6 +11166,7 @@ export interface components {
             eventCount: number;
             sensors: components["schemas"]["SensorSummary"][];
             importance?: components["schemas"]["Importance"];
+            assignedLocation?: null | components["schemas"]["LocationRef"];
         };
         HostListItem: {
             /** Format: uuid */
@@ -10517,10 +11184,18 @@ export interface components {
             lastEventAt: null | string;
             days: components["schemas"]["UptimeSeries"];
             importance?: components["schemas"]["Importance"];
+            assignedLocation?: null | components["schemas"]["LocationRef"];
+        };
+        HostLocationRequest: {
+            ids?: string[];
+            /** Format: uuid */
+            locationId?: null | string;
         };
         HostRequest: {
             name?: null | string;
             location?: null | string;
+            /** Format: uuid */
+            locationId?: null | string;
             notes?: null | string;
             enabled?: boolean;
             importance?: components["schemas"]["Importance"];
@@ -10566,6 +11241,9 @@ export interface components {
             entries: components["schemas"]["JournalEntry"][];
             persistent: boolean;
         };
+        JsonElement: unknown;
+        /** @enum {unknown} */
+        KbPageStatus: "Draft" | "Published" | "NeedsReview";
         /** @enum {unknown} */
         KeyFamily: "HmacSha256" | "Aes" | "HmacSha1" | "HmacMd5";
         KeyValueItem: {
@@ -10810,6 +11488,212 @@ export interface components {
             name: string;
             kind: string;
             members?: null | string[];
+        };
+        LocationChild: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            state: components["schemas"]["HostState"];
+            hosts: components["schemas"]["LocationHostCounts"];
+            /** Format: int32 */
+            subLocations: number;
+        };
+        LocationChoiceRename: {
+            from?: null | string;
+            to?: null | string;
+        };
+        LocationDetail: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            parentId: null | string;
+            name: string;
+            description: null | string;
+            path: string;
+            ancestors: components["schemas"]["Ref"][];
+            /** Format: int32 */
+            depth: number;
+            state: components["schemas"]["HostState"];
+            hostCounts: components["schemas"]["LocationHostCounts"];
+            subLocations: components["schemas"]["LocationChild"][];
+            hosts: components["schemas"]["DashboardHost"][];
+            values: components["schemas"]["LocationValueItem"][];
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: null | string;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedByName: null | string;
+        };
+        LocationFieldItem: {
+            /** Format: uuid */
+            id: string;
+            key: string;
+            label: string;
+            type: components["schemas"]["LocationFieldType"];
+            help: null | string;
+            group: null | string;
+            /** Format: int32 */
+            position: number;
+            overview: boolean;
+            inherited: boolean;
+            sensitive: boolean;
+            options: null | components["schemas"]["LocationFieldOptions"];
+            /** Format: date-time */
+            archivedAt: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int32 */
+            filled: number;
+        };
+        LocationFieldList: {
+            items: components["schemas"]["LocationFieldItem"][];
+            typical: components["schemas"]["LocationFieldTemplate"][];
+        };
+        LocationFieldOptions: {
+            choices?: null | string[];
+            unit?: null | string;
+            /** Format: double */
+            min?: null | number;
+            /** Format: double */
+            max?: null | number;
+            /** Format: int32 */
+            decimals?: null | number;
+        };
+        LocationFieldOrderRequest: {
+            ids?: string[];
+        };
+        LocationFieldRequest: {
+            label?: null | string;
+            type?: components["schemas"]["LocationFieldType"];
+            help?: null | string;
+            group?: null | string;
+            overview?: boolean;
+            inherited?: boolean;
+            sensitive?: boolean;
+            options?: null | components["schemas"]["LocationFieldOptions"];
+            renames?: null | components["schemas"]["LocationChoiceRename"][];
+        };
+        LocationFieldTemplate: {
+            key: string;
+            label: string;
+            type: components["schemas"]["LocationFieldType"];
+            overview: boolean;
+            inherited: boolean;
+            sensitive: boolean;
+            help: null | string;
+            exists: boolean;
+        };
+        /** @enum {unknown} */
+        LocationFieldType: "Markdown" | "Text" | "Number" | "YesNo" | "Date" | "Choice" | "Choices" | "Link" | "Email" | "Phone" | "User" | "Host" | null;
+        LocationFromTextItem: {
+            text?: null | string;
+            /** Format: uuid */
+            locationId?: null | string;
+            name?: null | string;
+            /** Format: uuid */
+            parentId?: null | string;
+        };
+        LocationFromTextRequest: {
+            items?: components["schemas"]["LocationFromTextItem"][];
+            clearText?: boolean;
+        };
+        LocationFromTextResult: {
+            /** Format: int32 */
+            locationsCreated: number;
+            /** Format: int32 */
+            hostsAssigned: number;
+        };
+        LocationHistoryItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            at: string;
+            byName: string;
+            kind: components["schemas"]["LocationHistoryKind"];
+            /** Format: uuid */
+            fieldId: null | string;
+            fieldLabel: null | string;
+            fieldType: null | components["schemas"]["LocationFieldType"];
+            oldValue: null | components["schemas"]["JsonElement"];
+            newValue: null | components["schemas"]["JsonElement"];
+            detail: null | string;
+        };
+        /** @enum {unknown} */
+        LocationHistoryKind: "Created" | "Renamed" | "DescriptionChanged" | "Moved" | "ValueChanged" | "HostsAdded" | "HostsRemoved";
+        LocationHostCounts: {
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            failing: number;
+            /** Format: int32 */
+            own: number;
+        };
+        LocationList: {
+            items: components["schemas"]["LocationListItem"][];
+            /** Format: int32 */
+            fields: number;
+        };
+        LocationListItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            parentId: null | string;
+            name: string;
+            description: null | string;
+            path: string;
+            /** Format: int32 */
+            depth: number;
+            state: components["schemas"]["HostState"];
+            hosts: components["schemas"]["LocationHostCounts"];
+            /** Format: int32 */
+            subLocations: number;
+            /** Format: int32 */
+            fieldsFilled: number;
+            inheritedFields: string[];
+            /** Format: date-time */
+            updatedAt: string;
+            updatedByName: null | string;
+        };
+        LocationMoveRequest: {
+            /** Format: uuid */
+            parentId?: null | string;
+        };
+        LocationRef: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            path: string;
+        };
+        LocationRequest: {
+            name?: null | string;
+            description?: null | string;
+            /** Format: uuid */
+            parentId?: null | string;
+        };
+        LocationSuggestion: {
+            text: string;
+            /** Format: int32 */
+            hosts: number;
+            matches: components["schemas"]["LocationRef"][];
+        };
+        LocationValueItem: {
+            /** Format: uuid */
+            fieldId: string;
+            value: null | components["schemas"]["JsonElement"];
+            inheritedFrom: null | components["schemas"]["Ref"];
+            /** Format: int32 */
+            revision: number;
+            /** Format: date-time */
+            updatedAt: null | string;
+            updatedByName: null | string;
+            target: null | components["schemas"]["Ref"];
+        };
+        LocationValueRequest: {
+            value?: null | components["schemas"]["JsonElement"];
+            /** Format: int32 */
+            revision?: number;
         };
         LoggingCheck: {
             journalPersistent: boolean;
@@ -11867,6 +12751,15 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
+        PagedOfLocationHistoryItem: {
+            items: components["schemas"]["LocationHistoryItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfMailInputRule: {
             items: components["schemas"]["MailInputRule"][];
             /** Format: int32 */
@@ -12218,9 +13111,29 @@ export interface components {
             location: null | string;
             enabled: boolean;
         };
+        SearchLocation: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            path: string;
+            description: null | string;
+        };
+        SearchPage: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            title: string;
+            summary: null | string;
+            tags: string[];
+            status: components["schemas"]["KbPageStatus"];
+            sensitive: boolean;
+        };
         SearchResult: {
             hosts: components["schemas"]["SearchHost"][];
             sensors: components["schemas"]["SearchSensor"][];
+            locations: components["schemas"]["SearchLocation"][];
+            pages: components["schemas"]["SearchPage"][];
         };
         SearchSensor: {
             /** Format: uuid */
