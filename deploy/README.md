@@ -53,7 +53,7 @@ Local changes to the stack go into `docker-compose.override.yml`. Git ignores th
 |---|---|
 | `./info.sh` | Shows whether it is running and healthy, what it runs, how it is reached, and what needs attention |
 | `./info.sh --quiet` | Exits 0 when it is running and healthy, for monitoring |
-| `./update.sh` | Takes a backup, then pulls and recreates the containers |
+| `./update.sh` | Takes a backup, then pulls and recreates the containers; creates the files folder if it is missing |
 | `./update.sh --tag v1.0.1` | Pins another release first |
 | `./backup.sh` | Writes a backup folder to `backups/` |
 | `./backup.sh --keep 14` | …and deletes all but the newest 14 |
@@ -73,8 +73,8 @@ Local changes to the stack go into `docker-compose.override.yml`. Git ignores th
 
 - **Roles:**
   - **Viewer** reads everything except tokens and mail contents.
-  - **User** also manages hosts, sensors, rules and zones.
-  - **Admin** also manages users, the audit log and system health.
+  - **User** also manages hosts, sensors, rules, zones, locations and knowledge base pages.
+  - **Admin** also manages users, location fields, the knowledge base's tags and files, the audit log and system health.
 - **Temporary passwords:** a password from `add-user.sh` or `reset-password.sh` is valid for 7 days and must be changed at the first sign-in. With `--password-stdin`, the first line of standard input is a permanent password of your choice.
 - **Two-factor authentication (TOTP):** every user can turn it on under their account, with any authenticator app (Aegis, Google or Microsoft Authenticator, Bitwarden, 1Password, …). The app shows the instance as `PNMT (<Identity>)`, or as `Auth__TotpIssuer`.
   - `Auth__TotpPolicy=Optional` (the default) suggests it after each sign-in without it. `RequiredForAdmins` and `Required` allow nothing else until it is set up, from the next request on, sessions that are already open included.
@@ -270,10 +270,11 @@ PNMT can use AI models through [OpenRouter](https://openrouter.ai): to propose r
 Images and attachments of locations and knowledge base pages (docs/locations-knowledge-plan.md §5.5, §8.5) are files in a folder on this host, `files/` next to `docker-compose.yml`, mounted into the container at `/var/lib/pnmtd/files`. PostgreSQL holds only what each file is.
 
 - **Moving it:** `PNMTD_FILES_DIR` in `.env`, for example `/srv/pnmtd-files` on a disk of its own. Start it with `./` or `/`: a bare name would be a Docker volume.
-- **Ownership:** the app runs as the image's user `app`, uid 1654, and the container stays read-only; only the mount is writable. `./init.sh` creates the folder with owner `1654:1654` and mode `0750`, as root directly or else from a container of the image. Files are `0640` and folders `0750`: readable by root, or by a group you add. `./info.sh` checks that the app can write it, and says how to fix it:
+- **Ownership:** the app runs as the image's user `app`, uid 1654, and the container stays read-only; only the mount is writable. `./init.sh` creates the folder with owner `1654:1654` and mode `0750`, as root directly or else from a container of the image. Files are `0640` and folders `0750`: readable by root, or by a group you add. `./info.sh` checks that the folder exists, is mounted and the app can write it, and says how to fix it:
   - `sudo chown 1654:1654 files && sudo chmod 0750 files`;
   - rootless Podman maps the uid: `podman unshare chown 1654:1654 files`;
   - a folder that is missing at the first start is created by Docker, owned by root, and uploads fail until it is fixed.
+- **An installation from before 1.3** has no folder yet. `git pull` brings the mount in `docker-compose.yml`, and `./update.sh` creates the folder for the app's user before it starts the new release. Updating by hand, create it first: `sudo install -d -o 1654 -g 1654 -m 0750 files`, then `docker compose up -d`.
 - **SELinux** (Fedora, RHEL, Rocky): a container may not use a host folder until it is labelled. Label it for containers in `docker-compose.override.yml`, with `:z`:
 
   ```yaml

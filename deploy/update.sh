@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Back up, then pull the release and recreate the containers. The new release migrates the
-# database as it starts — after the backup, which is the way back.
+# database as it starts — after the backup, which is the way back. A missing files folder (new in 1.3)
+# is created for the app's user first.
 #
 #   ./update.sh                  the tag .env names (PNMTD_IMAGE_TAG)
 #   ./update.sh --tag v1.0.1     pin another release first
@@ -31,5 +32,16 @@ if (( BACKUP )); then
   ./backup.sh || die "The backup failed: nothing was updated."
 fi
 compose pull
+# The uploaded files' folder (docs/locations-knowledge-plan.md §8.5), which installations from before 1.3 lack: made for
+# the app's user before the containers start, since Docker would make a missing one as root, and PNMTD couldn't write it.
+files="$(files_dir)"
+if [[ ! -d "$files" ]]; then
+  if ensure_files_dir; then
+    echo "Created the files folder ${files} for the app's user (uid ${APP_UID}, 0750)."
+  else
+    echo "Could not create the files folder ${files} for the app's user; uploads fail until it exists:" >&2
+    echo "  sudo install -d -o ${APP_UID} -g ${APP_UID} -m 0750 ${files} && docker compose up -d" >&2
+  fi
+fi
 compose up -d --force-recreate --wait
 ./info.sh

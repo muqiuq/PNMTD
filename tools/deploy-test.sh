@@ -135,7 +135,7 @@ before_url="$(cat "$dir/url")"
 # Read whole first: grep -q would stop reading early, and pipefail would take info.sh's SIGPIPE for a failure.
 info="$(./info.sh)"
 grep -q '^  Files:      ./files' <<<"$info" || fail "info.sh shows no files folder: ${info}"
-! grep -q 'cannot write the files folder' <<<"$info" || fail "info.sh: ${info}"
+! grep -q 'cannot write the files folder\|without the files folder mounted\|files folder .* is missing' <<<"$info" || fail "info.sh: ${info}"
 
 ./backup.sh --quiet --keep 3 || fail "backup.sh"
 folder="$(ls -1d backups/pnmtd-* | tail -1)"

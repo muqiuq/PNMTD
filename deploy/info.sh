@@ -66,7 +66,9 @@ fi
 ls -1d "$(env_value PNMTD_BACKUP_DIR || echo backups)"/pnmtd-* >/dev/null 2>&1 || warnings+=("No backup yet: ./backup.sh, and a cron line (README.md).")
 # The uploaded files' folder (docs/locations-knowledge-plan.md §8.5): there, and writable by the app's user, as PNMTD sees it.
 if [[ ! -d "$files" ]]; then
-  warnings+=("The files folder ${files} is missing: uploads fail. ./init.sh --force creates it (the database password is kept).")
+  warnings+=("The files folder ${files} is missing: uploads fail. Create it for the app's user, then start again: sudo install -d -o ${APP_UID} -g ${APP_UID} -m 0750 ${files} && docker compose up -d (./update.sh does both).")
+elif is_running "$SERVICE" && ! compose exec -T "$SERVICE" sh -c "grep -qs ' ${FILES_MOUNT} ' /proc/mounts" >/dev/null 2>&1; then
+  warnings+=("The app runs without the files folder mounted: uploads fail. Its docker-compose.yml is older than 1.3? git pull in this folder, then ./update.sh.")
 elif is_running "$SERVICE" && ! compose exec -T "$SERVICE" sh -c "test -w ${FILES_MOUNT}" >/dev/null 2>&1; then
   warnings+=("PNMTD (uid ${APP_UID}) cannot write the files folder ${files}: sudo chown ${APP_UID}:${APP_UID} ${files} && sudo chmod 0750 ${files} (rootless Podman: podman unshare chown ${APP_UID}:${APP_UID} ${files}; SELinux: README.md).")
 fi

@@ -55,6 +55,9 @@ public sealed partial class FileStore(IDbContextFactory<PnmtdDbContext> dbs, IOp
 {
     public const string TempFolder = ".tmp";
 
+    /// <summary>The image's user <c>app</c>, who must own the folder on the Docker host (§8.5).</summary>
+    public const int AppUid = 1654;
+
     private const UnixFileMode FolderPermissions = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
         | UnixFileMode.GroupRead | UnixFileMode.GroupExecute;
 
@@ -235,7 +238,7 @@ public sealed partial class FileStore(IDbContextFactory<PnmtdDbContext> dbs, IOp
         var root = Root;
         if (!Directory.Exists(root))
         {
-            return $"The files folder {root} doesn't exist: is it mounted (PNMTD_FILES_DIR)?";
+            return $"The files folder {root} doesn't exist: is it mounted? deploy/docker-compose.yml mounts PNMTD_FILES_DIR (./files) there.";
         }
         try
         {
@@ -246,7 +249,11 @@ public sealed partial class FileStore(IDbContextFactory<PnmtdDbContext> dbs, IOp
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return $"The files folder {root} isn't writable by PNMTD's user {Environment.UserName}: {ex.Message}";
+            // What the operator does about it (deploy/README.md, Uploaded files): an existing installation updated by hand may lack
+            // the mount, or Docker made the folder as root.
+            return $"The files folder {root} isn't writable by PNMTD's user {Environment.UserName}: {ex.Message.TrimEnd('.')}. "
+                + $"On the Docker host it must be mounted (deploy/docker-compose.yml) and belong to uid {AppUid}: "
+                + $"sudo chown {AppUid}:{AppUid} deploy/files (or PNMTD_FILES_DIR); ./info.sh checks it.";
         }
     }
 

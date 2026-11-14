@@ -52,7 +52,9 @@ compose exec -T "$DB_SERVICE" pg_dump -U pnmtd -d pnmtd --format=custom >"$folde
 mv "$folder/database.pgdump.part" "$folder/database.pgdump"
 docker run --rm -v "$(volume_name pnmtd-keys):/keys:ro" --entrypoint tar "$(app_image)" -czf - -C / keys >"$folder/keys.tar.gz"
 if (( FILES )); then
-  if [[ -d "$(files_dir)" ]]; then
+  # The folder on this host, and the app's mount of it: a release from before 1.3, still running while ./update.sh backs
+  # up, has no files to take.
+  if [[ -d "$(files_dir)" ]] && in_app test -d "$FILES_MOUNT" >/dev/null 2>&1; then
     # As the app's user, who owns the folder (0750), through the service's own mount; .tmp/ holds uploads in progress only.
     # A file the cleanup or an Admin removes while tar walks the folder is no failure: GNU tar exits 1 for it (and its
     # folder "changed as we read it"), 2 only for a real one. Files are never changed otherwise; the check would see it.
