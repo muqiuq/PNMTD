@@ -40,6 +40,8 @@ public static class TestDefaults
         // The agents' files (docs/linux-sensor-plan.md §4.4): never GitHub, and a scratch folder rather than /var/lib/pnmtd/downloads.
         Environment.SetEnvironmentVariable("Agents__AgentDownloadBaseUrl", "http://127.0.0.1:9/releases/download");
         Environment.SetEnvironmentVariable("Agents__DownloadFolder", Path.Combine(scratch.FullName, "downloads"));
+        // Uploaded files (docs/locations-knowledge-plan.md §5.5): a scratch folder rather than /var/lib/pnmtd/files.
+        Environment.SetEnvironmentVariable("KnowledgeBase__FilesPath", Directory.CreateDirectory(Path.Combine(scratch.FullName, "files")).FullName);
         WebRoot = CreateWebRoot(scratch.FullName);
 
         Configuration = new ConfigurationBuilder().AddEnvironmentVariables().Build();

@@ -11,6 +11,9 @@ public static class FilesSetup
     public static IServiceCollection AddFiles(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<KnowledgeBaseOptions>(configuration.GetSection(KnowledgeBaseOptions.Section));
+        services.AddSingleton<FileStore>();
+        services.AddSingleton<FileAdmin>();
+        services.AddSingleton<UploadGuard>();
         return services;
     }
 }

@@ -3416,6 +3416,148 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    kind?: components["schemas"]["FileKind"];
+                    unused?: boolean;
+                    unknown?: boolean;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FilesOverview"];
+                        "text/json": components["schemas"]["FilesOverview"];
+                        "text/plain": components["schemas"]["FilesOverview"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: {
+                    kind?: string;
+                    name?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FileItem"];
+                        "text/json": components["schemas"]["FileItem"];
+                        "text/plain": components["schemas"]["FileItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/files/{id}/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/octet-stream": components["schemas"]["FileContentResult"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/files/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/hosts": {
         parameters: {
             query?: never;
@@ -11046,6 +11188,17 @@ export interface components {
             /** Format: int32 */
             totalBanned: number;
         };
+        FileAdminItem: {
+            file: components["schemas"]["FileItem"];
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: null | string;
+            /** Format: date-time */
+            deletedAt: null | string;
+            /** Format: date-time */
+            leavesDiskAt: null | string;
+            usedBy: components["schemas"]["FileUseRef"][];
+        };
         FileContentResult: {
             /** Format: byte */
             fileContents?: string;
@@ -11072,6 +11225,40 @@ export interface components {
         };
         /** @enum {unknown} */
         FileKind: "Image" | "Attachment";
+        FileKindTotal: {
+            kind: components["schemas"]["FileKind"];
+            /** Format: int32 */
+            count: number;
+            /** Format: int64 */
+            bytes: number;
+        };
+        FilesOverview: {
+            totals: components["schemas"]["FileKindTotal"][];
+            storage: components["schemas"]["FileStorageInfo"];
+            files: components["schemas"]["PagedOfFileAdminItem"];
+            unknown: null | components["schemas"]["UnknownFileItem"][];
+        };
+        FileStorageInfo: {
+            path: string;
+            writable: boolean;
+            problem: null | string;
+            /** Format: int64 */
+            freeBytes: null | number;
+            /** Format: int64 */
+            totalBytes: null | number;
+            /** Format: int64 */
+            minFreeBytes: number;
+        };
+        FileUseRef: {
+            kind: components["schemas"]["FileUserKind"];
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: int32 */
+            number: null | number;
+        };
+        /** @enum {unknown} */
+        FileUserKind: "Page" | "Location";
         FindingEvidence: {
             key: string;
             kind: string;
@@ -12744,6 +12931,15 @@ export interface components {
         };
         PagedOfEventItem: {
             items: components["schemas"]["EventItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfFileAdminItem: {
+            items: components["schemas"]["FileAdminItem"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */
@@ -14450,6 +14646,13 @@ export interface components {
             sensorId: string;
             nodeName: string;
             message: string;
+        };
+        UnknownFileItem: {
+            path: string;
+            /** Format: int64 */
+            size: number;
+            /** Format: date-time */
+            modifiedAt: string;
         };
         UpdatesInfo: {
             lastHotfix: null | string;

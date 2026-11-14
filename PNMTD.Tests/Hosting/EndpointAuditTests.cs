@@ -333,6 +333,11 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/location-fields/{id:guid}/archive"] = Roles.Admin,
         ["POST /api/v1/location-fields/{id:guid}/restore"] = Roles.Admin,
         ["DELETE /api/v1/location-fields/{id:guid}"] = Roles.Admin,
+        // Uploaded files (docs/locations-knowledge-plan.md §9): uploading is a write, reading every role's, the overview and deleting the Admin's.
+        ["POST /api/v1/files"] = Roles.User,
+        ["GET /api/v1/files/{id:guid}/{name}"] = Roles.Viewer,
+        ["GET /api/v1/files"] = Roles.Admin,
+        ["DELETE /api/v1/files/{id:guid}"] = Roles.Admin,
     };
 
     private sealed record EndpointInfo(string Key, string Method, string Pattern, RouteEndpoint Endpoint);
