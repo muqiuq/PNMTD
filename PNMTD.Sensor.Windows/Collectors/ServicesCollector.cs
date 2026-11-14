@@ -18,6 +18,12 @@ internal sealed class ServicesCollector : Collector
 
     public override TimeSpan Interval => TimeSpan.FromMinutes(1);
 
+    /// <summary>
+    /// The first pass checks every binary's signature, a catalog lookup each for Windows' own: a minute or two on a slow disk.
+    /// A pass that runs out keeps what it checked, so the next one finishes.
+    /// </summary>
+    public override TimeSpan Timeout => TimeSpan.FromMinutes(4);
+
     private static readonly IReadOnlySet<string> VolatileNames = new HashSet<string> { "pid" };
 
     public override IReadOnlySet<string> Volatile => VolatileNames;
@@ -34,33 +40,50 @@ internal sealed class ServicesCollector : Collector
             {
                 ct.ThrowIfCancellationRequested();
                 var name = s.Str("Name") ?? "";
-                using var key = Registry.LocalMachine.OpenSubKey($@"SYSTEM\CurrentControlSet\Services\{name}");
-                var delayed = key?.GetValue("DelayedAutostart") is int d && d == 1;
-                var trigger = key?.OpenSubKey("TriggerInfo") is { } triggerKey && Dispose(triggerKey);
-                var startMode = s.Str("StartMode") ?? "";
-                var startType = startMode switch
+                try
                 {
-                    "Auto" when delayed => "Delayed",
-                    "Auto" => "Automatic",
-                    "Manual" when trigger => "Trigger",
-                    "Manual" => "Manual",
-                    "Disabled" => "Disabled",
-                    "Boot" or "System" => startMode,
-                    _ => startMode,
-                };
-                var path = Binary(s.Str("PathName"));
-                var serviceDll = key?.OpenSubKey("Parameters")?.GetValue("ServiceDll") as string ?? key?.GetValue("ServiceDll") as string;
-                serviceDll = serviceDll is null ? null : Environment.ExpandEnvironmentVariables(serviceDll);
-                var subject = serviceDll ?? path;
-                var (signature, version, company) = subject is null ? (new WinTrust.Signature(false, false, null), null, null) : Signature(subject, errors);
-                var serviceClass = Classify(subject, signature, windows, self);
-                var state = s.Str("State") ?? "Unknown";
-                return new ServiceEntry(name, s.Str("DisplayName") ?? name, state, startType, s.Str("StartName"), path, serviceDll, version, company, signature.Signer,
-                    serviceClass, startMode == "Auto" && !trigger && state != "Running", s.Int("ProcessId") is > 0 and var pid ? pid : null);
+                    return Entry(s, name, windows, self, errors);
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    // One odd service (a registry key it can't read, a path Windows can't parse) is reported as far as known.
+                    errors.Add($"service {name}: {e.GetType().Name}: {e.Message}");
+                    var display = s.Str("DisplayName") ?? name;
+                    return new ServiceEntry(name, display, s.Str("State") ?? "Unknown", s.Str("StartMode") ?? "", s.Str("StartName"), s.Str("PathName"), null, null, null,
+                        null, ServiceClass.Unsigned, false, s.Int("ProcessId") is > 0 and var id ? id : null);
+                }
             })
             .OrderBy(s => s.Class == ServiceClass.Windows ? 1 : 0).ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
         return new ServicesSection(services);
+    }
+
+    private ServiceEntry Entry(System.Management.ManagementBaseObject s, string name, string windows, string self, List<string> errors)
+    {
+        using var key = Registry.LocalMachine.OpenSubKey($@"SYSTEM\CurrentControlSet\Services\{name}");
+        var delayed = key?.GetValue("DelayedAutostart") is int d && d == 1;
+        var trigger = key?.OpenSubKey("TriggerInfo") is { } triggerKey && Dispose(triggerKey);
+        var startMode = s.Str("StartMode") ?? "";
+        var startType = startMode switch
+        {
+            "Auto" when delayed => "Delayed",
+            "Auto" => "Automatic",
+            "Manual" when trigger => "Trigger",
+            "Manual" => "Manual",
+            "Disabled" => "Disabled",
+            "Boot" or "System" => startMode,
+            _ => startMode,
+        };
+        var path = Binary(s.Str("PathName"));
+        using var parameters = key?.OpenSubKey("Parameters");
+        var serviceDll = parameters?.GetValue("ServiceDll") as string ?? key?.GetValue("ServiceDll") as string;
+        serviceDll = serviceDll is null ? null : Environment.ExpandEnvironmentVariables(serviceDll);
+        var subject = serviceDll ?? path;
+        var (signature, version, company) = subject is null ? (new WinTrust.Signature(false, false, null), null, null) : Signature(subject, errors);
+        var serviceClass = Classify(subject, signature, windows, self);
+        var state = s.Str("State") ?? "Unknown";
+        return new ServiceEntry(name, s.Str("DisplayName") ?? name, state, startType, s.Str("StartName"), path, serviceDll, version, company, signature.Signer,
+            serviceClass, startMode == "Auto" && !trigger && state != "Running", s.Int("ProcessId") is > 0 and var pid ? pid : null);
     }
 
     private static bool Dispose(RegistryKey key)
@@ -87,7 +110,7 @@ internal sealed class ServicesCollector : Collector
             signatures[path] = (info.Length, info.LastWriteTimeUtc, signature, version.FileVersion, version.CompanyName);
             return (signature, version.FileVersion, version.CompanyName);
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
             errors.Add($"{path}: {e.Message}");
             return (new WinTrust.Signature(false, false, null), null, null);

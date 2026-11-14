@@ -51,7 +51,8 @@ internal sealed class AccessCollector(LoginStream stream) : Collector
                     missing.Add("/failure:enable");
                 }
                 return new AuditSetting(r.Name, r.Guid.ToString("B").ToUpperInvariant(), success, failure, r.Success, r.Failure,
-                    missing.Count == 0 ? null : $"auditpol /set /subcategory:{r.Guid.ToString("B").ToUpperInvariant()} {string.Join(' ', missing)}");
+                    // Quoted: in PowerShell, {…} would be a script block.
+                    missing.Count == 0 ? null : $"auditpol /set /subcategory:\"{r.Guid.ToString("B").ToUpperInvariant()}\" {string.Join(' ', missing)}");
             }).ToList();
         }) ?? [];
         var logs = Isolated.Part(errors, "operational logs", () => LoginStream.Channels.Where(c => c.Name != "Security").Select(c =>

@@ -10639,6 +10639,82 @@
           }
         }
       },
+      "ActivationInfo": {
+        "required": [
+          "status",
+          "product",
+          "description",
+          "channel",
+          "partialKey",
+          "graceMinutes",
+          "evaluationEnds",
+          "kmsHost",
+          "firmwareKey",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "product": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "channel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "partialKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "graceMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "evaluationEnds": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "kmsHost": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "firmwareKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "AdapterInfo": {
         "required": [
           "name",
@@ -17739,6 +17815,16 @@
             "type": [
               "null",
               "string"
+            ]
+          },
+          "activation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ActivationInfo"
+              }
             ]
           }
         }

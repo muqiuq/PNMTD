@@ -42,7 +42,25 @@ public sealed record SystemSection(
     HypervisorInfo? Hypervisor);
 
 public sealed record OsInfo(string Caption, string? Edition, string? Version, string Build, int? Ubr, string? DisplayVersion, DateTimeOffset? InstallDate,
-    string? Architecture, bool? Activated, bool Supported, string? ProductType);
+    string? Architecture, bool? Activated, bool Supported, string? ProductType, ActivationInfo? Activation = null);
+
+/// <summary>
+/// Windows' activation, as the Software Licensing service reports it: the status (Licensed, a grace period, Notification, …),
+/// the installed key's channel (Retail, OEM, Volume:MAK, Volume:GVLK for KMS) and its last five characters, the KMS host, and
+/// whether the firmware holds an OEM key (its last five; the key itself never leaves the server). <c>Reason</c> is the
+/// licensing error (0xC004F034, …) while not activated.
+/// </summary>
+public sealed record ActivationInfo(
+    string Status,
+    string? Product,
+    string? Description,
+    string? Channel,
+    string? PartialKey,
+    int? GraceMinutes,
+    DateTimeOffset? EvaluationEnds,
+    string? KmsHost,
+    string? FirmwareKey,
+    string? Reason);
 
 /// <summary>The last shutdown: planned (1074, with the user and the reason) or unexpected (6008).</summary>
 public sealed record ShutdownInfo(DateTimeOffset At, bool Unexpected, string? Reason, string? User);

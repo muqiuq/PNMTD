@@ -21,6 +21,9 @@ internal sealed class SystemCollector : Collector
 
     public override TimeSpan Interval => TimeSpan.FromMinutes(15);
 
+    /// <summary>The licensing service takes its time on the first query after a boot.</summary>
+    public override TimeSpan Timeout => TimeSpan.FromMinutes(2);
+
     private static readonly IReadOnlySet<string> VolatileNames = new HashSet<string> { "sessions", "lastSync", "signatureAgeDays", "lastQuickScan", "lastFullScan" };
 
     public override IReadOnlySet<string> Volatile => VolatileNames;
@@ -41,10 +44,7 @@ internal sealed class SystemCollector : Collector
             return string.IsNullOrEmpty(properties.DomainName) ? null : $"{properties.HostName}.{properties.DomainName}";
         });
         var ubr = int.TryParse(os.Build.Split('.').ElementAtOrDefault(1), out var u) ? u : (int?)null;
-        var activated = Isolated.Part(errors, "activation", () => Wmi.Query(Wmi.Cimv2,
-                "SELECT LicenseStatus FROM SoftwareLicensingProduct WHERE ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL",
-                TimeSpan.FromSeconds(20))
-            .Select(p => p.Int("LicenseStatus")).Any(s => s == 1));
+        var activation = Isolated.Part(errors, "activation", Activation);
         var boot = system?.Date("LastBootUpTime") ?? DateTimeOffset.UtcNow - TimeSpan.FromMilliseconds(Environment.TickCount64);
 
         return new SystemSection(
@@ -55,7 +55,7 @@ internal sealed class SystemCollector : Collector
             DomainRole(computer?.Int("DomainRole")),
             WindowsVersion.MachineGuid(),
             new OsInfo(os.Caption, os.Edition, os.Version, os.Build.Split('.')[0], ubr, os.DisplayVersion, system?.Date("InstallDate"),
-                system?.Str("OSArchitecture"), activated, os.Supported, os.ProductType),
+                system?.Str("OSArchitecture"), activation is null ? null : activation.Status == "Licensed", os.Supported, os.ProductType, activation),
             boot,
             Isolated.Part(errors, "last shutdown", LastShutdown),
             Isolated.Part(errors, "updates", () => Updates(errors)),
@@ -64,6 +64,53 @@ internal sealed class SystemCollector : Collector
             Isolated.Part(errors, "local administrators", LocalAdministrators) ?? [],
             Isolated.Part(errors, "sessions", Sessions) ?? [],
             Isolated.Part(errors, "hypervisor", () => Hypervisor(computer)));
+    }
+
+    /// <summary>Windows' license (the Software Licensing service's product with a key installed); null when none has a key.</summary>
+    public static ActivationInfo? Activation()
+    {
+        // SELECT *: ProductKeyChannel and EvaluationEndDate are missing on older Windows, and a named missing property fails the query.
+        var products = Wmi.Query(Wmi.Cimv2,
+            "SELECT * FROM SoftwareLicensingProduct WHERE ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL",
+            TimeSpan.FromSeconds(30));
+        // The licensed one when several have a key (an upgraded edition keeps the old one).
+        var product = products.OrderByDescending(p => p.Int("LicenseStatus") == 1).FirstOrDefault();
+        if (product is null)
+        {
+            return null;
+        }
+        var service = Wmi.First(Wmi.Cimv2, "SELECT * FROM SoftwareLicensingService");
+        var status = product.Int("LicenseStatus");
+        var firmwareKey = service?.Str("OA3xOriginalProductKey");
+        var kms = product.Str("KeyManagementServiceMachine") ?? service?.Str("KeyManagementServiceMachine")
+            ?? product.Str("DiscoveredKeyManagementServiceMachineName") ?? service?.Str("DiscoveredKeyManagementServiceMachineName");
+        if (kms is not null && (product.Int("KeyManagementServicePort") ?? service?.Int("KeyManagementServicePort")) is { } port and > 0 and not 1688)
+        {
+            kms = $"{kms}:{port}";
+        }
+        var reason = product.Long("LicenseStatusReason") is { } code and not 0 && status != 1 ? $"0x{(uint)code:X8}" : null;
+        var evaluationEnds = product.Date("EvaluationEndDate") is { } ends && ends.Year is > 1601 and < 9999 ? ends : (DateTimeOffset?)null;
+        return new ActivationInfo(
+            status switch
+            {
+                0 => "Unlicensed",
+                1 => "Licensed",
+                2 => "Initial grace period",
+                3 => "Additional grace period",
+                4 => "Non-genuine grace period",
+                5 => "Notification",
+                6 => "Extended grace period",
+                _ => "Unknown",
+            },
+            product.Str("Name"),
+            product.Str("Description"),
+            product.Str("ProductKeyChannel"),
+            product.Str("PartialProductKey"),
+            product.Int("GracePeriodRemaining") is { } grace and > 0 ? grace : null,
+            evaluationEnds,
+            kms,
+            firmwareKey is { Length: >= 5 } key ? key[^5..] : null,
+            reason);
     }
 
     private static string? DomainRole(int? role) => role switch

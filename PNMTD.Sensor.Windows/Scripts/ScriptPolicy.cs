@@ -5,15 +5,17 @@ using PNMTD.Sensor.Windows.State;
 namespace PNMTD.Sensor.Windows.Scripts;
 
 /// <summary>
-/// What an administrator allowed on this server (docs/windows-sensor-plan.md §7.2): scripts from PNMT at all, and optionally only
-/// named scripts (by their hash) and named run-as accounts ("service" for the agent itself, which must be named). Written only by
-/// the window, which needs a local administrator; PNMT cannot change it from the outside.
+/// What an administrator allowed on this server (docs/windows-sensor-plan.md §7.2), written only by the window, which needs a local
+/// administrator; PNMT cannot change it from the outside. Scripts from PNMT at all (<see cref="Enabled"/>); then the scripts
+/// registered here (<see cref="LocalScripts"/>), each only as the account it is registered with; and only if
+/// <see cref="AnyScript"/>, other scripts too, as the accounts in <see cref="RunAs"/> ("service" for the agent itself must be
+/// named; empty: any account but the service).
 /// </summary>
-internal sealed record ScriptPolicy(bool Enabled, IReadOnlyList<string> ScriptHashes, IReadOnlyList<string> RunAs)
+internal sealed record ScriptPolicy(bool Enabled, bool AnyScript, IReadOnlyList<string> RunAs)
 {
     public const string File = "scripts-policy.json";
 
-    public static ScriptPolicy Off { get; } = new(false, [], []);
+    public static ScriptPolicy Off { get; } = new(false, false, []);
 
     public static ScriptPolicy Read() => AgentFiles.ReadState<ScriptPolicy>(File) ?? Off;
 
@@ -26,9 +28,13 @@ internal sealed record ScriptPolicy(bool Enabled, IReadOnlyList<string> ScriptHa
         {
             return "Scripts from PNMT are not allowed on this server (the agent's window turns them on).";
         }
-        if (ScriptHashes.Count > 0 && !ScriptHashes.Contains(hash, StringComparer.OrdinalIgnoreCase))
+        if (LocalScripts.ByHash(hash) is { } local)
         {
-            return "This script is not on the server's list of allowed scripts.";
+            return local.RunsAs(runAs) ? null : $"This server runs {local.Name} only as {local.RunAsText}.";
+        }
+        if (!AnyScript)
+        {
+            return "This script is not registered on the server (the agent's window: Scripts, Add script…).";
         }
         var name = runAs.Kind == Lib.Agent.RunAsKind.Service ? "service" : runAs.Account ?? "";
         if (runAs.Kind == Lib.Agent.RunAsKind.Service && !RunAs.Contains("service", StringComparer.OrdinalIgnoreCase))

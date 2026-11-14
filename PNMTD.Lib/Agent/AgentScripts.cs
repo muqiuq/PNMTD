@@ -145,10 +145,14 @@ public static class ScriptArguments
 
 }
 
-/// <summary>The SHA-256 of a script's text (UTF-8), hex: what allowlists name and runs check.</summary>
+/// <summary>
+/// The SHA-256 of a script's text, hex: what registrations name and runs check. Of the text without a BOM and with LF line endings,
+/// so a file saved on Windows (CRLF, perhaps a BOM) and the same text pasted into PNMT's editor have the same hash.
+/// </summary>
 public static class ScriptHashes
 {
-    public static string Of(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text))).ToLowerInvariant();
+    public static string Of(string text) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text.TrimStart('\uFEFF').Replace("\r\n", "\n")))).ToLowerInvariant();
 }
 
 /// <summary>Secrets encrypted end to end to an agent (§3.4, §7.4): ECDH P-256, HKDF-SHA256, AES-256-GCM.</summary>

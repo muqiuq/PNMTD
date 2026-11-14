@@ -79,9 +79,17 @@ const healthSeverity = (h: string | null | undefined) =>
           </Column>
           <Column header="Health" style="width: 12rem">
             <template #body="{ data }">
-              <Tag :value="data.health ?? 'Unknown'" :severity="healthSeverity(data.health)" />
-              <span class="muted small"> {{ data.operationalStatus }}</span>
-              <Tag v-if="data.predictFailure" value="SMART predicts failure" severity="danger" />
+              <div class="tag-line">
+                <Tag :value="data.health ?? 'Unknown'" :severity="healthSeverity(data.health)" />
+                <span class="muted small">{{ data.operationalStatus }}</span>
+                <Tag v-if="data.predictFailure" value="SMART predicts failure" severity="danger" />
+                <span
+                  v-else-if="data.predictFailure === null"
+                  class="muted small"
+                  title="The disk's driver doesn't report SMART (usual in a VM)"
+                  >SMART unknown</span
+                >
+              </div>
             </template>
           </Column>
         </DataTable>
@@ -137,5 +145,12 @@ const healthSeverity = (h: string | null | undefined) =>
 
 .small {
   font-size: 0.857rem;
+}
+
+.tag-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pnmt-space-1) var(--pnmt-space-2);
 }
 </style>

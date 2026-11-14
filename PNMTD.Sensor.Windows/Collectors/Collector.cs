@@ -14,6 +14,12 @@ internal abstract class Collector
     /// <summary>How often it runs besides the full update every 6 hours.</summary>
     public abstract TimeSpan Interval { get; }
 
+    /// <summary>
+    /// How long one collection may take before it counts as hung (each WMI query has its own 15 s). Longer where the first pass
+    /// is slow by nature: the services' signatures, the licensing service.
+    /// </summary>
+    public virtual TimeSpan Timeout => TimeSpan.FromSeconds(30);
+
     /// <summary>Properties left out of the hash: values that change all the time (free space, counters).</summary>
     public virtual IReadOnlySet<string> Volatile => EmptySet;
 

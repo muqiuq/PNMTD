@@ -29,8 +29,8 @@ const item = computed(() => props.server?.server)
     <div class="cell">
       <span class="label">Windows</span>
       <span class="value">{{ item.osCaption ?? '–' }}</span>
-      <span class="muted small"
-        >{{ server.osDisplayVersion ?? '' }} {{ item.osBuild }}
+      <span class="muted small tag-line"
+        ><span>{{ server.osDisplayVersion ?? '' }} {{ item.osBuild }}</span>
         <Tag v-if="!item.osSupported" value="not a supported version" severity="warn"
       /></span>
     </div>
@@ -92,5 +92,12 @@ const item = computed(() => props.server?.server)
 
 .warn {
   color: var(--pnmt-warn);
+}
+
+.tag-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pnmt-space-1) var(--pnmt-space-2);
 }
 </style>

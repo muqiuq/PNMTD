@@ -12,8 +12,9 @@ namespace PNMTD.Sensor.Windows.Ui;
 
 /// <summary>
 /// The joined agent (docs/windows-sensor-plan.md §10.4), in three tabs. Status: the connection and the service, this server in
-/// PNMT with both keys, problems, diagnostics, the audit policy's gaps, and the actions. Scripts: the local allowlists and the
-/// stored accounts. Log: the service's log file, following. Built once; every tick updates what changed and leaves inputs alone.
+/// PNMT with both keys, problems, diagnostics, the audit policy's gaps, and the actions. Scripts: whether PNMT may run scripts, the
+/// scripts registered here and the stored accounts (<see cref="ScriptsTab"/>). Log: the service's log file, following. Built
+/// once; every tick updates what changed and leaves inputs alone.
 /// </summary>
 internal sealed class StatusView : UserControl
 {
@@ -47,13 +48,6 @@ internal sealed class StatusView : UserControl
     private string diagnosticsShown = "";
     private string gapsShown = "";
 
-    // Scripts
-    private CheckBox allowScripts = null!;
-    private TextBox allowedHashes = null!;
-    private TextBox allowedAccounts = null!;
-    private Label scriptsNote = null!;
-    private ListBox storedAccounts = null!;
-
     // Log
     private TextBox logBox = null!;
     private Label logPath = null!;
@@ -72,7 +66,7 @@ internal sealed class StatusView : UserControl
         Padding = Theme.P(12, 10, 12, 12);
         tabs = new TabControl { Dock = DockStyle.Fill, Font = Theme.Body, Padding = new Point(Theme.S(16), Theme.S(5)) };
         tabs.TabPages.Add(Tab("Status", BuildStatus()));
-        tabs.TabPages.Add(Tab("Scripts", BuildScripts()));
+        tabs.TabPages.Add(Tab("Scripts", new ScriptsTab(logger)));
         logPage = Tab("Log", BuildLog());
         tabs.TabPages.Add(logPage);
         tabs.SelectedIndexChanged += (_, _) =>
@@ -289,7 +283,8 @@ internal sealed class StatusView : UserControl
         {
             Caption = "PNMT Sensor",
             Heading = "Uninstall PNMT Sensor?",
-            Text = "Stops and deletes the service, and deletes this server's keys, its stored accounts and the agent's data. " +
+            Text = "Stops and deletes the service and the scheduled tasks of its scripts, and deletes this server's keys, its stored accounts, " +
+                "its scripts and the agent's data. " +
                 "PNMT keeps the server and its history, marked uninstalled. The program goes at the next restart.",
             Icon = TaskDialogIcon.Warning,
             Verification = deleteLogs,
@@ -324,98 +319,6 @@ internal sealed class StatusView : UserControl
         {
             UseWaitCursor = false;
         }
-    }
-
-    // --- Scripts -----------------------------------------------------------------------------------------------
-
-    private Control BuildScripts()
-    {
-        var (page, stack) = Kit.Page();
-
-        var scripts = new Card("Scripts from PNMT");
-        scripts.Add(Kit.Muted("PNMT runs PowerShell scripts here only if you allow it on this server; PNMT can't change this. " +
-            "Allowed or not, PNMT may have the agent parse a script's parameters, which never runs it."));
-        allowScripts = scripts.Add(new CheckBox { Text = "Allow scripts from PNMT on this server", AutoSize = true, Font = Theme.Strong, Margin = Theme.P(0, 8, 0, 8) });
-        scripts.Add(Kit.Label("Only these scripts: their SHA-256, one per line, as PNMT shows it on each version. Empty: any script PNMT sends."));
-        allowedHashes = scripts.Add(Kit.Area(80));
-        scripts.Add(Kit.Label("Only as these accounts, one per line: DOMAIN\\user, or service for the agent itself (LocalSystem, as an admin), " +
-            "which must always be named. Empty: any account but the service."));
-        allowedAccounts = scripts.Add(Kit.Area(70));
-        allowedAccounts.Font = Theme.Body;
-        scriptsNote = Kit.Muted("");
-        scripts.Add(Kit.Row(Kit.Button("Save", ButtonKind.Primary, (s, _) => SaveScripts((Control)s!)), scriptsNote));
-        Kit.Add(stack, scripts);
-
-        var stored = new Card("Stored accounts");
-        stored.Add(Kit.Muted("Passwords kept on this server only, encrypted with DPAPI: scripts run as these accounts without anyone typing the password. " +
-            "They never reach PNMT. A local administrator can still recover them, as any secret on this machine."));
-        storedAccounts = stored.Add(new ListBox
-        {
-            Anchor = AnchorStyles.Left | AnchorStyles.Right,
-            Height = Theme.S(110),
-            IntegralHeight = false,
-            Font = Theme.Body,
-            BorderStyle = BorderStyle.FixedSingle,
-            Margin = Theme.P(0, 6, 0, 6),
-        });
-        stored.Add(Kit.Row(
-            Kit.Button("Add or replace…", ButtonKind.Secondary, (_, _) => AddAccount()),
-            Kit.Button("Remove", ButtonKind.Danger, (_, _) => RemoveAccount())));
-        Kit.Add(stack, stored);
-
-        LoadScripts();
-        return page;
-    }
-
-    private void LoadScripts()
-    {
-        var policy = ScriptPolicy.Read();
-        allowScripts.Checked = policy.Enabled;
-        allowedHashes.Text = string.Join("\r\n", policy.ScriptHashes);
-        allowedAccounts.Text = string.Join("\r\n", policy.RunAs);
-        storedAccounts.Items.Clear();
-        storedAccounts.Items.AddRange(StoredAccounts.Names().Cast<object>().ToArray());
-    }
-
-    private void SaveScripts(Control button)
-    {
-        static List<string> Lines(TextBox box) => box.Text.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
-        var policy = new ScriptPolicy(allowScripts.Checked, Lines(allowedHashes), Lines(allowedAccounts));
-        Run(policy.Enabled ? "Allowed scripts from PNMT" : "Scripts from PNMT not allowed", () =>
-        {
-            policy.Save();
-            ServiceControl.Restart();
-        }, button, () => Kit.SetText(scriptsNote, $"{DateTime.Now:T}: saved; the service restarted and tells PNMT."));
-    }
-
-    private void AddAccount()
-    {
-        using var dialog = new AccountDialog();
-        if (dialog.ShowDialog(this) != DialogResult.OK)
-        {
-            return;
-        }
-        try
-        {
-            StoredAccounts.Set(dialog.Account, dialog.Password);
-            logger.LogInformation("Stored the password of {Account}", dialog.Account);
-            LoadScripts();
-        }
-        catch (Exception e)
-        {
-            Error("Storing the account", e);
-        }
-    }
-
-    private void RemoveAccount()
-    {
-        if (storedAccounts.SelectedItem is not string account)
-        {
-            return;
-        }
-        StoredAccounts.Remove(account);
-        logger.LogInformation("Removed the stored password of {Account}", account);
-        LoadScripts();
     }
 
     // --- Log -----------------------------------------------------------------------------------------------------
@@ -531,71 +434,5 @@ internal sealed class StatusView : UserControl
             Text = e.Message,
             Icon = TaskDialogIcon.Error,
         });
-    }
-}
-
-/// <summary>An account whose password is stored on this server (§7.4): the name and the password, entered here only.</summary>
-internal sealed class AccountDialog : Form
-{
-    private readonly TextBox account;
-    private readonly TextBox password;
-
-    public AccountDialog()
-    {
-        Text = "Stored account";
-        Font = Theme.Body;
-        BackColor = Theme.Surface;
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = MinimizeBox = false;
-        ShowInTaskbar = false;
-        StartPosition = FormStartPosition.CenterParent;
-        AutoSize = true;
-        AutoSizeMode = AutoSizeMode.GrowAndShrink;
-        Padding = Theme.P(18);
-        Icon = Assets.Icon;
-
-        var table = new TableLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, ColumnCount = 2 };
-        table.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        table.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        account = Kit.Input("DOMAIN\\user");
-        account.Width = Theme.S(280);
-        password = Kit.Input("");
-        password.UseSystemPasswordChar = true;
-        password.Width = Theme.S(280);
-        void Field(string label, Control control, int row)
-        {
-            var key = Kit.Label(label, Theme.Strong);
-            key.Anchor = AnchorStyles.Left;
-            key.Margin = Theme.P(0, 4, 14, 4);
-            table.Controls.Add(key, 0, row);
-            table.Controls.Add(control, 1, row);
-        }
-        Field("Account", account, 0);
-        Field("Password", password, 1);
-        var ok = Kit.Button("Store", ButtonKind.Primary, (_, _) => { });
-        ok.DialogResult = DialogResult.OK;
-        ok.Enabled = false;
-        var cancel = Kit.Button("Cancel", ButtonKind.Secondary, (_, _) => { });
-        cancel.DialogResult = DialogResult.Cancel;
-        var buttons = Kit.Row(ok, cancel);
-        buttons.Anchor = AnchorStyles.Right;
-        buttons.Margin = Theme.P(0, 12, 0, 0);
-        table.Controls.Add(buttons, 1, 2);
-        Controls.Add(table);
-        AcceptButton = ok;
-        CancelButton = cancel;
-        EventHandler changed = (_, _) => ok.Enabled = account.Text.Trim().Length > 0 && password.Text.Length > 0;
-        account.TextChanged += changed;
-        password.TextChanged += changed;
-    }
-
-    public string Account => account.Text.Trim();
-
-    public string Password => password.Text;
-
-    protected override void OnFormClosed(FormClosedEventArgs e)
-    {
-        base.OnFormClosed(e);
-        password.Clear();
     }
 }

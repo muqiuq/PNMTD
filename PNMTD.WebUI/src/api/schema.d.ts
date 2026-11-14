@@ -8116,6 +8116,20 @@ export interface components {
             last24Hours: null | components["schemas"]["AccessCounts"];
             gaps: string[];
         };
+        ActivationInfo: {
+            status: string;
+            product: null | string;
+            description: null | string;
+            channel: null | string;
+            partialKey: null | string;
+            /** Format: int32 */
+            graceMinutes: null | number;
+            /** Format: date-time */
+            evaluationEnds: null | string;
+            kmsHost: null | string;
+            firmwareKey: null | string;
+            reason: null | string;
+        };
         AdapterInfo: {
             name: string;
             description: null | string;
@@ -9873,6 +9887,7 @@ export interface components {
             activated: null | boolean;
             supported: boolean;
             productType: null | string;
+            activation?: null | components["schemas"]["ActivationInfo"];
         };
         PacketField: {
             /** Format: int32 */

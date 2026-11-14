@@ -41,14 +41,15 @@ internal sealed class HardwareCollector : Collector
             .ToList()) ?? [];
         var total = (long)Win32.Memory().TotalPhys;
 
+        // Null where the disks' drivers don't report SMART (most VMs, many NVMe and RAID controllers): then "unknown", not "fine".
         var predicting = Isolated.Part(errors, "SMART", () => Wmi.Query(Wmi.WmiRoot, "SELECT InstanceName, PredictFailure FROM MSStorageDriver_FailurePredictStatus")
-            .Where(s => s.Bool("PredictFailure") == true).Select(s => s.Str("InstanceName") ?? "").ToList()) ?? [];
+            .Where(s => s.Bool("PredictFailure") == true).Select(s => s.Str("InstanceName") ?? "").ToList());
         var disks = Isolated.Part(errors, "MSFT_PhysicalDisk", () => Wmi.Query(Wmi.Storage,
                 "SELECT DeviceId, FriendlyName, Size, MediaType, BusType, HealthStatus, OperationalStatus, SerialNumber FROM MSFT_PhysicalDisk")
             .Select(d => new DiskInfo(d.Str("DeviceId"), d.Str("FriendlyName") ?? "Disk", d.Long("Size"), Media(d.Int("MediaType"), d.Int("BusType")), Bus(d.Int("BusType")),
                 d.Int("HealthStatus") switch { 0 => "Healthy", 1 => "Warning", 2 => "Unhealthy", _ => "Unknown" },
                 string.Join(", ", d.Strings("OperationalStatus").Select(OperationalStatus)),
-                predicting.Count == 0 ? false : predicting.Any(p => d.Str("SerialNumber") is { Length: > 0 } serial && p.Contains(serial, StringComparison.OrdinalIgnoreCase)) ? true : null,
+                predicting is null ? null : predicting.Count == 0 ? false : predicting.Any(p => d.Str("SerialNumber") is { Length: > 0 } serial && p.Contains(serial, StringComparison.OrdinalIgnoreCase)) ? true : null,
                 d.Str("SerialNumber")))
             .ToList()) ?? [];
 

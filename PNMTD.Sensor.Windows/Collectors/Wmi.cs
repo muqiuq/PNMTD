@@ -29,7 +29,7 @@ internal static class Wmi
             return searcher.Get().Cast<ManagementBaseObject>().ToList();
         }
         catch (ManagementException e) when (e.ErrorCode is ManagementStatus.InvalidClass or ManagementStatus.InvalidNamespace
-            or ManagementStatus.NotSupported or ManagementStatus.InvalidQuery)
+            or ManagementStatus.NotSupported or ManagementStatus.InvalidQuery or ManagementStatus.ProviderNotCapable or ManagementStatus.NotAvailable)
         {
             throw new NotAvailableException($"{scope}: {wql.Split(' ').SkipWhile(w => !w.Equals("FROM", StringComparison.OrdinalIgnoreCase)).Skip(1).FirstOrDefault()} is not available here");
         }

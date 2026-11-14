@@ -75,9 +75,10 @@ internal sealed class ScriptsFeature(ProblemReporter problems, ILogger<ScriptsFe
         {
             return "The script's text doesn't match its hash.";
         }
-        if (run.RunAs.Kind == RunAsKind.Stored && (run.RunAs.Account is null || StoredAccounts.Password(run.RunAs.Account) is null))
+        var kind = EffectiveKind(run);
+        if (kind == RunAsKind.Stored && run.RunAs.Password is null && (run.RunAs.Account is null || StoredAccounts.Password(run.RunAs.Account) is null))
         {
-            return $"No password for {run.RunAs.Account} is stored on this server (the agent's window: Stored accounts).";
+            return $"No password for {run.RunAs.Account} is stored on this server (the agent's window: Scripts, Stored accounts).";
         }
         var parsed = await ParseAsync(run.Text, ct);
         if (parsed.Errors.Count > 0)
@@ -87,6 +88,10 @@ internal sealed class ScriptsFeature(ProblemReporter problems, ILogger<ScriptsFe
         var problems = ScriptArguments.Check(parsed, run.Arguments, run.SecureArguments.Keys.ToList()).ToList();
         return problems.Count == 0 ? null : $"The arguments don't match the script: {string.Join("; ", problems.Select(p => p.Message))}";
     }
+
+    /// <summary>A script registered here runs as the kind it is registered with (its password stored here), whatever PNMT named.</summary>
+    private static RunAsKind EffectiveKind(RunScriptRequest run) =>
+        run.RunAs.Kind == RunAsKind.TypedPerRun && run.RunAs.Password is not null ? RunAsKind.TypedPerRun : LocalScripts.ByHash(run.Hash)?.Kind ?? run.RunAs.Kind;
 
     public static async Task<ParsedScript> ParseAsync(string text, CancellationToken ct)
     {
@@ -102,7 +107,9 @@ internal sealed class ScriptsFeature(ProblemReporter problems, ILogger<ScriptsFe
             {
                 throw new InvalidOperationException($"The parser failed ({code}): {errors.Trim()}");
             }
-            return AgentJson.Deserialize<ParsedScript>(output.Trim()) ?? throw new InvalidOperationException("The parser answered nothing.");
+            // Base64-encoded UTF-8: Windows PowerShell writes the console in the OEM code page.
+            var json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(output.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)[^1]));
+            return AgentJson.Deserialize<ParsedScript>(json) ?? throw new InvalidOperationException("The parser answered nothing.");
         }
         finally
         {
@@ -132,13 +139,14 @@ internal sealed class ScriptsFeature(ProblemReporter problems, ILogger<ScriptsFe
                 }
                 password = run.RunAs.Password is { } secret ? AgentSecrets.Decrypt(key, secret, run.RunId) : null;
             }
-            if (run.RunAs.Kind == RunAsKind.Stored)
+            var kind = EffectiveKind(run);
+            if (kind == RunAsKind.Stored && password is null)
             {
                 password = StoredAccounts.Password(run.RunAs.Account!);
             }
             var timeout = TimeSpan.FromSeconds(Math.Clamp(run.TimeoutSeconds, 10, 3600));
             int exitCode;
-            if (run.RunAs.Kind == RunAsKind.Service)
+            if (kind == RunAsKind.Service)
             {
                 (exitCode, _, var errors) = await PowerShell.RunFileAsync(run.Shell, Path.Combine(folder, "wrapper.ps1"), ["-Folder", folder], null, timeout, CancellationToken.None);
                 if (!string.IsNullOrWhiteSpace(errors))
@@ -155,13 +163,14 @@ internal sealed class ScriptsFeature(ProblemReporter problems, ILogger<ScriptsFe
                     shell = PowerShell.Executable(run.Shell),
                     account = run.RunAs.Account,
                     password,
-                    kind = run.RunAs.Kind.ToString(),
+                    kind = kind.ToString(),
                     timeout = (int)timeout.TotalSeconds,
                     runId = run.RunId.ToString("N"),
                 });
                 var runner = Path.Combine(folder, "runner.ps1");
                 await File.WriteAllTextAsync(runner, PowerShell.TaskRunner, new System.Text.UTF8Encoding(true));
-                var (code, output, errors) = await PowerShell.RunFileAsync("powershell", runner, [], input, timeout + TimeSpan.FromSeconds(60), CancellationToken.None);
+                var (code, output, errors) = await PowerShell.RunFileAsync("powershell", runner, [],
+                    Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(input)), timeout + TimeSpan.FromSeconds(60), CancellationToken.None);
                 if (code != 0)
                 {
                     throw new InvalidOperationException($"The scheduled task could not run as {run.RunAs.Account}: {errors.Trim()}");

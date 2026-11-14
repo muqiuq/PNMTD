@@ -126,7 +126,8 @@ internal static class PowerShell
         if ($text -notmatch 'Set-StrictMode') { $findings += [ordered]@{ rule = 'StrictMode'; message = 'No Set-StrictMode.' } }
         if ($text -notmatch '\$ErrorActionPreference\s*=\s*[''"]Stop') { $findings += [ordered]@{ rule = 'ErrorAction'; message = "No `$ErrorActionPreference = 'Stop'." } }
         $errs = @($errors | ForEach-Object { [ordered]@{ message = $_.Message; line = $_.Extent.StartLineNumber; column = $_.Extent.StartColumnNumber } })
-        [ordered]@{ parameters = @($params); help = $help; errors = $errs; findings = @($findings) } | ConvertTo-Json -Depth 6 -Compress
+        $json = [ordered]@{ parameters = @($params); help = $help; errors = $errs; findings = @($findings) } | ConvertTo-Json -Depth 6 -Compress
+        [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json))
         """;
 
     /// <summary>
@@ -165,7 +166,7 @@ internal static class PowerShell
     /// </summary>
     public const string TaskRunner = """
         $ErrorActionPreference = 'Stop'
-        $in = [Console]::In.ReadToEnd() | ConvertFrom-Json
+        $in = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String([Console]::In.ReadToEnd().Trim())) | ConvertFrom-Json
         & icacls.exe $in.folder /grant "$($in.account):(OI)(CI)M" | Out-Null
         $arguments = "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$($in.wrapper)`" -Folder `"$($in.folder)`""
         $action = New-ScheduledTaskAction -Execute $in.shell -Argument $arguments

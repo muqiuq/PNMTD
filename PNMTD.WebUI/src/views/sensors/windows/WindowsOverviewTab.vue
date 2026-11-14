@@ -6,6 +6,7 @@ import type { S } from '@/api/resources'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { logKindLabel, logKindSeverity } from '@/views/admin/windows/windowsFormat'
 import WindowsOverviewExtras from './WindowsOverviewExtras.vue'
+import WindowsSessions from './WindowsSessions.vue'
 import WindowsSystemPanel from './WindowsSystemPanel.vue'
 
 /**
@@ -30,13 +31,7 @@ const sessions = computed(() => props.server.heartbeat?.sessions ?? [])
         <div class="panel-header">Logged on now</div>
         <div class="panel-body">
           <p v-if="!server.heartbeat" class="muted">No heartbeat yet.</p>
-          <p v-else-if="!sessions.length" class="muted">Nobody.</p>
-          <ul v-else class="plain">
-            <li v-for="(s, i) in sessions" :key="i">
-              <strong>{{ s.user }}</strong> · {{ s.kind }} · {{ s.state }}
-              <span v-if="s.clientAddress" class="mono muted"> from {{ s.clientAddress }}</span>
-            </li>
-          </ul>
+          <WindowsSessions v-else :sessions="sessions" />
         </div>
       </section>
       <WindowsSystemPanel :server="server" :can-write="canWrite" />

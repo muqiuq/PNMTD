@@ -10,6 +10,7 @@ import ListTable from '@/components/ListTable.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { useServerTable } from '@/composables/useServerTable'
 import SectionBar from './SectionBar.vue'
+import WindowsSessions from './WindowsSessions.vue'
 import { useWindowsSection } from './useWindowsSection'
 
 /**
@@ -70,16 +71,8 @@ const who = (l: S['WindowsLoginItem']) => (l.domain ? `${l.domain}\\${l.user}` :
     <div v-if="access" class="two-columns">
       <section class="panel">
         <div class="panel-header">Logged on now</div>
-        <ul class="panel-body plain">
-          <li v-for="(s, i) in access.sessions" :key="i">
-            <strong>{{ s.user }}</strong> · {{ s.kind }} · {{ s.state }}
-            <span v-if="s.clientAddress" class="mono muted"> from {{ s.clientAddress }}</span>
-          </li>
-          <li v-if="!access.sessions.length" class="muted">Nobody.</li>
-        </ul>
-        <div v-if="access.last24Hours" class="panel-body muted small">
-          Last 24 hours: {{ access.last24Hours.successes }} logins ({{ access.last24Hours.adminLogins }} by admins),
-          {{ access.last24Hours.failures }} failed, {{ access.last24Hours.lockouts }} lockouts.
+        <div class="panel-body">
+          <WindowsSessions :sessions="access.sessions" :last24-hours="access.last24Hours" />
         </div>
       </section>
       <section class="panel">
@@ -146,14 +139,16 @@ const who = (l: S['WindowsLoginItem']) => (l.domain ? `${l.domain}\\${l.user}` :
         </Column>
         <Column header="Who">
           <template #body="{ data }">
-            <strong>{{ who(data) }}</strong>
-            <Tag v-if="data.isAdmin" value="admin" severity="warn" class="small" />
-            <Tag
-              v-if="data.outcome === 'Failure'"
-              :value="data.failureReason ?? 'failed'"
-              severity="danger"
-              class="small"
-            />
+            <div class="tag-line">
+              <strong>{{ who(data) }}</strong>
+              <Tag v-if="data.isAdmin" value="admin" severity="warn" class="small" />
+              <Tag
+                v-if="data.outcome === 'Failure'"
+                :value="data.failureReason ?? 'failed'"
+                severity="danger"
+                class="small"
+              />
+            </div>
           </template>
         </Column>
         <Column header="How" style="width: 12rem">
@@ -221,5 +216,12 @@ const who = (l: S['WindowsLoginItem']) => (l.domain ? `${l.domain}\\${l.user}` :
 
 .small {
   font-size: 0.857rem;
+}
+
+.tag-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pnmt-space-1) var(--pnmt-space-2);
 }
 </style>

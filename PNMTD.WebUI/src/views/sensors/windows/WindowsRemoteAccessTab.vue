@@ -57,13 +57,15 @@ const features = computed(() =>
         </Column>
         <Column header="Notes">
           <template #body="{ data }">
-            <Tag
-              v-for="n in data.notes"
-              :key="n"
-              :value="n"
-              :severity="/off|SMB1|not required|full control/.test(n) ? 'warn' : 'secondary'"
-              class="small"
-            />
+            <div class="tag-line">
+              <Tag
+                v-for="n in data.notes"
+                :key="n"
+                :value="n"
+                :severity="/off|SMB1|not required|full control/.test(n) ? 'warn' : 'secondary'"
+                class="small"
+              />
+            </div>
           </template>
         </Column>
       </DataTable>
@@ -80,5 +82,12 @@ const features = computed(() =>
 
 .small {
   font-size: 0.857rem;
+}
+
+.tag-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pnmt-space-1) var(--pnmt-space-2);
 }
 </style>

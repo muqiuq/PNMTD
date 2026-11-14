@@ -286,7 +286,8 @@ public static class SimulatedSections
     public static SystemSection System(string hostname) => new(
         hostname, $"{hostname.ToLowerInvariant()}.sim.example", "SIM", true, "Member server", "3f1c2a9e-5b7d-4c8e-9a01-2b3c4d5e6f70",
         new OsInfo("Microsoft Windows Server 2019 Standard", "ServerStandard", "10.0.17763", "17763", 6532, "1809", Stamp.AddYears(-2), "64-bit",
-            true, true, "Server"),
+            true, true, "Server", new ActivationInfo("Licensed", "Windows(R), ServerStandard edition", "Windows(R) Operating System, VOLUME_KMSCLIENT channel",
+                "Volume:GVLK", "J464C", 259200, null, "kms01.sim.example", null, null)),
         Boot,
         new ShutdownInfo(Boot.AddMinutes(-2), false, "Operating System: Service pack (Planned); Monthly patching", "SIM\\admin"),
         new UpdatesInfo("KB5044277", Stamp.AddDays(-12), false, []),
@@ -359,7 +360,7 @@ public static class SimulatedSections
         [new SessionInfo("SIM\\admin", "Rdp", "Active", "10.0.4.17", Stamp.AddMinutes(-42))],
         [
             new AuditSetting("Logon", "{0CCE9215-69AE-11D9-BED3-505054503030}", true, false, true, true,
-                "auditpol /set /subcategory:{0CCE9215-69AE-11D9-BED3-505054503030} /failure:enable"),
+                "auditpol /set /subcategory:\"{0CCE9215-69AE-11D9-BED3-505054503030}\" /failure:enable"),
             new AuditSetting("Special Logon", "{0CCE921B-69AE-11D9-BED3-505054503030}", true, false, true, false, null),
         ],
         [
@@ -368,7 +369,7 @@ public static class SimulatedSections
         ],
         new SecurityLogInfo(20 * 1024 * 1024, Stamp.AddHours(-9), 9),
         new AccessCounts(14, 3, 2, 0),
-        ["auditpol /set /subcategory:{0CCE9215-69AE-11D9-BED3-505054503030} /failure:enable", "wevtutil sl Security /ms:536870912"]);
+        ["auditpol /set /subcategory:\"{0CCE9215-69AE-11D9-BED3-505054503030}\" /failure:enable", "wevtutil sl Security /ms:536870912"]);
 
     public static EventLogSection EventLog() => new(
     [

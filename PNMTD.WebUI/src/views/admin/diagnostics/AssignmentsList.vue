@@ -107,11 +107,13 @@ async function remove(a: S['DiagnosticAssignmentItem']) {
       <Column header="Last run">
         <template #body="{ data }">
           <template v-if="data.lastRun">
-            <Tag :value="outcomeLabel(data.lastRun.outcome)" :severity="outcomeSeverity(data.lastRun.outcome)" />
-            <a href="#" class="small" @click.prevent="runId = data.lastRun.id">
-              <RelativeTime :value="data.lastRun.startedAt"
-            /></a>
-            <div class="small ellipsis">{{ data.lastRun.summary }}</div>
+            <div class="run-line">
+              <Tag :value="outcomeLabel(data.lastRun.outcome)" :severity="outcomeSeverity(data.lastRun.outcome)" />
+              <a href="#" class="small" @click.prevent="runId = data.lastRun.id">
+                <RelativeTime :value="data.lastRun.startedAt"
+              /></a>
+            </div>
+            <div class="small ellipsis summary">{{ data.lastRun.summary }}</div>
           </template>
           <span v-else class="muted">none yet</span>
         </template>
@@ -154,6 +156,17 @@ async function remove(a: S['DiagnosticAssignmentItem']) {
 </template>
 
 <style scoped>
+.run-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pnmt-space-2);
+}
+
+.summary {
+  margin-top: var(--pnmt-space-1);
+}
+
 .tab {
   display: flex;
   flex-direction: column;

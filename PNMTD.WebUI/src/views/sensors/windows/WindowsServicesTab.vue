@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Button from 'primevue/button'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import InputText from 'primevue/inputtext'
@@ -16,22 +17,25 @@ import { useWindowsSection } from './useWindowsSection'
 const props = defineProps<{ server: S['WindowsServerDetail']; canWrite: boolean }>()
 const id = toRef(() => props.server.server.sensorId)
 const section = useWindowsSection(id, 'services')
-const show = ref<'special' | 'running' | 'all'>('special')
+type Show = 'special' | 'running' | 'all'
+const show = ref<Show>('special')
 const search = ref('')
-const options = [
-  { label: 'Special', value: 'special' },
-  { label: 'Running', value: 'running' },
-  { label: 'All', value: 'all' },
-]
+const all = computed(() => section.data.value?.services?.services ?? [])
+const special = (s: S['ServiceEntry']) => s.class === 'ThirdParty' || s.class === 'Unsigned' || s.autoNotRunning
+const shows = (s: S['ServiceEntry'], what: Show) =>
+  what === 'special' ? special(s) : what === 'running' ? s.state === 'Running' : true
+const options = computed(() =>
+  (
+    [
+      ['Special', 'special'],
+      ['Running', 'running'],
+      ['All', 'all'],
+    ] as const
+  ).map(([label, value]) => ({ label: `${label} (${all.value.filter((s) => shows(s, value)).length})`, value })),
+)
 const services = computed(() =>
-  (section.data.value?.services?.services ?? [])
-    .filter((s) =>
-      show.value === 'special'
-        ? s.class === 'ThirdParty' || s.class === 'Unsigned' || s.autoNotRunning
-        : show.value === 'running'
-          ? s.state === 'Running'
-          : true,
-    )
+  all.value
+    .filter((s) => shows(s, show.value))
     .filter((s) => {
       const q = search.value.trim().toLowerCase()
       return !q || s.name.toLowerCase().includes(q) || s.displayName.toLowerCase().includes(q)
@@ -67,6 +71,19 @@ const classSeverity = (c: S['ServiceClass']) =>
     </div>
     <section class="panel">
       <DataTable :value="services" size="small" scrollable scroll-height="40rem" data-key="name">
+        <template #empty>
+          <p v-if="!section.data.value" class="empty muted">
+            Not reported yet. A first collection checks every service's signature and can take a few minutes; if it
+            fails, the overview lists it under the agent's recent problems.
+          </p>
+          <p v-else-if="!all.length" class="empty muted">The agent reported no services.</p>
+          <p v-else-if="search.trim()" class="empty muted">No service matches “{{ search.trim() }}”.</p>
+          <p v-else-if="show === 'special'" class="empty muted">
+            Nothing special: no third-party or unsigned services, and every automatic service runs.
+            <Button label="Show all" link size="small" @click="show = 'all'" />
+          </p>
+          <p v-else class="empty muted">None.</p>
+        </template>
         <Column header="Service">
           <template #body="{ data }">
             <strong>{{ data.displayName }}</strong> <span class="muted small mono">{{ data.name }}</span>
@@ -116,5 +133,10 @@ const classSeverity = (c: S['ServiceClass']) =>
 
 .small {
   font-size: 0.857rem;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--pnmt-space-3) 0;
 }
 </style>

@@ -303,6 +303,46 @@ internal static partial class Win32
         return result;
     }
 
+    // --- checking a password (stored accounts, §7.4) ---------------------------------------------------------------
+
+    [LibraryImport("advapi32.dll", EntryPoint = "LogonUserW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool LogonUser(string user, string? domain, string password, int logonType, int provider, out IntPtr token);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool CloseHandle(IntPtr handle);
+
+    /// <summary>Whether Windows accepts the account's password (a network logon, which needs no logon right): null, or why not.</summary>
+    public static string? CheckLogon(string account, string password)
+    {
+        string user = account;
+        string? domain = null;
+        if (account.Split('\\', 2) is [var d, var u])
+        {
+            (domain, user) = (d == "." ? Environment.MachineName : d, u);
+        }
+        else if (!account.Contains('@'))
+        {
+            domain = Environment.MachineName;
+        }
+        if (LogonUser(user, domain, password, 3, 0, out var token))
+        {
+            CloseHandle(token);
+            return null;
+        }
+        var error = Marshal.GetLastWin32Error();
+        return error switch
+        {
+            1326 => "The account or the password is wrong.",
+            1327 or 1331 => "The account is restricted or disabled.",
+            1330 => "The password has expired.",
+            1909 => "The account is locked out.",
+            1311 => "No domain controller answered.",
+            _ => new System.ComponentModel.Win32Exception(error).Message,
+        };
+    }
+
     // --- deleting a file at the next reboot (uninstall, §10.4) ------------------------------------------------
 
     [LibraryImport("kernel32.dll", EntryPoint = "MoveFileExW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]

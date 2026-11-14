@@ -15,8 +15,6 @@ namespace PNMTD.Sensor.Windows.Service;
 /// </summary>
 internal sealed class SectionScheduler(IServiceProvider services, ProblemReporter problems, ILogger<SectionScheduler> logger)
 {
-    private static readonly TimeSpan CollectorTimeout = TimeSpan.FromSeconds(30);
-
     // Resolved when first used: the access collector needs the login stream, which asks this scheduler for the event log.
     private List<Collector>? collectors;
 
@@ -113,7 +111,7 @@ internal sealed class SectionScheduler(IServiceProvider services, ProblemReporte
 
     private async Task CollectAsync(Collector collector, CancellationToken ct)
     {
-        var message = await Isolated.RunAsync(problems, $"collector {collector.Name}", "collect", CollectorTimeout, token =>
+        var message = await Isolated.RunAsync(problems, $"collector {collector.Name}", "collect", collector.Timeout, token =>
             Task.Factory.StartNew(() =>
             {
                 var thread = Thread.CurrentThread;

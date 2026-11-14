@@ -18,6 +18,15 @@ internal static class Uninstaller
         var done = new List<string>();
         ServiceControl.Delete();
         done.Add("The service is stopped and deleted.");
+        try
+        {
+            await Scripts.LocalScripts.RemoveAllTasksAsync(ct);
+            done.Add("The registered scripts' scheduled tasks are deleted.");
+        }
+        catch (Exception e)
+        {
+            done.Add($"The scheduled tasks in \\PNMT Sensor\\ could not be deleted: {e.Message}");
+        }
         var config = AgentFiles.ReadConfig();
         if (config is not null)
         {

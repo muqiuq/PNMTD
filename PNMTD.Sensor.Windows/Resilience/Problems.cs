@@ -139,12 +139,20 @@ internal static class Isolated
             return true;
         }, ct);
 
-    /// <summary>A synchronous part of a collector (a WMI query): its own try/catch, its error added to the section's.</summary>
+    /// <summary>
+    /// A synchronous part of a collector (a WMI query): its own try/catch, its error added to the section's. What this Windows
+    /// doesn't have (<see cref="Collectors.NotAvailableException"/>: SMART in a VM, a missing role's WMI class) is no error: the
+    /// part stays empty and the rest of the section is collected as always.
+    /// </summary>
     public static T? Part<T>(List<string> errors, string part, Func<T> read)
     {
         try
         {
             return read();
+        }
+        catch (Collectors.NotAvailableException)
+        {
+            return default;
         }
         catch (Exception e)
         {
