@@ -32,7 +32,7 @@ The **PNMT sensor service** is one Windows executable, `pnmt-sensor.exe`, built 
 | Service account | **LocalSystem:** it reads everything listed here, and in W6 can run scripts as admin (§3.2) |
 | PowerShell (W6) | **Scripts in PNMT; their parameters parsed on an agent** (never executed for that) and sent to PNMT. **Run as:** the service itself (admin), an account whose password is **stored on that server**, encrypted and entered there, a password typed per run, or a gMSA. **Only on servers where an administrator turned scripts on locally** (§7) |
 | PNMT model | **A server is a sensor of type `WINDOWS` (100)**, with a 1:1 table, `windows_agents`. Diagnostics assignments are sensors of type `DIAGNOSTICS` (101). Events: 250, 251, 253, 254, 451, 453, 454 and 460; diagnostics 252, 452 and 460 (§8.2) |
-| Distribution | **GitHub release assets, built only when a version tag is pushed:** both executables and their SHA-256. A normal push only compiles. **Not in the Docker image.** PNMT's *Download* tab links to the release of its own version (§11) |
+| Distribution | **GitHub release assets, built only when a sensor tag (`sensor-1.2.0`) is pushed:** both executables and their SHA-256. A normal push only compiles. **Not in the Docker image.** PNMT's *Download* tab links to the sensor release of its own version (§11) |
 | Tests | **Few, and only for PNMTD:** join, authentication, limits, reports and the endpoint matrix, in `PNMTD.Tests`. **No tests of the agent's code**; it is checked by hand on one Server 2019 and one Windows 10 Pro or Windows 11 machine. The existing CI is unchanged (§13) |
 
 ---
@@ -118,7 +118,7 @@ The **PNMT sensor service** is one Windows executable, `pnmt-sensor.exe`, built 
 | Shared contracts | `PNMTD.Lib` | The protocol's records, shared by the agent and PNMTD (§3.6) |
 | Sensor pages with tabs, admin pages with tabs, copy fields | `SensorView.vue` (`:tab(…)`), `MikrotikView.vue`, `CopyField.vue` | §10 |
 | Importance, the Notification Manager | docs/ai-operations-plan.md §11 | Windows and diagnostics sensors fit without change |
-| A release workflow on version tags | `.github/workflows/push.yml` (the Docker image on `v*`) | A second job that publishes the executables to the GitHub release (§11) |
+| A release workflow on version tags | `.github/workflows/push.yml` (the Docker image on `v*`) | A workflow of its own on sensor tags, `sensor.yml`, that publishes the executables to the GitHub release (§11) |
 
 ---
 
@@ -711,7 +711,7 @@ One EF migration per phase: `AddWindowsAgents` (W1), `AddWindowsSectionsAndAcces
 | `Windows__MaxClockSkewSeconds` | 120 | |
 | `Windows__MaxMessageBytes` | 4194304 | Decompressed: 4 times as much |
 | `Windows__JoinRateLimitPerMinute` | 10 | Per address. 50 failures in an hour close the join for 15 minutes |
-| `Windows__AgentDownloadBaseUrl` | `https://github.com/muqiuq/PNMTD/releases/download` | For the *Download* tab: `{base}/v{version}/pnmt-sensor-x64.exe` |
+| `Windows__AgentDownloadBaseUrl` | `https://github.com/muqiuq/PNMTD/releases/download` | For the *Download* tab: `{base}/sensor-{version}/pnmt-sensor-x64.exe` |
 
 ### 8.6 Deployment: the existing port (R13)
 
@@ -859,13 +859,13 @@ One EF migration per phase: `AddWindowsAgents` (W1), `AddWindowsSectionsAndAcces
   - **`tools/agent.sh`** publishes both executables (`win-x64` and `win-arm64`, single-file, self-contained, compressed) into `artifacts/agent/`, with their SHA-256, for a manual test on a Windows machine;
   - **the full test suite runs locally:** `./run-tests.sh`, as today.
 - **On GitHub, a normal push only compiles the agent:** the existing *Build* step of `dotnet.yml` builds `PNMTD.slnx`, which now includes it. **No Windows runner, no agent tests and no publishing on GitHub.**
-- **On a version tag (`v*`):**
-  - a new job in `push.yml`, next to the Docker image, on `ubuntu-latest`, publishes both executables;
+- **On a sensor tag (`sensor-1.2.0`; version tags, `v*`, publish only the Docker image):**
+  - `.github/workflows/sensor.yml`, on `ubuntu-latest`, publishes both executables;
   - it computes their SHA-256;
   - it **creates the tag's GitHub release** (or adds to it) with four assets: `pnmt-sensor-x64.exe`, `pnmt-sensor-x64.exe.sha256`, `pnmt-sensor-arm64.exe`, `pnmt-sensor-arm64.exe.sha256`;
   - it uses `gh release` with the workflow's token (`contents: write`).
   - **No tests run there.**
-- **The agent's version is `Directory.Build.props`' version**, so the release's executables match the image of the same tag. PNMT's *Download* tab links to the release of its own version (§10.1).
+- **The agent's version is `Directory.Build.props`' version**, and the sensor tag must name it (the workflow fails otherwise; `sensor-1.2.0-rc1` is a pre-release of 1.2.0). PNMT's *Download* tab links to the release `sensor-{its own version}` (§10.1).
 - **`pnmtd windows simulate --url … --token …`**:
   - a fake agent that joins and connects;
   - it sends sections and logins from fixtures (`PNMTD.Tests/Fixtures/Windows/`, captured on the W0 machines) and heartbeats;
@@ -1035,7 +1035,7 @@ W0 needs real machines (one Windows Server 2019, one Windows 10 Pro or 11) and t
 ### W5: release and polish
 
 - **Building by hand:** `./build-sensor-windows.sh` (`x64` or `arm64` for one) builds both executables with their `.sha256` into `dist/`, which ignores itself; it calls `tools/agent.sh`. The single-file settings are in the project file, behind `-p:AgentRuntime=win-x64`: given as `-r` and `-p` on the command line they reached `PNMTD.Lib`'s restore too and broke the locked restore, so `tools/agent.sh` failed from W2 until this fix (unnoticed: its output went nowhere). The single-file analyzer is off, because it pulls in a package the normal build doesn't restore. The builds are locked and reproducible: the same commit gives the same SHA-256.
-- **The release:** `.github/workflows/push.yml` has a second job on version tags, `agent_release`, on `ubuntu-latest`: `tools/agent.sh`, then `gh release create` (or nothing, when the release exists) and `gh release upload --clobber` of both executables and their `.sha256`, with the workflow's token (`contents: write`). A tag with a dash is a pre-release. No tests run there; `dotnet.yml` is unchanged and builds the agent with the solution on every push.
+- **The release:** `.github/workflows/sensor.yml` runs on sensor tags (`sensor-1.2.0`; first a job in `push.yml` on version tags, moved to a tag of its own so the agent can be released without a new image), on `ubuntu-latest`: it checks that the tag names `Directory.Build.props`' version, runs `tools/agent.sh`, then `gh release create` (or nothing, when the release exists) and `gh release upload --clobber` of both executables and their `.sha256`, with the workflow's token (`contents: write`). A tag with a dash is a pre-release. No tests run there; `dotnet.yml` is unchanged and builds the agent with the solution on every push. The *Download* tab links to `sensor-{version}`.
 - **The Download tab** (*Admin → Windows servers*): PNMTD's version, both links, the SHA-256 read from the release's `.sha256` assets (cached 6 hours, 10 minutes after a failure; *Add server* never waits for GitHub), the `Get-FileHash` line, the unattended command line, and how to update.
 - **Updating:** the window offers *Update* when the installed agent is older than the executable that runs; `pnmt-sensor.exe update` does the same on the command line. Stop, replace, start: `agent.json`, the key and the buffers stay.
 - **The outdated badge** shows in the fleet, the status strip and the Agent tab when the agent is older than PNMTD.
@@ -1112,5 +1112,5 @@ On one Windows Server 2019 and one Windows 10 Pro or Windows 11 machine, with th
 | Agent | `PNMTD.Sensor.Windows/` (`Program.cs`, `Ui/`, `Service/`, `Collectors/`, `Access/`, `Diagnostics/`, `Logging/`, `app.manifest`) | `PNMTD.slnx`, `Directory.Packages.props` (`System.Management`, `System.Diagnostics.EventLog`, `System.ServiceProcess.ServiceController`, `Microsoft.Extensions.Hosting.WindowsServices`) |
 | Server | `PNMTD/Agents/` (`AgentPaths`, `AgentJoinEndpoint`, `AgentHub`, `AgentKeyStore`), `PNMTD/Windows/` (`WindowsReportService`, `WindowsAccessService`, the differs, `WindowsMaintenanceTask`, `WindowsOptions`), `PNMTD/Diagnostics/`, `Services/Domain/WindowsServerService.cs`, `DiagnosticsSetService.cs`, `Api/V1/WindowsControllers.cs`, `DiagnosticsControllers.cs`, `Models/Db/WindowsEntities.cs`, `DiagnosticsEntities.cs`, `Cli/WindowsCommand.cs` | `Program.cs` (`UseWebSockets` for the agent path, `AddWindowsAgents`, the `AgentPaths` exclusion), `SensorType` (100, 101), `PNMTStatusCodes`, `SystemService`, `SensorService`, `HeartbeatCheckTask`, `AuthEvents`, `DevSeedCommand` |
 | Web UI | `views/admin/windows/`, `views/admin/diagnostics/`, `views/sensors/windows/` | `router/index.ts`, `layouts/navigation.ts`, `SensorView.vue`, `SensorFormView.vue`, the host page (*Add sensor → Windows server*) |
-| Build and release | `tools/agent.sh` | `.github/workflows/push.yml` (the release job on tags), `deploy/README.md` (the proxies' WebSocket lines, the agent), `deploy/.env.example` (`Windows__*`). **The `Dockerfile` is unchanged** |
+| Build and release | `tools/agent.sh`, `.github/workflows/sensor.yml` (the release on sensor tags) | `deploy/README.md` (the proxies' WebSocket lines, the agent), `deploy/.env.example` (`Windows__*`). **The `Dockerfile` is unchanged** |
 | Tests | `PNMTD.Tests/Windows/`, `PNMTD.Tests/Diagnostics/`, `PNMTD.Tests/Fixtures/Windows/` | `EndpointAuditTests` |

@@ -6,8 +6,9 @@ import { api, keys } from '@/api/resources'
 import CopyField from '@/components/CopyField.vue'
 
 /**
- * Download (docs/windows-sensor-plan.md §10.1, §11): the agent of PNMTD's own version from its GitHub release, for x64 and
- * ARM64, with the SHA-256 and the line that checks it, and the command line for unattended installs.
+ * Download (docs/windows-sensor-plan.md §10.1, §11): the agent of PNMTD's own version from its GitHub release (the tag
+ * sensor-{version}), for x64 and ARM64, with the SHA-256 and the line that checks it, and the command line for unattended
+ * installs.
  */
 const agent = useQuery({ queryKey: [...keys.windows, 'agent'], queryFn: api.windows.agent, staleTime: 600_000 })
 const url = computed(() => (typeof location !== 'undefined' ? location.origin : 'https://pnmt.example.com'))

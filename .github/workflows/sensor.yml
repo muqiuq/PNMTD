@@ -1,0 +1,54 @@
+name: Publish the Windows sensor
+
+# A sensor tag builds the PNMT sensor service for Windows and publishes it to the tag's GitHub release
+# (docs/windows-sensor-plan.md §11): pnmt-sensor-x64.exe and pnmt-sensor-arm64.exe with their SHA-256.
+#   git tag -a sensor-1.2.0 -m "PNMT Sensor 1.2.0" && git push origin sensor-1.2.0
+# The version after "sensor-" is Directory.Build.props' (the executables report it, and PNMT's
+# Download tab links to the release sensor-{its own version}); a dash makes it a pre-release
+# (sensor-1.2.0-rc1). Version tags (v*) publish the Docker image only (push.yml). No tests run here.
+on:
+  push:
+    tags: [ "sensor-*" ]
+
+jobs:
+  sensor_release:
+    name: Publish the Windows sensor to the release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+
+      - name: Check the tag against the version
+        run: |
+          tag="${GITHUB_REF_NAME#sensor-}"
+          version="$(sed -n 's|.*<Version>\(.*\)</Version>.*|\1|p' Directory.Build.props | head -n 1)"
+          if [[ "${tag%%-*}" != "${version%%-*}" ]]; then
+            echo "::error::${GITHUB_REF_NAME} is for ${tag%%-*}, but Directory.Build.props is at ${version}: the executables would report ${version}, and PNMT ${tag%%-*} would not find them."
+            exit 1
+          fi
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # Single-file and self-contained for win-x64 and win-arm64 (EnableWindowsTargeting).
+      - name: Publish pnmt-sensor
+        run: tools/agent.sh
+
+      - name: Create the release, or add to it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            prerelease=()
+            [[ "$tag" == sensor-*-* ]] && prerelease=(--prerelease)
+            gh release create "$tag" --verify-tag --title "PNMT Sensor ${tag#sensor-}" "${prerelease[@]}" \
+              --notes "The PNMT sensor service for Windows: pnmt-sensor-x64.exe and pnmt-sensor-arm64.exe, unsigned; compare the SHA-256 with Get-FileHash."
+          fi
+          gh release upload "$tag" --clobber \
+            artifacts/agent/pnmt-sensor-x64.exe artifacts/agent/pnmt-sensor-x64.exe.sha256 \
+            artifacts/agent/pnmt-sensor-arm64.exe artifacts/agent/pnmt-sensor-arm64.exe.sha256

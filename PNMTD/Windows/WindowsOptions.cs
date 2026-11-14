@@ -40,7 +40,7 @@ public sealed class WindowsOptions
     /// <summary>A socket that has not sent its hello within this time is closed (4408, §3.4).</summary>
     public int HelloTimeoutSeconds { get; set; } = 10;
 
-    /// <summary>For the Download tab: <c>{base}/v{version}/pnmt-sensor-x64.exe</c> (§11).</summary>
+    /// <summary>For the Download tab: <c>{base}/sensor-{version}/pnmt-sensor-x64.exe</c> (§11).</summary>
     public string AgentDownloadBaseUrl { get; set; } = "https://github.com/muqiuq/PNMTD/releases/download";
 
     /// <summary>A burst of failed logins (454) is counted over this many minutes (§4.7).</summary>

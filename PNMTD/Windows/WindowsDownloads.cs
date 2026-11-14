@@ -6,14 +6,18 @@ using PNMTD.Lib.Helper;
 namespace PNMTD.Windows;
 
 /// <summary>
-/// The agent's release links (docs/windows-sensor-plan.md §10.1, §11): the GitHub release of PNMTD's own version, for x64 and
-/// ARM64, with the SHA-256 from the release's <c>.sha256</c> assets, fetched and cached. Without GitHub, links only.
+/// The agent's release links (docs/windows-sensor-plan.md §10.1, §11): the GitHub release of the sensor tag of PNMTD's own version
+/// (<c>sensor-1.2.0</c>), for x64 and ARM64, with the SHA-256 from the release's <c>.sha256</c> assets, fetched and cached.
+/// Without GitHub, links only.
 /// </summary>
 public sealed partial class WindowsDownloads(IHttpClientFactory http, IOptionsMonitor<WindowsOptions> options, ILogger<WindowsDownloads> logger)
 {
     public static readonly string[] Architectures = ["x64", "arm64"];
 
     public static string FileName(string architecture) => $"pnmt-sensor-{architecture}.exe";
+
+    /// <summary>The tag whose release has the agent (.github/workflows/sensor.yml); version tags (v1.2.0) publish only the image.</summary>
+    public static string ReleaseTag(string version) => $"sensor-{version}";
 
     private readonly SemaphoreSlim gate = new(1, 1);
     private (DateTime At, string Base, Dictionary<string, string?> Sums)? cache;
@@ -47,8 +51,8 @@ public sealed partial class WindowsDownloads(IHttpClientFactory http, IOptionsMo
             }
         }
         var sums = cache is { } cached && cached.Base == baseUrl ? cached.Sums : new Dictionary<string, string?>();
-        var files = Architectures.Select(a => new WindowsAgentDownload(a, FileName(a), $"{baseUrl}/v{version}/{FileName(a)}", sums.GetValueOrDefault(a))).ToList();
-        var release = baseUrl.EndsWith("/releases/download", StringComparison.Ordinal) ? $"{baseUrl[..^"/download".Length]}/tag/v{version}" : null;
+        var files = Architectures.Select(a => new WindowsAgentDownload(a, FileName(a), $"{baseUrl}/{ReleaseTag(version)}/{FileName(a)}", sums.GetValueOrDefault(a))).ToList();
+        var release = baseUrl.EndsWith("/releases/download", StringComparison.Ordinal) ? $"{baseUrl[..^"/download".Length]}/tag/{ReleaseTag(version)}" : null;
         var note = files.All(f => f.Sha256 is not null) ? null
             : "The SHA-256 could not be read from GitHub: compare with the .sha256 files of the release.";
         return new WindowsAgentDownloads(version, files, release, note);
@@ -66,7 +70,7 @@ public sealed partial class WindowsDownloads(IHttpClientFactory http, IOptionsMo
             {
                 try
                 {
-                    var text = await client.GetStringAsync($"{baseUrl}/v{version}/{FileName(architecture)}.sha256", ct);
+                    var text = await client.GetStringAsync($"{baseUrl}/{ReleaseTag(version)}/{FileName(architecture)}.sha256", ct);
                     sums[architecture] = Sha256().Match(text) is { Success: true } m ? m.Value.ToLowerInvariant() : null;
                 }
                 catch (Exception e) when (e is HttpRequestException or TaskCanceledException or InvalidOperationException)

@@ -2,7 +2,8 @@
 # Publishes the PNMT sensor service (docs/windows-sensor-plan.md §11): pnmt-sensor-x64.exe and
 # pnmt-sensor-arm64.exe, single-file, self-contained, compressed, each with its SHA-256, into
 # artifacts/agent/ (or $OUT). Runs on macOS and Linux (EnableWindowsTargeting); for a manual test on
-# a Windows machine, for ./build-sensor-windows.sh (into dist/), and for the release job on version tags.
+# a Windows machine, for ./build-sensor-windows.sh (into dist/), and for the release job on sensor tags
+# (.github/workflows/sensor.yml).
 #
 #   tools/agent.sh                both architectures
 #   ARCH=x64 tools/agent.sh       one
