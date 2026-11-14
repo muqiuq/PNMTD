@@ -18,6 +18,7 @@ public sealed class AiFoundationTests
 {
     private static readonly FakeOpenRouter router = new();
     private static readonly ScriptedHandler handler = new();
+    private static readonly OnceHandler once = new();
     private static TestApp app = null!;
 
     [ClassInitialize]
@@ -27,6 +28,7 @@ public sealed class AiFoundationTests
         {
             router.Install(s);
             s.AddSingleton<IAiWorkHandler>(handler);
+            s.AddSingleton<IAiWorkHandler>(once);
         });
     }
 
@@ -179,6 +181,21 @@ public sealed class AiFoundationTests
     }
 
     [TestMethod]
+    public async Task Work_with_one_attempt_fails_after_it_instead_of_waiting_for_a_retry()
+    {
+        var id = await Service<AiWorkQueue>().EnqueueAsync(OnceHandler.Name, "test", Guid.NewGuid(), null, CancellationToken.None);
+        await Service<AiWorker>().DrainAsync(CancellationToken.None);
+        await DueNowAsync();
+        await Service<AiWorker>().DrainAsync(CancellationToken.None);
+        await using var db = app.NewDb();
+        var work = await db.AiWork.SingleAsync(w => w.Id == id);
+        Assert.AreEqual(AiWorkState.Failed, work.State, "docs/locations-knowledge-plan.md §7.3: one attempt only");
+        Assert.AreEqual(1, work.Attempts);
+        Assert.AreEqual(1, once.Runs);
+        Assert.IsNotNull(work.FinishedAt);
+    }
+
+    [TestMethod]
     public async Task A_bad_request_fails_for_good_and_the_status_names_it()
     {
         handler.Permanent = true;
@@ -281,6 +298,25 @@ public sealed class AiFoundationTests
     {
         await using var db = app.NewDb();
         await db.AiWork.Where(w => w.State == AiWorkState.WaitingRetry).ExecuteUpdateAsync(u => u.SetProperty(w => w.NextAttemptAt, DateTime.UtcNow.AddSeconds(-1)));
+    }
+
+    /// <summary>One attempt at most (IAiWorkHandler.MaxAttempts), and it times out.</summary>
+    private sealed class OnceHandler : IAiWorkHandler
+    {
+        public const string Name = "test.once";
+        private int runs;
+
+        public int Runs => runs;
+
+        public string Purpose => Name;
+
+        public int? MaxAttempts => 1;
+
+        public Task<string?> RunAsync(AiWorkEntity work, CancellationToken ct)
+        {
+            Interlocked.Increment(ref runs);
+            throw new AiRequestException(AiOutcome.Timeout, "No answer within 60 s.");
+        }
     }
 
     /// <summary>Fails <see cref="FailTimes"/> times in a row (per item), or for good, then succeeds.</summary>

@@ -16,6 +16,7 @@ using PNMTD.Tasks;
 using PNMTD.Udp;
 using PNMTD.WireGuard;
 using PNMTD.Agents;
+using PNMTD.Files;
 
 namespace PNMTD;
 
@@ -94,6 +95,7 @@ public partial class Program
         builder.Services.AddMikrotik(builder.Configuration);
         builder.Services.AddWireGuard(builder.Configuration);
         builder.Services.AddAgents(builder.Configuration);
+        builder.Services.AddFiles(builder.Configuration);
 
         // The build writes the OpenAPI document by starting the host without a database (GetDocument.Insider).
         var documentBuild = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";

@@ -72,6 +72,16 @@ public sealed class AnalysisTests
         Assert.AreEqual("number", finding["confidence"]!["type"]!.GetValue<string>(), "a plain number in the strict schema");
     }
 
+    [TestMethod]
+    public void The_scrubber_replaces_phone_numbers_when_asked_and_keeps_dates_and_versions()
+    {
+        const string text = "Call Anna on +41 44 123 45 67 or 044 123 45 67, the desk (044) 765-43-21, Berlin 030/1234567, Zurich 0041 44 222 33 44. " +
+            "Not on 01/02/2026, 2026-11-14, 12:30:45, v0.12.1, port 8080, 10.1.2.3 or 3 of 10.";
+        Assert.AreEqual("Call Anna on <phone:1> or <phone:2>, the desk <phone:3>, Berlin <phone:4>, Zurich <phone:5>. " +
+            "Not on 01/02/2026, 2026-11-14, 12:30:45, v0.12.1, port 8080, <ip:1> or 3 of 10.", new Scrubber { PhoneNumbers = true }.Scrub(text));
+        StringAssert.Contains(new Scrubber().Scrub(text), "+41 44 123 45 67", "the analysis keeps its numbers");
+    }
+
     private static async Task<(SensorDetail Sensor, HostDetail Host)> FailingAsync(string message, DateTime? at = null)
     {
         var admin = app.Client(Roles.Admin);

@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace PNMTD.Lib.Mikrotik;
+namespace PNMTD.Lib.Helper;
 
 public enum DiffLineKind
 {
@@ -46,7 +46,8 @@ public sealed record LineDiffResult(int Added, int Removed, IReadOnlyList<DiffHu
 
 /// <summary>
 /// A line diff (docs/mikrotik-plan.md §6.4): Myers' O((N+M)D) algorithm, after the common start and
-/// end are cut off, with unified hunks. Exports differ in a few lines between versions; when two texts
+/// end are cut off, with unified hunks. Shared since the knowledge base's histories use it too
+/// (docs/locations-knowledge-plan.md §6.3). Exports differ in a few lines between versions; when two texts
 /// differ in more than <see cref="MaxEdits"/> lines, the rest is shown as replaced, which is still a
 /// correct diff, only not the shortest.
 /// </summary>

@@ -13,6 +13,13 @@ public interface IAiWorkHandler
 {
     string Purpose { get; }
 
+    /// <summary>
+    /// Null: retried on <see cref="AiWorker"/>'s schedule. Otherwise the attempts at most, then failed for good, and a spent
+    /// budget fails it too instead of waiting for the next period: a task someone waits for shouldn't come back hours later
+    /// (docs/locations-knowledge-plan.md §7.3, the knowledge base's AI tags, with 1).
+    /// </summary>
+    int? MaxAttempts => null;
+
     Task<string?> RunAsync(AiWorkEntity work, CancellationToken ct);
 }
 
@@ -161,10 +168,13 @@ public sealed class AiWorker(IDbContextFactory<PnmtdDbContext> dbs, IEnumerable<
         await using var db = await dbs.CreateDbContextAsync(ct);
         var work = await db.AiWork.SingleAsync(w => w.Id == id, ct);
         var o = options.CurrentValue;
+        var handler = handlers.FirstOrDefault(h => h.Purpose == work.Purpose);
         try
         {
-            var handler = handlers.FirstOrDefault(h => h.Purpose == work.Purpose)
-                ?? throw new AiNotConfiguredException($"No handler for {work.Purpose}.");
+            if (handler is null)
+            {
+                throw new AiNotConfiguredException($"No handler for {work.Purpose}.");
+            }
             await budget.EnsureAvailableAsync(ct);
             work.Result = await handler.RunAsync(work, ct);
             work.State = AiWorkState.Succeeded;
@@ -172,6 +182,13 @@ public sealed class AiWorker(IDbContextFactory<PnmtdDbContext> dbs, IEnumerable<
             work.LastError = null;
             await db.SaveChangesAsync(ct);
             await AvailableAsync(ct);
+        }
+        catch (AiBudgetExceededException ex) when (handler?.MaxAttempts is not null)
+        {
+            work.State = AiWorkState.Failed;
+            work.FinishedAt = Clock.UtcNow;
+            work.LastError = ex.Message;
+            await db.SaveChangesAsync(CancellationToken.None);
         }
         catch (AiBudgetExceededException ex)
         {
@@ -206,6 +223,15 @@ public sealed class AiWorker(IDbContextFactory<PnmtdDbContext> dbs, IEnumerable<
                 return;
             }
             work.Attempts++;
+            if (handler?.MaxAttempts is { } max && work.Attempts >= max)
+            {
+                // Its own end, not an outage: the person waiting sees it; the scheduled work notifies 421.
+                work.State = AiWorkState.Failed;
+                work.FinishedAt = Clock.UtcNow;
+                await db.SaveChangesAsync(CancellationToken.None);
+                logger.LogWarning("AI work {Purpose} failed after {Attempts} attempt(s), its most: {Error}", work.Purpose, work.Attempts, ex.Message);
+                return;
+            }
             work.State = AiWorkState.WaitingRetry;
             work.NextAttemptAt = Clock.UtcNow + Delay(work.Attempts, o.Retry);
             var notify = work.Attempts >= o.Retry.QuickAttempts + 1 && !work.Notified;
