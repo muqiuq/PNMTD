@@ -15,36 +15,62 @@ import MarkdownEditor from './MarkdownEditor.vue'
 import type { MarkdownSave } from './types'
 
 // The two editors are their own chunks; here, stand-ins that behave as their contracts say. The
-// visual one writes `-` where the text has `*` (as Crepe does, §5.4).
-vi.mock('./VisualEditor.vue', () => ({
-  __esModule: true,
-  default: defineComponent({
-    props: { modelValue: { type: String, required: true } },
-    emits: ['ready', 'update:modelValue'],
-    setup: (props, { expose }) => {
-      expose({ flush: () => props.modelValue, markdown: () => props.modelValue, focus() {}, insertMarkdown() {} })
-      return () => h('div', { class: 'visual-stand-in' }, props.modelValue)
-    },
-    mounted() {
-      this.$emit('ready', this.modelValue.replace(/^\* /gm, '- '))
-    },
-  }),
+// visual one writes `-` where the text has `*` (as Crepe does, §5.4). `live` is what an editor holds
+// before v-model has it (Crepe writes its Markdown after a pause in typing); `holdReady` keeps the
+// visual one starting until `start()`.
+const editors = vi.hoisted(() => ({
+  visualLive: null as string | null,
+  codeLive: null as string | null,
+  holdReady: false,
+  start: [] as (() => void)[],
 }))
-vi.mock('./CodeEditor.vue', () => ({
-  __esModule: true,
-  default: defineComponent({
-    props: { modelValue: { type: String, required: true } },
-    emits: ['update:modelValue'],
-    setup:
-      (props, { emit }) =>
-      () =>
-        h('textarea', {
-          class: 'code-stand-in',
-          value: props.modelValue,
-          onInput: (e: Event) => emit('update:modelValue', (e.target as HTMLTextAreaElement).value),
-        }),
-  }),
-}))
+vi.mock('./VisualEditor.vue', async () => {
+  const { defineComponent, h, onMounted } = await import('vue')
+  return {
+    __esModule: true,
+    default: defineComponent({
+      props: { modelValue: { type: String, required: true } },
+      emits: ['ready', 'update:modelValue'],
+      setup: (props, { expose, emit }) => {
+        expose({
+          flush: () => editors.visualLive ?? props.modelValue,
+          markdown: () => props.modelValue,
+          focus() {},
+          insertMarkdown() {},
+        })
+        onMounted(() => {
+          const ready = () => emit('ready', props.modelValue.replace(/^\* /gm, '- '))
+          if (editors.holdReady) {
+            editors.start.push(ready)
+          } else {
+            ready()
+          }
+        })
+        return () => h('div', { class: 'visual-stand-in' }, props.modelValue)
+      },
+    }),
+  }
+})
+vi.mock('./CodeEditor.vue', async () => {
+  const { defineComponent, h } = await import('vue')
+  return {
+    __esModule: true,
+    default: defineComponent({
+      props: { modelValue: { type: String, required: true }, readonly: { type: Boolean, default: false } },
+      emits: ['update:modelValue'],
+      setup: (props, { emit, expose }) => {
+        expose({ value: () => editors.codeLive ?? props.modelValue, focus() {}, insertMarkdown() {}, revealLine() {} })
+        return () =>
+          h('textarea', {
+            class: 'code-stand-in',
+            value: props.modelValue,
+            readonly: props.readonly,
+            onInput: (e: Event) => emit('update:modelValue', (e.target as HTMLTextAreaElement).value),
+          })
+      },
+    }),
+  }
+})
 vi.mock('./MonacoDiff.vue', () => ({
   __esModule: true,
   default: defineComponent({ setup: () => () => h('div', { class: 'diff' }) }),
@@ -55,6 +81,10 @@ beforeEach(() => {
   setActivePinia(createPinia())
   localStorage.clear()
   phone = false
+  editors.visualLive = null
+  editors.codeLive = null
+  editors.holdReady = false
+  editors.start = []
   vi.stubGlobal('matchMedia', (query: string) => ({
     matches: query.includes('max-width: 599px') ? phone : query.includes('min-width: 960px'),
     media: query,
@@ -295,5 +325,63 @@ describe('MarkdownEditor', () => {
     expect(save).toHaveBeenCalledTimes(2)
     expect(save.mock.calls[0]![0]).toMatchObject({ markdown: 'text', revision: 2 })
     app.unmount()
+  })
+
+  // What kk found driving the knowledge base: Save right after typing sent the text before it.
+  it('saves what the visual editor holds, before it has reported it', async () => {
+    const save = vi.fn<(s: MarkdownSave) => void>()
+    const editor = mountEditor({ modelValue: 'before', onSave: save })
+    await flushPromises()
+    editors.visualLive = 'before and after'
+    await editor.find('section').trigger('keydown', { key: 's', ctrlKey: true })
+    expect(save.mock.calls[0]![0].markdown).toBe('before and after')
+  })
+
+  it('saves what the code editor holds, before v-model has it', async () => {
+    usePreferences().editorModes.page = 'markdown'
+    const save = vi.fn<(s: MarkdownSave) => void>()
+    const editor = mountEditor({ modelValue: 'before', onSave: save })
+    await flushPromises()
+    editors.codeLive = 'typed just now'
+    await editor.find('section').trigger('keydown', { key: 's', ctrlKey: true })
+    expect(save.mock.calls[0]![0].markdown).toBe('typed just now')
+  })
+
+  it('writes the draft from what the editor holds when it closes', async () => {
+    const editor = mountEditor({ modelValue: 'saved', draftKey: 'kb:7', baseRevision: 2 })
+    await flushPromises()
+    editors.visualLive = 'saved, and a last word'
+    editor.unmount()
+    expect(JSON.parse(localStorage.getItem('pnmt.draft.kb:7')!)).toMatchObject({ text: 'saved, and a last word' })
+  })
+
+  it('shows the text read-only while the visual editor starts, so nothing typed is lost', async () => {
+    editors.holdReady = true
+    const editor = mountEditor({ modelValue: '# Hi' })
+    await flushPromises()
+    const waiting = editor.find('.md-starting textarea')
+    expect((waiting.element as HTMLTextAreaElement).readOnly).toBe(true)
+    expect((waiting.element as HTMLTextAreaElement).value).toBe('# Hi')
+    expect(editor.find('.visual-stand-in').isVisible()).toBe(false)
+    editors.start.forEach((ready) => ready())
+    await flushPromises()
+    expect(editor.find('.md-starting').exists()).toBe(false)
+    expect(editor.find('.visual-stand-in').isVisible()).toBe(true)
+  })
+
+  it('takes no typing in the code editor while the visual editor is prepared for a switch', async () => {
+    usePreferences().editorModes.page = 'markdown'
+    editors.holdReady = true
+    const editor = mountEditor({ modelValue: '* a\n' })
+    await flushPromises()
+    expect((editor.find('.code-stand-in').element as HTMLTextAreaElement).readOnly).toBe(false)
+    ;(editor.vm as unknown as { $: { setupState: { setMode(m: string): void } } }).$.setupState.setMode('visual')
+    await flushPromises()
+    expect((editor.find('.code-stand-in').element as HTMLTextAreaElement).readOnly).toBe(true)
+    editors.start.forEach((ready) => ready())
+    await flushPromises()
+    button('Stay')!.click()
+    await flushPromises()
+    expect((editor.find('.code-stand-in').element as HTMLTextAreaElement).readOnly).toBe(false)
   })
 })

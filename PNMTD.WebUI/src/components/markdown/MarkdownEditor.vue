@@ -202,11 +202,28 @@ const visual = ref<{
 /** The visual editor has edits it hasn't written as Markdown yet (VisualEditor's `pending`). */
 const visualPending = ref(false)
 
-/** The text as it is now, the visual editor's latest edits included. */
+/**
+ * The text as the active editor holds it now, for a save, a draft or a switch: v-model reaches the
+ * view a moment later, and the visual editor writes its Markdown only after a pause in typing.
+ */
 function current(): string {
-  return surface.value === 'visual' && visual.value ? visual.value.flush() : markdown.value
+  if (surface.value === 'visual' && visual.value) {
+    return visual.value.flush()
+  }
+  if (surface.value === 'code' && code.value) {
+    return code.value.value()
+  }
+  if (surface.value === 'textarea' && textarea.value) {
+    return textarea.value.value
+  }
+  return markdown.value
 }
-const code = ref<{ focus(): void; insertMarkdown(text: string): void; revealLine(line: number): void } | null>(null)
+const code = ref<{
+  value(): string
+  focus(): void
+  insertMarkdown(text: string): void
+  revealLine(line: number): void
+} | null>(null)
 const textarea = ref<HTMLTextAreaElement | null>(null)
 
 /** Markdown → Visual: the visual editor opens hidden first, and what it would write is compared (§5.4). */
@@ -214,6 +231,20 @@ const checking = ref(false)
 const rewrite = ref<{ lines: number; example: { from: string; to: string } | null; text: string } | null>(null)
 const rewriteDiff = ref(false)
 const MonacoDiff = defineAsyncComponent(() => import('./MonacoDiff.vue'))
+
+/**
+ * Crepe has started. Until then the text is shown read-only in its place: what was typed into an
+ * editor that isn't there yet would be lost.
+ */
+const visualReady = ref(false)
+watch(
+  () => surface.value === 'visual' || checking.value,
+  (mounted) => {
+    if (!mounted) {
+      visualReady.value = false
+    }
+  },
+)
 
 function setMode(mode: EditorMode | null) {
   if (!mode || mode === wanted.value) {
@@ -229,6 +260,7 @@ function setMode(mode: EditorMode | null) {
 }
 
 function onVisualReady(written: string) {
+  visualReady.value = true
   if (!checking.value) {
     return
   }
@@ -295,11 +327,12 @@ function writeDraft() {
   if (!draftStorage.value || draftOffer.value) {
     return
   }
-  if (markdown.value === pristine.value) {
+  const text = current()
+  if (text === pristine.value) {
     localStorage.removeItem(draftStorage.value)
     return
   }
-  const draft: Draft = { revision: revision(), text: markdown.value, savedAt: new Date().toISOString() }
+  const draft: Draft = { revision: revision(), text, savedAt: new Date().toISOString() }
   try {
     localStorage.setItem(draftStorage.value, JSON.stringify(draft))
   } catch {
@@ -622,7 +655,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   clearTimeout(draftTimer)
   // A draft still waiting to be written (a closed tab writes nothing more).
-  if (dirty.value) {
+  if (dirty.value || current() !== pristine.value) {
     writeDraft()
   }
 })
@@ -799,9 +832,20 @@ defineExpose({
     </div>
 
     <div class="md-surface" :class="`surface-${surface}`">
+      <div v-if="surface === 'visual' && !visualReady" class="md-starting">
+        <p class="md-starting-note muted" role="status">
+          <i class="pi pi-spin pi-spinner" aria-hidden="true" /> Starting the visual editor…
+        </p>
+        <textarea
+          class="md-textarea"
+          readonly
+          :value="markdown"
+          aria-label="Markdown, read-only until the editor has started"
+        />
+      </div>
       <VisualEditor
         v-if="surface === 'visual' || checking"
-        v-show="surface === 'visual'"
+        v-show="surface === 'visual' && visualReady"
         ref="visual"
         v-model="markdown"
         :upload="upload"
@@ -820,6 +864,7 @@ defineExpose({
         :preview="previewOpen"
         :files="previewFiles"
         :placeholder="placeholder"
+        :readonly="checking"
         @failed="(e: unknown) => fail('code', e)"
         @notice="(text: string) => addNotice({ severity: 'info', text })"
       />
@@ -835,6 +880,7 @@ defineExpose({
           class="md-textarea"
           spellcheck="true"
           aria-label="Markdown"
+          :readonly="checking"
           :placeholder="placeholder ?? 'Markdown'"
           @paste="onTextareaPaste"
           @drop="onTextareaDrop"
@@ -989,6 +1035,24 @@ defineExpose({
 
 .md-textarea:focus-visible {
   box-shadow: inset 0 0 0 2px var(--p-primary-color);
+}
+
+.md-starting {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.md-starting-note {
+  margin: 0;
+  padding: var(--pnmt-space-1) var(--pnmt-space-4);
+  font-size: 0.9286rem;
+}
+
+.md-starting .md-textarea {
+  flex: 1 1 auto;
+  height: auto;
+  color: var(--pnmt-muted);
 }
 
 .md-plain-preview {

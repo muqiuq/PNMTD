@@ -62,4 +62,21 @@ describe('VisualEditor', () => {
     expect(update).not.toHaveBeenCalled()
     editor.unmount()
   })
+
+  it('carries in a text that changed while it started', async () => {
+    const update = vi.fn()
+    const ready = vi.fn()
+    const editor = mountWithUi(VisualEditor, {
+      props: { modelValue: 'first\n', upload: null, 'onUpdate:modelValue': update, onReady: ready },
+      attachTo: document.body,
+    })
+    await editor.setProps({ modelValue: 'typed while it started\n' })
+    await vi.waitFor(() => expect(ready).toHaveBeenCalled())
+    expect(ready).toHaveBeenCalledWith('typed while it started\n')
+    const vm = editor.vm as unknown as { flush(): string }
+    expect(vm.flush()).toBe('typed while it started\n')
+    expect(editor.text()).toContain('typed while it started')
+    expect(update).not.toHaveBeenCalled()
+    editor.unmount()
+  })
 })

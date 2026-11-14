@@ -23,8 +23,10 @@ const props = withDefaults(
     /** For the preview's attachment chips. */
     files?: readonly MarkdownFile[] | null
     placeholder?: string
+    /** No typing, while the visual editor is being prepared for a switch (MarkdownEditor). */
+    readonly?: boolean
   }>(),
-  { preview: false, files: null, placeholder: '' },
+  { preview: false, files: null, placeholder: '', readonly: false },
 )
 const emit = defineEmits<{
   'update:modelValue': [markdown: string]
@@ -177,6 +179,8 @@ onMounted(() => {
       placeholder: props.placeholder,
       fixedOverflowWidgets: true,
       dragAndDrop: true,
+      readOnly: props.readonly,
+      readOnlyMessage: { value: 'Wait a moment: the visual editor is starting.' },
     })
     created.onDidChangeModelContent(() => {
       last = created.getValue()
@@ -204,6 +208,10 @@ onMounted(() => {
 })
 
 watch(minimap, (enabled) => editor.value?.updateOptions({ minimap: { enabled } }))
+watch(
+  () => props.readonly,
+  (readOnly) => editor.value?.updateOptions({ readOnly }),
+)
 watch(
   () => preferences.isDark(),
   (dark) => monaco.editor.setTheme(defineTheme(dark)),
@@ -240,6 +248,8 @@ onBeforeUnmount(() => {
 })
 
 defineExpose({
+  /** The text as it is in the editor now. */
+  value: () => editor.value?.getValue() ?? last,
   focus: () => editor.value?.focus(),
   /** Inserts Markdown at the cursor. */
   insertMarkdown: (markdown: string) => insertAt(null, markdown),

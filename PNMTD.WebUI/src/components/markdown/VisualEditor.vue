@@ -95,10 +95,11 @@ function renderDiagram(source: string, apply: (preview: HTMLElement | null) => v
 }
 
 onMounted(async () => {
+  const startedWith = props.modelValue
   try {
     const created = await createVisualEditor({
       root: root.value!,
-      markdown: props.modelValue,
+      markdown: startedWith,
       placeholder: props.placeholder ?? 'Write, or type / for blocks…',
       upload: props.upload,
       pickPage: props.pickPage ?? null,
@@ -111,6 +112,12 @@ onMounted(async () => {
       return
     }
     handle = created
+    // The text changed while Crepe started (a restored draft, typing in the code editor): it goes in.
+    if (props.modelValue !== startedWith) {
+      original = props.modelValue
+      last = props.modelValue
+      created.setMarkdown(props.modelValue)
+    }
     baseline = created.markdown()
     emit('ready', baseline)
   } catch (error) {
