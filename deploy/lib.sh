@@ -88,10 +88,49 @@ project_name() {
 
 volume_name() { echo "$(project_name)_$1"; }
 
+# As docker-compose.yml reads it: the environment first, then .env.
 app_image() {
-  local image tag
-  image="$(env_value PNMTD_IMAGE)"; tag="$(env_value PNMTD_IMAGE_TAG)"
+  local image="${PNMTD_IMAGE:-}" tag="${PNMTD_IMAGE_TAG:-}"
+  [[ -n "$image" ]] || image="$(env_value PNMTD_IMAGE)"
+  [[ -n "$tag" ]] || tag="$(env_value PNMTD_IMAGE_TAG)"
   echo "${image:-uisach/pnmtd}:${tag:-v1.2.0}"
+}
+
+# The uploaded files' folder (docs/locations-knowledge-plan.md §8.5): a folder on this host, mounted at FILES_MOUNT. Like
+# docker-compose.yml: PNMTD_FILES_DIR from the environment, then .env, else ./files.
+# shellcheck disable=SC2034 # used by the scripts that source this file
+FILES_MOUNT=/var/lib/pnmtd/files
+APP_UID=1654
+
+files_dir() {
+  local dir="${PNMTD_FILES_DIR:-}"
+  [[ -n "$dir" ]] || dir="$(env_value PNMTD_FILES_DIR)"
+  echo "${dir:-./files}"
+}
+
+# The folder, created and given to the app's user (uid 1654, 0750): directly as root, else as root in a one-shot container,
+# which maps the uid as the app's container sees it (rootless Podman too). Fails when neither can.
+ensure_files_dir() {
+  local dir abs
+  dir="$(files_dir)"
+  mkdir -p "$dir" || return 1
+  abs="$(cd "$dir" && pwd)"
+  if [[ "$(id -u)" == "0" ]]; then
+    chown "${APP_UID}:${APP_UID}" "$abs" && chmod 0750 "$abs"
+  else
+    docker run --rm --user 0 --entrypoint sh -v "${abs}:/files" "$(app_image)" \
+      -c "chown ${APP_UID}:${APP_UID} /files && chmod 0750 /files" >/dev/null 2>&1
+  fi
+}
+
+# A command as the app's user in its container, with the service's own mount of the files folder: in the running app, or
+# in a one-shot container beside nothing. Its user owns the folder, which nobody else may read.
+in_app() {
+  if is_running "$SERVICE"; then
+    compose exec -T "$SERVICE" "$@"
+  else
+    compose run --rm --no-deps -T --entrypoint "$1" "$SERVICE" "${@:2}"
+  fi
 }
 
 backup_dir() {

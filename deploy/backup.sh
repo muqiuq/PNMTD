@@ -5,10 +5,14 @@
 #   ./backup.sh --out /srv/pnmtd-bak  another destination
 #   ./backup.sh --keep 14             then delete all but the newest 14 backup folders
 #   ./backup.sh --quiet               only complain, for cron
+#   ./backup.sh --no-files            without the uploaded files, for a host that backs up their folder itself
 #
-# The folder holds database.pgdump (pg_dump --format=custom) and keys.tar.gz (the Data Protection
-# keys: without them, sessions end and the 2FA secrets cannot be read). Folder 0700, files 0600: it
-# holds password hashes. It does not hold .env — keep a copy of that elsewhere.
+# The folder holds database.pgdump (pg_dump --format=custom), keys.tar.gz (the Data Protection keys:
+# without them, sessions end and the 2FA secrets cannot be read) and files.tar (the uploaded files'
+# folder, PNMTD_FILES_DIR; uncompressed, as images and documents are compressed already). The files come
+# after the database: they are only ever added meanwhile, and deleted ones stay on disk for 7 days, so
+# every file the dump names is in the tar. Folder 0700, files 0600: it holds password hashes. It does
+# not hold .env — keep a copy of that elsewhere.
 #
 # Cron, daily at 03:30:
 #   30 3 * * * /srv/pnmtd/deploy/backup.sh --quiet --keep 14 >>/srv/pnmtd/deploy/logs/backup.log 2>&1
@@ -17,12 +21,13 @@ cd "$(dirname "$0")"
 # shellcheck source=deploy/lib.sh
 . ./lib.sh
 
-OUT="" KEEP="" QUIET=0
+OUT="" KEEP="" QUIET=0 FILES=1
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --out)   OUT="${2:?--out needs a folder}"; shift 2 ;;
     --keep)  KEEP="${2:?--keep needs a number}"; shift 2 ;;
     --quiet) QUIET=1; shift ;;
+    --no-files) FILES=0; shift ;;
     -h|--help) awk 'NR>1 && /^#/ {sub(/^# ?/, ""); print; next} NR>1 {exit}' "$0"; exit 0 ;;
     *) die "unknown option: $1 (try --help)" ;;
   esac
@@ -43,6 +48,15 @@ chmod 700 "$folder"
 compose exec -T "$DB_SERVICE" pg_dump -U pnmtd -d pnmtd --format=custom >"$folder/database.pgdump.part"
 mv "$folder/database.pgdump.part" "$folder/database.pgdump"
 docker run --rm -v "$(volume_name pnmtd-keys):/keys:ro" --entrypoint tar "$(app_image)" -czf - -C / keys >"$folder/keys.tar.gz"
+if (( FILES )); then
+  if [[ -d "$(files_dir)" ]]; then
+    # As the app's user, who owns the folder (0750), through the service's own mount; .tmp/ holds uploads in progress only.
+    in_app tar -cf - --exclude=./.tmp -C "$FILES_MOUNT" . >"$folder/files.tar.part"
+    mv "$folder/files.tar.part" "$folder/files.tar"
+  else
+    say "No files folder at $(files_dir): files.tar left out."
+  fi
+fi
 chmod 600 "$folder"/*
 say "Backup written: ${folder} ($(du -sh "$folder" | cut -f1))"
 

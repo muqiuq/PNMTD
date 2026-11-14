@@ -68,6 +68,9 @@ services:
       # The agents' files PNMT serves (docs/linux-sensor-plan.md §4.4), fetched from the GitHub release of this version into
       # sensor-<version>/; not backed up. For a PNMT without internet, mount a folder with the release's files here instead.
       - pnmtd-downloads:/var/lib/pnmtd/downloads
+      # Uploaded files (docs/locations-knowledge-plan.md §5.5): a folder on this host, not a volume. Backed up by ./backup.sh.
+      # ./init.sh creates it for the app's user (uid 1654, 0750); PNMTD_FILES_DIR in .env moves it (./ or / first).
+      - ${PNMTD_FILES_DIR:-./files}:/var/lib/pnmtd/files
     healthcheck:                                   # here as well: Podman's OCI images drop HEALTHCHECK
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1"]
       interval: 30s

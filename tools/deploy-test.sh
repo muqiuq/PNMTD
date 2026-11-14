@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # deploy/ for real, in a scratch copy with a project name of its own: init.sh, docker compose up,
 # signing in as the first admin, add-user.sh, reset-password.sh, list-users.sh, reset-totp.sh, a sensor event,
-# backup.sh, another event, restore.sh, and the first event is what /read says again.
-# Runs the image tools/contract.sh build made (pnmtd:dev). Needs docker and compose; on a Mac the
-# docker CLI may talk to Podman. KEEP=1 leaves the stack running.
+# an uploaded file, backup.sh (with files.tar, and --no-files without), another event and file, restore.sh
+# (refused into a full files folder, then --force), and the first event and file are what PNMT has again; a
+# backup without files.tar restores too.
+# Runs the image tools/contract.sh build made (pnmtd:dev), or IMAGE=repo:tag. Needs docker and compose; on a
+# Mac the docker CLI may talk to Podman. KEEP=1 leaves the stack running.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -21,6 +23,9 @@ cd "$dir"
 cleanup() {
   if [[ "$KEEP" != "1" ]]; then
     compose down -v >/dev/null 2>&1 || true
+    # The files folder's contents are the app's user's (uid 1654) on Linux: emptied from a container of the image.
+    [[ ! -d "$dir/files" ]] || docker run --rm --user 0 --entrypoint sh -v "$dir/files:/files" "$(app_image)" \
+      -c 'find /files -mindepth 1 -delete' >/dev/null 2>&1 || true
     cd / && rm -rf "$dir"
   fi
 }
@@ -37,13 +42,18 @@ fail() {
 # compose up --wait, its own output kept for the failure: which container, in which state.
 up_wait() { compose up -d --wait >"$dir/up.out" 2>&1; }
 
-# Podman names local images localhost/…, Docker docker.io/library/….
-if docker image inspect localhost/pnmtd:dev >/dev/null 2>&1; then image=localhost/pnmtd; else image=pnmtd; fi
+# Podman names local images localhost/…, Docker docker.io/library/…. Exported before init.sh, which gives the files
+# folder to the app's user from a container of the image.
+if [[ -n "${IMAGE:-}" ]]; then image="${IMAGE%:*}"; tag="${IMAGE##*:}"
+elif docker image inspect localhost/pnmtd:dev >/dev/null 2>&1; then image=localhost/pnmtd; tag=dev
+else image=pnmtd; tag=dev; fi
+export PNMTD_IMAGE="$image" PNMTD_IMAGE_TAG="$tag"
 
 ./init.sh --url "http://localhost:${PORT}" >/dev/null
 [[ "$(stat -c %a .env 2>/dev/null || stat -f %Lp .env)" == "600" ]] || fail ".env is not 0600"
+[[ -d files ]] || fail "init.sh made no files folder"
 env_set PNMTD_IMAGE "$image"
-env_set PNMTD_IMAGE_TAG dev
+env_set PNMTD_IMAGE_TAG "$tag"
 env_set PNMTD_PORT "$PORT"
 # Not the default 5028/udp: a dev stack (start.sh) may hold it.
 env_set PNMTD_UDP_PORT "${DEPLOY_TEST_UDP_PORT:-5092}"
@@ -106,19 +116,60 @@ read_raw() { curl -fsS "http://localhost:${PORT}/read/rtok-deploy/raw"; }
 curl -fsS -o /dev/null "http://localhost:${PORT}/event/wtok-deploy/200/before-backup" || fail "event before the backup"
 [[ "$(read_raw)" == "True;before-backup" ]] || fail "read before the backup: $(read_raw)"
 
+# Uploaded files (docs/locations-knowledge-plan.md §5.5, §8.5): the body as it is, into the folder on this host, written by
+# the app's user (uid 1654) in its read-only container.
+upload() {  # upload NAME FILE → the status, the body in $dir/body, the file's URL in $dir/url
+  local token
+  token="$(awk '$6 == "XSRF-TOKEN" {print $7}' "$jar" | tail -1)"
+  curl -s -o "$dir/body" -w '%{http_code}' -b "$jar" -c "$jar" -X POST -H 'Content-Type: application/octet-stream' \
+    -H "X-XSRF-TOKEN: $token" --data-binary "@$2" "http://localhost:${PORT}/api/v1/files?kind=attachment&name=$1"
+  sed -n 's/.*"url":"\([^"]*\)".*/\1/p' "$dir/body" >"$dir/url"
+}
+owner_of() { compose exec -T pnmtd sh -c "stat -c %u /var/lib/pnmtd/files/*/*/*-$1"; }
+[[ "$(login admin deploy-test-password-1)" == "200" ]] || fail "the admin's sign-in: $(cat "$dir/body")"
+printf 'before the backup\n' >"$dir/before.txt"
+[[ "$(upload before.txt "$dir/before.txt")" == "201" ]] || fail "an upload: $(cat "$dir/body")"
+before_url="$(cat "$dir/url")"
+[[ "$(api GET "$before_url")" == "200" && "$(cat "$dir/body")" == "before the backup" ]] || fail "the upload read back: $(cat "$dir/body")"
+[[ "$(owner_of before.txt)" == "1654" ]] || fail "the uploaded file belongs to uid $(owner_of before.txt), not the app's 1654"
+./info.sh | grep -q '^  Files:      ./files' || fail "info.sh shows no files folder: $(./info.sh)"
+! ./info.sh | grep -q 'cannot write the files folder' || fail "info.sh: $(./info.sh)"
+
 ./backup.sh --quiet --keep 3 || fail "backup.sh"
 folder="$(ls -1d backups/pnmtd-* | tail -1)"
-[[ -s "$folder/database.pgdump" && -s "$folder/keys.tar.gz" ]] || fail "the backup folder is incomplete"
+[[ -s "$folder/database.pgdump" && -s "$folder/keys.tar.gz" && -s "$folder/files.tar" ]] || fail "the backup folder is incomplete: $(ls "$folder")"
 [[ "$(stat -c %a "$folder" 2>/dev/null || stat -f %Lp "$folder")" == "700" ]] || fail "the backup folder is not 0700"
+tar -tf "$folder/files.tar" | grep -q -- '-before\.txt$' || fail "files.tar lacks the upload: $(tar -tf "$folder/files.tar")"
+./backup.sh --quiet --no-files --out "$dir/without-files" || fail "backup.sh --no-files"
+bare="$(ls -1d "$dir"/without-files/pnmtd-* | tail -1)"
+[[ -s "$bare/database.pgdump" && ! -e "$bare/files.tar" ]] || fail "backup.sh --no-files: $(ls "$bare")"
 
 sleep 6   # the sensor API's 5-second rule
 curl -fsS -o /dev/null "http://localhost:${PORT}/event/wtok-deploy/500/after-backup" || fail "event after the backup"
 [[ "$(read_raw)" == "False;after-backup" ]] || fail "read after the backup: $(read_raw)"
+printf 'after the backup\n' >"$dir/after.txt"
+[[ "$(upload after.txt "$dir/after.txt")" == "201" ]] || fail "the second upload: $(cat "$dir/body")"
+after_url="$(cat "$dir/url")"
 
-./restore.sh "$folder" --yes >"$dir/restore.out" 2>&1 || fail "restore.sh: $(tail -5 "$dir/restore.out")"
+# The files folder holds files now: restore.sh refuses before it changes anything, and --force replaces them.
+if ./restore.sh "$folder" --yes >"$dir/restore.out" 2>&1; then fail "restore.sh into a full files folder without --force"; fi
+grep -q 'not empty' "$dir/restore.out" || fail "restore.sh without --force: $(tail -3 "$dir/restore.out")"
+[[ "$(read_raw)" == "False;after-backup" ]] || fail "the refused restore changed the database: $(read_raw)"
+./restore.sh "$folder" --yes --force >"$dir/restore.out" 2>&1 || fail "restore.sh --force: $(tail -5 "$dir/restore.out")"
 up_wait || fail "not healthy after the restore: $(tail -3 "$dir/up.out")"
 [[ "$(read_raw)" == "True;before-backup" ]] || fail "read after the restore: $(read_raw)"
 # The test sensor's events only: PNMT's own system sensors (the RouterOS advisories) write theirs at the start.
 [[ "$(sql "SELECT count(*) FROM events WHERE \"SensorId\" = '22222222-2222-2222-2222-222222222222'")" == "1" ]] || fail "events after the restore"
+[[ "$(login admin deploy-test-password-1)" == "200" ]] || fail "the admin's sign-in after the restore: $(cat "$dir/body")"
+[[ "$(api GET "$before_url")" == "200" && "$(cat "$dir/body")" == "before the backup" ]] || fail "the backed-up file after the restore"
+[[ "$(api GET "$after_url")" == "404" ]] || fail "the file uploaded after the backup is still there"
+[[ "$(owner_of before.txt)" == "1654" ]] || fail "the restored file belongs to uid $(owner_of before.txt), not the app's 1654"
+
+# A backup from before files (no files.tar) restores too, and leaves the folder as it is.
+cp -R "$folder" "$dir/old-backup" && rm "$dir/old-backup/files.tar"
+./restore.sh "$dir/old-backup" --yes >"$dir/restore.out" 2>&1 || fail "restore.sh of a backup without files.tar: $(tail -5 "$dir/restore.out")"
+grep -q 'No files.tar' "$dir/restore.out" || fail "restore.sh without files.tar: $(tail -3 "$dir/restore.out")"
+up_wait || fail "not healthy after the second restore: $(tail -3 "$dir/up.out")"
+[[ "$(login admin deploy-test-password-1)" == "200" && "$(api GET "$before_url")" == "200" ]] || fail "the file after a restore without files.tar"
 
 echo "deploy/: init, up, backup, restore — all as expected."

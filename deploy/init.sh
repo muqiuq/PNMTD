@@ -8,6 +8,9 @@
 #                                              …with the WireGuard gateway for MikroTik routers, and what
 #                                              routers dial when this host is behind NAT
 #
+# It also creates the uploaded files' folder (PNMTD_FILES_DIR, ./files) for the app's user, uid 1654, 0750:
+# as root directly, otherwise from a container of the app's image.
+#
 # The secrets exist only in .env, and Auth__InitialAdmin__Password is read exactly once — when the
 # database has no users yet. So an existing .env is never replaced without --force, and --force keeps
 # PNMTD_DB_PASSWORD: the database keeps the password it was created with.
@@ -51,8 +54,15 @@ if (( WIREGUARD )); then
   [[ -z "$WG_PORT" ]] || env_set PNMTD_WG_EXTERNAL_PORT "$WG_PORT"
 fi
 mkdir -p logs backups
+files="$(files_dir)"
+if ensure_files_dir; then
+  files_note="The files folder ${files} belongs to the app's user (uid ${APP_UID}, 0750)."
+else
+  files_note="Could not give ${files} to the app's user: sudo chown ${APP_UID}:${APP_UID} ${files} && sudo chmod 0750 ${files}"
+fi
 
 echo "Wrote .env (0600). Start the stack with: docker compose up -d"
+echo "$files_note"
 echo "The first admin, created at the first start (change the password at the first sign-in):"
 show_secret "admin" "$admin_password"
 echo "It is in .env as Auth__InitialAdmin__Password, read only while the database has no users."

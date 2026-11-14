@@ -42,17 +42,19 @@ LABEL org.opencontainers.image.title="PNMTD" \
 # wget for the health check. iputils-ping for PING sensors: without CAP_NET_RAW, .NET's Ping runs
 # the system's ping, which uses an unprivileged ICMP socket where net.ipv4.ping_group_range allows
 # it (the compose file sets it; Docker's default allows it too). /var/lib/pnmtd belongs to the
-# image's non-root user, who runs the app. `pnmtd …` is the app's command line. libgssapi-krb5-2:
-# Npgsql probes for it at every start and complains loudly when it is missing. wireguard-tools,
-# iproute2 and nftables: the WireGuard gateway, the same image as the service pnmtd-wg, run as root
-# with NET_ADMIN only (docs/mikrotik-plan.md §3.4); the app itself never uses them.
+# image's non-root user (app, uid 1654), who runs the app; files/ is the mount point of the
+# uploaded files' folder on the host (docs/locations-knowledge-plan.md §8.5). `pnmtd …` is the
+# app's command line. libgssapi-krb5-2: Npgsql probes for it at every start and complains loudly
+# when it is missing. wireguard-tools, iproute2 and nftables: the WireGuard gateway, the same image
+# as the service pnmtd-wg, run as root with NET_ADMIN only (docs/mikrotik-plan.md §3.4); the app
+# itself never uses them.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends wget iputils-ping libgssapi-krb5-2 wireguard-tools iproute2 nftables \
  && rm -rf /var/lib/apt/lists/* \
  # ping's file capability (cap_net_raw) makes exec fail outright under cap_drop ALL and
  # no-new-privileges; a plain copy of the binary drops it and leaves the ICMP socket path.
  && cp /usr/bin/ping /usr/bin/ping.plain && mv -f /usr/bin/ping.plain /usr/bin/ping \
- && mkdir -p /var/lib/pnmtd/keys /var/lib/pnmtd/downloads \
+ && mkdir -p /var/lib/pnmtd/keys /var/lib/pnmtd/downloads /var/lib/pnmtd/files \
  && chown -R app:app /var/lib/pnmtd \
  && printf '#!/bin/sh\nexec dotnet /app/PNMTD.dll "$@"\n' > /usr/local/bin/pnmtd \
  && chmod 0755 /usr/local/bin/pnmtd

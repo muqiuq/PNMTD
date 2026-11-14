@@ -24,7 +24,8 @@ version="$(sed -n 's/.*"@playwright\/test": "\([0-9.]*\)".*/\1/p' PNMTD.WebUI/pa
 PLAYWRIGHT_IMAGE="${PLAYWRIGHT_IMAGE:-mcr.microsoft.com/playwright:v${version}-noble}"
 
 export ENGINE NAME=pnmtd-e2e DB_NAME=pnmtd-e2e-db NETWORK=pnmtd-e2e PG_VOLUME=pnmtd-e2e-pgdata \
-  KEYS_VOLUME=pnmtd-e2e-keys DOWNLOADS_VOLUME=pnmtd-e2e-downloads PORT="${E2E_PORT:-7398}" UDP_PORT="${E2E_UDP_PORT:-7397}" WEB="" SEED=1
+  KEYS_VOLUME=pnmtd-e2e-keys DOWNLOADS_VOLUME=pnmtd-e2e-downloads PORT="${E2E_PORT:-7398}" UDP_PORT="${E2E_UDP_PORT:-7397}" WEB="" SEED=1 \
+  FILES_DIR="$PWD/.tmpcheck/e2e-files"
 
 # Settings of their own: start.sh adds the generated passwords. The tests sign in more often than
 # the login rate limit allows from one address (10 a minute); the .NET tests cover the limit.
@@ -36,6 +37,11 @@ cleanup() {
   if [[ "$KEEP" != "1" ]]; then
     ./stop.sh >/dev/null 2>&1 || true
     "$ENGINE" volume rm -f "$PG_VOLUME" "$KEYS_VOLUME" "$DOWNLOADS_VOLUME" >/dev/null 2>&1 || true
+    # The uploaded files: on Linux the app's user's (uid 1654), so they go from a container of the image.
+    if [[ -d "$FILES_DIR" ]] && ! rm -rf "$FILES_DIR" 2>/dev/null; then
+      "$ENGINE" run --rm --user 0 --entrypoint sh -v "$FILES_DIR:/files" "${IMAGE:-pnmtd:dev}" -c 'find /files -mindepth 1 -delete' >/dev/null 2>&1 || true
+      rm -rf "$FILES_DIR"
+    fi
     rm -f "$ENV_FILE"
   fi
 }

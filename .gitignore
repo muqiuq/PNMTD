@@ -414,3 +414,6 @@ dev.env
 
 # The web UI, built into the image only (Dockerfile)
 PNMTD/wwwroot/pnmt-admin/
+
+# The uploaded files of ./start.sh (docs/locations-knowledge-plan.md §8.5)
+.pnmtd-files/

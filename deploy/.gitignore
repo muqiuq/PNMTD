@@ -2,5 +2,6 @@
 .env.tmp
 docker-compose.override.yml
 backups/
+files/
 logs/
 temporary-passwords-*.txt

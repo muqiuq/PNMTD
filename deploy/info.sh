@@ -50,6 +50,11 @@ case "$(env_value WireGuard__Enabled | tr '[:upper:]' '[:lower:]')" in
   *) echo "  WireGuard:  off (MikroTik routers by Direct SSH only)" ;;
 esac
 echo "  Backups:    $(ls -1d "$(env_value PNMTD_BACKUP_DIR || echo backups)"/pnmtd-* 2>/dev/null | wc -l | tr -d ' ') in $(env_value PNMTD_BACKUP_DIR)"
+files="$(files_dir)"
+files_size=""
+# Measured as the app's user, who alone may read it; never a mount of a missing folder, which Docker would create as root.
+[[ -d "$files" ]] && files_size="$(in_app du -sh "$FILES_MOUNT" 2>/dev/null | cut -f1 || true)"
+echo "  Files:      ${files}${files_size:+ (${files_size})}"
 
 warnings=()
 if is_running "$SERVICE" && ! curl -fsS -o /dev/null "http://127.0.0.1:${port}/healthz" 2>/dev/null; then
@@ -59,6 +64,12 @@ fi
 [[ "$url" == https://* || -z "$url" ]] || warnings+=("PublicBaseUrl is plain HTTP: passwords and session cookies travel unencrypted.")
 [[ -n "$(env_value Proxy)" || "$(env_value PNMTD_BIND_ADDRESS)" != "127.0.0.1" ]] || warnings+=("Bound to 127.0.0.1 (a reverse proxy?) but Proxy is empty: lockout and the audit log see the proxy's address.")
 ls -1d "$(env_value PNMTD_BACKUP_DIR || echo backups)"/pnmtd-* >/dev/null 2>&1 || warnings+=("No backup yet: ./backup.sh, and a cron line (README.md).")
+# The uploaded files' folder (docs/locations-knowledge-plan.md §8.5): there, and writable by the app's user, as PNMTD sees it.
+if [[ ! -d "$files" ]]; then
+  warnings+=("The files folder ${files} is missing: uploads fail. ./init.sh --force creates it (the database password is kept).")
+elif is_running "$SERVICE" && ! compose exec -T "$SERVICE" sh -c "test -w ${FILES_MOUNT}" >/dev/null 2>&1; then
+  warnings+=("PNMTD (uid ${APP_UID}) cannot write the files folder ${files}: sudo chown ${APP_UID}:${APP_UID} ${files} && sudo chmod 0750 ${files} (rootless Podman: podman unshare chown ${APP_UID}:${APP_UID} ${files}; SELinux: README.md).")
+fi
 if is_running "$DB_SERVICE"; then
   # Who could manage users with a password alone (§4.6).
   admins="$(compose exec -T "$DB_SERVICE" psql -U pnmtd -d pnmtd -tAc \

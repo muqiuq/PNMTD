@@ -21,6 +21,9 @@
 #                                  WireGuard modes for MikroTik routers (docs/mikrotik-plan.md §3).
 #                                  WG_PORT=51820 is its host port (UDP); WG_EXTERNAL_HOST names what
 #                                  routers dial (default: this machine's name)
+#   FILES_DIR=~/pnmt-files ./start.sh
+#                                  the uploaded files' folder, bind-mounted as deploy/ mounts it (default .pnmtd-files/
+#                                  in the repository, gitignored; docs/locations-knowledge-plan.md §8.5)
 #   AGENT_FILES=dist ./start.sh    serve the agents built into dist/ (./build-sensor-linux.sh, ./build-sensor-windows.sh)
 #                                  at /agent/v1/download/, mounted read-only; otherwise PNMTD fetches them from the
 #                                  GitHub release of its version into the volume pnmtd-downloads-dev, as deployed
@@ -47,6 +50,7 @@ PG_VOLUME="${PG_VOLUME:-pnmtd-pgdata}"
 KEYS_VOLUME="${KEYS_VOLUME:-pnmtd-keys-dev}"
 DOWNLOADS_VOLUME="${DOWNLOADS_VOLUME:-pnmtd-downloads-dev}"
 AGENT_FILES="${AGENT_FILES:-}"
+FILES_DIR="${FILES_DIR:-.pnmtd-files}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-docker.io/library/postgres:18-alpine}"
 LEGACY_DIR="${LEGACY_DIR:-}"
 LEGACY_USERS="${LEGACY_USERS:-}"
@@ -209,6 +213,14 @@ if [[ -n "$AGENT_FILES" ]]; then
   [[ -d "$AGENT_FILES" ]] || die "AGENT_FILES=${AGENT_FILES} is not a folder."
   downloads=(-v "$(cd "$AGENT_FILES" && pwd):/var/lib/pnmtd/downloads:ro")
 fi
+# The uploaded files (docs/locations-knowledge-plan.md §8.5): a folder, not a volume, as deployed. Podman on macOS shares
+# /Users, where the repository lies, and the app's user writes there as it is; on Linux the folder is given to it (uid 1654).
+mkdir -p "$FILES_DIR"
+files_abs="$(cd "$FILES_DIR" && pwd)"
+if [[ "$(uname -s)" == Linux ]]; then
+  "$ENGINE" run --rm --user 0 --entrypoint sh -v "${files_abs}:/files" "$IMAGE" -c 'chown 1654:1654 /files && chmod 0750 /files' >/dev/null 2>&1 \
+    || echo "Could not give ${FILES_DIR} to the app's user (uid 1654): uploads may fail." >&2
+fi
 # As hardened as in deploy/docker-compose.yml, so what fails there fails here first.
 "$ENGINE" run -d --name "$NAME" --hostname "$NAME" --network "$NETWORK" \
   -p "${PORT}:8080" \
@@ -222,6 +234,7 @@ fi
   --sysctl "net.ipv4.ping_group_range=0 2147483647" \
   -v "${KEYS_VOLUME}:/var/lib/pnmtd/keys" \
   "${downloads[@]}" \
+  -v "${files_abs}:/var/lib/pnmtd/files" \
   "$IMAGE" >/dev/null
 
 for _ in $(seq 1 120); do
@@ -319,6 +332,7 @@ elif [[ -n "$LEGACY_DIR" ]]; then
   echo "Data:        as it was. IMPORT=1 imports ${LEGACY_DIR} again, replacing it."
 fi
 echo "Database:    ${DB_NAME} (volume ${PG_VOLUME}); psql: ${ENGINE} exec -it ${DB_NAME} psql -U pnmtd"
+echo "Files:       ${FILES_DIR} (uploaded images and attachments)"
 echo "Logs:        ${ENGINE} logs -f ${NAME}"
 echo "─────────────────────────────────────────────"
 echo "Rerun for .NET changes$([[ "$WEB" == dev ]] || echo ' and web changes (or WEB=dev ./start.sh for live web edits)'). ./stop.sh stops it; ./stop.sh --data also offers to delete the data."

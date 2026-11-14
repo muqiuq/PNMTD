@@ -1,6 +1,6 @@
 # Deploying PNMTD
 
-The production stack: the published image `uisach/pnmtd` and PostgreSQL, in two containers with two named volumes. Hundreds of applications report to it, so the address they use must stay the same across updates.
+The production stack: the published image `uisach/pnmtd` and PostgreSQL, in two containers with named volumes, and a folder on this host for uploaded files. Hundreds of applications report to it, so the address they use must stay the same across updates.
 
 Nothing here builds from source. To debug on a laptop, use `../start.sh` instead.
 
@@ -17,7 +17,7 @@ docker compose up -d
 ./info.sh
 ```
 
-`init.sh` writes `.env` with mode `0600`. It contains every setting from [.env.example](.env.example), a generated database password, and the password of the first admin, which `init.sh` prints once.
+`init.sh` writes `.env` with mode `0600`. It contains every setting from [.env.example](.env.example), a generated database password, and the password of the first admin, which `init.sh` prints once. It also creates the folder for uploaded files, `files/` ([Uploaded files](#uploaded-files)).
 
 `init.sh` refuses to overwrite an existing `.env` unless you pass `--force`:
 
@@ -57,7 +57,9 @@ Local changes to the stack go into `docker-compose.override.yml`. Git ignores th
 | `./update.sh --tag v1.0.1` | Pins another release first |
 | `./backup.sh` | Writes a backup folder to `backups/` |
 | `./backup.sh --keep 14` | …and deletes all but the newest 14 |
+| `./backup.sh --no-files` | …without the uploaded files, for a host that backs up their folder itself |
 | `./restore.sh <folder>` | Restores a backup, here or into a fresh deployment |
+| `./restore.sh <folder> --force` | …and replaces what the files folder holds |
 | `./add-user.sh <name> [--role viewer\|user\|admin]` | Adds a user, and shows a temporary password once |
 | `./list-users.sh` | Lists the users: role, state, 2FA, lockout, last sign-in |
 | `./reset-password.sh <name>` | Gives a user a new temporary password, ends their sessions and lifts a lockout |
@@ -87,12 +89,15 @@ Local changes to the stack go into `docker-compose.override.yml`. Git ignores th
 30 3 * * * /srv/pnmtd/deploy/backup.sh --quiet --keep 14 >>/srv/pnmtd/deploy/logs/backup.log 2>&1
 ```
 
-A backup folder holds two files:
+A backup folder holds three files:
 
 - `database.pgdump`, made with `pg_dump --format=custom`.
 - `keys.tar.gz`, the Data Protection keys. Without them, sessions end and the 2FA secrets can no longer be read.
+- `files.tar`, the folder of uploaded files, taken after the database and uncompressed (images and documents are compressed already). Files are only ever added meanwhile, and deleted ones stay on disk for 7 days, so every file the dump names is in the tar. `--no-files` leaves it out.
 
 The folder is `0700` and its files are `0600`, because they hold password hashes. A backup does not include `.env`; keep a copy of that somewhere else.
+
+`./restore.sh` puts `files.tar` into the files folder as the app's user. The folder must be empty, or `--force` replaces its contents; it refuses before it changes anything else. A backup without `files.tar` (an older one, or `--no-files`) leaves the folder as it is.
 
 A **new PostgreSQL major version** means `./backup.sh`, the new image in `docker-compose.yml`, then `./restore.sh`. Never just change the tag on the old volume.
 
@@ -104,6 +109,7 @@ A **new PostgreSQL major version** means `./backup.sh`, the new image in `docker
   - With the proxy on the same host, set `PNMTD_BIND_ADDRESS=127.0.0.1`.
 - **Sensor URLs:** they stay plain HTTP if they were before. The app never redirects them.
 - **Restricting paths:** the app enforces sign-in itself. If you restrict paths at the proxy anyway, keep `/event/` and `/read/` open, and match them case-insensitively, because the app accepts `/EVENT/` too. The agents of servers (Windows and Linux) need `/agent/` as well.
+- **Uploads:** pages and locations take images up to 2 MB and attachments up to 25 MB, and firmware images are uploaded too. A proxy needs a body limit above them: `client_max_body_size 32m;` (nginx, in the example below), `request_body { max_size 32MB }` (Caddy); Traefik has no limit by default. A proxy's own 413 is named as such in the UI.
 - **WebSockets:** the agents keep a WebSocket open on `/agent/v1/ws`, on the same address and port. Caddy and Traefik pass them as they are; nginx needs the `Upgrade` lines below and a `proxy_read_timeout` above the agents' 30 s ping. Pass the `Host` header on: agents sign the address they use, and PNMTD checks it against `PublicBaseUrl` or that header.
 
 Each example below forwards one hostname to the app. For a proxy on the same host, set `PNMTD_BIND_ADDRESS=127.0.0.1` and `Proxy=docker`. Through the published port, the app sees requests coming from Docker's bridge, which `docker` trusts (172.16.0.0/12).
@@ -112,6 +118,9 @@ Each example below forwards one hostname to the app. For a proxy on the same hos
 
 ```
 pnmt.example.com {
+    request_body {
+        max_size 32MB
+    }
     reverse_proxy 127.0.0.1:5001
 }
 ```
@@ -138,6 +147,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
         proxy_read_timeout 120s;
+        client_max_body_size 32m;
     }
 }
 ```
@@ -170,7 +180,7 @@ Small devices report over PNMT-UDP, a very low-data protocol on 5028/udp ([docs/
 - **Device ids.** A new node gets a random free id of 2 header bytes (1–65,535) unless one is entered. `Udp__DeviceIdBytes=1` in `.env` keeps ids at one byte (at most 255 nodes, the smallest packets); `4` uses the full 32-bit range.
 - **No reverse proxy is involved.** Caddy, nginx and Traefik proxy HTTP; devices send straight to the published UDP port. Nothing needs TLS: every keyed suite authenticates.
 - **Firewalls.** Docker's published ports bypass `ufw`, so 5028/udp is usually reachable as soon as the stack runs. A cloud security group still needs a rule for it.
-- **Firmware uploads** go through the UI (Admin): images are stored in PostgreSQL and in every `./backup.sh`. A reverse proxy in front of the UI needs a body limit above the image size: `client_max_body_size 20m;` (nginx), `request_body { max_size 20MB }` (Caddy); Traefik has no limit by default.
+- **Firmware uploads** go through the UI (Admin): images are stored in PostgreSQL and in every `./backup.sh`. A reverse proxy in front of the UI needs a body limit above the image size: the 32 MB of [Behind a reverse proxy](#behind-a-reverse-proxy) cover them.
 - **Device keys are stored in plaintext**, like the sensor tokens: treat every backup as a credential. `./backup.sh` writes its folder 0700 and its files 0600. If a backup leaks, regenerate the nodes' keys in the UI.
 - **Rootless Podman** with slirp4netns hides the devices' addresses (answers still arrive); pasta keeps them.
 - `./info.sh` shows the listener's port; `docker compose exec pnmtd pnmtd udp node --server 127.0.0.1:5028 --id <id> --key <key>` runs a simulated device next to the server.
@@ -255,6 +265,29 @@ PNMT can use AI models through [OpenRouter](https://openrouter.ai): to propose r
 - **The situation analysis** runs every `Ai__Analysis__IntervalMinutes` (60) when something changed, and early on a storm of failures, when the uplink comes back or the WireGuard gateway goes down. Its findings go to three sensors on the host *PNMT*: *AI analysis: critical* (High), *warnings* (Normal) and *info* (Low). A notification rule on them, or a scope such as *at least High*, decides who hears of them; warnings and critical findings also wait under *Decisions*, where similar ones can be muted for 7 days.
 - **Turning it off:** `Ai__Enabled=false`, or one use at a time (`Ai__Mail__Enabled`, `Ai__Analysis__Enabled`). *Admin → Debug → Test the AI* checks the key and every model.
 
+## Uploaded files
+
+Images and attachments of locations and knowledge base pages (docs/locations-knowledge-plan.md §5.5, §8.5) are files in a folder on this host, `files/` next to `docker-compose.yml`, mounted into the container at `/var/lib/pnmtd/files`. PostgreSQL holds only what each file is.
+
+- **Moving it:** `PNMTD_FILES_DIR` in `.env`, for example `/srv/pnmtd-files` on a disk of its own. Start it with `./` or `/`: a bare name would be a Docker volume.
+- **Ownership:** the app runs as the image's user `app`, uid 1654, and the container stays read-only; only the mount is writable. `./init.sh` creates the folder with owner `1654:1654` and mode `0750`, as root directly or else from a container of the image. Files are `0640` and folders `0750`: readable by root, or by a group you add. `./info.sh` checks that the app can write it, and says how to fix it:
+  - `sudo chown 1654:1654 files && sudo chmod 0750 files`;
+  - rootless Podman maps the uid: `podman unshare chown 1654:1654 files`;
+  - a folder that is missing at the first start is created by Docker, owned by root, and uploads fail until it is fixed.
+- **SELinux** (Fedora, RHEL, Rocky): a container may not use a host folder until it is labelled. Label it for containers in `docker-compose.override.yml`, with `:z`:
+
+  ```yaml
+  services:
+    pnmtd:
+      volumes:
+        - ./files:/var/lib/pnmtd/files:z
+  ```
+
+  Not `:Z`: a private label keeps out the containers `./backup.sh` and `./restore.sh` run against the same folder.
+- **On the host, the files may be read, copied, measured and backed up** with any tool: that is why they are a folder. `./backup.sh --no-files` leaves them to that tool.
+- **They must not be changed, renamed or deleted from the host.** The daily check notices: the *File storage* sensor on the host *PNMT* writes 428 for missing or changed files, and pages show *File removed*. Files nobody uploaded are listed under *Admin → Knowledge base → Files* and never deleted by PNMT. To delete a file (an image that shows what it shouldn't), use *Delete* there: it leaves the disk at once.
+- **Space:** the folder's disk fills, not the database. *File storage* writes 428 below `KnowledgeBase__MinFreeMb` (1024) free, and *Admin → Knowledge base → Files* shows what takes the space. Unused uploads are deleted after a day, deleted files leave the disk 7 days later.
+
 ## What lives where
 
 | Where | Holds | Backed up by |
@@ -262,7 +295,8 @@ PNMT can use AI models through [OpenRouter](https://openrouter.ai): to propose r
 | volume `pnmtd_pnmtd-pgdata` | the database, with the UDP nodes' keys, their command log and firmware images, and the MikroTik routers' configurations and (encrypted) tunnel keys | `./backup.sh` (`pg_dump`) |
 | volume `pnmtd_pnmtd-keys` | Data Protection keys (sessions, 2FA secrets, PNMTD's SSH key and the tunnel keys) | `./backup.sh` |
 | volume `pnmtd_pnmtd-downloads` | the agents' files PNMT serves, fetched from the GitHub release | not needed: fetched again |
+| folder `deploy/files/` (`PNMTD_FILES_DIR`) | the images and attachments of locations and pages | `./backup.sh` (`files.tar`), or your own tools with `--no-files` |
 | `deploy/.env` | database password, first admin password, settings | you. It is not in any backup |
 | `deploy/backups/` | backup folders | you |
 
-The data lives in named volumes rather than bind mounts, because the app writes as a non-root user and a host folder's ownership would not match. Never back the volumes up by copying files from under a running database; use `./backup.sh`.
+The data lives in named volumes rather than bind mounts, because the app writes as a non-root user and a host folder's ownership would not match. The uploaded files are the exception, so the host's tools can reach them; `./init.sh` gives their folder to the app's user. Never back the volumes up by copying files from under a running database; use `./backup.sh`.
