@@ -268,7 +268,9 @@ public enum LogonOutcome { Success, Failure }
 /// A login or connection (§4.7), or an aggregate of identical ones within 10 minutes (<see cref="Count"/> above 1). Identified by
 /// its log and the record id of its first event: sending it again (a higher count, a logoff) updates it. On Linux
 /// (docs/linux-sensor-plan.md §5.6) the channel is the journal (<c>journal</c>), the record id a 64-bit hash of the first entry's
-/// cursor, <see cref="KeyFingerprint"/> the key of an SSH key login, and <see cref="TargetUser"/> whom sudo or su became.
+/// cursor, <see cref="KeyFingerprint"/> the key of an SSH key login, <see cref="TargetUser"/> whom sudo or su became, <see cref="Command"/>
+/// sudo's command (only with config.yaml's collect.sudo_commands), and for the internet's "invalid user" noise, aggregated per source,
+/// <see cref="TriedUsers"/> the first 10 names tried (<see cref="User"/> is then <see cref="LinuxLogins.InvalidUser"/>).
 /// </summary>
 public sealed record LoginRecord(
     string Channel,
@@ -291,7 +293,8 @@ public sealed record LoginRecord(
     DateTimeOffset? LoggedOffAt,
     string? KeyFingerprint = null,
     string? TargetUser = null,
-    string? Command = null);
+    string? Command = null,
+    IReadOnlyList<string>? TriedUsers = null);
 
 /// <summary>Agent → PNMTD: logins and connections, read from the logs every 15 seconds, or buffered while offline.</summary>
 public sealed record AccessBatch(IReadOnlyList<LoginRecord> Entries);

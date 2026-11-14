@@ -238,6 +238,32 @@ public sealed record LoggingCheck(
 
 public sealed record LoggingFix(string Key, string Problem, string? Fix);
 
+/// <summary>
+/// How the Linux agent fills <see cref="LoginRecord"/> (§5.6), the same on both sides: the channel, and the failure reasons PNMTD
+/// acts on. 464 counts failures against existing accounts, <see cref="NotInSudoers"/> and <see cref="Lockout"/>; never
+/// <see cref="InvalidUser"/>, the internet's scanners.
+/// </summary>
+public static class LinuxLogins
+{
+    /// <summary>The channel of every Linux login record: the journal.</summary>
+    public const string Channel = "journal";
+
+    /// <summary>The failure reason, and the user, of failures for accounts that don't exist (aggregated per source).</summary>
+    public const string InvalidUser = "invalid user";
+
+    /// <summary>sudo refused a user who isn't in sudoers.</summary>
+    public const string NotInSudoers = "not in sudoers";
+
+    /// <summary>pam_faillock (or sshd's MaxAuthTries) locked an account or ended the attempts.</summary>
+    public const string Lockout = "locked";
+
+    /// <summary>A wrong password (sshd, sudo, su, login).</summary>
+    public const string WrongPassword = "wrong password";
+
+    /// <summary>A key that isn't authorized for the account (logged at sshd's VERBOSE level only).</summary>
+    public const string KeyRefused = "key refused";
+}
+
 // --- the journal (§5.7) -------------------------------------------------------------------------------------
 
 public sealed record JournalSection(IReadOnlyList<JournalEntry> Entries, bool Persistent);
