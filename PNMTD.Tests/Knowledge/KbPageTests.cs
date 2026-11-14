@@ -274,6 +274,37 @@ public sealed class KbPageTests
     }
 
     [TestMethod]
+    public async Task Redacting_reaches_the_lists_of_what_changed_and_the_tags()
+    {
+        var secret = "PSK Sommer" + Guid.NewGuid().ToString("N")[..6];
+        var tag = "geheim-" + Guid.NewGuid().ToString("N")[..6];
+        var page = (await CreateAsync(Request($"VPN zrh {secret}", "Ask the network team.", tag))).Page;
+        // A title's change names the old title; a tag's, the tag (§6.3).
+        page = (await SaveAsync(page, r => r.Title = "VPN zrh")).Page;
+        page = (await SaveAsync(page, r => r.Tags = [])).Page;
+        await using (var before = app.NewDb())
+        {
+            var changes = (await before.KbRevisions.Where(r => r.PageId == page.Id).ToListAsync()).SelectMany(r => KbRevisions.Changes(r.Changes)).ToList();
+            Assert.IsTrue(changes.Any(c => c.Text.Contains(secret)), "the title's change holds it");
+            Assert.IsTrue(changes.Any(c => c.Text.Contains(tag)), "the tags' change holds it");
+        }
+        var result = await (await admin.PostJsonAsync($"/api/v1/kb/pages/{page.Id}/redact", new KbRedactRequest { Text = secret })).ReadAsync<KbRedactResult>();
+        Assert.AreEqual(2, result.Revisions, "the first by its title, the second by its list of changes");
+        Assert.AreEqual(2, result.Occurrences);
+        await (await admin.PostJsonAsync($"/api/v1/kb/pages/{page.Id}/redact", new KbRedactRequest { Text = tag })).ReadAsync<KbRedactResult>();
+        await using var db = app.NewDb();
+        var revisions = await db.KbRevisions.Where(r => r.PageId == page.Id).OrderBy(r => r.Number).ToListAsync();
+        foreach (var r in revisions)
+        {
+            Assert.IsFalse(r.Title.Contains(secret) || r.Changes.Contains(secret), $"revision {r.Number}");
+            Assert.IsFalse(r.Changes.Contains(tag) || r.Tags.Contains(tag), $"revision {r.Number}");
+        }
+        Assert.AreEqual("VPN zrh [redacted] → VPN zrh", KbRevisions.Changes(revisions[1].Changes).Single(c => c.Kind == KbChangeKinds.Title).Text);
+        var shown = await (await viewer.GetAsync($"/api/v1/kb/pages/{page.Id}/revisions")).Content.ReadAsStringAsync();
+        Assert.IsFalse(shown.Contains(secret) || shown.Contains(tag));
+    }
+
+    [TestMethod]
     public async Task Tags_are_normalised_confirmed_renamed_merged_and_deleted()
     {
         var a = Unique("ta");

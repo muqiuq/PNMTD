@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
@@ -49,38 +48,89 @@ public sealed class KbTagTask : AiTask<KbTagInput, KbTagSuggestion>
 }
 
 /// <summary>
-/// Scans running for a page (§7.1): marking the page sensitive, archiving or deleting it cancels its scan at once, even
-/// while the request to the model is under way.
+/// Scans running for a page (§7.1): marking the page sensitive, archiving, redacting or deleting it cancels every scan of
+/// the page at once, even while the request to the model is under way. A page can have more than one (two work items
+/// from before the enqueue was atomic, <c>Ai:Parallelism</c> above 1), so each keeps its own token.
 /// </summary>
 public sealed class KbAiScans
 {
-    private readonly ConcurrentDictionary<Guid, CancellationTokenSource> running = new();
+    private sealed record Scan(CancellationTokenSource Cts, TaskCompletionSource Ended);
+
+    private readonly object gate = new();
+    private readonly Dictionary<Guid, List<Scan>> running = [];
 
     public CancellationTokenSource Register(Guid page, CancellationToken ct)
     {
         var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        running[page] = cts;
+        lock (gate)
+        {
+            if (!running.TryGetValue(page, out var scans))
+            {
+                running[page] = scans = [];
+            }
+            scans.Add(new Scan(cts, new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)));
+        }
         return cts;
     }
 
     public void Done(Guid page, CancellationTokenSource cts)
     {
-        running.TryRemove(new KeyValuePair<Guid, CancellationTokenSource>(page, cts));
+        lock (gate)
+        {
+            if (running.TryGetValue(page, out var scans) && scans.FirstOrDefault(s => s.Cts == cts) is { } scan)
+            {
+                scans.Remove(scan);
+                scan.Ended.TrySetResult();
+                if (scans.Count == 0)
+                {
+                    running.Remove(page);
+                }
+            }
+        }
         cts.Dispose();
     }
 
-    public void Cancel(Guid page)
+    /// <summary>How many scans of the page are running.</summary>
+    public int Running(Guid page)
     {
-        if (running.TryGetValue(page, out var cts))
+        lock (gate)
+        {
+            return running.TryGetValue(page, out var scans) ? scans.Count : 0;
+        }
+    }
+
+    /// <summary>Cancels every scan of the page; the tasks that end when they have stopped.</summary>
+    public IReadOnlyList<Task> Cancel(Guid page)
+    {
+        List<Scan> scans;
+        lock (gate)
+        {
+            scans = running.TryGetValue(page, out var list) ? [.. list] : [];
+        }
+        foreach (var scan in scans)
         {
             try
             {
-                cts.Cancel();
+                scan.Cts.Cancel();
             }
             catch (ObjectDisposedException)
             {
                 // It ended meanwhile.
             }
+        }
+        return scans.Select(s => s.Ended.Task).ToList();
+    }
+
+    /// <summary>
+    /// Cancels every scan of the page and waits, at most <paramref name="wait"/>, until they have stopped: a redaction
+    /// cleans the request log after them, so a request that was being written isn't written after the cleaning.
+    /// </summary>
+    public async Task CancelAsync(Guid page, TimeSpan wait)
+    {
+        var ended = Cancel(page);
+        if (ended.Count > 0)
+        {
+            await Task.WhenAny(Task.WhenAll(ended), Task.Delay(wait));
         }
     }
 }
@@ -105,7 +155,10 @@ public sealed class KbAiTags(PnmtdDbContext db, KbRevisions revisions, IOptionsM
         {
             throw ApiException.Conflict(KbErrors.AiUnavailable, "AI tags are off: AI isn't usable, or KnowledgeBase:AiTags is false.");
         }
-        var page = await db.KbPages.AsNoTracking().SingleOrDefaultAsync(p => p.Id == pageId, ct) ?? throw ApiException.NotFound("Page");
+        // Under the page's row lock until the work item is written: two clicks make one item, and marking the page
+        // sensitive or redacting it waits for the item, whose scan it then cancels or turns stale.
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var page = await revisions.LockAsync(pageId, ct);
         if (page.Sensitive)
         {
             throw ApiException.Conflict(KbErrors.Sensitive, $"KB-{page.Number} is sensitive: it is never sent to an AI.");
@@ -148,6 +201,7 @@ public sealed class KbAiTags(PnmtdDbContext db, KbRevisions revisions, IOptionsM
             .FirstOrDefaultAsync(ct);
         if (open is not null)
         {
+            await tx.CommitAsync(ct);
             return Status(open);
         }
         var declaration = new KbStoredDeclaration(actor.Id, actor.Name, Clock.UtcNow, KbStatementNames.Both, page.Revision);
@@ -160,6 +214,7 @@ public sealed class KbAiTags(PnmtdDbContext db, KbRevisions revisions, IOptionsM
         };
         db.AiWork.Add(work);
         await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         worker.Wake();
         return Status(work);
     }

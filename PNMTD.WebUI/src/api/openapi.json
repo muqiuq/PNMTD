@@ -20942,6 +20942,7 @@
         "required": [
           "revisions",
           "occurrences",
+          "aiRequests",
           "page"
         ],
         "type": "object",
@@ -20951,6 +20952,10 @@
             "format": "int32"
           },
           "occurrences": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "aiRequests": {
             "type": "integer",
             "format": "int32"
           },

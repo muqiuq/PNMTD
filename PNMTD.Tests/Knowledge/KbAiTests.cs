@@ -222,6 +222,79 @@ public sealed class KbAiTests
     }
 
     [TestMethod]
+    public async Task Redacting_reaches_the_ai_request_log_of_the_pages_scans()
+    {
+        var secret = "Grüner Kristall " + Guid.NewGuid().ToString("N")[..4];
+        var page = (await CreateAsync(KbPageTests.Request("Vault phrase", $"The phrase for the safe is {secret}, said twice."))).Page;
+        var other = (await CreateAsync(KbPageTests.Request("Another vault", $"Its phrase is {secret} as well."))).Page;
+        // The model echoes it as a tag: the answer holds it too.
+        answer = (_, _) => new JsonObject { ["tags"] = new JsonArray(secret, "vault") }.ToJsonString();
+        var scanned = await RunAsync(page);
+        Assert.AreEqual(AiWorkState.Succeeded, scanned.State, scanned.Message);
+        await RunAsync(other);
+        var logged = (await RequestsAsync(page.Id)).Select(Body).ToList();
+        Assert.IsTrue(logged.Count >= 2 && logged.All(b => b.Contains("Kristall")), "the guard's and the model's request, and the answer, hold it");
+
+        var result = await (await admin.PostJsonAsync($"/api/v1/kb/pages/{page.Id}/redact", new KbRedactRequest { Text = secret })).ReadAsync<KbRedactResult>();
+        Assert.AreEqual(logged.Count, result.AiRequests);
+        Assert.IsTrue((await RequestsAsync(page.Id)).Select(Body).All(b => !b.Contains("Kristall") && b.Contains("[redacted]")));
+        Assert.IsTrue((await RequestsAsync(other.Id)).Select(Body).All(b => b.Contains("Kristall")), "another page's requests are its own");
+        var history = await (await admin.GetAsync($"/api/v1/kb/pages/{page.Id}/revisions")).ReadAsync<List<KbRevisionItem>>();
+        StringAssert.EndsWith(history[0].Changes.Single().Text, $"and {result.AiRequests} AI requests");
+    }
+
+    /// <summary>The logged requests of a page's tag scans.</summary>
+    private static async Task<List<AiRequestEntity>> RequestsAsync(Guid page)
+    {
+        await using var db = app.NewDb();
+        var work = await db.AiWork.Where(w => w.Purpose == KbTagsHandler.Name && w.SubjectId == page).Select(w => (Guid?)w.Id).ToListAsync();
+        return await db.AiRequests.Where(r => work.Contains(r.WorkId)).ToListAsync();
+    }
+
+    /// <summary>A request's bodies as logged: "Kristall" stands in them as it is, escaped or not, unlike its "ü".</summary>
+    private static string Body(AiRequestEntity r) => AiRequestLog.Gunzip(r.Request) + "\n" + AiRequestLog.Gunzip(r.Response);
+
+    [TestMethod]
+    public async Task Two_clicks_make_one_scan()
+    {
+        var page = (await CreateAsync(KbPageTests.Request("Clicked twice", "Text."))).Page;
+        var started = await Task.WhenAll(Enumerable.Range(0, 6).Select(async _ => await (await ScanAsync(page)).ReadAsync<KbAiTagsStatus>()));
+        Assert.AreEqual(1, started.Select(s => s.WorkId).Distinct().Count());
+        await using var db = app.NewDb();
+        Assert.AreEqual(1, await db.AiWork.CountAsync(w => w.Purpose == KbTagsHandler.Name && w.SubjectId == page.Id));
+        await app.Services.GetRequiredService<AiWorker>().DrainAsync(CancellationToken.None);
+    }
+
+    [TestMethod]
+    public async Task Marking_sensitive_and_redacting_cancel_every_running_scan_of_the_page()
+    {
+        var scans = app.Services.GetRequiredService<KbAiScans>();
+        async Task<CancellationTokenSource[]> RunningAsync(Guid page)
+        {
+            // Two scans at once (Ai:Parallelism above 1); each ends when cancelled, as the handler does.
+            var running = Enumerable.Range(0, 2).Select(_ => scans.Register(page, CancellationToken.None)).ToArray();
+            foreach (var cts in running)
+            {
+                cts.Token.Register(() => Task.Run(() => scans.Done(page, cts)));
+            }
+            Assert.AreEqual(2, scans.Running(page));
+            return running;
+        }
+        var page = (await CreateAsync(KbPageTests.Request("Two scans", "Text with Quarzsand inside."))).Page;
+        var first = await RunningAsync(page.Id);
+        await (await user.PutJsonAsync($"/api/v1/kb/pages/{page.Id}/sensitive", new KbSensitiveRequest { Sensitive = true })).ReadAsync<KbPageDetail>();
+        Assert.IsTrue(first.All(c => c.IsCancellationRequested));
+
+        var other = (await CreateAsync(KbPageTests.Request("Two more scans", "Text with Quarzsand inside."))).Page;
+        var second = await RunningAsync(other.Id);
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        await (await admin.PostJsonAsync($"/api/v1/kb/pages/{other.Id}/redact", new KbRedactRequest { Text = "Quarzsand" })).ReadAsync<KbRedactResult>();
+        Assert.IsTrue(second.All(c => c.IsCancellationRequested));
+        Assert.IsLessThan(5000L, watch.ElapsedMilliseconds, "it waited for the scans to stop, not for its timeout");
+        Assert.AreEqual(0, scans.Running(other.Id));
+    }
+
+    [TestMethod]
     public async Task The_question_always_follows_a_new_page_and_about_one_in_ten_edits()
     {
         var created = await CreateAsync(KbPageTests.Request("Asked at once", "text"));

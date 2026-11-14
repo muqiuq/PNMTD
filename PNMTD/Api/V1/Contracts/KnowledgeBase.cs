@@ -263,8 +263,11 @@ public sealed class KbRedactRequest
     public string Text { get; set; } = "";
 }
 
-/// <summary>How many revisions held the text, and how often it was replaced in all.</summary>
-public sealed record KbRedactResult(int Revisions, int Occurrences, KbPageDetail Page);
+/// <summary>
+/// How many revisions held the text, how often it was replaced in the page and its history, and how many requests of the
+/// AI request log (the page's tag scans) held it.
+/// </summary>
+public sealed record KbRedactResult(int Revisions, int Occurrences, int AiRequests, KbPageDetail Page);
 
 /// <summary>The two statements of §7.2. Never remembered: each scan and each unmarking asks again.</summary>
 public sealed class KbStatements

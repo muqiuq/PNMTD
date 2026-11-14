@@ -478,8 +478,12 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
     }
 
     /// <summary>
-    /// Replaces an exact text with <c>[redacted]</c> in every revision and in the page (§6.3): its title, summary, content
-    /// and the notes. The history and the auth log say how many revisions, never the text. The search text follows.
+    /// Replaces an exact text with <c>[redacted]</c> wherever the page's text was copied (§6.3): every revision's title,
+    /// summary, content, note, tags and list of what changed (a title's change names the old title); the page itself,
+    /// whose search text follows; and the AI request log of the page's tag scans, requests and answers, with their work
+    /// items. Scans of the page are cancelled first, so none writes the text to the log after it was cleaned. The history
+    /// and the auth log say how many revisions and AI requests held it, never the text. Links, declarations and page
+    /// links hold no text of the page.
     /// </summary>
     public async Task<KbRedactResult> RedactAsync(Guid id, KbRedactRequest request, CancellationToken ct)
     {
@@ -488,7 +492,8 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         {
             throw ApiException.Invalid("text", "The exact text, at least 4 characters.");
         }
-        const string Replacement = "[redacted]";
+        var redaction = new KbRedaction(text);
+        await scans.CancelAsync(id, TimeSpan.FromSeconds(10));
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         var page = await revisions.LockAsync(id, ct);
         var rows = await db.KbRevisions.Where(r => r.PageId == id).ToListAsync(ct);
@@ -496,48 +501,85 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         var changed = 0;
         foreach (var r in rows)
         {
-            var count = Occurrences(r.Title, text) + Occurrences(r.Summary, text) + Occurrences(r.Content, text) + Occurrences(r.Note, text);
+            var changes = KbRevisions.Changes(r.Changes);
+            var count = redaction.Count(r.Title) + redaction.Count(r.Summary) + redaction.Count(r.Content) + redaction.Count(r.Note)
+                + r.Tags.Sum(redaction.Count) + changes.Sum(c => redaction.Count(c.Text));
             if (count == 0)
             {
                 continue;
             }
             occurrences += count;
             changed++;
-            r.Title = Cut(r.Title.Replace(text, Replacement, StringComparison.Ordinal), 160);
-            r.Summary = r.Summary is null ? null : Cut(r.Summary.Replace(text, Replacement, StringComparison.Ordinal), 300);
-            r.Content = r.Content.Replace(text, Replacement, StringComparison.Ordinal);
-            r.Note = r.Note is null ? null : Cut(r.Note.Replace(text, Replacement, StringComparison.Ordinal), 200);
+            r.Title = redaction.Replace(r.Title, 160)!;
+            r.Summary = redaction.Replace(r.Summary, 300);
+            r.Content = redaction.Replace(r.Content)!;
+            r.Note = redaction.Replace(r.Note, 200);
+            r.Tags = r.Tags.Select(t => redaction.Replace(t)!).ToList();
+            r.Changes = KbRevisions.Serialize(changes.Select(c => c with { Text = redaction.Replace(c.Text, 300)! }).ToList());
         }
-        var inPage = Occurrences(page.Title, text) + Occurrences(page.Summary, text) + Occurrences(page.Content, text);
-        if (changed == 0 && inPage == 0)
+        var inPage = redaction.Count(page.Title) + redaction.Count(page.Summary) + redaction.Count(page.Content);
+        var aiRequests = await RedactAiLogAsync(id, redaction, ct);
+        if (changed == 0 && inPage == 0 && aiRequests == 0)
         {
-            throw ApiException.Invalid("text", "The text doesn't occur in this page or its history.");
+            throw ApiException.Invalid("text", "The text doesn't occur in this page, its history or its AI requests.");
         }
         occurrences += inPage;
         var before = KbSnapshot.Of(page);
-        page.Title = Cut(page.Title.Replace(text, Replacement, StringComparison.Ordinal), 160);
-        page.Summary = page.Summary is null ? null : Cut(page.Summary.Replace(text, Replacement, StringComparison.Ordinal), 300);
-        page.Content = page.Content.Replace(text, Replacement, StringComparison.Ordinal);
-        var summary = $"1 text in {changed} revision{(changed == 1 ? "" : "s")}";
+        page.Title = redaction.Replace(page.Title, 160)!;
+        page.Summary = redaction.Replace(page.Summary, 300);
+        page.Content = redaction.Replace(page.Content)!;
+        var summary = $"1 text in {changed} revision{(changed == 1 ? "" : "s")}" +
+            (aiRequests > 0 ? $" and {aiRequests} AI request{(aiRequests == 1 ? "" : "s")}" : "");
         // The redaction's own revision compares with the redacted history: only what it says.
         await revisions.CommitAsync(page, before with { Title = page.Title, Summary = page.Summary, Content = page.Content }, null,
             [new KbChange(KbChangeKinds.Redacted, summary)], ct);
         UdpViews.Audit(db, accessor, AuthEvents.KbRevisionRedacted, $"KB-{page.Number}: {summary}");
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
-        return new KbRedactResult(changed, occurrences, await DetailAsync(id, ct));
+        // A scan started meanwhile waited for the row lock and found the old revision: it goes stale, and stops here.
+        scans.Cancel(id);
+        return new KbRedactResult(changed, occurrences, aiRequests, await DetailAsync(id, ct));
     }
 
-    private static int Occurrences(string? haystack, string needle)
+    /// <summary>
+    /// The text out of the AI request log of the page's tag scans (their requests and answers: scrubbed, but not of it)
+    /// and out of their work items' results and errors; how many requests held it. Saved with the caller's transaction.
+    /// </summary>
+    private async Task<int> RedactAiLogAsync(Guid page, KbRedaction redaction, CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(haystack))
+        var work = await db.AiWork.Where(w => w.Purpose == KbTagsHandler.Name && w.SubjectId == page).ToListAsync(ct);
+        foreach (var w in work)
+        {
+            w.Result = redaction.ReplaceInJson(w.Result).Value;
+            w.LastError = redaction.Replace(w.LastError, 1000);
+        }
+        var ids = work.Select(w => (Guid?)w.Id).ToList();
+        if (ids.Count == 0)
         {
             return 0;
         }
+        var requests = await db.AiRequests.Where(r => ids.Contains(r.WorkId)).ToListAsync(ct);
         var count = 0;
-        for (var i = haystack.IndexOf(needle, StringComparison.Ordinal); i >= 0; i = haystack.IndexOf(needle, i + needle.Length, StringComparison.Ordinal))
+        foreach (var r in requests)
         {
+            var (request, inRequest) = redaction.ReplaceInJson(AiRequestLog.Gunzip(r.Request));
+            var (response, inResponse) = redaction.ReplaceInJson(AiRequestLog.Gunzip(r.Response));
+            var (error, inError) = redaction.ReplaceInJson(r.Error);
+            if (inRequest + inResponse + inError == 0)
+            {
+                continue;
+            }
             count++;
+            var (requestBytes, cutRequest) = AiRequestLog.Gzip(request ?? "");
+            r.Request = requestBytes!;
+            r.Truncated |= cutRequest;
+            if (response is not null)
+            {
+                var (responseBytes, cutResponse) = AiRequestLog.Gzip(response);
+                r.Response = responseBytes;
+                r.Truncated |= cutResponse;
+            }
+            r.Error = error is { Length: > 1000 } e ? e[..1000] : error;
         }
         return count;
     }

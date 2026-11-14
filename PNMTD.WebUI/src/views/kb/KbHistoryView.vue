@@ -106,8 +106,11 @@ async function redact() {
     secret.value = ''
     queryClient.setQueryData(kbKeys.page(result.page.number), result.page)
     void router.replace({ query: {} })
+    const requests = result.aiRequests
+      ? ` and ${result.aiRequests} AI request${result.aiRequests === 1 ? '' : 's'}`
+      : ''
     notify.success(
-      `Redacted: ${result.occurrences} time${result.occurrences === 1 ? '' : 's'} in ${result.revisions} revision${result.revisions === 1 ? '' : 's'}`,
+      `Redacted: ${result.occurrences} time${result.occurrences === 1 ? '' : 's'} in ${result.revisions} revision${result.revisions === 1 ? '' : 's'}${requests}`,
     )
   }
 }
@@ -263,8 +266,9 @@ const writable = computed(() => session.can('User') && !page.value?.archivedAt)
 
       <Dialog v-model:visible="redacting" modal header="Redact a text" :style="{ width: '30rem' }">
         <Message severity="warn" :closable="false">
-          The exact text is replaced with [redacted] in every revision and in the page. The history and the auth log say
-          how many revisions held it, never the text. A file that shows a secret is deleted instead.
+          The exact text is replaced with [redacted] in every revision, in the page, and in the AI request log of its
+          tag scans. The history and the auth log say how many revisions held it, never the text. A file that shows a
+          secret is deleted instead.
         </Message>
         <div class="field redact-field">
           <label for="kb-redact">The exact text, at least 4 characters</label>

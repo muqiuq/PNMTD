@@ -12462,6 +12462,8 @@ export interface components {
             revisions: number;
             /** Format: int32 */
             occurrences: number;
+            /** Format: int32 */
+            aiRequests: number;
             page: components["schemas"]["KbPageDetail"];
         };
         KbRelated: {
