@@ -99,7 +99,7 @@ const table = useServerTable<S['AuthLogItem']>({
       />
       <Chip v-if="userId" :label="userName || 'One user'" removable @remove="((userId = ''), (userName = ''))" />
     </FilterBar>
-    <ListTable :table="table" what="entries">
+    <ListTable :table="table" what="entries" fixed>
       <Column header="Time" style="width: 9rem">
         <template #body="{ data }"><RelativeTime :value="data.createdAt" /></template>
       </Column>
@@ -118,7 +118,7 @@ const table = useServerTable<S['AuthLogItem']>({
       </Column>
       <Column header="Detail">
         <template #body="{ data }"
-          ><span class="ellipsis cell">{{ data.detail }}</span></template
+          ><span class="ellipsis cell" :title="data.detail ?? ''">{{ data.detail }}</span></template
         >
       </Column>
       <Column header="Address" style="width: 9rem">
@@ -128,7 +128,7 @@ const table = useServerTable<S['AuthLogItem']>({
       </Column>
       <Column header="Browser" style="width: 14rem">
         <template #body="{ data }"
-          ><span class="ellipsis cell narrow muted" :title="data.userAgent ?? ''">{{ data.userAgent }}</span></template
+          ><span class="ellipsis cell muted" :title="data.userAgent ?? ''">{{ data.userAgent }}</span></template
         >
       </Column>
       <template #mobile="{ item }">
@@ -137,7 +137,7 @@ const table = useServerTable<S['AuthLogItem']>({
           <span>{{ item.username }}</span>
           <RelativeTime :value="item.createdAt" class="muted right" />
         </div>
-        <div v-if="item.detail" class="muted ellipsis">{{ item.detail }}</div>
+        <div v-if="item.detail" class="muted clamp">{{ item.detail }}</div>
       </template>
     </ListTable>
   </div>
@@ -148,13 +148,18 @@ const table = useServerTable<S['AuthLogItem']>({
   width: 12rem;
 }
 
+/* Cut at the column's edge: the table's layout is fixed, and Detail takes what the others leave (§4.1 of
+   docs/audit-redmine-zabbix-plan.md). */
 .cell {
   display: block;
-  max-width: 24rem;
 }
 
-.cell.narrow {
-  max-width: 14rem;
+.clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .line {

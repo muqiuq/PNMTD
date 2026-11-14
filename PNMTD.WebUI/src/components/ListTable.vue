@@ -13,6 +13,8 @@ import ErrorState from './ErrorState.vue'
  * rows (the #mobile slot) with a pager, so nothing scrolls sideways. With an #expansion slot, the
  * rows whose ids are in v-model:expanded open their details below them (on a phone too). With
  * v-model:selection and a column with selection-mode="multiple", rows can be picked on a desktop.
+ * With `fixed`, the table's layout is fixed: the columns with a width keep it, and those without
+ * share the rest, so a long text is cut at its column's edge, not at a width of its own.
  */
 const props = withDefaults(
   defineProps<{
@@ -21,8 +23,9 @@ const props = withDefaults(
     emptyText?: string
     rowClass?: (item: T) => string | object | undefined
     selectable?: boolean
+    fixed?: boolean
   }>(),
-  { emptyText: undefined, rowClass: undefined, selectable: false },
+  { emptyText: undefined, rowClass: undefined, selectable: false, fixed: false },
 )
 const emit = defineEmits<{ select: [item: T] }>()
 /** The expanded rows by id ({ [id]: true }); a collapsed row is not in it. */
@@ -80,6 +83,7 @@ const pages = computed(() => Math.max(1, Math.ceil(props.table.total.value / pro
     size="small"
     data-key="id"
     class="list-table panel"
+    :class="{ 'fixed-layout': fixed }"
     :row-class="rowClass"
     :row-hover="selectable"
     paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
@@ -109,6 +113,10 @@ const pages = computed(() => Math.max(1, Math.ceil(props.table.total.value / pro
 
 .list-table :deep(.p-datatable-table-container) {
   border-radius: var(--p-border-radius-md);
+}
+
+.list-table.fixed-layout :deep(table) {
+  table-layout: fixed;
 }
 
 .list-table :deep(.row-muted) {

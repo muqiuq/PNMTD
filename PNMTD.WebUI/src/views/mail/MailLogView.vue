@@ -52,18 +52,18 @@ const entry = useQuery({
         aria-label="Processed"
       />
     </FilterBar>
-    <ListTable :table="table" what="mails" selectable @select="(m) => (selected = m.id)">
+    <ListTable :table="table" what="mails" selectable fixed @select="(m) => (selected = m.id)">
       <Column header="Received" style="width: 9rem">
         <template #body="{ data }"><RelativeTime :value="data.created" /></template>
       </Column>
       <Column header="From" style="width: 14rem">
         <template #body="{ data }"
-          ><span class="ellipsis cell">{{ data.from }}</span></template
+          ><span class="ellipsis cell" :title="data.from">{{ data.from }}</span></template
         >
       </Column>
       <Column header="Subject">
         <template #body="{ data }"
-          ><span class="ellipsis cell wide">{{ data.subject }}</span></template
+          ><span class="ellipsis cell" :title="data.subject">{{ data.subject }}</span></template
         >
       </Column>
       <Column header="Processed by" style="width: 14rem">
@@ -134,13 +134,9 @@ const entry = useQuery({
 </template>
 
 <style scoped>
+/* Cut at the column's edge: the table's layout is fixed, and Subject takes what the others leave. */
 .cell {
   display: block;
-  max-width: 14rem;
-}
-
-.cell.wide {
-  max-width: 36rem;
 }
 
 .strong {
