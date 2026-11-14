@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Plan, revision 2: the review of revision 1 applied** (§16.1). No question is open |
+| Status | **Built: L0–L8, on master** (§17 *As built*). The checks on real machines, Proxmox VE and x64 are the checklist's (§17), with Windows' W0, before 1.3.0 |
 | Date | 2026-11-14 |
 | Revision | 2: **the review of revision 1 applied** (§16.1):<ul><li>**PNMTD's agent infrastructure is generalised now**, before 1.3.0;</li><li>**built for Debian 12 and 13**, and **working on Proxmox VE and Ubuntu LTS** too;</li><li>**the binary is downloaded from PNMT**, with the GitHub link next to it;</li><li>**an SSH key manager**: every key named and assigned to a user, on an admin page of its own;</li><li>removals wait for offline servers; the agent's journal parsers get tests; sudo and cron lines only on request; 462 is in.</li></ul>1: the first plan |
 | Scope | Package three of docs/ideas2.md:<ul><li>**A Linux server runs the PNMT agent for Linux**, `pnmt-agent`: one binary with .NET included, a systemd service, and a command line. **No GUI.** It is built for **Debian 12 and 13**, and works on **Proxmox VE and Ubuntu LTS** too.</li><li>**It is installed with one line** from PNMT: download the binary from PNMT, check its SHA-256, and join with a token from PNMT's web UI.</li><li>**It reports what the Windows agent reports, in Linux terms:** system, hardware, network, services, remote access, logins, the journal and diagnostics. The protocol, trust, cadence, logging and resilience are the same.</li><li>**It reads and monitors every `authorized_keys` file**, and removes keys from them where the server allows it.</li><li>**An SSH key manager in PNMT** names every key and assigns it to a user.</li><li>**What the agent may change is decided on the server itself**, in `/etc/pnmt-agent/config.yaml`: removing keys and running bash scripts, both off by default.</li><li>**As much as possible is shared with package two:**<ul><li>a shared agent core used by both agents;</li><li>PNMTD's agent infrastructure, generalised from *Windows servers* to *servers*.</li></ul></li></ul> |
@@ -1429,7 +1429,31 @@ None.
 
 ## 17. As built
 
-The phases as they were built, with what differs from the plan above.
+The phases as they were built, with what differs from the plan above. Every phase is a commit (or a few) on master, from `d6a8c27` (the protocol's Linux part) on; the agents of each phase worked in parallel where their files didn't meet (L1 with L2–L3; the server's L3–L4 with the agent's L4–L7; the server's L5–L7 with the UI's L3–L4).
+
+### L0: what was checked, and what wasn't
+
+Checked in Podman on 2026-11-14, on an Apple Silicon Mac (arm64), with systemd as PID 1 in each container:
+
+- **The journal's lines** on Debian 12 and 13 and Ubuntu 22.04, 24.04 and 26.04, after the same scenario (key and password logins, SFTP, a refused key, invalid users, sudo, su): `PNMTD.Tests/Fixtures/Linux/journal/`, with the versions in its README. The parsers' tests run over them (§14).
+  - **OpenSSH ≥ 10 (Debian 13, Ubuntu 26.04) logs sessions as `sshd-session`**; no `sshd-auth` lines appeared.
+  - **At sshd's default `LogLevel INFO`, an SFTP session and a refused key leave no trace** (only *Connection closed by authenticating user … [preauth]*): the logging check's advice of VERBOSE is needed, not cosmetic.
+  - **sudo-rs**, Ubuntu's default from 25.10 on, logs as `sudo-rs`, `user :  PWD=…` (two spaces), and its failures only as PAM lines.
+  - sudo's lines lack `TTY=` without a terminal; su's say `(to deploy) root on none`.
+- **D-Bus is needed** for logind's sessions and for `systemd-run`: a minimal installation without it reports sessions as *not available*, and refuses scripts with "scripts need D-Bus: apt install dbus".
+- **`systemd-run --wait --pipe`** passes stdout, stderr and the exit code through on systemd 249 (Ubuntu 22.04) and 257 (Debian 13). `RuntimeMaxSec` stops the whole process tree, but the exit code is then 1: the agent tells a timeout by the elapsed time.
+- **`loginctl`:** `--output=json` works on 249, `--json=short` from 250 on, but Debian 12's 252 refuses it: the agent tries both, then the text.
+- **The binary:** 38 MB (arm64) and 40 MB (x64), the same SHA-256 from the same commit, nothing extracted at start, `version` in about 60 ms, the service ready under systemd within 0.15 s. About 100 MB resident, 160–210 MB at the unit's peak: **the 300 MB limit (W§3.8 rule 6) stays.**
+- **The one line**, from PNMT, on a fresh Debian 13: downloaded, checked, installed, joined and connected in 12 s, exit 0.
+
+**Not checked yet**, and therefore first on the checklist below:
+
+- **Real hardware:** DMI, SMART, TPM, Secure Boot (containers have none of them).
+- **Proxmox VE:** the root key symlink to `/etc/pve/priv/authorized_keys`, renaming on pmxcfs, and telling the cluster nodes' keys; a cluster of two nodes.
+- **The x64 binary:** this Podman machine can't emulate amd64.
+- **`ProtectSystem=full`:** containers don't enforce it, so the read-only `/etc` (and `writable_paths`) needs a VM.
+- **Real firewalls:** nftables and ufw need `CAP_NET_ADMIN`; the verdicts were checked against sample rule sets only.
+- **Snaps, live sudo-rs, and Ubuntu's `ssh.socket`** on a real installation.
 
 ### L1: the server side generalised
 
@@ -1947,6 +1971,41 @@ The phases as they were built, with what differs from the plan above.
   - **Vitest:** `sshKeyFormat.test.ts` (8) and `scriptFormat.test.ts` (4), 167 tests in all;
   - **`e2e/linux.spec.ts`** gained: on web-01's *SSH keys* tab the names, *unregistered* and the retired key, **a removal's preview from a key's row** (not sent), and *Logins with this key* named; ***Admin → SSH keys***: the strip, the register, **a key's drawer and its *Remove from servers…* preview**, a figure's filter (the retired key), *Unregistered*, *Removals* (removed, refused, pending), and **a pasted private key refused with *Register* off**; **a user's keys** on *Admin → Users* and *My SSH keys*; **bash:** the language filter, *rotate-logs* with its header's parameters, *Run…* for Linux servers as root, and a new bash script from its template. `e2e/windows.spec.ts` finds the editor's text as *PowerShell script*;
   - **Results:** the web checks green; the browser tests 30 passed.
+
+### L8: release and polish
+
+- **The release:** `.github/workflows/sensor.yml` publishes **all eight assets** on a sensor tag (`sensor-1.3.0`): both Windows executables and both Linux binaries, each with its `.sha256`. Not `push.yml` on version tags as §12 planned: the Windows release moved to sensor tags of its own after W6, and Linux follows it. PNMTD fetches from `{AgentDownloadBaseUrl}/sensor-{version}/`.
+- **The download folder is a volume** (`pnmtd-downloads`), not the container's own disk as §4.4 and §9.6 assumed: the deployed container is read-only. A volume outlives an update, so files are fetched into `sensor-{version}/` and older versions' folders are deleted; files placed in the folder itself (an offline PNMT's mounted folder) are served when the version's has none. The image creates the folder for the app's user. `start.sh` mounts a volume too, or `dist/` read-only with `AGENT_FILES=dist`.
+- **The download paths answer HEAD**, without counting it towards the downloads per hour.
+- **`deploy/README.md`:** *Servers with an agent*, with Windows and Linux, the downloads and a PNMT without internet, `config.yaml`, the key manager, updating, and D-Bus for scripts. The top-level README names Linux servers and the key manager.
+- **End to end in the lab**, the real agent against a PNMTD built from the last commit, on Debian 13:
+  - the one line from PNMT; 260; every section stored without errors; `update` through the signed manifest; a `config.yaml` change reconnected and PNMT logged the new rights;
+  - **a key appended by hand: 465 within 4 s**; registered in PNMT, it named the next SSH login ("lab: SSH from … with key *Philipp, laptop* (e2e)", 264) and got its last use;
+  - **removed from PNMT:** the preview's warnings (no key left for lab, used 29 s ago), removed with a backup, the file's owner and mode kept, 263 "… removed from lab's authorized_keys by PNMT (e2e)"; `keys restore` put it back (263 "added"); **with the agent stopped, the removal waited as pending and was applied at the reconnect**;
+  - **a bash script as `lab`** with a secret argument: the output (stdout and stderr in order), exit code 3, the secret delivered and stored nowhere, the run folder gone, the journal's line.
+- **Found by that run, and fixed with tests:** every reconnect logged "Rights changed" (jsonb normalises the stored text; now compared as serialised); an on-demand service flipped between *root* and no account at every start and stop (263 each time).
+- **Not done:** the checks on real machines listed under L0, and W0 for Windows. Both are the checklist's.
+
+### The checklist per release (§14)
+
+On a real Debian 12 and a real Debian 13 machine or VM (x64, and arm64 where available), with the release's binaries, and on a Proxmox VE cluster of two nodes; the lab (`tools/linux-lab.sh`) for Ubuntu 22.04, 24.04 and 26.04:
+
+1. The line from PNMT (wget and curl, root and `sudo`), and the GitHub variant: the hash checks, `join` exits 0, both fingerprints match the agent log.
+2. Within a minute: 260, and every tab filled without errors in the sections; the hardware tab with DMI, SMART and TPM on the real machine.
+3. An SSH login as root with a registered key: in *Access* within 15 seconds, with the key's name, and 264. That key's *last used* is set.
+4. Ten wrong passwords for an existing account: 464. A hundred tries for invalid users: one aggregate, no event.
+5. `sudo -i` as the test user: an elevation in *Access*.
+6. An unregistered key appended to `~deploy/.ssh/authorized_keys` by hand: 465 within about 10 seconds, the key in *Unregistered*. Registering it: the name shows everywhere.
+7. Removing it with `remove: false`: refused, with the reason. With `remove: true`: removed, a backup, the change line. `keys restore` puts it back. Retiring it: flagged where it is, and 465 if it comes back.
+8. A protected key: refused. A user's symlinked `authorized_keys`, and a symlinked `~/.ssh`: refused, and not read through.
+9. With the agent stopped, a removal: *pending*. After starting it: removed.
+10. A bash script as root and as `deploy` with a secret argument: output and exit code in the history; a timeout ends its children.
+11. `kill -9` the agent: systemd starts it again after 60 s; the agent log says *crashed*. A reboot: 261.
+12. Network off for 5 minutes: the logins of that time arrive after.
+13. `pnmt-agent update` after PNMTD's update; `uninstall` keeps `config.yaml`, `--purge` doesn't; PNMT shows *uninstalled* and no 460.
+14. **On the real Debian machine:** `ProtectSystem=full` doesn't block a collector; a key file under `/etc` is refused for removal unless in `writable_paths`; nftables and ufw verdicts on a real rule set.
+15. **On Proxmox VE:** root's key file shows as *cluster-wide*; a cluster node's key is protected; a removal from the cluster file is applied on pmxcfs and seen on the other node; the web UI (8006) and SPICE proxy (3128) are in *Remote access*.
+16. **On Ubuntu 26.04:** sudo-rs's elevations and failures; on 24.04 or later, sshd through `ssh.socket` is listed with its ports.
 
 ---
 
