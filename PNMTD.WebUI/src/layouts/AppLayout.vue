@@ -59,18 +59,31 @@ async function refresh() {
 }
 
 const groups = computed(() => visibleNavigation(session.can))
-const rail = computed(() => !phone.value && (narrow.value || preferences.drawerCollapsed))
+// An editing page holds the drawer as a rail while it is open (docs/locations-knowledge-plan.md §5.9);
+// opening it then is for that page only, the stored preference stays as it was.
+const openedWhileHeld = ref(false)
+const rail = computed(
+  () => !phone.value && (narrow.value || (preferences.railHeld ? !openedWhileHeld.value : preferences.drawerCollapsed)),
+)
 const drawerVisible = computed(() => !phone.value || overlayOpen.value)
 
 watch(
   () => route.fullPath,
   () => (overlayOpen.value = false),
 )
+watch(
+  () => preferences.railHeld,
+  () => (openedWhileHeld.value = false),
+)
 
 function toggleDrawer() {
   if (phone.value) {
     overlayOpen.value = !overlayOpen.value
-  } else if (!narrow.value) {
+  } else if (narrow.value) {
+    return
+  } else if (preferences.railHeld) {
+    openedWhileHeld.value = !openedWhileHeld.value
+  } else {
     preferences.drawerCollapsed = !preferences.drawerCollapsed
   }
 }

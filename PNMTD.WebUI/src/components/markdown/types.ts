@@ -18,7 +18,7 @@ export interface MarkdownFile {
 export type EditorModeKey = 'page' | 'field'
 
 /** The two editors behind the switch (§5.4). */
-export type EditorMode = 'visual' | 'markdown'
+export type { EditorMode } from '@/stores/preferences'
 
 /** A revision as the API names it: KB pages count, location values too. */
 export type Revision = number | string

@@ -1,9 +1,13 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { darkClass } from '@/design/preset'
 
 export type Theme = 'system' | 'light' | 'dark'
 export type HostsView = 'rows' | 'tiles'
+/** The Markdown editor's two modes (docs/locations-knowledge-plan.md §5.4). */
+export type EditorMode = 'visual' | 'markdown'
+/** Pages and location fields remember their mode apart (§5.4). */
+export type EditorModes = { page: EditorMode; field: EditorMode }
 
 const storageKey = 'pnmt.preferences'
 
@@ -11,6 +15,7 @@ interface Stored {
   theme?: Theme
   drawerCollapsed?: boolean
   hostsView?: HostsView
+  editorModes?: Partial<EditorModes>
 }
 
 function read(): Stored {
@@ -21,14 +26,41 @@ function read(): Stored {
   }
 }
 
-/** Per-browser preferences (§5.3, §5.5): theme, the drawer as a rail, the dashboard's host view. */
+const isMode = (value: unknown): value is EditorMode => value === 'visual' || value === 'markdown'
+
+/**
+ * Per-browser preferences (§5.3, §5.5): theme, the drawer as a rail, the dashboard's host view, and
+ * the Markdown editor's last mode for pages and for fields (docs/locations-knowledge-plan.md §5.4).
+ */
 export const usePreferences = defineStore('preferences', () => {
   const stored = read()
   const theme = ref<Theme>(stored.theme ?? 'system')
   const drawerCollapsed = ref(stored.drawerCollapsed ?? false)
   // null: the default, rows on a desktop and tiles on a phone (§5.5).
   const hostsView = ref<HostsView | null>(stored.hostsView ?? null)
+  const modes = stored.editorModes ?? {}
+  const editorModes = ref<EditorModes>({
+    page: isMode(modes.page) ? modes.page : 'visual',
+    field: isMode(modes.field) ? modes.field : 'visual',
+  })
   const systemDark = ref(false)
+
+  // The editing page folds the drawer to its rail while it is open (docs/locations-knowledge-plan.md
+  // §5.9): a temporary state, never stored, and never the drawerCollapsed preference.
+  const railHolds = ref(0)
+  const railHeld = computed(() => railHolds.value > 0)
+
+  /** Folds the drawer to its rail until the returned function is called. */
+  function holdRail(): () => void {
+    railHolds.value++
+    let released = false
+    return () => {
+      if (!released) {
+        released = true
+        railHolds.value = Math.max(0, railHolds.value - 1)
+      }
+    }
+  }
 
   const media =
     typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null
@@ -46,11 +78,19 @@ export const usePreferences = defineStore('preferences', () => {
   }
 
   watch([theme, systemDark], apply, { immediate: true })
-  watch([theme, drawerCollapsed, hostsView], () =>
-    localStorage.setItem(
-      storageKey,
-      JSON.stringify({ theme: theme.value, drawerCollapsed: drawerCollapsed.value, hostsView: hostsView.value }),
-    ),
+  watch(
+    [theme, drawerCollapsed, hostsView, editorModes],
+    () =>
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          theme: theme.value,
+          drawerCollapsed: drawerCollapsed.value,
+          hostsView: hostsView.value,
+          editorModes: editorModes.value,
+        }),
+      ),
+    { deep: true },
   )
 
   /** Light ↔ dark, starting from what is shown now. */
@@ -58,5 +98,5 @@ export const usePreferences = defineStore('preferences', () => {
     theme.value = isDark() ? 'light' : 'dark'
   }
 
-  return { theme, drawerCollapsed, hostsView, isDark, toggleTheme }
+  return { theme, drawerCollapsed, hostsView, editorModes, railHeld, holdRail, isDark, toggleTheme }
 })
