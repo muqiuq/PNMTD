@@ -213,8 +213,8 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'Decisions', right: ['Decisions', 'Decide'] },
   },
   {
-    // Cookie's window (docs/cookie-plan.md §9.2): the cases now, the trace and the chat with step B; ?case= opens a case.
-    path: '/cookie/:tab(cases)?',
+    // Cookie's window (docs/cookie-plan.md §9.2): the cases, the trace and the chat; ?case= opens a case.
+    path: '/cookie/:tab(cases|trace|chat)?',
     name: 'cookie',
     component: () => import('@/views/cookie/CookieView.vue'),
     meta: { title: 'Cookie', right: ['Cookie', 'Use'] },
@@ -332,7 +332,7 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'MikroTik & WireGuard', right: ['Mikrotik', 'Manage'] },
   },
   {
-    path: '/admin/ai/:tab(requests|queue|analysis|settings)?',
+    path: '/admin/ai/:tab(requests|queue|settings)?',
     name: 'ai',
     component: () => import('@/views/admin/ai/AiView.vue'),
     meta: { title: 'AI', right: ['Ai', 'Manage'] },

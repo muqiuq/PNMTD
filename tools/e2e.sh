@@ -46,7 +46,7 @@ mkdir -p .tmpcheck
 export ENV_FILE="$PWD/.tmpcheck/${E2E_NAME}.env"
 (umask 077 && printf '%s\n' 'Auth__LoginRateLimit__PermitLimit=1000' \
   'Ai__Enabled=true' 'Ai__ApiKey=e2e-no-provider' 'Ai__BaseUrl=http://127.0.0.1:9/api/v1' 'Ai__Guard__Url=http://127.0.0.1:9/api/alpha/decisions' \
-  'Ai__Mail__Enabled=false' 'Ai__Analysis__Enabled=false' 'Mikrotik__Advisories__Enabled=false' >"$ENV_FILE")
+  'Ai__Mail__Enabled=false' 'Mikrotik__Advisories__Enabled=false' 'Cookie__Enabled=true' >"$ENV_FILE")
 FAKES="${E2E_FAKES:-$([[ -z "${E2E_ENV:-}" ]] && echo 1 || echo 0)}"
 FAKES_NAME="${E2E_NAME}-fakes"
 if [[ "$FAKES" == "1" ]]; then

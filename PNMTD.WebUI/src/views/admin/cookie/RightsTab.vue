@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import Message from 'primevue/message'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
+import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
+import { api, keys } from '@/api/resources'
 import ErrorState from '@/components/ErrorState.vue'
+import { useSession } from '@/stores/session'
 import { withUnknown } from './cookieAdmin'
 import SectionActions from './SectionActions.vue'
 import SettingsHistory from './SettingsHistory.vue'
@@ -17,7 +19,14 @@ import { useSection } from './useSection'
 const s = useSection('rights')
 const groups = useGroupOptions()
 const options = computed(() => withUnknown(groups.options.value, [s.draft.value?.groupId], groups.unknown))
-const chosen = computed(() => (groups.query.data.value ?? []).find((g) => g.id === s.draft.value?.groupId))
+// The chosen group's rights, for admins: Admin → Groups is theirs.
+const session = useSession()
+const adminGroups = useQuery({
+  queryKey: keys.groups,
+  queryFn: api.groups.list,
+  enabled: computed(() => session.isAdmin),
+})
+const chosen = computed(() => (adminGroups.data.value ?? []).find((g) => g.id === s.draft.value?.groupId))
 const rights = computed(() => Object.entries(chosen.value?.rights ?? {}))
 </script>
 
@@ -34,11 +43,8 @@ const rights = computed(() => Object.entries(chosen.value?.rights ?? {}))
       <div class="panel-body form">
         <p class="intro">
           Cookie reads with this group's rights, and never with the admin flag. In a chat it reads with the lower of the
-          group's rights and the asker's. Without a group, Cookie can read nothing.
+          group's rights and the asker's. Without a group, Cookie pauses.
         </p>
-        <Message v-if="!groups.listed.value" severity="info" :closable="false" size="small">
-          Only admins can list PNMT's groups: you see the chosen one by its id.
-        </Message>
         <div class="field">
           <label for="rights-group">Group</label>
           <Select

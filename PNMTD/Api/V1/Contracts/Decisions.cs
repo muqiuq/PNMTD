@@ -29,7 +29,6 @@ public sealed record DecisionDetail(
     MailRuleProposal? MailRule,
     MailEvidence? Mail,
     AiEvidence? Ai,
-    FindingEvidence? Finding,
     IReadOnlyList<Guid> Subjects,
     string? Result,
     string? Error);
@@ -71,10 +70,6 @@ public sealed record MailEvidence(Guid MailId, string From, string To, string Su
 /// <summary>What the layers said (§3.4): the guard's probability, the scan's flags, the verifier's verdict.</summary>
 public sealed record AiEvidence(double? Injection, string? BlockedBy, IReadOnlyList<string> Flags, string? Verdict, IReadOnlyList<string> Issues,
     IReadOnlyList<long> RequestIds);
-
-/// <summary>An analysis finding (§9.3), with the real names mapped back from the pseudonyms.</summary>
-public sealed record FindingEvidence(string Key, string Kind, string Severity, string Explanation, string Recommendation, double Confidence,
-    IReadOnlyList<Ref> Sensors, IReadOnlyList<Ref> Hosts, bool Verified);
 
 /// <summary><c>GET /decisions</c>: open first by default.</summary>
 public sealed class DecisionQuery : PageQuery

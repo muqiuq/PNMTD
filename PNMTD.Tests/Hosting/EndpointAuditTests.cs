@@ -298,9 +298,6 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/debug/ai"] = ("System:Manage", Roles.Admin),
         ["POST /api/v1/ai/mail/backfill"] = ("Ai:Manage", Roles.Admin),
         ["GET /api/v1/mikrotik/releases"] = ("Mikrotik:Manage", Roles.Admin),
-        ["GET /api/v1/ai/analysis"] = ("Monitoring:View", Roles.Viewer),
-        ["GET /api/v1/ai/analysis/{id:guid}"] = ("Monitoring:View", Roles.Viewer),
-        ["POST /api/v1/ai/analysis/run"] = ("Ai:Manage", Roles.Admin),
         // Decisions (docs/ai-operations-plan.md §5.3): the User role, as the mail log.
         ["GET /api/v1/decisions"] = ("Decisions:Decide", Roles.User),
         ["GET /api/v1/decisions/count"] = ("Decisions:Decide", Roles.User),

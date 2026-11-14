@@ -22,9 +22,7 @@ public sealed record AiStatus(
     AiBudgetStatus Budget,
     AiSpendingSummary Spending,
     AiQueueStatus Queue,
-    bool MailEnabled,
-    bool AnalysisEnabled,
-    int AnalysisIntervalMinutes);
+    bool MailEnabled);
 
 /// <summary><c>Share</c>: spent / limit; null without a limit.</summary>
 public sealed record AiBudgetStatus(decimal Usd, string Period, string PeriodKey, decimal Spent, double? Share, DateTime PeriodEndsAt);
@@ -105,49 +103,3 @@ public sealed record MailBackfillResult(int Mails, int Queued, int Attached);
 /// <summary>Admin → Debug → Test the AI (§8.4): each model's answer to a fixed prompt.</summary>
 public sealed record DebugAiResult(AiRole Role, string Model, bool Ok, string Detail, int DurationMs, decimal? Cost, string? ModelServed);
 
-/// <summary>A situation analysis run (docs/ai-operations-plan.md §9), with its findings counted by severity (muted ones not).</summary>
-public sealed record AiAnalysisRunItem(
-    Guid Id,
-    DateTime At,
-    string Trigger,
-    AnalysisRunState State,
-    SituationStatus? Status,
-    string? Summary,
-    int Critical,
-    int Warnings,
-    int Infos,
-    int Withheld,
-    bool GuardFlagged,
-    DateTime? CompletedAt,
-    string? Error);
-
-/// <summary>A finding (§9.3) with the real names: <c>New</c> went to its sensor, <c>Muted</c> was skipped.</summary>
-public sealed record AiFindingItem(
-    Guid Id,
-    string Key,
-    FindingKind Kind,
-    FindingSeverity Severity,
-    string Title,
-    string Explanation,
-    string Recommendation,
-    double Confidence,
-    IReadOnlyList<Ref> Sensors,
-    IReadOnlyList<Ref> Hosts,
-    IReadOnlyList<string> Evidence,
-    bool Verified,
-    bool Disputed,
-    bool New,
-    bool Muted,
-    Guid? DecisionId);
-
-/// <summary>A run with its findings and its requests (the request log is Admin only).</summary>
-public sealed record AiAnalysisRunDetail(AiAnalysisRunItem Run, IReadOnlyList<AiFindingItem> Findings, IReadOnlyList<long> RequestIds, int SnapshotChars);
-
-/// <summary><c>GET /ai/analysis</c>: newest first.</summary>
-public sealed class AiAnalysisQuery : PageQuery
-{
-    public AnalysisRunState? State { get; set; }
-}
-
-/// <summary><c>POST /ai/analysis/run</c>: the run queued, or the one already queued.</summary>
-public sealed record AiAnalysisQueued(Guid Id);

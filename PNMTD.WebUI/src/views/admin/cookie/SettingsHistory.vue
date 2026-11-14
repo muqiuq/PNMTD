@@ -58,7 +58,7 @@ async function rollBack(version: number) {
 </script>
 
 <template>
-  <section class="panel history" :aria-label="`${title ?? 'The'} history`">
+  <section class="panel history" :aria-label="title ? `History of ${title}` : 'History'">
     <div class="panel-header">
       <span
         >History<template v-if="title"> of {{ title }}</template></span

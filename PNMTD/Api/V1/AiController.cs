@@ -58,25 +58,3 @@ public sealed class DebugAiController(AiService ai) : V1ControllerBase
     [Audit(AuditEvents.DebugAiTested)]
     public async Task<ActionResult<IReadOnlyList<DebugAiResult>>> Test(CancellationToken ct) => Ok(await ai.TestAsync(ct));
 }
-
-/// <summary>
-/// The situation analysis (docs/ai-operations-plan.md §9.3, §14): its runs and findings for every signed-in user, with the
-/// real names; a run on demand for Admins.
-/// </summary>
-[Route("api/v1/ai/analysis")]
-[Authorize]
-public sealed class AiAnalysisController(AiAnalysisService analysis) : V1ControllerBase
-{
-    [HttpGet]
-    [RequireRight(Area.Monitoring, Level.View)]
-    public async Task<ActionResult<Paged<AiAnalysisRunItem>>> List([FromQuery] AiAnalysisQuery query, CancellationToken ct) => await analysis.ListAsync(query, ct);
-
-    [HttpGet("{id:guid}")]
-    [RequireRight(Area.Monitoring, Level.View)]
-    public async Task<ActionResult<AiAnalysisRunDetail>> Detail(Guid id, CancellationToken ct) => await analysis.DetailAsync(id, ct);
-
-    [HttpPost("run")]
-    [RequireRight(Area.Ai, Level.Manage)]
-    [Audit(AuditEvents.AiAnalysisStarted)]
-    public async Task<ActionResult<AiAnalysisQueued>> Run(CancellationToken ct) => Accepted(await analysis.RunAsync(ct));
-}

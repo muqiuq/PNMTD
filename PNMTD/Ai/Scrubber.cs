@@ -1,10 +1,10 @@
 using System.Net;
 using System.Text.RegularExpressions;
 
-namespace PNMTD.Ai.Analysis;
+namespace PNMTD.Ai;
 
 /// <summary>
-/// The situation analysis's scrubber (docs/ai-operations-plan.md §9.1): in every message, the names PNMT knows become
+/// A scrubber for text sent to a model (docs/ai-operations-plan.md §9.1, since 1.5 for the knowledge base's AI tags): in every message, the names PNMT knows become
 /// their pseudonyms (<c>H1</c>, <c>S2</c>), and addresses, mail addresses, URLs, host names, GUIDs and long serial-like
 /// tokens become placeholders (<c>&lt;ip:1&gt;</c>, <c>&lt;host:2&gt;</c>). The same value gets the same placeholder
 /// within a run, so patterns stay visible; numbers and codes stay. <see cref="Values"/> maps the placeholders back.

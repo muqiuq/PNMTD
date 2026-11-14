@@ -48,7 +48,7 @@ public sealed class AiService(PnmtdDbContext db, IOptionsMonitor<AiOptions> opti
                 month.GroupBy(s => s.Model).Select(g => new AiSpendingRow(g.Key, g.Sum(s => s.Requests), g.Sum(s => s.Cost))).OrderByDescending(r => r.Cost).ToList()),
             new AiQueueStatus(Count(AiWorkState.Queued), Count(AiWorkState.Running), Count(AiWorkState.WaitingRetry), Count(AiWorkState.WaitingBudget),
                 await db.AiWork.CountAsync(w => w.State == AiWorkState.Failed && w.FinishedAt >= since, ct)),
-            o.Mail.Enabled, o.Analysis.Enabled, Math.Max(5, o.Analysis.IntervalMinutes));
+            o.Mail.Enabled);
     }
 
     public async Task<Paged<AiRequestItem>> RequestsAsync(AiRequestQuery query, CancellationToken ct)

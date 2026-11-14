@@ -51,7 +51,6 @@ const kindLabel: Record<string, string> = {
   'mail.rule': 'Mail rule',
   'mail.suspicious': 'Suspicious mail',
   'mail.outcome': 'Mail outcome',
-  'analysis.finding': 'Finding',
 }
 const stateSeverity = (s: S['DecisionState']) =>
   s === 'Open' ? 'warn' : s === 'Accepted' ? 'success' : s === 'Failed' ? 'danger' : 'secondary'
@@ -178,24 +177,6 @@ function choose(option: S['DecisionOption']) {
                 </dd>
               </dl>
               <p class="muted small">{{ d.mailRule.reasoning }}</p>
-            </template>
-
-            <template v-if="d.finding">
-              <h3 class="sub">The finding</h3>
-              <p>{{ d.finding.explanation }}</p>
-              <p><strong>Recommended:</strong> {{ d.finding.recommendation }}</p>
-              <p class="muted small">
-                {{ d.finding.kind }} · {{ d.finding.severity }} · confidence
-                {{ formatPercent(d.finding.confidence, 0) }}
-                <template v-if="d.finding.verified"> · confirmed by the verification model</template>
-              </p>
-              <p v-if="d.finding.sensors.length">
-                Sensors:
-                <template v-for="(s, i) in d.finding.sensors" :key="s.id"
-                  ><template v-if="i">, </template
-                  ><RouterLink :to="{ name: 'sensor', params: { id: s.id } }">{{ s.name }}</RouterLink></template
-                >
-              </p>
             </template>
 
             <template v-if="d.mail">

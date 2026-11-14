@@ -5,32 +5,32 @@ import { useSession } from '@/stores/session'
 import type { Option } from './cookieAdmin'
 
 /**
- * What Admin → Cookie's pickers list: PNMT's users and groups (the admin flag: their lists are admins' only), hosts
- * (Monitoring's View). Without the right a list stays empty, and the chosen values show by their ids.
+ * What Admin → Cookie's pickers list: PNMT's users and groups (GET admin/people, for Cookie's Manage), and the hosts
+ * (Monitoring's View; without it, a text field). A chosen user or group that no longer exists shows as removed.
  */
+function usePeople() {
+  return useQuery({ queryKey: [...keys.cookie, 'admin', 'people'], queryFn: api.cookie.people, staleTime: 60_000 })
+}
+
 export function useUserOptions() {
-  const session = useSession()
-  const query = useQuery({
-    queryKey: [...keys.users, 'all'],
-    queryFn: () => api.users.list({ pageSize: 500 }),
-    enabled: computed(() => session.isAdmin),
-  })
+  const query = usePeople()
   const options = computed<Option[]>(() =>
-    (query.data.value?.items ?? []).map((u) => ({
-      label: u.displayName && u.displayName !== u.username ? `${u.displayName} (${u.username})` : u.username,
+    (query.data.value?.users ?? []).map((u) => ({
+      label:
+        (u.displayName && u.displayName !== u.username ? `${u.displayName} (${u.username})` : u.username) +
+        (u.isActive ? '' : ', deactivated'),
       value: u.id,
     })),
   )
-  const unknown = (id: string) => (session.isAdmin ? `A removed user (${id.slice(0, 8)})` : `User ${id.slice(0, 8)}`)
-  return { query, options, unknown, listed: computed(() => session.isAdmin) }
+  return { query, options, unknown: () => 'A removed user' }
 }
 
 export function useGroupOptions() {
-  const session = useSession()
-  const query = useQuery({ queryKey: keys.groups, queryFn: api.groups.list, enabled: computed(() => session.isAdmin) })
-  const options = computed<Option[]>(() => (query.data.value ?? []).map((g) => ({ label: g.name, value: g.id })))
-  const unknown = (id: string) => (session.isAdmin ? `A removed group (${id.slice(0, 8)})` : `Group ${id.slice(0, 8)}`)
-  return { query, options, unknown, listed: computed(() => session.isAdmin) }
+  const query = usePeople()
+  const options = computed<Option[]>(() =>
+    (query.data.value?.groups ?? []).map((g) => ({ label: g.name, value: g.id })),
+  )
+  return { query, options, unknown: () => 'A removed group' }
 }
 
 /** The hosts, loaded once one is needed (when). */
@@ -43,5 +43,5 @@ export function useHostOptions(when: Ref<boolean> = ref(true)) {
     enabled: computed(() => listed.value && when.value),
   })
   const options = computed<Option[]>(() => (query.data.value?.items ?? []).map((h) => ({ label: h.name, value: h.id })))
-  return { query, options, unknown: (id: string) => `Host ${id.slice(0, 8)}`, listed }
+  return { query, options, unknown: () => 'A removed host', listed }
 }

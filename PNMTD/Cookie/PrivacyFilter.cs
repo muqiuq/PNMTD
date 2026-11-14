@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using PNMTD.Ai.Analysis;
+using PNMTD.Ai;
 using PNMTD.Data;
 using PNMTD.Lib.Helper;
 using PNMTD.Models.Db;

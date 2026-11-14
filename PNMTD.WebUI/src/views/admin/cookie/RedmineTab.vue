@@ -11,7 +11,7 @@ import { withUnknown, type Option } from './cookieAdmin'
 import SectionActions from './SectionActions.vue'
 import SettingsHistory from './SettingsHistory.vue'
 import { useGroupOptions } from './usePickers'
-import { useRedmineLookups, useSection } from './useSection'
+import { useCookieDefaults, useRedmineLookups, useSection } from './useSection'
 
 /**
  * Redmine (docs/cookie-plan.md §7.2, §9.3): the watched projects, each with its deadlines, the roles that count as
@@ -22,6 +22,7 @@ const s = useSection('redmine')
 const lookups = useRedmineLookups()
 const l = computed(() => lookups.data.value)
 const groups = useGroupOptions()
+const defaults = useCookieDefaults()
 
 const named = (list: { id: number; name: string }[] | undefined, chosen: number[], what: string): Option<number>[] =>
   withUnknown(
@@ -64,18 +65,15 @@ const addable = computed(() =>
     .filter((p) => !(s.draft.value?.projects ?? []).some((w) => w.projectId === p.id))
     .map((p) => ({ label: p.name, value: p.id })),
 )
+/** A project newly watched starts with the server's default deadlines (WatchedProject.Default). */
 function addProject(projectId: number | null) {
-  if (projectId === null || !s.draft.value) return
-  // WatchedProject.Default: 4 working hours, reminded at 3; an update every 14 days, reminded at 12.
+  const fresh = defaults.data.value?.newProject
+  if (projectId === null || !s.draft.value || !fresh) return
   s.draft.value.projects.push({
+    ...fresh,
     projectId,
-    firstAnswerHours: 4,
-    firstAnswerReminderHours: 3,
-    updateDays: 14,
-    updateReminderDays: 12,
-    escalationGroupId: null,
-    staffRoleIds: [],
-    stopStatusIds: [],
+    staffRoleIds: [...fresh.staffRoleIds],
+    stopStatusIds: [...fresh.stopStatusIds],
   })
   newProject.value = null
 }
@@ -103,6 +101,9 @@ const placed = (f: string) => f.startsWith('projects.')
         <Message v-if="l.error" severity="error" :closable="false" size="small">
           Redmine did not answer: {{ l.error }}
         </Message>
+        <Message v-if="l.rolesError" severity="warn" :closable="false" size="small">
+          Redmine's roles could not be read, so staff roles can't be chosen: {{ l.rolesError }}
+        </Message>
         <Message v-if="l.configured && !l.writable" severity="warn" :closable="false" size="small">
           Tickets and notes need Redmine__WriteApiKey. Until it is set, the reminders go by e-mail and Pushover only,
           and no ticket is opened.
@@ -114,9 +115,6 @@ const placed = (f: string) => f.startsWith('projects.')
         what="Redmine's projects"
         @retry="lookups.refetch()"
       />
-      <Message v-if="!groups.listed.value" severity="info" :closable="false" size="small">
-        Only admins can list PNMT's groups: you see the chosen ones by their ids.
-      </Message>
 
       <section class="panel" aria-labelledby="redmine-projects-title">
         <div id="redmine-projects-title" class="panel-header">
@@ -131,7 +129,7 @@ const placed = (f: string) => f.startsWith('projects.')
             size="small"
             class="end"
             aria-label="Watch a project"
-            :disabled="!addable.length"
+            :disabled="!addable.length || !defaults.data.value"
             @update:model-value="addProject"
           />
         </div>

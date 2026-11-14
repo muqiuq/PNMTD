@@ -45,12 +45,9 @@ namespace PNMTD.Lib.Models
 
         /// <summary>PNMT's own conditions, on its system sensors (docs/ai-operations-plan.md §4).</summary>
         public const int SYSTEM_OK = 220;
-        public const int AI_FINDING_INFO = 221;
         public const int UPLINK_DOWN = 420;
         public const int AI_FAILING = 421;
         public const int ROUTEROS_SECURITY_UPDATE = 422;
-        public const int AI_FINDING_CRITICAL = 423;
-        public const int AI_FINDING_WARNING = 424;
         public const int AI_BUDGET_80 = 425;
         public const int AI_BUDGET_90 = 426;
         public const int AI_BUDGET_REACHED = 427;

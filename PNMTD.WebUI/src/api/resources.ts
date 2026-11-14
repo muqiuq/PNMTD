@@ -389,11 +389,6 @@ export const api = {
     retry: (id: Id) => call(client.POST('/api/v1/ai/work/{id}/retry', { params: { path: { id } } })),
     cancel: (id: Id) => call(client.POST('/api/v1/ai/work/{id}/cancel', { params: { path: { id } } })),
     backfill: (body: S['MailBackfillRequest']) => call(client.POST('/api/v1/ai/mail/backfill', { body })),
-    // --- the situation analysis (docs/ai-operations-plan.md §9): CanRead; a run on demand Admin ---------------
-    analysis: (query: ListQuery & { state?: S['AnalysisRunState'] }) =>
-      call(client.GET('/api/v1/ai/analysis', { params: { query } })),
-    analysisRun: (id: Id) => call(client.GET('/api/v1/ai/analysis/{id}', { params: { path: { id } } })),
-    runAnalysis: () => call(client.POST('/api/v1/ai/analysis/run')),
   },
 
   /**
@@ -402,11 +397,27 @@ export const api = {
    */
   cookie: {
     status: () => call(client.GET('/api/v1/cookie/status')),
+    /** The reader's personal summary (§8): written when asked, kept for 15 minutes. */
+    summary: () => call(client.GET('/api/v1/cookie/summary')),
+    /** The trace by the reader's rights (§9.2), newest first; afterId for what came since. */
+    trace: (query: { caseId?: Id; roundId?: number; kind?: string; afterId?: number; limit?: number }) =>
+      call(client.GET('/api/v1/cookie/trace', { params: { query } })),
+    /** The reader's chat with Cookie (§10.2); afterId for what came since. */
+    messages: (afterId?: number) => call(client.GET('/api/v1/cookie/messages', { params: { query: { afterId } } })),
+    post: (text: string) => call(client.POST('/api/v1/cookie/messages', { body: { text } })),
     cases: (query: ListQuery & { open?: boolean; kind?: S['CookieCaseKind'] }) =>
       call(client.GET('/api/v1/cookie/cases', { params: { query } })),
     case: (id: Id) => call(client.GET('/api/v1/cookie/cases/{id}', { params: { path: { id } } })),
     // --- Admin → Cookie: Cookie's Manage ----------------------------------------------------------------------------
     overview: () => call(client.GET('/api/v1/cookie/admin/overview')),
+    start: () => call(client.POST('/api/v1/cookie/admin/start')),
+    stop: () => call(client.POST('/api/v1/cookie/admin/stop')),
+    run: () => call(client.POST('/api/v1/cookie/admin/run')),
+    rounds: () => call(client.GET('/api/v1/cookie/admin/rounds')),
+    /** A prompt as the model receives it: a prompt's key, or "case:" and a kind of case's key. */
+    preview: (key: string) => call(client.GET('/api/v1/cookie/admin/prompts/preview', { params: { query: { key } } })),
+    /** The users and groups Admin → Cookie names, for Cookie's Manage (Admin → Users is admins' only). */
+    people: () => call(client.GET('/api/v1/cookie/admin/people')),
     settings: () => call(client.GET('/api/v1/cookie/admin/settings')),
     defaults: () => call(client.GET('/api/v1/cookie/admin/defaults')),
     /** Redmine's projects, roles, statuses and trackers for the pickers, and whether Redmine can be written. */

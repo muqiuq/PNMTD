@@ -50,7 +50,8 @@ public sealed partial class Summaries(IDbContextFactory<PnmtdDbContext> dbs, Coo
         var lastVisit = cache.TryGetValue($"{key}:visit", out DateTime visit) ? visit : (DateTime?)null;
         cache.Set($"{key}:visit", Clock.UtcNow, TimeSpan.FromDays(7));
         var summary = await WriteAsync(user, userId, lastVisit, ct);
-        cache.Set(key, summary, KeepFor);
+        // Cookie's is kept 15 minutes (§8); the code's only a minute, so that a summary written before the case book ran doesn't stay.
+        cache.Set(key, summary, summary.Source == "cookie" ? KeepFor : TimeSpan.FromMinutes(1));
         return summary;
     }
 

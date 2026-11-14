@@ -2,10 +2,11 @@
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import SelectButton from 'primevue/selectbutton'
+import { computed } from 'vue'
 import ErrorState from '@/components/ErrorState.vue'
 import SectionActions from './SectionActions.vue'
 import SettingsHistory from './SettingsHistory.vue'
-import { textOrNull, useSection } from './useSection'
+import { textOrNull, useCookieDefaults, useSection } from './useSection'
 
 /**
  * Models (docs/cookie-plan.md §9.3, §14): Cookie's model and providers, which override the .env defaults when set; the
@@ -14,6 +15,9 @@ import { textOrNull, useSection } from './useSection'
 const s = useSection('models', {
   prepare: (v) => ({ ...v, model: textOrNull(v.model), providers: textOrNull(v.providers) }),
 })
+const defaults = useCookieDefaults()
+const env = computed(() => defaults.data.value?.env)
+const budget = (usd: number) => `${usd.toFixed(2)} USD`
 const efforts = ['minimal', 'low', 'medium', 'high'].map((e) => ({ label: e, value: e }))
 /** An emptied field is null again, the .env default, as it came. */
 function setText(field: 'model' | 'providers', value: string | undefined) {
@@ -51,12 +55,16 @@ const fields = [
                 id="models-model"
                 :model-value="s.draft.value.model ?? ''"
                 class="mono"
-                placeholder="Cookie__Model"
+                :placeholder="env?.model ?? 'Cookie__Model'"
                 :invalid="!!s.error('model')"
                 @update:model-value="(v) => setText('model', v)"
               />
               <small v-if="s.error('model')" class="field-error">{{ s.error('model') }}</small>
-              <small v-else class="field-hint">The model's id at the provider. Empty: Cookie__Model.</small>
+              <small v-else class="field-hint"
+                >The model's id at the provider. Empty: from .env (Cookie__Model)<template v-if="env"
+                  >, <span class="mono">{{ env.model }}</span></template
+                >.</small
+              >
             </div>
             <div class="field">
               <label for="models-providers">Providers</label>
@@ -64,12 +72,16 @@ const fields = [
                 id="models-providers"
                 :model-value="s.draft.value.providers ?? ''"
                 class="mono"
-                placeholder="Cookie__Providers"
+                :placeholder="env?.providers ?? 'Cookie__Providers'"
                 :invalid="!!s.error('providers')"
                 @update:model-value="(v) => setText('providers', v)"
               />
               <small v-if="s.error('providers')" class="field-error">{{ s.error('providers') }}</small>
-              <small v-else class="field-hint">In the order to try, comma-separated. Empty: Cookie__Providers.</small>
+              <small v-else class="field-hint"
+                >In the order to try, comma-separated. Empty: from .env (Cookie__Providers)<template v-if="env"
+                  >, <span class="mono">{{ env.providers }}</span></template
+                >.</small
+              >
             </div>
             <div class="field">
               <label id="models-triage">Effort for triage</label>
@@ -146,13 +158,26 @@ const fields = [
                 locale="en-US"
                 :min="0"
                 :max="10000"
-                placeholder="Cookie__BudgetUsd"
+                :placeholder="env ? budget(env.budgetUsd) : 'Cookie__BudgetUsd'"
                 :invalid="!!s.error('budgetUsd')"
               />
               <small v-if="s.error('budgetUsd')" class="field-error">{{ s.error('budgetUsd') }}</small>
-              <small v-else class="field-hint">At the budget, Cookie pauses. Empty: Cookie__BudgetUsd.</small>
+              <small v-else class="field-hint"
+                >At the budget, Cookie pauses until the next month. Empty: from .env (Cookie__BudgetUsd)<template
+                  v-if="env"
+                  >, {{ budget(env.budgetUsd) }}</template
+                >.</small
+              >
             </div>
           </div>
+          <dl v-if="env" class="facts env">
+            <dt>From .env only</dt>
+            <dd>
+              Privacy <span class="mono">{{ env.privacy }}</span> (Cookie__Privacy) · zero data retention
+              {{ env.zdr ? 'required' : 'not required' }} (Cookie__Zdr) · quantisation at least
+              <span class="mono">{{ env.minQuantization }}</span> (Cookie__MinQuantization)
+            </dd>
+          </dl>
           <SectionActions
             :busy="s.busy.value"
             :dirty="s.dirty.value"
@@ -178,6 +203,10 @@ const fields = [
 
 .intro {
   margin: 0;
+}
+
+.env {
+  font-size: 0.857rem;
 }
 
 .mono :deep(input),

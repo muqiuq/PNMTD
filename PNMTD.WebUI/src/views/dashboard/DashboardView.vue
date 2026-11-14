@@ -10,14 +10,13 @@ import CookieCard from './CookieCard.vue'
 import HostsPanel from './HostsPanel.vue'
 import ProblemsPanel from './ProblemsPanel.vue'
 import RecentChanges from './RecentChanges.vue'
-import SituationCard from './SituationCard.vue'
 import SummaryStrip from './SummaryStrip.vue'
 
 /**
  * "Is anything wrong, and what exactly?" at a glance (§5.5): the summary strip, the problems and the
  * recent changes on the left, every host on the right in a panel that scrolls by itself. Stale data
- * stays visible while a refetch fails. Cookie's card heads the left side, for everyone (docs/cookie-plan.md §9.1); with the
- * AI on, its latest situation analysis follows it.
+ * stays visible while a refetch fails. Cookie's card heads the left side, for everyone, while Cookie is enabled
+ * (docs/cookie-plan.md §9.1).
  */
 const dashboard = useDashboard()
 const phone = useMedia('(max-width: 599px)')
@@ -42,13 +41,13 @@ const session = useSession()
     <template v-else-if="dashboard.data.value">
       <SummaryStrip :summary="dashboard.data.value.summary" class="summary" />
       <div class="left">
-        <CookieCard />
-        <SituationCard />
         <ProblemsPanel
           :problems="dashboard.data.value.problems"
           :sensor-count="dashboard.data.value.summary.sensors.ok"
         />
         <RecentChanges :changes="dashboard.data.value.recentChanges" :collapsible="phone" />
+        <!-- Below the problems and the recent changes: the dashboard's targets keep those above the fold (webui-migration-plan §5.5). -->
+        <CookieCard />
       </div>
       <HostsPanel :hosts="dashboard.data.value.hosts" class="right" />
     </template>

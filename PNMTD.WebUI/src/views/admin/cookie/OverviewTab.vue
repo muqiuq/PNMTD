@@ -4,6 +4,7 @@ import Button from 'primevue/button'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Message from 'primevue/message'
+import ProgressBar from 'primevue/progressbar'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import { computed, ref } from 'vue'
@@ -13,7 +14,8 @@ import ListTable from '@/components/ListTable.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { useActions } from '@/composables/useActions'
 import { useServerTable } from '@/composables/useServerTable'
-import { formatAbsolute } from '@/format'
+import { formatAbsolute, formatDuration } from '@/format'
+import { usd } from '@/views/admin/ai/aiFormat'
 import {
   channelLabel,
   channelName,
@@ -30,16 +32,29 @@ import {
 } from '@/views/cookie/cookieFormat'
 
 /**
- * Admin → Cookie → Overview (docs/cookie-plan.md §9.3, §19.1): the status and Cookie's own state, how the case book
- * keeps up, the duties of the last 7 days, and the outbox: everything that went out, and what a limit held back, which a
- * person can send from here.
+ * Admin → Cookie → Overview (docs/cookie-plan.md §9.3, §19.1): Start, Stop and Run now; the status and Cookie's own
+ * state, its budget and its last rounds; how the case book keeps up; the duties of the last 7 days; and the outbox:
+ * everything that went out, and what a limit held back, which a person can send from here. Every 5 s while Cookie works.
  */
 const overview = useQuery({
   queryKey: [...keys.cookie, 'admin', 'overview'],
   queryFn: api.cookie.overview,
-  refetchInterval: 30_000,
+  refetchInterval: (q) => (q.state.data?.status.cookie.state === 'Working' ? 5_000 : 30_000),
 })
 const o = computed(() => overview.data.value)
+const working = computed(() => o.value?.status.cookie.state === 'Working')
+const rounds = useQuery({
+  queryKey: [...keys.cookie, 'admin', 'rounds'],
+  queryFn: api.cookie.rounds,
+  refetchInterval: computed(() => (working.value ? 5_000 : 30_000)),
+})
+const share = computed(() =>
+  o.value && o.value.budget.limit > 0
+    ? Math.min(100, Math.round((o.value.budget.spent / o.value.budget.limit) * 100))
+    : null,
+)
+const took = (r: S['CookieRoundItem']) =>
+  r.endedAt ? formatDuration(new Date(r.endedAt).getTime() - new Date(r.startedAt).getTime()) : 'running'
 
 const state = ref<S['CookieOutboxState'] | null>(null)
 const channel = ref<S['CookieChannel'] | null>(null)
@@ -74,6 +89,20 @@ async function send(item: S['CookieOutboxItem']) {
     invalidate: [[...keys.cookie, 'admin']],
   })
 }
+
+/** Start, Stop and Run now (§9.3): the server says why it can't (not enabled in .env, or stopped). */
+async function control(what: 'start' | 'stop' | 'run') {
+  const labels = {
+    start: ['Started', 'Not started'],
+    stop: ['Stopped', 'Not stopped'],
+    run: ['A round starts now', 'No round'],
+  }
+  await run(() => api.cookie[what](), {
+    success: labels[what][0],
+    failure: labels[what][1],
+    invalidate: [keys.cookie],
+  })
+}
 </script>
 
 <template>
@@ -84,9 +113,45 @@ async function send(item: S['CookieOutboxItem']) {
     @retry="overview.refetch()"
   />
   <div v-else-if="o" class="overview">
+    <Message v-if="o.status.cookie.enabled && !o.hasGroup" severity="warn" :closable="false">
+      Choose Cookie's group on the
+      <RouterLink :to="{ name: 'cookie-admin', params: { tab: 'rights' } }">Rights</RouterLink> tab: Cookie pauses
+      without one.
+    </Message>
     <div class="two-columns">
       <section class="panel" aria-labelledby="cookie-status-title">
-        <div id="cookie-status-title" class="panel-header">Status</div>
+        <div class="panel-header">
+          <span id="cookie-status-title">Status</span>
+          <span class="end controls">
+            <Button
+              v-if="!o.status.cookie.running"
+              label="Start"
+              icon="pi pi-play"
+              size="small"
+              :loading="busy"
+              @click="control('start')"
+            />
+            <template v-else>
+              <Button
+                label="Run now"
+                icon="pi pi-refresh"
+                size="small"
+                severity="secondary"
+                outlined
+                :disabled="busy || working"
+                @click="control('run')"
+              />
+              <Button
+                label="Stop"
+                icon="pi pi-stop"
+                size="small"
+                severity="secondary"
+                :disabled="busy"
+                @click="control('stop')"
+              />
+            </template>
+          </span>
+        </div>
         <dl class="panel-body facts">
           <dt>Overall</dt>
           <dd>
@@ -125,9 +190,21 @@ async function send(item: S['CookieOutboxItem']) {
             <dt>Next round</dt>
             <dd><RelativeTime :value="o.status.cookie.nextRoundAt" /></dd>
           </template>
+          <dt>Budget</dt>
+          <dd>
+            <template v-if="o.budget.limit > 0">
+              {{ usd(o.budget.spent) }} of {{ usd(o.budget.limit) }} this month
+              <ProgressBar :value="share ?? 0" :show-value="false" class="budget" />
+            </template>
+            <template v-else>{{ usd(o.budget.spent) }} this month, no limit</template>
+          </dd>
           <dt>AI</dt>
           <dd>{{ o.aiUsable ? 'usable' : 'not usable: Admin → AI says why' }}</dd>
         </dl>
+        <p class="panel-body muted small stopped-note">
+          Stopped, Cookie writes nothing; the case book, the deadlines and the duties keep running. Stopping and
+          starting are in the audit log.
+        </p>
       </section>
 
       <section class="panel" aria-labelledby="cookie-book-title">
@@ -164,9 +241,56 @@ async function send(item: S['CookieOutboxItem']) {
       </section>
     </div>
 
+    <section class="panel" aria-labelledby="cookie-rounds-title">
+      <div class="panel-header">
+        <span id="cookie-rounds-title">Last rounds</span>
+        <RouterLink :to="{ name: 'cookie', params: { tab: 'trace' } }" class="end">The trace</RouterLink>
+      </div>
+      <ErrorState
+        v-if="rounds.isError.value && !rounds.data.value"
+        :error="rounds.error.value"
+        what="the rounds"
+        @retry="rounds.refetch()"
+      />
+      <DataTable v-else :value="rounds.data.value ?? []" size="small" data-key="id" :loading="!rounds.data.value">
+        <template #empty><span class="muted">No round yet.</span></template>
+        <Column header="Round" style="width: 6rem">
+          <template #body="{ data }">
+            <RouterLink :to="{ name: 'cookie', params: { tab: 'trace' }, query: { round: data.id } }"
+              >#{{ data.id }}</RouterLink
+            >
+          </template>
+        </Column>
+        <Column header="Started" style="width: 8rem">
+          <template #body="{ data }"><RelativeTime :value="data.startedAt" /></template>
+        </Column>
+        <Column header="Took" style="width: 6rem">
+          <template #body="{ data }">{{ took(data) }}</template>
+        </Column>
+        <Column header="Why">
+          <template #body="{ data }"
+            ><span class="ellipsis cell" :title="data.trigger">{{ data.trigger }}</span></template
+          >
+        </Column>
+        <Column header="Outcome">
+          <template #body="{ data }">
+            <span v-if="data.error" class="error-text" :title="data.error">{{ data.error }}</span>
+            <span v-else class="ellipsis cell" :title="data.outcome">{{ data.outcome }}</span>
+          </template>
+        </Column>
+        <Column header="Cases" field="cases" style="width: 5rem" />
+        <Column header="Calls" style="width: 7rem">
+          <template #body="{ data }">{{ data.calls }} · {{ data.toolCalls }} tools</template>
+        </Column>
+        <Column header="Cost" style="width: 6rem">
+          <template #body="{ data }">{{ usd(data.cost) }}</template>
+        </Column>
+      </DataTable>
+    </section>
+
     <section class="panel" aria-labelledby="cookie-duties-title">
-      <div id="cookie-duties-title" class="panel-header">
-        Duties <span class="muted normal">(the last 7 days)</span>
+      <div class="panel-header">
+        <span id="cookie-duties-title">Duties</span> <span class="muted normal">(the last 7 days)</span>
         <RouterLink :to="{ name: 'cookie-admin', params: { tab: 'actions' } }" class="end">Switch on or off</RouterLink>
       </div>
       <DataTable :value="o.duties" size="small">
@@ -324,6 +448,26 @@ async function send(item: S['CookieOutboxItem']) {
 
 .normal {
   font-weight: 400;
+}
+
+.controls {
+  display: flex;
+  gap: var(--pnmt-space-2);
+}
+
+.budget {
+  height: 6px;
+  margin-top: var(--pnmt-space-1);
+  max-width: 16rem;
+}
+
+.stopped-note {
+  margin: 0;
+  border-top: 1px solid var(--pnmt-border);
+}
+
+.error-text {
+  color: var(--pnmt-fail);
 }
 
 .end {

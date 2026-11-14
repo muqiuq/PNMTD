@@ -5,10 +5,12 @@ import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
+import { ref } from 'vue'
 import type { S } from '@/api/resources'
 import ErrorState from '@/components/ErrorState.vue'
 import { severityOptions } from '@/views/zabbix/zabbix'
 import { newId, setOverride } from './cookieAdmin'
+import PromptPreview from './PromptPreview.vue'
 import ScopeValuePicker from './ScopeValuePicker.vue'
 import SectionActions from './SectionActions.vue'
 import SettingsHistory from './SettingsHistory.vue'
@@ -31,6 +33,14 @@ const textOf = (k: S['CookiePromptItem']) => s.draft.value?.instructions[k.key] 
 const changed = (k: S['CookiePromptItem']) => s.draft.value?.instructions[k.key] !== undefined
 function setText(k: S['CookiePromptItem'], text: string | undefined) {
   if (s.draft.value) setOverride(s.draft.value.instructions, k.key, text ?? '', k.text)
+}
+
+// A kind's instruction as the model receives it, after Cookie's identity, goals and rules (case:<kind>).
+const previewing = ref<string | null>(null)
+const previewTitle = ref('')
+function preview(k: S['CookiePromptItem']) {
+  previewTitle.value = k.label
+  previewing.value = `case:${k.key}`
 }
 
 const scopes: { label: string; value: S['InstructionScope'] }[] = [
@@ -118,16 +128,26 @@ const placed = (f: string) =>
             <div class="item-head">
               <label :for="`kind-${k.key}`" class="label">{{ k.label }}</label>
               <Tag v-if="changed(k)" value="changed" severity="info" />
-              <Button
-                v-if="changed(k)"
-                label="Reset to default"
-                icon="pi pi-undo"
-                size="small"
-                severity="secondary"
-                text
-                class="end"
-                @click="setText(k, k.text)"
-              />
+              <span class="end buttons">
+                <Button
+                  v-if="changed(k)"
+                  label="Reset to default"
+                  icon="pi pi-undo"
+                  size="small"
+                  severity="secondary"
+                  text
+                  @click="setText(k, k.text)"
+                />
+                <Button
+                  label="Preview"
+                  icon="pi pi-eye"
+                  size="small"
+                  severity="secondary"
+                  text
+                  :aria-label="`Preview: ${k.label}`"
+                  @click="preview(k)"
+                />
+              </span>
             </div>
             <Textarea
               :id="`kind-${k.key}`"
@@ -208,6 +228,7 @@ const placed = (f: string) =>
         @reset="s.reset()"
       />
       <SettingsHistory section="cases" title="the case settings" @rolled-back="s.reload()" />
+      <PromptPreview v-model="previewing" :title="previewTitle" :dirty="s.dirty.value" />
     </template>
   </div>
 </template>
@@ -262,6 +283,10 @@ const placed = (f: string) =>
 
 .end {
   margin-left: auto;
+}
+
+.buttons {
+  display: flex;
 }
 
 .text {

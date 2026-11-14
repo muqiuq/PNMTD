@@ -20,7 +20,7 @@ public sealed record CookieStateItem(bool Enabled, bool Running, CookieState Sta
 
 public sealed record CookieStatusItem(OverallStateItem Overall, CookieStateItem Cookie);
 
-public sealed record CookieCaseQuery(bool? Open = true, CookieCaseKind? Kind = null, int Page = 1, int PageSize = 50);
+public sealed record CookieCaseQuery(bool? Open = null, CookieCaseKind? Kind = null, int Page = 1, int PageSize = 50);
 
 public sealed record CookieCaseItem(
     Guid Id,
@@ -149,7 +149,8 @@ public sealed record CookieOutboxItem(
     string? SentByName);
 
 /// <summary>A step of Cookie's trace (§9.2), placeholders restored.</summary>
-public sealed record CookieTraceItem(long Id, long? RoundId, Guid? CaseId, DateTime At, string Kind, string Title, string Body, IReadOnlyList<string> Areas);
+public sealed record CookieTraceItem(long Id, long? RoundId, Guid? CaseId, string? CaseTitle, DateTime At, string Kind, string Title, string Body,
+    IReadOnlyList<string> Areas);
 
 public sealed record CookieTraceQuery(Guid? CaseId = null, long? RoundId = null, string? Kind = null, long? AfterId = null, int Limit = 100);
 

@@ -15,9 +15,6 @@ public static class SystemSensorKeys
     public const string Uplink = "uplink";
     public const string Ai = "ai";
     public const string AiBudget = "ai-budget";
-    public const string AnalysisCritical = "ai-analysis-critical";
-    public const string AnalysisWarning = "ai-analysis-warning";
-    public const string AnalysisInfo = "ai-analysis-info";
     public const string RouterOsAdvisories = "routeros-advisories";
 
     /// <summary>The files folder of the locations and the knowledge base (docs/locations-knowledge-plan.md §5.5).</summary>
@@ -49,12 +46,6 @@ public sealed class SystemSensors(IDbContextFactory<PnmtdDbContext> dbs, IConfig
         new(SystemSensorKeys.Uplink, "Uplink", Importance.High, Domain.SystemService.UplinkConfigured),
         new(SystemSensorKeys.Ai, "AI", Importance.High, c => c.GetValue("Ai:Enabled", false)),
         new(SystemSensorKeys.AiBudget, "AI budget", Importance.Normal, c => c.GetValue("Ai:Enabled", false)),
-        new(SystemSensorKeys.AnalysisCritical, "AI analysis: critical", Importance.High,
-            c => c.GetValue("Ai:Enabled", false) && c.GetValue("Ai:Analysis:Enabled", true)),
-        new(SystemSensorKeys.AnalysisWarning, "AI analysis: warnings", Importance.Normal,
-            c => c.GetValue("Ai:Enabled", false) && c.GetValue("Ai:Analysis:Enabled", true)),
-        new(SystemSensorKeys.AnalysisInfo, "AI analysis: info", Importance.Low,
-            c => c.GetValue("Ai:Enabled", false) && c.GetValue("Ai:Analysis:Enabled", true)),
         new(SystemSensorKeys.RouterOsAdvisories, "RouterOS advisories", Importance.High,
             c => c.GetValue("Mikrotik:Enabled", true) && c.GetValue("Mikrotik:Advisories:Enabled", true)),
         new(SystemSensorKeys.Files, "File storage", Importance.High, _ => true),

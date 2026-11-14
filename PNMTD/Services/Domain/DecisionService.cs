@@ -117,18 +117,12 @@ public sealed class DecisionService(PnmtdDbContext db, IEnumerable<IDecisionKind
         MailRuleProposal? rule = null;
         MailEvidence? mailEvidence = null;
         AiEvidence? ai = null;
-        FindingEvidence? finding = null;
         if (d.Kind.StartsWith("mail.", StringComparison.Ordinal))
         {
             var payload = DecisionBook.Payload<MailDecisionPayload>(d);
             (rule, mailEvidence, ai) = (payload.Proposal, payload.Mail, payload.Ai);
         }
-        else if (d.Kind == AnalysisFindingDecision.KindName)
-        {
-            var payload = DecisionBook.Payload<FindingPayload>(d);
-            (finding, ai) = (payload.Finding, payload.Ai);
-        }
-        return new DecisionDetail(Item(d), d.State == DecisionState.Open ? options : [], rule, mailEvidence, ai, finding, d.Subjects, d.Result, d.Error);
+        return new DecisionDetail(Item(d), d.State == DecisionState.Open ? options : [], rule, mailEvidence, ai, d.Subjects, d.Result, d.Error);
     }
 
     private static DecisionItem Item(DecisionEntity d) =>

@@ -5,7 +5,9 @@ import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
 import type { S } from '@/api/resources'
 import ErrorState from '@/components/ErrorState.vue'
+import { ref } from 'vue'
 import { missingPlaceholders, setOverride } from './cookieAdmin'
+import PromptPreview from './PromptPreview.vue'
 import SectionActions from './SectionActions.vue'
 import SettingsHistory from './SettingsHistory.vue'
 import { useCookieDefaults, useSection } from './useSection'
@@ -21,6 +23,12 @@ const textOf = (p: S['CookiePromptItem']) => s.draft.value?.texts[p.key] ?? p.te
 const changed = (p: S['CookiePromptItem']) => s.draft.value?.texts[p.key] !== undefined
 function setText(p: S['CookiePromptItem'], text: string | undefined) {
   if (s.draft.value) setOverride(s.draft.value.texts, p.key, text ?? '', p.text)
+}
+const previewing = ref<string | null>(null)
+const previewTitle = ref('')
+function preview(p: S['CookiePromptItem']) {
+  previewTitle.value = p.label
+  previewing.value = p.key
 }
 function resetText(p: S['CookiePromptItem']) {
   if (s.draft.value) setOverride(s.draft.value.texts, p.key, p.text, p.text)
@@ -47,16 +55,26 @@ function resetText(p: S['CookiePromptItem']) {
             <label :for="`prompt-${p.key}`" class="label">{{ p.label }}</label>
             <span class="muted small">{{ p.usedFor }}</span>
             <Tag v-if="changed(p)" value="changed" severity="info" />
-            <Button
-              v-if="changed(p)"
-              label="Reset to default"
-              icon="pi pi-undo"
-              size="small"
-              severity="secondary"
-              text
-              class="reset"
-              @click="resetText(p)"
-            />
+            <span class="buttons">
+              <Button
+                v-if="changed(p)"
+                label="Reset to default"
+                icon="pi pi-undo"
+                size="small"
+                severity="secondary"
+                text
+                @click="resetText(p)"
+              />
+              <Button
+                label="Preview"
+                icon="pi pi-eye"
+                size="small"
+                severity="secondary"
+                text
+                :aria-label="`Preview: ${p.label}`"
+                @click="preview(p)"
+              />
+            </span>
           </div>
           <Textarea
             :id="`prompt-${p.key}`"
@@ -93,6 +111,7 @@ function resetText(p: S['CookiePromptItem']) {
     </div>
   </section>
   <SettingsHistory section="prompts" title="the prompts" @rolled-back="s.reload()" />
+  <PromptPreview v-model="previewing" :title="previewTitle" :dirty="s.dirty.value" />
 </template>
 
 <style scoped>
@@ -123,8 +142,9 @@ function resetText(p: S['CookiePromptItem']) {
   font-weight: 600;
 }
 
-.reset {
+.buttons {
   margin-left: auto;
+  display: flex;
 }
 
 .text {

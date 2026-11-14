@@ -19,15 +19,10 @@ public static class AiSetup
         services.AddSingleton<Decisions.IDecisionKind, Decisions.MailRuleDecision>();
         services.AddSingleton<Decisions.IDecisionKind, Decisions.MailSuspiciousDecision>();
         services.AddSingleton<Decisions.IDecisionKind, Decisions.MailOutcomeDecision>();
-        services.AddSingleton<Decisions.IDecisionKind, Decisions.AnalysisFindingDecision>();
         services.AddSingleton<Decisions.DecisionMaintenanceTask>();
         services.AddSingleton<IAiWorkHandler, Mails.MailAnalyseHandler>();
         services.AddSingleton<IAiWorkHandler, Mails.MailImproveHandler>();
         services.AddSingleton<IAiWorkHandler, Mails.MailEvaluateHandler>();
-        // The situation analysis (docs/ai-operations-plan.md §9).
-        services.AddSingleton<Analysis.SituationSnapshots>();
-        services.AddSingleton<Analysis.SituationScheduler>();
-        services.AddSingleton<IAiWorkHandler, Analysis.SituationHandler>();
         return services;
     }
 }

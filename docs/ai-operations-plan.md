@@ -520,6 +520,8 @@ AI comes in as one shared service (`PNMTD/Ai/`). Every use is a **typed task**: 
 
 ## 9. The situation analysis (R8)
 
+**Removed in 1.5:** Cookie's status replaces it (docs/cookie-plan.md §12). The migration `RemoveSituationAnalysis` drops its runs and findings, its three system sensors and its decisions. This section stays as the record.
+
 ### 9.1 What the AI sees: anonymised
 
 - **Code builds a snapshot:**

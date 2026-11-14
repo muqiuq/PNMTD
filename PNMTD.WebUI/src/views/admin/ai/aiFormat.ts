@@ -29,21 +29,3 @@ export const stateSeverity = (s: S['AiWorkState']): 'success' | 'danger' | 'warn
         : s === 'Cancelled'
           ? 'secondary'
           : 'info'
-
-/** The situation analysis (§9.3): its status, a finding's severity, and why a run started. */
-export const situationSeverity = (
-  s: S['SituationStatus'] | null | undefined,
-): 'success' | 'warn' | 'danger' | 'secondary' =>
-  s === 'Normal' ? 'success' : s === 'Degraded' ? 'warn' : s === 'Incident' ? 'danger' : 'secondary'
-
-export const findingSeverity = (s: S['FindingSeverity']): 'danger' | 'warn' | 'info' =>
-  s === 'Critical' ? 'danger' : s === 'Warning' ? 'warn' : 'info'
-
-export const triggerLabel = (t: string): string =>
-  ({
-    interval: 'Scheduled, something changed',
-    storm: 'Many sensors failed',
-    'uplink-back': 'The uplink came back',
-    'gateway-down': 'The gateway went down',
-    manual: 'Run by hand',
-  })[t] ?? t

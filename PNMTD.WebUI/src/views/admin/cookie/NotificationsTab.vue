@@ -3,7 +3,6 @@ import Button from 'primevue/button'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import InputText from 'primevue/inputtext'
-import Message from 'primevue/message'
 import MultiSelect from 'primevue/multiselect'
 import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
@@ -45,7 +44,7 @@ const users = useUserOptions()
 const groups = useGroupOptions()
 
 // --- contacts -------------------------------------------------------------------------------------------------------
-const userName = (id: string) => users.options.value.find((o) => o.value === id)?.label ?? users.unknown(id)
+const userName = (id: string) => users.options.value.find((o) => o.value === id)?.label ?? users.unknown()
 const newContact = ref<string | null>(null)
 const addable = computed(() =>
   users.options.value.filter((o) => !(s.draft.value?.contacts ?? []).some((c) => c.userId === o.value)),
@@ -136,15 +135,10 @@ const placed = (f: string) => f.startsWith('contacts.') || f.startsWith('rules.'
       @retry="s.settings.refetch()"
     />
     <template v-else-if="s.draft.value">
-      <Message v-if="!users.listed.value" severity="info" :closable="false" size="small">
-        Only admins can list PNMT's users and groups: you see the chosen ones by their ids, and can't add others.
-      </Message>
-
       <section class="panel" aria-labelledby="contacts-title">
         <div id="contacts-title" class="panel-header">
           Contacts
           <Select
-            v-if="users.listed.value"
             v-model="newContact"
             :options="addable"
             option-label="label"

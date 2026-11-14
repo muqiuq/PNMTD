@@ -36,8 +36,6 @@ public sealed class AiOptions
 
     public MailOptions Mail { get; set; } = new();
 
-    public AnalysisOptions Analysis { get; set; } = new();
-
     /// <summary>On, with a key: the AI can be called.</summary>
     public bool Usable => Enabled && !string.IsNullOrWhiteSpace(ApiKey);
 
@@ -92,12 +90,5 @@ public sealed class AiOptions
         public bool Enabled { get; set; } = true;
 
         public int WaitMinutes { get; set; } = 5;
-    }
-
-    public sealed class AnalysisOptions
-    {
-        public bool Enabled { get; set; } = true;
-
-        public int IntervalMinutes { get; set; } = 60;
     }
 }

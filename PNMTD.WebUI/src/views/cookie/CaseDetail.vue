@@ -43,6 +43,9 @@ const zabbixSeverity = (m: S['CaseMember']) => m.severity as S['ZabbixSeverity']
       <Tag :value="c.kind" severity="secondary" />
       <Tag :value="c.open ? 'open' : 'closed'" :severity="c.open ? 'info' : 'secondary'" />
       <Tag :value="c.importance" :severity="importanceSeverity(c.importance)" />
+      <RouterLink :to="{ name: 'cookie', params: { tab: 'trace' }, query: { case: c.id } }" class="trace-link"
+        >Trace of this case <i class="pi pi-angle-right" aria-hidden="true"
+      /></RouterLink>
     </div>
     <div class="panel-body body">
       <h2 class="title">{{ c.title }}</h2>
@@ -62,15 +65,22 @@ const zabbixSeverity = (m: S['CaseMember']) => m.severity as S['ZabbixSeverity']
           <dt>Next deadline</dt>
           <dd>{{ dutyName(c.next?.kind) }}, {{ formatAbsolute(c.next?.dueAt) }}</dd>
         </template>
-        <template v-if="c.hostId || c.locationId">
-          <dt>Where</dt>
-          <dd class="links">
-            <RouterLink v-if="c.hostId && canMonitoring" :to="{ name: 'host', params: { id: c.hostId } }"
-              >The host's page</RouterLink
-            >
-            <RouterLink v-if="c.locationId && canLocations" :to="{ name: 'location', params: { id: c.locationId } }"
-              >The location's page</RouterLink
-            >
+        <template v-if="c.hostId">
+          <dt>Host</dt>
+          <dd>
+            <RouterLink v-if="canMonitoring" :to="{ name: 'host', params: { id: c.hostId } }">{{
+              c.hostName ?? "The host's page"
+            }}</RouterLink>
+            <span v-else>{{ c.hostName ?? '–' }}</span>
+          </dd>
+        </template>
+        <template v-if="c.locationId">
+          <dt>Location</dt>
+          <dd>
+            <RouterLink v-if="canLocations" :to="{ name: 'location', params: { id: c.locationId } }">{{
+              c.locationName ?? "The location's page"
+            }}</RouterLink>
+            <span v-else>{{ c.locationName ?? '–' }}</span>
           </dd>
         </template>
         <template v-if="d.ownIssueUrl">
@@ -196,6 +206,12 @@ const zabbixSeverity = (m: S['CaseMember']) => m.severity as S['ZabbixSeverity']
 </template>
 
 <style scoped>
+.trace-link {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 0.929rem;
+}
+
 .center {
   display: flex;
   justify-content: center;

@@ -330,15 +330,19 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         {
             q = q.Where(t => t.CaseId != null && (t.Kind == "note" || t.Kind == "status" || t.Kind == "reply"));
         }
-        var rows = await q.OrderByDescending(t => t.Id).Take(Math.Clamp(query.Limit, 1, 500) * 2).ToListAsync(ct);
+        // Polling (afterId) gets the oldest new steps first, so that none is skipped; otherwise the newest.
+        var limit = Math.Clamp(query.Limit, 1, 500);
+        var rows = query.AfterId is null ? await q.OrderByDescending(t => t.Id).Take(limit * 2).ToListAsync(ct)
+            : await q.OrderBy(t => t.Id).Take(limit * 2).ToListAsync(ct);
         var caseIds = rows.Where(t => t.CaseId is not null).Select(t => t.CaseId!.Value).Distinct().ToList();
         var cases = await db.CookieCases.AsNoTracking().Where(c => caseIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id, ct);
         var privacy = services.GetRequiredService<PrivacyFilter>();
         await privacy.EnsureLoadedAsync(ct);
         var visible = rows.Where(t => CookieAccess.CanSee(rights, t.Areas)
                 && (t.CaseId is not { } id || (cases.TryGetValue(id, out var c) && CookieAccess.CanSee(rights, user.UserId(), c))))
-            .Take(Math.Clamp(query.Limit, 1, 500))
-            .Select(t => new CookieTraceItem(t.Id, t.RoundId, t.CaseId, t.At, t.Kind, privacy.Unmask(t.Title), privacy.Unmask(t.Body), t.Areas)).ToList();
+            .Take(limit)
+            .Select(t => new CookieTraceItem(t.Id, t.RoundId, t.CaseId, t.CaseId is { } id && cases.TryGetValue(id, out var c) ? privacy.Unmask(c.Title) : null, t.At,
+                t.Kind, privacy.Unmask(t.Title), privacy.Unmask(t.Body), t.Areas)).ToList();
         return new CookieTrace(visible, full);
     }
 
