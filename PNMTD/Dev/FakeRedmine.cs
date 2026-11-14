@@ -17,6 +17,9 @@ public sealed class FakeRedmine : HttpMessageHandler
     public const string Url = "http://redmine.test";
     public const string Key = "test-redmine-key-0123456789";
 
+    /// <summary>Cookie's key for writing (docs/cookie-plan.md §19.1): only it may create tickets and add notes.</summary>
+    public const string WriteKey = "test-redmine-write-key-9876543210";
+
     public static readonly IReadOnlyDictionary<string, string?> Settings = new Dictionary<string, string?>
     {
         ["Redmine:Url"] = Url,
@@ -24,6 +27,13 @@ public sealed class FakeRedmine : HttpMessageHandler
         ["Redmine:Projects"] = "it-support network",
         ["Redmine:PublicUrl"] = "https://redmine.example.com",
     };
+
+    /// <summary>The settings with Cookie's write key as well.</summary>
+    public static readonly IReadOnlyDictionary<string, string?> WritableSettings =
+        new Dictionary<string, string?>(Settings) { ["Redmine:WriteApiKey"] = WriteKey };
+
+    /// <summary>Every write: the method, the path and the body.</summary>
+    public List<(string Method, string Path, JsonObject Body)> Writes { get; } = [];
 
 
     public List<HttpRequestMessage> Requests { get; } = [];
@@ -70,11 +80,16 @@ public sealed class FakeRedmine : HttpMessageHandler
         {
             throw new HttpRequestException("Connection refused (redmine.test:80)");
         }
-        if (RefuseKey || request.Headers.TryGetValues("X-Redmine-API-Key", out var keys) is false || keys.Single() != Key)
+        if (RefuseKey || request.Headers.TryGetValues("X-Redmine-API-Key", out var keys) is false || keys.Single() is not (Key or WriteKey))
         {
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Unauthorized));
         }
         var path = request.RequestUri!.AbsolutePath;
+        if (request.Method != HttpMethod.Get)
+        {
+            return Task.FromResult(keys.Single() == WriteKey ? Write(request.Method, path, request.Content!.ReadAsStringAsync().GetAwaiter().GetResult())
+                : new HttpResponseMessage(HttpStatusCode.Forbidden));
+        }
         var query = Parse(request.RequestUri.Query);
         return Task.FromResult(path switch
         {
@@ -86,6 +101,11 @@ public sealed class FakeRedmine : HttpMessageHandler
                 ["total_count"] = 4, ["offset"] = 0, ["limit"] = 100,
             }),
             "/issue_statuses.json" => File("statuses.json"),
+            "/roles.json" => Json(new JsonObject
+            {
+                ["roles"] = new JsonArray(new JsonObject { ["id"] = 3, ["name"] = "Manager" }, new JsonObject { ["id"] = 4, ["name"] = "Developer" },
+                    new JsonObject { ["id"] = 5, ["name"] = "Reporter" }),
+            }),
             "/trackers.json" => File("trackers.json"),
             "/enumerations/issue_priorities.json" => File("priorities.json"),
             var p when p.StartsWith("/projects/", StringComparison.Ordinal) && p.EndsWith("/memberships.json", StringComparison.Ordinal) => File("memberships.json"),
@@ -93,6 +113,55 @@ public sealed class FakeRedmine : HttpMessageHandler
             var p when p.StartsWith("/issues/", StringComparison.Ordinal) && p.EndsWith(".json", StringComparison.Ordinal) => One(int.Parse(p[8..^5])),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound),
         });
+    }
+
+    /// <summary>Creating a ticket (POST /issues.json) and adding a note (PUT /issues/{id}.json), as Redmine 6.0 answers them.</summary>
+    private HttpResponseMessage Write(HttpMethod method, string path, string text)
+    {
+        var body = JsonNode.Parse(text)!.AsObject();
+        lock (Writes)
+        {
+            Writes.Add((method.Method, path, body));
+        }
+        var fields = body["issue"]!.AsObject();
+        var now = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture);
+        if (method == HttpMethod.Post && path == "/issues.json")
+        {
+            if (string.IsNullOrWhiteSpace(fields["subject"]?.GetValue<string>()))
+            {
+                return new HttpResponseMessage(HttpStatusCode.UnprocessableEntity) { Content = new StringContent("{\"errors\":[\"Subject cannot be blank\"]}") };
+            }
+            var projectId = fields["project_id"]!.GetValue<int>();
+            var id = Issues.Keys.Max() + 1;
+            var issue = new JsonObject
+            {
+                ["id"] = id, ["project"] = new JsonObject { ["id"] = projectId, ["name"] = projectId == 3 ? "Network" : "IT Support" },
+                ["tracker"] = new JsonObject { ["id"] = 1, ["name"] = "Bug" },
+                ["status"] = new JsonObject { ["id"] = 1, ["name"] = "New", ["is_closed"] = false },
+                ["priority"] = new JsonObject { ["id"] = 2, ["name"] = "Normal" }, ["author"] = new JsonObject { ["id"] = 9, ["name"] = "PNMT Cookie" },
+                ["subject"] = fields["subject"]!.GetValue<string>(), ["description"] = fields["description"]?.GetValue<string>(),
+                ["is_private"] = false, ["created_on"] = now, ["updated_on"] = now,
+            };
+            Issues[id] = issue;
+            return new HttpResponseMessage(HttpStatusCode.Created)
+            {
+                Content = new StringContent(new JsonObject { ["issue"] = JsonNode.Parse(issue.ToJsonString()) }.ToJsonString(), Encoding.UTF8, "application/json"),
+            };
+        }
+        if (method == HttpMethod.Put && path.StartsWith("/issues/", StringComparison.Ordinal) && path.EndsWith(".json", StringComparison.Ordinal)
+            && Issues.TryGetValue(int.Parse(path[8..^5]), out var existing))
+        {
+            var journals = existing["journals"]?.AsArray() ?? [];
+            journals.Add(new JsonObject
+            {
+                ["id"] = 9000 + journals.Count, ["user"] = new JsonObject { ["id"] = 9, ["name"] = "PNMT Cookie" }, ["notes"] = fields["notes"]?.GetValue<string>(),
+                ["created_on"] = now, ["private_notes"] = fields["private_notes"]?.GetValue<bool>() ?? false, ["details"] = new JsonArray(),
+            });
+            existing["journals"] = journals;
+            existing["updated_on"] = now;
+            return new HttpResponseMessage(HttpStatusCode.NoContent);
+        }
+        return new HttpResponseMessage(HttpStatusCode.NotFound);
     }
 
     private HttpResponseMessage One(int id)

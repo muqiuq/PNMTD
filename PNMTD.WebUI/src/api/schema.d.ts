@@ -2665,6 +2665,87 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cookie/admin/outbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    state?: components["schemas"]["CookieOutboxState"];
+                    channel?: components["schemas"]["CookieChannel"];
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfCookieOutboxItem"];
+                        "text/json": components["schemas"]["PagedOfCookieOutboxItem"];
+                        "text/plain": components["schemas"]["PagedOfCookieOutboxItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/outbox/{id}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieOutboxItem"];
+                        "text/json": components["schemas"]["CookieOutboxItem"];
+                        "text/plain": components["schemas"]["CookieOutboxItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cookie/admin/defaults": {
         parameters: {
             query?: never;
@@ -13656,6 +13737,8 @@ export interface components {
             redmineWritable: boolean;
             aiUsable: boolean;
             duties: components["schemas"]["CookieDutyCount"][];
+            /** Format: int32 */
+            heldBackToday: number;
         };
         CookieAllSettings: {
             identity: components["schemas"]["IdentitySettings"];
@@ -13710,6 +13793,8 @@ export interface components {
             id: string;
             title: string;
         };
+        /** @enum {unknown} */
+        CookieChannel: "Email" | "Pushover" | "RedmineNote" | "RedminePrivateNote" | "RedmineTicket";
         CookieContact: {
             /** Format: uuid */
             userId: string;
@@ -13763,6 +13848,28 @@ export interface components {
             actor: string;
             actorName: null | string;
         };
+        CookieOutboxItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            createdAt: string;
+            channel: components["schemas"]["CookieChannel"];
+            recipient: string;
+            /** Format: int32 */
+            issueId: null | number;
+            subject: string;
+            body: string;
+            state: components["schemas"]["CookieOutboxState"];
+            detail: null | string;
+            source: string;
+            /** Format: uuid */
+            caseId: null | string;
+            /** Format: date-time */
+            sentAt: null | string;
+            sentByName: null | string;
+        };
+        /** @enum {unknown} */
+        CookieOutboxState: "Sent" | "HeldBack" | "Failed" | "Simulated";
         CookiePromptItem: {
             key: string;
             label: string;
@@ -16473,6 +16580,15 @@ export interface components {
         };
         PagedOfCookieCaseItem: {
             items: components["schemas"]["CookieCaseItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfCookieOutboxItem: {
+            items: components["schemas"]["CookieOutboxItem"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */

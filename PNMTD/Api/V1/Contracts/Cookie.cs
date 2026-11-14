@@ -79,7 +79,8 @@ public sealed record CookieAdminOverview(
     bool RedmineConfigured,
     bool RedmineWritable,
     bool AiUsable,
-    IReadOnlyList<CookieDutyCount> Duties);
+    IReadOnlyList<CookieDutyCount> Duties,
+    int HeldBackToday);
 
 /// <summary>How the duties of one kind ended in the last 7 days.</summary>
 public sealed record CookieDutyCount(CookieDutyKind Kind, bool On, int Due, int Done, int HeldBack, int Off, int Failed);
@@ -110,3 +111,21 @@ public sealed record CookiePromptItem(string Key, string Label, string UsedFor, 
 /// <summary>What Admin → Cookie → Redmine chooses from: the projects PNMT shows, their roles and the statuses.</summary>
 public sealed record CookieRedmineLookups(bool Configured, bool Writable, IReadOnlyList<RedmineNamed> Projects, IReadOnlyList<RedmineNamed> Roles,
     IReadOnlyList<RedmineNamed> Statuses, IReadOnlyList<RedmineNamed> Trackers, string? Error);
+
+public sealed record CookieOutboxQuery(CookieOutboxState? State = null, CookieChannel? Channel = null, int Page = 1, int PageSize = 50);
+
+/// <summary>A row of the outbox (§6.1). The address is never shown: only the person's name, or the ticket.</summary>
+public sealed record CookieOutboxItem(
+    long Id,
+    DateTime CreatedAt,
+    CookieChannel Channel,
+    string Recipient,
+    int? IssueId,
+    string Subject,
+    string Body,
+    CookieOutboxState State,
+    string? Detail,
+    string Source,
+    Guid? CaseId,
+    DateTime? SentAt,
+    string? SentByName);

@@ -592,8 +592,11 @@ public static class CookieStatusRules
     }
 }
 
-/// <summary>Runs the case book every <c>Cookie:CaseBookSeconds</c> (30), and reads the tickets every <c>Cookie:TicketsMinutes</c> (5).</summary>
-public sealed class CaseBookTask(CaseBook book, IOptionsMonitor<CookieOptions> options, ILogger<CaseBookTask> logger) : BackgroundService
+/// <summary>
+/// Runs the case book every <c>Cookie:CaseBookSeconds</c> (30), reading the tickets every <c>Cookie:TicketsMinutes</c> (5), and then
+/// the duties that are due.
+/// </summary>
+public sealed class CaseBookTask(CaseBook book, DutyRunner duties, IOptionsMonitor<CookieOptions> options, ILogger<CaseBookTask> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -612,6 +615,8 @@ public sealed class CaseBookTask(CaseBook book, IOptionsMonitor<CookieOptions> o
                     {
                         ticketsAt = Clock.UtcNow;
                     }
+                    // The duties that fell due (docs/cookie-plan.md §19.1): they keep running whether Cookie is started or not.
+                    await duties.RunAsync(stoppingToken);
                 }
                 catch (Exception e) when (e is not OperationCanceledException)
                 {

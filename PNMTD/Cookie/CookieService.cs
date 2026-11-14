@@ -140,9 +140,39 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
             Count(k, CookieDutyState.Done), Count(k, CookieDutyState.HeldBack), Count(k, CookieDutyState.Off),
             Count(k, CookieDutyState.Failed) + Count(k, CookieDutyState.NotPossible))).ToList();
         var r = redmineOptions.CurrentValue;
+        var today = Clock.ToUtc(Clock.LocalNow.Date);
+        var heldBack = await db.CookieOutbox.CountAsync(o => o.CreatedAt >= today && o.State == CookieOutboxState.HeldBack, ct);
         return new CookieAdminOverview(status, runtime.CodeReason, runtime.CodeStatus, runtime.CaseBookAt, runtime.TicketsAt, runtime.CaseBookError,
             open.Where(o => o.Key == CookieCaseKind.Problem).Sum(o => o.Count), open.Where(o => o.Key == CookieCaseKind.Ticket).Sum(o => o.Count),
-            due, r.Enabled, r.CanWrite, ai.CurrentValue.Usable, counts);
+            due, r.Enabled, r.CanWrite, ai.CurrentValue.Usable, counts, heldBack);
+    }
+
+    public async Task<Paged<CookieOutboxItem>> OutboxAsync(CookieOutboxQuery query, CancellationToken ct)
+    {
+        var size = Math.Clamp(query.PageSize, 1, 200);
+        var page = Math.Max(1, query.Page);
+        IQueryable<CookieOutboxEntity> q = db.CookieOutbox.AsNoTracking();
+        if (query.State is { } state)
+        {
+            q = q.Where(o => o.State == state);
+        }
+        if (query.Channel is { } channel)
+        {
+            q = q.Where(o => o.Channel == channel);
+        }
+        var total = await q.CountAsync(ct);
+        var items = await q.OrderByDescending(o => o.Id).Skip((page - 1) * size).Take(size)
+            .Select(o => new CookieOutboxItem(o.Id, o.CreatedAt, o.Channel, o.Recipient, o.IssueId, o.Subject, o.Body, o.State, o.Detail, o.Source, o.CaseId,
+                o.SentAt, o.SentByName))
+            .ToListAsync(ct);
+        return new Paged<CookieOutboxItem>(items, page, size, total);
+    }
+
+    public async Task<CookieOutboxItem> SendHeldBackAsync(long id, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var o = await services.GetRequiredService<Outbox>().SendHeldBackAsync(id, user.UserId(), user.Identity?.Name ?? "", ct);
+        return new CookieOutboxItem(o.Id, o.CreatedAt, o.Channel, o.Recipient, o.IssueId, o.Subject, o.Body, o.State, o.Detail, o.Source, o.CaseId, o.SentAt,
+            o.SentByName);
     }
 
     public async Task<CookieAllSettings> SettingsAsync(CancellationToken ct) => new(

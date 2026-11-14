@@ -159,6 +159,8 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/cookie/cases/{id:guid}"] = ("Cookie:Use", Roles.Admin),
         ["GET /api/v1/cookie/admin/overview"] = ("Cookie:Manage", Roles.Admin),
         ["GET /api/v1/cookie/admin/settings"] = ("Cookie:Manage", Roles.Admin),
+        ["GET /api/v1/cookie/admin/outbox"] = ("Cookie:Manage", Roles.Admin),
+        ["POST /api/v1/cookie/admin/outbox/{id:long}/send"] = ("Cookie:Manage", Roles.Admin),
         ["GET /api/v1/cookie/admin/defaults"] = ("Cookie:Manage", Roles.Admin),
         ["GET /api/v1/cookie/admin/redmine"] = ("Cookie:Manage", Roles.Admin),
         ["PUT /api/v1/cookie/admin/settings/identity"] = ("Cookie:Manage", Roles.Admin),

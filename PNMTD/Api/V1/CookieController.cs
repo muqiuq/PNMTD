@@ -39,6 +39,14 @@ public sealed class CookieAdminController(CookieService cookie) : V1ControllerBa
     [HttpGet("settings")]
     public async Task<CookieAllSettings> Settings(CancellationToken ct) => await cookie.SettingsAsync(ct);
 
+    /// <summary>What went out, and what a limit held back (§6.1).</summary>
+    [HttpGet("outbox")]
+    public async Task<Paged<CookieOutboxItem>> Outbox([FromQuery] CookieOutboxQuery query, CancellationToken ct) => await cookie.OutboxAsync(query, ct);
+
+    [HttpPost("outbox/{id:long}/send")]
+    [Audit(AuditEvents.CookieHeldBackSent)]
+    public async Task<CookieOutboxItem> Send(long id, CancellationToken ct) => await cookie.SendHeldBackAsync(id, User, ct);
+
     [HttpGet("defaults")]
     public CookieDefaults Defaults() => cookie.Defaults();
 

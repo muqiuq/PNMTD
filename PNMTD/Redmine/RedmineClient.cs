@@ -96,6 +96,77 @@ public sealed class RedmineClient(IHttpClientFactory http, IOptionsMonitor<Redmi
     }
 
     /// <summary>
+    /// A write with Redmine__WriteApiKey (docs/cookie-plan.md §19.1), never the reading key: POST or PUT with a JSON body. The
+    /// answer's JSON (a created ticket), or null (204). Redmine's own messages on a 422 come back in the exception.
+    /// </summary>
+    public async Task<JsonDocument?> WriteAsync(HttpMethod method, string path, object body, CancellationToken ct)
+    {
+        var o = options.CurrentValue;
+        if (!o.CanWrite)
+        {
+            throw new RedmineException(RedmineFailure.NotConfigured, "Writing to Redmine needs Redmine__WriteApiKey.");
+        }
+        using var client = http.CreateClient(HttpClientName);
+        using var request = new HttpRequestMessage(method, new Uri(o.Url!.TrimEnd('/') + path))
+        {
+            Content = new StringContent(JsonSerializer.Serialize(body, Json), System.Text.Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Add("X-Redmine-API-Key", o.WriteApiKey);
+        request.Headers.Accept.ParseAdd("application/json");
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(o.TimeoutSeconds, 2, 120)));
+        HttpResponseMessage response;
+        try
+        {
+            response = await client.SendAsync(request, timeout.Token);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new RedmineException(RedmineFailure.Unreachable, $"Redmine didn't answer within {o.TimeoutSeconds} seconds.");
+        }
+        catch (HttpRequestException e)
+        {
+            throw new RedmineException(RedmineFailure.Unreachable, $"Redmine doesn't answer: {e.Message}");
+        }
+        using (response)
+        {
+            var text = await response.Content.ReadAsStringAsync(timeout.Token);
+            switch (response.StatusCode)
+            {
+                case HttpStatusCode.Unauthorized:
+                    throw new RedmineException(RedmineFailure.Unauthorized, "Redmine refused the write key (Redmine__WriteApiKey).");
+                case HttpStatusCode.Forbidden:
+                    throw new RedmineException(RedmineFailure.Forbidden, "Redmine's account for Cookie may not write this.");
+                case HttpStatusCode.NotFound:
+                    throw new RedmineException(RedmineFailure.NotFound, "Not found in Redmine.");
+                case HttpStatusCode.UnprocessableEntity:
+                    throw new RedmineException(RedmineFailure.Invalid, $"Redmine refused it: {Errors(text)}");
+            }
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new RedmineException(RedmineFailure.Unreachable, $"Redmine answered {(int)response.StatusCode}.");
+            }
+            return string.IsNullOrWhiteSpace(text) ? null : JsonDocument.Parse(text);
+        }
+    }
+
+    private static string Errors(string body)
+    {
+        try
+        {
+            using var json = JsonDocument.Parse(body);
+            if (json.RootElement.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Array)
+            {
+                return string.Join("; ", errors.EnumerateArray().Select(e => e.ToString()));
+            }
+        }
+        catch (JsonException)
+        {
+        }
+        return body.Length > 200 ? body[..200] : body;
+    }
+
+    /// <summary>
     /// The handler: the system's certificate validation, and with Redmine__CertificateSha256 also that certificate (its
     /// SHA-256, colons and case ignored), for a server with a certificate of its own.
     /// </summary>

@@ -45,6 +45,8 @@ public static class CookieSetup
         services.AddSingleton<CookieSettings>();
         services.AddSingleton<CookieSignals>();
         services.AddSingleton<CaseBook>();
+        services.AddSingleton<Outbox>();
+        services.AddSingleton<DutyRunner>();
         services.AddSingleton<CaseBookTask>();
         services.AddScoped<CookieService>();
         return services;
