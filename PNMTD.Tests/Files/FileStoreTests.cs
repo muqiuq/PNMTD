@@ -63,7 +63,8 @@ public sealed class FileStoreTests
         Assert.AreEqual("image/jpeg", item.ContentType, "the bytes decide, not the name or the type sent");
         Assert.AreEqual((8, 8), (item.Width, item.Height));
         Assert.AreEqual(clean.Length, item.Size);
-        Assert.AreEqual($"/api/v1/files/{item.Id}/cage-b-rack-4.gif", item.Url);
+        Assert.AreEqual("Cage B (rack 4).jpg", item.Name, "named by its type");
+        Assert.AreEqual($"/api/v1/files/{item.Id}/cage-b-rack-4.jpg", item.Url);
         Assert.AreEqual(0, Leftovers().Length, "nothing left in .tmp/");
 
         await using var db = app.NewDb();
@@ -87,6 +88,50 @@ public sealed class FileStoreTests
 
         using var again = await UploadAsync(user, "image", "the same.jpg", withMetadata);
         Assert.AreEqual(item.Id, (await again.ReadAsync<FileItem>()).Id, "the same bytes give the same file");
+    }
+
+    [TestMethod]
+    public async Task An_image_is_named_and_saved_by_its_type_and_blocked_names_are_refused_for_every_kind()
+    {
+        var user = app.Client(Roles.User);
+        // A JPEG with script lines in an APP3 segment, which stays: what matters is the name a browser saves it under.
+        var plain = File.ReadAllBytes(TestImages.Fixture("plain.jpg"));
+        var script = "@echo off\r\ndel /q *\r\n"u8.ToArray();
+        byte[] app3 = [0xFF, 0xE3, 0, (byte)(script.Length + 2), .. script];
+        byte[] jpeg = [.. plain[..2], .. app3, .. plain[2..]];
+        using (var blocked = await UploadAsync(user, "image", "invoice.cmd", jpeg))
+        {
+            Assert.AreEqual(HttpStatusCode.UnprocessableEntity, blocked.StatusCode);
+            StringAssert.Contains(await blocked.Content.ReadAsStringAsync(), FileErrors.BlockedType);
+        }
+        using var renamed = await UploadAsync(user, "image", "invoice.txt", jpeg);
+        var item = await renamed.ReadAsync<FileItem>();
+        Assert.AreEqual("invoice.jpg", item.Name);
+        StringAssert.EndsWith(item.Url, "/invoice.jpg");
+        using var served = await app.Client(Roles.Viewer).GetAsync(item.Url);
+        Assert.AreEqual("inline", served.Content.Headers.ContentDisposition!.DispositionType);
+        Assert.AreEqual("invoice.jpg", served.Content.Headers.ContentDisposition.FileName?.Trim('"'));
+        Assert.AreEqual("Screenshot.png", (await (await UploadAsync(user, "image", "Screenshot", TestImages.Png(4, 4))).ReadAsync<FileItem>()).Name);
+        Assert.AreEqual("photo.jpeg", (await (await UploadAsync(user, "image", "photo.jpeg", plain)).ReadAsync<FileItem>()).Name, "an alias stays");
+    }
+
+    [TestMethod]
+    public async Task An_attachment_pasted_again_as_an_image_becomes_that_image()
+    {
+        var user = app.Client(Roles.User);
+        var png = TestImages.Png(5, 3);
+        var attachment = await (await UploadAsync(user, "attachment", "plan.bin", png)).ReadAsync<FileItem>();
+        Assert.AreEqual(FileKind.Attachment, attachment.Kind);
+        var image = await (await UploadAsync(user, "image", "pasted.png", png)).ReadAsync<FileItem>();
+        Assert.AreEqual(attachment.Id, image.Id, "stored once per content");
+        Assert.AreEqual(FileKind.Image, image.Kind);
+        Assert.AreEqual(("image/png", 5, 3), (image.ContentType, image.Width, image.Height));
+        Assert.AreEqual("plan.png", image.Name);
+        using var served = await app.Client(Roles.Viewer).GetAsync(image.Url);
+        Assert.AreEqual("image/png", served.Content.Headers.ContentType!.MediaType);
+        Assert.AreEqual("inline", served.Content.Headers.ContentDisposition!.DispositionType);
+        var again = await (await UploadAsync(user, "attachment", "plan.bin", png)).ReadAsync<FileItem>();
+        Assert.AreEqual((image.Id, FileKind.Image), (again.Id, again.Kind), "an image serves an attachment's upload as it is");
     }
 
     [TestMethod]

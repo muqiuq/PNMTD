@@ -73,6 +73,18 @@ public sealed class FileUsesTests
     }
 
     [TestMethod]
+    [DataRow("invoice.cmd", "jpg", "invoice.jpg")]
+    [DataRow("photo.JPEG", "jpg", "photo.JPEG")]
+    [DataRow("Screenshot", "png", "Screenshot.png")]
+    [DataRow("Floor plan v2.1", "webp", "Floor plan v2.1.webp")]
+    [DataRow("animation.png", "gif", "animation.gif")]
+    public void An_images_name_ends_in_its_types_extension(string name, string extension, string expected)
+    {
+        Assert.AreEqual(expected, FileNames.ImageName(name, extension));
+        Assert.AreEqual(FileNames.MaxName, FileNames.ImageName(new string('a', 255), "webp").Length);
+    }
+
+    [TestMethod]
     public void A_long_name_keeps_its_extension_and_the_url_names_the_file()
     {
         var slug = FileNames.Slug(new string('a', 200) + ".docx");

@@ -72,6 +72,24 @@ public sealed class MarkdownTextTests
     }
 
     [TestMethod]
+    public void Files_in_footnotes_and_anywhere_in_the_raw_text_count_after_the_links_so_none_is_lost()
+    {
+        var footnote = Guid.Parse("0195aaaa-bbbb-7ccc-8ddd-eeeeffff0001");
+        var inCode = Guid.Parse("0195aaaa-bbbb-7ccc-8ddd-eeeeffff0002");
+        var absolute = Guid.Parse("0195aaaa-bbbb-7ccc-8ddd-eeeeffff0003");
+        var facts = MarkdownText.Read($"""
+            The UPS[^ups] is in [the manual](/api/v1/files/{Manual}/ups.pdf).
+
+            Copy it with `curl -O https://pnmt/api/v1/files/{inCode}/x.bin`; the old link was <https://pnmt.example.com/api/v1/files/{absolute}/old.png>.
+            <!-- /api/v1/files/{Manual} -->
+
+            [^ups]: Its wiring: ![wiring](/api/v1/files/{footnote}/wiring.png)
+            """);
+        CollectionAssert.AreEqual(new[] { Manual, footnote, inCode, absolute }, facts.FileIds.ToArray());
+        StringAssert.Contains(facts.PlainText, "Its wiring: wiring");
+    }
+
+    [TestMethod]
     public void Empty_and_odd_input_read_safely()
     {
         Assert.AreEqual(new MarkdownFacts("", [], []).PlainText, MarkdownText.Read("").PlainText);

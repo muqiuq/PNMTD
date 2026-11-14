@@ -23,8 +23,9 @@ public sealed record MarkdownFacts(string PlainText, IReadOnlyList<Guid> FileIds
 /// <item><b>The plain text</b> keeps what a reader sees: text, link texts (so attachments' names), bare URLs, alt texts and
 ///   code, mermaid blocks included. It leaves out image and link targets and titles. One line per block, a tab between
 ///   table cells.</item>
-/// <item><b>Files</b> are references through <c>/api/v1/files/{id}/…</c>, as images and as links (§5.1). Absolute URLs
-///   aren't PNMT's files: the reader shows them as other sites' (§5.6).</item>
+/// <item><b>Files</b> are references through <c>/api/v1/files/{id}/…</c>, as images and as links (§5.1), footnotes
+///   included; then, since a file no save names is deleted, every <c>/api/v1/files/{id}</c> anywhere in the raw text (in
+///   code, a reference definition, an absolute URL). A file named there needlessly only stays longer.</item>
 /// <item><b>Pages</b> are links to <c>/pnmt-admin/kb/{number}</c>, with or without a sub-path (<c>/history</c>).</item>
 /// </list>
 /// </summary>
@@ -33,6 +34,7 @@ public static partial class MarkdownText
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UsePipeTables()
         .UseTaskLists()
+        .UseFootnotes()
         .UseEmphasisExtras(Markdig.Extensions.EmphasisExtras.EmphasisExtraOptions.Strikethrough)
         .UseAutoLinks()
         .DisableHtml()
@@ -46,8 +48,19 @@ public static partial class MarkdownText
         }
         var reader = new Reader();
         reader.Blocks(Markdown.Parse(markdown, Pipeline));
-        return new MarkdownFacts(reader.Text(), reader.FileIds, reader.PageNumbers);
+        var fileIds = reader.FileIds;
+        foreach (Match m in AnyFileUrl().Matches(markdown))
+        {
+            if (Guid.TryParse(m.Groups[1].Value, out var id) && !fileIds.Contains(id))
+            {
+                fileIds.Add(id);
+            }
+        }
+        return new MarkdownFacts(reader.Text(), fileIds, reader.PageNumbers);
     }
+
+    [GeneratedRegex(@"/api/v1/files/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?![0-9a-fA-F])", RegexOptions.None, 1000)]
+    private static partial Regex AnyFileUrl();
 
     /// <summary>The file a URL points to: <c>/api/v1/files/{id}</c>, then the end, a <c>/</c>, <c>?</c> or <c>#</c>.</summary>
     public static Guid? FileId(string? url) =>

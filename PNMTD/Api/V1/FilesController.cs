@@ -72,13 +72,14 @@ public sealed class FilesController(FileStore store, FileAdmin admin, UploadGuar
         var modified = new DateTimeOffset(DateTime.SpecifyKind(file.CreatedAt, DateTimeKind.Utc));
         if (file.Kind == FileKind.Image)
         {
+            // With its detected type's extension, whatever it was uploaded as: saved, it is what it shows (§8.6).
             var inline = new ContentDispositionHeaderValue("inline");
-            inline.SetHttpFileName(file.Name);
+            inline.SetHttpFileName(FileNames.NameOf(file));
             Response.Headers.ContentDisposition = inline.ToString();
             return File(stream, file.ContentType, modified, etag, enableRangeProcessing: true);
         }
         // Never inline, whatever was uploaded (§8.6): a download, with the name in RFC 5987 form for non-ASCII.
-        return File(stream, "application/octet-stream", file.Name, modified, etag, enableRangeProcessing: true);
+        return File(stream, "application/octet-stream", FileNames.NameOf(file), modified, etag, enableRangeProcessing: true);
     }
 
     /// <summary>The Admin's overview (§10.6): totals, the folder, the files by size, unused ones, unknown ones on disk.</summary>

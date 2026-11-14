@@ -93,7 +93,7 @@ A backup folder holds three files:
 
 - `database.pgdump`, made with `pg_dump --format=custom`.
 - `keys.tar.gz`, the Data Protection keys. Without them, sessions end and the 2FA secrets can no longer be read.
-- `files.tar`, the folder of uploaded files, taken after the database and uncompressed (images and documents are compressed already). Files are only ever added meanwhile, and deleted ones stay on disk for 7 days, so every file the dump names is in the tar. `--no-files` leaves it out.
+- `files.tar`, the folder of uploaded files, taken after the database and uncompressed (images and documents are compressed already). Uploads in between are only extra files, listed as unknown after a restore. A file the daily cleanup (7 days after it was marked deleted) or an Admin removes while the backup runs may be named by the dump and missing from the tar: the cleanup's are marked deleted and expected; an Admin's delete of those minutes shows as missing until it is deleted again. `--no-files` leaves it out.
 
 The folder is `0700` and its files are `0600`, because they hold password hashes. A backup does not include `.env`; keep a copy of that somewhere else.
 

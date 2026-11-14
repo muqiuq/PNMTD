@@ -71,10 +71,12 @@ public sealed partial class FileStore(IDbContextFactory<PnmtdDbContext> dbs, IOp
     public async Task<FileItem> StoreAsync(Stream body, FileKind kind, string? name, string? contentType, FileActor actor, CancellationToken ct)
     {
         var fileName = CleanName(name);
-        if (kind == FileKind.Attachment && BlockedExtension(fileName, options.CurrentValue.BlockedExtensionSet) is { } blocked)
+        // Every kind: an image's name is replaced by its detected type's extension below, but a name such as invoice.cmd
+        // says what the uploader meant (§8.6).
+        if (BlockedExtension(fileName, options.CurrentValue.BlockedExtensionSet) is { } blocked)
         {
             throw new ApiException(StatusCodes.Status422UnprocessableEntity, FileErrors.BlockedType,
-                $"Files ending in .{blocked} can't be attached (KnowledgeBase:BlockedExtensions).");
+                $"Files ending in .{blocked} can't be uploaded (KnowledgeBase:BlockedExtensions).");
         }
         var temp = TempDirectory();
         var upload = Path.Combine(temp, $"{Guid.NewGuid():N}.upload");
@@ -94,13 +96,14 @@ public sealed partial class FileStore(IDbContextFactory<PnmtdDbContext> dbs, IOp
                         : new ApiException(StatusCodes.Status415UnsupportedMediaType, FileErrors.NotAnImage, refusal.Message);
                 }
                 image = info!;
+                fileName = FileNames.ImageName(fileName, image.Extension);
                 stored = Path.Combine(temp, $"{Guid.NewGuid():N}.stripped");
                 await WriteAllAsync(stored, stripped!, ct);
                 File.Delete(upload);
                 size = stripped!.Length;
                 sha = Convert.ToHexStringLower(SHA256.HashData(stripped));
             }
-            if (await ExistingAsync(sha, stored, ct) is { } existing)
+            if (await ExistingAsync(sha, stored, image, ct) is { } existing)
             {
                 return existing;
             }
@@ -133,7 +136,7 @@ public sealed partial class FileStore(IDbContextFactory<PnmtdDbContext> dbs, IOp
             {
                 // The same bytes, stored by someone else a moment ago.
                 File.Delete(target);
-                if (await ExistingAsync(sha, null, ct) is { } raced)
+                if (await ExistingAsync(sha, null, image, ct) is { } raced)
                 {
                     return raced;
                 }
@@ -271,20 +274,24 @@ public sealed partial class FileStore(IDbContextFactory<PnmtdDbContext> dbs, IOp
 
     /// <summary>
     /// The file with these bytes: a live one, or one marked deleted but still on disk, which is live again. A live one whose
-    /// bytes went missing from the folder gets them back from <paramref name="upload"/>: they are the same.
+    /// bytes went missing from the folder gets them back from <paramref name="upload"/>: they are the same. For an image
+    /// (<paramref name="image"/>), an attachment with these bytes becomes the image: they passed the check just now, and
+    /// were stripped already, as they are the stripped bytes. An image serves an attachment's upload as it is.
     /// </summary>
-    private async Task<FileItem?> ExistingAsync(string sha, string? upload, CancellationToken ct)
+    private async Task<FileItem?> ExistingAsync(string sha, string? upload, ImageInfo? image, CancellationToken ct)
     {
         await using var db = await dbs.CreateDbContextAsync(ct);
-        var candidates = await db.Files.Where(f => f.Sha256 == sha).OrderBy(f => f.DeletedAt != null).ThenByDescending(f => f.CreatedAt).ToListAsync(ct);
-        foreach (var file in candidates)
+        var candidates = await db.Files.AsNoTracking().Where(f => f.Sha256 == sha)
+            .OrderBy(f => f.DeletedAt != null).ThenByDescending(f => f.CreatedAt).ToListAsync(ct);
+        foreach (var candidate in candidates)
         {
+            var file = candidate;
             if (Locate(file.Path) is null)
             {
                 if (file.DeletedAt is null && upload is not null && Restore(file, upload))
                 {
                     logger.LogWarning("File {Id} was missing from the folder; restored from an upload of the same bytes", file.Id);
-                    return FileNames.Item(file);
+                    return FileNames.Item(await AsImageAsync(db, file, image, ct));
                 }
                 continue;
             }
@@ -294,12 +301,33 @@ public sealed partial class FileStore(IDbContextFactory<PnmtdDbContext> dbs, IOp
                 {
                     continue;
                 }
-                file.DeletedAt = null;
-                await db.SaveChangesAsync(ct);
+                // In one statement: the cleanup deletes the row first, so either it is still there to revive, or gone.
+                var id = file.Id;
+                await db.Files.Where(f => f.Id == id && f.DeletedAt != null).ExecuteUpdateAsync(u => u.SetProperty(f => f.DeletedAt, (DateTime?)null), ct);
+                if (await db.Files.AsNoTracking().SingleOrDefaultAsync(f => f.Id == id, ct) is not { DeletedAt: null } revived)
+                {
+                    continue;
+                }
+                file = revived;
             }
-            return FileNames.Item(file);
+            return FileNames.Item(await AsImageAsync(db, file, image, ct));
         }
         return null;
+    }
+
+    /// <summary>An attachment with an image's bytes, asked for as that image (§5.5): the row becomes the image, once.</summary>
+    private static async Task<FileEntity> AsImageAsync(PnmtdDbContext db, FileEntity file, ImageInfo? image, CancellationToken ct)
+    {
+        if (image is null || file.Kind != FileKind.Attachment)
+        {
+            return file;
+        }
+        var id = file.Id;
+        var name = FileNames.ImageName(file.Name, image.Extension);
+        await db.Files.Where(f => f.Id == id && f.Kind == FileKind.Attachment).ExecuteUpdateAsync(u => u
+            .SetProperty(f => f.Kind, FileKind.Image).SetProperty(f => f.ContentType, image.ContentType)
+            .SetProperty(f => f.Width, image.Width).SetProperty(f => f.Height, image.Height).SetProperty(f => f.Name, name), ct);
+        return await db.Files.AsNoTracking().SingleOrDefaultAsync(f => f.Id == id, ct) ?? file;
     }
 
     /// <summary>Moves the bytes to a live file's own path, when that path is inside the folder and free.</summary>

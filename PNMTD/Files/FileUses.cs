@@ -15,8 +15,9 @@ public static class FileUses
     /// <summary>
     /// Adds the uses that are missing, for exactly one of <paramref name="pageId"/> and <paramref name="locationId"/>, and
     /// returns the files newly used (a revision's <i>files added</i>). Unknown ids are ignored. A file marked deleted is
-    /// still on disk (FileCleanupTask deletes its row with it), so one referenced again is no longer deleted. Doesn't
-    /// save: the caller's SaveChanges writes the uses with the page or value.
+    /// still on disk (FileCleanupTask deletes its row first), so one referenced again is live again: at once, by a
+    /// conditional update, so the cleanup either sees it live or has deleted its row already, in which case it is
+    /// unknown here too. Doesn't save the uses: the caller's SaveChanges writes them with the page or value.
     /// </summary>
     public static async Task<IReadOnlyList<Guid>> RecordAsync(PnmtdDbContext db, IEnumerable<Guid> fileIds, Guid? pageId, Guid? locationId,
         CancellationToken ct)
@@ -30,7 +31,7 @@ public static class FileUses
         {
             return [];
         }
-        var files = await db.Files.Where(f => ids.Contains(f.Id)).ToListAsync(ct);
+        var files = await db.Files.AsNoTracking().Where(f => ids.Contains(f.Id)).ToListAsync(ct);
         var used = pageId is { } page
             ? await db.FileUses.Where(u => u.PageId == page && ids.Contains(u.FileId)).Select(u => u.FileId).ToListAsync(ct)
             : await db.FileUses.Where(u => u.LocationId == locationId && ids.Contains(u.FileId)).Select(u => u.FileId).ToListAsync(ct);
@@ -40,10 +41,17 @@ public static class FileUses
         var added = new List<Guid>();
         foreach (var file in ids.Select(id => files.FirstOrDefault(f => f.Id == id)).OfType<FileEntity>())
         {
-            if (file.DeletedAt is not null && !await db.Files.AnyAsync(f => f.Sha256 == file.Sha256 && f.Id != file.Id && f.DeletedAt == null, ct))
+            if (file.DeletedAt is not null)
             {
-                // One live file per content (§5.5); FileStore revives a deleted one on the same upload, so this is the rule.
-                file.DeletedAt = null;
+                // One live file per content (§5.5): revived unless another live row holds the same bytes, which it then stays.
+                var id = file.Id;
+                await db.Files.Where(f => f.Id == id && f.DeletedAt != null && !db.Files.Any(o => o.Sha256 == f.Sha256 && o.Id != f.Id && o.DeletedAt == null))
+                    .ExecuteUpdateAsync(u => u.SetProperty(f => f.DeletedAt, (DateTime?)null), ct);
+                if (!await db.Files.AnyAsync(f => f.Id == id, ct))
+                {
+                    // The cleanup took it in the meantime.
+                    continue;
+                }
             }
             if (!used.Contains(file.Id))
             {

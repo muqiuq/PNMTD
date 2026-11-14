@@ -10,9 +10,12 @@
 # The folder holds database.pgdump (pg_dump --format=custom), keys.tar.gz (the Data Protection keys:
 # without them, sessions end and the 2FA secrets cannot be read) and files.tar (the uploaded files'
 # folder, PNMTD_FILES_DIR; uncompressed, as images and documents are compressed already). The files come
-# after the database: they are only ever added meanwhile, and deleted ones stay on disk for 7 days, so
-# every file the dump names is in the tar. Folder 0700, files 0600: it holds password hashes. It does
-# not hold .env — keep a copy of that elsewhere.
+# after the database, so uploads in between are only extra files, which a restore lists as unknown. A
+# file can also leave while the backup runs: the daily cleanup removes files marked deleted 7 days
+# before, an Admin's delete at once. The dump may name it while the tar lacks it; after a restore its row
+# is marked deleted (the cleanup's, expected and removed in time) or, rarely, an Admin's delete of those
+# minutes shows as a missing file until it is deleted again. Folder 0700, files 0600: it holds password
+# hashes. It does not hold .env — keep a copy of that elsewhere.
 #
 # Cron, daily at 03:30:
 #   30 3 * * * /srv/pnmtd/deploy/backup.sh --quiet --keep 14 >>/srv/pnmtd/deploy/logs/backup.log 2>&1
@@ -51,7 +54,12 @@ docker run --rm -v "$(volume_name pnmtd-keys):/keys:ro" --entrypoint tar "$(app_
 if (( FILES )); then
   if [[ -d "$(files_dir)" ]]; then
     # As the app's user, who owns the folder (0750), through the service's own mount; .tmp/ holds uploads in progress only.
-    in_app tar -cf - --exclude=./.tmp -C "$FILES_MOUNT" . >"$folder/files.tar.part"
+    # A file the cleanup or an Admin removes while tar walks the folder is no failure: GNU tar exits 1 for it (and its
+    # folder "changed as we read it"), 2 only for a real one. Files are never changed otherwise; the check would see it.
+    status=0
+    in_app tar --warning=no-file-removed --warning=no-file-changed -cf - --exclude=./.tmp -C "$FILES_MOUNT" . \
+      >"$folder/files.tar.part" || status=$?
+    (( status <= 1 )) || die "files.tar failed (tar exited ${status}); the database and the keys are in ${folder}."
     mv "$folder/files.tar.part" "$folder/files.tar"
   else
     say "No files folder at $(files_dir): files.tar left out."

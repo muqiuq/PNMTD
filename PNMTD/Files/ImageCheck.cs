@@ -53,6 +53,16 @@ public static class ImageCheck
         }
     }
 
+    /// <summary>The extension of a type <see cref="Check"/> detects (<c>image/jpeg</c> gives <c>jpg</c>), or null.</summary>
+    public static string? ExtensionOf(string? contentType) => contentType switch
+    {
+        "image/png" => "png",
+        "image/jpeg" => "jpg",
+        "image/gif" => "gif",
+        "image/webp" => "webp",
+        _ => null,
+    };
+
     private static readonly byte[] PngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
     private static ImageRefusal NotAnImage(string message) => new(false, message);

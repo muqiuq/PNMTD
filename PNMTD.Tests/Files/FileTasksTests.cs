@@ -83,9 +83,9 @@ public sealed class FileTasksTests
         var sixDaysPath = await PathOfAsync(sixDays.Id);
         var eightDaysPath = await PathOfAsync(eightDays.Id);
 
-        var (marked, removed, temporary) = await app.Services.GetRequiredService<FileCleanupTask>().RunAsync(CancellationToken.None);
+        var (marked, revived, removed, temporary) = await app.Services.GetRequiredService<FileCleanupTask>().RunAsync(CancellationToken.None);
 
-        Assert.AreEqual((1, 1, 1), (marked, removed, temporary));
+        Assert.AreEqual((1, 0, 1, 1), (marked, revived, removed, temporary));
         await using var check = app.NewDb();
         Assert.IsNotNull((await check.Files.SingleAsync(f => f.Id == unused.Id)).DeletedAt, "unused for 24 hours");
         Assert.IsNull((await check.Files.SingleAsync(f => f.Id == used.Id)).DeletedAt);
@@ -100,6 +100,78 @@ public sealed class FileTasksTests
         // Uploaded again while still on disk: the same file, live again.
         Assert.AreEqual(sixDays.Id, (await UploadAsync("again.txt", "deleted six days ago"u8.ToArray())).Id);
         Assert.IsNull((await check.Files.AsNoTracking().SingleAsync(f => f.Id == sixDays.Id)).DeletedAt);
+    }
+
+    private static async Task<(FileItem File, LocationEntity Location)> DeletedLongAgoAsync(string name)
+    {
+        var file = await UploadAsync(name, System.Text.Encoding.UTF8.GetBytes($"{name}, deleted eight days ago"));
+        await using var db = app.NewDb();
+        var location = new LocationEntity { Id = Guid.NewGuid(), Name = name, NormalizedName = name, CreatedAt = Clock.UtcNow, UpdatedAt = Clock.UtcNow };
+        db.Locations.Add(location);
+        await db.SaveChangesAsync();
+        await db.Files.Where(f => f.Id == file.Id).ExecuteUpdateAsync(u => u.SetProperty(f => f.DeletedAt, Clock.UtcNow.AddDays(-8)));
+        return (file, location);
+    }
+
+    [TestMethod]
+    public async Task A_file_revived_after_the_cleanup_read_its_list_keeps_its_bytes_and_uses()
+    {
+        var (file, location) = await DeletedLongAgoAsync("revived-in-between");
+        var cleanup = app.Services.GetRequiredService<FileCleanupTask>();
+        await using var db = app.NewDb();
+        // The cleanup's view: due when it read the list.
+        var stale = await db.Files.AsNoTracking().SingleAsync(f => f.Id == file.Id);
+        var path = await PathOfAsync(file.Id);
+        // Then a save uses it again.
+        await using (var save = app.NewDb())
+        {
+            CollectionAssert.AreEqual(new[] { file.Id }, (await FileUses.RecordAsync(save, [file.Id], null, location.Id, CancellationToken.None)).ToArray());
+            await save.SaveChangesAsync();
+        }
+        Assert.IsFalse(await cleanup.RemoveIfStillDueAsync(db, stale, Clock.UtcNow.AddDays(-7), CancellationToken.None));
+        Assert.IsTrue(File.Exists(path));
+        Assert.IsNull((await db.Files.AsNoTracking().SingleAsync(f => f.Id == file.Id)).DeletedAt);
+        Assert.AreEqual(1, await db.FileUses.CountAsync(u => u.FileId == file.Id));
+    }
+
+    [TestMethod]
+    public async Task A_file_the_cleanup_removed_is_not_used_again_and_the_save_still_succeeds()
+    {
+        var (file, location) = await DeletedLongAgoAsync("removed-first");
+        var path = await PathOfAsync(file.Id);
+        await using var db = app.NewDb();
+        var stale = await db.Files.AsNoTracking().SingleAsync(f => f.Id == file.Id);
+        Assert.IsTrue(await app.Services.GetRequiredService<FileCleanupTask>().RemoveIfStillDueAsync(db, stale, Clock.UtcNow.AddDays(-7), CancellationToken.None));
+        Assert.IsFalse(File.Exists(path));
+        await using var save = app.NewDb();
+        Assert.AreEqual(0, (await FileUses.RecordAsync(save, [file.Id], null, location.Id, CancellationToken.None)).Count);
+        await save.SaveChangesAsync();
+        Assert.IsFalse(await save.FileUses.AnyAsync(u => u.FileId == file.Id));
+    }
+
+    [TestMethod]
+    public async Task A_file_marked_deleted_while_a_save_began_to_use_it_is_live_again_and_a_gone_one_is_no_finding()
+    {
+        var used = await UploadAsync("used-meanwhile.txt", "marked, then used"u8.ToArray());
+        var gone = await UploadAsync("gone-after-restore.txt", "the backup's tar lacked it"u8.ToArray());
+        await using (var db = app.NewDb())
+        {
+            var location = new LocationEntity { Id = Guid.NewGuid(), Name = "Race", NormalizedName = "race", CreatedAt = Clock.UtcNow, UpdatedAt = Clock.UtcNow };
+            db.Locations.Add(location);
+            db.FileUses.Add(new FileUseEntity { Id = Guid.NewGuid(), FileId = used.Id, LocationId = location.Id, FirstUsedAt = Clock.UtcNow });
+            await db.SaveChangesAsync();
+            await db.Files.Where(f => f.Id == used.Id || f.Id == gone.Id).ExecuteUpdateAsync(u => u.SetProperty(f => f.DeletedAt, Clock.UtcNow));
+        }
+        File.Delete(await PathOfAsync(gone.Id));
+
+        var (_, revived, _, _) = await app.Services.GetRequiredService<FileCleanupTask>().RunAsync(CancellationToken.None);
+        Assert.IsTrue(revived >= 1);
+        await using (var db = app.NewDb())
+        {
+            Assert.IsNull((await db.Files.SingleAsync(f => f.Id == used.Id)).DeletedAt);
+        }
+        var report = await app.Services.GetRequiredService<FileCheckTask>().RunAsync(hashes: false, CancellationToken.None);
+        Assert.IsFalse(report.Missing.Any(f => f.Id == gone.Id), "marked deleted and gone: expected, the cleanup removes the row");
     }
 
     [TestMethod]

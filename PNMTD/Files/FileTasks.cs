@@ -6,14 +6,20 @@ using PNMTD.Data;
 using PNMTD.Knowledge;
 using PNMTD.Lib.Helper;
 using PNMTD.Lib.Models;
+using PNMTD.Models.Db;
 using PNMTD.Services.Events;
 
 namespace PNMTD.Files;
 
 /// <summary>
 /// Daily (docs/locations-knowledge-plan.md §5.5): an upload no page or location used for KnowledgeBase:UnusedFileHours (a
-/// paste that was never saved) is marked deleted; a file marked deleted KnowledgeBase:DeletedFileDays ago leaves the disk
-/// and the database, so a backup's dump never names a file already gone; leftovers in <c>.tmp/</c> go.
+/// paste that was never saved) is marked deleted; a file marked deleted KnowledgeBase:DeletedFileDays ago leaves the
+/// database and the disk; leftovers in <c>.tmp/</c> go.
+/// <para>
+/// Saves and uploads revive files at any moment, so every step decides in the database, row by row: a file leaves only
+/// if its row could still be deleted as due and unused, and only then its bytes. A file marked deleted while a save
+/// started to use it is live again at the next run.
+/// </para>
 /// </summary>
 public sealed class FileCleanupTask(IDbContextFactory<PnmtdDbContext> dbs, FileStore store, IOptionsMonitor<KnowledgeBaseOptions> options,
     ILogger<FileCleanupTask> logger) : BackgroundService
@@ -39,32 +45,29 @@ public sealed class FileCleanupTask(IDbContextFactory<PnmtdDbContext> dbs, FileS
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 
-    public async Task<(int Marked, int Removed, int Temporary)> RunAsync(CancellationToken ct)
+    public async Task<(int Marked, int Revived, int Removed, int Temporary)> RunAsync(CancellationToken ct)
     {
         var settings = options.CurrentValue;
         var now = Clock.UtcNow;
         await using var db = await dbs.CreateDbContextAsync(ct);
+        // Marked while a save began to use it: in use, so live again (unless another live row holds the same bytes).
+        var revived = await db.Files
+            .Where(f => f.DeletedAt != null && db.FileUses.Any(u => u.FileId == f.Id)
+                && !db.Files.Any(o => o.Sha256 == f.Sha256 && o.Id != f.Id && o.DeletedAt == null))
+            .ExecuteUpdateAsync(u => u.SetProperty(f => f.DeletedAt, (DateTime?)null), ct);
         var unusedSince = now.AddHours(-Math.Max(1, settings.UnusedFileHours));
         var marked = await db.Files.Where(f => f.DeletedAt == null && f.CreatedAt < unusedSince && !db.FileUses.Any(u => u.FileId == f.Id))
             .ExecuteUpdateAsync(u => u.SetProperty(f => f.DeletedAt, now), ct);
-        // A deleted file that something uses again (a restored revision) stays until FileUses revives it.
         var deletedBefore = now.AddDays(-Math.Max(0, settings.DeletedFileDays));
-        var due = await db.Files.Where(f => f.DeletedAt != null && f.DeletedAt < deletedBefore && !db.FileUses.Any(u => u.FileId == f.Id))
-            .ToListAsync(ct);
-        var removed = new List<Guid>();
+        var due = await db.Files.AsNoTracking().Where(f => f.DeletedAt != null && f.DeletedAt < deletedBefore).ToListAsync(ct);
+        var removed = 0;
         foreach (var file in due)
         {
-            try
+            if (await RemoveIfStillDueAsync(db, file, deletedBefore, ct))
             {
-                store.RemoveFromDisk(file);
-                removed.Add(file.Id);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                logger.LogWarning("File {Id} ({Path}) could not leave the disk: {Error}", file.Id, file.Path, ex.Message);
+                removed++;
             }
         }
-        await db.Files.Where(f => removed.Contains(f.Id)).ExecuteDeleteAsync(ct);
         var temporary = 0;
         var temp = Path.Combine(store.Root, FileStore.TempFolder);
         if (Directory.Exists(temp))
@@ -82,12 +85,38 @@ public sealed class FileCleanupTask(IDbContextFactory<PnmtdDbContext> dbs, FileS
                 }
             }
         }
-        if (marked + removed.Count + temporary > 0)
+        if (marked + revived + removed + temporary > 0)
         {
-            logger.LogInformation("Files' cleanup: {Marked} unused uploads marked deleted, {Removed} files left the disk, {Temporary} temporary files removed",
-                marked, removed.Count, temporary);
+            logger.LogInformation(
+                "Files' cleanup: {Marked} unused uploads marked deleted, {Revived} in use again, {Removed} files left the disk, {Temporary} temporary files removed",
+                marked, revived, removed, temporary);
         }
-        return (marked, removed.Count, temporary);
+        return (marked, revived, removed, temporary);
+    }
+
+    /// <summary>
+    /// The row first, and only if it is still due: marked deleted before <paramref name="deletedBefore"/> and used by nothing,
+    /// in one statement; a revive or a new use since the list was read keeps the file. Then the bytes. Should they fail to
+    /// go, they are an unknown file, never a lost one.
+    /// </summary>
+    internal async Task<bool> RemoveIfStillDueAsync(PnmtdDbContext db, FileEntity file, DateTime deletedBefore, CancellationToken ct)
+    {
+        var deleted = await db.Files
+            .Where(f => f.Id == file.Id && f.DeletedAt != null && f.DeletedAt < deletedBefore && !db.FileUses.Any(u => u.FileId == f.Id))
+            .ExecuteDeleteAsync(ct);
+        if (deleted != 1)
+        {
+            return false;
+        }
+        try
+        {
+            store.RemoveFromDisk(file);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning("File {Id} ({Path}) left the database but not the disk: {Error}", file.Id, file.Path, ex.Message);
+        }
+        return true;
     }
 }
 
@@ -100,8 +129,9 @@ public sealed class FileCheckState
 /// <summary>
 /// The check of the files folder (docs/locations-knowledge-plan.md §5.5), on the system sensor <i>File storage</i> (key
 /// <c>files</c>): at start, then daily, every file the database names must be there with its size, and weekly (and the
-/// first daily run after a start) with its SHA-256. 428 FILE_STORAGE_PROBLEM when the folder is missing or not writable,
-/// its disk has less than KnowledgeBase:MinFreeMb free, or files are missing or changed; 220 once all is well again.
+/// first daily run after a start) with its SHA-256; one marked deleted may be gone already. 428 FILE_STORAGE_PROBLEM when
+/// the folder is missing or not writable, its disk has less than KnowledgeBase:MinFreeMb free, or files are missing or
+/// changed; 220 once all is well again.
 /// Files on disk that no row names are listed and counted, never deleted, and alone are no problem: someone may have
 /// put them there on purpose.
 /// </summary>
@@ -163,6 +193,12 @@ public sealed class FileCheckTask(IDbContextFactory<PnmtdDbContext> dbs, FileSto
             foreach (var file in files)
             {
                 var path = store.Locate(file.Path);
+                if (path is null && file.DeletedAt is not null && new FileInfo(Path.Combine(store.Root, file.Path)).LinkTarget is null)
+                {
+                    // Marked deleted and gone already: after a restore (the backup's tar may lack it), or an Admin's delete in
+                    // between. The cleanup removes the row in its time.
+                    continue;
+                }
                 if (path is null)
                 {
                     // Not there, or not to be read: a symbolic link on its way, which PNMTD doesn't follow.
