@@ -440,7 +440,9 @@ export const api = {
       call(client.GET('/api/v1/cookie/trace', { params: { query } })),
     /** The reader's chat with Cookie (§10.2); afterId for what came since. */
     messages: (afterId?: number) => call(client.GET('/api/v1/cookie/messages', { params: { query: { afterId } } })),
-    post: (text: string) => call(client.POST('/api/v1/cookie/messages', { body: { text } })),
+    /** A message to Cookie, or to Seraph (§21.1), who explains its verdicts and can't act. */
+    post: (text: string, to: 'cookie' | 'seraph' = 'cookie') =>
+      call(client.POST('/api/v1/cookie/messages', { body: { text, to } })),
     cases: (query: ListQuery & { open?: boolean; kind?: S['CookieCaseKind'] }) =>
       call(client.GET('/api/v1/cookie/cases', { params: { query } })),
     case: (id: Id) => call(client.GET('/api/v1/cookie/cases/{id}', { params: { path: { id } } })),
@@ -452,6 +454,19 @@ export const api = {
       call(client.POST('/api/v1/cookie/cases/{id}/stop', { params: { path: { id } }, body: { text } })),
     goOn: (id: Id, text: string | null) =>
       call(client.POST('/api/v1/cookie/cases/{id}/go-on', { params: { path: { id } }, body: { text } })),
+    /** Ask the big brother (§15.2, Cookie: Instruct): the next round calls it. 409 when it is off or Cookie is stopped. */
+    askBigBrother: (id: Id) => call(client.POST('/api/v1/cookie/cases/{id}/big-brother', { params: { path: { id } } })),
+    /** Cookie's decision log (§11, §21.1), by the reader's rights, newest first. */
+    decisions: (query: ListQuery & { caseId?: Id; kind?: string; outcome?: string }) =>
+      call(client.GET('/api/v1/cookie/decisions', { params: { query } })),
+    /** Right or wrong with a comment; a null rating takes it back. */
+    rate: (id: number, body: S['CookieRatingRequest']) =>
+      call(client.PUT('/api/v1/cookie/decisions/{id}/rating', { params: { path: { id } }, body })),
+    /** Confirm a draft Cookie filled in from one's message (§10.3, Cookie: Instruct). */
+    confirmInstruction: (id: Id) =>
+      call(client.POST('/api/v1/cookie/instructions/{id}/confirm', { params: { path: { id } } })),
+    /** End a mute, a suppress or an instruction now (Cookie: Instruct). */
+    endInstruction: (id: Id) => call(client.POST('/api/v1/cookie/instructions/{id}/end', { params: { path: { id } } })),
     // --- Admin → Cookie: Cookie's Manage ----------------------------------------------------------------------------
     overview: () => call(client.GET('/api/v1/cookie/admin/overview')),
     start: () => call(client.POST('/api/v1/cookie/admin/start')),
@@ -476,7 +491,13 @@ export const api = {
       actions: (body: S['ActionSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/actions', { body })),
       models: (body: S['ModelSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/models', { body })),
       rights: (body: S['CookieRightsSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/rights', { body })),
+      lessons: (body: S['LessonSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/lessons', { body })),
     },
+    /** Mute, suppress and instructions (§10.3): the active ones and drafts, then the last 30 days'. */
+    instructions: () => call(client.GET('/api/v1/cookie/admin/instructions')),
+    /** A new one, confirmed at once. */
+    createInstruction: (body: S['CookieInstructionRequest']) =>
+      call(client.POST('/api/v1/cookie/admin/instructions', { body })),
     versions: (section: string) =>
       call(client.GET('/api/v1/cookie/admin/settings/{section}/versions', { params: { path: { section } } })),
     /** A version's values as saved: raw JSON. */

@@ -28,12 +28,14 @@ import {
   entryKindSeverity,
   personKinds,
 } from './cookieFormat'
+import DecisionLog from './DecisionLog.vue'
 
 /**
- * A case (docs/cookie-plan.md §4.3, §7): what is bad in it (a host's bad sensors and its Zabbix problems), its timeline
- * with people's comments, its duties with what came of them, and for a ticket the clock of §7.2. Refreshed with the list.
- * Cookie: Use comments (Cookie reads it in its next round); Cookie: Instruct stops a case (Don't go on with this, saying
- * why) and lets Cookie go on with it. A stopped case stays open and visible, marked, with who, when and why.
+ * A case (docs/cookie-plan.md §4.3, §7, §15, §21.5): what is bad in it (a host's bad sensors and its Zabbix problems),
+ * its timeline with people's comments, its duties with what came of them, Cookie's decisions on it, the big brother's
+ * last solution, and for a ticket the clock of §7.2. Refreshed with the list. Cookie: Use comments (Cookie reads it in
+ * its next round); Cookie: Instruct stops a case (Don't go on with this, saying why), lets Cookie go on with it, and asks
+ * the big brother, which the next round calls. A stopped case stays open and visible, marked, with who, when and why.
  */
 const props = defineProps<{ id: string }>()
 const session = useSession()
@@ -60,6 +62,8 @@ const commentError = ref<string | undefined>()
 const dialog = ref<'stop' | 'go-on' | null>(null)
 const dialogText = ref('')
 const dialogError = ref<string | undefined>()
+/** Why the big brother wasn't asked (it is off, or Cookie is stopped). */
+const bigBrotherProblem = ref<string | undefined>()
 const dialogOpen = computed({ get: () => dialog.value !== null, set: (v) => !v && (dialog.value = null) })
 const dialogTitle = computed(() => (dialog.value === 'stop' ? "Don't go on with this" : 'Let Cookie go on'))
 watch(
@@ -68,6 +72,7 @@ watch(
     comment.value = ''
     commentError.value = undefined
     dialog.value = null
+    bigBrotherProblem.value = undefined
   },
 )
 
@@ -96,6 +101,30 @@ function ask(kind: 'stop' | 'go-on') {
   dialog.value = kind
   dialogText.value = ''
   dialogError.value = undefined
+}
+
+// --- the big brother (§15.2) -----------------------------------------------------------------------------------------
+/** Why the server won't ask it (409), in plain words. */
+function bigBrotherRefusal(e: ApiError): string {
+  if (e.code === 'cookie_big_brother_off')
+    return 'The big brother is off: an admin turns it on under Admin → Cookie → Actions.'
+  if (e.code === 'cookie_stopped') return 'Cookie is stopped: an admin starts it on Admin → Cookie.'
+  return e.message
+}
+
+async function askBigBrother() {
+  busy.value = true
+  bigBrotherProblem.value = undefined
+  try {
+    await api.cookie.askBigBrother(props.id)
+    notify.success('Asked the big brother', 'The next round calls it.')
+    await queryClient.invalidateQueries({ queryKey: keys.cookie })
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 409) bigBrotherProblem.value = bigBrotherRefusal(e)
+    else notify.error(e, 'Not asked')
+  } finally {
+    busy.value = false
+  }
 }
 
 async function confirm() {
@@ -211,6 +240,36 @@ async function confirm() {
         />
         <span class="muted small">Don't go on with this: Cookie leaves it alone, and its duties stop.</span>
       </div>
+      <div v-if="d.canAskBigBrother && !d.bigBrotherAskedAt" class="case-actions">
+        <Button
+          label="Ask the big brother"
+          icon="pi pi-lightbulb"
+          size="small"
+          severity="secondary"
+          outlined
+          :disabled="busy"
+          @click="askBigBrother"
+        />
+        <span class="muted small"
+          >A strong model looks for the cause and a fix, for a person to carry out. It costs.</span
+        >
+      </div>
+      <Message v-if="bigBrotherProblem" severity="warn" :closable="false" size="small">{{ bigBrotherProblem }}</Message>
+      <Message v-if="d.bigBrotherAskedAt" severity="info" :closable="false" size="small">
+        Asked the big brother <RelativeTime :value="d.bigBrotherAskedAt" />: the next round calls it.
+      </Message>
+
+      <section v-if="d.solution" class="solution" aria-labelledby="case-solution-title">
+        <h3 id="case-solution-title" class="sub">The big brother's solution</h3>
+        <div class="muted small">
+          {{ formatAbsolute(d.solution.at)
+          }}<template v-if="d.solution.model">
+            · <span class="mono">{{ d.solution.model }}</span></template
+          >
+          · nothing was run
+        </div>
+        <pre class="solution-text">{{ d.solution.text }}</pre>
+      </section>
 
       <template v-if="d.ticket">
         <h3 class="sub">The ticket's clock</h3>
@@ -309,6 +368,9 @@ async function confirm() {
           </Column>
         </DataTable>
       </template>
+
+      <h3 class="sub">Cookie's decisions</h3>
+      <DecisionLog :case-id="c.id" :page-size="10" />
 
       <h3 class="sub">Timeline</h3>
       <form v-if="d.canComment" class="comment" novalidate @submit.prevent="postComment">
@@ -494,6 +556,26 @@ async function confirm() {
 
 .text {
   margin-top: 0;
+}
+
+.solution {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-1);
+}
+
+.solution-text {
+  margin: 0;
+  padding: var(--pnmt-space-2) var(--pnmt-space-3);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  max-height: 50vh;
+  overflow: auto;
+  border: 1px solid var(--pnmt-border);
+  border-left: 3px solid var(--p-primary-color);
+  border-radius: var(--p-border-radius-md);
+  background: var(--pnmt-none-soft);
 }
 
 .entry-head {

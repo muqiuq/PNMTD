@@ -40,7 +40,11 @@ const shows = [
   { label: 'Closed', value: 'closed' },
   { label: 'All', value: 'all' },
 ]
-const kindOptions = [{ label: 'Every kind', value: null }, ...caseKinds.map((k) => ({ label: k, value: k }))]
+// Every kind is no filter (null), which the select shows as its placeholder.
+const kindOptions = [
+  { label: 'Every kind', value: null as S['CookieCaseKind'] | null },
+  ...caseKinds.map((k) => ({ label: k, value: k as S['CookieCaseKind'] | null })),
+]
 /** A stopped case (§4.3): Cookie leaves it alone; who stopped it and why. */
 const stoppedTitle = (c: S['CookieCaseItem']) =>
   `Stopped by ${c.stopped?.by ?? 'someone'}${c.stopped?.comment ? `: ${c.stopped.comment}` : ''}`
@@ -64,6 +68,7 @@ const stoppedTitle = (c: S['CookieCaseItem']) =>
           :options="kindOptions"
           option-label="label"
           option-value="value"
+          placeholder="Every kind"
           size="small"
           aria-label="Kind of case"
         />

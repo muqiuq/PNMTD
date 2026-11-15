@@ -4081,6 +4081,252 @@
         }
       }
     },
+    "/api/v1/cookie/cases/{id}/big-brother": {
+      "post": {
+        "tags": [
+          "Cookie"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/decisions": {
+      "get": {
+        "tags": [
+          "Cookie"
+        ],
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfCookieDecisionItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfCookieDecisionItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfCookieDecisionItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/decisions/{id}/rating": {
+      "put": {
+        "tags": [
+          "Cookie"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieRatingRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieRatingRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieRatingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieDecisionItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieDecisionItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieDecisionItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/instructions/{id}/confirm": {
+      "post": {
+        "tags": [
+          "Cookie"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieInstructionItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieInstructionItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieInstructionItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/instructions/{id}/end": {
+      "post": {
+        "tags": [
+          "Cookie"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieInstructionItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieInstructionItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieInstructionItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cookie/trace": {
       "get": {
         "tags": [
@@ -4825,6 +5071,140 @@
             "application/*+json": {
               "schema": {
                 "$ref": "#/components/schemas/ModelSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieSaved"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieSaved"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieSaved"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/instructions": {
+      "get": {
+        "tags": [
+          "CookieAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CookieInstructionItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CookieInstructionItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CookieInstructionItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "CookieAdmin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieInstructionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieInstructionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieInstructionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieInstructionItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieInstructionItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieInstructionItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/settings/lessons": {
+      "put": {
+        "tags": [
+          "CookieAdmin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonSettings"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonSettings"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonSettings"
               }
             }
           },
@@ -17804,6 +18184,55 @@
           }
         }
       },
+      "ActionLevel": {
+        "enum": [
+          "Off",
+          "Propose",
+          "Auto"
+        ]
+      },
+      "ActionLevels": {
+        "type": "object",
+        "properties": {
+          "pushover": {
+            "$ref": "#/components/schemas/ActionRule"
+          },
+          "email": {
+            "$ref": "#/components/schemas/ActionRule"
+          },
+          "ticket": {
+            "$ref": "#/components/schemas/ActionRule"
+          },
+          "privateNote": {
+            "$ref": "#/components/schemas/ActionRule"
+          },
+          "publicAnswer": {
+            "$ref": "#/components/schemas/ActionRule"
+          },
+          "objectNote": {
+            "$ref": "#/components/schemas/ActionRule"
+          },
+          "mailEvent": {
+            "$ref": "#/components/schemas/ActionRule"
+          }
+        }
+      },
+      "ActionRule": {
+        "required": [
+          "level"
+        ],
+        "type": "object",
+        "properties": {
+          "level": {
+            "$ref": "#/components/schemas/ActionLevel"
+          },
+          "minConfidence": {
+            "type": "number",
+            "format": "double",
+            "default": 0.7
+          }
+        }
+      },
       "ActionSettings": {
         "type": "object",
         "properties": {
@@ -17812,6 +18241,15 @@
           },
           "limits": {
             "$ref": "#/components/schemas/OutputLimits"
+          },
+          "levels": {
+            "$ref": "#/components/schemas/ActionLevels"
+          },
+          "cookieWritesDuties": {
+            "type": "boolean"
+          },
+          "bigBrother": {
+            "type": "boolean"
           }
         }
       },
@@ -21210,6 +21648,15 @@
           },
           "settings": {
             "$ref": "#/components/schemas/AvailabilitySettings"
+          },
+          "groups": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Ref"
+            }
           }
         }
       },
@@ -21564,6 +22011,56 @@
           }
         }
       },
+      "CookieActingItem": {
+        "required": [
+          "waiting",
+          "doneToday",
+          "rejectedToday",
+          "declinedToday",
+          "heldBackToday",
+          "seraphConfigured",
+          "bigBrother",
+          "activeInstructions",
+          "lessons"
+        ],
+        "type": "object",
+        "properties": {
+          "waiting": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "doneToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rejectedToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "declinedToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "heldBackToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "seraphConfigured": {
+            "type": "boolean"
+          },
+          "bigBrother": {
+            "$ref": "#/components/schemas/CookieBudgetItem"
+          },
+          "activeInstructions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lessons": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "CookieAdminOverview": {
         "required": [
           "status",
@@ -21650,6 +22147,16 @@
           },
           "hasGroup": {
             "type": "boolean"
+          },
+          "acting": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CookieActingItem"
+              }
+            ]
           }
         }
       },
@@ -21661,7 +22168,8 @@
           "redmine",
           "actions",
           "models",
-          "rights"
+          "rights",
+          "lessons"
         ],
         "type": "object",
         "properties": {
@@ -21685,6 +22193,9 @@
           },
           "rights": {
             "$ref": "#/components/schemas/CookieRightsSettings"
+          },
+          "lessons": {
+            "$ref": "#/components/schemas/LessonSettings"
           }
         }
       },
@@ -21772,6 +22283,27 @@
             "default": false
           },
           "canStop": {
+            "type": "boolean",
+            "default": false
+          },
+          "solution": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CookieSolutionItem"
+              }
+            ]
+          },
+          "bigBrotherAskedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "canAskBigBrother": {
             "type": "boolean",
             "default": false
           }
@@ -21932,6 +22464,133 @@
           "RedminePrivateNote",
           "RedmineTicket"
         ]
+      },
+      "CookieDecisionItem": {
+        "required": [
+          "id",
+          "at",
+          "caseId",
+          "caseTitle",
+          "kind",
+          "title",
+          "text",
+          "reason",
+          "confidence",
+          "verdict",
+          "verdictReason",
+          "outcome",
+          "detail",
+          "model",
+          "inboxDecisionId",
+          "rating",
+          "ratingComment",
+          "ratedByName",
+          "canRate"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "caseId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "caseTitle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "confidence": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "verdict": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "verdictReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inboxDecisionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "rating": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ratingComment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ratedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "canRate": {
+            "type": "boolean"
+          }
+        }
       },
       "CookieDefaults": {
         "required": [
@@ -22158,6 +22817,123 @@
           }
         }
       },
+      "CookieInstructionItem": {
+        "required": [
+          "id",
+          "kind",
+          "scope",
+          "value",
+          "label",
+          "text",
+          "until",
+          "confirmed",
+          "createdAt",
+          "createdByName",
+          "source",
+          "endedAt",
+          "endedByName",
+          "active"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "until": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "confirmed": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdByName": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "endedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "endedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CookieInstructionRequest": {
+        "required": [
+          "kind",
+          "scope",
+          "value",
+          "label",
+          "text",
+          "until"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "until": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "CookieMessageItem": {
         "required": [
           "id",
@@ -22184,6 +22960,20 @@
           },
           "answered": {
             "type": "boolean"
+          },
+          "to": {
+            "type": "string",
+            "default": "cookie"
+          },
+          "instruction": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CookieInstructionItem"
+              }
+            ]
           }
         }
       },
@@ -22195,6 +22985,12 @@
         "properties": {
           "text": {
             "type": "string"
+          },
+          "to": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -22391,6 +23187,27 @@
           }
         }
       },
+      "CookieRatingRequest": {
+        "required": [
+          "rating",
+          "comment"
+        ],
+        "type": "object",
+        "properties": {
+          "rating": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "CookieRedmineLookups": {
         "required": [
           "configured",
@@ -22582,6 +23399,29 @@
             "type": "string"
           },
           "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CookieSolutionItem": {
+        "required": [
+          "text",
+          "at",
+          "model"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "model": {
             "type": [
               "null",
               "string"
@@ -23577,6 +24417,12 @@
               {
                 "$ref": "#/components/schemas/MailInputRuleRequest"
               }
+            ]
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         }
@@ -27333,6 +28179,49 @@
           }
         }
       },
+      "Lesson": {
+        "required": [
+          "id",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "text": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean",
+            "default": true
+          },
+          "suppressScope": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "suppressValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "LessonSettings": {
+        "type": "object",
+        "properties": {
+          "lessons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Lesson"
+            }
+          }
+        }
+      },
       "Level": {
         "enum": [
           "None",
@@ -29583,7 +30472,8 @@
           "Queued",
           "Analysed",
           "Blocked",
-          "Failed"
+          "Failed",
+          "Cookie"
         ],
         "default": "None"
       },
@@ -32331,6 +33221,37 @@
               "number"
             ],
             "format": "double"
+          },
+          "seraphModel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "seraphProviders": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "seraphEffort": {
+            "type": "string"
+          },
+          "bigBrotherPrimary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bigBrotherBackup": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "seraphSampleEvery": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -33403,6 +34324,35 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CookieCaseItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfCookieDecisionItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CookieDecisionItem"
             }
           },
           "page": {

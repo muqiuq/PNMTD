@@ -213,8 +213,9 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'Decisions', right: ['Decisions', 'Decide'] },
   },
   {
-    // Cookie's window (docs/cookie-plan.md §9.2): the cases, the trace and the chat; ?case= opens a case.
-    path: '/cookie/:tab(cases|trace|chat)?',
+    // Cookie's window (docs/cookie-plan.md §9.2, §21.5): the cases, the decision log, the trace and the chat; ?case= opens
+    // a case.
+    path: '/cookie/:tab(cases|decisions|trace|chat)?',
     name: 'cookie',
     component: () => import('@/views/cookie/CookieView.vue'),
     meta: { title: 'Cookie', right: ['Cookie', 'Use'] },
@@ -338,8 +339,8 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'AI', right: ['Ai', 'Manage'] },
   },
   {
-    // Admin → Cookie (docs/cookie-plan.md §9.3): one tab per section, each versioned.
-    path: '/admin/cookie/:tab(overview|identity|cases|redmine|actions|models|rights)?',
+    // Admin → Cookie (docs/cookie-plan.md §9.3, §21.5): one tab per section, each versioned; and mute and suppress.
+    path: '/admin/cookie/:tab(overview|identity|cases|redmine|actions|instructions|lessons|models|rights)?',
     name: 'cookie-admin',
     component: () => import('@/views/admin/cookie/CookieAdminView.vue'),
     meta: { title: 'Cookie', right: ['Cookie', 'Manage'] },

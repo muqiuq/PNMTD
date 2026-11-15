@@ -145,6 +145,7 @@ const body = (t: TraceItem) => (t.kind === 'tool' ? pretty(t.body) : t.body)
         :options="roundOptions"
         option-label="label"
         option-value="value"
+        placeholder="Every round"
         size="small"
         aria-label="Round"
         @update:model-value="(v: number | null) => filter('round', v)"
@@ -155,6 +156,7 @@ const body = (t: TraceItem) => (t.kind === 'tool' ? pretty(t.body) : t.body)
         option-label="label"
         option-value="value"
         filter
+        placeholder="Every case"
         size="small"
         aria-label="Case"
         class="case-filter"
@@ -165,6 +167,7 @@ const body = (t: TraceItem) => (t.kind === 'tool' ? pretty(t.body) : t.body)
         :options="kindOptions"
         option-label="label"
         option-value="value"
+        placeholder="Every kind"
         size="small"
         aria-label="Kind"
         @update:model-value="(v: string | null) => filter('kind', v)"

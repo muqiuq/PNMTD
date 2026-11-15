@@ -5,6 +5,7 @@ import Column from 'primevue/column'
 import Message from 'primevue/message'
 import SelectButton from 'primevue/selectbutton'
 import Tag from 'primevue/tag'
+import Textarea from 'primevue/textarea'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, keys, type S } from '@/api/resources'
@@ -22,7 +23,9 @@ import RuleEditForm from './RuleEditForm.vue'
 /**
  * Monitoring → Decisions (docs/ai-operations-plan.md §5.3): what PNMT asks a person, open ones first. A decision shows
  * its proposal and its evidence: the mail (untrusted text, shown as text), what the guard, the scan and the verification
- * model said, and for a rule what it would match. Nothing durable happens without a choice here.
+ * model said, and for a rule what it would match. Nothing durable happens without a choice here. Cookie's proposals
+ * (cookie.action, docs/cookie-plan.md §21.1) are Do it or Don't, or for what Cookie hands to a person Noted or Dismiss;
+ * Don't and Dismiss take a comment, which Cookie's lessons learn from.
  */
 const session = useSession()
 const route = useRoute()
@@ -45,31 +48,68 @@ const detail = useQuery({
 })
 const d = computed(() => detail.data.value)
 const editing = ref(false)
-watch(selected, () => (editing.value = false))
+/** A choice that takes a comment first (Cookie's Don't and Dismiss), and the comment. */
+const commenting = ref<S['DecisionOption'] | null>(null)
+const comment = ref('')
+watch(selected, () => {
+  editing.value = false
+  commenting.value = null
+  comment.value = ''
+})
 
 const kindLabel: Record<string, string> = {
   'mail.rule': 'Mail rule',
   'mail.suspicious': 'Suspicious mail',
   'mail.outcome': 'Mail outcome',
+  'cookie.action': "Cookie's proposal",
 }
+const cookieKind = 'cookie.action'
+/** Cookie's proposals: the case in Cookie's window, for whoever may open it. */
+const cookieCase = computed(() =>
+  d.value?.item.kind === cookieKind && session.can('Cookie', 'Use') ? (d.value.subjects[0] ?? null) : null,
+)
+/** What came of an approved proposal of Cookie's: done, held back by a limit, or failed, and why. */
+const cookieResult = computed(() => {
+  if (d.value?.item.kind !== cookieKind || !d.value.result) return null
+  try {
+    const r = JSON.parse(d.value.result) as { outcome?: string; detail?: string | null }
+    return r.outcome ? `${r.outcome.replace(/-/g, ' ')}${r.detail ? `: ${r.detail}` : ''}` : null
+  } catch {
+    return null
+  }
+})
 const stateSeverity = (s: S['DecisionState']) =>
   s === 'Open' ? 'warn' : s === 'Accepted' ? 'success' : s === 'Failed' ? 'danger' : 'secondary'
 
 const { run, busy } = useActions()
-async function decide(choice: string, rule?: S['MailInputRuleRequest']) {
+async function decide(choice: string, rule?: S['MailInputRuleRequest'], why?: string) {
   if (!selected.value) return
-  const result = await run(() => api.decisions.decide(selected.value!, { choice, rule: rule ?? null }), {
-    success: 'Decided',
-    failure: 'Not decided',
-  })
+  const result = await run(
+    () => api.decisions.decide(selected.value!, { choice, rule: rule ?? null, comment: why?.trim() || null }),
+    { success: 'Decided', failure: 'Not decided' },
+  )
   if (!result) return
   editing.value = false
+  commenting.value = null
+  comment.value = ''
   await queryClient.invalidateQueries({ queryKey: [...keys.decisions] })
   await queryClient.invalidateQueries({ queryKey: [...keys.mail] })
+  if (d.value?.item.kind === cookieKind) await queryClient.invalidateQueries({ queryKey: [...keys.cookie] })
+}
+/** The options shown filled: the one that does what is proposed. */
+const primaryOptions = ['create', 'update-rule', 'ok', 'acknowledge', 'approve', 'noted']
+/** Cookie's Don't and Dismiss ask why first. */
+const takesComment = (option: S['DecisionOption']) =>
+  d.value?.item.kind === cookieKind && (option.id === 'reject' || option.id === 'dismiss')
+function submitComment() {
+  if (commenting.value) void decide(commenting.value.id, undefined, comment.value)
 }
 function choose(option: S['DecisionOption']) {
   if (option.edit) editing.value = true
-  else void decide(option.id)
+  else if (takesComment(option)) {
+    commenting.value = option
+    comment.value = ''
+  } else void decide(option.id)
 }
 </script>
 
@@ -122,7 +162,15 @@ function choose(option: S['DecisionOption']) {
           </div>
           <div class="panel-body body">
             <h2 class="title">{{ d.item.title }}</h2>
-            <p>{{ d.item.summary }}</p>
+            <p class="summary">{{ d.item.summary }}</p>
+            <p v-if="cookieCase" class="small">
+              <RouterLink :to="{ name: 'cookie', params: { tab: 'cases' }, query: { case: cookieCase } }"
+                >The case in Cookie's window <i class="pi pi-angle-right" aria-hidden="true"
+              /></RouterLink>
+            </p>
+            <Message v-if="cookieResult" severity="info" :closable="false" size="small"
+              >What came of it: {{ cookieResult }}</Message
+            >
             <p class="muted small">
               First {{ formatAbsolute(d.item.createdAt) }}, last {{ formatAbsolute(d.item.lastSeenAt) }}
               <template v-if="d.item.occurrences > 1"> · {{ d.item.occurrences }} times</template>
@@ -214,13 +262,36 @@ function choose(option: S['DecisionOption']) {
               @create="(rule) => decide('edit', rule)"
               @cancel="editing = false"
             />
+            <form v-else-if="commenting" class="comment-form" novalidate @submit.prevent="submitComment">
+              <label for="decision-comment" class="label">Why (if you like)</label>
+              <Textarea
+                id="decision-comment"
+                v-model="comment"
+                rows="3"
+                auto-resize
+                maxlength="1000"
+                autofocus
+                placeholder="It helps Cookie's lessons: what was wrong with it, or who is on it"
+              />
+              <div class="options">
+                <Button type="submit" :label="commenting.label" size="small" severity="secondary" :loading="busy" />
+                <Button
+                  label="Cancel"
+                  size="small"
+                  severity="secondary"
+                  text
+                  :disabled="busy"
+                  @click="commenting = null"
+                />
+              </div>
+            </form>
             <div v-else-if="d.options.length" class="options">
               <Button
                 v-for="o in d.options"
                 :key="o.id"
                 :label="o.label"
                 :severity="o.id === 'reject' || o.id === 'dismiss' ? 'secondary' : undefined"
-                :outlined="o.id !== 'create' && o.id !== 'update-rule' && o.id !== 'ok' && o.id !== 'acknowledge'"
+                :outlined="!primaryOptions.includes(o.id)"
                 :disabled="!o.enabled || busy"
                 :title="o.description"
                 size="small"
@@ -292,6 +363,20 @@ function choose(option: S['DecisionOption']) {
 .checks {
   margin: var(--pnmt-space-1) 0 0;
   padding-left: 1.2rem;
+}
+.summary {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-1);
+  margin-top: var(--pnmt-space-2);
+}
+.label {
+  font-weight: 500;
 }
 .options {
   display: flex;
