@@ -824,7 +824,7 @@ internal static class Program
         {
             var was = AgentInfo.Version;
             var now = Updater.Rollback(new Steps(false));
-            return Print($"Rolled {AgentInfo.Product} back from {was} to {now}; the service runs again. pnmt-agent update --rollback goes forward again.", 0);
+            return Print($"{AgentInfo.Product} {now} runs again instead of {was}, which is kept as {Updater.Previous}: pnmt-agent update --rollback switches back.", 0);
         }
         var force = args.Contains("--force");
         var files = args.Where(a => a != "--force").ToList();

@@ -73,7 +73,7 @@ internal static class Updater
                 throw new InvalidOperationException($"{candidate} is not installed: {problem}.");
             }
             var newVersion = AgentUpdate.VersionOf(answer.Output, AgentInfo.Product)!;
-            steps.Report($"{newVersion} from {source}");
+            steps.Report($"{newVersion}: {source}");
             HandOver(candidate, newVersion, steps);
             return newVersion;
         }
@@ -192,20 +192,30 @@ internal static class Updater
         var since = DateTimeOffset.UtcNow;
         steps.Report("Writing the unit");
         Systemd.WriteUnit();
-        Start(steps);
-        steps.Report($"Waiting until {AgentInfo.Version} runs");
-        if (AgentUpdate.WaitRunningAsync(AgentInfo.Version, since, Systemd.IsActive, RunningWithin, CancellationToken.None).GetAwaiter().GetResult())
+        // A service that exits at once fails systemctl start itself (L: the lab's broken build): that is "doesn't run" too.
+        string? failed = null;
+        try
         {
-            Journal.Write($"{AgentInfo.Product} updated from {from} to {AgentInfo.Version}.");
-            steps.Report($"{AgentInfo.Version} runs");
-            return 0;
+            Start(steps);
+            steps.Report($"Waiting until {AgentInfo.Version} runs");
+            if (AgentUpdate.WaitRunningAsync(AgentInfo.Version, since, Systemd.IsActive, RunningWithin, CancellationToken.None).GetAwaiter().GetResult())
+            {
+                Journal.Write($"{AgentInfo.Product} updated from {from} to {AgentInfo.Version}.");
+                steps.Report($"{AgentInfo.Version} runs");
+                return 0;
+            }
+            failed = $"it did not run within {RunningWithin.TotalSeconds:0} seconds";
+        }
+        catch (InvalidOperationException e)
+        {
+            failed = e.Message;
         }
         if (!kept)
         {
-            Journal.Write($"{AgentInfo.Product} {AgentInfo.Version} was installed over {from} and did not start within {RunningWithin.TotalSeconds:0} seconds.");
-            throw new InvalidOperationException($"{AgentInfo.Version} did not start within {RunningWithin.TotalSeconds:0} seconds, and there is no previous program to go back to.");
+            Journal.Write($"{AgentInfo.Product} {AgentInfo.Version} was installed over {from} and does not run: {failed}.");
+            throw new InvalidOperationException($"{AgentInfo.Version} does not run ({failed}), and there is no previous program to go back to.");
         }
-        steps.Report($"{AgentInfo.Version} did not start within {RunningWithin.TotalSeconds:0} seconds: putting {from} back");
+        steps.Report($"{AgentInfo.Version} does not run ({failed}): putting {from} back");
         Systemd.Systemctl("stop", AgentInfo.Unit);
         Systemd.Replace(AgentInfo.Program, Previous);
         // The previous program writes its own unit; if it can't, this one's stays.
@@ -214,8 +224,15 @@ internal static class Updater
         {
             steps.Report($"{from} could not write its unit ({unit.Reason}): this version's stays");
         }
+        var back = DateTimeOffset.UtcNow;
         Start(steps);
-        Journal.Write($"{AgentInfo.Product} {AgentInfo.Version} did not start: {from} runs again.");
+        if (!AgentUpdate.WaitRunningAsync(from, back, Systemd.IsActive, RunningWithin, CancellationToken.None).GetAwaiter().GetResult())
+        {
+            Journal.Write($"{AgentInfo.Product} {AgentInfo.Version} did not run, and {from}, put back, does not run either.");
+            throw new InvalidOperationException($"{AgentInfo.Version} did not run, and {from}, put back, does not run either: journalctl -u {AgentInfo.Unit}.");
+        }
+        Journal.Write($"{AgentInfo.Product} {AgentInfo.Version} did not run: {from} runs again.");
+        steps.Report($"{from} runs again");
         return AgentUpdate.RolledBackExitCode;
     }
 
