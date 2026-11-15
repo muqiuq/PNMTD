@@ -31,6 +31,13 @@ export const routes: RouteRecordRaw[] = [
     meta: { layout: 'auth', public: true, title: 'Sign in' },
   },
   {
+    // Was this you? (docs/cookie-access-plan.md §6.6): the e-mail's link, without sign-in; only its buttons answer.
+    path: '/was-this-you/:token',
+    name: 'was-this-you',
+    component: () => import('@/views/auth/WasThisYouView.vue'),
+    meta: { layout: 'auth', public: true, title: 'Was this you?' },
+  },
+  {
     path: '/change-password',
     name: 'change-password',
     component: () => import('@/views/auth/ChangePasswordView.vue'),
@@ -347,7 +354,7 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     // Admin → Cookie (docs/cookie-plan.md §9.3, §21.5): one tab per section, each versioned; and mute and suppress.
-    path: '/admin/cookie/:tab(overview|identity|cases|redmine|actions|instructions|lessons|models|rights)?',
+    path: '/admin/cookie/:tab(overview|identity|cases|redmine|actions|access|instructions|lessons|models|rights)?',
     name: 'cookie-admin',
     component: () => import('@/views/admin/cookie/CookieAdminView.vue'),
     meta: { title: 'Cookie', right: ['Cookie', 'Manage'] },

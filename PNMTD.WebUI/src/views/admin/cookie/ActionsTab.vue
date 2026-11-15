@@ -49,6 +49,11 @@ const actions: { key: ActionKey; label: string; text: string }[] = [
     label: 'Mail rule event',
     text: "For a mail an AI every time rule matched: the rule's OK or fail code on its sensor, reviewed by Seraph.",
   },
+  {
+    key: 'accessNotice',
+    label: 'Access notice',
+    text: "Tells the contacts set under Access about an unusual login, as its verdict's row says. Auto is the safe choice: Propose holds a break-in in the inbox until someone looks. Below the minimum confidence a verdict goes one lower. Code's notice for strong signals goes out whatever the level.",
+  },
 ]
 const levels: { label: string; value: S['ActionLevel'] }[] = [
   { label: 'Off', value: 'Off' },

@@ -41,6 +41,13 @@ describe('the route guard', () => {
     expect(decide(to('login', '/login', { public: true }), as(viewers))).toEqual({ name: 'dashboard' })
   })
 
+  it('opens Was this you? signed out, signed in, and before a password change (docs/cookie-access-plan.md §6.6)', () => {
+    const page = to('was-this-you', '/was-this-you/t0k3n', { public: true })
+    expect(decide(page, as(null))).toBe(true)
+    expect(decide(page, as(viewers))).toBe(true)
+    expect(decide(page, as(operators, { mustChangePassword: true }))).toBe(true)
+  })
+
   it('holds everything until the password is changed, then until 2FA is set up', () => {
     expect(decide(to('hosts', '/hosts'), as(operators, { mustChangePassword: true, totpSetupRequired: true }))).toEqual(
       {

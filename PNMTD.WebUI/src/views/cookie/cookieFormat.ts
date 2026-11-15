@@ -22,7 +22,7 @@ export const sourceLabel = (source: string) => (source === 'cookie' ? 'as Cookie
 export const cookieStateSeverity = (s: S['CookieState']): Severity =>
   s === 'Working' ? 'info' : s === 'Sleeping' ? 'success' : s === 'Paused' ? 'warn' : 'secondary'
 
-export const caseKinds: S['CookieCaseKind'][] = ['Problem', 'Ticket', 'Request']
+export const caseKinds: S['CookieCaseKind'][] = ['Problem', 'Ticket', 'Request', 'Access']
 
 export const dutyKinds: DutyKind[] = [
   'FirstAnswerReminder',
@@ -73,6 +73,9 @@ export const channels: S['CookieChannel'][] = [
   'RedmineNote',
   'RedminePrivateNote',
   'RedmineTicket',
+  'AccessEmail',
+  'AccessPushover',
+  'WasThisYou',
 ]
 
 export const channelLabel: Record<S['CookieChannel'], string> = {
@@ -81,6 +84,9 @@ export const channelLabel: Record<S['CookieChannel'], string> = {
   RedmineNote: 'Note',
   RedminePrivateNote: 'Private note',
   RedmineTicket: 'Ticket',
+  AccessEmail: 'Access e-mail',
+  AccessPushover: 'Access Pushover',
+  WasThisYou: 'Was this you?',
 }
 
 export const channelName = (c: S['CookieChannel']) => channelLabel[c] ?? c

@@ -31,7 +31,7 @@ export function platformCodes(platform: S['AgentPlatform'] | null | undefined) {
     : { changed: 253, adminLogin: 254, loginFailures: 454, critical: 453, keyAdded: null, securityUpdates: null }
 }
 
-/** A login's kind in words: "RDP", "SSH", "SFTP", "sudo", "explicit credentials". */
+/** A login's kind in words: "RDP", "SSH", "SFTP", "sudo", "explicit credentials"; a router's "WinBox", "WebFig", "API". */
 export const logonKindLabel = (k: S['LogonKind']) =>
   (
     ({
@@ -41,6 +41,11 @@ export const logonKindLabel = (k: S['LogonKind']) =>
       Sftp: 'SFTP',
       WinRm: 'WinRM',
       Explicit: 'explicit credentials',
+      Winbox: 'WinBox',
+      Web: 'WebFig',
+      Api: 'API',
+      Telnet: 'Telnet',
+      Ftp: 'FTP',
     }) as Record<string, string>
   )[k] ?? k.toLowerCase()
 
@@ -61,6 +66,9 @@ export const logonKinds: Record<S['AgentPlatform'], S['LogonKind'][]> = {
   ],
   Linux: ['Ssh', 'Sftp', 'Console', 'Sudo', 'Su', 'Lockout'],
 }
+
+/** The kinds of login a router's log has (docs/cookie-access-plan.md §4.2): its console is the serial or local one. */
+export const routerLogonKinds: S['LogonKind'][] = ['Winbox', 'Web', 'Api', 'Ssh', 'Telnet', 'Ftp', 'Console']
 
 export const tokenStateSeverity = (state: S['AgentJoinTokenState']): TagSeverity =>
   state === 'Pending' ? 'info' : state === 'Used' ? 'success' : 'secondary'

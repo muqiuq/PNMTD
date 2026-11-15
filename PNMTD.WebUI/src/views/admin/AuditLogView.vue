@@ -17,11 +17,13 @@ import RelativeTime from '@/components/RelativeTime.vue'
 import { useAuditCatalog } from '@/composables/useAuditCatalog'
 import { useServerTable } from '@/composables/useServerTable'
 import { formatAbsolute } from '@/format'
+import AccessReviewBadge from '@/views/cookie/AccessReviewBadge.vue'
 
 /**
  * The audit log (docs/audit-redmine-zabbix-plan.md §4): every operation, by whom and from where, with its outcome and its
  * changes; newest first. The filters live in the URL; the detail takes the width the other columns leave, and a row opens
- * with everything, the changes field by field. *Download CSV* exports what the filters show, and is an entry itself.
+ * with everything, the changes field by field. *Download CSV* exports what the filters show, and is an entry itself. A
+ * sign-in the access watch reviewed shows its verdict, linking to its case (docs/cookie-access-plan.md §10.4).
  */
 const route = useRoute()
 const router = useRouter()
@@ -272,6 +274,7 @@ const showRequest = (e: S['AuditLogItem']) => {
           <span class="event">
             <Tag :value="label(data.eventType)" :severity="severity(data.eventType)" />
             <Tag v-if="data.outcome !== 'Succeeded'" :value="data.outcome" severity="danger" />
+            <AccessReviewBadge v-if="data.review" :review="data.review" />
           </span>
         </template>
       </Column>
@@ -330,6 +333,7 @@ const showRequest = (e: S['AuditLogItem']) => {
         <div class="line">
           <Tag :value="label(item.eventType)" :severity="severity(item.eventType)" />
           <Tag v-if="item.outcome !== 'Succeeded'" :value="item.outcome" severity="danger" />
+          <AccessReviewBadge v-if="item.review" :review="item.review" />
           <span>{{ who(item) }}</span>
           <RelativeTime :value="item.createdAt" class="muted right" />
         </div>

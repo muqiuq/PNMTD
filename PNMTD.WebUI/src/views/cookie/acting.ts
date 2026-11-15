@@ -12,7 +12,10 @@ export type InstructionItem = S['CookieInstructionItem']
 
 // --- the decision log (§11, §21.1) ----------------------------------------------------------------------------------
 
-/** What an entry of the decision log is about: an action of §6, a duty's text, the big brother, Seraph's drift report. */
+/**
+ * What an entry of the decision log is about: an action of §6, a duty's text, the big brother, Seraph's drift report; and
+ * the access watch's verdict on a login and its notice (docs/cookie-access-plan.md §5.4, §6.4).
+ */
 export const decisionKinds = [
   'pushover',
   'email',
@@ -25,6 +28,8 @@ export const decisionKinds = [
   'duty-text',
   'big-brother',
   'drift',
+  'access',
+  'access-notice',
 ] as const
 
 const kindLabels: Record<string, string> = {
@@ -39,11 +44,16 @@ const kindLabels: Record<string, string> = {
   'duty-text': "A duty's text",
   'big-brother': 'Big brother',
   drift: 'Drift report',
+  access: 'Access verdict',
+  'access-notice': 'Access notice',
 }
 
 export const decisionKindLabel = (kind: string) => kindLabels[kind] ?? kind
 
-/** What came of it: code's steps of §21.1 in their order, then what people and the outbox made of it. */
+/**
+ * What came of it: code's steps of §21.1 in their order, then what people and the outbox made of it; an access verdict's
+ * outcome is the verdict itself (docs/cookie-access-plan.md §5.4).
+ */
 export const decisionOutcomes = [
   'done',
   'proposed',
@@ -59,29 +69,38 @@ export const decisionOutcomes = [
   'held-back',
   'failed',
   'noted',
+  'normal',
+  'unusual',
+  'suspicious',
+  'alarming',
 ] as const
 
 export const decisionOutcomeLabel = (outcome: string) => outcome.replace(/-/g, ' ')
 
 /**
  * Green for what happened, blue for what waits for a person, amber for what was held, red for what was refused or
- * failed, grey for what code dropped on purpose.
+ * failed, grey for what code dropped on purpose. An access verdict by how suspicious it looks: normal green, unusual
+ * blue, suspicious amber, alarming red.
  */
 export function decisionOutcomeSeverity(outcome: string): Severity {
   switch (outcome) {
     case 'done':
     case 'approved':
+    case 'normal':
       return 'success'
     case 'proposed':
     case 'below-threshold':
+    case 'unusual':
       return 'info'
     case 'declined':
     case 'revised':
     case 'held-back':
+    case 'suspicious':
       return 'warn'
     case 'rejected':
     case 'refused':
     case 'failed':
+    case 'alarming':
       return 'danger'
     default:
       return 'secondary'
@@ -110,7 +129,7 @@ export const instructionKinds: { value: InstructionKind; label: string }[] = [
 
 export const muteScopes = ['host', 'sensor', 'location', 'case'] as const
 export const suppressScopes = ['channel', 'sensor-type', 'case-kind'] as const
-export const suppressChannels = ['pushover', 'email', 'ticket', 'redmine-note'] as const
+export const suppressChannels = ['pushover', 'email', 'ticket', 'redmine-note', 'access'] as const
 export const suppressCaseKinds = ['problem', 'ticket'] as const
 
 export type InstructionScope = (typeof muteScopes)[number] | (typeof suppressScopes)[number]
@@ -132,6 +151,7 @@ const channelLabels: Record<string, string> = {
   email: 'E-mail',
   ticket: 'New tickets',
   'redmine-note': 'Notes on tickets',
+  access: 'Access notices',
 }
 
 export const suppressChannelLabel = (channel: string) => channelLabels[channel] ?? channel
@@ -215,7 +235,7 @@ export function instructionProblems(f: InstructionForm, now: number): Record<str
       problems.scope = 'Channel, sensor type or kind of case.'
     else if (!value || value.length > 100) problems.value = 'Choose what is suppressed.'
     else if (f.scope === 'channel' && !(suppressChannels as readonly string[]).includes(value.toLowerCase()))
-      problems.value = 'Pushover, e-mail, tickets or notes on tickets.'
+      problems.value = 'Pushover, e-mail, tickets, notes on tickets or access notices.'
     else if (f.scope === 'case-kind' && !(suppressCaseKinds as readonly string[]).includes(value.toLowerCase()))
       problems.value = 'Problems or tickets.'
   }

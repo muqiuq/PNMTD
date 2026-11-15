@@ -34,6 +34,7 @@ describe('Admin → Cookie', () => {
     expect(levels.email).toEqual({ level: 'Propose', minConfidence: 0.7 })
     expect(levels.objectNote).toEqual({ level: 'Auto', minConfidence: 0.7 })
     expect(levels.mailEvent).toEqual({ level: 'Auto', minConfidence: 0.7 })
-    expect(Object.keys(normalizeLevels(undefined))).toHaveLength(7)
+    expect(levels.accessNotice).toEqual({ level: 'Auto', minConfidence: 0.6 })
+    expect(Object.keys(normalizeLevels(undefined))).toHaveLength(8)
   })
 })

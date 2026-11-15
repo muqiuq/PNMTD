@@ -14,6 +14,7 @@ export const traceKinds = [
   'status',
   'summary',
   'reply',
+  'access',
   'error',
 ] as const
 
@@ -27,6 +28,7 @@ const labels: Record<string, string> = {
   status: 'Status',
   summary: 'Summary',
   reply: 'Reply',
+  access: 'Access',
   error: 'Error',
 }
 

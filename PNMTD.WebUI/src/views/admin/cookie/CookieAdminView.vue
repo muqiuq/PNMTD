@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import TabNav from '@/components/TabNav.vue'
+import AccessTab from './AccessTab.vue'
 import ActionsTab from './ActionsTab.vue'
 import CaseSettingsTab from './CaseSettingsTab.vue'
 import IdentityTab from './IdentityTab.vue'
@@ -17,7 +18,8 @@ import RightsTab from './RightsTab.vue'
  * Admin → Cookie (docs/cookie-plan.md §9.3, §21.5), for Cookie's Manage: what Cookie and PNMT's duties are doing, and
  * every setting, each section saved as a version that can be viewed and rolled back; the mutes and suppressions code
  * enforces, and the lessons from people's ratings. Cookie itself can't reach any of it. Revision 7 moved the working
- * hours to the availability plan's settings, and who gets what to the plan and the user.
+ * hours to the availability plan's settings, and who gets what to the plan and the user. Access is the access watch's
+ * section (docs/cookie-access-plan.md §8): who logs in, and whom Cookie tells.
  */
 const route = useRoute()
 const tab = computed(() => (typeof route.params.tab === 'string' && route.params.tab ? route.params.tab : 'overview'))
@@ -28,6 +30,7 @@ const tabs = [
   item('cases', 'Cases'),
   item('redmine', 'Redmine'),
   item('actions', 'Actions'),
+  item('access', 'Access'),
   item('instructions', 'Mute, suppress'),
   item('lessons', 'Lessons'),
   item('models', 'Models'),
@@ -44,6 +47,7 @@ const tabs = [
     <CaseSettingsTab v-else-if="tab === 'cases'" />
     <RedmineTab v-else-if="tab === 'redmine'" />
     <ActionsTab v-else-if="tab === 'actions'" />
+    <AccessTab v-else-if="tab === 'access'" />
     <InstructionsTab v-else-if="tab === 'instructions'" />
     <LessonsTab v-else-if="tab === 'lessons'" />
     <ModelsTab v-else-if="tab === 'models'" />

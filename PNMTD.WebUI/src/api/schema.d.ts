@@ -4,6 +4,528 @@
  */
 
 export interface paths {
+    "/api/v1/cookie/access/cases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccessCaseDetail"];
+                        "text/json": components["schemas"]["AccessCaseDetail"];
+                        "text/plain": components["schemas"]["AccessCaseDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/access/cases/{id}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AccessAnswerRequest"];
+                    "text/json": components["schemas"]["AccessAnswerRequest"];
+                    "application/*+json": components["schemas"]["AccessAnswerRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/access/cases/{id}/ticket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/access/logins/{id}/not-expected": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AccessNotExpectedRequest"];
+                    "text/json": components["schemas"]["AccessNotExpectedRequest"];
+                    "application/*+json": components["schemas"]["AccessNotExpectedRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieCaseRef"];
+                        "text/json": components["schemas"]["CookieCaseRef"];
+                        "text/plain": components["schemas"]["CookieCaseRef"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/access/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccessAdminState"];
+                        "text/json": components["schemas"]["AccessAdminState"];
+                        "text/plain": components["schemas"]["AccessAdminState"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/access/known": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccessKnownItem"][];
+                        "text/json": components["schemas"]["AccessKnownItem"][];
+                        "text/plain": components["schemas"]["AccessKnownItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AccessKnownRequest"];
+                    "text/json": components["schemas"]["AccessKnownRequest"];
+                    "application/*+json": components["schemas"]["AccessKnownRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccessKnownItem"];
+                        "text/json": components["schemas"]["AccessKnownItem"];
+                        "text/plain": components["schemas"]["AccessKnownItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/access/known/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccessKnownItem"];
+                        "text/json": components["schemas"]["AccessKnownItem"];
+                        "text/plain": components["schemas"]["AccessKnownItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/access/routers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccessRouterItem"][];
+                        "text/json": components["schemas"]["AccessRouterItem"][];
+                        "text/plain": components["schemas"]["AccessRouterItem"][];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AccessRoutersRequest"];
+                    "text/json": components["schemas"]["AccessRoutersRequest"];
+                    "application/*+json": components["schemas"]["AccessRoutersRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/mikrotik/logins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    outcome?: components["schemas"]["LogonOutcome"];
+                    admin?: boolean;
+                    kind?: components["schemas"]["LogonKind"];
+                    keyFingerprint?: string;
+                    keyOwner?: string;
+                    user?: string;
+                    source?: string;
+                    from?: string;
+                    to?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RouterAccessView"];
+                        "text/json": components["schemas"]["RouterAccessView"];
+                        "text/plain": components["schemas"]["RouterAccessView"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/mikrotik/access-watch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AccessWatchRequest"];
+                    "text/json": components["schemas"]["AccessWatchRequest"];
+                    "application/*+json": components["schemas"]["AccessWatchRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/access/was-this-you/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WasThisYouView"];
+                        "text/json": components["schemas"]["WasThisYouView"];
+                        "text/plain": components["schemas"]["WasThisYouView"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WasThisYouRequest"];
+                    "text/json": components["schemas"]["WasThisYouRequest"];
+                    "application/*+json": components["schemas"]["WasThisYouRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WasThisYouResult"];
+                        "text/json": components["schemas"]["WasThisYouResult"];
+                        "text/plain": components["schemas"]["WasThisYouResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agents/servers": {
         parameters: {
             query?: never;
@@ -4303,6 +4825,49 @@ export interface paths {
                     "application/json": components["schemas"]["LessonSettings"];
                     "text/json": components["schemas"]["LessonSettings"];
                     "application/*+json": components["schemas"]["LessonSettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSaved"];
+                        "text/json": components["schemas"]["CookieSaved"];
+                        "text/plain": components["schemas"]["CookieSaved"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/settings/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AccessSettings"];
+                    "text/json": components["schemas"]["AccessSettings"];
+                    "application/*+json": components["schemas"]["AccessSettings"];
                 };
             };
             responses: {
@@ -14622,6 +15187,99 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AccessAccountLinks: {
+            /** @default true */
+            key: boolean;
+            /** @default true */
+            serverAccounts: boolean;
+            /** @default true */
+            username: boolean;
+        };
+        AccessAdminState: {
+            cookieReadsLogins: boolean;
+            cookieReadsSignIns: boolean;
+            publicBaseUrl: boolean;
+            nightContact: boolean;
+            noticeAuto: boolean;
+            pnmtOneAddress: boolean;
+            /** Format: int32 */
+            routersNotWatched: number;
+            routersWithGap: string[];
+            contacts: components["schemas"]["AccessContactWarning"][];
+            /** Format: int32 */
+            openCases: number;
+            /** Format: int32 */
+            reviewsToday: number;
+            /** Format: int32 */
+            noticesToday: number;
+        };
+        AccessAnswerRequest: {
+            expected: boolean;
+            comment: null | string;
+            remember: null | components["schemas"]["AccessRememberRequest"];
+        };
+        AccessAskSettings: {
+            /** @default true */
+            on: boolean;
+            /** @default true */
+            pnmt: boolean;
+            /** @default true */
+            servers: boolean;
+            /** @default true */
+            routers: boolean;
+            /**
+             * Format: int32
+             * @default 24
+             */
+            validHours: number;
+            /**
+             * Format: int32
+             * @default 5
+             */
+            perPersonDay: number;
+        };
+        AccessCaseDetail: {
+            /** Format: uuid */
+            caseId: string;
+            target: components["schemas"]["AccessTargetKind"];
+            targetName: string;
+            /** Format: uuid */
+            sensorId: null | string;
+            verdict: null | string;
+            answer: null | string;
+            /** Format: date-time */
+            answeredAt: null | string;
+            answeredBy: null | string;
+            notifiedVerdict: null | string;
+            /** Format: date-time */
+            notifiedAt: null | string;
+            pendingVerdict: null | string;
+            /** Format: date-time */
+            ticketAskedAt: null | string;
+            logins: components["schemas"]["AccessReviewItem"][];
+            links: components["schemas"]["AccessLinkItem"][];
+            notices: components["schemas"]["AccessNoticeItem"][];
+            canAnswer: boolean;
+            canAskTicket: boolean;
+        };
+        AccessContact: {
+            /** Format: uuid */
+            userId: null | string;
+            /** Format: uuid */
+            groupId: null | string;
+            /** @default true */
+            servers: boolean;
+            /** @default true */
+            routers: boolean;
+            /** @default true */
+            pnmt: boolean;
+            /** @default false */
+            outsideHours: boolean;
+        };
+        AccessContactWarning: {
+            name: string;
+            problem: string;
+        };
         AccessCounts: {
             /** Format: int32 */
             successes: number;
@@ -14632,15 +15290,188 @@ export interface components {
             /** Format: int32 */
             lockouts: number;
         };
+        AccessExcludedAccount: {
+            account: string;
+            /** Format: uuid */
+            sensorId?: null | string;
+            /** @default  */
+            comment: string;
+        };
+        /**
+         * @default Wait
+         * @enum {unknown}
+         */
+        AccessHours: "Wait" | "Allowed" | "Everyone";
         AccessItem: {
             isAdmin: boolean;
             groups: components["schemas"]["Ref"][];
             rights: components["schemas"]["AccessLevel"][];
         };
+        AccessKinds: {
+            console?: boolean;
+            rdp?: boolean;
+            ssh?: boolean;
+            winRm?: boolean;
+            adminNetwork?: boolean;
+            elevation?: boolean;
+            explicit?: boolean;
+            batch?: boolean;
+            unlock?: boolean;
+            cached?: boolean;
+            sftp?: boolean;
+            rdpConnection?: boolean;
+            routerWinbox?: boolean;
+            routerWeb?: boolean;
+            routerApi?: boolean;
+            routerSsh?: boolean;
+            routerTelnet?: boolean;
+            routerFtp?: boolean;
+            routerConsole?: boolean;
+            pnmtWeb?: boolean;
+            pnmtMcp?: boolean;
+        };
+        AccessKnownItem: {
+            /** Format: uuid */
+            id: string;
+            scope: string;
+            target: null | components["schemas"]["AccessTargetKind"];
+            /** Format: uuid */
+            sensorId: null | string;
+            /** Format: uuid */
+            locationId: null | string;
+            account: null | string;
+            source: null | string;
+            groups: string[];
+            /** Format: date-time */
+            until: null | string;
+            comment: string;
+            label: string;
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: string;
+            /** Format: uuid */
+            fromCaseId: null | string;
+            /** Format: date-time */
+            endedAt: null | string;
+            endedByName: null | string;
+        };
+        AccessKnownRequest: {
+            scope: string;
+            target: null | components["schemas"]["AccessTargetKind"];
+            /** Format: uuid */
+            sensorId: null | string;
+            /** Format: uuid */
+            locationId: null | string;
+            account: null | string;
+            source: null | string;
+            groups: null | string[];
+            /** Format: date-time */
+            until: null | string;
+            comment: string;
+        };
         AccessLevel: {
             area: components["schemas"]["Area"];
             level: components["schemas"]["Level"];
             from: string[];
+        };
+        AccessLimits: {
+            /**
+             * Format: int32
+             * @default 20
+             */
+            perContactDay: number;
+            /**
+             * Format: int32
+             * @default 5
+             */
+            perContactHour: number;
+        };
+        AccessLinkItem: {
+            label: string;
+            path: string;
+        };
+        AccessNotExpectedRequest: {
+            comment: null | string;
+        };
+        AccessNoticeItem: {
+            /** Format: date-time */
+            at: string;
+            channel: components["schemas"]["CookieChannel"];
+            recipient: string;
+            subject: string;
+            state: components["schemas"]["CookieOutboxState"];
+            detail: null | string;
+            source: string;
+        };
+        AccessRememberRequest: {
+            scope: string;
+            anySource: boolean;
+            anyWay: boolean;
+            /** Format: int32 */
+            days: null | number;
+        };
+        AccessReviewItem: {
+            /** Format: uuid */
+            id: string;
+            target: components["schemas"]["AccessTargetKind"];
+            /** Format: uuid */
+            sensorId: null | string;
+            targetName: string;
+            /** Format: date-time */
+            at: string;
+            account: string;
+            isAdmin: boolean;
+            way: string;
+            group: string;
+            source: null | string;
+            publicSource: boolean;
+            device: null | string;
+            keyFingerprint: null | string;
+            targetUser: null | string;
+            signals: components["schemas"]["AccessSignalItem"][];
+            strong: boolean;
+            late: boolean;
+            flagged: boolean;
+            state: components["schemas"]["AccessReviewState"];
+            /** Format: double */
+            confidence: null | number;
+            reason: null | string;
+            judgedBy: null | string;
+            /** Format: date-time */
+            judgedAt: null | string;
+            text: string;
+            person: null | string;
+            /** Format: date-time */
+            askedAt: null | string;
+            personAnswer: null | string;
+            /** Format: date-time */
+            personAnsweredAt: null | string;
+        };
+        AccessReviewRef: {
+            /** Format: uuid */
+            reviewId: string;
+            /** Format: uuid */
+            caseId: null | string;
+            state: components["schemas"]["AccessReviewState"];
+        };
+        /** @enum {unknown} */
+        AccessReviewState: "Waiting" | "Normal" | "Unusual" | "Suspicious" | "Alarming" | "NotJudged";
+        AccessRouterItem: {
+            /** Format: uuid */
+            sensorId: string;
+            name: string;
+            hostName: string;
+            /** Format: uuid */
+            locationId: null | string;
+            locationName: null | string;
+            watch: boolean;
+            /** Format: date-time */
+            firstReadAt: null | string;
+            gap: boolean;
+        };
+        AccessRoutersRequest: {
+            sensorIds: string[];
+            watch: boolean;
         };
         AccessSection: {
             sessions: components["schemas"]["SessionInfo"][];
@@ -14649,6 +15480,59 @@ export interface components {
             securityLog: null | components["schemas"]["SecurityLogInfo"];
             last24Hours: null | components["schemas"]["AccessCounts"];
             gaps: string[];
+        };
+        AccessSettings: {
+            on?: boolean;
+            servers?: boolean;
+            routers?: boolean;
+            pnmt?: boolean;
+            serverLocations?: string[];
+            serverHosts?: string[];
+            excludedHosts?: string[];
+            watchNewRouters?: boolean;
+            kinds?: components["schemas"]["AccessKinds"];
+            excluded?: components["schemas"]["AccessExcludedAccount"][];
+            links?: components["schemas"]["AccessAccountLinks"];
+            notices?: components["schemas"]["AccessVerdictRules"];
+            wasThisYou?: components["schemas"]["AccessAskSettings"];
+            contacts?: components["schemas"]["AccessContact"][];
+            trusted?: components["schemas"]["AccessTrustedNetwork"][];
+            /** Format: int32 */
+            historyDays?: number;
+            /** Format: int32 */
+            learningDays?: number;
+            codeNotice?: boolean;
+            limits?: components["schemas"]["AccessLimits"];
+        };
+        AccessSignalItem: {
+            key: string;
+            strength: components["schemas"]["SignalStrength"];
+            text: string;
+        };
+        /** @enum {unknown} */
+        AccessTargetKind: "Server" | "Router" | "Pnmt";
+        AccessTrustedNetwork: {
+            name: string;
+            cidr: string;
+        };
+        AccessVerdictRule: {
+            /** @default true */
+            notify: boolean;
+            /** @default true */
+            email: boolean;
+            /** @default false */
+            pushover: boolean;
+            hours?: components["schemas"]["AccessHours"];
+            /** @default true */
+            ask: boolean;
+        };
+        AccessVerdictRules: {
+            unusual?: components["schemas"]["AccessVerdictRule"];
+            suspicious?: components["schemas"]["AccessVerdictRule"];
+            alarming?: components["schemas"]["AccessVerdictRule"];
+        };
+        AccessWatchRequest: {
+            watch: boolean;
         };
         AccountContactItem: {
             email: null | string;
@@ -14672,6 +15556,7 @@ export interface components {
             publicAnswer?: components["schemas"]["ActionRule"];
             objectNote?: components["schemas"]["ActionRule"];
             mailEvent?: components["schemas"]["ActionRule"];
+            accessNotice?: components["schemas"]["ActionRule"];
         };
         ActionRule: {
             level: components["schemas"]["ActionLevel"];
@@ -14855,6 +15740,7 @@ export interface components {
             keyOwner?: null | string;
             /** Format: uuid */
             keyId?: null | string;
+            review?: null | components["schemas"]["AccessReviewRef"];
         };
         AgentLogItem: {
             /** Format: uuid */
@@ -15304,6 +16190,7 @@ export interface components {
             request: null | string;
             correlationId: null | string;
             changes: components["schemas"]["AuditChange"][];
+            review?: null | components["schemas"]["AccessReviewRef"];
         };
         /** @enum {unknown} */
         AuditOutcome: "Succeeded" | "Failed" | "Denied";
@@ -15625,6 +16512,7 @@ export interface components {
             models: components["schemas"]["ModelSettings"];
             rights: components["schemas"]["CookieRightsSettings"];
             lessons: components["schemas"]["LessonSettings"];
+            access: components["schemas"]["AccessSettings"];
         };
         CookieBudgetItem: {
             /** Format: double */
@@ -15681,14 +16569,14 @@ export interface components {
             stopped?: null | components["schemas"]["CookieStop"];
         };
         /** @enum {unknown} */
-        CookieCaseKind: "Problem" | "Ticket" | "Request";
+        CookieCaseKind: "Problem" | "Ticket" | "Request" | "Access";
         CookieCaseRef: {
             /** Format: uuid */
             id: string;
             title: string;
         };
         /** @enum {unknown} */
-        CookieChannel: "Email" | "Pushover" | "RedmineNote" | "RedminePrivateNote" | "RedmineTicket";
+        CookieChannel: "Email" | "Pushover" | "RedmineNote" | "RedminePrivateNote" | "RedmineTicket" | "AccessEmail" | "AccessPushover" | "WasThisYou";
         CookieDecisionItem: {
             /** Format: int64 */
             id: number;
@@ -17649,7 +18537,7 @@ export interface components {
             flags: null | components["schemas"]["SessionFlags"];
         };
         /** @enum {unknown} */
-        LogonKind: "Console" | "Rdp" | "RdpConnection" | "Ssh" | "WinRm" | "Network" | "Cached" | "Unlock" | "Explicit" | "Batch" | "Lockout" | "Sudo" | "Su" | "Sftp";
+        LogonKind: "Console" | "Rdp" | "RdpConnection" | "Ssh" | "WinRm" | "Network" | "Cached" | "Unlock" | "Explicit" | "Batch" | "Lockout" | "Sudo" | "Su" | "Sftp" | "Winbox" | "Web" | "Api" | "Telnet" | "Ftp";
         /** @enum {unknown} */
         LogonOutcome: "Success" | "Failure";
         MachineInfo: {
@@ -19216,6 +20104,7 @@ export interface components {
             defaultWeek: components["schemas"]["DefaultDay"][];
             /** Format: int32 */
             planOrder: number;
+            serverAccounts?: null | string[];
         };
         PingParameters: {
             target: string;
@@ -19572,6 +20461,31 @@ export interface components {
             metric: null | number;
             persistent: boolean;
         };
+        RouterAccessView: {
+            watch: boolean;
+            canSwitch: boolean;
+            /** Format: date-time */
+            firstReadAt: null | string;
+            gap: boolean;
+            /** Format: int32 */
+            unmatched: number;
+            pnmtAddress: null | string;
+            users: components["schemas"]["RouterUserItem"][];
+            active: components["schemas"]["RouterActiveUser"][];
+            logins: components["schemas"]["PagedOfAgentLoginItem"];
+        };
+        RouterActiveUser: {
+            name: string;
+            when: null | string;
+            address: null | string;
+            via: null | string;
+        };
+        RouterUserItem: {
+            name: string;
+            group: null | string;
+            admin: boolean;
+            disabled: boolean;
+        };
         RulePreview: {
             /** Format: int32 */
             checked: number;
@@ -19900,6 +20814,8 @@ export interface components {
             reason: null | string;
             user: null | string;
         };
+        /** @enum {unknown} */
+        SignalStrength: "Medium" | "Strong";
         SshdKeySettings: {
             authorizedKeysFiles: string[];
             authorizedKeysCommand: null | string;
@@ -21156,6 +22072,7 @@ export interface components {
             defaultWeek: null | components["schemas"]["DefaultDay"][];
             /** Format: int32 */
             planOrder: number;
+            serverAccounts?: null | string[];
         };
         VolumeInfo: {
             mount: string;
@@ -21166,6 +22083,23 @@ export interface components {
             /** Format: int64 */
             freeBytes: null | number;
             encryption: null | string;
+        };
+        WasThisYouRequest: {
+            itWasMe: boolean;
+        };
+        WasThisYouResult: {
+            message: string;
+        };
+        WasThisYouView: {
+            open: boolean;
+            login: null | string;
+            target: null | string;
+            way: null | string;
+            source: null | string;
+            device: null | string;
+            /** Format: date-time */
+            at: null | string;
+            answer: null | string;
         };
         WatchedProject: {
             /** Format: int32 */

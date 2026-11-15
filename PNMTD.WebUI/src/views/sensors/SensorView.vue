@@ -47,6 +47,7 @@ import UpdatesTab from './mikrotik/UpdatesTab.vue'
 import MikrotikSettingsDialog from './mikrotik/MikrotikSettingsDialog.vue'
 import MikrotikStatusStrip from './mikrotik/MikrotikStatusStrip.vue'
 import SetupTab from './mikrotik/SetupTab.vue'
+import RouterAccessTab from './mikrotik/RouterAccessTab.vue'
 import CommandsTab from './udp/CommandsTab.vue'
 import FirmwareTab from './udp/FirmwareTab.vue'
 import LastPacketsTab from './udp/LastPacketsTab.vue'
@@ -231,6 +232,8 @@ const mikrotikTabs = computed(() => {
           },
           // Remote commands need CanWrite (§8.3).
           ...(canWrite.value ? [{ key: 'commands', label: 'Commands', icon: 'pi pi-code', to: to('commands') }] : []),
+          // Its logins hold names and addresses: Monitoring's Edit, as a server's (docs/cookie-access-plan.md §10.4).
+          ...(canWrite.value ? [{ key: 'access', label: 'Access', icon: 'pi pi-sign-in', to: to('access') }] : []),
         ]
       : []),
     { key: 'history', label: 'History', icon: 'pi pi-history', to: to('history') },
@@ -485,6 +488,7 @@ const more = computed(() =>
         :is-admin="isAdmin"
       />
       <MikrotikCommandsTab v-else-if="isMikrotik && tab === 'commands'" :sensor="sensor" :is-admin="isAdmin" />
+      <RouterAccessTab v-else-if="isMikrotik && tab === 'access' && canWrite" :sensor="sensor" />
       <LastPacketsTab v-else-if="tab === 'last-packets'" :sensor="sensor" />
       <CommandsTab v-else-if="tab === 'commands'" :sensor="sensor" :can-write="canWrite" />
       <FirmwareTab v-else-if="tab === 'firmware'" :sensor="sensor" :is-admin="isAdmin" @update="updating = true" />

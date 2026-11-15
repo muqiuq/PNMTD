@@ -19,6 +19,7 @@ import { formatAbsolute } from '@/format'
 import { useSession } from '@/stores/session'
 import { importanceSeverity } from '@/views/notifications/importance'
 import ZabbixSeverityTag from '@/views/zabbix/ZabbixSeverityTag.vue'
+import AccessCase from './AccessCase.vue'
 import {
   actorLabel,
   dutyName,
@@ -36,6 +37,7 @@ import DecisionLog from './DecisionLog.vue'
  * last solution, and for a ticket the clock of §7.2. Refreshed with the list. Cookie: Use comments (Cookie reads it in
  * its next round); Cookie: Instruct stops a case (Don't go on with this, saying why), lets Cookie go on with it, and asks
  * the big brother, which the next round calls. A stopped case stays open and visible, marked, with who, when and why.
+ * An access case (docs/cookie-access-plan.md §10.4) adds its logins, verdict, notices and answers.
  */
 const props = defineProps<{ id: string }>()
 const session = useSession()
@@ -228,6 +230,7 @@ async function confirm() {
           </dd>
         </template>
       </dl>
+      <AccessCase v-if="c.kind === 'Access'" :id="c.id" :location-id="c.locationId ?? null" />
       <div v-if="d.canStop && !c.stopped" class="case-actions">
         <Button
           label="Stop…"

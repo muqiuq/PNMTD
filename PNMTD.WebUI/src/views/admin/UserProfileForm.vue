@@ -3,19 +3,25 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import ProgressSpinner from 'primevue/progressspinner'
+import Textarea from 'primevue/textarea'
 import { computed, ref, watch } from 'vue'
 import { ApiError } from '@/api/client'
 import { api, keys } from '@/api/resources'
 import ErrorState from '@/components/ErrorState.vue'
 import { useNotify } from '@/composables/useNotify'
+import { useSession } from '@/stores/session'
+import { serverAccountsFromText } from '@/views/cookie/access'
 import PlanFields from './availability/PlanFields.vue'
 import { planDraftOf, planRequest, type PlanDraft } from './availability/plan'
 import { useTypeOptions } from './availability/useAvailability'
+import { useCookieSettings } from './cookie/useSection'
 
 /**
  * A person's contact details and their place in the availability plan (docs/cookie-plan.md §8.1), for admins: the e-mail
  * address and Pushover key (each person sets their own on Account too), the Redmine user, which only admins set (it
- * decides whose tickets' reminders a person gets), and the plan's fields.
+ * decides whose tickets' reminders a person gets), and the plan's fields. And the person's accounts on servers and routers,
+ * which link a login to them for the access watch (docs/cookie-access-plan.md §5.3), while that way is on under Admin →
+ * Cookie → Access; hidden, they are left as they are.
  */
 const props = defineProps<{ userId: string; username: string }>()
 const queryClient = useQueryClient()
@@ -25,7 +31,10 @@ const profile = useQuery({
   queryFn: () => api.users.profile(props.userId),
 })
 const { types } = useTypeOptions()
-const contact = ref({ email: '', pushoverKey: '', redmineName: '' })
+const session = useSession()
+const cookieSettings = session.can('Cookie', 'Manage') ? useCookieSettings() : null
+const accountsShown = computed(() => cookieSettings?.data.value?.access.links?.serverAccounts !== false)
+const contact = ref({ email: '', pushoverKey: '', redmineName: '', serverAccounts: '' })
 const plan = ref<PlanDraft | null>(null)
 const errors = ref<Record<string, string | undefined>>({})
 const busy = ref(false)
@@ -34,7 +43,12 @@ watch(
   () => profile.data.value,
   (p) => {
     if (!p) return
-    contact.value = { email: p.email ?? '', pushoverKey: p.pushoverKey ?? '', redmineName: p.redmineName ?? '' }
+    contact.value = {
+      email: p.email ?? '',
+      pushoverKey: p.pushoverKey ?? '',
+      redmineName: p.redmineName ?? '',
+      serverAccounts: (p.serverAccounts ?? []).join('\n'),
+    }
     plan.value = planDraftOf(p)
     errors.value = {}
   },
@@ -51,6 +65,7 @@ async function save() {
       email: orNull(contact.value.email),
       pushoverKey: orNull(contact.value.pushoverKey),
       redmineName: orNull(contact.value.redmineName),
+      serverAccounts: accountsShown.value ? serverAccountsFromText(contact.value.serverAccounts) : null,
       ...planRequest(plan.value),
     })
     queryClient.setQueryData([...keys.users, props.userId, 'profile'], saved)
@@ -101,6 +116,24 @@ async function save() {
       <small v-if="errors.redmineName" class="field-error">{{ errors.redmineName }}</small>
       <small v-else class="field-hint"
         >The name Redmine shows on tickets: how an assignee is found, and whose reminders they get.</small
+      >
+    </div>
+    <div v-if="accountsShown" class="field">
+      <label for="up-server-accounts">Server accounts</label>
+      <Textarea
+        id="up-server-accounts"
+        v-model="contact.serverAccounts"
+        rows="2"
+        auto-resize
+        class="mono"
+        spellcheck="false"
+        placeholder="CONTOSO\jdoe"
+        :invalid="!!errors.serverAccounts"
+      />
+      <small v-if="errors.serverAccounts" class="field-error">{{ errors.serverAccounts }}</small>
+      <small v-else class="field-hint"
+        >One per line, at most 20: the person's accounts on servers and routers (CONTOSO\jdoe, jdoe@contoso.local,
+        jdoe). The access watch links a login to them by these, without case, with or without the domain.</small
       >
     </div>
     <PlanFields v-model="plan" :types="types" :errors="errors" id-prefix="up" />

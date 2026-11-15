@@ -60,13 +60,15 @@ export const actionKeys = [
   'publicAnswer',
   'objectNote',
   'mailEvent',
+  'accessNotice',
 ] as const
 
 export type ActionKey = (typeof actionKeys)[number]
 
 /**
  * The defaults of §13.4 and §21.1: what leaves PNMT or reaches people at Propose, a note on a host or sensor and a mail
- * rule's event at Auto; every threshold 0.7.
+ * rule's event at Auto; every threshold 0.7. The access notice at Auto with 0.6 (docs/cookie-access-plan.md §6.4): Propose
+ * would hold a break-in in the inbox until someone looks.
  */
 export const actionDefaults: Record<ActionKey, S['ActionRule']> = {
   pushover: { level: 'Propose', minConfidence: 0.7 },
@@ -76,6 +78,7 @@ export const actionDefaults: Record<ActionKey, S['ActionRule']> = {
   publicAnswer: { level: 'Propose', minConfidence: 0.7 },
   objectNote: { level: 'Auto', minConfidence: 0.7 },
   mailEvent: { level: 'Auto', minConfidence: 0.7 },
+  accessNotice: { level: 'Auto', minConfidence: 0.6 },
 }
 
 /** Every action with a rule, the defaults for any the settings lack. */

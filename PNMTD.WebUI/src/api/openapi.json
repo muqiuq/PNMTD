@@ -5,6 +5,668 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/v1/cookie/access/cases/{id}": {
+      "get": {
+        "tags": [
+          "CookieAccess"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessCaseDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessCaseDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessCaseDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/access/cases/{id}/answer": {
+      "post": {
+        "tags": [
+          "CookieAccess"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessAnswerRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessAnswerRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessAnswerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/access/cases/{id}/ticket": {
+      "post": {
+        "tags": [
+          "CookieAccess"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/access/logins/{id}/not-expected": {
+      "post": {
+        "tags": [
+          "CookieAccess"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessNotExpectedRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessNotExpectedRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessNotExpectedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieCaseRef"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieCaseRef"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieCaseRef"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/access/state": {
+      "get": {
+        "tags": [
+          "CookieAccessAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessAdminState"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessAdminState"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessAdminState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/access/known": {
+      "get": {
+        "tags": [
+          "CookieAccessAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccessKnownItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccessKnownItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccessKnownItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "CookieAccessAdmin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessKnownRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessKnownRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessKnownRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessKnownItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessKnownItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessKnownItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/access/known/{id}/end": {
+      "post": {
+        "tags": [
+          "CookieAccessAdmin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessKnownItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessKnownItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessKnownItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/access/routers": {
+      "get": {
+        "tags": [
+          "CookieAccessAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccessRouterItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccessRouterItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccessRouterItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "CookieAccessAdmin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessRoutersRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessRoutersRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessRoutersRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/mikrotik/logins": {
+      "get": {
+        "tags": [
+          "SensorMikrotikAccess"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/LogonOutcome"
+            }
+          },
+          {
+            "name": "admin",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/LogonKind"
+            }
+          },
+          {
+            "name": "keyFingerprint",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keyOwner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouterAccessView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouterAccessView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouterAccessView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/mikrotik/access-watch": {
+      "put": {
+        "tags": [
+          "SensorMikrotikAccess"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessWatchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessWatchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessWatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/access/was-this-you/{token}": {
+      "get": {
+        "tags": [
+          "WasThisYou"
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WasThisYouView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WasThisYouView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WasThisYouView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "WasThisYou"
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WasThisYouRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WasThisYouRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/WasThisYouRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WasThisYouResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WasThisYouResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WasThisYouResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/agents/servers": {
       "get": {
         "tags": [
@@ -5237,6 +5899,55 @@
             "application/*+json": {
               "schema": {
                 "$ref": "#/components/schemas/LessonSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieSaved"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieSaved"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieSaved"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/settings/access": {
+      "put": {
+        "tags": [
+          "CookieAdmin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessSettings"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessSettings"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessSettings"
               }
             }
           },
@@ -18703,6 +19414,318 @@
   },
   "components": {
     "schemas": {
+      "AccessAccountLinks": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "boolean",
+            "default": true
+          },
+          "serverAccounts": {
+            "type": "boolean",
+            "default": true
+          },
+          "username": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "AccessAdminState": {
+        "required": [
+          "cookieReadsLogins",
+          "cookieReadsSignIns",
+          "publicBaseUrl",
+          "nightContact",
+          "noticeAuto",
+          "pnmtOneAddress",
+          "routersNotWatched",
+          "routersWithGap",
+          "contacts",
+          "openCases",
+          "reviewsToday",
+          "noticesToday"
+        ],
+        "type": "object",
+        "properties": {
+          "cookieReadsLogins": {
+            "type": "boolean"
+          },
+          "cookieReadsSignIns": {
+            "type": "boolean"
+          },
+          "publicBaseUrl": {
+            "type": "boolean"
+          },
+          "nightContact": {
+            "type": "boolean"
+          },
+          "noticeAuto": {
+            "type": "boolean"
+          },
+          "pnmtOneAddress": {
+            "type": "boolean"
+          },
+          "routersNotWatched": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "routersWithGap": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "contacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessContactWarning"
+            }
+          },
+          "openCases": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reviewsToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "noticesToday": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AccessAnswerRequest": {
+        "required": [
+          "expected",
+          "comment",
+          "remember"
+        ],
+        "type": "object",
+        "properties": {
+          "expected": {
+            "type": "boolean"
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "remember": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AccessRememberRequest"
+              }
+            ]
+          }
+        }
+      },
+      "AccessAskSettings": {
+        "type": "object",
+        "properties": {
+          "on": {
+            "type": "boolean",
+            "default": true
+          },
+          "pnmt": {
+            "type": "boolean",
+            "default": true
+          },
+          "servers": {
+            "type": "boolean",
+            "default": true
+          },
+          "routers": {
+            "type": "boolean",
+            "default": true
+          },
+          "validHours": {
+            "type": "integer",
+            "format": "int32",
+            "default": 24
+          },
+          "perPersonDay": {
+            "type": "integer",
+            "format": "int32",
+            "default": 5
+          }
+        }
+      },
+      "AccessCaseDetail": {
+        "required": [
+          "caseId",
+          "target",
+          "targetName",
+          "sensorId",
+          "verdict",
+          "answer",
+          "answeredAt",
+          "answeredBy",
+          "notifiedVerdict",
+          "notifiedAt",
+          "pendingVerdict",
+          "ticketAskedAt",
+          "logins",
+          "links",
+          "notices",
+          "canAnswer",
+          "canAskTicket"
+        ],
+        "type": "object",
+        "properties": {
+          "caseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target": {
+            "$ref": "#/components/schemas/AccessTargetKind"
+          },
+          "targetName": {
+            "type": "string"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "verdict": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "answer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "answeredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "answeredBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "notifiedVerdict": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "notifiedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "pendingVerdict": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ticketAskedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "logins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessReviewItem"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessLinkItem"
+            }
+          },
+          "notices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessNoticeItem"
+            }
+          },
+          "canAnswer": {
+            "type": "boolean"
+          },
+          "canAskTicket": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AccessContact": {
+        "required": [
+          "userId",
+          "groupId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "groupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "servers": {
+            "type": "boolean",
+            "default": true
+          },
+          "routers": {
+            "type": "boolean",
+            "default": true
+          },
+          "pnmt": {
+            "type": "boolean",
+            "default": true
+          },
+          "outsideHours": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "AccessContactWarning": {
+        "required": [
+          "name",
+          "problem"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "problem": {
+            "type": "string"
+          }
+        }
+      },
       "AccessCounts": {
         "required": [
           "successes",
@@ -18730,6 +19753,36 @@
           }
         }
       },
+      "AccessExcludedAccount": {
+        "required": [
+          "account"
+        ],
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "comment": {
+            "type": "string",
+            "default": ""
+          }
+        }
+      },
+      "AccessHours": {
+        "enum": [
+          "Wait",
+          "Allowed",
+          "Everyone"
+        ],
+        "default": "Wait"
+      },
       "AccessItem": {
         "required": [
           "isAdmin",
@@ -18755,6 +19808,260 @@
           }
         }
       },
+      "AccessKinds": {
+        "type": "object",
+        "properties": {
+          "console": {
+            "type": "boolean"
+          },
+          "rdp": {
+            "type": "boolean"
+          },
+          "ssh": {
+            "type": "boolean"
+          },
+          "winRm": {
+            "type": "boolean"
+          },
+          "adminNetwork": {
+            "type": "boolean"
+          },
+          "elevation": {
+            "type": "boolean"
+          },
+          "explicit": {
+            "type": "boolean"
+          },
+          "batch": {
+            "type": "boolean"
+          },
+          "unlock": {
+            "type": "boolean"
+          },
+          "cached": {
+            "type": "boolean"
+          },
+          "sftp": {
+            "type": "boolean"
+          },
+          "rdpConnection": {
+            "type": "boolean"
+          },
+          "routerWinbox": {
+            "type": "boolean"
+          },
+          "routerWeb": {
+            "type": "boolean"
+          },
+          "routerApi": {
+            "type": "boolean"
+          },
+          "routerSsh": {
+            "type": "boolean"
+          },
+          "routerTelnet": {
+            "type": "boolean"
+          },
+          "routerFtp": {
+            "type": "boolean"
+          },
+          "routerConsole": {
+            "type": "boolean"
+          },
+          "pnmtWeb": {
+            "type": "boolean"
+          },
+          "pnmtMcp": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AccessKnownItem": {
+        "required": [
+          "id",
+          "scope",
+          "target",
+          "sensorId",
+          "locationId",
+          "account",
+          "source",
+          "groups",
+          "until",
+          "comment",
+          "label",
+          "createdAt",
+          "createdByName",
+          "fromCaseId",
+          "endedAt",
+          "endedByName"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "target": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AccessTargetKind"
+              }
+            ]
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "account": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "until": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdByName": {
+            "type": "string"
+          },
+          "fromCaseId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "endedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "endedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AccessKnownRequest": {
+        "required": [
+          "scope",
+          "target",
+          "sensorId",
+          "locationId",
+          "account",
+          "source",
+          "groups",
+          "until",
+          "comment"
+        ],
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string"
+          },
+          "target": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AccessTargetKind"
+              }
+            ]
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "account": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "groups": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "until": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "comment": {
+            "type": "string"
+          }
+        }
+      },
       "AccessLevel": {
         "required": [
           "area",
@@ -18774,6 +20081,388 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "AccessLimits": {
+        "type": "object",
+        "properties": {
+          "perContactDay": {
+            "type": "integer",
+            "format": "int32",
+            "default": 20
+          },
+          "perContactHour": {
+            "type": "integer",
+            "format": "int32",
+            "default": 5
+          }
+        }
+      },
+      "AccessLinkItem": {
+        "required": [
+          "label",
+          "path"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      },
+      "AccessNotExpectedRequest": {
+        "required": [
+          "comment"
+        ],
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AccessNoticeItem": {
+        "required": [
+          "at",
+          "channel",
+          "recipient",
+          "subject",
+          "state",
+          "detail",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/CookieChannel"
+          },
+          "recipient": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/CookieOutboxState"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      },
+      "AccessRememberRequest": {
+        "required": [
+          "scope",
+          "anySource",
+          "anyWay",
+          "days"
+        ],
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string"
+          },
+          "anySource": {
+            "type": "boolean"
+          },
+          "anyWay": {
+            "type": "boolean"
+          },
+          "days": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AccessReviewItem": {
+        "required": [
+          "id",
+          "target",
+          "sensorId",
+          "targetName",
+          "at",
+          "account",
+          "isAdmin",
+          "way",
+          "group",
+          "source",
+          "publicSource",
+          "device",
+          "keyFingerprint",
+          "targetUser",
+          "signals",
+          "strong",
+          "late",
+          "flagged",
+          "state",
+          "confidence",
+          "reason",
+          "judgedBy",
+          "judgedAt",
+          "text",
+          "person",
+          "askedAt",
+          "personAnswer",
+          "personAnsweredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target": {
+            "$ref": "#/components/schemas/AccessTargetKind"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "targetName": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "account": {
+            "type": "string"
+          },
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "way": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "publicSource": {
+            "type": "boolean"
+          },
+          "device": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "keyFingerprint": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetUser": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "signals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessSignalItem"
+            }
+          },
+          "strong": {
+            "type": "boolean"
+          },
+          "late": {
+            "type": "boolean"
+          },
+          "flagged": {
+            "type": "boolean"
+          },
+          "state": {
+            "$ref": "#/components/schemas/AccessReviewState"
+          },
+          "confidence": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "judgedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "judgedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "text": {
+            "type": "string"
+          },
+          "person": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "askedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "personAnswer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "personAnsweredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "AccessReviewRef": {
+        "required": [
+          "reviewId",
+          "caseId",
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "reviewId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "caseId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/AccessReviewState"
+          }
+        }
+      },
+      "AccessReviewState": {
+        "enum": [
+          "Waiting",
+          "Normal",
+          "Unusual",
+          "Suspicious",
+          "Alarming",
+          "NotJudged"
+        ]
+      },
+      "AccessRouterItem": {
+        "required": [
+          "sensorId",
+          "name",
+          "hostName",
+          "locationId",
+          "locationName",
+          "watch",
+          "firstReadAt",
+          "gap"
+        ],
+        "type": "object",
+        "properties": {
+          "sensorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "hostName": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "locationName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "watch": {
+            "type": "boolean"
+          },
+          "firstReadAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "gap": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AccessRoutersRequest": {
+        "required": [
+          "sensorIds",
+          "watch"
+        ],
+        "type": "object",
+        "properties": {
+          "sensorIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "watch": {
+            "type": "boolean"
           }
         }
       },
@@ -18831,6 +20520,181 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "AccessSettings": {
+        "type": "object",
+        "properties": {
+          "on": {
+            "type": "boolean"
+          },
+          "servers": {
+            "type": "boolean"
+          },
+          "routers": {
+            "type": "boolean"
+          },
+          "pnmt": {
+            "type": "boolean"
+          },
+          "serverLocations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "serverHosts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "excludedHosts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "watchNewRouters": {
+            "type": "boolean"
+          },
+          "kinds": {
+            "$ref": "#/components/schemas/AccessKinds"
+          },
+          "excluded": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessExcludedAccount"
+            }
+          },
+          "links": {
+            "$ref": "#/components/schemas/AccessAccountLinks"
+          },
+          "notices": {
+            "$ref": "#/components/schemas/AccessVerdictRules"
+          },
+          "wasThisYou": {
+            "$ref": "#/components/schemas/AccessAskSettings"
+          },
+          "contacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessContact"
+            }
+          },
+          "trusted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessTrustedNetwork"
+            }
+          },
+          "historyDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "learningDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "codeNotice": {
+            "type": "boolean"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/AccessLimits"
+          }
+        }
+      },
+      "AccessSignalItem": {
+        "required": [
+          "key",
+          "strength",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "strength": {
+            "$ref": "#/components/schemas/SignalStrength"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "AccessTargetKind": {
+        "enum": [
+          "Server",
+          "Router",
+          "Pnmt"
+        ]
+      },
+      "AccessTrustedNetwork": {
+        "required": [
+          "name",
+          "cidr"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "cidr": {
+            "type": "string"
+          }
+        }
+      },
+      "AccessVerdictRule": {
+        "type": "object",
+        "properties": {
+          "notify": {
+            "type": "boolean",
+            "default": true
+          },
+          "email": {
+            "type": "boolean",
+            "default": true
+          },
+          "pushover": {
+            "type": "boolean",
+            "default": false
+          },
+          "hours": {
+            "$ref": "#/components/schemas/AccessHours"
+          },
+          "ask": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "AccessVerdictRules": {
+        "type": "object",
+        "properties": {
+          "unusual": {
+            "$ref": "#/components/schemas/AccessVerdictRule"
+          },
+          "suspicious": {
+            "$ref": "#/components/schemas/AccessVerdictRule"
+          },
+          "alarming": {
+            "$ref": "#/components/schemas/AccessVerdictRule"
+          }
+        }
+      },
+      "AccessWatchRequest": {
+        "required": [
+          "watch"
+        ],
+        "type": "object",
+        "properties": {
+          "watch": {
+            "type": "boolean"
           }
         }
       },
@@ -18930,6 +20794,9 @@
             "$ref": "#/components/schemas/ActionRule"
           },
           "mailEvent": {
+            "$ref": "#/components/schemas/ActionRule"
+          },
+          "accessNotice": {
             "$ref": "#/components/schemas/ActionRule"
           }
         }
@@ -19754,6 +21621,16 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "review": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AccessReviewRef"
+              }
+            ]
           }
         }
       },
@@ -21645,6 +23522,16 @@
             "items": {
               "$ref": "#/components/schemas/AuditChange"
             }
+          },
+          "review": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AccessReviewRef"
+              }
+            ]
           }
         }
       },
@@ -22927,7 +24814,8 @@
           "actions",
           "models",
           "rights",
-          "lessons"
+          "lessons",
+          "access"
         ],
         "type": "object",
         "properties": {
@@ -22954,6 +24842,9 @@
           },
           "lessons": {
             "$ref": "#/components/schemas/LessonSettings"
+          },
+          "access": {
+            "$ref": "#/components/schemas/AccessSettings"
           }
         }
       },
@@ -23195,7 +25086,8 @@
         "enum": [
           "Problem",
           "Ticket",
-          "Request"
+          "Request",
+          "Access"
         ]
       },
       "CookieCaseRef": {
@@ -23220,7 +25112,10 @@
           "Pushover",
           "RedmineNote",
           "RedminePrivateNote",
-          "RedmineTicket"
+          "RedmineTicket",
+          "AccessEmail",
+          "AccessPushover",
+          "WasThisYou"
         ]
       },
       "CookieDecisionItem": {
@@ -31249,7 +33144,12 @@
           "Lockout",
           "Sudo",
           "Su",
-          "Sftp"
+          "Sftp",
+          "Winbox",
+          "Web",
+          "Api",
+          "Telnet",
+          "Ftp"
         ]
       },
       "LogonOutcome": {
@@ -37072,6 +38972,15 @@
           "planOrder": {
             "type": "integer",
             "format": "int32"
+          },
+          "serverAccounts": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -38500,6 +40409,121 @@
           }
         }
       },
+      "RouterAccessView": {
+        "required": [
+          "watch",
+          "canSwitch",
+          "firstReadAt",
+          "gap",
+          "unmatched",
+          "pnmtAddress",
+          "users",
+          "active",
+          "logins"
+        ],
+        "type": "object",
+        "properties": {
+          "watch": {
+            "type": "boolean"
+          },
+          "canSwitch": {
+            "type": "boolean"
+          },
+          "firstReadAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "gap": {
+            "type": "boolean"
+          },
+          "unmatched": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pnmtAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouterUserItem"
+            }
+          },
+          "active": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouterActiveUser"
+            }
+          },
+          "logins": {
+            "$ref": "#/components/schemas/PagedOfAgentLoginItem"
+          }
+        }
+      },
+      "RouterActiveUser": {
+        "required": [
+          "name",
+          "when",
+          "address",
+          "via"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "when": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "via": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RouterUserItem": {
+        "required": [
+          "name",
+          "group",
+          "admin",
+          "disabled"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "group": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "admin": {
+            "type": "boolean"
+          },
+          "disabled": {
+            "type": "boolean"
+          }
+        }
+      },
       "RulePreview": {
         "required": [
           "checked",
@@ -39889,6 +41913,12 @@
             ]
           }
         }
+      },
+      "SignalStrength": {
+        "enum": [
+          "Medium",
+          "Strong"
+        ]
       },
       "SshdKeySettings": {
         "required": [
@@ -45088,6 +47118,15 @@
           "planOrder": {
             "type": "integer",
             "format": "int32"
+          },
+          "serverAccounts": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -45132,6 +47171,89 @@
             "format": "int64"
           },
           "encryption": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "WasThisYouRequest": {
+        "required": [
+          "itWasMe"
+        ],
+        "type": "object",
+        "properties": {
+          "itWasMe": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WasThisYouResult": {
+        "required": [
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "WasThisYouView": {
+        "required": [
+          "open",
+          "login",
+          "target",
+          "way",
+          "source",
+          "device",
+          "at",
+          "answer"
+        ],
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "boolean"
+          },
+          "login": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "target": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "way": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "device": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "answer": {
             "type": [
               "null",
               "string"
@@ -47198,6 +49320,18 @@
     }
   },
   "tags": [
+    {
+      "name": "CookieAccess"
+    },
+    {
+      "name": "CookieAccessAdmin"
+    },
+    {
+      "name": "SensorMikrotikAccess"
+    },
+    {
+      "name": "WasThisYou"
+    },
     {
       "name": "AgentServers"
     },

@@ -318,6 +318,20 @@ export const api = {
     redactCommand: (id: Id) => call(client.POST('/api/v1/mikrotik/commands/{id}/redact', { params: { path: { id } } })),
     removeBackup: (id: Id, backupId: Id) =>
       call(client.DELETE('/api/v1/sensors/{id}/mikrotik/backups/{backupId}', { params: { path: { id, backupId } } })),
+    // --- its logins (docs/cookie-access-plan.md §4.2, §10.4): Monitoring's Edit; the switch Cookie's Manage ---------
+    /** The router's Access tab: its switch, users, who is logged in now, the gap, and its logins, paged. */
+    logins: (
+      id: Id,
+      query: ListQuery & {
+        outcome?: S['LogonOutcome']
+        admin?: boolean
+        kind?: S['LogonKind']
+        user?: string
+        source?: string
+      },
+    ) => call(client.GET('/api/v1/sensors/{id}/mikrotik/logins', { params: { path: { id }, query } })),
+    setAccessWatch: (id: Id, watch: boolean) =>
+      call(client.PUT('/api/v1/sensors/{id}/mikrotik/access-watch', { params: { path: { id } }, body: { watch } })),
     // --- the admin page: Admin ------------------------------------------------------------------
     status: () => call(client.GET('/api/v1/mikrotik/status')),
     sshKeys: () => call(client.GET('/api/v1/mikrotik/ssh-keys')),
@@ -537,6 +551,7 @@ export const api = {
       models: (body: S['ModelSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/models', { body })),
       rights: (body: S['CookieRightsSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/rights', { body })),
       lessons: (body: S['LessonSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/lessons', { body })),
+      access: (body: S['AccessSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/access', { body })),
     },
     /** Mute, suppress and instructions (§10.3): the active ones and drafts, then the last 30 days'. */
     instructions: () => call(client.GET('/api/v1/cookie/admin/instructions')),
@@ -563,6 +578,43 @@ export const api = {
       call(client.GET('/api/v1/cookie/admin/outbox', { params: { query } })),
     /** What a limit held back, sent now (409 for anything else). */
     send: (id: number) => call(client.POST('/api/v1/cookie/admin/outbox/{id}/send', { params: { path: { id } } })),
+    // --- the access watch (docs/cookie-access-plan.md §10.3) ---------------------------------------------------------
+    /** An access case's own part: its logins, verdict, answer, notices and links (Cookie: Use and the target's right). */
+    accessCase: (id: Id) => call(client.GET('/api/v1/cookie/access/cases/{id}', { params: { path: { id } } })),
+    /** Expected (with Remember this) or Not expected (§7): a contact for the target, or Cookie: Instruct. */
+    answerAccess: (id: Id, body: S['AccessAnswerRequest']) =>
+      call(client.POST('/api/v1/cookie/access/cases/{id}/answer', { params: { path: { id } }, body })),
+    /** Ask Cookie for a ticket (§7): Cookie: Instruct and Redmine: Link; 409 when closed or Cookie is stopped. */
+    askAccessTicket: (id: Id) =>
+      call(client.POST('/api/v1/cookie/access/cases/{id}/ticket', { params: { path: { id } } })),
+    /** This wasn't expected, on a server's or router's successful login (Monitoring: Edit): its case. */
+    notExpected: (loginId: Id, comment: string | null) =>
+      call(
+        client.POST('/api/v1/cookie/access/logins/{id}/not-expected', {
+          params: { path: { id: loginId } },
+          body: { comment },
+        }),
+      ),
+    // Admin → Cookie → Access (§8): Cookie's Manage.
+    accessState: () => call(client.GET('/api/v1/cookie/admin/access/state')),
+    accessKnown: () => call(client.GET('/api/v1/cookie/admin/access/known')),
+    addAccessKnown: (body: S['AccessKnownRequest']) => call(client.POST('/api/v1/cookie/admin/access/known', { body })),
+    endAccessKnown: (id: Id) =>
+      call(client.POST('/api/v1/cookie/admin/access/known/{id}/end', { params: { path: { id } } })),
+    accessRouters: () => call(client.GET('/api/v1/cookie/admin/access/routers')),
+    /** Many routers' switches at once (§4.2): all of a location, all on, all off. */
+    switchAccessRouters: (sensorIds: Id[], watch: boolean) =>
+      call(client.PUT('/api/v1/cookie/admin/access/routers', { body: { sensorIds, watch } })),
+  },
+
+  /**
+   * Was this you? (docs/cookie-access-plan.md §6.6): the access watch's only page without sign-in. Opening it answers
+   * nothing; only the page's buttons do. A link used, expired or unknown: open false, or 409 on the answer.
+   */
+  wasThisYou: {
+    view: (token: string) => call(client.GET('/api/v1/access/was-this-you/{token}', { params: { path: { token } } })),
+    answer: (token: string, itWasMe: boolean) =>
+      call(client.POST('/api/v1/access/was-this-you/{token}', { params: { path: { token } }, body: { itWasMe } })),
   },
 
   /**

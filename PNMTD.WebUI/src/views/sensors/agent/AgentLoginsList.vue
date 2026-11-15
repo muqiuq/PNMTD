@@ -10,17 +10,22 @@ import ListTable from '@/components/ListTable.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { useCopy } from '@/composables/useCopy'
 import { useServerTable } from '@/composables/useServerTable'
-import { logonKindLabel, logonKinds } from '@/views/admin/servers/agentFormat'
+import { logonKindLabel, logonKinds, routerLogonKinds } from '@/views/admin/servers/agentFormat'
+import AccessReviewBadge from '@/views/cookie/AccessReviewBadge.vue'
 import { keyLabel } from '../linux/linuxFormat'
+import NotExpectedDialog from './NotExpectedDialog.vue'
 
 /**
  * The logins and connections of a server (docs/windows-sensor-plan.md §4.7; docs/linux-sensor-plan.md §5.6), with their
  * filters: every admin login, failures aggregated, the kinds of its platform. On the Access tab of either platform. Linux adds
  * the key each SSH login used (its fingerprint, short, with copy and a filter; names come with the key manager), sudo's and su's
- * target user and command, and the names the internet's scanners tried. The User role: names and addresses.
+ * target user and command, and the names the internet's scanners tried. A router's logins from its log (routerId instead of
+ * server; docs/cookie-access-plan.md §4.2) on its own Access tab. Each reviewed login shows the access watch's verdict with a
+ * link to its case, and a successful one can be marked This wasn't expected (§7). The User role: names and addresses.
  */
-const props = defineProps<{ server: S['AgentServerDetail']; keyFingerprint?: string | null }>()
-const linux = computed(() => props.server.server.platform === 'Linux')
+const props = defineProps<{ server?: S['AgentServerDetail']; routerId?: string; keyFingerprint?: string | null }>()
+const sensorId = computed(() => props.server?.server.sensorId ?? props.routerId ?? '')
+const linux = computed(() => props.server?.server.platform === 'Linux')
 const outcome = ref<S['LogonOutcome'] | null>(null)
 const kind = ref<S['LogonKind'] | null>(null)
 const adminsOnly = ref(false)
@@ -43,23 +48,32 @@ const filters = computed(() => ({
   admin: adminsOnly.value ? true : undefined,
   keyFingerprint: linux.value && keyFilter.value ? keyFilter.value : undefined,
 }))
+const listKey = props.server
+  ? ([...keys.agentServer(sensorId.value), 'logins'] as const)
+  : ([...keys.sensor(sensorId.value), 'mikrotik-logins'] as const)
 const table = useServerTable<S['AgentLoginItem']>({
-  key: [...keys.agentServer(props.server.server.sensorId), 'logins'],
-  fetch: (q) => api.agents.logins(props.server.server.sensorId, q),
+  key: listKey,
+  fetch: (q) =>
+    props.server
+      ? api.agents.logins(sensorId.value, q)
+      : api.mikrotik.logins(sensorId.value, q).then((view) => view.logins),
   pageSize: 50,
   filters,
   refetchInterval: 15_000,
 })
-const kinds = computed(() => logonKinds[props.server.server.platform])
+const kinds = computed(() => (props.server ? logonKinds[props.server.server.platform] : routerLogonKinds))
 const who = (l: S['AgentLoginItem']) => (l.domain ? `${l.domain}\\${l.user}` : l.user)
 /** An aggregate of failures for accounts that don't exist: the scanners (§5.6). */
 const scanner = (l: S['AgentLoginItem']) => l.failureReason === 'invalid user'
 const copy = useCopy()
+/** The login This wasn't expected is asked for. */
+const notExpected = ref<S['AgentLoginItem'] | null>(null)
+const notExpectedLabel = "This wasn't expected"
 </script>
 
 <template>
   <section class="panel">
-    <div class="panel-header">Logins and connections</div>
+    <div class="panel-header">{{ server ? 'Logins and connections' : 'Logins' }}</div>
     <div class="panel-body toolbar">
       <Select v-model="outcome" :options="['Success', 'Failure']" show-clear size="small" placeholder="Every outcome" />
       <Select
@@ -90,7 +104,11 @@ const copy = useCopy()
       />
       <label class="check"><input v-model="adminsOnly" type="checkbox" /> admins only</label>
     </div>
-    <ListTable :table="table" what="logins" empty-text="No login recorded yet.">
+    <ListTable
+      :table="table"
+      what="logins"
+      :empty-text="server ? 'No login recorded yet.' : 'No login read from its log yet.'"
+    >
       <Column header="When" style="width: 9rem">
         <template #body="{ data }">
           <RelativeTime :value="data.lastAt ?? data.at" />
@@ -157,11 +175,38 @@ const copy = useCopy()
       <Column header="Logged off" style="width: 8rem">
         <template #body="{ data }"><RelativeTime v-if="data.loggedOffAt" :value="data.loggedOffAt" /></template>
       </Column>
+      <Column header="Review" style="width: 9rem">
+        <template #body="{ data }">
+          <span class="review">
+            <AccessReviewBadge v-if="data.review" :review="data.review" />
+            <Button
+              v-if="data.outcome === 'Success'"
+              v-tooltip.top="notExpectedLabel"
+              icon="pi pi-flag"
+              text
+              size="small"
+              severity="secondary"
+              :aria-label="`${notExpectedLabel}: ${who(data)}`"
+              @click="notExpected = data"
+            />
+          </span>
+        </template>
+      </Column>
       <template #mobile="{ item }">
         <div class="line">
           <strong>{{ scanner(item) ? 'invalid user' : who(item) }}</strong> · {{ logonKindLabel(item.kind) }}
           <template v-if="item.targetUser"> → {{ item.targetUser }}</template>
           <Tag v-if="item.outcome === 'Failure'" value="failed" severity="danger" />
+          <AccessReviewBadge v-if="item.review" :review="item.review" />
+          <Button
+            v-if="item.outcome === 'Success'"
+            :label="notExpectedLabel"
+            icon="pi pi-flag"
+            text
+            size="small"
+            severity="secondary"
+            @click="notExpected = item"
+          />
         </div>
         <div class="small muted">
           <RelativeTime :value="item.lastAt ?? item.at" /> · {{ item.sourceAddress }}
@@ -169,6 +214,7 @@ const copy = useCopy()
         </div>
       </template>
     </ListTable>
+    <NotExpectedDialog v-model:login="notExpected" :invalidate="listKey" />
   </section>
 </template>
 
@@ -210,6 +256,12 @@ const copy = useCopy()
 
 .small {
   font-size: 0.857rem;
+}
+
+.review {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pnmt-space-1);
 }
 
 .tag-line {

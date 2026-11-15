@@ -72,6 +72,16 @@ describe("Cookie's decision log (docs/cookie-plan.md §11, §21.1)", () => {
     expect(decisionKindLabel('object-note')).toBe('Note on a host or sensor')
     expect(decisionKindLabel('hand-to-person')).toBe('For a person')
     expect(decisionKindLabel('future-kind')).toBe('future-kind')
+    expect(decisionKindLabel('access')).toBe('Access verdict')
+    expect(decisionKindLabel('access-notice')).toBe('Access notice')
+  })
+
+  it("colours an access verdict's outcome by how suspicious it looks (docs/cookie-access-plan.md §5.4)", () => {
+    expect(decisionOutcomes).toEqual(expect.arrayContaining(['normal', 'unusual', 'suspicious', 'alarming']))
+    expect(decisionOutcomeSeverity('normal')).toBe('success')
+    expect(decisionOutcomeSeverity('unusual')).toBe('info')
+    expect(decisionOutcomeSeverity('suspicious')).toBe('warn')
+    expect(decisionOutcomeSeverity('alarming')).toBe('danger')
   })
 
   it("shows Seraph's verdicts and the confidence", () => {
@@ -99,6 +109,7 @@ describe('Mute, suppress and instructions (docs/cookie-plan.md §10.3)', () => {
 
   it('wants a known channel and kind of case', () => {
     expect(instructionProblems(form({ value: 'sms' }), now).value).toBeTruthy()
+    expect(instructionProblems(form({ value: 'access' }), now)).toEqual({})
     expect(instructionProblems(form({ value: null }), now).value).toBeTruthy()
     expect(instructionProblems(form({ scope: 'case-kind', value: 'Problem' }), now)).toEqual({})
     expect(instructionProblems(form({ scope: 'case-kind', value: 'request' }), now).value).toBeTruthy()
@@ -154,6 +165,9 @@ describe('Mute, suppress and instructions (docs/cookie-plan.md §10.3)', () => {
     expect(instructionTarget(item({ label: null }))).toBe(`Host ${hostId}`)
     expect(instructionTarget(item({ kind: 'suppress', scope: 'channel', value: 'redmine-note' }))).toBe(
       'Channel Notes on tickets',
+    )
+    expect(instructionTarget(item({ kind: 'suppress', scope: 'channel', value: 'access' }))).toBe(
+      'Channel Access notices',
     )
     expect(instructionTarget(item({ kind: 'suppress', scope: 'case-kind', value: 'problem' }))).toBe(
       'Kind of case Problems',

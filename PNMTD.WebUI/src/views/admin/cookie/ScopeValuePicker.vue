@@ -49,7 +49,7 @@ const options = computed<Option[] | null>(() => {
           )
         : null
     case 'CaseKind':
-      return caseKinds.filter((k) => k !== 'Request').map((k) => ({ label: k, value: k }))
+      return caseKinds.filter((k) => k !== 'Request' && k !== 'Access').map((k) => ({ label: k, value: k }))
     default:
       return null
   }
