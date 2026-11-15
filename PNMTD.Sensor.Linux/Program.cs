@@ -13,6 +13,7 @@ using PNMTD.Sensor.Core.Resilience;
 using PNMTD.Sensor.Core.Rights;
 using PNMTD.Sensor.Core.Service;
 using PNMTD.Sensor.Core.State;
+using PNMTD.Sensor.Core.Update;
 using PNMTD.Sensor.Linux.Access;
 using PNMTD.Sensor.Linux.Collectors;
 using PNMTD.Sensor.Linux.Join;
@@ -48,8 +49,12 @@ internal static class Program
         pnmt-agent log [-n <lines>] [-f]
                                        the log file's last lines (100), or follows it
         pnmt-agent update [<file>] [--force]
-                                       PNMT's version from PNMT, checked against its signed manifest; or a file.
-                                       Stops the service, replaces the program, starts it; identity, keys and config stay
+                                       the version Linux agents get, from PNMT, checked against its signed manifest;
+                                       or a file. Stops the service, keeps the program as .previous, replaces it and
+                                       starts it; back to .previous if it doesn't run. Identity, keys and config stay.
+                                       Exit 0 when there is nothing newer (for a schedule of your own)
+        pnmt-agent update --check      whether PNMT offers a newer version: exit 10 if so, 0 if not
+        pnmt-agent update --rollback   puts the previous program back (and keeps this one as .previous)
         pnmt-agent uninstall [--purge] stops and deletes the service, says bye to PNMT, deletes the keys and
                                        /var/lib/pnmt-agent; config.yaml and the logs stay unless --purge
         pnmt-agent version
@@ -804,8 +809,23 @@ internal static class Program
 
     // --- update, uninstall ---------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// <c>update</c> (docs/agent-update-plan.md §6.2, §6.4): run by root on this server, never started by PNMT. <c>--check</c> asks
+    /// only; <c>--rollback</c> puts the previous program back.
+    /// </summary>
     private static int Update(string[] args)
     {
+        if (args is ["--check"])
+        {
+            var (line, code) = Updater.CheckAsync(new Steps(true), CancellationToken.None).GetAwaiter().GetResult();
+            return Print(line, code);
+        }
+        if (args is ["--rollback"])
+        {
+            var was = AgentInfo.Version;
+            var now = Updater.Rollback(new Steps(false));
+            return Print($"Rolled {AgentInfo.Product} back from {was} to {now}; the service runs again. pnmt-agent update --rollback goes forward again.", 0);
+        }
         var force = args.Contains("--force");
         var files = args.Where(a => a != "--force").ToList();
         if (files.Count > 1 || files.Any(f => f.StartsWith('-')))
@@ -838,6 +858,10 @@ internal static class Program
         }
         Journal.Write($"{AgentInfo.Product} uninstalled.");
         // Last: a single-file binary loads its assemblies from its own file, so nothing may come after (L3 in the lab).
+        if (File.Exists(Updater.Previous))
+        {
+            File.Delete(Updater.Previous);
+        }
         if (File.Exists(AgentInfo.Program))
         {
             Console.WriteLine($"{AgentInfo.Program} is deleted.");
@@ -848,11 +872,7 @@ internal static class Program
     }
 
     /// <summary>Hidden, for update: the new binary installs itself from where it runs (<see cref="Updater.InstallSelf"/>).</summary>
-    private static int UpdateInstall(string from)
-    {
-        Updater.InstallSelf(from, new Steps(false));
-        return 0;
-    }
+    private static int UpdateInstall(string from) => Updater.InstallSelf(from, new Steps(false));
 
     /// <summary>Hidden, for update: the new binary writes its own unit (with config.yaml's writable paths).</summary>
     private static int InstallUnit()
