@@ -200,31 +200,50 @@ public sealed partial class AvailabilityService(IDbContextFactory<PnmtdDbContext
         {
             throw ApiException.Conflict("availability_not_in_plan", "You aren't in the plan.");
         }
-        var result = await FillAsync(onlyMine ? user.UserId() : null, request.Again, Name(user), ct);
-        AuditLog.Summary($"Availability: {(request.Again ? "Fill again" : "Fill")}{(onlyMine ? " of their own column" : "")}: " +
-            $"{result.Written} cell(s) written, {result.Replaced} replaced");
+        var today = AvailabilityPlan.Today;
+        var last = today.AddDays(AvailabilityPlan.FillDays - 1);
+        var from = request.From ?? today;
+        var to = request.To ?? last;
+        new ApiValidator()
+            .Check(from >= today, "from", "The fill writes the future only: from today on.")
+            .Check(to <= last, "to", $"At most {AvailabilityPlan.FillDays} days ahead.")
+            .Check(from <= to, "to", "Not before from.")
+            .Check(request.OnlyTypes is null || request.OnlyTypes.Count > 0, "onlyTypes", "At least one type, or none for every type.")
+            .Check(request.People is null || request.People.Count > 0, "people", "At least one person, or none for everyone.")
+            .ThrowIfInvalid();
+        var options = new FillOptions(from, to, onlyMine ? null : request.People?.ToHashSet(), request.Again ? request.OnlyTypes?.ToHashSet() : null,
+            request.Again && request.OverwriteOwn);
+        var result = await FillAsync(onlyMine ? user.UserId() : null, request.Again, Name(user), ct, options);
+        AuditLog.Summary($"Availability: {(request.Again ? "Fill again" : "Fill")}{(onlyMine ? " of their own column" : "")}, " +
+            $"{Range([from, to])}{(options.People is { } p ? $", {p.Count} people" : "")}{(options.OnlyTypes is { } t ? $", {t.Count} types" : "")}" +
+            $"{(options.OverwriteOwn ? ", people's own entries too" : "")}: {result.Written} cell(s) written, {result.Replaced} replaced");
         return result;
     }
+
+    /// <summary>What a fill covers (docs/adjustments1.md): its days, its people, and for <i>Fill again</i> what it may replace.</summary>
+    public sealed record FillOptions(DateOnly From, DateOnly To, IReadOnlySet<Guid>? People, IReadOnlySet<Guid>? OnlyTypes, bool OverwriteOwn);
 
     /// <summary>
     /// Writes every empty working day of the next 365 from the person's default week: the weekday's type (or the default)
     /// on the days they work, the type for days off on the others. <paramref name="again"/> also replaces what the fill
     /// wrote. Closed days stay empty.
     /// </summary>
-    public async Task<AvailabilityFillResult> FillAsync(Guid? onlyUser, bool again, string by, CancellationToken ct)
+    public async Task<AvailabilityFillResult> FillAsync(Guid? onlyUser, bool again, string by, CancellationToken ct, FillOptions? options = null)
     {
-        var today = AvailabilityPlan.Today;
-        var end = today.AddDays(AvailabilityPlan.FillDays - 1);
+        var today = options?.From ?? AvailabilityPlan.Today;
+        var end = options?.To ?? AvailabilityPlan.Today.AddDays(AvailabilityPlan.FillDays - 1);
         var snapshot = await plan.ReadAsync(today, end, ct);
         if (snapshot.DefaultType is not { } standard)
         {
             return new AvailabilityFillResult(0, 0);
         }
         await using var db = await dbs.CreateDbContextAsync(ct);
-        var people = snapshot.People.Where(p => onlyUser is null || p.Id == onlyUser).ToList();
+        var people = snapshot.People.Where(p => (onlyUser is null || p.Id == onlyUser) && (options?.People is not { } only || only.Contains(p.Id))).ToList();
         var ids = people.Select(p => p.Id).ToList();
+        var own = options?.OverwriteOwn == true;
         var filled = again
-            ? await db.AvailabilityEntries.Where(e => ids.Contains(e.UserId) && e.Date >= today && e.Date <= end && e.Filled).ToDictionaryAsync(e => (e.UserId, e.Date), ct)
+            ? await db.AvailabilityEntries.Where(e => ids.Contains(e.UserId) && e.Date >= today && e.Date <= end && (e.Filled || own))
+                .ToDictionaryAsync(e => (e.UserId, e.Date), ct)
             : [];
         var types = snapshot.Types.Where(t => !t.Retired).ToDictionary(t => t.Id);
         var now = Clock.UtcNow;
@@ -238,7 +257,7 @@ public sealed partial class AvailabilityService(IDbContextFactory<PnmtdDbContext
                     continue;
                 }
                 var cell = snapshot.Cell(person.Id, day);
-                if (cell is not null && !(again && cell.Filled))
+                if (cell is not null && !(again && (cell.Filled || own) && (options?.OnlyTypes is not { } types1 || (cell.TypeId is { } current && types1.Contains(current)))))
                 {
                     continue;
                 }
@@ -258,6 +277,8 @@ public sealed partial class AvailabilityService(IDbContextFactory<PnmtdDbContext
                 }
                 else if (cell.TypeId != type.Id && filled.TryGetValue((person.Id, day), out var row))
                 {
+                    // A person's own entry that is replaced is the fill's from now on.
+                    row.Filled = true;
                     row.TypeId = type.Id;
                     row.SetAt = now;
                     row.SetBy = by;

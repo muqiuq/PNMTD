@@ -5,7 +5,7 @@ public sealed class McpOptions
 {
     public const string Section = "Mcp";
 
-    /// <summary>The server at <c>/mcp</c> and the dashboard's card. Off until set.</summary>
+    /// <summary>The server at <c>/mcp</c> and the MCP panel on Account → Security. Off until set.</summary>
     public bool Enabled { get; set; }
 
     /// <summary>How long the read-write token stays on once switched on.</summary>

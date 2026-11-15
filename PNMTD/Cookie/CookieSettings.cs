@@ -32,7 +32,11 @@ public sealed record IdentitySettings : ICookieSection
     /// <summary>The organisation PNMT monitors for; "your organisation" when empty.</summary>
     public string Organisation { get; init; } = "";
 
-    public string Tone { get; init; } = "warm, plain and to the point";
+    /// <summary>A friendly little robot, accurate and professional (docs/adjustments1.md).</summary>
+    public string Tone { get; init; } = "a friendly little robot: warm, a bit playful and curious, and still accurate, professional and to the point";
+
+    /// <summary>The default until 1.6, which <see cref="CookieBrain"/> reads as today's default.</summary>
+    public const string ToneUntil16 = "warm, plain and to the point";
 
     public string Language { get; init; } = "English";
 

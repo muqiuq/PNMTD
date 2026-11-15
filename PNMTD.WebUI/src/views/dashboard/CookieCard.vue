@@ -10,7 +10,8 @@ import { cookieStateSeverity, overallLabel, overallSeverity, sourceLabel } from 
 /**
  * Cookie on the dashboard (docs/cookie-plan.md §9.1), for every signed-in user while Cookie is enabled: the overall state
  * with its reason and the cases behind it (Cookie's while it runs, PNMT's own otherwise), Cookie's own state, and the
- * reader's personal summary, what needs them first. The cases open in Cookie's window for those with Cookie's Use; the
+ * reader's personal summary, what needs them first. Above all of it, how things are in Cookie's and Seraph's words, as one would
+ * say it over coffee (docs/adjustments1.md). The cases open in Cookie's window for those with Cookie's Use; the
  * server leaves out what the reader may not see. Without Cookie__Enabled, nothing shows. It heads Cookie's window too
  * (inWindow: without the link to it).
  */
@@ -51,6 +52,17 @@ const caseLink = (id: string) => ({ name: 'cookie', query: { case: id } })
       /></RouterLink>
     </header>
     <div class="body">
+      <!-- How things are, as Cookie and Seraph would say it over coffee (docs/adjustments1.md): the box's first lines. -->
+      <div v-if="s.cookieSays || s.seraphSays" class="coffee">
+        <p v-if="s.cookieSays" class="says">
+          <i class="pi pi-sparkles" aria-hidden="true" /><span class="who">Cookie</span>
+          <q>{{ s.cookieSays.text }}</q>
+        </p>
+        <p v-if="s.seraphSays" class="says">
+          <i class="pi pi-shield" aria-hidden="true" /><span class="who">Seraph</span>
+          <q>{{ s.seraphSays.text }}</q>
+        </p>
+      </div>
       <div class="line">
         <Tag :value="overallLabel[s.overall.state]" :severity="overallSeverity(s.overall.state)" />
         <span v-if="s.overall.reason" class="reason">{{ s.overall.reason }}</span>
@@ -99,6 +111,29 @@ const caseLink = (id: string) => ({ name: 'cookie', query: { case: id } })
   flex-direction: column;
   gap: var(--pnmt-space-2);
   padding: var(--pnmt-space-2) var(--pnmt-space-3) var(--pnmt-space-3);
+}
+
+.coffee {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.says {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--pnmt-space-2);
+  font-size: 1.02rem;
+}
+
+.says .who {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.says q {
+  font-style: italic;
 }
 
 .line {

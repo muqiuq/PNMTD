@@ -292,7 +292,7 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     // Admin → MCP (docs/mcp-plan.md §10): the documentation for every signed-in user; the log and the tokens by MCP's rights.
-    path: '/admin/mcp/:tab(docs|log|tokens)?',
+    path: '/admin/mcp/:tab(status|docs|log|tokens)?',
     name: 'admin-mcp',
     component: () => import('@/views/admin/mcp/McpView.vue'),
     meta: { title: 'MCP' },

@@ -1290,7 +1290,7 @@ Phase 2:
   - Fractions from 0 to 1. Overall values have 4 decimals, the values of a bar 3.
   - A host's day is the average of its sensors that have data that day (issue 15).
   - 30 days means the last 30 local days, weighted by time. The 24-hour strip uses UTC hours, which differ from local hours only in zones with a :30 or :45 offset.
-- **Dashboard performance:** a plain 10-second cache would still make one request wait about a second at the §5.5 scale. `DashboardCache` therefore answers from the last build and replaces a build older than 10 seconds in the background (stale while revalidating).
+- **Dashboard performance:** a plain 10-second cache would still make one request wait about a second at the §5.5 scale. `DashboardCache` therefore answers from the last build and replaces a build older than 10 seconds in the background (stale while revalidating). **The app bar's *Refresh*** asks with `fresh=true` (since 1.6.1, docs/adjustments1.md): it waits for a new build unless the last is at most 2 seconds old, and *Updated* shows when the server built what is shown, not when the browser fetched it.
   - Measured with 50 hosts, 300 sensors and 600,000 events: a build takes 1.1–1.4 s, a polled request 0–7 ms (p95), and the response is 43–47 KB.
   - `PNMTD_PERF=1` runs that measurement as a test.
   - The hosts list (30 days, not cached) takes about 0.5 s at that scale.

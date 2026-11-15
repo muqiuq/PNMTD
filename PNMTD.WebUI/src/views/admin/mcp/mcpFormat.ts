@@ -2,7 +2,7 @@ import type { Schemas } from '@/api/client'
 
 type Token = Schemas['McpTokenItem']
 
-/** A token's state as people read it (docs/mcp-plan.md §4.5), on the dashboard's card and on Admin → MCP → Tokens. */
+/** A token's state as people read it (docs/mcp-plan.md §4.5), on Account → Security and on Admin → MCP → Tokens. */
 export function tokenStateText(t: Token): string {
   switch (t.state) {
     case 'on':

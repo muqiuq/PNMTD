@@ -80,8 +80,14 @@ public sealed record AvailabilityDayChange(DateOnly Date, Guid? ResponsibleId, G
 /// <summary><c>PUT /availability/days</c>: rows of several days at once.</summary>
 public sealed record AvailabilityDaysRequest(IReadOnlyList<AvailabilityDayChange> Days);
 
-/// <summary><c>POST /availability/fill</c> (everyone) or <c>…/fill/mine</c>: <i>Fill</i>, or <i>Fill again</i> (also replaces what the fill wrote).</summary>
-public sealed record AvailabilityFillRequest(bool Again);
+/// <summary>
+/// <c>POST /availability/fill</c> (everyone) or <c>…/fill/mine</c>: <i>Fill</i>, or <i>Fill again</i> (also replaces what the
+/// fill wrote). The future only (docs/adjustments1.md): <see cref="From"/> and <see cref="To"/> within today and 364 days on,
+/// the whole year when left out. <see cref="People"/>: only these columns. For <i>Fill again</i>: <see cref="OnlyTypes"/>
+/// replaces only cells of these types, <see cref="OverwriteOwn"/> what people set themselves too. Empty cells are always filled.
+/// </summary>
+public sealed record AvailabilityFillRequest(bool Again, DateOnly? From = null, DateOnly? To = null, IReadOnlyList<Guid>? People = null,
+    IReadOnlyList<Guid>? OnlyTypes = null, bool OverwriteOwn = false);
 
 public sealed record AvailabilityFillResult(int Written, int Replaced);
 

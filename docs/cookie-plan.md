@@ -386,6 +386,7 @@
   - **Fill** writes every empty working day from each person's default week (§8.1). It writes the weekday's type on the days they work and the type for days off on the others;
   - **a nightly task fills the day that newly comes into reach,** so the plan never runs short;
   - **the fill never overwrites what a person set.** *Fill again*, after a default week changed, replaces only what the fill wrote.
+    Since 1.6.1 (docs/adjustments1.md) it asks for **the days** (from today, at most 365 ahead; never the past), **the people** (everyone by default), **the types it may replace** (every type by default, e.g. only on-site days so holidays stay), and whether it may **also replace what people set themselves**; a cell it replaces counts as the fill's from then on (`AvailabilityFillRequest`).
 - **Who edits:**
   - **everyone taking part edits their own column,** from today on;
   - ***Availability: Edit*** edits everything: every column, the past, the responsible, the fallback and the comments;
@@ -448,6 +449,7 @@
 
 ### 9.1 Dashboard section
 
+- **Over coffee** (since 1.6.1, docs/adjustments1.md): first, one sentence each from Cookie and Seraph on how things are, as told to a colleague over coffee. Cookie's comes from the triage or the status step of a round whose state changed (`TriageAnswer.Coffee`, `StatusAnswer.Coffee`); Seraph's from a small call of its own after such a round, at most every 30 minutes (`Seraph.CoffeeAsync`, purpose `seraph.coffee`), shown while it is less than 6 hours old. Both live on `cookie_runtime`, and are shown to whoever sees all cases, and to everyone while all is fine (a sentence may mention a case the reader can't see); without a model for Seraph, only Cookie's.
 - **The status:** the overall state and its reason, plus Cookie's own state.
 - **Your summary:** the personal summary, with links to the cases.
 - **Notes:** a hint when Cookie is waiting for you (a proposal to approve, a question).

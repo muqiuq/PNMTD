@@ -10,7 +10,15 @@ namespace PNMTD.Cookie;
 public sealed record TriageAnswer(
     [property: Description("all-fine, info, warning or alert")] OverallState State,
     [property: Description("Why, in one sentence of at most 160 characters")] string Reason,
-    [property: Description("The cases that need attention in this round, most important first; ids from the brief only")] IReadOnlyList<TriageCase> Cases);
+    [property: Description("The cases that need attention in this round, most important first; ids from the brief only")] IReadOnlyList<TriageCase> Cases,
+    [property: Description(CoffeeAnswer.Description)] string Coffee = "");
+
+/// <summary>The coffee sentence (docs/cookie-prompts.md §4, §5): how things are, as a colleague would say it.</summary>
+public static class CoffeeAnswer
+{
+    public const string Description =
+        "How things are, in one sentence of at most 160 characters, as you would tell a colleague over coffee: plain, human, in your own voice";
+}
 
 public sealed record TriageCase(
     [property: Description("The case's id, from the brief")] string Id,
@@ -35,7 +43,8 @@ public sealed record InstructionAnswer(
     [property: Description("For how many days, 1 to 30")] int Days);
 
 /// <summary>The status line (docs/cookie-prompts.md §5).</summary>
-public sealed record StatusAnswer([property: Description("One sentence, at most 160 characters")] string Reason);
+public sealed record StatusAnswer([property: Description("One sentence, at most 160 characters")] string Reason,
+    [property: Description(CoffeeAnswer.Description)] string Coffee = "");
 
 /// <summary>
 /// Puts Cookie's prompts together (docs/cookie-prompts.md): identity, goals and rules every time, then the step's prompt or the
@@ -101,7 +110,8 @@ public sealed class CookieBrain(CookieSettings settings, Instructions instructio
             ["name"] = identity.Name,
             ["creator"] = identity.Creator,
             ["organisation"] = string.IsNullOrWhiteSpace(identity.Organisation) ? "your organisation" : identity.Organisation,
-            ["tone"] = identity.Tone,
+            // The tone shipped until 1.6 counts as not chosen: an installation that saved it gets today's default.
+            ["tone"] = identity.Tone == IdentitySettings.ToneUntil16 ? new IdentitySettings().Tone : identity.Tone,
             ["language"] = identity.Language,
             ["first_answer_hours"] = first.FirstAnswerHours.ToString("0.#", CultureInfo.InvariantCulture),
             ["update_days"] = first.UpdateDays.ToString(CultureInfo.InvariantCulture),

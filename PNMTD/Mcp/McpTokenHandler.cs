@@ -67,11 +67,11 @@ public sealed class McpTokenHandler(IOptionsMonitor<AuthenticationSchemeOptions>
     public static string Describe(string why) => why switch
     {
         "missing" => "Send your PNMT MCP token as Authorization: Bearer pnmt_….",
-        "unknown" => "Unknown or replaced token. Copy the current one from PNMT's dashboard.",
-        "off" or "no_value" => "This token is off. Turn it on on PNMT's dashboard.",
-        "expired" => "This token's time is over. Turn it on again on PNMT's dashboard.",
-        "blocked" => "This token was blocked after refused requests. Its user can turn it on again on PNMT's dashboard.",
-        "stamp" => "This token went off when its user's password, 2FA or sessions changed. Turn it on again on PNMT's dashboard.",
+        "unknown" => "Unknown or replaced token. Copy the current one from Account → Security in PNMT.",
+        "off" or "no_value" => "This token is off. Turn it on on Account → Security in PNMT.",
+        "expired" => "This token's time is over. Turn it on again on Account → Security in PNMT.",
+        "blocked" => "This token was blocked after refused requests. Its user can turn it on again on Account → Security in PNMT.",
+        "stamp" => "This token went off when its user's password, 2FA or sessions changed. Turn it on again on Account → Security in PNMT.",
         "inactive" => "This token's user is deactivated.",
         "totp" => "The read & write token needs two-factor authentication on its user's account.",
         "mcp_off" => "PNMT's MCP server is off.",

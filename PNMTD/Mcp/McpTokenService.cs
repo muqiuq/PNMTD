@@ -71,7 +71,7 @@ public sealed record McpTokenState(bool On, DateTime? Until, string Why)
 public sealed record McpCaller(McpTokenEntity Token, McpTokenUser User, UserRights Rights);
 
 /// <summary>
-/// The tokens (docs/mcp-plan.md §4): a user's own two, switched on, off and regenerated from the dashboard, the window for
+/// The tokens (docs/mcp-plan.md §4): a user's own two, switched on, off and regenerated on Account → Security, the window for
 /// deleting, and the check of a presented value. Every change is an audit event of the category MCP.
 /// </summary>
 public sealed class McpTokenService(PnmtdDbContext db, IOptionsMonitor<McpOptions> options, IHttpContextAccessor accessor)
@@ -219,6 +219,30 @@ public sealed class McpTokenService(PnmtdDbContext db, IOptionsMonitor<McpOption
         AuditLog.Record(db, AuditEvents.McpTokenTurnedOffByAdmin, why, Who, Target(token, user.Username));
         await db.SaveChangesAsync(ct);
         return (token, user);
+    }
+
+    /// <summary>
+    /// <i>Revoke all tokens</i> (docs/adjustments1.md), with <i>MCP: Manage</i>: every value stops working for good, and every token
+    /// goes off. Its user makes a new value by switching it on again. For a leak, or a change of the rules.
+    /// </summary>
+    public async Task<int> RevokeAllAsync(string? reason, CancellationToken ct)
+    {
+        var why = reason?.Trim() ?? "";
+        new ApiValidator().Check(why.Length is >= 3 and <= 300, "reason", "Why, in 3 to 300 characters: every user reads it.").ThrowIfInvalid();
+        var now = Clock.UtcNow;
+        var tokens = await db.McpTokens.Where(t => t.Hash != null || t.OnSince != null).ToListAsync(ct);
+        foreach (var token in tokens)
+        {
+            End(token, McpTokenEnd.Admin, now, why);
+            token.Hash = null;
+            token.Hint = null;
+            token.IssuedAt = null;
+            token.BlockedAt = null;
+            token.Strikes = [];
+        }
+        AuditLog.Record(db, AuditEvents.McpTokensRevokedByAdmin, $"{tokens.Count} tokens revoked: {why}", Who);
+        await db.SaveChangesAsync(ct);
+        return tokens.Count;
     }
 
     /// <summary>

@@ -8434,6 +8434,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/mcp/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["McpStatus"];
+                        "text/json": components["schemas"]["McpStatus"];
+                        "text/plain": components["schemas"]["McpStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/mcp/log": {
         parameters: {
             query?: never;
@@ -8594,6 +8631,49 @@ export interface paths {
                         "application/json": components["schemas"]["McpAdminTokenItem"];
                         "text/json": components["schemas"]["McpAdminTokenItem"];
                         "text/plain": components["schemas"]["McpAdminTokenItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/tokens/revoke-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["McpRevokeAllRequest"];
+                    "text/json": components["schemas"]["McpRevokeAllRequest"];
+                    "application/*+json": components["schemas"]["McpRevokeAllRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["McpRevokeAllResult"];
+                        "text/json": components["schemas"]["McpRevokeAllResult"];
+                        "text/plain": components["schemas"]["McpRevokeAllResult"];
                     };
                 };
             };
@@ -12204,7 +12284,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    fresh?: boolean;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -15328,6 +15410,14 @@ export interface components {
         };
         AvailabilityFillRequest: {
             again: boolean;
+            /** Format: date */
+            from?: null | string;
+            /** Format: date */
+            to?: null | string;
+            people?: null | string[];
+            onlyTypes?: null | string[];
+            /** @default false */
+            overwriteOwn: boolean;
         };
         AvailabilityFillResult: {
             /** Format: int32 */
@@ -15847,6 +15937,11 @@ export interface components {
             /** Format: int32 */
             version: number;
         };
+        CookieSaysItem: {
+            text: string;
+            /** Format: date-time */
+            at: string;
+        };
         CookieSettingsVersion: {
             /** Format: int32 */
             version: number;
@@ -15876,6 +15971,8 @@ export interface components {
         CookieStatusItem: {
             overall: components["schemas"]["OverallStateItem"];
             cookie: components["schemas"]["CookieStateItem"];
+            cookieSays?: null | components["schemas"]["CookieSaysItem"];
+            seraphSays?: null | components["schemas"]["CookieSaysItem"];
         };
         CookieStop: {
             /** Format: date-time */
@@ -17773,6 +17870,19 @@ export interface components {
             readWrite: null | components["schemas"]["Level"];
             readOnly: null | components["schemas"]["Level"];
         };
+        McpCount: {
+            name: string;
+            /** Format: int32 */
+            count: number;
+        };
+        McpDay: {
+            /** Format: date */
+            date: string;
+            /** Format: int32 */
+            calls: number;
+            /** Format: int32 */
+            failed: number;
+        };
         McpLogDetail: {
             item: components["schemas"]["McpLogItem"];
             correlationId: string;
@@ -17812,6 +17922,38 @@ export interface components {
         };
         /** @enum {unknown} */
         McpOutcome: "Ok" | "ToolError" | "Denied" | "Refused" | "RateLimited" | "Unauthenticated";
+        McpRevokeAllRequest: {
+            reason: null | string;
+        };
+        McpRevokeAllResult: {
+            /** Format: int32 */
+            revoked: number;
+        };
+        McpStatus: {
+            enabled: boolean;
+            /** Format: int32 */
+            readOn: number;
+            /** Format: int32 */
+            writeOn: number;
+            /** Format: int32 */
+            blocked: number;
+            /** Format: int32 */
+            withValue: number;
+            /** Format: int32 */
+            deleteWindowsOpen: number;
+            /** Format: int32 */
+            calls24h: number;
+            /** Format: int32 */
+            calls7d: number;
+            /** Format: int32 */
+            strikes24h: number;
+            /** Format: date-time */
+            lastCallAt: null | string;
+            outcomes24h: components["schemas"]["McpCount"][];
+            tools7d: components["schemas"]["McpCount"][];
+            users7d: components["schemas"]["McpCount"][];
+            days: components["schemas"]["McpDay"][];
+        };
         /** @enum {unknown} */
         McpTokenEnd: "Off" | "Expired" | "Regenerated" | "Stamp" | "Strikes" | "Admin" | "UserInactive" | "TotpOff" | null;
         McpTokenIssued: {

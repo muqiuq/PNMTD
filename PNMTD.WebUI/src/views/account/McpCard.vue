@@ -15,7 +15,7 @@ import { tokenSeverity as severity, tokenStateText as stateText } from '@/views/
 /**
  * MCP access (docs/mcp-plan.md §4.5): the user's two tokens, for an AI client of their own. Read-only stays on until a week
  * after they were last here; read & write for 12 hours. The value is shown once, when it is made; regenerating makes a new
- * one. Deleting needs a window of 10 minutes, opened here. Shown only while Mcp__Enabled is on.
+ * one. Deleting needs a window of 10 minutes, opened here. On Account → Security (docs/adjustments1.md), while Mcp__Enabled is on.
  */
 type Token = Schemas['McpTokenItem']
 type Kind = Schemas['McpTokenKind']
@@ -89,7 +89,9 @@ const last = computed(() => lastUse.data.value?.items[0])
   <section v-if="a" class="panel mcp-card" aria-labelledby="mcp-card-title">
     <header class="panel-header">
       <span id="mcp-card-title">MCP access</span>
-      <RouterLink :to="{ name: 'admin-mcp' }" class="all">How to connect <i class="pi pi-angle-right" /></RouterLink>
+      <RouterLink :to="{ name: 'admin-mcp', params: { tab: 'docs' } }" class="all"
+        >How to connect <i class="pi pi-angle-right"
+      /></RouterLink>
     </header>
     <div class="body">
       <div v-for="t in [a.read, a.write]" :key="t.kind" class="token">
@@ -187,7 +189,7 @@ const last = computed(() => lastUse.data.value?.items[0])
         <CopyField :value="claude" label="the command" />
         <p class="muted small">
           VS Code, Cursor and the others: the address {{ a.url }} with the header <code>Authorization: Bearer …</code>,
-          as <RouterLink :to="{ name: 'admin-mcp' }">the documentation</RouterLink> shows.
+          as <RouterLink :to="{ name: 'admin-mcp', params: { tab: 'docs' } }">the documentation</RouterLink> shows.
         </p>
         <div class="dialog-actions"><Button label="I've stored it" @click="shown = null" /></div>
       </template>

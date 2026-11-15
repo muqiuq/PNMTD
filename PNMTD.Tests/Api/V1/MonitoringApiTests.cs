@@ -4,6 +4,7 @@ using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
 using PNMTD.Lib.Helper;
 using PNMTD.Lib.Models.Enum;
+using PNMTD.Services.Domain;
 
 namespace PNMTD.Tests.Api.V1;
 
@@ -125,6 +126,23 @@ public sealed class MonitoringApiTests
         Assert.IsFalse(second.Hosts.Any(h => h.Id == host.Id));
         app.ClearDashboardCache();
         Assert.IsTrue((await (await viewer.GetAsync("/api/v1/dashboard")).ReadAsync<Dashboard>()).Hosts.Any(h => h.Id == host.Id));
+        await user.DeleteAsync($"/api/v1/hosts/{host.Id}");
+    }
+
+    /// <summary>The dashboard's <i>Refresh</i>: <c>fresh=true</c> waits for a new build once the last is 2 seconds old.</summary>
+    [TestMethod]
+    public async Task DashboardRefreshWaitsForAFreshBuild()
+    {
+        app.ClearDashboardCache();
+        await (await viewer.GetAsync("/api/v1/dashboard?fresh=true")).ReadAsync<Dashboard>();
+        var host = await V1.CreateHostAsync(user);
+        Assert.IsFalse((await (await viewer.GetAsync("/api/v1/dashboard?fresh=true")).ReadAsync<Dashboard>()).Hosts.Any(h => h.Id == host.Id),
+            "a build younger than 2 seconds is fresh enough");
+        await Task.Delay(DashboardCache.FreshAge + TimeSpan.FromMilliseconds(200));
+        Assert.IsFalse((await (await viewer.GetAsync("/api/v1/dashboard")).ReadAsync<Dashboard>()).Hosts.Any(h => h.Id == host.Id),
+            "a poll gets the cached build at once");
+        Assert.IsTrue((await (await viewer.GetAsync("/api/v1/dashboard?fresh=true")).ReadAsync<Dashboard>()).Hosts.Any(h => h.Id == host.Id),
+            "Refresh waits for a new one");
         await user.DeleteAsync($"/api/v1/hosts/{host.Id}");
     }
 

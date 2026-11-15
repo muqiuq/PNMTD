@@ -28,6 +28,11 @@ test('1440×900: the summary, all problems and 20 host rows without scrolling', 
   expect(rows).toBeGreaterThanOrEqual(20)
   await expect(page).toHaveTitle(/^\(6\) Dashboard · PNMT/)
   await shot(page, 'dashboard-1440')
+  // Refresh asks for a build made now, not the cached one the polls get.
+  const fresh = page.waitForResponse((r) => r.url().includes('/api/v1/dashboard?fresh=true') && r.ok())
+  await page.getByRole('button', { name: 'Refresh' }).click()
+  await fresh
+  await expect(page.locator('.app-bar .updated')).toContainText('Updated just now')
   await page.getByRole('button', { name: 'Dark theme' }).click()
   await page.mouse.move(0, 400)
   await page.waitForTimeout(500) // the theme's colour transition

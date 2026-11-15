@@ -196,6 +196,55 @@ public sealed class AvailabilityTests
     }
 
     [TestMethod]
+    public async Task Fill_again_takes_its_days_its_people_and_the_types_it_may_replace()
+    {
+        var monday = Monday.AddDays(35);
+        var tuesday = monday.AddDays(1);
+        var wednesday = monday.AddDays(2);
+        using (var fill = await admin.PostAsJsonAsync("/api/v1/availability/fill", new AvailabilityFillRequest(false)))
+        {
+            Assert.AreEqual(HttpStatusCode.OK, fill.StatusCode, await fill.Content.ReadAsStringAsync());
+        }
+        Assert.AreEqual(HttpStatusCode.NoContent, await CellsAsync(viewer, new AvailabilityCellChange(TestUsers.Viewer, tuesday, Type("VACA"))));
+        var home = People.StandardWeek.Select(d => d with { TypeId = Type("HOME") }).ToList();
+        await PersonAsync(TestUsers.Viewer, "VIE", inPlan: true, home);
+        await PersonAsync(TestUsers.User, "USR", inPlan: true, home);
+        try
+        {
+            // Monday and Tuesday, the viewer only, office days only: Tuesday's vacation is the viewer's own, and stays.
+            using (var again = await admin.PostAsJsonAsync("/api/v1/availability/fill",
+                new AvailabilityFillRequest(true, monday, tuesday, [TestUsers.Viewer], [Type("ANWE")])))
+            {
+                Assert.AreEqual(HttpStatusCode.OK, again.StatusCode, await again.Content.ReadAsStringAsync());
+            }
+            var plan = await app.Services.GetRequiredService<AvailabilityPlan>().ReadAsync(monday, wednesday, CancellationToken.None);
+            Assert.AreEqual(Type("HOME"), plan.Cell(TestUsers.Viewer, monday)!.TypeId, "in the range, the person, the type");
+            Assert.AreEqual(Type("VACA"), plan.Cell(TestUsers.Viewer, tuesday)!.TypeId, "a person's own entry");
+            Assert.AreEqual(Type("ANWE"), plan.Cell(TestUsers.Viewer, wednesday)!.TypeId, "after the range");
+            Assert.AreEqual(Type("ANWE"), plan.Cell(TestUsers.User, monday)!.TypeId, "another person");
+
+            // With the person's own entries too, vacations only.
+            using (var own = await admin.PostAsJsonAsync("/api/v1/availability/fill",
+                new AvailabilityFillRequest(true, tuesday, tuesday, [TestUsers.Viewer], [Type("VACA")], OverwriteOwn: true)))
+            {
+                Assert.AreEqual(1, (await own.ReadAsync<AvailabilityFillResult>()).Replaced);
+            }
+            plan = await app.Services.GetRequiredService<AvailabilityPlan>().ReadAsync(tuesday, tuesday, CancellationToken.None);
+            Assert.AreEqual(Type("HOME"), plan.Cell(TestUsers.Viewer, tuesday)!.TypeId);
+            Assert.IsTrue(plan.Cell(TestUsers.Viewer, tuesday)!.Filled, "the fill's now");
+
+            using var past = await admin.PostAsJsonAsync("/api/v1/availability/fill",
+                new AvailabilityFillRequest(true, AvailabilityPlan.Today.AddDays(-1), AvailabilityPlan.Today));
+            Assert.AreEqual(HttpStatusCode.BadRequest, past.StatusCode, "the future only");
+        }
+        finally
+        {
+            await PersonAsync(TestUsers.Viewer, "VIE", inPlan: true, [.. People.StandardWeek]);
+            await PersonAsync(TestUsers.User, "USR", inPlan: true, [.. People.StandardWeek]);
+        }
+    }
+
+    [TestMethod]
     public async Task The_counts_are_by_checkboxes_and_red_below_their_minimum()
     {
         var day = Monday.AddDays(28);

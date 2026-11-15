@@ -20,6 +20,9 @@ async function openLocation(page: Page, name: string) {
 
 /** A field's card (FieldCard): on Information, its group is a region of the same name too. */
 const card = (page: Page, label: string) => page.locator(`section.field-card[aria-label="${label}"]`)
+/** One of Information's pages: Details, or a Markdown field. */
+const infoPage = (page: Page, label: string) =>
+  page.getByRole('navigation', { name: 'Information' }).getByRole('link', { name: label, exact: true })
 
 test("a location from a host's text, a sub-location, its Overview with a pasted image, and the host on both pages", async ({
   page,
@@ -122,6 +125,9 @@ test('the seed: the tree, inherited and overridden values, a sensitive field, th
   await expect(card(page, 'On-site contact')).toContainText('Anna Muster')
   await shot(page, 'locations-site')
   await page.getByRole('link', { name: 'Information', exact: true }).click()
+  // The simple fields under Details, each Markdown field a page of its own (docs/adjustments1.md).
+  await expect(infoPage(page, 'Details')).toBeVisible()
+  await infoPage(page, 'Network').click()
   // Drawn when it scrolls into view (§5.8).
   await card(page, 'Network').scrollIntoViewIfNeeded()
   await expect(card(page, 'Network').locator('.md-diagram svg')).toBeVisible()
@@ -143,6 +149,7 @@ test('the seed: the tree, inherited and overridden values, a sensitive field, th
   // Cage B's floor plan: an image from the files folder, which the seed stored through PNMT's own store.
   await page.getByRole('link', { name: 'Cage B' }).first().click()
   await page.getByRole('link', { name: 'Information', exact: true }).click()
+  await infoPage(page, 'Floor plan').click()
   const plan = card(page, 'Floor plan').locator('img[src^="/api/v1/files/"]')
   await plan.scrollIntoViewIfNeeded()
   await expect(plan).toBeVisible()

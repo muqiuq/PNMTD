@@ -21,8 +21,8 @@ const tabs = computed(() => {
   const to = (t: string) => ({ name: 'mikrotik', query: t === 'overview' ? {} : { tab: t } })
   return [
     { key: 'overview', label: 'Overview', icon: 'pi pi-chart-bar', to: to('overview') },
-    { key: 'network', label: 'Network', icon: 'pi pi-sitemap', to: to('network') },
     { key: 'routers', label: 'Routers', icon: 'pi pi-server', to: to('routers') },
+    { key: 'network', label: 'Network', icon: 'pi pi-sitemap', to: to('network') },
     { key: 'tunnels', label: 'Custom tunnels', icon: 'pi pi-lock', to: to('tunnels') },
     { key: 'jobs', label: 'Jobs', icon: 'pi pi-upload', to: to('jobs') },
     { key: 'backups', label: 'Backups', icon: 'pi pi-history', to: to('backups') },

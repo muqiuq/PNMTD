@@ -25,6 +25,9 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
     PNMTD.Availability.AvailabilityPlan plan, ILogger<CookieRound> logger)
 {
     public const int OthersInBrief = 60;
+
+    /// <summary>Seraph's coffee sentence at most this often, and only when the status changed.</summary>
+    public static readonly TimeSpan SeraphCoffeeEvery = TimeSpan.FromMinutes(30);
     private static readonly JsonSerializerOptions Json = AiJson.Options;
 
     /// <summary>The rights Cookie reads with: its group's (§9.3, Rights), never the admin flag; none without a group.</summary>
@@ -296,8 +299,9 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 await db.SaveChangesAsync(ct);
             }
 
-            // 4. The status: triage's, explained in one line when cases were worked (§8).
+            // 4. The status: triage's, explained in one line when cases were worked (§8), and the coffee sentence with it.
             var reason = triage.Reason;
+            var coffee = triage.Coffee;
             if (worked > 0)
             {
                 var statusValues = new Dictionary<string, string>(values)
@@ -310,7 +314,14 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                     (nameof(StatusAnswer), AiJson.SchemaFor<StatusAnswer>()), models.TriageEffort, provider, 2000, ct);
                 calls++;
                 cost += statusTurn.Cost;
-                reason = Parse<StatusAnswer>(statusTurn).Reason;
+                var explained = Parse<StatusAnswer>(statusTurn);
+                reason = explained.Reason;
+                coffee = string.IsNullOrWhiteSpace(explained.Coffee) ? coffee : explained.Coffee;
+            }
+            var stateChanged = runtime.CookieStatus != triage.State || runtime.CookieReason != CaseBook.Cut(reason.Trim(), 500);
+            if (!string.IsNullOrWhiteSpace(coffee))
+            {
+                runtime.CookieCoffee = CaseBook.Cut(p.Unmask(coffee.Trim()), 300);
             }
             runtime.CookieStatus = triage.State;
             runtime.CookieReason = CaseBook.Cut(reason.Trim(), 500);
@@ -318,6 +329,29 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             runtime.CookieStatusAt = Clock.UtcNow;
             runtime.BriefHash = hash;
             trace.Add(null, "status", $"Status: {triage.State}", runtime.CookieReason ?? "", [.. chosen.SelectMany(x => known[x.Id].Areas).Distinct()]);
+            if (stateChanged && (runtime.SeraphCoffeeAt is not { } said || Clock.UtcNow - said >= SeraphCoffeeEvery))
+            {
+                // Seraph's view of the same (docs/adjustments1.md): a small call of its own; without it, the box shows Cookie's alone.
+                try
+                {
+                    var dayAgo = Clock.UtcNow.AddDays(-1);
+                    var outcomes = await db.CookieDecisions.AsNoTracking().Where(d => d.At >= dayAgo).GroupBy(d => d.Outcome)
+                        .Select(g => new { g.Key, Count = g.Count() }).ToListAsync(ct);
+                    var decisions = outcomes.Count == 0 ? "none" : string.Join(", ", outcomes.Select(o => $"{o.Count} {o.Key}"));
+                    if (await services.GetRequiredService<Seraph>().CoffeeAsync(triage.State.ToString(), p.Mask(runtime.CookieCoffee ?? runtime.CookieReason ?? ""),
+                            decisions, ct) is { } seraphSays)
+                    {
+                        calls++;
+                        cost += seraphSays.Cost;
+                        runtime.SeraphCoffee = CaseBook.Cut(p.Unmask(seraphSays.Coffee), 300);
+                        runtime.SeraphCoffeeAt = Clock.UtcNow;
+                    }
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    logger.LogWarning(e, "Seraph's coffee sentence failed");
+                }
+            }
             var more = triage.Cases.Count > chosen.Count || replies.More || mailsMore;
             return await EndAsync(db, round, runtime, worked > 0 ? "worked" : "triaged", worked, calls, toolCalls, cost, more, ct);
         }

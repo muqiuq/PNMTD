@@ -58,16 +58,23 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         var rights = user.Rights();
         var cases = await db.CookieCases.AsNoTracking().Where(c => ids.Contains(c.Id)).ToListAsync(ct);
         var visible = cases.Where(c => CookieAccess.CanSee(rights, user.UserId(), c)).ToList();
-        if (visible.Count < cases.Count)
+        var seesAll = visible.Count == cases.Count;
+        if (!seesAll)
         {
             // The reason names hosts and tickets: only for those who may see them all.
             reason = state == OverallState.AllFine ? reason : $"{cases.Count - visible.Count} of the cases behind this are outside your rights.";
         }
+        // The coffee sentences (docs/adjustments1.md) name things too: the same rule, and only while Cookie's status is current.
+        var cookieSays = useCookie && (seesAll || state == OverallState.AllFine) && !string.IsNullOrWhiteSpace(runtime.CookieCoffee)
+            ? new CookieSaysItem(runtime.CookieCoffee, runtime.CookieStatusAt!.Value) : null;
+        var seraphSays = useCookie && (seesAll || state == OverallState.AllFine) && !string.IsNullOrWhiteSpace(runtime.SeraphCoffee)
+            && runtime.SeraphCoffeeAt is { } seraphAt && Clock.UtcNow - seraphAt < TimeSpan.FromHours(6)
+            ? new CookieSaysItem(runtime.SeraphCoffee, seraphAt) : null;
         var o = options.CurrentValue;
         var overall = new OverallStateItem(state, reason, source, at,
             visible.OrderBy(c => ids.IndexOf(c.Id)).Select(c => new CookieCaseRef(c.Id, c.Title)).ToList());
         return new CookieStatusItem(overall, new CookieStateItem(o.Enabled, runtime.Running, o.Enabled ? runtime.State : CookieState.Stopped,
-            o.Enabled ? runtime.StateReason : "Cookie__Enabled is not set.", runtime.LastRoundAt, runtime.NextRoundAt));
+            o.Enabled ? runtime.StateReason : "Cookie__Enabled is not set.", runtime.LastRoundAt, runtime.NextRoundAt), cookieSays, seraphSays);
     }
 
     public async Task<Paged<CookieCaseItem>> CasesAsync(CookieCaseQuery query, ClaimsPrincipal user, CancellationToken ct)

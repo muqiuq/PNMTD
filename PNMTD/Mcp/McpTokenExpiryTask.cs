@@ -9,7 +9,7 @@ namespace PNMTD.Mcp;
 
 /// <summary>
 /// Every 5 minutes (docs/mcp-plan.md §4.3): records the end of tokens that went off by themselves (their time, their user's
-/// stamp, deactivation, 2FA turned off) and of windows for deleting that ran out, so the dashboard and the audit say when.
+/// stamp, deactivation, 2FA turned off) and of windows for deleting that ran out, so Account → Security and the audit say when.
 /// Requests never wait for it: they check the state themselves. In task health as "MCP tokens".
 /// </summary>
 public sealed class McpTokenExpiryTask(IDbContextFactory<PnmtdDbContext> dbs, IOptionsMonitor<McpOptions> options, ILogger<McpTokenExpiryTask> logger)

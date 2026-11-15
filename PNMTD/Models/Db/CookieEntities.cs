@@ -108,6 +108,19 @@ public class CookieRuntimeEntity
 
     public DateTime? CookieStatusAt { get; set; }
 
+    /// <summary>
+    /// How things are, in Cookie's words, as one would say it over coffee (docs/adjustments1.md): written with the status, the
+    /// first line of Cookie's status box.
+    /// </summary>
+    [MaxLength(300)]
+    public string? CookieCoffee { get; set; }
+
+    /// <summary>The same in Seraph's words, the reviewer's view; asked when the status changes, at most every 30 minutes.</summary>
+    [MaxLength(300)]
+    public string? SeraphCoffee { get; set; }
+
+    public DateTime? SeraphCoffeeAt { get; set; }
+
     /// <summary>The case book's last run, and the last time it read the watched tickets.</summary>
     public DateTime? CaseBookAt { get; set; }
 

@@ -15,7 +15,7 @@ using PNMTD.Models.Db;
 namespace PNMTD.Api.V1;
 
 /// <summary>
-/// One's own MCP tokens (docs/mcp-plan.md §4.5, §12): the dashboard's card. Every signed-in user has both; only they
+/// One's own MCP tokens (docs/mcp-plan.md §4.5, §12): the MCP panel on Account → Security. Every signed-in user has both; only they
 /// switch them on, off, regenerate them and open the window for deleting. The value is in a response once, never again.
 /// </summary>
 [Route("api/v1/account/mcp")]
@@ -127,6 +127,38 @@ public sealed class McpLogController(PnmtdDbContext db, IOptionsMonitor<McpOptio
             o.StrikesToBlock, o.LogEntries, ceiling, guard, tools);
     }
 
+    /// <summary>Admin → MCP → Status (docs/adjustments1.md): the tokens and the calls at a glance.</summary>
+    [HttpGet("status")]
+    [RequireRight(Area.Mcp, Level.View)]
+    public async Task<McpStatus> Status(CancellationToken ct)
+    {
+        var o = options.CurrentValue;
+        var now = Clock.UtcNow;
+        var tokens = await db.McpTokens.AsNoTracking().ToListAsync(ct);
+        var users = await db.Users.AsNoTracking()
+            .Select(u => new McpTokenUser(u.Id, u.Username, u.DisplayName, u.IsActive, u.SecurityStamp, u.IsTotpEnabled, u.LastSeenAt)).ToDictionaryAsync(u => u.Id, ct);
+        var states = tokens.Where(t => users.ContainsKey(t.UserId)).Select(t => (Token: t, State: McpTokenState.Of(t, users[t.UserId], o, now))).ToList();
+        var day = now.AddDays(-1);
+        var week = now.AddDays(-7);
+        var calls = db.McpLog.AsNoTracking().Where(l => l.Method == "tools/call");
+        var outcomes = await calls.Where(l => l.At >= day).GroupBy(l => l.Outcome).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(ct);
+        var tools = await calls.Where(l => l.At >= week && l.Tool != null).GroupBy(l => l.Tool!).Select(g => new { g.Key, Count = g.Count() })
+            .OrderByDescending(g => g.Count).Take(10).ToListAsync(ct);
+        var people = await calls.Where(l => l.At >= week).GroupBy(l => l.Username).Select(g => new { g.Key, Count = g.Count() })
+            .OrderByDescending(g => g.Count).Take(10).ToListAsync(ct);
+        var recent = await calls.Where(l => l.At >= week).Select(l => new { l.At, Ok = l.Outcome == McpOutcome.Ok }).ToListAsync(ct);
+        var days = Enumerable.Range(0, 7).Select(i => DateOnly.FromDateTime(Clock.LocalNow).AddDays(-6 + i))
+            .Select(d => new McpDay(d, recent.Count(r => DateOnly.FromDateTime(Clock.ToLocal(r.At)) == d),
+                recent.Count(r => !r.Ok && DateOnly.FromDateTime(Clock.ToLocal(r.At)) == d))).ToList();
+        return new McpStatus(o.Enabled,
+            states.Count(s => s.State.On && s.Token.Kind == McpTokenKind.Read), states.Count(s => s.State.On && s.Token.Kind == McpTokenKind.Write),
+            tokens.Count(t => t.BlockedAt is not null), tokens.Count(t => t.Hash is not null), tokens.Count(t => t.DeleteUntil > now),
+            outcomes.Sum(x => x.Count), recent.Count, await db.McpLog.CountAsync(l => l.Strike && l.At >= day, ct),
+            await db.McpLog.Where(l => l.Method == "tools/call").MaxAsync(l => (DateTime?)l.At, ct),
+            [.. outcomes.OrderByDescending(x => x.Count).Select(x => new McpCount(x.Key.ToString(), x.Count))],
+            [.. tools.Select(x => new McpCount(x.Key, x.Count))], [.. people.Select(x => new McpCount(x.Key, x.Count))], days);
+    }
+
     [HttpGet("log")]
     [RequireRight(Area.Mcp, Level.View)]
     public async Task<Paged<McpLogItem>> Log([FromQuery] McpLogQuery query, CancellationToken ct) => await PageAsync(db, query, null, ct);
@@ -168,6 +200,13 @@ public sealed class McpLogController(PnmtdDbContext db, IOptionsMonitor<McpOptio
         return new McpAdminTokenItem(token.Id, user.Id, user.Username, user.DisplayName,
             AccountMcpController.Item(token, user, options.CurrentValue, new Dictionary<Area, Level>()));
     }
+
+    /// <summary><i>Revoke all tokens</i> (docs/adjustments1.md): every value stops working; everyone makes a new one.</summary>
+    [HttpPost("tokens/revoke-all")]
+    [RequireRight(Area.Mcp, Level.Manage)]
+    [Audit(AuditEvents.McpTokensRevokedByAdmin)]
+    public async Task<McpRevokeAllResult> RevokeAll(McpRevokeAllRequest request, [FromServices] McpTokenService tokens, CancellationToken ct) =>
+        new(await tokens.RevokeAllAsync(request.Reason, ct));
 
     internal static McpLogItem ItemOf(McpLogEntity e) => new(e.Id, e.At, e.TokenId, e.Kind, e.UserId, e.Username, e.Ip, e.Client, e.Method, e.Tool, e.ToolKind,
         e.Outcome, e.ErrorCode, e.Summary, e.Strike, e.DurationMs);

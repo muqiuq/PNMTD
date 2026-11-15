@@ -119,7 +119,7 @@ public sealed class McpAlerts(NotificationService notifications, IConfiguration 
                 .Append(r.Tool ?? r.Method).Append(" — ").Append(r.Error ?? r.Summary)
                 .Append(" (client ").Append(r.Client ?? r.UserAgent ?? "unknown").Append(", from ").Append(r.Ip ?? "unknown").Append(")\n");
         }
-        text.Append("\nThe token stays off until ").Append(person).Append(" switches it on again on PNMT's dashboard.");
+        text.Append("\nThe token stays off until ").Append(person).Append(" switches it on again on Account → Security.");
         if (baseUrl is not null)
         {
             text.Append("\nThe log: ").Append(baseUrl.TrimEnd('/')).Append("/pnmt-admin/admin/mcp/log?token=").Append(token.Id);

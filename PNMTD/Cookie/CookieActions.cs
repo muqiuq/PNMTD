@@ -45,3 +45,6 @@ public sealed record SeraphReport(
 
 /// <summary>Seraph's reply in the chat (§10.2): it explains, and can't act.</summary>
 public sealed record SeraphReply([property: Description("The reply, at most 1200 characters")] string Reply);
+
+/// <summary>Seraph's coffee sentence: how things are, from the reviewer's side (docs/adjustments1.md).</summary>
+public sealed record SeraphCoffeeAnswer([property: Description(CoffeeAnswer.Description)] string Coffee);

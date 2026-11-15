@@ -7,7 +7,7 @@ import { useRoute, useRouter } from 'vue-router'
 import GlobalSearch from '@/components/GlobalSearch.vue'
 import LogoMark from '@/components/LogoMark.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
-import { useDashboard } from '@/composables/useDashboard'
+import { refreshDashboard, useDashboard } from '@/composables/useDashboard'
 import { useMedia } from '@/composables/useMedia'
 import { api, keys } from '@/api/resources'
 import { pageTitle } from '@/router'
@@ -41,8 +41,11 @@ const decisions = useQuery({
   enabled: computed(() => session.can('Decisions', 'Decide')),
 })
 const openDecisions = computed(() => decisions.data.value?.open ?? 0)
-const updatedAt = computed(() =>
-  dashboard.dataUpdatedAt.value ? new Date(dashboard.dataUpdatedAt.value).toISOString() : null,
+// When the server built what is shown (the polls get its cached build), not when the browser fetched it.
+const updatedAt = computed(
+  () =>
+    dashboard.data.value?.generatedAt ??
+    (dashboard.dataUpdatedAt.value ? new Date(dashboard.dataUpdatedAt.value).toISOString() : null),
 )
 watchEffect(() => {
   document.title = pageTitle(route.meta.title, session.identity, failing.value)
@@ -53,7 +56,11 @@ const refreshing = ref(false)
 async function refresh() {
   refreshing.value = true
   try {
-    await queryClient.refetchQueries({ type: 'active' })
+    // The dashboard as built now; everything else on the page as it is fetched.
+    await Promise.all([
+      session.can('Monitoring', 'View') ? refreshDashboard(queryClient) : null,
+      queryClient.refetchQueries({ type: 'active', predicate: (q) => q.queryKey[0] !== keys.dashboard[0] }),
+    ])
   } finally {
     refreshing.value = false
   }

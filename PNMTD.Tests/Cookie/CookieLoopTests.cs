@@ -104,11 +104,12 @@ public sealed class CookieLoopTests
         {
             nameof(TriageAnswer) => new JsonObject
             {
-                ["state"] = "warning", ["reason"] = "The NAS backup fails.",
+                ["state"] = "warning", ["reason"] = "The NAS backup fails.", ["coffee"] = "Beep: the NAS's backup is sulking.",
                 ["cases"] = new JsonArray(new JsonObject { ["id"] = caseId.ToString(), ["why"] = "backup failing" }, new JsonObject { ["id"] = "made-up", ["why"] = "x" }),
             }.ToJsonString(),
             nameof(CaseNoteAnswer) => """{"note":"The backup fails since this morning; PERSON_1 owns the NAS.","urgency":"important","attention":"the NAS's owner"}""",
-            nameof(StatusAnswer) => """{"reason":"The NAS backup has failed for 8 hours."}""",
+            nameof(StatusAnswer) => """{"reason":"The NAS backup has failed for 8 hours.","coffee":"Beep: the NAS hasn't backed up since this morning, the rest is calm."}""",
+            nameof(SeraphCoffeeAnswer) => """{"coffee":"Quiet apart from the NAS; Cookie's proposals were sensible."}""",
             _ => "{}",
         };
         router.Message = request =>
@@ -148,8 +149,11 @@ public sealed class CookieLoopTests
         }
         var runtime = await RuntimeAsync();
         Assert.AreEqual((OverallState.Warning, "The NAS backup has failed for 8 hours."), (runtime.CookieStatus, runtime.CookieReason));
+        Assert.AreEqual(("Beep: the NAS hasn't backed up since this morning, the rest is calm.", "Quiet apart from the NAS; Cookie's proposals were sensible."),
+            (runtime.CookieCoffee, runtime.SeraphCoffee), "the status's sentence wins over triage's, and Seraph adds its own");
         var status = await (await admin.GetAsync("/api/v1/cookie/status")).ReadAsync<CookieStatusItem>();
         Assert.AreEqual("cookie", status.Overall.Source);
+        Assert.AreEqual((runtime.CookieCoffee, runtime.SeraphCoffee), (status.CookieSays?.Text, status.SeraphSays?.Text));
 
         var sent = router.Requests.Skip(before).Where(r => r.Url.EndsWith("/chat/completions", StringComparison.Ordinal)).Select(r => r.Body).ToList();
         Assert.IsTrue(sent.All(b => !b.Contains("anna@example.com") && !b.Contains("Anna Muster") && !b.Contains("123 45 67")), "nobody's name or address");

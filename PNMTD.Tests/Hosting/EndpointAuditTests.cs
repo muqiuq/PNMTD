@@ -122,6 +122,8 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/mcp/log"] = ("Mcp:View", Roles.Admin),
         ["GET /api/v1/mcp/log/{id:long}"] = ("signed-in", Roles.Viewer),
         ["GET /api/v1/mcp/tokens"] = ("Mcp:View", Roles.Admin),
+        ["GET /api/v1/mcp/status"] = ("Mcp:View", Roles.Admin),
+        ["POST /api/v1/mcp/tokens/revoke-all"] = ("Mcp:Manage", Roles.Admin),
         ["POST /api/v1/mcp/tokens/{id:guid}/off"] = ("Mcp:Manage", Roles.Admin),
         ["POST /api/v1/account/password"] = ("signed-in", Roles.Viewer),
         ["POST /api/v1/account/sessions/revoke"] = ("signed-in", Roles.Viewer),

@@ -39,7 +39,7 @@ public static class SelfTools
             Rights = ctx.Rights.Levels.OrderBy(l => l.Key).Select(l => $"{RightsCatalog.Of(l.Key).Label}: {l.Value}"),
             Deleting = call.Kind == McpTokenKind.Write
                 ? token.DeleteUntil > now ? $"allowed until {token.DeleteUntil:O}, {options.DeletesPerWindow - token.DeleteCount} more objects"
-                    : "not allowed: ask the person to click \"Allow deleting for 10 minutes\" on PNMT's dashboard"
+                    : "not allowed: ask the person to click \"Allow deleting for 10 minutes\" on Account → Security in PNMT"
                 : "never with a read-only token",
             Limits = new
             {

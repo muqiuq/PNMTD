@@ -19,7 +19,7 @@ namespace PNMTD.Tests.Mcp;
 
 /// <summary>
 /// The MCP server end to end (docs/mcp-plan.md §4, §5, §16): the SDK's own client over HTTP against the test server, tokens
-/// switched on through the account's API as the dashboard does.
+/// switched on through the account's API as Account → Security does.
 /// </summary>
 [TestClass]
 public sealed class McpServerTests
@@ -195,7 +195,7 @@ public sealed class McpServerTests
         Assert.AreEqual(HttpStatusCode.Forbidden, refused.StatusCode, "a known token that is only off");
         var body = JsonDocument.Parse(await refused.Content.ReadAsStringAsync()).RootElement;
         Assert.AreEqual("off", body.GetProperty("error").GetString());
-        StringAssert.Contains(body.GetProperty("message").GetString(), "dashboard");
+        StringAssert.Contains(body.GetProperty("message").GetString(), "Account → Security");
     }
 
     [TestMethod]
@@ -353,6 +353,37 @@ public sealed class McpServerTests
         var catalog = await (await browser.GetAsync("/api/v1/mcp/catalog")).ReadAsync<McpCatalog>();
         Assert.IsTrue(catalog.Tools.Any(t => t.Name == "sensor_delete" && !t.ReadOnlyToken && t.Destructive));
         Assert.IsTrue(catalog.Ceiling.Any(c => c.Area == PNMTD.Auth.Rights.Area.Mikrotik && c.ReadWrite is null));
+    }
+
+    [TestMethod]
+    public async Task TheStatusCountsAndRevokingAllStopsEveryValue()
+    {
+        var (_, _, _, browser) = await PersonAsync(app);
+        var token = (await TurnOnAsync(browser, "read")).Value!;
+        await using (var client = await ClientAsync(app, token))
+        {
+            await client.CallToolAsync("whoami", new Dictionary<string, object?>());
+        }
+        var (_, _, _, admin) = await PersonAsync(app, Roles.Admin);
+        var status = await (await admin.GetAsync("/api/v1/mcp/status")).ReadAsync<McpStatus>();
+        Assert.IsGreaterThanOrEqualTo(1, status.ReadOn);
+        Assert.IsGreaterThanOrEqualTo(1, status.Calls24h);
+        Assert.IsTrue(status.Tools7d.Any(t => t.Name == "whoami"));
+        Assert.AreEqual(7, status.Days.Count);
+        Assert.AreEqual(System.Net.HttpStatusCode.Forbidden, (await browser.GetAsync("/api/v1/mcp/status")).StatusCode, "MCP: View");
+
+        using (var revoke = await admin.PostAsync("/api/v1/mcp/tokens/revoke-all", new { reason = "A laptop was stolen" }))
+        {
+            Assert.AreEqual(System.Net.HttpStatusCode.OK, revoke.StatusCode, await revoke.Content.ReadAsStringAsync());
+            Assert.IsGreaterThanOrEqualTo(1, (await revoke.ReadAsync<McpRevokeAllResult>()).Revoked);
+        }
+        Assert.AreEqual(System.Net.HttpStatusCode.Unauthorized, (await RawAsync(token)).StatusCode, "the value is gone, not just off");
+        var account = await (await browser.GetAsync("/api/v1/account/mcp")).ReadAsync<McpAccountItem>();
+        Assert.AreEqual((false, false, "A laptop was stolen"), (account.Read.On, account.Read.HasValue, account.Read.EndedNote));
+        var fresh = await TurnOnAsync(browser, "read");
+        Assert.IsNotNull(fresh.Value, "switching it on makes a new value");
+        await using var db = app.NewDb();
+        Assert.IsTrue(await db.AuditLog.AnyAsync(l => l.EventType == "McpTokensRevokedByAdmin" && l.Detail!.Contains("A laptop was stolen")));
     }
 
     [TestMethod]

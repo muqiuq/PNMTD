@@ -22,7 +22,9 @@ export interface ListQuery {
 type Id = string
 
 export const api = {
-  dashboard: () => call(client.GET('/api/v1/dashboard')),
+  /** `fresh`: *Refresh* waits for a new build; the polls take the server's last one at once. */
+  dashboard: (fresh = false) =>
+    call(client.GET('/api/v1/dashboard', { params: { query: fresh ? { fresh: true } : {} } })),
   search: (q: string, limit = 8) => call(client.GET('/api/v1/search', { params: { query: { q, limit } } })),
 
   system: {
@@ -190,8 +192,9 @@ export const api = {
       call(client.PUT('/api/v1/availability/entries', { body: { cells } })),
     /** Whole rows: the responsible, the fallback and the comment. */
     saveDays: (days: S['AvailabilityDayChange'][]) => call(client.PUT('/api/v1/availability/days', { body: { days } })),
-    fill: (again: boolean) => call(client.POST('/api/v1/availability/fill', { body: { again } })),
-    fillMine: (again: boolean) => call(client.POST('/api/v1/availability/fill/mine', { body: { again } })),
+    /** Fill, or Fill again with its options (docs/adjustments1.md): the days, the people, what may be replaced. */
+    fill: (body: S['AvailabilityFillRequest']) => call(client.POST('/api/v1/availability/fill', { body })),
+    fillMine: (body: S['AvailabilityFillRequest']) => call(client.POST('/api/v1/availability/fill/mine', { body })),
     people: () => call(client.GET('/api/v1/availability/people')),
     savePerson: (id: Id, body: S['AvailabilityPersonRequest']) =>
       call(client.PUT('/api/v1/availability/people/{id}', { params: { path: { id } }, body })),
@@ -465,6 +468,10 @@ export const api = {
     /** An entry with its arguments, result and changes: MCP's View, or one's own. */
     entry: (id: number) => call(client.GET('/api/v1/mcp/log/{id}', { params: { path: { id } } })),
     tokens: () => call(client.GET('/api/v1/mcp/tokens')),
+    /** Admin → MCP → Status: the tokens and the calls at a glance (MCP's View). */
+    status: () => call(client.GET('/api/v1/mcp/status')),
+    /** Every token's value stops working for good (MCP's Manage). */
+    revokeAll: (reason: string) => call(client.POST('/api/v1/mcp/tokens/revoke-all', { body: { reason } })),
     /** MCP's Manage: with a reason the token's user reads. */
     turnOffToken: (id: Id, reason: string) =>
       call(client.POST('/api/v1/mcp/tokens/{id}/off', { params: { path: { id } }, body: { reason } })),

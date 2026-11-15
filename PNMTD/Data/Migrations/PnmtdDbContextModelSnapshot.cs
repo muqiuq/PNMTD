@@ -1841,6 +1841,10 @@ namespace PNMTD.Data.Migrations
                         .IsRequired()
                         .HasColumnType("uuid[]");
 
+                    b.Property<string>("CookieCoffee")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<string>("CookieReason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -1866,6 +1870,13 @@ namespace PNMTD.Data.Migrations
 
                     b.Property<bool>("Running")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("SeraphCoffee")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime?>("SeraphCoffeeAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("timestamp with time zone");

@@ -18,7 +18,15 @@ public sealed record OverallStateItem(OverallState State, string Reason, string 
 /// <summary>Cookie's own state (§4.1).</summary>
 public sealed record CookieStateItem(bool Enabled, bool Running, CookieState State, string? Reason, DateTime? LastRoundAt, DateTime? NextRoundAt);
 
-public sealed record CookieStatusItem(OverallStateItem Overall, CookieStateItem Cookie);
+/// <summary>
+/// The status box (§9.1). <see cref="CookieSays"/> and <see cref="SeraphSays"/>: how things are, as one would say it over coffee
+/// (docs/adjustments1.md), the box's first lines; only while Cookie's status is current, and only for readers who may see every
+/// case behind it.
+/// </summary>
+public sealed record CookieStatusItem(OverallStateItem Overall, CookieStateItem Cookie, CookieSaysItem? CookieSays = null, CookieSaysItem? SeraphSays = null);
+
+/// <summary>A coffee sentence and when it was said.</summary>
+public sealed record CookieSaysItem(string Text, DateTime At);
 
 public sealed record CookieCaseQuery(bool? Open = null, CookieCaseKind? Kind = null, int Page = 1, int PageSize = 50);
 

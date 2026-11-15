@@ -69,7 +69,7 @@ const vscode = computed(() =>
       <header class="panel-header">Connecting</header>
       <div class="body">
         <p>
-          Your tokens are on the dashboard's <i>MCP access</i> card. A client sends one as
+          Your tokens are on <i>Account → Security</i>, under <i>MCP access</i>. A client sends one as
           <code>Authorization: Bearer pnmt_…</code> to:
         </p>
         <CopyField :value="c.url" label="the address" />
@@ -95,7 +95,7 @@ const vscode = computed(() =>
             }}.
           </li>
           <li>
-            <b>Deleting</b> needs a window you open on the dashboard: {{ c.deleteMinutes }} minutes, at most
+            <b>Deleting</b> needs a window you open on Account → Security: {{ c.deleteMinutes }} minutes, at most
             {{ c.deletesPerWindow }} objects.
           </li>
           <li>

@@ -13,7 +13,7 @@ public static class McpInstructions
         - Every change acts in the name of the token's user and is in PNMT's audit log, field by field. Say what you changed.
         - Lists come in pages: pass the result's nextCursor as cursor for the next one.
         - Commands to devices are queued: ask for their result with the *_get tools later.
-        - Deleting needs the person: they click "Allow deleting for 10 minutes" on PNMT's dashboard first.
+        - Deleting needs the person: they click "Allow deleting for 10 minutes" on Account → Security in PNMT first.
         - Results carry a url to the object's page in PNMT; hand it to the person when it helps.
         """;
 }

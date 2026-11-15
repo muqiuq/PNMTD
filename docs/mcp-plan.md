@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Built: M0 to M6, released in 1.6.0** (§19 *As built*); open: trying real clients (§19.3). Revision 3 |
+| Status | **Built: M0 to M6, released in 1.6.0; the Status tab and the card on Account → Security in 1.6.1** (§19 *As built*); open: trying real clients (§19.3). Revision 3 |
 | Date | 2026-11-15 |
 | Revision | 3: **strikes agreed** (Q7), and **a blocked token alerts every admin** by Pushover and e-mail (§8.6).<br>2: **the answers to revision 1's questions** (§18.1):<ul><li>**deleting, for 10 minutes:** a button on the dashboard allows the read-write token to delete for 10 minutes (§7.5);</li><li>**mail input rules can be edited over MCP;** notification rules and DNS zones stay readable only (§7.3);</li><li>the rest as proposed: values shown once, 30 days, MikroTik commands allowed, 2FA for read-write, MCP use doesn't count as online, the area *MCP*.</li></ul>1: the first plan, from the code as of `51394a9` |
 | Scope | Package eight of docs/ideas2.md:<ul><li>**an MCP server with operational access to everything:** routers, sensors, hosts, locations, the knowledge base, Redmine, Zabbix, Cookie. **No admin access:** nothing that changes PNMT's settings;</li><li>**two tokens per user, read-only and read-write,** that the user can regenerate. **Switched on from the dashboard:** the read-write token for 12 hours, the read-only one until a week after the user was last online;</li><li>**signing in again every month, and the 2FA code once a day,** both at 4 in the morning and both set in ENV;</li><li>**Admin → MCP:** the documentation of every tool, and **a log of every access and every call**, in the database, the last 10,000 entries (configurable), detailed enough to say exactly what happened and what changed;</li><li>**a tool to talk to the internal AI (Cookie),** where **Jev first checks the request for malice:** write access through the read-only token, changing PNMT's settings, reading sensitive data</li></ul> |
@@ -251,6 +251,8 @@ Auth has no options class today (`configuration.GetValue("Auth:…")`). **This p
 **Whatever ends the read-write token also closes its window for deleting.**
 
 ### 4.5 The dashboard card
+
+> **Since 1.6.1 the card is on *Account → Security*** (docs/adjustments1.md), below the password and 2FA; the dashboard no longer shows it. Wherever this plan says *the dashboard* for switching a token on or allowing deleting, read *Account → Security*.
 
 **`McpCard.vue`** sits on the dashboard's right side, below the hosts. It appears only while `Mcp__Enabled` is true, and follows `CookieCard.vue`'s pattern (a `<section class="panel">` with its own query).
 
@@ -814,7 +816,7 @@ Cookie's placeholders stay Cookie's step: `ToolContext.Masker` is `Pseudonyms` f
 
 ## 10. Admin → MCP
 
-**`/admin/mcp`**, in the Admin group of the menu, with three tabs. **The documentation is open to every signed-in user;** the dashboard card and the Docs page link to it.
+**`/admin/mcp`**, in the Admin group of the menu, with four tabs: **Status** (§10.5, first, for *MCP: View*), Documentation, Log and Tokens. **The documentation is open to every signed-in user;** the card on Account → Security and the Docs page link to it.
 
 ### 10.1 Documentation
 
@@ -881,6 +883,14 @@ claude mcp add --transport http pnmt https://pnmt.example.lan/mcp --header "Auth
 - **Manage:** turning tokens off.
 
 Admins have it through the flag; groups can be given it like any area. **Tokens never get it** (§5.3), so an AI can't read who else uses MCP. The migration gives it to no group.
+
+### 10.5 Status
+
+**Added in 1.6.1** (docs/adjustments1.md). **Needs *MCP: View*; *Revoke all tokens* needs *MCP: Manage*.** `views/admin/mcp/McpStatusTab.vue`, from `GET api/v1/mcp/status`, refreshed every 30 seconds.
+
+- **Tiles:** read-only and read & write tokens that are on, tokens blocked by strikes, calls in 24 hours and in 7 days, strikes in 24 hours; below them how many tokens have a value, how many delete windows are open, and the last call.
+- **The last 7 days** as bars (calls, and of them failed or refused), **the outcomes of 24 hours**, and **the tools and users of 7 days**, most used first.
+- ***Revoke all tokens…*,** with a reason (3 to 300 characters): every token that has a value or is on loses it at once (`McpTokenService.RevokeAllAsync`). The values are gone, not just off: switching a token on again makes a new one. Strikes and blocks are cleared, the reason is the token's end note (`EndedWhy = Admin`), and the audit gets `McpTokensRevokedByAdmin` with the count. For a leak, or when the rules change.
 
 ---
 
@@ -976,6 +986,8 @@ location = /mcp {
 | `GET api/v1/mcp/log/{id}` | MCP View, or one's own entry | An entry with its audit entries |
 | `GET api/v1/mcp/tokens` | MCP View | Every user's tokens |
 | `POST api/v1/mcp/tokens/{id}/off` | MCP Manage | With `{ reason }` |
+| `GET api/v1/mcp/status` | MCP View | Admin → MCP → Status (§10.5) |
+| `POST api/v1/mcp/tokens/revoke-all` | MCP Manage | With `{ reason }`; returns how many were revoked (§10.5) |
 | `POST api/v1/auth/totp/daily` | Signed in, `totp_due` | The day's code (§3.3) |
 
 - **Every write endpoint carries `[Audit]`** (`EndpointAuditTests`).
@@ -988,10 +1000,10 @@ location = /mcp {
 
 | Where | What |
 |---|---|
-| `views/dashboard/McpCard.vue` | §4.5 |
+| `views/account/McpCard.vue` (on `SecurityView.vue`) | §4.5 |
 | `components/auth/DailyTotpDialog.vue`, `api/client.ts` | The day's code over the current page (§3.3) |
 | `views/auth/LoginView.vue` | The line *Please sign in again: PNMT asks every 30 days* after `login_expired` |
-| `views/admin/mcp/McpView.vue` with `McpDocsTab.vue`, `McpLogTab.vue`, `McpLogEntry.vue`, `McpTokensTab.vue` | §10 |
+| `views/admin/mcp/McpView.vue` with `McpStatusTab.vue`, `McpDocsTab.vue`, `McpLogTab.vue`, `McpLogEntry.vue`, `McpTokensTab.vue` | §10 |
 | `views/admin/UsersView.vue` | *Last online* |
 | `views/docs/DocsView.vue` | A short section *MCP*, linking to the documentation |
 | `views/cookie/…` (the chat) | Labels *via MCP*, refused messages (§8.5) |
@@ -1128,7 +1140,8 @@ None at the moment.
 - **Cookie keeps exactly its eleven tools, unchanged in what they return** (`ToolSpec.ForCookie`); every new tool is MCP's only, so Cookie's prompt doesn't grow by itself. The eleven are not paged yet (§6.3); the new list tools are.
 - **`location_details`** returns a location's fields (through `MachineAccess.LocationValuesAsync`), its children and pages; `location_get` stays Cookie's. **`sensor_notification_rule`** links or unlinks one rule per call, so each is one audit entry; **`location_update`** renames or moves, one per call, for the same reason.
 - **A failure inside a write tool** is a tool error whose code is the service's (`edit_conflict`, `looks_like_credential`, `validation_failed` with the fields in the message).
-- **The dashboard's card sits at the end of the left side,** not under the hosts (§4.5): the hosts' panel is sticky and fills the right side.
+- **The card is on Account → Security,** not on the dashboard (§4.5), since docs/adjustments1.md. Every message that tells a person where to switch a token on says *Account → Security*.
+- **Admin → MCP has a Status tab** with *Revoke all tokens* (§10.5), added in 1.6.1.
 - **The menu entry needs *MCP: View*;** everyone reaches the documentation from the card's *How to connect*.
 - **After the day's code,** the UI fetches every query again (`invalidateQueries`) instead of repeating the one request (§3.3); what was typed on the page stays.
 - **Tool results keep umlauts and "…" unescaped** (`JavaScriptEncoder.UnsafeRelaxedJsonEscaping`): they are JSON inside JSON-RPC or a model's message, never HTML; escaped text costs a model tokens. Cookie's tools get the same.

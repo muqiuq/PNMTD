@@ -10761,6 +10761,35 @@
         }
       }
     },
+    "/api/v1/mcp/status": {
+      "get": {
+        "tags": [
+          "McpLog"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/mcp/log": {
       "get": {
         "tags": [
@@ -11006,6 +11035,55 @@
               "text/plain": {
                 "schema": {
                   "$ref": "#/components/schemas/McpAdminTokenItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mcp/tokens/revoke-all": {
+      "post": {
+        "tags": [
+          "McpLog"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/McpRevokeAllRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/McpRevokeAllRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/McpRevokeAllRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpRevokeAllResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpRevokeAllResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpRevokeAllResult"
                 }
               }
             }
@@ -15627,6 +15705,16 @@
       "get": {
         "tags": [
           "Dashboard"
+        ],
+        "parameters": [
+          {
+            "name": "fresh",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -22012,6 +22100,44 @@
         "properties": {
           "again": {
             "type": "boolean"
+          },
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "to": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "people": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "onlyTypes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "overwriteOwn": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -24045,6 +24171,22 @@
           }
         }
       },
+      "CookieSaysItem": {
+        "required": [
+          "text",
+          "at"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "CookieSettingsVersion": {
         "required": [
           "version",
@@ -24158,6 +24300,26 @@
           },
           "cookie": {
             "$ref": "#/components/schemas/CookieStateItem"
+          },
+          "cookieSays": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CookieSaysItem"
+              }
+            ]
+          },
+          "seraphSays": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CookieSaysItem"
+              }
+            ]
           }
         }
       },
@@ -31923,6 +32085,44 @@
           }
         }
       },
+      "McpCount": {
+        "required": [
+          "name",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "McpDay": {
+        "required": [
+          "date",
+          "calls",
+          "failed"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "calls": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "McpLogDetail": {
         "required": [
           "item",
@@ -32112,6 +32312,119 @@
           "RateLimited",
           "Unauthenticated"
         ]
+      },
+      "McpRevokeAllRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "McpRevokeAllResult": {
+        "required": [
+          "revoked"
+        ],
+        "type": "object",
+        "properties": {
+          "revoked": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "McpStatus": {
+        "required": [
+          "enabled",
+          "readOn",
+          "writeOn",
+          "blocked",
+          "withValue",
+          "deleteWindowsOpen",
+          "calls24h",
+          "calls7d",
+          "strikes24h",
+          "lastCallAt",
+          "outcomes24h",
+          "tools7d",
+          "users7d",
+          "days"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "readOn": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "writeOn": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "blocked": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "withValue": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deleteWindowsOpen": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "calls24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "calls7d": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "strikes24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastCallAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "outcomes24h": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpCount"
+            }
+          },
+          "tools7d": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpCount"
+            }
+          },
+          "users7d": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpCount"
+            }
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpDay"
+            }
+          }
+        }
       },
       "McpTokenEnd": {
         "enum": [

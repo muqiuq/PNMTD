@@ -11,6 +11,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import { useActions } from '@/composables/useActions'
 import CodeChip from './CodeChip.vue'
+import FillAgainDialog from './FillAgainDialog.vue'
 import {
   addDays,
   after,
@@ -54,7 +55,7 @@ const NEAR = 15
 const STAFF = ['responsible', 'fallback'] as const
 
 const queryClient = useQueryClient()
-const { run, ask, notify } = useActions()
+const { run, notify } = useActions()
 
 const plan = useInfiniteQuery({
   queryKey: planKey,
@@ -509,17 +510,12 @@ function cancelComment() {
 }
 
 // --- Fill -----------------------------------------------------------------------------------------------------------
-async function fill(again: boolean, mine = false) {
-  if (
-    again &&
-    !(await ask(
-      'Fill again?',
-      "What the fill wrote for the next 365 days is written again from each person's default week. What people set stays.",
-      'Fill again',
-    ))
-  )
-    return
-  const result = await run(() => (mine ? api.availability.fillMine(again) : api.availability.fill(again)), {
+/** *Fill again* opens its options (docs/adjustments1.md); *Fill* and *Fill mine* fill the empty days at once. */
+const fillingAgain = ref(false)
+
+async function fill(again: boolean, mine = false, body?: S['AvailabilityFillRequest']) {
+  const request = body ?? { again, overwriteOwn: false }
+  const result = await run(() => (mine ? api.availability.fillMine(request) : api.availability.fill(request)), {
     failure: 'Not filled',
     invalidate: [planKey],
   })
@@ -560,7 +556,20 @@ function countTitle(d: PlanDay, i: number): string {
   return `${c?.name}: ${d.counts[i] ?? 0}${c?.minimum !== null && c?.minimum !== undefined ? `, the minimum is ${c.minimum}` : ''}${below ? ' (below)' : ''}`
 }
 const dateLine = (d: PlanDay) => (d.holiday ? `${d.holiday} · ${d.hours}` : d.hours)
-const rowClass = (d: PlanDay) => ({ closed: d.closed, today: d.date === today.value, past: d.date < today.value })
+const rowClass = (d: PlanDay) => ({
+  closed: d.closed,
+  today: d.date === today.value,
+  past: d.date < today.value,
+  // A month's first day draws a line with the month's name, a year's a bolder one with the year (docs/adjustments1.md).
+  'month-start': d.date.endsWith('-01'),
+  'year-start': d.date.endsWith('-01-01'),
+})
+/** The label on a month's or a year's line: "December", "2027 · January". */
+const monthMark = (d: PlanDay): string | null => {
+  if (!d.date.endsWith('-01')) return null
+  const month = new Date(`${d.date}T12:00:00`).toLocaleString('en', { month: 'long' })
+  return d.date.endsWith('-01-01') ? `${d.date.slice(0, 4)} · ${month}` : month
+}
 </script>
 
 <template>
@@ -591,7 +600,7 @@ const rowClass = (d: PlanDay) => ({ closed: d.closed, today: d.date === today.va
           title="Writes every empty working day of the next 365 from each person's default week"
           @click="fill(false)"
         />
-        <Button label="Fill again" size="small" severity="secondary" text @click="fill(true)" />
+        <Button label="Fill again…" size="small" severity="secondary" text @click="fillingAgain = true" />
       </template>
       <Button
         v-if="inPlan"
@@ -611,6 +620,13 @@ const rowClass = (d: PlanDay) => ({ closed: d.closed, today: d.date === today.va
         </span>
       </span>
     </div>
+    <FillAgainDialog
+      v-model:visible="fillingAgain"
+      :people="people"
+      :types="choosable"
+      :today="today"
+      @fill="(body) => fill(true, false, body)"
+    />
     <Message v-if="!people.length" severity="info" :closable="false" size="small">
       Nobody is in the plan yet. Availability: Manage adds people on the People tab, admins under Admin → Users.
     </Message>
@@ -669,6 +685,7 @@ const rowClass = (d: PlanDay) => ({ closed: d.closed, today: d.date === today.va
           >
             <td class="c-day sticky-1">{{ d.weekday }}</td>
             <td class="c-date sticky-2" :title="dateLine(d)">
+              <span v-if="monthMark(d)" class="month-mark">{{ monthMark(d) }}</span>
               <div class="date">
                 {{ formatPlanDate(d.date) }}
                 <i
@@ -1039,7 +1056,7 @@ tr.pad td {
 
 .c-count {
   position: relative;
-  text-align: right;
+  text-align: center;
 }
 
 .bar {
@@ -1054,7 +1071,35 @@ tr.pad td {
 .n {
   position: relative;
   font-weight: 500;
-  padding-right: var(--pnmt-space-1);
+}
+
+/* Month and year changes (docs/adjustments1.md): an inset line, so the rows keep their height, and the name on it. */
+tr.month-start td {
+  box-shadow: inset 0 3px 0 color-mix(in srgb, var(--pnmt-text) 45%, transparent);
+}
+
+tr.year-start td {
+  box-shadow: inset 0 5px 0 var(--pnmt-text);
+}
+
+.month-mark {
+  position: absolute;
+  top: -0.7rem;
+  left: 0.2rem;
+  z-index: 4;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--pnmt-text);
+  color: var(--pnmt-bg);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.2rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+tr.month-start:not(.year-start) .month-mark {
+  background: color-mix(in srgb, var(--pnmt-text) 70%, var(--pnmt-bg));
 }
 
 .c-count.low {

@@ -136,3 +136,35 @@ public sealed record McpAdminTokenItem(Guid Id, Guid UserId, string Username, st
 
 /// <summary><c>POST /mcp/tokens/{id}/off</c>: why, shown to the token's user and in the audit.</summary>
 public sealed record McpTurnOffRequest(string? Reason);
+
+/// <summary>A count by name: a tool, a user, an outcome.</summary>
+public sealed record McpCount(string Name, int Count);
+
+/// <summary>A day's calls: how many, and how many failed or were refused.</summary>
+public sealed record McpDay(DateOnly Date, int Calls, int Failed);
+
+/// <summary>
+/// <c>GET /mcp/status</c>, Admin → MCP → Status (docs/adjustments1.md): the tokens that are on, blocked or have a value, the calls
+/// of the last day and week, by outcome, tool and user, and the strikes.
+/// </summary>
+public sealed record McpStatus(
+    bool Enabled,
+    int ReadOn,
+    int WriteOn,
+    int Blocked,
+    int WithValue,
+    int DeleteWindowsOpen,
+    int Calls24h,
+    int Calls7d,
+    int Strikes24h,
+    DateTime? LastCallAt,
+    IReadOnlyList<McpCount> Outcomes24h,
+    IReadOnlyList<McpCount> Tools7d,
+    IReadOnlyList<McpCount> Users7d,
+    IReadOnlyList<McpDay> Days);
+
+/// <summary><c>POST /mcp/tokens/revoke-all</c>: every token's value stops working for good. Why, for the audit and the users.</summary>
+public sealed record McpRevokeAllRequest(string? Reason);
+
+public sealed record McpRevokeAllResult(int Revoked);
+

@@ -40,8 +40,10 @@ const show = computed(() => {
         </li>
         <li>
           <strong>Fill</strong> writes every empty working day of the next 365 from each person's default week, and
-          never over what a person set; <em>Fill again</em> also replaces what the fill wrote. A nightly task fills the
-          day that comes into reach. <em>Fill mine</em> does the same for one's own column.
+          never over what a person set; <em>Fill again</em> also replaces what the fill wrote. It asks which days (from
+          today on, never the past), which people and which types to replace, so holidays and illness can stay; and, if
+          asked, it also replaces what people set themselves. A nightly task fills the day that comes into reach.
+          <em>Fill mine</em> does the same for one's own column.
         </li>
         <li>
           <strong>Red</strong> marks a working day without a responsible, a responsible or fallback who doesn't work

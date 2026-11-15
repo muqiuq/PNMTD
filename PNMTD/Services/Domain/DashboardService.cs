@@ -130,6 +130,9 @@ public sealed class DashboardCache(IServiceScopeFactory scopes, ILogger<Dashboar
 {
     public static readonly TimeSpan MaxAge = TimeSpan.FromSeconds(10);
 
+    /// <summary>How old a build may be for <i>Refresh</i>: anything older waits for a new one.</summary>
+    public static readonly TimeSpan FreshAge = TimeSpan.FromSeconds(2);
+
     private sealed record Entry(Dashboard Dashboard, long BuiltAt);
 
     private readonly object gate = new();
@@ -137,10 +140,14 @@ public sealed class DashboardCache(IServiceScopeFactory scopes, ILogger<Dashboar
     private Task<Entry>? building;
     private int generation;
 
-    public async Task<Dashboard> GetAsync()
+    /// <summary>
+    /// The last build at once (the polls), or with <paramref name="fresh"/> one at most <see cref="FreshAge"/> old, waiting
+    /// for it if need be (the dashboard's <i>Refresh</i>). A build already running is shared either way.
+    /// </summary>
+    public async Task<Dashboard> GetAsync(bool fresh = false)
     {
         var entry = Volatile.Read(ref current);
-        if (entry is null)
+        if (entry is null || (fresh && System.Diagnostics.Stopwatch.GetElapsedTime(entry.BuiltAt) > FreshAge))
         {
             return (await StartBuild()).Dashboard;
         }

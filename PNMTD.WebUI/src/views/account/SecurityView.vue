@@ -11,6 +11,7 @@ import { ApiError } from '@/api/client'
 import { api, keys } from '@/api/resources'
 import PageHeader from '@/components/PageHeader.vue'
 import RightsTable from '@/components/RightsTable.vue'
+import McpCard from './McpCard.vue'
 import { useNotify } from '@/composables/useNotify'
 import { useSession } from '@/stores/session'
 
@@ -181,6 +182,8 @@ function revokeSessions() {
           </template>
         </div>
       </section>
+      <!-- One's own MCP tokens (docs/mcp-plan.md §4.5), here since docs/adjustments1.md; shown while Mcp__Enabled is on. -->
+      <McpCard />
     </div>
   </div>
 </template>

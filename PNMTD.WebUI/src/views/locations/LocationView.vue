@@ -32,7 +32,8 @@ import { useLocationFields } from './useLocations'
  * A location's page (docs/locations-knowledge-plan.md §3.4), a small dashboard: the path as a breadcrumb, the state and
  * the hosts counted with sub-locations'. *Overview*: on the left, two thirds wide, the fields marked *Overview*, in their
  * order; on the right its sub-locations, then its hosts in the dashboard's panel (each naming its sub-location), then
- * the linked pages and tickets. On a phone the information comes first. *Information*: every field, by group.
+ * the linked pages and tickets. On a phone the information comes first. *Information*: the fields Overview doesn't show, the
+ * simple ones together on *Details*, each Markdown field on a page of its own (docs/adjustments1.md).
  * *Knowledge base*: the pages. *History*. It refreshes like the dashboard.
  */
 const route = useRoute()
@@ -58,8 +59,29 @@ const valueOf = (fieldId: string) => values.value.get(fieldId) ?? null
 const filled = (fieldId: string) => !isEmpty(valueOf(fieldId)?.value)
 // Empty fields: *Not filled in* for Users, hidden for Viewers (§3.4).
 const overviewFields = computed(() => fields.value.filter((f) => f.overview && (canWrite.value || filled(f.id))))
-const informationGroups = computed(() => grouped(fields.value.filter((f) => canWrite.value || filled(f.id))))
-const emptyCount = computed(() => fields.value.filter((f) => !filled(f.id)).length)
+// Information (docs/adjustments1.md): what Overview doesn't show already. The simple fields together on *Details*, each
+// Markdown field a page of its own.
+const informationFields = computed(() => fields.value.filter((f) => !f.overview))
+const visibleInformation = computed(() => informationFields.value.filter((f) => canWrite.value || filled(f.id)))
+const simpleFields = computed(() => visibleInformation.value.filter((f) => f.type !== 'Markdown'))
+const markdownFields = computed(() => visibleInformation.value.filter((f) => f.type === 'Markdown'))
+const informationGroups = computed(() => grouped(simpleFields.value))
+const DETAILS = 'details'
+const pageTabs = computed(() =>
+  [
+    ...(simpleFields.value.length ? [{ key: DETAILS, label: 'Details' }] : []),
+    ...markdownFields.value.map((f) => ({ key: f.key, label: f.label })),
+  ].map((t) => ({
+    ...t,
+    to: { name: 'location', params: { id: id.value, tab: 'information' }, query: { page: t.key } },
+  })),
+)
+const page = computed(() => {
+  const asked = typeof route.query.page === 'string' ? route.query.page : null
+  return pageTabs.value.find((t) => t.key === asked)?.key ?? pageTabs.value[0]?.key ?? DETAILS
+})
+const pageField = computed(() => markdownFields.value.find((f) => f.key === page.value) ?? null)
+const emptyCount = computed(() => informationFields.value.filter((f) => !filled(f.id)).length)
 const files = computed(() => location.value?.files ?? [])
 
 // The Knowledge base tab counts the location's own pages (§3.4); the panels share the query.
@@ -158,10 +180,12 @@ const more = computed<MenuItem[]>(() => [
     : []),
 ])
 
-/** *Fill in*: to the first empty field of the Information tab. */
+/** *Fill in*: to the first empty field of the Information tab, on its page. */
 async function fillIn() {
-  if (tab.value !== 'information') {
-    await router.push({ name: 'location', params: { id: id.value, tab: 'information' } })
+  const first = simpleFields.value.find((f) => !filled(f.id)) ?? markdownFields.value.find((f) => !filled(f.id)) ?? null
+  const target = first && first.type === 'Markdown' ? first.key : DETAILS
+  if (tab.value !== 'information' || page.value !== target) {
+    await router.push({ name: 'location', params: { id: id.value, tab: 'information' }, query: { page: target } })
   }
   await nextTick()
   document.querySelector<HTMLElement>('.information .field-card.empty')?.scrollIntoView({ block: 'center' })
@@ -281,14 +305,21 @@ async function fillIn() {
         <div v-if="canWrite && emptyCount" class="fill-in">
           <Button :label="`Fill in (${emptyCount} empty)`" icon="pi pi-arrow-down" size="small" text @click="fillIn" />
         </div>
-        <EmptyState
-          v-if="!informationGroups.length"
-          icon="pi pi-info-circle"
-          title="No information yet."
-          class="panel"
-        />
+        <EmptyState v-if="!pageTabs.length" icon="pi pi-info-circle" title="No information yet." class="panel" />
+        <TabNav v-if="pageTabs.length > 1" :items="pageTabs" :active="page" label="Information" class="pages-nav" />
+        <section v-if="pageField" class="panel" :aria-label="pageField.label">
+          <FieldCard
+            :field="pageField"
+            :value="valueOf(pageField.id)"
+            :location-id="location.id"
+            :can-write="canWrite"
+            :users="users"
+            :files="files"
+            @saved="refresh"
+          />
+        </section>
         <section
-          v-for="group in informationGroups"
+          v-for="group in page === DETAILS ? informationGroups : []"
           :key="group.group ?? ''"
           class="panel"
           :aria-label="group.group ?? 'Fields'"

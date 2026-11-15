@@ -44,9 +44,12 @@ public sealed class SystemController(SystemService system) : V1ControllerBase
 [RequireRight(Area.Monitoring, Level.View)]
 public sealed class DashboardController(DashboardCache dashboard) : V1ControllerBase
 {
-    /// <summary>At most about 10 seconds old; <c>generatedAt</c> says when it was built.</summary>
+    /// <summary>
+    /// The last build, rebuilt in the background once it is 10 seconds old; <c>generatedAt</c> says when it was built.
+    /// <c>fresh=true</c> (the dashboard's <i>Refresh</i>) waits for a build unless the last is at most 2 seconds old.
+    /// </summary>
     [HttpGet]
-    public async Task<ActionResult<Dashboard>> Get() => await dashboard.GetAsync();
+    public async Task<ActionResult<Dashboard>> Get([FromQuery] bool fresh = false) => await dashboard.GetAsync(fresh);
 }
 
 [Route("api/v1/search")]

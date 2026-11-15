@@ -9,13 +9,13 @@ using static PNMTD.Tools.ToolArgs;
 namespace PNMTD.Tools.Delete;
 
 /// <summary>
-/// Deleting (docs/mcp-plan.md §7.5): only in the window a person opens on the dashboard, one object per call, counted
+/// Deleting (docs/mcp-plan.md §7.5): only in the window a person opens on Account → Security, one object per call, counted
 /// before it runs (<see cref="Mcp.McpCalls"/>). The object is read first and goes into the audit as it was, field by
 /// field, because the services' bulk deletes leave the change tracker out. Never what needs <i>Manage</i>.
 /// </summary>
 public static class DeleteTools
 {
-    private const string Window = " Only while the person allows deleting on PNMT's dashboard (10 minutes, at most 20 objects); otherwise delete_not_allowed.";
+    private const string Window = " Only while the person allows deleting on Account → Security in PNMT (10 minutes, at most 20 objects); otherwise delete_not_allowed.";
 
     public static readonly IReadOnlyList<ToolSpec> All =
     [

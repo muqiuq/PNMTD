@@ -134,7 +134,7 @@ public static class McpCalls
         var open = await db.McpTokens.AnyAsync(t => t.Id == caller.Token.Id && t.DeleteUntil > now);
         return open
             ? ("delete_limit_reached", $"This window for deleting allowed {max} objects, and they are used up. Ask the person to open a new one.")
-            : ("delete_not_allowed", "Deleting isn't allowed right now. Ask the person to click \"Allow deleting for 10 minutes\" on PNMT's dashboard, then try again.");
+            : ("delete_not_allowed", "Deleting isn't allowed right now. Ask the person to click \"Allow deleting for 10 minutes\" on Account → Security in PNMT, then try again.");
     }
 
     /// <summary>The call itself (§6.2): the tool in this request's scope, its audit for a change, its result, its log entry.</summary>

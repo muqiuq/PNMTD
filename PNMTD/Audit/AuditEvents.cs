@@ -233,6 +233,7 @@ public static class AuditEvents
     public const string McpTokenExpired = "McpTokenExpired";
     public const string McpTokenBlocked = "McpTokenBlocked";
     public const string McpTokenTurnedOffByAdmin = "McpTokenTurnedOffByAdmin";
+    public const string McpTokensRevokedByAdmin = "McpTokensRevokedByAdmin";
     public const string McpDeleteAllowed = "McpDeleteAllowed";
     public const string McpDeleteEnded = "McpDeleteEnded";
 }
@@ -397,6 +398,7 @@ public static class AuditCatalog
         Add(AuditCategory.Mcp, AuditTargets.McpToken, AuditEvents.McpTokenOn, AuditEvents.McpTokenOff, AuditEvents.McpTokenRegenerated,
             AuditEvents.McpTokenExpired, AuditEvents.McpTokenBlocked, AuditEvents.McpTokenTurnedOffByAdmin, AuditEvents.McpDeleteAllowed,
             AuditEvents.McpDeleteEnded);
+        Add(AuditCategory.Mcp, null, AuditEvents.McpTokensRevokedByAdmin);
     }
 
     public static IReadOnlyList<AuditEventInfo> All => Entries;

@@ -8,7 +8,6 @@ import { useMedia } from '@/composables/useMedia'
 import { useSession } from '@/stores/session'
 import CookieCard from './CookieCard.vue'
 import HostsPanel from './HostsPanel.vue'
-import McpCard from './McpCard.vue'
 import ProblemsPanel from './ProblemsPanel.vue'
 import RecentChanges from './RecentChanges.vue'
 import SummaryStrip from './SummaryStrip.vue'
@@ -17,7 +16,7 @@ import SummaryStrip from './SummaryStrip.vue'
  * "Is anything wrong, and what exactly?" at a glance (§5.5): the summary strip, the problems and the
  * recent changes on the left, every host on the right in a panel that scrolls by itself. Stale data
  * stays visible while a refetch fails. Cookie's card heads the left side, for everyone, while Cookie is enabled
- * (docs/cookie-plan.md §9.1). The MCP card ends it while Mcp__Enabled is on (docs/mcp-plan.md §4.5).
+ * (docs/cookie-plan.md §9.1).
  */
 const dashboard = useDashboard()
 const phone = useMedia('(max-width: 599px)')
@@ -32,7 +31,6 @@ const session = useSession()
     </Message>
     <template v-if="!session.can('Monitoring', 'View')">
       <CookieCard class="no-access" />
-      <McpCard class="no-access" />
       <EmptyState
         icon="pi pi-lock"
         title="You don't have access to anything yet."
@@ -49,7 +47,6 @@ const session = useSession()
           :sensor-count="dashboard.data.value.summary.sensors.ok"
         />
         <RecentChanges :changes="dashboard.data.value.recentChanges" :collapsible="phone" />
-        <McpCard />
       </div>
       <HostsPanel :hosts="dashboard.data.value.hosts" class="right" />
     </template>
