@@ -49,6 +49,7 @@ const tab = (t: string) => ({ name: 'sensor', params: { id: id.value, tab: t } }
       <Message v-else-if="server.server.uninstalled" severity="secondary" :closable="false">
         The agent was uninstalled <RelativeTime :value="server.uninstalledAt" />. The server and its history stay.
       </Message>
+      <slot name="notes" />
       <section class="panel">
         <div class="panel-header">Logged in now</div>
         <div class="panel-body">

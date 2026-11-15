@@ -27,6 +27,7 @@ const sessions = computed(() => props.server.heartbeat?.sessions ?? [])
       <Message v-else-if="server.server.uninstalled" severity="secondary" :closable="false">
         The service was uninstalled <RelativeTime :value="server.uninstalledAt" />. The server and its history stay.
       </Message>
+      <slot name="notes" />
       <section class="panel">
         <div class="panel-header">Logged on now</div>
         <div class="panel-body">

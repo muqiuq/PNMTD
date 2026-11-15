@@ -41,6 +41,7 @@ import KbPanel from '@/views/kb/KbPanel.vue'
 import RedminePanel from '@/views/redmine/RedminePanel.vue'
 import SensorTicket from '@/views/redmine/SensorTicket.vue'
 import ZabbixSensorTab from './zabbix/ZabbixSensorTab.vue'
+import SensorNotesPanel from './SensorNotesPanel.vue'
 import BackupsTab from './mikrotik/BackupsTab.vue'
 import MikrotikCommandsTab from './mikrotik/CommandsTab.vue'
 import UpdatesTab from './mikrotik/UpdatesTab.vue'
@@ -295,6 +296,7 @@ async function save(patch: Partial<S['SensorRequest']>) {
   queryClient.setQueryData(keys.sensor(id.value), updated)
   await invalidate([keys.host(updated.host.id), keys.hosts])
 }
+const saveNotes = (notes: string | null) => save({ notes })
 
 // --- events -----------------------------------------------------------------------------------
 const status = ref('')
@@ -499,12 +501,16 @@ const more = computed(() =>
           v-else-if="isWindows && tab === 'overview'"
           :server="agent.server.value"
           :can-write="canWrite"
-        />
-        <LinuxOverviewTab
-          v-else-if="isLinux && tab === 'overview'"
-          :server="agent.server.value"
-          :can-write="canWrite"
-        />
+        >
+          <template #notes>
+            <SensorNotesPanel :notes="sensor.notes ?? null" :can-write="canWrite" :save="saveNotes" />
+          </template>
+        </WindowsOverviewTab>
+        <LinuxOverviewTab v-else-if="isLinux && tab === 'overview'" :server="agent.server.value" :can-write="canWrite">
+          <template #notes>
+            <SensorNotesPanel :notes="sensor.notes ?? null" :can-write="canWrite" :save="saveNotes" />
+          </template>
+        </LinuxOverviewTab>
         <AgentHardwareTab v-else-if="tab === 'hardware'" :server="agent.server.value" :can-write="canWrite" />
         <AgentNetworkTab v-else-if="tab === 'network'" :server="agent.server.value" :can-write="canWrite" />
         <WindowsServicesTab
