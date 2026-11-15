@@ -41,7 +41,7 @@ public sealed record StatusAnswer([property: Description("One sentence, at most 
 /// Puts Cookie's prompts together (docs/cookie-prompts.md): identity, goals and rules every time, then the step's prompt or the
 /// case's instructions, with the parts in braces filled in by code. The prompts come from Admin → Cookie, or their defaults.
 /// </summary>
-public sealed class CookieBrain(CookieSettings settings, Instructions instructions)
+public sealed class CookieBrain(CookieSettings settings, Instructions instructions, PrivacyFilter privacy)
 {
     /// <summary>What package nine adds to every case, fixed in code: Cookie can't act yet (§3.4).</summary>
     public const string WatchOnly =
@@ -89,6 +89,12 @@ public sealed class CookieBrain(CookieSettings settings, Instructions instructio
     {
         var identity = await settings.GetAsync<IdentitySettings>(ct);
         var redmine = await settings.GetAsync<CookieRedmineSettings>(ct);
+        // People's instructions and the lessons go into every prompt: masked like everything else that leaves PNMT (§13.2).
+        var p = await privacy.OpenAsync(ct);
+        var active = (await settings.GetAsync<LessonSettings>(ct)).Lessons.Where(l => l.Active).ToList();
+        var instructionText = p.Mask(Instructions.PromptText(await instructions.ActiveAsync(ct)));
+        var lessonText = active.Count > 0 ? p.Mask(string.Join("\n", active.Select(l => $"- {l.Text}"))) : "None yet.";
+        await p.SaveAsync(ct);
         var first = redmine.Projects.FirstOrDefault() ?? WatchedProject.Default(0);
         return new Dictionary<string, string>
         {
@@ -100,9 +106,8 @@ public sealed class CookieBrain(CookieSettings settings, Instructions instructio
             ["first_answer_hours"] = first.FirstAnswerHours.ToString("0.#", CultureInfo.InvariantCulture),
             ["update_days"] = first.UpdateDays.ToString(CultureInfo.InvariantCulture),
             // Mute, suppress and instructions (§10.3), and the lessons (§11).
-            ["instructions"] = Instructions.PromptText(await instructions.ActiveAsync(ct)),
-            ["lessons"] = (await settings.GetAsync<LessonSettings>(ct)).Lessons.Where(l => l.Active) is var active && active.Any()
-                ? string.Join("\n", active.Select(l => $"- {l.Text}")) : "None yet.",
+            ["instructions"] = instructionText,
+            ["lessons"] = lessonText,
             ["max_chars"] = StatusChars.ToString(CultureInfo.InvariantCulture),
             ["now"] = Clock.LocalNow.ToString("dddd yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
         };

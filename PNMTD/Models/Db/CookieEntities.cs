@@ -240,6 +240,9 @@ public class CookieCaseEntity
     [MaxLength(1000)]
     public string? StopComment { get; set; }
 
+    /// <summary>The members when it was stopped: one that isn't among them lets it go on (§4.3).</summary>
+    public List<string> StoppedMembers { get; set; } = [];
+
     /// <summary>A person asked the big brother (§15.2): the next round calls it.</summary>
     public DateTime? BigBrotherAskedAt { get; set; }
 
@@ -253,6 +256,9 @@ public class CookieCaseEntity
 
     [MaxLength(200)]
     public string? SolutionModel { get; set; }
+
+    /// <summary>The areas the big brother's tools read: only readers with all of them see the solution (§9.2).</summary>
+    public List<string> SolutionAreas { get; set; } = [];
 }
 
 /// <summary>

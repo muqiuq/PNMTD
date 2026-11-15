@@ -42,6 +42,37 @@ public sealed class CookieMail(IDbContextFactory<PnmtdDbContext> dbs, CookieMode
         decimal cost = 0;
         foreach (var mail in mails.Take(PerRound))
         {
+            try
+            {
+                var (d, c, k) = await OneAsync(db, mail, roundId, rights, p, effort, trace, ct);
+                done += d;
+                calls += c;
+                cost += k;
+            }
+            catch (Exception e) when (e is not OperationCanceledException || !ct.IsCancellationRequested)
+            {
+                // One mail that fails doesn't stop the round (§21.8): a person decides it.
+                await db.Entry(mail).ReloadAsync(ct);
+                var failed = mail;
+                if (!failed.Processed && failed.ProcessedById is { } ruleId && await db.MailInputs.AsNoTracking().SingleOrDefaultAsync(r => r.Id == ruleId, ct) is { } rule)
+                {
+                    await UndecidedAsync(db, failed, rule, MailAi.Evidence(failed, InputSanitizer.Clean(failed.Content, 4000).Text),
+                        new AiEvidence(null, null, [], null, [], []), $"Cookie couldn't decide: {e.Message}", ct);
+                    failed.AiState = MailAiState.Failed;
+                    await db.SaveChangesAsync(ct);
+                }
+                trace("Mail failed", e.Message);
+            }
+        }
+        return new Result(done, calls, cost, mails.Count > PerRound);
+    }
+
+    private async Task<(int Done, int Calls, decimal Cost)> OneAsync(PnmtdDbContext db, MailLogEntity mail, long roundId, UserRights rights, Pseudonyms p,
+        string effort, Action<string, string> trace, CancellationToken ct)
+    {
+        int done = 0, calls = 0;
+        decimal cost = 0;
+        {
             var rule = mail.ProcessedById is { } ruleId
                 ? await db.MailInputs.AsNoTracking().Include(r => r.SensorOutput).ThenInclude(s => s!.Parent).SingleOrDefaultAsync(r => r.Id == ruleId, ct)
                 : null;
@@ -50,7 +81,7 @@ public sealed class CookieMail(IDbContextFactory<PnmtdDbContext> dbs, CookieMode
                 mail.AiState = MailAiState.Failed;
                 mail.ProcessLog += "\nCookie: the rule is gone, disabled, or no longer asks the AI.";
                 await db.SaveChangesAsync(ct);
-                continue;
+                return (done, calls, cost);
             }
             var o = ai.CurrentValue;
             var subject = InputSanitizer.Clean(mail.Subject, 500).Text;
@@ -75,7 +106,7 @@ public sealed class CookieMail(IDbContextFactory<PnmtdDbContext> dbs, CookieMode
                 mail.AiState = MailAiState.Blocked;
                 await db.SaveChangesAsync(ct);
                 trace("Mail withheld", $"{sender}: {subject} (the guard or the scan)");
-                continue;
+                return (done, calls, cost);
             }
 
             var values = await brain.ValuesAsync(ct);
@@ -99,7 +130,7 @@ public sealed class CookieMail(IDbContextFactory<PnmtdDbContext> dbs, CookieMode
             {
                 await UndecidedAsync(db, mail, rule, evidence, cookieEvidence, $"Cookie can't tell: {message}", ct);
                 trace("Mail: unknown", $"{rule.Name}: {message}");
-                continue;
+                return (done, calls, cost);
             }
             var ok = answer.Outcome == MailVerdict.Ok;
             var code = ok ? rule.OkCode ?? 200 : rule.FailCode ?? 500;
@@ -126,7 +157,7 @@ public sealed class CookieMail(IDbContextFactory<PnmtdDbContext> dbs, CookieMode
                 await UndecidedAsync(db, mail, rule, evidence, cookieEvidence, $"Cookie said {(ok ? "ok" : "fail")} ({message}); {log.Outcome}: {log.Detail}", ct);
             }
         }
-        return new Result(done, calls, cost, mails.Count > PerRound);
+        return (done, calls, cost);
     }
 
     /// <summary>A person decides, as package one's <i>The AI could not decide</i> (§12).</summary>

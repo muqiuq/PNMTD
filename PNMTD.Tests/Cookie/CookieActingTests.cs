@@ -56,6 +56,8 @@ public sealed class CookieActingTests
         db.Users.AddRange(b, c);
         await db.SaveChangesAsync();
         (bea, carl) = (b.Id, c.Id);
+        // Always working hours: outside them, every message waits for a person (§8.3), and the tests run at any hour.
+        await V1.AvailabilityHoursAsync(admin, []);
     }
 
     [ClassCleanup]
@@ -63,6 +65,7 @@ public sealed class CookieActingTests
     {
         await Save("actions", new ActionSettings());
         await Save("lessons", new LessonSettings());
+        await V1.AvailabilityHoursAsync(admin, null);
         await using (var db = app.NewDb())
         {
             await db.CookieInstructions.Where(i => i.EndedAt == null).ExecuteUpdateAsync(u => u.SetProperty(i => i.EndedAt, Clock.UtcNow));
@@ -122,6 +125,9 @@ public sealed class CookieActingTests
         Seraph("approve");
 
         Assert.AreEqual("refused", (await HandleAsync(Email(Guid.NewGuid(), "Nobody"), c)).Outcome, "an id that isn't a user");
+        Assert.AreEqual("refused", (await HandleAsync(Email(bea, "web is down") with { Urgency = Urgency.Info }, c)).Outcome, "e-mail isn't for info");
+        Assert.AreEqual("refused", (await HandleAsync(Email(bea, "web is down") with { Action = CookieActionKind.Pushover, Urgency = Urgency.Important }, c)).Outcome,
+            "Pushover only for what is urgent");
         var done = await HandleAsync(Email(bea, "web is down"), c);
         Assert.AreEqual("done", done.Outcome, done.Detail);
         Assert.AreEqual("approve", done.Verdict);
@@ -175,6 +181,11 @@ public sealed class CookieActingTests
         }
         using var decide = await admin.PostAsJsonAsync($"/api/v1/decisions/{log.InboxDecisionId}/decide", new { choice = "approve" });
         Assert.AreEqual(HttpStatusCode.OK, decide.StatusCode, await decide.Content.ReadAsStringAsync());
+        await Assert.ThrowsExactlyAsync<PNMTD.Api.ApiException>(() => Executor.RunApprovedAsync(log.Id, "a second click", CancellationToken.None),
+            "it runs once");
+        Assert.AreEqual("proposed", (await HandleAsync(Email(carl, "mail is down", confidence: 0.3), c)).Outcome);
+        Assert.AreEqual("duplicate", (await HandleAsync(Email(carl, "mail is down again", confidence: 0.3), c)).Outcome,
+            "one waiting proposal per target, whatever its age");
         await using (var db = app.NewDb())
         {
             var after = await db.CookieDecisions.SingleAsync(d => d.Id == log.Id);
@@ -349,5 +360,13 @@ public sealed class CookieActingTests
         await using var db = app.NewDb();
         await db.CookieInstructions.Where(i => i.Source == "lesson").ExecuteUpdateAsync(u => u.SetProperty(i => i.EndedAt, Clock.UtcNow));
         await Save("lessons", new LessonSettings());
+    }
+
+    [TestMethod]
+    public void Cookies_own_lines_in_the_notes_are_not_progress()
+    {
+        const string people = "Replaced the disk.\nWaiting for the vendor.";
+        Assert.AreSame(people, CaseBook.PeoplesNotes(people), "notes without Cookie's lines stay as they are");
+        Assert.AreEqual(people, CaseBook.PeoplesNotes($"{people}\n\n[Cookie, 2026-11-15 10:30] The ping fails since 08:00."));
     }
 }

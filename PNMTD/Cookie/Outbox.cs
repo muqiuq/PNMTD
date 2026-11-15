@@ -79,6 +79,12 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
                 {
                     return $"notes on Redmine: {limits.RedmineNotesPerDay} a day";
                 }
+                // Cookie's public answers (§6.1); code's public notes are the closing notes on its own tickets.
+                if (r.Channel == CookieChannel.RedmineNote && r.Source != "code"
+                    && await sent.CountAsync(o => o.Channel == CookieChannel.RedmineNote && o.Source != "code", ct) >= limits.PublicAnswersPerDay)
+                {
+                    return $"public answers: {limits.PublicAnswersPerDay} a day";
+                }
                 break;
         }
         if (r.Channel is CookieChannel.Email or CookieChannel.Pushover && await messages.CountAsync(ct) >= limits.MessagesPerDay)

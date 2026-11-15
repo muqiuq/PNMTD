@@ -30,10 +30,18 @@ public sealed record ActionRequest(
 /// reaches people, and then the inbox (<i>Propose</i>) or the outbox (<i>Auto</i>). Each step is in Cookie's decision log.
 /// Whatever a model said, code decides here.
 /// </summary>
-public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings settings, Seraph seraph, Instructions instructions, Outbox outbox,
-    DecisionBook inbox, PrivacyFilter privacy, IOptionsMonitor<RedmineOptions> redmineOptions, ILogger<CookieExecutor> logger)
+public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings settings, Seraph seraph, Instructions instructions, Outbox outbox,
+    DecisionBook inbox, PrivacyFilter privacy, IOptionsMonitor<RedmineOptions> redmineOptions, PNMTD.Availability.AvailabilityPlan plan, IServiceProvider services,
+    ILogger<CookieExecutor> logger)
 {
     public const string InboxKind = "cookie.action";
+
+    /// <summary>The areas a Cookie proposal in the inbox may carry for everyone with <i>Decisions: Decide</i>; others are admins' (§9.2).</summary>
+    private static readonly HashSet<string> InboxAreas = ["Monitoring", "Mail", "Cookie"];
+
+    /// <summary>A line Cookie added to a host's or sensor's notes: <c>[Cookie, 2026-11-15 10:30] …</c>. It isn't a person's progress (§7.1).</summary>
+    [System.Text.RegularExpressions.GeneratedRegex(@"^\[[^\]\n]{1,60}, \d{4}-\d{2}-\d{2} \d{2}:\d{2}\] ")]
+    public static partial System.Text.RegularExpressions.Regex NoteLine();
 
     private static readonly JsonSerializerOptions Json = AiJson.Options;
 
@@ -97,10 +105,10 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
             return log;
         }
         var since = Clock.UtcNow.AddDays(-1);
-        if (target is not null && await db.CookieDecisions.AnyAsync(d => d.CaseId == log.CaseId && d.Kind == log.Kind && d.Target == target && d.At >= since
-                && (d.Outcome == "done" || d.Outcome == "proposed" || d.Outcome == "approved"), ct))
+        if (target is not null && await db.CookieDecisions.AnyAsync(d => d.CaseId == log.CaseId && d.Kind == log.Kind && d.Target == target
+                && (d.Outcome == "proposed" || d.Outcome == "running" || d.At >= since && (d.Outcome == "done" || d.Outcome == "approved")), ct))
         {
-            Done("duplicate", "The same action on the same target was done or proposed within a day.");
+            Done("duplicate", "The same action on the same target was done within a day, or waits for a person.");
             await db.SaveChangesAsync(ct);
             return log;
         }
@@ -108,10 +116,15 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         // Seraph (§5): approve, revise (one retry), reject, or a person. Without Seraph, a person.
         var toPerson = a.Action == CookieActionKind.HandToPerson ? "Cookie hands it to a person."
             : a.Confidence < rule.MinConfidence ? $"Below the threshold ({a.Confidence:0.00} < {rule.MinConfidence:0.00})." : null;
+        // Outside working hours Cookie reaches nobody by itself (§8.3): a message waits for a person's decision.
+        if (a.Action is CookieActionKind.Pushover or CookieActionKind.Email && !(await plan.CalendarAsync(ct)).IsWorking(Clock.UtcNow))
+        {
+            toPerson ??= "Outside working hours: a person decides whether it goes out now.";
+        }
         if (Reviewed(a.Action))
         {
             var evidence = await EvidenceAsync(db, proposal, r.Case, members, r.Privacy, ct);
-            var (verdict, model, error) = await seraph.ReviewAsync(proposal, evidence, Instructions.PromptText(active), ct);
+            var (verdict, model, error) = await seraph.ReviewAsync(Masked(proposal, r.Privacy), evidence, r.Privacy.Mask(Instructions.PromptText(active)), ct);
             log.Model = model;
             if (verdict is null)
             {
@@ -128,15 +141,26 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                         await db.SaveChangesAsync(ct);
                         return log;
                     case SeraphVerdictKind.Revise when r.Retry is not null:
+                    {
+                        ProposedAction? again;
+                        try
+                        {
+                            again = await r.Retry(verdict.Reason, ct);
+                        }
+                        catch (Exception e) when (e is not OperationCanceledException || !ct.IsCancellationRequested)
+                        {
+                            toPerson ??= $"Seraph: {verdict.Reason}; Cookie's retry failed: {e.Message}";
+                            break;
+                        }
                         Done("revised", $"Seraph sent it back: {verdict.Reason}");
                         await db.SaveChangesAsync(ct);
-                        var again = await r.Retry(verdict.Reason, ct);
                         if (again is null)
                         {
                             return log;
                         }
                         // The retry is the last: a second "revise" goes to a person.
                         return await HandleAsync(r with { Proposal = proposal with { Action = again }, Retry = null }, ct);
+                    }
                     case SeraphVerdictKind.Revise or SeraphVerdictKind.Ask:
                         toPerson ??= $"Seraph: {verdict.Reason}";
                         break;
@@ -148,7 +172,8 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
             await db.SaveChangesAsync(ct);
             log.InboxDecisionId = await inbox.RaiseAsync(new DecisionDraft(InboxKind, CaseBook.Cut($"Cookie proposes: {log.Title}", 300)!,
                 Summary(proposal, r.Privacy, log.VerdictReason, toPerson), new CookieActionPayload(log.Id), $"{InboxKind}:{log.Id}", r.Case?.Id,
-                "cookie-case", r.Case?.Id, Priority: a.Urgency == Urgency.Urgent ? 2 : a.Urgency == Urgency.Important ? 1 : 0), ct);
+                "cookie-case", r.Case?.Id, AdminOnly: log.Areas.Any(x => !InboxAreas.Contains(x)),
+                Priority: a.Urgency == Urgency.Urgent ? 2 : a.Urgency == Urgency.Important ? 1 : 0), ct);
             Done("proposed", toPerson ?? "Propose: a person decides in the decisions inbox.");
             await db.SaveChangesAsync(ct);
             return log;
@@ -162,11 +187,12 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
     public async Task<CookieDecisionEntity> RunApprovedAsync(long id, string by, CancellationToken ct)
     {
         await using var db = await dbs.CreateDbContextAsync(ct);
-        var log = await db.CookieDecisions.SingleOrDefaultAsync(d => d.Id == id, ct) ?? throw Api.ApiException.NotFound("Cookie's proposal");
-        if (log.Outcome != "proposed")
+        // Claimed once: a second click finds it running or done.
+        if (await db.CookieDecisions.Where(d => d.Id == id && d.Outcome == "proposed").ExecuteUpdateAsync(u => u.SetProperty(d => d.Outcome, "running"), ct) == 0)
         {
             throw Api.ApiException.Conflict("cookie_not_proposed", "Only a proposal that waits can be run.");
         }
+        var log = await db.CookieDecisions.SingleAsync(d => d.Id == id, ct);
         var proposal = JsonSerializer.Deserialize<CookieProposal>(log.Proposal, Json)!;
         var c = log.CaseId is { } caseId ? await db.CookieCases.SingleOrDefaultAsync(x => x.Id == caseId, ct) : null;
         await privacy.EnsureLoadedAsync(ct);
@@ -174,12 +200,28 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         {
             log.Outcome = "approved";
             log.Detail = $"Noted by {by}.";
+            await db.SaveChangesAsync(ct);
+            return log;
         }
-        else
+        // Checked again (§21.1): what was true when Cookie proposed it may not be any more.
+        var rights = await services.GetRequiredService<CookieRound>().RightsAsync(ct) ?? UserRights.None;
+        var level = (await settings.GetAsync<ActionSettings>(ct)).Levels.Of(proposal.Action.Action).Level;
+        var (refusal, _) = await CheckAsync(db, proposal, c, rights, ct);
+        var members = c is null ? [] : JsonSerializer.Deserialize<List<CaseMember>>(c.Members, CookieSettings.Json) ?? [];
+        var blocked = Instructions.Blocks(await instructions.ActiveAsync(ct), proposal.Action.Action, c, members,
+            Guid.TryParse(proposal.Action.ObjectId, out var obj) ? obj : null);
+        var why = level == ActionLevel.Off ? $"{Label(proposal.Action.Action)} is off now." : refusal
+            ?? (c?.StoppedAt is not null ? $"The case was stopped by {c.StoppedByName}." : null)
+            ?? (blocked is not null ? $"{blocked.Kind} {blocked.Scope} {blocked.Label ?? blocked.Value}, by {blocked.CreatedByName}." : null);
+        if (why is not null)
         {
-            await RunAsync(db, log, proposal, c, "cookie", ct);
-            log.Detail = CaseBook.Cut($"Approved by {by}. {log.Detail}", 1000);
+            log.Outcome = "refused";
+            log.Detail = CaseBook.Cut($"Approved by {by}, but not any more: {why}", 1000);
+            await db.SaveChangesAsync(ct);
+            return log;
         }
+        await RunAsync(db, log, proposal, c, "cookie", ct);
+        log.Detail = CaseBook.Cut($"Approved by {by}. {log.Detail}", 1000);
         await db.SaveChangesAsync(ct);
         return log;
     }
@@ -206,6 +248,13 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         _ => "For a person",
     };
 
+    /// <summary>The proposal as Seraph reads it: every text part masked, whoever built it (§13.2).</summary>
+    private static CookieProposal Masked(CookieProposal p, Pseudonyms privacy) => p with
+    {
+        Action = p.Action with { Subject = privacy.Mask(p.Action.Subject), Text = privacy.Mask(p.Action.Text), Reason = privacy.Mask(p.Action.Reason) },
+        Mail = p.Mail is null ? null : p.Mail with { Message = privacy.Mask(p.Mail.Message) },
+    };
+
     private string Summary(CookieProposal p, Pseudonyms privacy, string? verdict, string? toPerson)
     {
         var text = new StringBuilder();
@@ -214,11 +263,11 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         text.AppendLine(CultureInfo.InvariantCulture, $"Why: {privacy.Unmask(p.Action.Reason)} (confidence {p.Action.Confidence:0.00})");
         if (verdict is not null)
         {
-            text.AppendLine(CultureInfo.InvariantCulture, $"Seraph: {verdict}");
+            text.AppendLine(CultureInfo.InvariantCulture, $"Seraph: {privacy.Unmask(verdict)}");
         }
         if (toPerson is not null)
         {
-            text.AppendLine(toPerson);
+            text.AppendLine(privacy.Unmask(toPerson));
         }
         return text.ToString().TrimEnd();
     }
@@ -245,8 +294,22 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                     return ("No active PNMT user with that id.", null);
                 }
                 var address = a.Action == CookieActionKind.Pushover ? user.PushoverKey : user.Email;
-                return (string.IsNullOrWhiteSpace(address) ? $"{user.DisplayName} has no {(a.Action == CookieActionKind.Pushover ? "Pushover key" : "e-mail address")}." : null,
-                    $"user:{userId}");
+                if (string.IsNullOrWhiteSpace(address))
+                {
+                    return ($"{user.DisplayName} has no {(a.Action == CookieActionKind.Pushover ? "Pushover key" : "e-mail address")}.", null);
+                }
+                // §6: Pushover only for what is urgent, e-mail for what is important or urgent; and only to someone who works today (§8.2).
+                if (a.Action == CookieActionKind.Pushover && a.Urgency != Urgency.Urgent || a.Action == CookieActionKind.Email && a.Urgency == Urgency.Info)
+                {
+                    return (a.Action == CookieActionKind.Pushover ? "Pushover is only for what is urgent." : "E-mail is for what is important or urgent.", null);
+                }
+                var today = DateOnly.FromDateTime(Clock.LocalNow);
+                var day = await plan.DayAsync(today, ct, [userId]);
+                if (!day.Closed(today) && !day.Works(userId, today))
+                {
+                    return ($"{user.DisplayName} doesn't work today (the availability plan).", null);
+                }
+                return (null, $"user:{userId}");
             }
             case CookieActionKind.Ticket:
             {
@@ -299,7 +362,8 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
             case CookieActionKind.MailEvent:
                 return (p.Mail is null ? "A mail rule's event needs its mail." : null, p.Mail is null ? null : $"mail:{p.Mail.MailId}");
             default:
-                return (null, null);
+                // One thing per case waits for a person at a time.
+                return (null, c is null ? null : $"case:{c.Id}");
         }
     }
 
@@ -436,7 +500,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
             log.Detail = $"Notes on hosts and sensors: {limit} a day.";
             return;
         }
-        var line = $"{Clock.LocalNow:yyyy-MM-dd HH:mm} {name}: {body}";
+        var line = $"[{CaseBook.Cut(name, 40)}, {Clock.LocalNow:yyyy-MM-dd HH:mm}] {body.ReplaceLineEndings(" ")}";
         if (await db.Hosts.SingleOrDefaultAsync(h => h.Id == id, ct) is { } host)
         {
             host.Notes = string.IsNullOrWhiteSpace(host.Notes) ? line : $"{host.Notes.TrimEnd()}\n\n{line}";

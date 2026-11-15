@@ -143,10 +143,10 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
         {
             // Each sensor's notes as a short hash, and the host's in the case: a change of either is progress (§7.1).
             var members = group.Members.OrderBy(m => m.Since)
-                .Select(m => m.Type == CaseMember.Sensor ? m with { NotesHash = Hash(sensorNotes.GetValueOrDefault(Guid.Parse(m.Id)) ?? "")[..16] } : m)
+                .Select(m => m.Type == CaseMember.Sensor ? m with { NotesHash = Hash(PeoplesNotes(sensorNotes.GetValueOrDefault(Guid.Parse(m.Id))))[..16] } : m)
                 .ToList();
             var host = group.HostId is { } id ? hosts.GetValueOrDefault(id) : null;
-            var notes = Hash(host?.Notes ?? "");
+            var notes = Hash(PeoplesNotes(host?.Notes));
             // A sensor weighs by its own importance (or its host's); a Zabbix problem by its severity.
             var importance = members.Select(ImportanceOf).Max();
             var title = members.Count == 1 ? $"{group.Name}: {members[0].Name}" : $"{group.Name}: {members.Count} problems";
@@ -188,8 +188,9 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
                 Entry(db, c.Id, now, "bad", Describe(m));
                 changed = true;
             }
-            // A stopped problem that grows goes on by itself (§4.3): something new is failing that the stop didn't cover.
-            if (c.StoppedAt is not null && members.Any(m => before.All(b => b.Ref != m.Ref)))
+            // A stopped problem that grows goes on by itself (§4.3): something is failing that wasn't when it was stopped (a member
+            // that flaps away and back doesn't count).
+            if (c.StoppedAt is not null && members.Any(m => !c.StoppedMembers.Contains(m.Ref) && before.All(b => b.Ref != m.Ref)))
             {
                 Entry(db, c.Id, now, "go-on", $"Cookie goes on with it: something new is failing (stopped by {c.StoppedByName} on " +
                     $"{Clock.ToLocal(c.StoppedAt.Value):d MMM})");
@@ -197,6 +198,9 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
                 c.StoppedById = null;
                 c.StoppedByName = null;
                 c.StopComment = null;
+                c.StoppedMembers = [];
+                // The duties closed as stopped are planned again.
+                await db.CookieDuties.Where(d => d.CaseId == c.Id && d.State == CookieDutyState.Stopped).ExecuteDeleteAsync(ct);
             }
             foreach (var b in before.Where(b => members.All(m => m.Ref != b.Ref)))
             {
@@ -567,6 +571,21 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
         db.CookieCaseEntries.Add(new CookieCaseEntryEntity { CaseId = caseId, At = at, Kind = kind, Text = Cut(text, 2000)!, Actor = actor, ActorName = actorName });
 
     private static string Hash(string text) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
+
+    /// <summary>
+    /// The notes as people wrote them: Cookie's own lines (<see cref="CookieExecutor.NoteLine"/>) left out, so that Cookie's note
+    /// isn't progress (§7.1). Notes without one are returned as they are, so their fingerprints don't change.
+    /// </summary>
+    public static string PeoplesNotes(string? notes)
+    {
+        if (string.IsNullOrEmpty(notes))
+        {
+            return "";
+        }
+        var lines = notes.Split('\n');
+        var kept = lines.Where(l => !CookieExecutor.NoteLine().IsMatch(l)).ToList();
+        return kept.Count == lines.Length ? notes : string.Join('\n', kept).Trim();
+    }
 
     public static string? Cut(string? text, int max) => text is null ? null : text.Length <= max ? text : text[..(max - 1)] + "…";
 }

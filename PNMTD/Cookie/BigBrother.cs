@@ -95,6 +95,12 @@ public sealed class BigBrother(IDbContextFactory<PnmtdDbContext> dbs, CookieMode
             Proposal = JsonSerializer.Serialize(new { question = p.Mask(question), askedBy }, AiJson.Options), Areas = [.. c.Areas],
         };
         db.CookieDecisions.Add(log);
+        // A person's ask is answered once, whatever comes of it: the next round doesn't ask again (§15.2).
+        if (c.BigBrotherAskedAt is not null)
+        {
+            await db.CookieCases.Where(x => x.Id == c.Id).ExecuteUpdateAsync(u => u.SetProperty(x => x.BigBrotherAskedAt, (DateTime?)null)
+                .SetProperty(x => x.BigBrotherAskedBy, (string?)null), ct);
+        }
         var blocked = await BlockedAsync(c, ct);
         if (blocked is not null)
         {
@@ -117,12 +123,13 @@ public sealed class BigBrother(IDbContextFactory<PnmtdDbContext> dbs, CookieMode
         var order = first == primary ? new[] { primary, backup } : [backup, primary];
         Solution? solution = null;
         string? used = null;
+        var areas = new HashSet<string>(c.Areas);
         var errors = new List<string>();
         foreach (var choice in order.Where(x => !string.IsNullOrWhiteSpace(x.Model)))
         {
             try
             {
-                solution = await CallAsync(c, question, choice, rights, p, ct);
+                solution = await CallAsync(c, question, choice, rights, p, areas, ct);
                 used = choice.Model;
                 break;
             }
@@ -144,14 +151,14 @@ public sealed class BigBrother(IDbContextFactory<PnmtdDbContext> dbs, CookieMode
         var identity = await settings.GetAsync<IdentitySettings>(ct);
         var text = Format(solution, identity.Name, used!);
         log.Outcome = "done";
+        log.Areas = [.. areas.Order()];
         log.Confidence = solution.Confidence;
         log.Detail = CaseBook.Cut(p.Unmask(solution.Cause), 1000);
         var tracked = await db.CookieCases.SingleAsync(x => x.Id == c.Id, ct);
         tracked.Solution = p.Unmask(text);
         tracked.SolutionAt = Clock.UtcNow;
         tracked.SolutionModel = used;
-        tracked.BigBrotherAskedAt = null;
-        tracked.BigBrotherAskedBy = null;
+        tracked.SolutionAreas = [.. areas.Order()];
         CaseBook.Entry(db, c.Id, Clock.UtcNow, "solution", CaseBook.Cut($"The big brother ({used}): {p.Unmask(solution.Cause)}", 2000)!, "cookie");
         await db.SaveChangesAsync(ct);
 
@@ -162,11 +169,13 @@ public sealed class BigBrother(IDbContextFactory<PnmtdDbContext> dbs, CookieMode
                 [c.Id.ToString()], solution.Confidence, Urgency.Important)
             : new ProposedAction(CookieActionKind.Ticket, null, 0, null, CaseBook.Cut($"{c.Title}: a proposed fix", 120)!, text,
                 "The big brother's solution, for whoever takes it on.", [c.Id.ToString()], solution.Confidence, Urgency.Important);
-        await executor.HandleAsync(new ActionRequest(new CookieProposal(action), tracked, roundId, rights, p, c.Areas), ct);
+        // The solution carries what its tools read: only who may see all of it sees it (§9.2).
+        await executor.HandleAsync(new ActionRequest(new CookieProposal(action), tracked, roundId, rights, p, [.. areas]), ct);
         return log;
     }
 
-    private async Task<Solution> CallAsync(CookieCaseEntity c, string question, ModelChoice choice, UserRights rights, Pseudonyms p, CancellationToken ct)
+    private async Task<Solution> CallAsync(CookieCaseEntity c, string question, ModelChoice choice, UserRights rights, Pseudonyms p, HashSet<string> areas,
+        CancellationToken ct)
     {
         var values = await brain.ValuesAsync(ct);
         await using var db = await dbs.CreateDbContextAsync(ct);
@@ -212,6 +221,7 @@ public sealed class BigBrother(IDbContextFactory<PnmtdDbContext> dbs, CookieMode
         var final = new JsonArray(work[0]!.DeepClone(), new JsonObject { ["role"] = "assistant", ["content"] = findings },
             new JsonObject { ["role"] = "user", ["content"] = "Now give your solution." });
         var answer = await model.CompleteAsync("bigbrother.solution", final, null, (nameof(Solution), AiJson.SchemaFor<Solution>()), "high", provider, 4000, ct, choice);
+        areas.UnionWith(context.Areas);
         return JsonSerializer.Deserialize<Solution>(answer.Content ?? "", AiJson.Options) ?? throw new AiRequestException(AiOutcome.InvalidOutput, "The solution is empty.");
     }
 

@@ -29,6 +29,7 @@ public static class CookieAccess
         "Mail" => (Area.Mail, Level.Read),
         "KnowledgeBase" => (Area.KnowledgeBase, Level.View),
         "Locations" => (Area.Locations, Level.View),
+        "Availability" => (Area.Availability, Level.View),
         _ => null,
     };
 
@@ -114,7 +115,8 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         var rights = user.Rights();
         return new CookieCaseDetail(Item(c, next is null ? null : (next.DueAt, next.Kind), await NamesAsync([c], ct)), members, entries, duties, ticket,
             Url(c.OwnIssueId), c.Open && rights.Has(Area.Cookie, Level.Use), c.Open && c.Kind != CookieCaseKind.Request && rights.Has(Area.Cookie, Level.Instruct),
-            c.Solution is null ? null : new CookieSolutionItem(c.Solution, c.SolutionAt ?? c.ChangedAt, c.SolutionModel), c.BigBrotherAskedAt,
+            c.Solution is null || !CookieAccess.CanSee(rights, c.SolutionAreas) ? null : new CookieSolutionItem(c.Solution, c.SolutionAt ?? c.ChangedAt, c.SolutionModel),
+            c.BigBrotherAskedAt,
             c.Open && c.Kind != CookieCaseKind.Request && c.StoppedAt is null && rights.Has(Area.Cookie, Level.Instruct));
     }
 
@@ -207,7 +209,20 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         d.RatingRead = false;
         await db.SaveChangesAsync(ct);
         AuditLog.Summary($"Rated \"{d.Title}\": {rating ?? "taken back"}{(d.RatingComment is null ? "" : $": {d.RatingComment}")}");
-        return (await DecisionsAsync(new CookieDecisionQuery { CaseId = d.CaseId, PageSize = 200 }, user, ct)).Items.First(x => x.Id == id);
+        var privacy = services.GetRequiredService<PrivacyFilter>();
+        await privacy.EnsureLoadedAsync(ct);
+        ProposedAction? a = null;
+        try
+        {
+            a = JsonSerializer.Deserialize<CookieProposal>(d.Proposal, AiJson.Options)?.Action;
+        }
+        catch (JsonException)
+        {
+        }
+        var caseTitle = d.CaseId is { } caseId ? await db.CookieCases.AsNoTracking().Where(c => c.Id == caseId).Select(c => c.Title).FirstOrDefaultAsync(ct) : null;
+        return new CookieDecisionItem(d.Id, d.At, d.CaseId, caseTitle, d.Kind, d.Title, a is null ? null : privacy.Unmask(a.Text), a is null ? null : privacy.Unmask(a.Reason),
+            d.Confidence, d.Verdict, privacy.Unmask(d.VerdictReason), d.Outcome, privacy.Unmask(d.Detail), d.Model, d.InboxDecisionId, d.Rating, d.RatingComment,
+            d.RatedByName, true);
     }
 
     /// <summary>A person's comment on a case (§4.3): in its timeline, and in Cookie's next round, screened.</summary>
@@ -241,6 +256,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         var now = Clock.UtcNow;
         var name = CaseBook.Cut(user.Identity?.Name ?? "someone", 200);
         c.StoppedAt = now;
+        c.StoppedMembers = [.. (JsonSerializer.Deserialize<List<CaseMember>>(c.Members, CookieSettings.Json) ?? []).Select(m => m.Ref)];
         c.StoppedById = user.UserId();
         c.StoppedByName = name;
         c.StopComment = text;
@@ -270,6 +286,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         c.StoppedById = null;
         c.StoppedByName = null;
         c.StopComment = null;
+        c.StoppedMembers = [];
         c.ChangedAt = now;
         await db.CookieDuties.Where(d => d.CaseId == c.Id && d.State == CookieDutyState.Stopped).ExecuteDeleteAsync(ct);
         CaseBook.Entry(db, c.Id, now, "go-on", text is null ? "Cookie goes on with it." : $"Cookie goes on with it: {text}", "person", user.Identity?.Name);

@@ -1242,6 +1242,10 @@ namespace PNMTD.Data.Migrations
                     b.Property<string>("Solution")
                         .HasColumnType("text");
 
+                    b.PrimitiveCollection<List<string>>("SolutionAreas")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
                     b.Property<DateTime?>("SolutionAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1269,6 +1273,10 @@ namespace PNMTD.Data.Migrations
                     b.Property<string>("StoppedByName")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.PrimitiveCollection<List<string>>("StoppedMembers")
+                        .IsRequired()
+                        .HasColumnType("text[]");
 
                     b.Property<DateTime?>("TicketCreatedAt")
                         .HasColumnType("timestamp with time zone");
