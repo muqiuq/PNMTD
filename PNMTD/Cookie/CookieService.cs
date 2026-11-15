@@ -491,7 +491,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         var drafts = rows.Where(m => m.InstructionId is not null).Select(m => m.InstructionId!.Value).ToList();
         var instructions = await db.CookieInstructions.AsNoTracking().Where(i => drafts.Contains(i.Id)).ToDictionaryAsync(i => i.Id, ct);
         var messages = rows.Select(m => new CookieMessageItem(m.Id, m.At, m.From, m.Text, m.Answered, m.To,
-            m.InstructionId is { } i && instructions.TryGetValue(i, out var x) ? InstructionItem(x) : null)).ToList();
+            m.InstructionId is { } i && instructions.TryGetValue(i, out var x) ? InstructionItem(x) : null, m.Source, m.ReadOnly, m.RefusedWhy)).ToList();
         var waiting = await db.CookieMessages.AnyAsync(m => m.UserId == userId && m.From == "person" && !m.Answered, ct);
         var runtime = await db.CookieRuntime.AsNoTracking().SingleOrDefaultAsync(ct);
         return new CookieThread(messages, waiting, options.CurrentValue.Enabled ? runtime?.State ?? CookieState.Stopped : CookieState.Stopped);

@@ -219,7 +219,8 @@ public sealed record KbRevisionItem(
     bool IsEdit,
     KbDeclaration? Declaration,
     string Title,
-    KbPageStatus Status);
+    KbPageStatus Status,
+    string? Via = null);
 
 /// <summary>A revision as it was: the snapshot, and the files its content uses.</summary>
 public sealed record KbRevisionDetail(

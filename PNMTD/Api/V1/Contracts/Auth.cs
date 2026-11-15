@@ -85,7 +85,8 @@ public sealed record UserItem(
     DateTime CreatedAt,
     DateTime? LastLoginAt,
     DateTime? PasswordChangedAt,
-    int SshKeys = 0);
+    int SshKeys = 0,
+    DateTime? LastSeenAt = null);
 
 /// <summary><c>POST /users</c>: the new user gets a temporary password, which the response shows once.</summary>
 public sealed class CreateUserRequest

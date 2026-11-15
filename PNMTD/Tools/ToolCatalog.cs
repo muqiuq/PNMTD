@@ -17,6 +17,7 @@ public static class ToolCatalog
         .. MonitoringReadTools.All,
         .. KnowledgeReadTools.All,
         .. IntegrationReadTools.All,
+        .. OperationsReadTools.All,
         .. CookieCaseTools.All,
         .. CookieChatTools.All,
         .. Write.MonitoringWriteTools.All,

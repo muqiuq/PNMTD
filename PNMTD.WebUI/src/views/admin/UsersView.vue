@@ -285,6 +285,10 @@ async function create() {
       <Column field="lastlogin" header="Last sign-in" sortable style="width: 9rem">
         <template #body="{ data }"><RelativeTime :value="data.lastLoginAt" /></template>
       </Column>
+      <!-- The last request of the web UI (docs/mcp-plan.md §3.4); the read-only MCP token stays on until a week after it. -->
+      <Column header="Last online" style="width: 9rem">
+        <template #body="{ data }"><RelativeTime :value="data.lastSeenAt" /></template>
+      </Column>
       <template #mobile="{ item }">
         <div class="mobile-line">
           <span class="mono strong">{{ item.username }}</span>
@@ -307,6 +311,8 @@ async function create() {
           <dd>{{ formatAbsolute(selected.createdAt) }}</dd>
           <dt>Last sign-in</dt>
           <dd><RelativeTime :value="selected.lastLoginAt" /></dd>
+          <dt>Last online</dt>
+          <dd><RelativeTime :value="selected.lastSeenAt" /></dd>
           <dt>Password</dt>
           <dd>
             changed <RelativeTime :value="selected.passwordChangedAt" />

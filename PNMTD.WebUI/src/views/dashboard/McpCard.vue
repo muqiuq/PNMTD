@@ -10,6 +10,7 @@ import { api, keys } from '@/api/resources'
 import CopyField from '@/components/CopyField.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { useNotify } from '@/composables/useNotify'
+import { tokenSeverity as severity, tokenStateText as stateText } from '@/views/admin/mcp/mcpFormat'
 
 /**
  * MCP access (docs/mcp-plan.md §4.5): the user's two tokens, for an AI client of their own. Read-only stays on until a week
@@ -35,25 +36,6 @@ const shown = ref<{ kind: Kind; value: string } | null>(null)
 
 const label = (kind: Kind) => (kind === 'Write' ? 'Read & write' : 'Read-only')
 const kindOf = (t: Token): Kind => t.kind
-
-function stateText(t: Token): string {
-  switch (t.state) {
-    case 'on':
-      return 'On'
-    case 'blocked':
-      return 'Blocked after refused requests'
-    case 'expired':
-      return t.kind === 'Write' ? 'Off: its 12 hours are over' : "Off: you weren't here for a week"
-    case 'stamp':
-      return 'Off: your password, 2FA or sessions changed'
-    case 'totp':
-      return 'Needs 2FA on your account'
-    default:
-      return t.endedWhy === 'Admin' ? 'Turned off by an admin' : 'Off'
-  }
-}
-
-const severity = (t: Token) => (t.on ? 'success' : t.state === 'blocked' ? 'danger' : 'secondary')
 
 async function run(key: string, action: () => Promise<unknown>, done?: string) {
   busy.value = key

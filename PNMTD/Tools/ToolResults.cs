@@ -10,10 +10,15 @@ namespace PNMTD.Tools;
 /// </summary>
 public static class ToolResults
 {
+    /// <summary>
+    /// Web JSON, nulls left out, and umlauts and "…" as they are: a result is JSON inside JSON-RPC or a model's message,
+    /// never HTML, and escaped text costs a model tokens and reads worse.
+    /// </summary>
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         Converters = { new JsonStringEnumConverter() },
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     /// <summary>The note a shortened result carries.</summary>

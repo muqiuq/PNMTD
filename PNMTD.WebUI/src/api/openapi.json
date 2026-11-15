@@ -23627,6 +23627,20 @@
                 "$ref": "#/components/schemas/CookieInstructionItem"
               }
             ]
+          },
+          "source": {
+            "type": "string",
+            "default": "ui"
+          },
+          "readOnly": {
+            "type": "boolean",
+            "default": false
+          },
+          "refusedWhy": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -28646,6 +28660,12 @@
           },
           "status": {
             "$ref": "#/components/schemas/KbPageStatus"
+          },
+          "via": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -44687,6 +44707,13 @@
             "type": "integer",
             "format": "int32",
             "default": 0
+          },
+          "lastSeenAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },

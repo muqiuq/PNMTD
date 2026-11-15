@@ -242,6 +242,38 @@ public sealed class McpToolsTests
         }
     }
 
+    [TestMethod]
+    public async Task RecipientsAreMaskedAndASensitiveRevisionStaysOut()
+    {
+        var (_, browser, client, _) = await WriterAsync(Roles.Admin);
+        await using (client)
+        {
+            using (var rule = await browser.PostAsync("/api/v1/notification-rules", new { name = "MCP mail rule " + Guid.NewGuid().ToString("N")[..6], recipient = "anna.muster@example.com", type = "ALWAYS" }))
+            {
+                Assert.AreEqual(System.Net.HttpStatusCode.Created, rule.StatusCode, await rule.Content.ReadAsStringAsync());
+            }
+            var recipients = (await OkAsync(client, "notification_rules_list", new { limit = 100 })).GetProperty("items").EnumerateArray()
+                .Select(r => r.GetProperty("recipient").GetString()!).ToList();
+            CollectionAssert.Contains(recipients, "a…@example.com");
+            Assert.IsFalse(recipients.Any(r => r.Contains("anna.muster", StringComparison.Ordinal) || r.Contains("root@", StringComparison.Ordinal)), "no e-mail address");
+
+            var page = await OkAsync(client, "kb_page_create", new { title = "Revisions " + Guid.NewGuid().ToString("N")[..6], content = "one" });
+            var number = page.GetProperty("number").GetInt32();
+            var second = await OkAsync(client, "kb_page_update", new { number, revision = page.GetProperty("revision").GetInt32(), content = "two: was sensitive" });
+            await OkAsync(client, "kb_page_update", new { number, revision = second.GetProperty("revision").GetInt32(), content = "three" });
+            await using (var db = app.NewDb())
+            {
+                // As if the page had been marked sensitive while revision 2 was current.
+                await db.KbRevisions.Where(r => r.PageId == page.GetProperty("id").GetGuid() && r.Number == second.GetProperty("revision").GetInt32())
+                    .ExecuteUpdateAsync(u => u.SetProperty(r => r.Sensitive, true));
+            }
+            var revisions = await OkAsync(client, "kb_revisions", new { number });
+            Assert.IsFalse(revisions.EnumerateArray().Any(r => r.GetProperty("number").GetInt32() == second.GetProperty("revision").GetInt32()));
+            var diff = await CallAsync(client, "kb_revisions", new { number, from = second.GetProperty("revision").GetInt32() });
+            Assert.AreEqual("not_found", diff.GetProperty("error").GetString());
+        }
+    }
+
     /// <summary>
     /// The canary test (docs/mcp-plan.md §6.4): secrets of every kind seeded, every read tool called with broad arguments as an
     /// admin's read & write token; no canary in any result, nor in the MCP log.
@@ -258,12 +290,13 @@ public sealed class McpToolsTests
             var hostId = host.GetProperty("id").GetGuid();
             var udp = await OkAsync(client, "sensor_create", new { hostId, type = "UDP_NODE", name = "canary-node", intervalSeconds = 600 });
             var simple = await OkAsync(client, "sensor_create", new { hostId, type = "SIMPLE", name = "canary-simple" });
-            var page = await OkAsync(client, "kb_page_create", new { title = "Canary page", content = canaryPage });
+            var canaryTag = "canary" + Guid.NewGuid().ToString("N")[..10];
+            var page = await OkAsync(client, "kb_page_create", new { title = "Canary page", content = canaryPage, tags = new[] { canaryTag } });
             var location = await OkAsync(client, "location_create", new { name = "canary-location-" + Guid.NewGuid().ToString("N")[..6] });
             var locationId = location.GetProperty("id").GetGuid();
             await OkAsync(client, "hosts_set_location", new { hostIds = new[] { hostId }, locationId });
 
-            var canaries = new List<string> { canaryPage, canaryField };
+            var canaries = new List<string> { canaryPage, canaryField, canaryTag };
             await using (var db = app.NewDb())
             {
                 foreach (var s in await db.Sensors.AsNoTracking().Where(s => s.ParentId == hostId).ToListAsync())
@@ -298,6 +331,10 @@ public sealed class McpToolsTests
                 ("state_changes", new { hostId }), ("locations_list", new { query = "canary" }), ("location_get", new { id = locationId }),
                 ("location_details", new { id = locationId }), ("kb_search", new { query = "canary" }), ("kb_page", new { number = page.GetProperty("number").GetInt32() }),
                 ("udp_node_get", new { sensorId = udp.GetProperty("id").GetGuid() }), ("cases_list", new { }),
+                ("history_get", new { id = hostId }), ("history_get", new { id = udp.GetProperty("id").GetGuid() }), ("notification_rules_list", new { }),
+                ("uplink_get", new { }), ("dns_zones_list", new { }), ("mail_rules_list", new { }), ("mails_search", new { }), ("servers_list", new { }),
+                ("diagnostics_runs", new { }), ("kb_revisions", new { number = page.GetProperty("number").GetInt32() }), ("kb_tags", new { }),
+                ("kb_tags", new { query = "canary" }), ("cookie_decisions", new { }), ("cookie_trace", new { }),
             };
             foreach (var (tool, args) in calls)
             {

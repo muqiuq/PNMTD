@@ -426,10 +426,10 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
     {
         await ExistsAsync(id, ct);
         var rows = await db.KbRevisions.AsNoTracking().Where(r => r.PageId == id).OrderByDescending(r => r.Number)
-            .Select(r => new { r.Number, r.At, r.ByName, r.Note, r.Added, r.Removed, r.Changes, r.IsEdit, r.Declaration, r.Title, r.Status })
+            .Select(r => new { r.Number, r.At, r.ByName, r.Note, r.Added, r.Removed, r.Changes, r.IsEdit, r.Declaration, r.Title, r.Status, r.Via })
             .ToListAsync(ct);
         return rows.Select(r => new KbRevisionItem(r.Number, r.At, r.ByName, r.Note, r.Added, r.Removed, KbRevisions.Changes(r.Changes), r.IsEdit,
-            Declaration(r.Declaration), r.Title, r.Status)).ToList();
+            Declaration(r.Declaration), r.Title, r.Status, r.Via)).ToList();
     }
 
     public async Task<KbRevisionDetail> RevisionAsync(Guid id, int number, CancellationToken ct)

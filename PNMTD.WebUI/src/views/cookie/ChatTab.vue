@@ -168,8 +168,17 @@ function onKey(event: KeyboardEvent) {
           <div class="who small muted">
             <i v-if="m.from === 'seraph'" class="pi pi-shield" aria-hidden="true" />
             {{ who(m) }} · <RelativeTime :value="m.at" />
+            <Tag
+              v-if="m.source === 'mcp'"
+              :value="m.readOnly ? 'via MCP · read-only' : 'via MCP · read & write'"
+              severity="secondary"
+              class="via"
+            />
           </div>
-          <div class="bubble">{{ m.text }}</div>
+          <div class="bubble" :class="{ refused: m.refusedWhy }">{{ m.text }}</div>
+          <div v-if="m.refusedWhy" class="small muted refused-why">
+            <i class="pi pi-ban" aria-hidden="true" /> Refused before Cookie saw it: {{ m.refusedWhy }}
+          </div>
           <div
             v-if="m.instruction"
             class="instruction"
@@ -415,5 +424,20 @@ function onKey(event: KeyboardEvent) {
 
 .small {
   font-size: 0.857rem;
+}
+
+/* Messages over MCP (docs/mcp-plan.md §8.5): labelled, and a refused one greyed out with why. */
+.via {
+  margin-left: var(--pnmt-space-1);
+  font-size: 0.75rem;
+}
+
+.bubble.refused {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+.refused-why {
+  margin-top: 2px;
 }
 </style>

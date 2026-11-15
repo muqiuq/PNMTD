@@ -227,8 +227,12 @@ public sealed record CookieBudgetItem(decimal Limit, decimal Spent);
 public sealed record CookiePromptPreview(string Key, string Text);
 
 /// <summary>A message of the reader's chat with Cookie (§10.2), placeholders restored.</summary>
+/// <summary>
+/// A message of the chat. <see cref="Source"/>: <c>ui</c> or <c>mcp</c> (docs/mcp-plan.md §8.5), <see cref="ReadOnly"/> through a
+/// read-only token, <see cref="RefusedWhy"/> when Jev refused it before Cookie saw it.
+/// </summary>
 public sealed record CookieMessageItem(long Id, DateTime At, string From, string Text, bool Answered, string To = "cookie",
-    CookieInstructionItem? Instruction = null);
+    CookieInstructionItem? Instruction = null, string Source = "ui", bool ReadOnly = false, string? RefusedWhy = null);
 
 /// <summary>Mute, suppress or an instruction (§10.3, §21.1): a draft from the chat until a person confirms it.</summary>
 public sealed record CookieInstructionItem(

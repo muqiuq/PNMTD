@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Built: M0 to M5, and M6 in parts** (§19 *As built*), not committed. Revision 3 |
+| Status | **Built: M0 to M6** (§19 *As built*); open: the nginx document and trying real clients (§19.3). Revision 3 |
 | Date | 2026-11-15 |
 | Revision | 3: **strikes agreed** (Q7), and **a blocked token alerts every admin** by Pushover and e-mail (§8.6).<br>2: **the answers to revision 1's questions** (§18.1):<ul><li>**deleting, for 10 minutes:** a button on the dashboard allows the read-write token to delete for 10 minutes (§7.5);</li><li>**mail input rules can be edited over MCP;** notification rules and DNS zones stay readable only (§7.3);</li><li>the rest as proposed: values shown once, 30 days, MikroTik commands allowed, 2FA for read-write, MCP use doesn't count as online, the area *MCP*.</li></ul>1: the first plan, from the code as of `51394a9` |
 | Scope | Package eight of docs/ideas2.md:<ul><li>**an MCP server with operational access to everything:** routers, sensors, hosts, locations, the knowledge base, Redmine, Zabbix, Cookie. **No admin access:** nothing that changes PNMT's settings;</li><li>**two tokens per user, read-only and read-write,** that the user can regenerate. **Switched on from the dashboard:** the read-write token for 12 hours, the read-only one until a week after the user was last online;</li><li>**signing in again every month, and the 2FA code once a day,** both at 4 in the morning and both set in ENV;</li><li>**Admin → MCP:** the documentation of every tool, and **a log of every access and every call**, in the database, the last 10,000 entries (configurable), detailed enough to say exactly what happened and what changed;</li><li>**a tool to talk to the internal AI (Cookie),** where **Jev first checks the request for malice:** write access through the read-only token, changing PNMT's settings, reading sensitive data</li></ul> |
@@ -41,7 +41,7 @@
 | Read-only | **On until `Mcp__ReadDaysAfterOnline` (7) days after the user was last online** (`users.LastSeenAt`, from the web UI only, §3.4) |
 | What ends a token | Off by the user, its time, regenerating, **the user's security stamp** (password, *sign out everywhere*, admin flag, deactivation), three strikes, an admin (§4.4) |
 | Rights | **The user's rights, capped by the MCP ceiling** (§5.3): no admin flag, no *Manage*, no Decisions, no admin areas. **Read-only: the reading levels only** (*View*, *Read*, *Details*, and *Use* for questions) |
-| Tools | **One catalog for MCP and Cookie** (§6), about 65 tools (§7). Cookie still gets only the read tools, and never the MCP-only ones |
+| Tools | **One catalog for MCP and Cookie** (§6), 74 tools (§7). Cookie still gets only the read tools, and never the MCP-only ones |
 | Deleting | **Only in a window a person opens on the dashboard:** `Mcp__DeleteMinutes` (10), at most `Mcp__DeletesPerWindow` (20) objects. Hosts (once they have no sensors), sensors, mail input rules. **Never what needs *Manage*** (§7.5) |
 | Never over MCP | Secrets, approvals, PNMT's settings, users and groups, notification rules and DNS zones (read only), agent scripts, MikroTik as admin, firmware (§7.7) |
 | Sensitive data | **In code, not by asking Jev:** MCP's own result types without secret fields, `MachineAccess` for pages, files and location values, canary tests (§6.4) |
@@ -515,7 +515,7 @@ Cookie's placeholders stay Cookie's step: `ToolContext.Masker` is `Pseudonyms` f
   - `router_get` brings its state, changes, backups and jobs;
   - `udp_node_get` brings its last packets, rejections and commands.
 
-  About 65 tools; the read-only token sees about 40. Clients that load tools on demand (Claude Code's tool search) aren't affected by the number; others are, which is why the tools are merged where it reads naturally.
+  74 tools as built; the read-only token sees at most 44. Clients that load tools on demand (Claude Code's tool search) aren't affected by the number; others are, which is why the tools are merged where it reads naturally.
 - **Names are `noun_verb` or `noun_get`, in snake case,** as Cookie's are. **The existing eleven keep their names.**
 - *(new)* marks a tool this package adds; *(ext)* an existing tool that gets filters, paging or more fields.
 
@@ -1103,7 +1103,7 @@ None at the moment.
 
 ## 19. As built
 
-**State on 2026-11-15:** the server of M0 to M5 and of M6 is built and tested; the web UI of M1, M2 and M6 is built and checked (types, ESLint, Vitest), not yet clicked through. **Nothing is committed.** `dotnet test`: 827 passed, 4 skipped (as before); `tools/npm.sh run typecheck`, `lint`, `test` (414): clean.
+**State on 2026-11-15:** M0 to M6 built and tested, committed in two steps. `dotnet test`: 829 passed, 4 skipped (as before); the web UI: `typecheck`, `lint`, `check:api`, Vitest (45 files); **e2e:** `e2e/mcp.spec.ts` against the real image (`tools/e2e.sh mcp.spec.ts`), with MCP on in the e2e stack (`tools/e2e.sh`).
 
 ### 19.1 What was built
 
@@ -1115,7 +1115,8 @@ None at the moment.
 | **M3** | `Tools/` (`ToolSpec`, `ToolContext`, `ToolResults`, `ToolCatalog`, `ToolSafety`, `Read/*`), `Mcp/McpCalls.cs`, `Mcp/McpLog.cs`, `mcp_log`; `CookieTools` is Cookie's selection of the catalog | `Mcp/McpToolsTests.cs`: the catalog's rules, the ceiling and the cap for every area, **the canary test**, `MachineAccess`; Cookie's tests unchanged |
 | **M4** | `Tools/Write/*`, `Tools/Actions/CommandTools.cs`, `Tools/Delete/DeleteTools.cs`; `AuditActor.Mcp`; `AuditScope.UseEvent`; `kb_revisions.Via` | `McpToolsTests`: writes in the audit as MCP with their changes and correlation, patches that keep the rest, deleting in its window and its limit, a host with sensors, sensitive pages and credentials |
 | **M5** | `Tools/Read/CookieChatTools.cs`, `Mcp/McpGuard.cs`; `CookieService.PostMessageAsync` with `McpMessageOrigin`, `RefusedMessageAsync`; `CookieRound` caps an MCP message's rights and skips the instruction step for read-only | `Mcp/McpCookieTests.cs`: Jev refuses and counts a strike, the reply in Cookie's next round, no instruction from a read-only token, no `acts` question for read & write |
-| **M6** | `McpLogController` (catalog, log, entry with its audit entries, everyone's tokens, turning one off); UI: `views/admin/mcp/*`, the route `/admin/mcp`, the menu entry (*MCP: View*); `Area.Mcp`; `.env.example`, deploy/README.md "MCP", `info.sh`, docs/release-notes-1.6.md | `McpServerTests`: the log's entry, the admin's *turn off*, the catalog; `EndpointAuditTests` for every endpoint |
+| **M6** | `McpLogController` (catalog, log, entry with its audit entries, everyone's tokens, turning one off); UI: `views/admin/mcp/*`, the route `/admin/mcp`, the menu entry (*MCP: View*); `Area.Mcp`; *via MCP* in Cookie's chat (refused messages greyed out with why) and in a page's history; *Last online* on Admin → Users; `.env.example`, deploy/README.md "MCP", `info.sh`, docs/release-notes-1.6.md | `McpServerTests`: the log's entry, the admin's *turn off*, the catalog; `EndpointAuditTests` for every endpoint; `mcpFormat.test.ts`; e2e: the card, the value once, the documentation, an admin turning a token off |
+| **§7.2's rest** | `Tools/Read/OperationsReadTools.cs`: `history_get`, `notification_rules_list` (e-mail recipients masked too), `uplink_get`, `dns_zones_list`, `mail_rules_list`, `mails_search`, `mail_get`, `servers_list`, `server_get` (with a section), `router_backup_diff` (never a backup with secrets), `diagnostics_runs`, `kb_revisions` (never a revision kept while the page was sensitive), `kb_tags` (only readable pages' tags), `cookie_decisions`, `cookie_trace`. `ToolSafety.Scanned` for results in a service's own shape: every text that looks like instructions withheld, credentials hidden | `McpToolsTests`: the canary test over these too (a canary tag on the sensitive page), masked recipients, a sensitive revision |
 
 ### 19.2 Where the code differs from the plan
 
@@ -1130,10 +1131,10 @@ None at the moment.
 - **The dashboard's card sits at the end of the left side,** not under the hosts (§4.5): the hosts' panel is sticky and fills the right side.
 - **The menu entry needs *MCP: View*;** everyone reaches the documentation from the card's *How to connect*.
 - **After the day's code,** the UI fetches every query again (`invalidateQueries`) instead of repeating the one request (§3.3); what was typed on the page stays.
+- **Tool results keep umlauts and "…" unescaped** (`JavaScriptEncoder.UnsafeRelaxedJsonEscaping`): they are JSON inside JSON-RPC or a model's message, never HTML; escaped text costs a model tokens. Cookie's tools get the same.
+- **Cookie's eleven tools aren't paged** (§6.3): their results stay as Cookie was built with; the budget shortens them without breaking the JSON.
 
 ### 19.3 Not built yet
 
-- **Tools of §7.2:** `history_get`, `notification_rules_list`, `uplink_get`, `dns_zones_list`, `mail_rules_list`, `mails_search`, `mail_get`, `servers_list`, `server_get`, `router_backup_diff`, `diagnostics_runs`, `kb_revisions`, `kb_tags`, `cookie_decisions`, `cookie_trace`. Paging for Cookie's eleven (§6.3).
-- **In the UI:** *via MCP* on Cookie's chat messages and refused ones (§8.5; the columns exist, `CookieMessageItem` doesn't carry them yet), on a page's history (`kb_revisions.Via` is written, not shown), *Last online* on Admin → Users (§3.4).
-- **deploy/nginx-reverse-proxy.md** (an untracked draft in the working tree) doesn't list `/mcp` yet; deploy/README.md says what nginx needs.
-- **Clients for real** (§15 M0): Claude Code, VS Code and the MCP Inspector against a running PNMT through nginx; only the SDK's own client is tested. **e2e** (Playwright) for the card, the dialog and Admin → MCP.
+- **deploy/nginx-reverse-proxy.md** (an untracked draft in the working tree, not this package's) doesn't list `/mcp` yet; deploy/README.md says what nginx needs: `/mcp` on the internal server only, `proxy_buffering off`, `proxy_read_timeout 120s`.
+- **Real clients** (§15 M0): Claude Code, VS Code and the MCP Inspector against a running PNMT through nginx. The protocol is tested with the SDK's own client against the test server; how a client shows a 401 or 403 is still to see.

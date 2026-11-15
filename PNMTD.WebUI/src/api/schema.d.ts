@@ -15739,6 +15739,11 @@ export interface components {
             /** @default cookie */
             to: string;
             instruction?: null | components["schemas"]["CookieInstructionItem"];
+            /** @default ui */
+            source: string;
+            /** @default false */
+            readOnly: boolean;
+            refusedWhy?: null | string;
         };
         CookieMessageRequest: {
             text: string;
@@ -17015,6 +17020,7 @@ export interface components {
             declaration: null | components["schemas"]["KbDeclaration"];
             title: string;
             status: components["schemas"]["KbPageStatus"];
+            via?: null | string;
         };
         KbSaveResult: {
             page: components["schemas"]["KbPageDetail"];
@@ -20995,6 +21001,8 @@ export interface components {
              * @default 0
              */
             sshKeys: number;
+            /** Format: date-time */
+            lastSeenAt?: null | string;
         };
         UserProfileRequest: {
             email: null | string;

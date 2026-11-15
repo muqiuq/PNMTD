@@ -185,6 +185,7 @@ const writable = computed(() => session.can('KnowledgeBase', 'Edit') && !page.va
                   <span class="mono strong">#{{ r.number }}</span>
                   <span :title="formatAbsolute(r.at)"><RelativeTime :value="r.at" /></span>
                   <span class="muted">{{ r.byName }}</span>
+                  <Tag v-if="r.via === 'mcp'" value="via MCP" severity="secondary" />
                   <span v-if="r.added || r.removed" class="counts">
                     <span class="added">+{{ r.added }}</span> <span class="removed">−{{ r.removed }}</span>
                   </span>

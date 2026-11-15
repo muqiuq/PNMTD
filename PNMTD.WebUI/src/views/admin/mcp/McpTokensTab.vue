@@ -11,6 +11,7 @@ import ErrorState from '@/components/ErrorState.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { useNotify } from '@/composables/useNotify'
 import { useSession } from '@/stores/session'
+import { tokenKindLabel, tokenSeverity, tokenStateText } from './mcpFormat'
 
 /**
  * Every user's tokens (docs/mcp-plan.md §10.3): blocked first, then the ones on. No value, no turning on: an admin can
@@ -58,14 +59,10 @@ async function turnOff() {
             {{ t.displayName }} <span class="muted">{{ t.username }}</span>
           </td>
           <td>
-            {{ t.token.kind === 'Write' ? 'Read & write' : 'Read-only'
-            }}<code v-if="t.token.hint" class="muted"> …{{ t.token.hint }}</code>
+            {{ tokenKindLabel(t.token.kind) }}<code v-if="t.token.hint" class="muted"> …{{ t.token.hint }}</code>
           </td>
           <td>
-            <Tag
-              :value="t.token.on ? 'On' : t.token.state"
-              :severity="t.token.on ? 'success' : t.token.state === 'blocked' ? 'danger' : 'secondary'"
-            />
+            <Tag :value="tokenStateText(t.token)" :severity="tokenSeverity(t.token)" />
             <span v-if="t.token.until && t.token.on" class="muted small">
               until <RelativeTime :value="t.token.until"
             /></span>

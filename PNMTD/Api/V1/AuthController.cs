@@ -430,5 +430,5 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
         u.Groups.Where(m => m.Group is not null).Select(m => new Ref(m.GroupId, m.Group.Name)).OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase).ToList(),
         u.IsActive, u.IsTotpEnabled,
         u.MustChangePassword, u.TemporaryPasswordExpiresAt, u.LockoutEnd is { } end && end > Clock.UtcNow ? end : null,
-        u.FailedLoginCount, u.CreatedAt, u.LastLoginAt, u.PasswordChangedAt);
+        u.FailedLoginCount, u.CreatedAt, u.LastLoginAt, u.PasswordChangedAt, LastSeenAt: u.LastSeenAt);
 }
