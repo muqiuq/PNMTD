@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Revision 3: being built** (§13). No open questions |
+| Status | **U1 built** (§15.1); U2 to U4 to build. No open questions |
 | Date | 2026-11-15 |
 | Revision | 3: **checked against 1.7.0** (the access watch, the sensor's notes on the overviews): nothing this plan builds on changed. `AgentDownloads`, both updaters, `AgentsController`, `sensor.yml` and `agent_settings` are as they were; the access watch only adds logins (`LogonKind`) and reviews. The target moves to 1.8.0, and the versions in the examples with it.<br>2: **the review's answers** (§14):<ul><li>one chosen version per platform;</li><li>**uploads for admins**, no setting;</li><li>**versions newer than PNMT allowed, with a warning**;</li><li>the automatic rollback on both platforms;</li><li>**no guard against scripts:** a script PNMT runs may update the agent (§7.3)</li></ul>1: the first draft |
 | Scope | **Which agent version PNMT hands out, and how the agents update.** The download folder keeps several versions; a new tab, *Admin → Servers → Versions*, lists, fetches, uploads, downloads and deletes them and **chooses the version each platform's agents get**. The signed manifest is per platform. **`pnmt-sensor.exe update` downloads from PNMT**, as `pnmt-agent update` does. **PNMT has no way to start an update**, apart from a script the machine lets it run (§7.3) |
@@ -346,3 +346,32 @@ As built, plus:
 | 3 | Versions newer than PNMT? | **Allowed, with a warning** | §4, §8.1 |
 | 4 | The automatic rollback when the new service doesn't start? | **Yes**, on both platforms | §6.2 |
 | 5 | Guard against scripts that run the update? | **No.** A script PNMT runs may update the agent; no check in the agent or in PNMT | §7.3 |
+
+## 15. As built
+
+### 15.1 U1: PNMT (2026-11-15)
+
+**Where it is:**
+- **`PNMTD/Agents/AgentDownloads.cs`:** every operation takes a version. `sensor-{version}/` per version; `Check(version, file)`, with the folder itself only for PNMTD's own version; fetching, `StoreUploadAsync` with `HeaderProblem` (PE and ELF, the architecture's machine), `DeleteVersion`, `Retain` (§3.4), the manifest of a platform's version, and the links of the chosen versions. The fetches, failures and the releases' hashes are kept per version.
+- **`PNMTD/Agents/AgentReleaseCatalog.cs`:** GitHub's list (§3.2), with a `User-Agent`, cached an hour (10 minutes after a failure), through the named client `AgentDownloads`.
+- **`PNMTD/Agents/AgentVersionService.cs`:** the chosen versions (`Resolve`: null is PNMTD's own), `IsOutdated` and `IsAhead`, the list, choosing (409 `newer_than_pnmt` without `confirmNewer`), fetching, uploading, a file for the browser, deleting.
+- **`PNMTD.Lib/Agent/AgentVersionOrder.cs`:** the versions' order (a release above its pre-releases) and what a version may look like (`1.8.0`, `1.8.0-rc1`; no slashes, no `..`). The agents will use it in U2.
+- **The manifest:** `GET /agent/v1/download?platform=`, signed with `AgentProtocol.ManifestLifetime` (10 minutes); `DownloadManifest` gained `Platform` and `PreRelease`, `DownloadAsset` gained `Source`. A file is served of its platform's chosen version.
+- **The API** in `AgentsController` (§9), the upload with `[RequireAdmin]` and `AgentUploadLimit` (300 MB and the form). Audit events `AgentVersionChosen`, `AgentVersionFetched`, `AgentVersionUploaded`, `AgentVersionDeleted`.
+- **Migration `AgentVersions`:** `agent_settings.WindowsAgentVersion` and `LinuxAgentVersion`.
+- **`AgentMaintenanceTask`** applies the retention every hour, and a fetch after it is done.
+- **`AgentServerService`:** *outdated* against the platform's chosen version; `AgentServerItem.ChosenVersion` and `Ahead`.
+- **Web UI:** `views/admin/servers/VersionsTab.vue` and `versions.ts` (with its test); *Download* shows the chosen versions and links to *Versions*; *Update available: x.y.z* on the *Agent* tab, the Linux overview and the status strip; the fleet takes `?platform=` and `?filter=` (the Versions tab links to the older agents).
+- **Settings:** `Agents__ReleasesApiUrl`, `Agents__KeepVersions` (deploy/.env.example, deploy/README.md, with the proxy's body limit for uploads).
+
+**Where it differs from the plan:**
+- **No table `agent_versions`** (§10). Where each file came from (GitHub, an upload and by whom, when) is kept **per file** in `agent-version.json` in the version's folder, which `AgentDownloads.OriginsFile` names and nothing serves. It stays with the files, survives a database restore without them and the other way round, and the singleton needs no database. A folder from before 1.8 has none: its files count as fetched from GitHub. The audit log has who fetched, uploaded and deleted.
+- **The source is per file** in the manifest (`DownloadAsset.Source`), not the manifest's: a version can have one platform's files from GitHub and the other's uploaded, and the update prints its own file's.
+- **The manifest without `platform` lists the Linux files only** (it listed all four): only Linux agents ask without it.
+- **The download folder's table moved** from *Download* to *Versions* (§8.1), as planned; *Download* names the files not here yet.
+- **A version can be chosen** when a file of its platform is here or GitHub's list has it; a version chosen but not here is fetched in the background.
+- **PNMTD's own version can be deleted** while no platform gets it; files in the folder itself (outside `sensor-*`) stay.
+
+**Tests:** `PNMTD.Tests/Agents/AgentVersionTests.cs` (the list with a stub GitHub, choosing and what follows, newer than PNMT, deleting, fetching, uploads and their checks, the versions' order, the headers) and `AgentDownloadTests` (the manifest per platform and its expiry, the retention). The matrix of `EndpointAuditTests` has the six endpoints. The e2e `linux.spec.ts` opens *Versions*.
+
+**Known:** `McpServerTests.TheReadWriteTokenNeedsTwoFactorAndLastsTwelveHours` fails in the evening in Europe/Zurich, before and after U1: it moves the clock 12 hours, past midnight, and the day's 2FA code is then due.

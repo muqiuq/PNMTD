@@ -917,6 +917,10 @@ namespace PNMTD.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("LinuxAgentVersion")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
                     b.Property<string>("SigningKeyFingerprint")
                         .IsRequired()
                         .HasColumnType("text");
@@ -928,6 +932,10 @@ namespace PNMTD.Data.Migrations
                     b.Property<string>("SigningPublicKey")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("WindowsAgentVersion")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.HasKey("Id");
 

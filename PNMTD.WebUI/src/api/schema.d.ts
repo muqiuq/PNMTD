@@ -1291,6 +1291,255 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agents/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    refresh?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentVersionList"];
+                        "text/json": components["schemas"]["AgentVersionList"];
+                        "text/plain": components["schemas"]["AgentVersionList"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/versions/chosen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentVersionChooseRequest"];
+                    "text/json": components["schemas"]["AgentVersionChooseRequest"];
+                    "application/*+json": components["schemas"]["AgentVersionChooseRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentVersionList"];
+                        "text/json": components["schemas"]["AgentVersionList"];
+                        "text/plain": components["schemas"]["AgentVersionList"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/versions/{version}/fetch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    version: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentVersionFetchRequest"];
+                    "text/json": components["schemas"]["AgentVersionFetchRequest"];
+                    "application/*+json": components["schemas"]["AgentVersionFetchRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentVersionList"];
+                        "text/json": components["schemas"]["AgentVersionList"];
+                        "text/plain": components["schemas"]["AgentVersionList"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/versions/{version}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    version: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        file?: components["schemas"]["IFormFile"];
+                    } & {
+                        name?: string;
+                    } & {
+                        sha256?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentVersionList"];
+                        "text/json": components["schemas"]["AgentVersionList"];
+                        "text/plain": components["schemas"]["AgentVersionList"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/versions/{version}/files/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    version: string;
+                    file: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/octet-stream": components["schemas"]["FileContentResult"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    version: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agents/scripts": {
         parameters: {
             query?: never;
@@ -15623,6 +15872,21 @@ export interface components {
             notable: boolean;
             details: null | string;
         };
+        AgentChosenVersion: {
+            platform: components["schemas"]["AgentPlatform"];
+            version: string;
+            followsPnmt: boolean;
+            newerThanPnmt: boolean;
+            preRelease: boolean;
+            /** Format: int32 */
+            agents: number;
+            /** Format: int32 */
+            running: number;
+            /** Format: int32 */
+            older: number;
+            /** Format: int32 */
+            newer: number;
+        };
         AgentCollectRequest: {
             sections: null | string[];
         };
@@ -15642,6 +15906,8 @@ export interface components {
             error: null | string;
             /** Format: date-time */
             fetchedAt: null | string;
+            /** @default  */
+            version: string;
         };
         AgentDownloadLink: {
             architecture: string;
@@ -15661,9 +15927,14 @@ export interface components {
             serveDownloads: boolean;
             url: string;
             tokenPlaceholder: string;
+            windowsVersion: string;
+            linuxVersion: string;
+            linuxReleaseUrl: null | string;
         };
         /** @enum {unknown} */
         AgentDownloadState: "Here" | "Fetching" | "Failed" | "NotFetched";
+        /** @enum {unknown} */
+        AgentFileSource: "GitHub" | "Upload" | "Folder" | null;
         AgentJoinTokenCreated: {
             item: components["schemas"]["AgentJoinTokenItem"];
             token: string;
@@ -15762,6 +16033,13 @@ export interface components {
         AgentRejoinTokenRequest: {
             /** Format: int32 */
             validHours: null | number;
+        };
+        AgentReleaseCatalogState: {
+            configured: boolean;
+            available: boolean;
+            /** Format: date-time */
+            readAt: null | string;
+            error: null | string;
         };
         AgentRequestResult: {
             ok: boolean;
@@ -15984,6 +16262,9 @@ export interface components {
             unregisteredKeys?: null | number;
             /** Format: int32 */
             retiredKeysAuthorized?: null | number;
+            chosenVersion?: null | string;
+            /** @default false */
+            ahead: boolean;
         };
         AgentServerSettings: {
             adminLoginEvents: boolean;
@@ -16000,6 +16281,63 @@ export interface components {
              * @default 7
              */
             securityUpdateDays: number;
+        };
+        AgentVersionChooseRequest: {
+            windows: null | string;
+            linux: null | string;
+            /** @default false */
+            confirmNewer: boolean;
+        };
+        AgentVersionFetchRequest: {
+            files: null | string[];
+        };
+        AgentVersionFile: {
+            name: string;
+            platform: components["schemas"]["AgentPlatform"];
+            architecture: string;
+            state: components["schemas"]["AgentDownloadState"];
+            inRelease: null | boolean;
+            sha256: null | string;
+            /** Format: int64 */
+            size: null | number;
+            error: null | string;
+            source: null | components["schemas"]["AgentFileSource"];
+            /** Format: date-time */
+            addedAt: null | string;
+            addedBy: null | string;
+        };
+        AgentVersionItem: {
+            version: string;
+            preRelease: boolean;
+            onGitHub: boolean;
+            /** Format: date-time */
+            releasedAt: null | string;
+            releaseUrl: null | string;
+            here: boolean;
+            files: components["schemas"]["AgentVersionFile"][];
+            /** Format: int32 */
+            windowsAgents: number;
+            /** Format: int32 */
+            linuxAgents: number;
+            chosenForWindows: boolean;
+            chosenForLinux: boolean;
+            isPnmtVersion: boolean;
+            newerThanPnmt: boolean;
+            keptUntilDeleted: boolean;
+            deleteRefused: null | string;
+        };
+        AgentVersionList: {
+            pnmtVersion: string;
+            windows: components["schemas"]["AgentChosenVersion"];
+            linux: components["schemas"]["AgentChosenVersion"];
+            versions: components["schemas"]["AgentVersionItem"][];
+            catalog: components["schemas"]["AgentReleaseCatalogState"];
+            folder: string;
+            /** Format: int64 */
+            folderBytes: number;
+            /** Format: int32 */
+            keepVersions: number;
+            serveDownloads: boolean;
         };
         AiBudgetStatus: {
             /** Format: double */

@@ -186,15 +186,21 @@ public sealed record AgentError(string Code, string Message);
 
 // --- the agents' files (docs/linux-sensor-plan.md §4.4) ------------------------------------------------------
 
-/// <summary>A file PNMTD serves: its name, size and SHA-256 (hex, lower case), checked against the release's <c>.sha256</c>.</summary>
-public sealed record DownloadAsset(string Name, long Size, string Sha256);
+/// <summary>
+/// A file PNMTD serves: its name, size and SHA-256 (hex, lower case), checked against its <c>.sha256</c>. <see cref="Source"/>
+/// (docs/agent-update-plan.md §5.1): where PNMT got it, for the update to print: <i>GitHub's release sensor-1.8.0</i>, or
+/// <i>uploaded to PNMT by alice on 2026-11-20</i>. Agents before 1.8 ignore it.
+/// </summary>
+public sealed record DownloadAsset(string Name, long Size, string Sha256, string? Source = null);
 
 /// <summary>
-/// <c>GET /agent/v1/download</c>'s signed part (<see cref="AgentMessageTypes.DownloadManifest"/>, agent id empty): PNMTD's
-/// version and the files it has. <c>pnmt-agent update</c> checks it against the key it pinned at the join, so a TLS-inspecting
-/// proxy can't hand over another binary.
+/// <c>GET /agent/v1/download</c>'s signed part (<see cref="AgentMessageTypes.DownloadManifest"/>, agent id empty): the version a
+/// platform's agents get (docs/agent-update-plan.md §4, §5.1; PNMTD's own unless an admin chose another) and its files that are
+/// here and verified. <c>pnmt-agent update</c> checks it against the key it pinned at the join, so a TLS-inspecting proxy can't
+/// hand over another binary. <see cref="Platform"/> and <see cref="PreRelease"/> from 1.8; the envelope expires after
+/// <see cref="AgentProtocol.ManifestLifetime"/>, which agents before 1.8 don't check.
 /// </summary>
-public sealed record DownloadManifest(string Version, IReadOnlyList<DownloadAsset> Assets);
+public sealed record DownloadManifest(string Version, IReadOnlyList<DownloadAsset> Assets, AgentPlatform? Platform = null, bool PreRelease = false);
 
 /// <summary><c>GET /agent/v1/download</c>: the manifest, signed with PNMTD's agent signing key, and that key's fingerprint.</summary>
 public sealed record DownloadManifestResponse(string SigningKeyFingerprint, SignedEnvelope Signed);

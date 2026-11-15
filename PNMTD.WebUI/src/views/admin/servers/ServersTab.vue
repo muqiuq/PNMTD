@@ -4,6 +4,7 @@ import Column from 'primevue/column'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { api, keys, type S } from '@/api/resources'
 import CodeTag from '@/components/CodeTag.vue'
 import ListTable from '@/components/ListTable.vue'
@@ -19,8 +20,12 @@ import { connection, platformIcon, platforms, uptime } from './agentFormat'
  * pending security updates, unregistered and retired keys still authorized, and whether its config.yaml allows key removal,
  * with filters. Add server makes a join token for an existing host.
  */
-const platform = ref<S['AgentPlatform'] | null>(null)
-const filter = ref<
+// ?platform=Linux&filter=outdated from other pages (the Versions tab's "the older ones").
+const route = useRoute()
+const platform = ref<S['AgentPlatform'] | null>(
+  route.query.platform === 'Windows' || route.query.platform === 'Linux' ? route.query.platform : null,
+)
+type Filter =
   | ''
   | 'failing'
   | 'offline'
@@ -33,7 +38,20 @@ const filter = ref<
   | 'keyRemoval'
   | 'unregisteredKeys'
   | 'retiredKeys'
->('')
+const filterNames: Filter[] = [
+  'failing',
+  'offline',
+  'unsupported',
+  'outdated',
+  'remoteAccess',
+  'auditGaps',
+  'diagnosticsFailing',
+  'securityUpdates',
+  'keyRemoval',
+  'unregisteredKeys',
+  'retiredKeys',
+]
+const filter = ref<Filter>(filterNames.find((f) => f === route.query.filter) ?? '')
 const filters = computed(() => ({
   platform: platform.value ?? undefined,
   state: filter.value === 'failing' ? ('Failing' as S['SensorState']) : undefined,

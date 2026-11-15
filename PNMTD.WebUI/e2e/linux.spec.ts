@@ -207,10 +207,31 @@ test('Add server → Linux: the one line and its toggles', async ({ page }) => {
   await shot(page, 'servers-add-linux')
   await page.getByRole('button', { name: 'Done' }).click()
 
-  // The Download tab: the lines for both architectures and each file's state.
-  await page.getByRole('navigation', { name: 'Servers', exact: true }).getByRole('link', { name: 'Download' }).click()
-  await expect(page.getByText("PNMT's download folder")).toBeVisible()
-  await expect(page.getByRole('cell', { name: /^pnmt-agent-linux-x64 Linux/ })).toBeVisible()
+  // The Download tab: the lines for both architectures; each file's state is on the Versions tab.
+  const tabs = page.getByRole('navigation', { name: 'Servers', exact: true })
+  await tabs.getByRole('link', { name: 'Download' }).click()
+  await expect(page.getByText(/Linux: the PNMT agent \d/)).toBeVisible()
   await expect(page.getByLabel('Update line', { exact: true })).toHaveText('pnmt-agent update')
   await shot(page, 'servers-download')
+
+  // The Versions tab (docs/agent-update-plan.md §8.1): what each platform's agents get, PNMT's own by default, and the versions
+  // with their four files. Nothing here starts an update.
+  await tabs.getByRole('link', { name: 'Versions' }).click()
+  await expect(page.getByText('What the agents get')).toBeVisible()
+  await expect(page.getByRole('combobox', { name: 'Linux' })).toBeVisible()
+  await expect(page.getByRole('combobox', { name: 'Windows' })).toBeVisible()
+  // Both follow PNMT's own version, which the selects show as their choice.
+  await expect(page.getByText(/^PNMT's version \(\d/)).toHaveCount(2)
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled()
+  await expect(page.getByText('Linux get it')).toBeVisible()
+  await expect(page.getByText('Linux x64').first()).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Upload…' })).toBeVisible()
+  await page.getByRole('button', { name: 'Fetch a version…' }).click()
+  const fetch = page.getByRole('dialog', { name: 'Fetch a version' })
+  await fetch.getByLabel('Version').fill('1.8')
+  await fetch.getByRole('button', { name: 'Fetch', exact: true }).click()
+  await expect(fetch).toContainText('A version as 1.8.0 or 1.8.0-rc1.')
+  await fetch.getByRole('button', { name: 'Cancel' }).click()
+  await expect(fetch).toBeHidden()
+  await shot(page, 'servers-versions')
 })

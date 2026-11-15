@@ -7,9 +7,11 @@ namespace PNMTD.Agents;
 
 /// <summary>
 /// Hourly (docs/windows-sensor-plan.md §8.4), for the agents of every platform: join tokens expired a month ago go, and the
-/// retention of the agent log, logins, changes and diagnostics runs; key removals waiting too long for their server expire.
+/// retention of the agent log, logins, changes and diagnostics runs; key removals waiting too long for their server expire; the
+/// download folder keeps the versions of docs/agent-update-plan.md §3.4.
 /// </summary>
-public sealed class AgentMaintenanceTask(IDbContextFactory<PnmtdDbContext> dbs, IOptionsMonitor<AgentOptions> options, ILogger<AgentMaintenanceTask> logger)
+public sealed class AgentMaintenanceTask(IDbContextFactory<PnmtdDbContext> dbs, IOptionsMonitor<AgentOptions> options, AgentDownloads downloads,
+    ILogger<AgentMaintenanceTask> logger)
     : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -40,6 +42,14 @@ public sealed class AgentMaintenanceTask(IDbContextFactory<PnmtdDbContext> dbs, 
         if (tokens + log + more > 0)
         {
             logger.LogInformation("Agent maintenance: {Tokens} old join tokens, {Log} agent log entries and {More} logins, changes and runs deleted", tokens, log, more);
+        }
+        var agentSettings = await db.AgentSettings.AsNoTracking().SingleOrDefaultAsync(s => s.Id == Models.Db.AgentSettingsEntity.SingletonId, ct);
+        var chosen = AgentVersionService.Resolve(agentSettings?.WindowsAgentVersion, agentSettings?.LinuxAgentVersion);
+        downloads.Remember(chosen);
+        var deleted = downloads.Retain(chosen);
+        if (deleted.Count > 0)
+        {
+            logger.LogInformation("Agent maintenance: the agent files of {Versions} deleted from the download folder", string.Join(", ", deleted));
         }
     }
 

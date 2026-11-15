@@ -43,7 +43,9 @@ public sealed record AgentServerItem(
     int? SecurityUpdates = null,
     bool? KeyRemovalAllowed = null,
     int? UnregisteredKeys = null,
-    int? RetiredKeysAuthorized = null);
+    int? RetiredKeysAuthorized = null,
+    string? ChosenVersion = null,
+    bool Ahead = false);
 
 public sealed class AgentServerQuery : PageQuery
 {
@@ -186,11 +188,13 @@ public sealed record AgentJoinTokenCreated(
     AgentDownloadLinks Downloads);
 
 /// <summary>
-/// PNMTD's version and the agents' files (§10.1; docs/linux-sensor-plan.md §4.4, §10). <see cref="Files"/>: Windows' executables
-/// as before L3 (GitHub's link, the release's SHA-256, PNMT's link). <see cref="Assets"/>: every file of both platforms with its
-/// state in PNMT's download folder. <see cref="Linux"/>: the install lines per architecture, from PNMT and GitHub, with wget and
-/// curl, PNMT's URL (<see cref="Url"/>) and <see cref="TokenPlaceholder"/> for the token. <see cref="ServeDownloads"/> false: PNMT's
-/// links are null, GitHub's remain.
+/// The agents' files of the versions each platform's agents get (§10.1; docs/linux-sensor-plan.md §4.4, §10;
+/// docs/agent-update-plan.md §5.2): <see cref="Version"/> is PNMTD's, <see cref="WindowsVersion"/> and <see cref="LinuxVersion"/> the
+/// chosen ones (PNMTD's unless an admin chose another). <see cref="Files"/>: Windows' executables as before L3 (GitHub's link, the
+/// release's SHA-256, PNMT's link). <see cref="Assets"/>: every file of both platforms, of its platform's version, with its state in
+/// PNMT's download folder. <see cref="Linux"/>: the install lines per architecture, from PNMT and GitHub, with wget and curl, PNMT's
+/// URL (<see cref="Url"/>) and <see cref="TokenPlaceholder"/> for the token. <see cref="ServeDownloads"/> false: PNMT's links are
+/// null, GitHub's remain. <see cref="ReleaseUrl"/> is the Windows version's release, <see cref="LinuxReleaseUrl"/> the Linux one's.
 /// </summary>
 public sealed record AgentDownloadLinks(
     string Version,
@@ -202,7 +206,10 @@ public sealed record AgentDownloadLinks(
     string UpdateLine,
     bool ServeDownloads,
     string Url,
-    string TokenPlaceholder);
+    string TokenPlaceholder,
+    string WindowsVersion,
+    string LinuxVersion,
+    string? LinuxReleaseUrl);
 
 public sealed record AgentDownloadLink(string Architecture, string FileName, string Url, string? Sha256, string? PnmtUrl = null);
 
@@ -224,7 +231,8 @@ public sealed record AgentDownloadFile(
     long? Size,
     AgentDownloadState State,
     string? Error,
-    DateTime? FetchedAt);
+    DateTime? FetchedAt,
+    string Version = "");
 
 /// <summary>
 /// The one line of docs/linux-sensor-plan.md §4.4 for an architecture: download, <c>sha256sum -c</c>, install, join. From PNMT
@@ -235,6 +243,93 @@ public sealed record LinuxInstallLines(string Architecture, string FileName, str
 
 /// <summary><i>Fetch again</i>: these files (empty: every file that isn't here and verified).</summary>
 public sealed record AgentDownloadFetchRequest(IReadOnlyList<string>? Files);
+
+// --- the agents' versions (docs/agent-update-plan.md §3, §4, §8.1, §9) -------------------------------------------
+
+/// <summary>Where PNMT got an agent's file: GitHub's release, an admin's upload, or the download folder itself (a mount).</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<AgentFileSource>))]
+public enum AgentFileSource { GitHub, Upload, Folder }
+
+/// <summary>
+/// <i>Admin → Servers → Versions</i>: PNMTD's version, the version each platform's agents get, every version here or in GitHub's
+/// list (newest first), and the download folder. <see cref="Catalog"/>: whether GitHub's list could be read, when, and why not.
+/// </summary>
+public sealed record AgentVersionList(
+    string PnmtVersion,
+    AgentChosenVersion Windows,
+    AgentChosenVersion Linux,
+    IReadOnlyList<AgentVersionItem> Versions,
+    AgentReleaseCatalogState Catalog,
+    string Folder,
+    long FolderBytes,
+    int KeepVersions,
+    bool ServeDownloads);
+
+/// <summary>
+/// The version a platform's agents get: chosen, or PNMTD's own (<see cref="FollowsPnmt"/>); newer than PNMTD (a warning) or a
+/// pre-release; how many agents of the platform run it, are older (outdated) and newer.
+/// </summary>
+public sealed record AgentChosenVersion(
+    AgentPlatform Platform,
+    string Version,
+    bool FollowsPnmt,
+    bool NewerThanPnmt,
+    bool PreRelease,
+    int Agents,
+    int Running,
+    int Older,
+    int Newer);
+
+/// <summary>GitHub's list of releases (§3.2): read or not, when, why not, and whether there is one at all (a mirror has none).</summary>
+public sealed record AgentReleaseCatalogState(bool Configured, bool Available, DateTime? ReadAt, string? Error);
+
+/// <summary>
+/// A version: a pre-release, its release on GitHub (date, link) when the list has it, its four files, the agents running it per
+/// platform, whether it is chosen, PNMTD's own or newer than PNMTD, and why it can't be deleted (null: it can).
+/// <see cref="KeptUntilDeleted"/>: it has an uploaded file, so it is never deleted automatically.
+/// </summary>
+public sealed record AgentVersionItem(
+    string Version,
+    bool PreRelease,
+    bool OnGitHub,
+    DateTime? ReleasedAt,
+    string? ReleaseUrl,
+    bool Here,
+    IReadOnlyList<AgentVersionFile> Files,
+    int WindowsAgents,
+    int LinuxAgents,
+    bool ChosenForWindows,
+    bool ChosenForLinux,
+    bool IsPnmtVersion,
+    bool NewerThanPnmt,
+    bool KeptUntilDeleted,
+    string? DeleteRefused);
+
+/// <summary>
+/// One of a version's four files: its state here (here and verified, being fetched, failed with the reason, not here), whether
+/// GitHub's release has it (null: not known), the SHA-256 and size when here, and where it came from, when and by whom.
+/// </summary>
+public sealed record AgentVersionFile(
+    string Name,
+    AgentPlatform Platform,
+    string Architecture,
+    AgentDownloadState State,
+    bool? InRelease,
+    string? Sha256,
+    long? Size,
+    string? Error,
+    AgentFileSource? Source,
+    DateTime? AddedAt,
+    string? AddedBy);
+
+/// <summary>
+/// The versions the platforms' agents get (§4): null or empty for PNMTD's own. One newer than PNMTD needs
+/// <see cref="ConfirmNewer"/> (409 <c>newer_than_pnmt</c> otherwise).
+/// </summary>
+public sealed record AgentVersionChooseRequest(string? Windows, string? Linux, bool ConfirmNewer = false);
+
+/// <summary>Fetch a version from GitHub's release (§3.3): these files (empty: every file of it that isn't here and verified).</summary>
+public sealed record AgentVersionFetchRequest(IReadOnlyList<string>? Files);
 
 public sealed record AgentRevokeRequest(string? Reason);
 

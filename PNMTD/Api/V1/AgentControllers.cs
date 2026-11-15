@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using PNMTD.Agents;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
 using PNMTD.Auth.Rights;
@@ -93,10 +96,10 @@ public sealed class AgentServersController(AgentServerService servers, SshKeySer
         await servers.RejoinTokenAsync(id, request, ct);
 }
 
-/// <summary>Join tokens, the agents' log and the agents' downloads (§9.2). Admin.</summary>
+/// <summary>Join tokens, the agents' log, the agents' downloads and versions (§9.2; docs/agent-update-plan.md §9). Admin.</summary>
 [Route("api/v1/agents")]
 [RequireRight(Area.Servers, Level.Manage)]
-public sealed class AgentsController(AgentServerService servers) : V1ControllerBase
+public sealed class AgentsController(AgentServerService servers, AgentVersionService versions) : V1ControllerBase
 {
     [HttpGet("join-tokens")]
     public async Task<ActionResult<Paged<AgentJoinTokenItem>>> Tokens([FromQuery] AgentJoinTokenQuery query, CancellationToken ct) =>
@@ -126,8 +129,9 @@ public sealed class AgentsController(AgentServerService servers) : V1ControllerB
         await servers.LogAsync(null, query, ct);
 
     /// <summary>
-    /// The agents of PNMTD's version (§10.1; docs/linux-sensor-plan.md §4.4, §10): each file's PNMT and GitHub links, SHA-256, size
-    /// and state in PNMT's download folder, and the Linux install and update lines. Before L1 <c>GET /api/v1/windows/agent</c>.
+    /// The agents of the versions each platform's agents get (§10.1; docs/linux-sensor-plan.md §4.4, §10; docs/agent-update-plan.md
+    /// §5.2): each file's PNMT and GitHub links, SHA-256, size and state in PNMT's download folder, and the Linux install and update
+    /// lines. Before L1 <c>GET /api/v1/windows/agent</c>.
     /// </summary>
     [HttpGet("downloads")]
     public async Task<ActionResult<AgentDownloadLinks>> Downloads(CancellationToken ct) => await servers.DownloadsAsync(ct);
@@ -137,6 +141,82 @@ public sealed class AgentsController(AgentServerService servers) : V1ControllerB
     [Audit(AuditEvents.AgentDownloadsFetched)]
     public async Task<ActionResult<AgentDownloadLinks>> FetchDownloads(AgentDownloadFetchRequest request, CancellationToken ct) =>
         await servers.FetchDownloadsAsync(request, ct);
+
+    // --- the versions (docs/agent-update-plan.md §3, §4, §9): nothing here reaches an agent (§7) ----------------------
+
+    /// <summary>
+    /// <i>Versions</i>: PNMTD's version, the version each platform's agents get, every version here or in GitHub's list with its
+    /// files and the agents running it, and the download folder. <c>refresh</c>: GitHub's list read again.
+    /// </summary>
+    [HttpGet("versions")]
+    public async Task<ActionResult<AgentVersionList>> Versions([FromQuery] bool refresh, CancellationToken ct) => await versions.ListAsync(refresh, ct);
+
+    /// <summary>
+    /// The versions the platforms' agents get (null or empty: PNMTD's own). One newer than PNMTD needs <c>confirmNewer</c>: 409
+    /// <c>newer_than_pnmt</c> with the warning otherwise. Starts no update: the machines' update installs it. Audited.
+    /// </summary>
+    [HttpPut("versions/chosen")]
+    [Audit(AuditEvents.AgentVersionChosen)]
+    public async Task<ActionResult<AgentVersionList>> Choose(AgentVersionChooseRequest request, CancellationToken ct) => await versions.ChooseAsync(request, ct);
+
+    /// <summary>Fetches a version's files from its GitHub release (those named, or every one that isn't here). Answers at once. Audited.</summary>
+    [HttpPost("versions/{version}/fetch")]
+    [Audit(AuditEvents.AgentVersionFetched)]
+    public async Task<ActionResult<AgentVersionList>> FetchVersion(string version, AgentVersionFetchRequest request, CancellationToken ct) =>
+        await versions.FetchAsync(version, request, ct);
+
+    /// <summary>
+    /// Uploads a file of a version (multipart/form-data: file; name, else the file's own; sha256 to compare): one of the four
+    /// executables, at most 300 MB, of its platform and architecture. Admins only. No Consumes constraint: it would decide at
+    /// routing, before authorization. Audited with its hash.
+    /// </summary>
+    [HttpPost("versions/{version}/files")]
+    [RequireAdmin]
+    [AgentUploadLimit]
+    [Audit(AuditEvents.AgentVersionUploaded)]
+    public async Task<ActionResult<AgentVersionList>> Upload(string version, IFormFile? file, [FromForm] string? name, [FromForm] string? sha256,
+        CancellationToken ct) =>
+        await versions.UploadAsync(version, file, name, sha256, ct);
+
+    /// <summary>A file of a version that is here and verified, or its .sha256, for the browser.</summary>
+    [HttpGet("versions/{version}/files/{file}")]
+    [ProducesResponseType<FileContentResult>(StatusCodes.Status200OK, "application/octet-stream")]
+    public IActionResult VersionFile(string version, string file)
+    {
+        var (content, name) = versions.Open(version, file);
+        return File(content, "application/octet-stream", name);
+    }
+
+    /// <summary>Deletes a version's files: refused while a platform's agents get it. Audited.</summary>
+    [HttpDelete("versions/{version}")]
+    [Audit(AuditEvents.AgentVersionDeleted)]
+    public async Task<IActionResult> DeleteVersion(string version, CancellationToken ct)
+    {
+        await versions.DeleteAsync(version, ct);
+        return NoContent();
+    }
+}
+
+/// <summary>Raises the request body limit for an agent's upload alone (docs/agent-update-plan.md §3.5): 300 MB and the form's overhead.</summary>
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class AgentUploadLimitAttribute : Attribute, IResourceFilter, IOrderedFilter
+{
+    public int Order => -2000;
+
+    public void OnResourceExecuting(ResourceExecutingContext context)
+    {
+        const long max = AgentDownloads.MaxBytes + 64 * 1024;
+        if (context.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit)
+        {
+            limit.MaxRequestBodySize = max;
+        }
+        context.HttpContext.Features.Set<IFormFeature>(null);
+        context.HttpContext.Features.Set<IFormFeature>(new FormFeature(context.HttpContext.Request, new FormOptions { MultipartBodyLengthLimit = max }));
+    }
+
+    public void OnResourceExecuted(ResourceExecutedContext context)
+    {
+    }
 }
 
 /// <summary>Scripts (docs/windows-sensor-plan.md §7, W6; docs/linux-sensor-plan.md §8): the library, runs and their history. Admin, audited.</summary>

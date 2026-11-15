@@ -26,6 +26,12 @@ public static class AgentProtocol
     /// </summary>
     public const string DownloadPath = "/agent/v1/download";
 
+    /// <summary>
+    /// How long a signed manifest is valid (docs/agent-update-plan.md §5.1): an old one can't be replayed to hand over an older
+    /// version. Agents from 1.8 check it.
+    /// </summary>
+    public static readonly TimeSpan ManifestLifetime = TimeSpan.FromMinutes(10);
+
     /// <summary>A message, compressed or not (§3.5): 4 MiB on the wire, 16 MiB decompressed.</summary>
     public const int DefaultMaxMessageBytes = 4 * 1024 * 1024;
 

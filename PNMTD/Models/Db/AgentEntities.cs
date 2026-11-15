@@ -38,6 +38,17 @@ public class AgentSettingsEntity
 
     /// <summary>Raised whenever what agents are configured with changes (diagnostics, intervals): <c>config</c> goes out.</summary>
     public int ConfigVersion { get; set; } = 1;
+
+    /// <summary>
+    /// The version Windows agents get (docs/agent-update-plan.md §4): what their update installs, what the links offer, and
+    /// what makes one outdated. Null: PNMTD's own version.
+    /// </summary>
+    [MaxLength(40)]
+    public string? WindowsAgentVersion { get; set; }
+
+    /// <summary>The version Linux agents get, as <see cref="WindowsAgentVersion"/>.</summary>
+    [MaxLength(40)]
+    public string? LinuxAgentVersion { get; set; }
 }
 
 /// <summary>

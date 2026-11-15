@@ -9,11 +9,12 @@ import RunAsTab from './RunAsTab.vue'
 import ScriptsTab from './ScriptsTab.vue'
 import ServersTab from './ServersTab.vue'
 import TokensTab from './TokensTab.vue'
+import VersionsTab from './VersionsTab.vue'
 
 /**
  * Admin → Servers (docs/linux-sensor-plan.md §11.1; Admin → Windows servers before L1, docs/windows-sensor-plan.md §10.1):
- * the fleet of both platforms, the join tokens, the scripts, Windows' run-as accounts, the agent's downloads and every
- * agent's log. Admin only.
+ * the fleet of both platforms, the join tokens, the scripts, Windows' run-as accounts, the agent's downloads, the agents'
+ * versions (docs/agent-update-plan.md §8.1) and every agent's log. Admin only.
  */
 const route = useRoute()
 const tab = computed(() => (typeof route.params.tab === 'string' && route.params.tab ? route.params.tab : 'servers'))
@@ -23,6 +24,7 @@ const tabs = [
   { key: 'scripts', label: 'Scripts', icon: 'pi pi-code', to: { name: 'servers', params: { tab: 'scripts' } } },
   { key: 'run-as', label: 'Run-as accounts', icon: 'pi pi-user', to: { name: 'servers', params: { tab: 'run-as' } } },
   { key: 'download', label: 'Download', icon: 'pi pi-download', to: { name: 'servers', params: { tab: 'download' } } },
+  { key: 'versions', label: 'Versions', icon: 'pi pi-box', to: { name: 'servers', params: { tab: 'versions' } } },
   { key: 'log', label: 'Agent log', icon: 'pi pi-history', to: { name: 'servers', params: { tab: 'log' } } },
 ]
 </script>
@@ -35,6 +37,7 @@ const tabs = [
     <ScriptsTab v-else-if="tab === 'scripts'" />
     <RunAsTab v-else-if="tab === 'run-as'" />
     <DownloadTab v-else-if="tab === 'download'" />
+    <VersionsTab v-else-if="tab === 'versions'" />
     <AgentLogTab v-else-if="tab === 'log'" />
     <ServersTab v-else />
   </div>

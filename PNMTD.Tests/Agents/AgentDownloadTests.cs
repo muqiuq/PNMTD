@@ -178,11 +178,25 @@ public sealed class AgentDownloadTests
         Assert.AreEqual(Guid.Empty, content.AgentId);
         var manifest = AgentJson.Deserialize<DownloadManifest>(content.Body)!;
         Assert.AreEqual(ServerInfo.Version, manifest.Version);
+        // Without platform: Linux's, as agents before 1.8 ask (docs/agent-update-plan.md §5.1), with where the file came from.
+        Assert.AreEqual(AgentPlatform.Linux, manifest.Platform);
         CollectionAssert.AreEquivalent(new[]
         {
-            new DownloadAsset(AgentDownloadAssets.LinuxX64, 4096, Sha(linux)),
-            new DownloadAsset(AgentDownloadAssets.WindowsArm64, 2048, Sha(windows)),
-        }, manifest.Assets.ToList(), "only the files that match their .sha256");
+            new DownloadAsset(AgentDownloadAssets.LinuxX64, 4096, Sha(linux), "PNMT's download folder"),
+        }, manifest.Assets.ToList(), "only the platform's files that match their .sha256");
+        // Valid ten minutes: an old manifest can't be replayed.
+        Assert.IsNotNull(content.ExpiresAt);
+        Assert.AreEqual(AgentProtocol.ManifestLifetime.TotalSeconds, (content.ExpiresAt.Value - content.IssuedAt).TotalSeconds, 1);
+
+        var forWindows = AgentJson.Deserialize<DownloadManifestResponse>(await (await app.Client().GetAsync(AgentProtocol.DownloadPath + "?platform=windows")).Content.ReadAsStringAsync())!;
+        var windowsManifest = AgentJson.Deserialize<DownloadManifest>(AgentSigning.Verify(pnmtd, forWindows.Signed)!.Body)!;
+        Assert.AreEqual(AgentPlatform.Windows, windowsManifest.Platform);
+        CollectionAssert.AreEqual(new[] { new DownloadAsset(AgentDownloadAssets.WindowsArm64, 2048, Sha(windows), "PNMT's download folder") },
+            windowsManifest.Assets.ToList());
+        foreach (var wrong in new[] { "mac", "1", "linux-x64" })
+        {
+            Assert.AreEqual(HttpStatusCode.BadRequest, (await app.Client().GetAsync(AgentProtocol.DownloadPath + "?platform=" + wrong)).StatusCode, wrong);
+        }
 
         using var other = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         Assert.IsNull(AgentSigning.Verify(other, response.Signed), "another key");
@@ -273,8 +287,14 @@ public sealed class AgentDownloadTests
     public async Task AMissingFileIsFetchedFromTheReleaseOnceCheckedAndKept()
     {
         var into = Directory.CreateTempSubdirectory("pnmtd-downloads-fetched-");
-        // What an older version fetched into the same folder (a volume, after an update).
-        Put(Directory.CreateDirectory(Path.Combine(into.FullName, "sensor-0.9.0")), AgentDownloadAssets.LinuxArm64);
+        // What older versions fetched into the same folder (a volume, after updates): the newest two are kept (Agents:KeepVersions),
+        // and one with an upload until someone deletes it (docs/agent-update-plan.md §3.4).
+        foreach (var older in new[] { "0.7.0", "0.8.0", "0.9.0", "0.6.0" })
+        {
+            Put(Directory.CreateDirectory(Path.Combine(into.FullName, $"sensor-{older}")), AgentDownloadAssets.LinuxArm64);
+        }
+        File.WriteAllText(Path.Combine(into.FullName, "sensor-0.6.0", AgentDownloads.OriginsFile),
+            $"{{\"{AgentDownloadAssets.LinuxArm64}\": {{\"source\": \"Upload\", \"at\": \"2026-11-01T10:00:00Z\", \"by\": \"alice\"}}}}");
         var release = new Release();
         var binary = RandomNumberGenerator.GetBytes(200_000);
         release.Files[AgentDownloadAssets.LinuxArm64] = binary;
@@ -308,8 +328,13 @@ public sealed class AgentDownloadTests
             var kept = Path.Combine(into.FullName, Tag);
             CollectionAssert.AreEqual(binary, File.ReadAllBytes(Path.Combine(kept, AgentDownloadAssets.LinuxArm64)), "kept");
             Assert.AreEqual($"{Sha(binary)}  {AgentDownloadAssets.LinuxArm64}\n", File.ReadAllText(Path.Combine(kept, AgentDownloadAssets.LinuxArm64 + ".sha256")));
-            Assert.AreEqual(2, new DirectoryInfo(kept).GetFiles().Length, "no temporary files left");
-            Assert.IsFalse(Directory.Exists(Path.Combine(into.FullName, "sensor-0.9.0")), "the older version's files are gone");
+            CollectionAssert.AreEquivalent(new[] { AgentDownloadAssets.LinuxArm64, AgentDownloadAssets.LinuxArm64 + ".sha256", AgentDownloads.OriginsFile },
+                new DirectoryInfo(kept).GetFiles().Select(f => f.Name).ToList(), "no temporary files left");
+            StringAssert.Contains(File.ReadAllText(Path.Combine(kept, AgentDownloads.OriginsFile)), "GitHub");
+            Assert.IsFalse(Directory.Exists(Path.Combine(into.FullName, "sensor-0.7.0")), "the oldest version's files are gone");
+            Assert.IsTrue(Directory.Exists(Path.Combine(into.FullName, "sensor-0.8.0")), "the newest two others are kept");
+            Assert.IsTrue(Directory.Exists(Path.Combine(into.FullName, "sensor-0.9.0")), "the newest two others are kept");
+            Assert.IsTrue(Directory.Exists(Path.Combine(into.FullName, "sensor-0.6.0")), "an uploaded version is kept until deleted");
 
             // A file that doesn't match the release's .sha256 is not kept, and the failure is remembered.
             using var tampered = await client.GetAsync($"{AgentProtocol.DownloadPath}/{AgentDownloadAssets.LinuxX64}");

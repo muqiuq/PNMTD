@@ -76,32 +76,41 @@ public sealed class AgentServerService(
         var ids = agents.Select(a => a.Agent.SensorId).ToList();
         var snapshot = await reader.SnapshotAsync(s => ids.Contains(s.Id), ct);
         var extras = await AgentExtras.LoadAsync(db, ids, ct);
+        var chosen = await ChosenAsync(ct);
         return agents.Select(a =>
         {
             var status = snapshot.Sensors.GetValueOrDefault(a.Agent.SensorId);
-            return ToItem(a.Agent, a.Name, new Ref(a.HostId, a.HostName), status, extras);
+            return ToItem(a.Agent, a.Name, new Ref(a.HostId, a.HostName), status, extras, chosen);
         }).ToList();
     }
 
-    private AgentServerItem ToItem(AgentEntity a, string name, Ref host, SensorStatus? status, AgentExtras extras)
+    /// <summary>The versions the platforms' agents get (docs/agent-update-plan.md §4), as <see cref="AgentVersionService.ChosenAsync"/> reads them.</summary>
+    private async Task<AgentChosenVersions> ChosenAsync(CancellationToken ct)
     {
+        var settings = await db.AgentSettings.AsNoTracking().SingleOrDefaultAsync(s => s.Id == AgentSettingsEntity.SingletonId, ct);
+        var chosen = AgentVersionService.Resolve(settings?.WindowsAgentVersion, settings?.LinuxAgentVersion);
+        downloads.Remember(chosen);
+        return chosen;
+    }
+
+    private AgentServerItem ToItem(AgentEntity a, string name, Ref host, SensorStatus? status, AgentExtras extras, AgentChosenVersions chosen)
+    {
+        var target = chosen.For(a.Platform);
         var linux = a.Platform == AgentPlatform.Linux;
         var rights = linux ? ServerRights.Read(a.Rights) : null;
         return new(
             a.SensorId, host, name, a.Platform, status?.State ?? SensorState.NoData, status?.LastCode, status?.LastMessage, a.Hostname, a.Domain, a.OsCaption, a.OsBuild,
-            a.OsSupported, a.Architecture, a.AgentVersion, IsOutdated(a.AgentVersion), a.Connected && hub.IsConnected(a.SensorId), a.LastSeenAt, a.BootTime,
+            a.OsSupported, a.Architecture, a.AgentVersion, AgentVersionService.IsOutdated(a.AgentVersion, target), a.Connected && hub.IsConnected(a.SensorId),
+            a.LastSeenAt, a.BootTime,
             a.ClockSkewSeconds, a.RevokedAt is not null, a.UninstalledAt is not null, a.LastProblemAt,
             extras.RemoteAccess.GetValueOrDefault(a.SensorId), extras.AuditGaps.GetValueOrDefault(a.SensorId), extras.DiagnosticsFailing.GetValueOrDefault(a.SensorId),
             // Linux (docs/linux-sensor-plan.md §10): for the fleet's columns and filters.
             linux ? a.Distribution ?? a.OsCaption : null, linux ? a.KernelRelease ?? a.OsBuild : null, linux ? a.SecurityUpdates : null,
             linux ? rights is not null && rights.KeyRemoval && !ServerRights.IsRefused(rights) : null,
-            linux ? extras.UnregisteredKeys.GetValueOrDefault(a.SensorId) : null, linux ? extras.RetiredKeys.GetValueOrDefault(a.SensorId) : null);
+            linux ? extras.UnregisteredKeys.GetValueOrDefault(a.SensorId) : null, linux ? extras.RetiredKeys.GetValueOrDefault(a.SensorId) : null,
+            // Outdated (docs/agent-update-plan.md §4): older than the version its platform's agents get; ahead: newer than it.
+            target, AgentVersionService.IsAhead(a.AgentVersion, target));
     }
-
-    /// <summary>An agent older than PNMTD (§10.1): the release of PNMTD's version is newer.</summary>
-    public static bool IsOutdated(string? agentVersion) =>
-        Version.TryParse(agentVersion?.Split('-', '+')[0], out var agent) && Version.TryParse(ServerInfo.Version.Split('-', '+')[0], out var pnmtd)
-        && agent < pnmtd;
 
     public async Task<AgentServerDetail> DetailAsync(Guid id, CancellationToken ct)
     {
@@ -580,13 +589,14 @@ public sealed class AgentServerService(
 
         var key = await keys.GetAsync(ct);
         var url = urls.Base;
+        var chosen = await ChosenAsync(ct);
         if (platform == AgentPlatform.Linux && settings.ServeDownloads)
         {
             // docs/linux-sensor-plan.md §4.4: the dialog asks ahead, so the line's download finds the files here.
-            downloads.FetchAhead(AgentDownloads.Of(AgentPlatform.Linux));
+            downloads.FetchAhead(chosen.Linux, AgentDownloads.Of(AgentPlatform.Linux));
         }
         // A Linux token's line needs the binary's hash: the release's is waited for (at most 5 s), as the Download tab does.
-        var downloadInfo = await downloads.GetAsync(url, ct, wait: platform == AgentPlatform.Linux);
+        var downloadInfo = await downloads.GetAsync(chosen, url, ct, wait: platform == AgentPlatform.Linux);
         // Plain http:// works after a confirmation: on the command line, --allow-http.
         var plainHttp = url.StartsWith("http://", StringComparison.OrdinalIgnoreCase);
         var command = platform == AgentPlatform.Linux ? LinuxCommandLine(downloadInfo, url, token)
@@ -622,7 +632,7 @@ public sealed class AgentServerService(
         return line is null ? AgentDownloads.JoinLine(url, token) : line.Replace(AgentDownloads.TokenPlaceholder, token, StringComparison.Ordinal);
     }
 
-    public Task<AgentDownloadLinks> DownloadsAsync(CancellationToken ct) => downloads.GetAsync(urls.Base, ct, wait: true);
+    public async Task<AgentDownloadLinks> DownloadsAsync(CancellationToken ct) => await downloads.GetAsync(await ChosenAsync(ct), urls.Base, ct, wait: true);
 
     /// <summary>
     /// <i>Fetch again</i> (docs/linux-sensor-plan.md §4.4): the files named (or every one that isn't here and verified) from the
@@ -638,12 +648,17 @@ public sealed class AgentServerService(
         {
             throw ApiException.Conflict("downloads_off", "PNMT doesn't serve the agents' files (Agents__ServeDownloads, Agents__Enabled): GitHub's links remain.");
         }
-        var files = names.Count > 0 ? names : AgentDownloadAssets.Executables.Where(e => downloads.Check(e).File is null).ToList();
-        downloads.FetchAhead(files, again: true);
+        var chosen = await ChosenAsync(ct);
+        string VersionOf(string file) => chosen.For(AgentDownloadAssets.PlatformOf(file));
+        var files = names.Count > 0 ? names : AgentDownloadAssets.Executables.Where(e => downloads.Check(VersionOf(e), e).File is null).ToList();
+        foreach (var group in files.GroupBy(VersionOf))
+        {
+            downloads.FetchAhead(group.Key, group, again: true);
+        }
         UdpViews.Audit(db, accessor, AuditEvents.AgentDownloadsFetched,
-            files.Count == 0 ? "fetch again: every file is here and verified" : $"fetch again: {string.Join(", ", files)}");
+            files.Count == 0 ? "fetch again: every file is here and verified" : $"fetch again: {string.Join(", ", files.Select(f => $"{f} ({VersionOf(f)})"))}");
         await db.SaveChangesAsync(ct);
-        return await downloads.GetAsync(urls.Base, ct, wait: false);
+        return await downloads.GetAsync(chosen, urls.Base, ct, wait: false);
     }
 
     private async Task<AgentEntity> AgentAsync(Guid id, CancellationToken ct) =>

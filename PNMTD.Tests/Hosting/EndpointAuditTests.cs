@@ -387,6 +387,12 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/agents/agent-log"] = ("Servers:Manage", Roles.Admin),
         ["GET /api/v1/agents/downloads"] = ("Servers:Manage", Roles.Admin),
         ["POST /api/v1/agents/downloads/fetch"] = ("Servers:Manage", Roles.Admin),
+        ["GET /api/v1/agents/versions"] = ("Servers:Manage", Roles.Admin),
+        ["PUT /api/v1/agents/versions/chosen"] = ("Servers:Manage", Roles.Admin),
+        ["POST /api/v1/agents/versions/{version}/fetch"] = ("Servers:Manage", Roles.Admin),
+        ["POST /api/v1/agents/versions/{version}/files"] = ("admin", Roles.Admin),
+        ["GET /api/v1/agents/versions/{version}/files/{file}"] = ("Servers:Manage", Roles.Admin),
+        ["DELETE /api/v1/agents/versions/{version}"] = ("Servers:Manage", Roles.Admin),
         // Scripts (docs/windows-sensor-plan.md §7; docs/linux-sensor-plan.md §8): Admin only.
         ["GET /api/v1/agents/scripts"] = ("Servers:Manage", Roles.Admin),
         ["GET /api/v1/agents/scripts/{id:guid}"] = ("Servers:Manage", Roles.Admin),

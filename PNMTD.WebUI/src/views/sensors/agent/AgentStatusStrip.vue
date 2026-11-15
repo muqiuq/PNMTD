@@ -17,7 +17,7 @@ const item = computed(() => props.server?.server)
       <span class="value">
         <Tag :value="connection(item).label" :severity="connection(item).severity" />
         <span class="mono small">{{ item.agentVersion }}</span>
-        <Tag v-if="item.outdated" value="outdated" severity="warn" />
+        <Tag v-if="item.outdated" :value="`update available: ${item.chosenVersion}`" severity="warn" />
       </span>
       <span class="muted small">seen <RelativeTime :value="item.lastSeenAt" /></span>
     </div>

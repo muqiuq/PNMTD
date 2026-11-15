@@ -1816,6 +1816,286 @@
         }
       }
     },
+    "/api/v1/agents/versions": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "parameters": [
+          {
+            "name": "refresh",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentVersionList"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentVersionList"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentVersionList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/versions/chosen": {
+      "put": {
+        "tags": [
+          "Agents"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentVersionChooseRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentVersionChooseRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentVersionChooseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentVersionList"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentVersionList"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentVersionList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/versions/{version}/fetch": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentVersionFetchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentVersionFetchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentVersionFetchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentVersionList"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentVersionList"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentVersionList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/versions/{version}/files": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "file": {
+                        "$ref": "#/components/schemas/IFormFile"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "sha256": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentVersionList"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentVersionList"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentVersionList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/versions/{version}/files/{file}": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "file",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileContentResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/versions/{version}": {
+      "delete": {
+        "tags": [
+          "Agents"
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/agents/scripts": {
       "get": {
         "tags": [
@@ -21085,6 +21365,53 @@
           }
         }
       },
+      "AgentChosenVersion": {
+        "required": [
+          "platform",
+          "version",
+          "followsPnmt",
+          "newerThanPnmt",
+          "preRelease",
+          "agents",
+          "running",
+          "older",
+          "newer"
+        ],
+        "type": "object",
+        "properties": {
+          "platform": {
+            "$ref": "#/components/schemas/AgentPlatform"
+          },
+          "version": {
+            "type": "string"
+          },
+          "followsPnmt": {
+            "type": "boolean"
+          },
+          "newerThanPnmt": {
+            "type": "boolean"
+          },
+          "preRelease": {
+            "type": "boolean"
+          },
+          "agents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "running": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "older": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "newer": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "AgentCollectRequest": {
         "required": [
           "sections"
@@ -21180,6 +21507,10 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "version": {
+            "type": "string",
+            "default": ""
           }
         }
       },
@@ -21226,7 +21557,10 @@
           "updateLine",
           "serveDownloads",
           "url",
-          "tokenPlaceholder"
+          "tokenPlaceholder",
+          "windowsVersion",
+          "linuxVersion",
+          "linuxReleaseUrl"
         ],
         "type": "object",
         "properties": {
@@ -21274,6 +21608,18 @@
           },
           "tokenPlaceholder": {
             "type": "string"
+          },
+          "windowsVersion": {
+            "type": "string"
+          },
+          "linuxVersion": {
+            "type": "string"
+          },
+          "linuxReleaseUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -21283,6 +21629,14 @@
           "Fetching",
           "Failed",
           "NotFetched"
+        ]
+      },
+      "AgentFileSource": {
+        "enum": [
+          "GitHub",
+          "Upload",
+          "Folder",
+          null
         ]
       },
       "AgentJoinTokenCreated": {
@@ -21719,6 +22073,36 @@
               "integer"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "AgentReleaseCatalogState": {
+        "required": [
+          "configured",
+          "available",
+          "readAt",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "readAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -22682,6 +23066,16 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "chosenVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ahead": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -22719,6 +23113,256 @@
             "type": "integer",
             "format": "int32",
             "default": 7
+          }
+        }
+      },
+      "AgentVersionChooseRequest": {
+        "required": [
+          "windows",
+          "linux"
+        ],
+        "type": "object",
+        "properties": {
+          "windows": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "linux": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "confirmNewer": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "AgentVersionFetchRequest": {
+        "required": [
+          "files"
+        ],
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AgentVersionFile": {
+        "required": [
+          "name",
+          "platform",
+          "architecture",
+          "state",
+          "inRelease",
+          "sha256",
+          "size",
+          "error",
+          "source",
+          "addedAt",
+          "addedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/AgentPlatform"
+          },
+          "architecture": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/AgentDownloadState"
+          },
+          "inRelease": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "sha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "size": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AgentFileSource"
+              }
+            ]
+          },
+          "addedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "addedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AgentVersionItem": {
+        "required": [
+          "version",
+          "preRelease",
+          "onGitHub",
+          "releasedAt",
+          "releaseUrl",
+          "here",
+          "files",
+          "windowsAgents",
+          "linuxAgents",
+          "chosenForWindows",
+          "chosenForLinux",
+          "isPnmtVersion",
+          "newerThanPnmt",
+          "keptUntilDeleted",
+          "deleteRefused"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "preRelease": {
+            "type": "boolean"
+          },
+          "onGitHub": {
+            "type": "boolean"
+          },
+          "releasedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "releaseUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "here": {
+            "type": "boolean"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentVersionFile"
+            }
+          },
+          "windowsAgents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "linuxAgents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "chosenForWindows": {
+            "type": "boolean"
+          },
+          "chosenForLinux": {
+            "type": "boolean"
+          },
+          "isPnmtVersion": {
+            "type": "boolean"
+          },
+          "newerThanPnmt": {
+            "type": "boolean"
+          },
+          "keptUntilDeleted": {
+            "type": "boolean"
+          },
+          "deleteRefused": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AgentVersionList": {
+        "required": [
+          "pnmtVersion",
+          "windows",
+          "linux",
+          "versions",
+          "catalog",
+          "folder",
+          "folderBytes",
+          "keepVersions",
+          "serveDownloads"
+        ],
+        "type": "object",
+        "properties": {
+          "pnmtVersion": {
+            "type": "string"
+          },
+          "windows": {
+            "$ref": "#/components/schemas/AgentChosenVersion"
+          },
+          "linux": {
+            "$ref": "#/components/schemas/AgentChosenVersion"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentVersionItem"
+            }
+          },
+          "catalog": {
+            "$ref": "#/components/schemas/AgentReleaseCatalogState"
+          },
+          "folder": {
+            "type": "string"
+          },
+          "folderBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "keepVersions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "serveDownloads": {
+            "type": "boolean"
           }
         }
       },

@@ -23,6 +23,8 @@ public static class AgentSetup
         services.AddSingleton<SshKeyManager.SshKeyRemovals>();
         services.AddSingleton<AgentMaintenanceTask>();
         services.AddSingleton<AgentDownloads>();
+        services.AddSingleton<AgentReleaseCatalog>();
+        services.AddScoped<AgentVersionService>();
         services.AddSingleton<DownloadGuard>();
         services.AddHttpClient(nameof(AgentDownloads));
         return services;

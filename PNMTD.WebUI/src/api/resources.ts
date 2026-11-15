@@ -682,6 +682,35 @@ export const api = {
     /** Fetch again (docs/linux-sensor-plan.md §4.4): the files named, or every one that isn't here and verified. */
     fetchDownloads: (files: string[] | null = null) =>
       call(client.POST('/api/v1/agents/downloads/fetch', { body: { files } })),
+    // --- the agents' versions (docs/agent-update-plan.md §3, §4, §9): Servers: Manage, uploads admins only ------
+    /** The versions here and in GitHub's list, the version each platform's agents get; refresh reads GitHub's list again. */
+    versions: (refresh = false) => call(client.GET('/api/v1/agents/versions', { params: { query: { refresh } } })),
+    /** Null for PNMT's own; one newer than PNMT needs confirmNewer (409 newer_than_pnmt otherwise). Starts no update. */
+    chooseVersions: (body: S['AgentVersionChooseRequest']) =>
+      call(client.PUT('/api/v1/agents/versions/chosen', { body })),
+    fetchVersion: (version: string, files: string[] | null = null) =>
+      call(client.POST('/api/v1/agents/versions/{version}/fetch', { params: { path: { version } }, body: { files } })),
+    /** Multipart (file, name, sha256); admins only. */
+    uploadVersionFile: (version: string, form: { file: File; name: string; sha256?: string | null }) => {
+      const data = new FormData()
+      data.append('file', form.file, form.file.name)
+      data.append('name', form.name)
+      if (form.sha256) {
+        data.append('sha256', form.sha256)
+      }
+      return call(
+        client.POST('/api/v1/agents/versions/{version}/files', {
+          params: { path: { version } },
+          body: {},
+          bodySerializer: () => data,
+        }),
+      )
+    },
+    deleteVersion: (version: string) =>
+      call(client.DELETE('/api/v1/agents/versions/{version}', { params: { path: { version } } })),
+    /** A file of a version, or its .sha256, for a download link (a GET with the session cookie). */
+    versionFileUrl: (version: string, file: string) =>
+      `${typeof location !== 'undefined' ? location.origin : ''}/api/v1/agents/versions/${encodeURIComponent(version)}/files/${encodeURIComponent(file)}`,
     // --- scripts (docs/windows-sensor-plan.md §7; docs/linux-sensor-plan.md §8): Admin --------------------------
     scripts: (query: ListQuery & { language?: S['ScriptLanguage'] }) =>
       call(client.GET('/api/v1/agents/scripts', { params: { query } })),

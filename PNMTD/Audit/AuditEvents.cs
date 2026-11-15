@@ -100,6 +100,12 @@ public static class AuditEvents
     /// <summary>Fetch again of the agents' files (docs/linux-sensor-plan.md §4.4).</summary>
     public const string AgentDownloadsFetched = "AgentDownloadsFetched";
 
+    // The agents' versions (docs/agent-update-plan.md §9).
+    public const string AgentVersionChosen = "AgentVersionChosen";
+    public const string AgentVersionFetched = "AgentVersionFetched";
+    public const string AgentVersionUploaded = "AgentVersionUploaded";
+    public const string AgentVersionDeleted = "AgentVersionDeleted";
+
     // The SSH key manager (docs/linux-sensor-plan.md §6.4, §6.5): registering, editing, retiring and deleting a key, and its
     // removals from servers (asked for, and what the agent did).
     public const string SshKeyRegistered = "SshKeyRegistered";
@@ -355,7 +361,8 @@ public static class AuditCatalog
         Add(AuditCategory.Diagnostics, AuditTargets.DiagnosticsSet, AuditEvents.DiagnosticsSetChanged);
         Add(AuditCategory.Diagnostics, AuditTargets.DiagnosticsAssignment, AuditEvents.DiagnosticsAssignmentChanged);
         Add(AuditCategory.Agents, AuditTargets.Script, AuditEvents.AgentScriptChanged, AuditEvents.AgentScriptRun);
-        Add(AuditCategory.Agents, null, AuditEvents.AgentDownloadsFetched);
+        Add(AuditCategory.Agents, null, AuditEvents.AgentDownloadsFetched, AuditEvents.AgentVersionChosen, AuditEvents.AgentVersionFetched,
+            AuditEvents.AgentVersionUploaded, AuditEvents.AgentVersionDeleted);
         Add(AuditCategory.SshKeys, AuditTargets.SshKey, AuditEvents.SshKeyRegistered, AuditEvents.SshKeyChanged, AuditEvents.SshKeyRetired,
             AuditEvents.SshKeyDeleted, AuditEvents.SshKeyRemoved);
         Add(AuditCategory.Files, AuditTargets.File, AuditEvents.FileDeleted);

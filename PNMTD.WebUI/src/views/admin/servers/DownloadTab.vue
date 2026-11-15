@@ -1,26 +1,18 @@
 <script setup lang="ts">
-import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import Button from 'primevue/button'
-import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
+import { useQuery } from '@tanstack/vue-query'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import { computed } from 'vue'
 import { api, keys, type S } from '@/api/resources'
 import CopyField from '@/components/CopyField.vue'
-import RelativeTime from '@/components/RelativeTime.vue'
-import { useActions } from '@/composables/useActions'
-import { bytes } from './agentFormat'
-import { fileStateLabel, fileStateSeverity } from './installLine'
 import LinuxInstallLine from './LinuxInstallLine.vue'
 
 /**
- * Download (docs/windows-sensor-plan.md §10.1; docs/linux-sensor-plan.md §4.4, §11.1): PNMTD's version; the Windows agent for
- * x64 and ARM64 from PNMT and from GitHub, with the SHA-256 and the line that checks it, and the command line for unattended
- * installs; the Linux agent's install and update lines for x64 and arm64, from PNMT or GitHub, with wget or curl; and each
- * file's state in PNMT's download folder (here, being fetched, failed with the reason, not fetched) with Fetch again. Admin.
+ * Download (docs/windows-sensor-plan.md §10.1; docs/linux-sensor-plan.md §4.4, §11.1; docs/agent-update-plan.md §8.2): the
+ * versions each platform's agents get; the Windows agent for x64 and ARM64 from PNMT and from GitHub, with the SHA-256 and the
+ * line that checks it, and the command line for unattended installs; the Linux agent's install and update lines for x64 and
+ * arm64, from PNMT or GitHub, with wget or curl. Each file's state in the download folder is on the Versions tab. Admin.
  */
-const queryClient = useQueryClient()
 const key = [...keys.agents, 'downloads']
 const fetching = (d: S['AgentDownloadLinks'] | undefined) => (d?.assets ?? []).some((a) => a.state === 'Fetching')
 const agent = useQuery({
@@ -33,24 +25,23 @@ const agent = useQuery({
 const d = computed(() => agent.data.value ?? null)
 // Plain http:// works after a confirmation: on the command line, --allow-http.
 const allowHttp = computed(() => (d.value?.url.startsWith('http://') ? ' --allow-http' : ''))
-const anyMissing = computed(() => (d.value?.assets ?? []).some((a) => a.state !== 'Here' && a.state !== 'Fetching'))
-
-const { run, busy } = useActions()
-async function fetchAgain(files: string[] | null) {
-  const result = await run(() => api.agents.fetchDownloads(files), {
-    success: files?.length === 1 ? `Fetching ${files[0]}` : 'Fetching the missing files',
-  })
-  if (result) queryClient.setQueryData(key, result)
-}
+const missing = computed(() =>
+  (d.value?.assets ?? []).filter((a) => a.state !== 'Here' && a.state !== 'Fetching').map((a) => a.name),
+)
 </script>
 
 <template>
   <div class="tab">
     <template v-if="d">
       <p class="muted small">
-        The agents of PNMTD {{ d.version }}: PNMT serves them from its download folder, fetched from the release on
-        GitHub and checked against its SHA-256.
-        <a v-if="d.releaseUrl" :href="d.releaseUrl" rel="noopener">The release on GitHub</a>
+        The agents of the versions they get (<RouterLink :to="{ name: 'servers', params: { tab: 'versions' } }"
+          >Versions</RouterLink
+        >; PNMT's own, {{ d.version }}, unless another is chosen): PNMT serves them from its download folder, fetched
+        from the release on GitHub and checked against its SHA-256.
+        <a v-if="d.releaseUrl" :href="d.releaseUrl" rel="noopener">Windows' release on GitHub</a>
+        <template v-if="d.linuxReleaseUrl && d.linuxReleaseUrl !== d.releaseUrl">
+          · <a :href="d.linuxReleaseUrl" rel="noopener">Linux' release</a></template
+        >
       </p>
       <Message v-if="!d.serveDownloads" severity="info" :closable="false" size="small">
         PNMT doesn't serve the agents' files (Agents__ServeDownloads is off): the links and lines are GitHub's.
@@ -58,7 +49,10 @@ async function fetchAgain(files: string[] | null) {
       <Message v-if="d.note" severity="info" :closable="false" size="small">{{ d.note }}</Message>
       <div class="two-columns">
         <section class="panel">
-          <div class="panel-header">Windows: PNMT Sensor {{ d.version }}</div>
+          <div class="panel-header">
+            Windows: PNMT Sensor {{ d.windowsVersion }}
+            <Tag v-if="d.windowsVersion !== d.version" :value="`PNMT is ${d.version}`" severity="secondary" />
+          </div>
           <div class="panel-body content">
             <p>
               One executable with .NET included, for Windows Server 2016–2025, Windows 11 and Windows 10 Pro, Enterprise
@@ -95,7 +89,10 @@ async function fetchAgain(files: string[] | null) {
           </div>
         </section>
         <section class="panel">
-          <div class="panel-header">Linux: the PNMT agent {{ d.version }}</div>
+          <div class="panel-header">
+            Linux: the PNMT agent {{ d.linuxVersion }}
+            <Tag v-if="d.linuxVersion !== d.version" :value="`PNMT is ${d.version}`" severity="secondary" />
+          </div>
           <div class="panel-body content">
             <p>
               One binary with .NET included, for Debian 12 and 13, Ubuntu LTS 22.04 to 26.04 and Proxmox VE 8 and 9, x64
@@ -116,72 +113,13 @@ async function fetchAgain(files: string[] | null) {
           </div>
         </section>
       </div>
-      <section class="panel">
-        <div class="panel-header">
-          PNMT's download folder
-          <span class="spacer" />
-          <Button
-            v-if="d.serveDownloads && anyMissing"
-            label="Fetch the missing files"
-            icon="pi pi-cloud-download"
-            size="small"
-            severity="secondary"
-            :loading="busy"
-            @click="fetchAgain(null)"
-          />
-        </div>
-        <DataTable :value="d.assets" size="small" data-key="name">
-          <Column header="File">
-            <template #body="{ data: f }">
-              <span class="mono">{{ f.name }}</span>
-              <div class="muted small">{{ f.platform }} · {{ f.architecture }}</div>
-            </template>
-          </Column>
-          <Column header="State" style="width: 18rem">
-            <template #body="{ data: f }">
-              <Tag :value="fileStateLabel(f.state)" :severity="fileStateSeverity(f.state)" />
-              <span v-if="f.fetchedAt" class="muted small"> <RelativeTime :value="f.fetchedAt" /></span>
-              <div v-if="f.error" class="small fail">{{ f.error }}</div>
-            </template>
-          </Column>
-          <Column header="Size" style="width: 7rem">
-            <template #body="{ data: f }"
-              ><span class="small">{{ f.size ? bytes(f.size) : '–' }}</span></template
-            >
-          </Column>
-          <Column header="SHA-256" style="width: 12rem">
-            <template #body="{ data: f }">
-              <span v-if="f.sha256" class="mono small" :title="f.sha256">{{ f.sha256.slice(0, 12) }}…</span>
-              <span v-else class="muted small">not known</span>
-            </template>
-          </Column>
-          <Column header="Links" style="width: 9rem">
-            <template #body="{ data: f }">
-              <a v-if="f.pnmtUrl && f.state === 'Here'" :href="f.pnmtUrl" rel="noopener" class="small">PNMT</a>
-              <span v-if="f.pnmtUrl && f.state === 'Here'" class="muted"> · </span>
-              <a :href="f.gitHubUrl" rel="noopener" class="small">GitHub</a>
-            </template>
-          </Column>
-          <Column v-if="d.serveDownloads" header="" style="width: 9rem">
-            <template #body="{ data: f }">
-              <Button
-                label="Fetch again"
-                icon="pi pi-refresh"
-                size="small"
-                text
-                :disabled="f.state === 'Fetching'"
-                :aria-label="`Fetch ${f.name} again`"
-                @click="fetchAgain([f.name])"
-              />
-            </template>
-          </Column>
-        </DataTable>
-        <div class="panel-body small muted note">
-          A file is fetched from the release when first asked for, checked against its .sha256 and kept; a container
-          starts empty. Fetch again replaces a file that doesn't match. Without internet, mount a folder holding the
-          release's files at Agents__DownloadFolder.
-        </div>
-      </section>
+      <p class="small muted">
+        Each file's state in PNMT's download folder, other versions, fetching and uploading:
+        <RouterLink :to="{ name: 'servers', params: { tab: 'versions' } }">Versions</RouterLink>.
+        <template v-if="missing.length">
+          Not here yet: {{ missing.join(', ') }}; fetched from GitHub when first asked for.</template
+        >
+      </p>
     </template>
     <p v-else-if="agent.isPending.value" class="muted">Loading…</p>
   </div>

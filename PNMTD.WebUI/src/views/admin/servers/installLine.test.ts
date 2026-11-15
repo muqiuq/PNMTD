@@ -19,6 +19,7 @@ const file = (state: S['AgentDownloadState'], error: string | null = null): S['A
   state,
   error,
   fetchedAt: null,
+  version: '1.3.0',
 })
 
 const downloads = (state: S['AgentDownloadState'] = 'Here', error: string | null = null) => ({

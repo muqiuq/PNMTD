@@ -70,7 +70,16 @@ const tab = (t: string) => ({ name: 'sensor', params: { id: id.value, tab: t } }
           <div class="tag-line">
             <Tag :value="connection(server.server).label" :severity="connection(server.server).severity" />
             <span class="mono small">{{ server.server.agentVersion }}</span>
-            <Tag v-if="server.server.outdated" :value="`PNMT is ${server.pnmtVersion}`" severity="warn" />
+            <Tag
+              v-if="server.server.outdated"
+              :value="`Update available: ${server.server.chosenVersion}`"
+              severity="warn"
+            />
+            <Tag
+              v-else-if="server.server.ahead"
+              :value="`newer than ${server.server.chosenVersion}`"
+              severity="secondary"
+            />
             <Tag
               v-if="rights"
               :value="`rights: ${rightsSource(rights).label}`"
@@ -78,7 +87,7 @@ const tab = (t: string) => ({ name: 'sensor', params: { id: id.value, tab: t } }
             />
           </div>
           <template v-if="server.server.outdated">
-            <span class="small muted">Update it on the server, as root:</span>
+            <span class="small muted">Run it on the server, as root: PNMT can't start an update.</span>
             <CopyField value="pnmt-agent update" label="Update line" />
           </template>
           <Message v-if="rights?.problem" severity="error" :closable="false" size="small">{{ rights.problem }}</Message>

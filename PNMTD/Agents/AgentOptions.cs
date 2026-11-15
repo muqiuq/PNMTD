@@ -65,6 +65,20 @@ public sealed class AgentOptions
     /// <summary>Downloads of the agents' files per hour and address (§9.7).</summary>
     public int DownloadsPerHour { get; set; } = 20;
 
+    /// <summary>
+    /// GitHub's list of the agents' releases (docs/agent-update-plan.md §3.2). Not set: derived from
+    /// <see cref="AgentDownloadBaseUrl"/> when that is <c>https://github.com/{owner}/{repo}/releases/download</c>
+    /// (<c>https://api.github.com/repos/{owner}/{repo}/releases?per_page=100</c>). Empty: no list, as for a mirror; a version is
+    /// then fetched by its number.
+    /// </summary>
+    public string? ReleasesApiUrl { get; set; }
+
+    /// <summary>
+    /// The versions kept in the download folder besides the chosen ones and PNMTD's own (docs/agent-update-plan.md §3.4): the
+    /// newest this many from GitHub. Uploaded versions are kept until deleted.
+    /// </summary>
+    public int KeepVersions { get; set; } = 2;
+
     /// <summary>A burst of failed logins (454, 464) is counted over this many minutes (§4.7).</summary>
     public int FailedLoginWindowMinutes { get; set; } = 10;
 

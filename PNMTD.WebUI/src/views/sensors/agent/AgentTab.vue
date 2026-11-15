@@ -99,9 +99,20 @@ const rejoining = ref(false)
             <dt>Version</dt>
             <dd>
               <span class="mono">{{ server.server.agentVersion }}</span> ({{ server.server.architecture }})
-              <Tag v-if="server.server.outdated" :value="`PNMT is ${server.pnmtVersion}`" severity="warn" />
+              <Tag
+                v-if="server.server.outdated"
+                :value="`Update available: ${server.server.chosenVersion}`"
+                severity="warn"
+              />
+              <Tag
+                v-else-if="server.server.ahead"
+                :value="`newer than ${server.server.chosenVersion}, the version agents get`"
+                severity="secondary"
+              />
               <template v-if="linux && server.server.outdated">
-                <div class="small muted">Update it on the server, as root; it checks PNMT's signature:</div>
+                <div class="small muted">
+                  Run it on the server, as root: PNMT can't start an update. It checks PNMT's signature.
+                </div>
                 <CopyField value="pnmt-agent update" label="Update line" />
               </template>
             </dd>
