@@ -135,6 +135,10 @@ public class KbRevisionEntity
     [MaxLength(200)]
     public string ByName { get; set; } = "";
 
+    /// <summary>How it was made: null in the UI, <c>mcp</c> over MCP (docs/mcp-plan.md §7.3).</summary>
+    [MaxLength(16)]
+    public string? Via { get; set; }
+
     [MaxLength(160)]
     public string Title { get; set; } = "";
 

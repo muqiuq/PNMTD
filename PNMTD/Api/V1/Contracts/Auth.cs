@@ -34,7 +34,14 @@ public sealed record CurrentUser(Guid Id, string Username, string DisplayName, b
 /// </summary>
 public sealed record SessionFlags(bool MustChangePassword, bool TotpSetupRequired, bool TotpSetupSuggested);
 
-public sealed record MeResponse(CurrentUser User, SessionFlags Flags);
+/// <summary>
+/// The session's own clock (docs/mcp-plan.md §3.3). <see cref="TotpDue"/>: the day's code is due, every other call is
+/// 403 totp_due until it is entered at <c>/auth/totp/daily</c>. <see cref="SignedInUntil"/>: when the password is asked
+/// for again, null when <c>Auth__LoginDays</c> is 0.
+/// </summary>
+public sealed record SessionTimes(bool TotpDue, DateTime? SignedInUntil);
+
+public sealed record MeResponse(CurrentUser User, SessionFlags Flags, SessionTimes Session);
 
 /// <summary><c>POST /account/password</c>: the current password and a new one (10 to 256 characters).</summary>
 public sealed class ChangePasswordRequest

@@ -20,6 +20,8 @@ const username = ref('')
 const password = ref('')
 const busy = ref(false)
 const error = ref<string | null>(route.query.expired ? 'The sign-in has expired. Enter your password again.' : null)
+/** The monthly sign-in (docs/mcp-plan.md §3.2): a note, not an error. */
+const monthly = computed(() => route.query.reason === 'monthly')
 const returnUrl = computed(() => safeReturnUrl(route.query.returnUrl))
 
 async function submit() {
@@ -52,6 +54,9 @@ async function submit() {
 <template>
   <form class="form" novalidate @submit.prevent="submit">
     <h1>Sign in</h1>
+    <Message v-if="monthly && !error" severity="info" :closable="false"
+      >Please sign in again: PNMT asks for the password once a month.</Message
+    >
     <Message v-if="error" severity="error" :closable="false" role="alert">{{ error }}</Message>
     <div class="field">
       <label for="username">Username</label>

@@ -589,6 +589,20 @@ public class CookieMessageEntity
 
     /// <summary>A reply's sources' areas (§9.2).</summary>
     public List<string> Areas { get; set; } = [];
+
+    /// <summary>Where a person's message came from: <c>ui</c> (the chat) or <c>mcp</c> (docs/mcp-plan.md §8.5).</summary>
+    [MaxLength(8)]
+    public string Source { get; set; } = "ui";
+
+    /// <summary>The MCP token it came through.</summary>
+    public Guid? McpTokenId { get; set; }
+
+    /// <summary>Through a read-only token: questions only, no instructions (docs/mcp-plan.md §8.3).</summary>
+    public bool ReadOnly { get; set; }
+
+    /// <summary>Jev refused it before Cookie saw it (docs/mcp-plan.md §8.2); never answered.</summary>
+    [MaxLength(300)]
+    public string? RefusedWhy { get; set; }
 }
 
 /// <summary>The privacy filter's mapping (docs/cookie-plan.md §13.2): a value and its stable placeholder, PERSON_1, EMAIL_2.</summary>

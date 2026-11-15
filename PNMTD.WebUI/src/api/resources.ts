@@ -431,6 +431,44 @@ export const api = {
    * Cookie (docs/cookie-plan.md §19.4): the status every signed-in user's, the cases Cookie's Use, each filtered by the
    * reader's rights; Admin → Cookie (§9.3) Cookie's Manage.
    */
+  /**
+   * MCP (docs/mcp-plan.md §4.5, §10): one's own two tokens for the dashboard's card, and Admin → MCP. A token's value comes
+   * back once, when it is made; never again.
+   */
+  mcp: {
+    account: () => call(client.GET('/api/v1/account/mcp')),
+    turnOn: (kind: S['McpTokenKind']) =>
+      call(client.POST('/api/v1/account/mcp/{kind}/on', { params: { path: { kind } } })),
+    turnOff: (kind: S['McpTokenKind']) =>
+      call(client.POST('/api/v1/account/mcp/{kind}/off', { params: { path: { kind } } })),
+    regenerate: (kind: S['McpTokenKind']) =>
+      call(client.POST('/api/v1/account/mcp/{kind}/regenerate', { params: { path: { kind } } })),
+    /** "Allow deleting for 10 minutes" (§7.5), and Stop now. */
+    openDeleteWindow: () => call(client.POST('/api/v1/account/mcp/write/delete-window')),
+    closeDeleteWindow: () => call(client.DELETE('/api/v1/account/mcp/write/delete-window')),
+    myLog: (query: ListQuery & { tokenId?: Id; kind?: S['McpTokenKind']; outcome?: S['McpOutcome'] }) =>
+      call(client.GET('/api/v1/account/mcp/log', { params: { query } })),
+    /** The documentation's data, from the catalog itself: every signed-in user. */
+    catalog: () => call(client.GET('/api/v1/mcp/catalog')),
+    /** Everyone's log: MCP's View. */
+    log: (
+      query: ListQuery & {
+        userId?: Id
+        tokenId?: Id
+        kind?: S['McpTokenKind']
+        tool?: string
+        outcome?: S['McpOutcome']
+        from?: string
+        to?: string
+      },
+    ) => call(client.GET('/api/v1/mcp/log', { params: { query } })),
+    /** An entry with its arguments, result and changes: MCP's View, or one's own. */
+    entry: (id: number) => call(client.GET('/api/v1/mcp/log/{id}', { params: { path: { id } } })),
+    tokens: () => call(client.GET('/api/v1/mcp/tokens')),
+    /** MCP's Manage: with a reason the token's user reads. */
+    turnOffToken: (id: Id, reason: string) =>
+      call(client.POST('/api/v1/mcp/tokens/{id}/off', { params: { path: { id } }, body: { reason } })),
+  },
   cookie: {
     status: () => call(client.GET('/api/v1/cookie/status')),
     /** The reader's personal summary (§8): written when asked, kept for 15 minutes. */
@@ -879,6 +917,8 @@ export const keys = {
   account: ['account'] as const,
   /** The availability plan: the days, the people and the settings (docs/cookie-plan.md §8.2, §9.4). */
   availability: ['availability'] as const,
+  /** MCP: one's tokens, the catalog, the log, everyone's tokens (docs/mcp-plan.md §10). */
+  mcp: ['mcp'] as const,
 }
 
 /** The request of a resource as it is, with some fields changed: v1's PUT takes every writable field. */

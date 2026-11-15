@@ -71,6 +71,13 @@ if [[ "$(env_value Cookie__Enabled)" == "true" ]]; then
 else
   echo "  Cookie:     off"
 fi
+# MCP (docs/mcp-plan.md): on or off; never a token.
+if [[ "$(env_value Mcp__Enabled)" == "true" ]]; then
+  mcp_hours="$(env_value Mcp__WriteHours)"
+  echo "  MCP:        on at /mcp (read & write tokens for ${mcp_hours:-12} hours)"
+else
+  echo "  MCP:        off"
+fi
 echo "  Backups:    $(ls -1d "$(env_value PNMTD_BACKUP_DIR || echo backups)"/pnmtd-* 2>/dev/null | wc -l | tr -d ' ') in $(env_value PNMTD_BACKUP_DIR)"
 files="$(files_dir)"
 files_size=""

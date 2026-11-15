@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -7,6 +8,8 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using PNMTD.Api;
 
 namespace PNMTD.Auth;
@@ -84,6 +87,7 @@ public static class AuthSetup
                 options.Events.OnValidatePrincipal = SessionCache.ValidateAsync;
             });
 
+        services.Configure<AuthOptions>(configuration.GetSection(AuthOptions.Section));
         services.AddMemoryCache();
         services.AddSingleton<SessionCache>();
         services.AddScoped<UserAccounts>();
@@ -150,7 +154,9 @@ public static class AuthSetup
 ///   sign out and read who it is. The claim goes when the password changes and the cookie is issued anew.</item>
 /// <item>totp_setup_required (Auth:TotpPolicy, and no 2FA yet): it may also set 2FA up. The password
 ///   comes first, so this one allows changing it.</item>
+/// <item>totp_due (docs/mcp-plan.md §3.3): the day's code. Only who it is, signing out, and the code itself.</item>
 /// </list>
+/// A request that passes them is the person being online (§3.4): <see cref="LastSeen"/>.
 /// </summary>
 public static class SessionGates
 {
@@ -160,6 +166,8 @@ public static class SessionGates
             ["/api/v1/auth", "/api/v1/account/password", "/api/v1/system/info"]),
         (SessionClaims.TotpSetupPending, "totp_setup_required", "Set up two-factor authentication first.",
             ["/api/v1/auth", "/api/v1/account/password", "/api/v1/account/totp", "/api/v1/system/info"]),
+        (SessionClaims.TotpDue, SessionRules.TotpDueCode, "Enter your 2FA code for today.",
+            ["/api/v1/auth", "/api/v1/system/info"]),
     ];
 
     public static IApplicationBuilder UseSessionGates(this IApplicationBuilder app) =>
@@ -168,18 +176,62 @@ public static class SessionGates
             var path = context.Request.Path;
             if (path.StartsWithSegments(ApiPaths.V1, StringComparison.OrdinalIgnoreCase))
             {
+                var gated = false;
                 foreach (var (claim, code, detail, allowed) in Gates)
                 {
-                    if (context.User.HasClaim(claim, "true") && !allowed.Any(a => path.StartsWithSegments(a, StringComparison.OrdinalIgnoreCase)))
+                    if (!context.User.HasClaim(claim, "true"))
+                    {
+                        continue;
+                    }
+                    gated = true;
+                    if (!allowed.Any(a => path.StartsWithSegments(a, StringComparison.OrdinalIgnoreCase)))
                     {
                         await Results.Problem(statusCode: StatusCodes.Status403Forbidden, detail: detail,
                             extensions: new Dictionary<string, object?> { ["code"] = code }).ExecuteAsync(context);
                         return;
                     }
                 }
+                if (!gated)
+                {
+                    await LastSeen.TouchAsync(context);
+                }
             }
             await next(context);
         });
+}
+
+/// <summary>
+/// <c>users.LastSeenAt</c> (docs/mcp-plan.md §3.4): a request of the web UI that no gate holds up. Written at most every
+/// <see cref="Every"/> per user, so a page's polling costs one small update in five minutes, not one per request.
+/// Only people's sessions count: not MCP tokens, not the CLI.
+/// </summary>
+public static class LastSeen
+{
+    public static readonly TimeSpan Every = TimeSpan.FromMinutes(5);
+
+    /// <summary>The authentication types that are a person in the web UI (and the tests' sign-in, which stands for it).</summary>
+    public static bool IsPerson(ClaimsPrincipal user) =>
+        user.Identity is { IsAuthenticated: true, AuthenticationType: { } type } && !string.Equals(type, Mcp.McpTokenDefaults.Scheme, StringComparison.Ordinal);
+
+    public static async Task TouchAsync(HttpContext context)
+    {
+        if (!IsPerson(context.User) || context.User.UserId() is not { } id)
+        {
+            return;
+        }
+        var cache = context.RequestServices.GetRequiredService<IMemoryCache>();
+        var key = $"last-seen:{id}";
+        var now = PNMTD.Lib.Helper.Clock.UtcNow;
+        // Compared on PNMT's clock, not the cache's own, so the rule follows Clock like every other one.
+        if (cache.TryGetValue(key, out DateTime written) && now - written < Every)
+        {
+            return;
+        }
+        cache.Set(key, now, TimeSpan.FromHours(1));
+        // A bulk update: no tracked change, so no audit entry for being online.
+        await context.RequestServices.GetRequiredService<Data.PnmtdDbContext>().Users.Where(u => u.Id == id)
+            .ExecuteUpdateAsync(u => u.SetProperty(x => x.LastSeenAt, now), context.RequestAborted);
+    }
 }
 
 /// <summary>

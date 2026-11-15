@@ -1,3 +1,4 @@
+using PNMTD.Tools;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -358,6 +359,11 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
         {
             var asker = await db.Users.AsNoTracking().Where(u => u.Id == message.UserId).Select(u => new { u.DisplayName, u.IsActive }).SingleOrDefaultAsync(ct);
             var askerRights = (await Auth.SessionCache.LoadAsync(db, message.UserId))?.Rights ?? UserRights.None;
+            if (message.Source == "mcp")
+            {
+                // Over MCP with the token's rights (docs/mcp-plan.md §8.5): capped like every MCP call.
+                askerRights = Mcp.McpRights.For(askerRights, message.ReadOnly ? McpTokenKind.Read : McpTokenKind.Write);
+            }
             var rights = Lower(askerRights, cookie);
             var now = Clock.UtcNow;
             var c = new CookieCaseEntity
@@ -421,7 +427,8 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 };
                 var instructions = CookiePrompts.Fill(await brain.CaseInstructionAsync("request", ct), requestValues);
                 var allowed = CookieTools.Definitions(CookieTools.For(rights));
-                var canInstruct = askerRights.Has(Auth.Rights.Area.Cookie, Auth.Rights.Level.Instruct);
+                // A read-only token only asks (docs/mcp-plan.md §8.3), whatever its user may do.
+                var canInstruct = !message.ReadOnly && askerRights.Has(Auth.Rights.Area.Cookie, Auth.Rights.Level.Instruct);
                 var work = new JsonArray(Message("system", $"{system}\n\n{instructions}\n\nYou don't act from the chat: for anything the person wants " +
                     "done, say what would happen and who could do it. " + (canInstruct
                         ? "This person may give instructions: if they give one (mute something, suppress a kind of message, a note on how you should " +

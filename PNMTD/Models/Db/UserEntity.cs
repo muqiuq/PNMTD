@@ -84,6 +84,13 @@ public class UserEntity
 
     public DateTime? LastLoginAt { get; set; }
 
+    /// <summary>
+    /// The last request of the web UI that passed the session gates (docs/mcp-plan.md §3.4), written at most every 5 minutes.
+    /// MCP calls, the CLI and refused requests don't count. The read-only MCP token stays on until 7 days after it.
+    /// </summary>
+    [AuditIgnore]
+    public DateTime? LastSeenAt { get; set; }
+
     [AuditIgnore]
 
     public DateTime? PasswordChangedAt { get; set; }

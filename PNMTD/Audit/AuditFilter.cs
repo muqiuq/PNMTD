@@ -47,7 +47,13 @@ public sealed class AuditFilter(IDbContextFactory<PnmtdDbContext> dbs, ILogger<A
         await CompleteAsync(scope, status, code);
     }
 
-    private async Task CompleteAsync(AuditScope scope, int status, string? code)
+    private Task CompleteAsync(AuditScope scope, int status, string? code) => CompleteAsync(dbs, logger, scope, status, code);
+
+    /// <summary>
+    /// Ends a scope and writes what its request's own saves didn't. Also for the MCP server's writes, which aren't MVC
+    /// actions (docs/mcp-plan.md §9.4).
+    /// </summary>
+    internal static async Task CompleteAsync(IDbContextFactory<PnmtdDbContext> dbs, ILogger logger, AuditScope scope, int status, string? code)
     {
         scope.End(status >= 400 ? AuditOutcome.Failed : AuditOutcome.Succeeded, status >= 400 ? $"{status}{(code is null ? "" : " " + code)}" : null);
         if (scope.Persisted && !scope.Dirty)

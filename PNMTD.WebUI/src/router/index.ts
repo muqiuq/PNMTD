@@ -290,6 +290,13 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/AuditLogView.vue'),
     meta: { title: 'Audit log', right: ['AuditLog', 'View'] },
   },
+  {
+    // Admin → MCP (docs/mcp-plan.md §10): the documentation for every signed-in user; the log and the tokens by MCP's rights.
+    path: '/admin/mcp/:tab(docs|log|tokens)?',
+    name: 'admin-mcp',
+    component: () => import('@/views/admin/mcp/McpView.vue'),
+    meta: { title: 'MCP' },
+  },
   // It was the auth log until 1.4 (docs/audit-redmine-zabbix-plan.md §4.2): old links keep working, with their filters.
   { path: '/admin/auth-log', redirect: (to) => ({ name: 'audit-log', query: to.query }) },
   {

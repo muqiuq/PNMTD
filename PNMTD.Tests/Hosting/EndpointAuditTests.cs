@@ -107,6 +107,22 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/mail-log/{id:guid}"] = ("Mail:Read", Roles.User),
         ["GET /api/v1/auth/me"] = ("signed-in", Roles.Viewer),
         ["POST /api/v1/auth/logout"] = ("signed-in", Roles.Viewer),
+        // The day's 2FA code (docs/mcp-plan.md §3.3).
+        ["POST /api/v1/auth/totp/daily"] = ("signed-in", Roles.Viewer),
+        // One's own MCP tokens (docs/mcp-plan.md §4.5): the dashboard's card.
+        ["GET /api/v1/account/mcp"] = ("signed-in", Roles.Viewer),
+        ["POST /api/v1/account/mcp/{kind:regex(^(read|write)$)}/on"] = ("signed-in", Roles.Viewer),
+        ["POST /api/v1/account/mcp/{kind:regex(^(read|write)$)}/off"] = ("signed-in", Roles.Viewer),
+        ["POST /api/v1/account/mcp/{kind:regex(^(read|write)$)}/regenerate"] = ("signed-in", Roles.Viewer),
+        ["POST /api/v1/account/mcp/write/delete-window"] = ("signed-in", Roles.Viewer),
+        ["DELETE /api/v1/account/mcp/write/delete-window"] = ("signed-in", Roles.Viewer),
+        ["GET /api/v1/account/mcp/log"] = ("signed-in", Roles.Viewer),
+        // Admin → MCP (docs/mcp-plan.md §10): the documentation for everyone, an entry of one's own too.
+        ["GET /api/v1/mcp/catalog"] = ("signed-in", Roles.Viewer),
+        ["GET /api/v1/mcp/log"] = ("Mcp:View", Roles.Admin),
+        ["GET /api/v1/mcp/log/{id:long}"] = ("signed-in", Roles.Viewer),
+        ["GET /api/v1/mcp/tokens"] = ("Mcp:View", Roles.Admin),
+        ["POST /api/v1/mcp/tokens/{id:guid}/off"] = ("Mcp:Manage", Roles.Admin),
         ["POST /api/v1/account/password"] = ("signed-in", Roles.Viewer),
         ["POST /api/v1/account/sessions/revoke"] = ("signed-in", Roles.Viewer),
         ["POST /api/v1/account/totp/setup"] = ("signed-in", Roles.Viewer),

@@ -137,6 +137,8 @@ public sealed class KbRevisions(PnmtdDbContext db, IHttpContextAccessor accessor
             At = now,
             ByUserId = actor.Id,
             ByName = actor.Name,
+            // Over MCP the page's history says so (docs/mcp-plan.md §7.3).
+            Via = As is null && Mcp.McpPrincipal.IsMcp(accessor.HttpContext?.User) ? "mcp" : null,
             Title = page.Title,
             Summary = page.Summary,
             Content = page.Content,

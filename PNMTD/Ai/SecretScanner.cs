@@ -11,7 +11,7 @@ public static class SecretKinds
 {
     public const string PrivateKey = "privateKey";
     public const string Password = "password";
-    /// <summary>A token in a known format: GitHub, GitLab, Slack, AWS, Google, Stripe, <c>sk-…</c>.</summary>
+    /// <summary>A token in a known format: GitHub, GitLab, Slack, AWS, Google, Stripe, <c>sk-…</c>, PNMT's MCP tokens.</summary>
     public const string Token = "token";
     public const string Jwt = "jwt";
     public const string Authorization = "authorization";
@@ -166,7 +166,9 @@ public static partial class SecretScanner
     }
 
     [GeneratedRegex(@"\b(?:(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,}|glpat-[A-Za-z0-9_-]{20,}|xox[abposr]-[A-Za-z0-9-]{10,}"
-        + @"|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|[sr]k_(?:live|test)_[A-Za-z0-9]{16,}|sk-(?=[A-Za-z0-9_-]*\d)[A-Za-z0-9_-]{20,})\b",
+        + @"|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|[sr]k_(?:live|test)_[A-Za-z0-9]{16,}|sk-(?=[A-Za-z0-9_-]*\d)[A-Za-z0-9_-]{20,}"
+        // PNMT's own MCP tokens (docs/mcp-plan.md §9.5).
+        + @"|pnmt_r[ow]_[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-]))(?:\b|(?<=[_-]))",
         RegexOptions.None, 250)]
     private static partial Regex KnownToken();
 

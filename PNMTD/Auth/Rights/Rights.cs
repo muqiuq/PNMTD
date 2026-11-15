@@ -10,7 +10,7 @@ namespace PNMTD.Auth.Rights;
 public enum Area
 {
     Monitoring, Commands, Mail, Decisions, Locations, KnowledgeBase, Redmine, Zabbix, UdpNodes, Mikrotik, Servers, SshKeys,
-    Diagnostics, Ai, System, AuditLog, Cookie, Availability,
+    Diagnostics, Ai, System, AuditLog, Cookie, Availability, Mcp,
 }
 
 /// <summary>
@@ -71,6 +71,9 @@ public static class RightsCatalog
             (Level.View, "The availability plan: who is responsible, who works and where. Everyone in the plan sees it and edits their own column."),
             (Level.Edit, "View, plus every column, the past, the responsible, the fallback, the comments, and Fill for everyone."),
             (Level.Manage, "Edit, plus the plan's people and settings: the types, the count columns, the working hours and holidays, the global fallback.")]),
+        new(Area.Mcp, "MCP", [
+            (Level.View, "Admin → MCP: the MCP log of everyone, and every user's tokens and their state."),
+            (Level.Manage, "View, plus turning anyone's token off.")]),
     ];
 
     private static readonly Dictionary<Area, AreaInfo> ByArea = Areas.ToDictionary(a => a.Area);

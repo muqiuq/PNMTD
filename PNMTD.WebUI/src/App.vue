@@ -5,6 +5,7 @@ import ConfirmDialog from 'primevue/confirmdialog'
 import { useRoute } from 'vue-router'
 import AppLayout from '@/layouts/AppLayout.vue'
 import AuthLayout from '@/layouts/AuthLayout.vue'
+import DailyTotpDialog from '@/components/auth/DailyTotpDialog.vue'
 import { useUndoButton } from '@/composables/useUndo'
 import { usePreferences } from '@/stores/preferences'
 
@@ -31,6 +32,7 @@ const undo = useUndoButton()
     </template>
   </Toast>
   <ConfirmDialog />
+  <DailyTotpDialog />
 </template>
 
 <style scoped>

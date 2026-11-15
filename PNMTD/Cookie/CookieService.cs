@@ -497,8 +497,35 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         return new CookieThread(messages, waiting, options.CurrentValue.Enabled ? runtime?.State ?? CookieState.Stopped : CookieState.Stopped);
     }
 
+    /// <summary>Whether Cookie takes messages now: on in ENV and started.</summary>
+    public async Task<bool> RunningAsync(CancellationToken ct) =>
+        options.CurrentValue.Enabled && await db.CookieRuntime.AsNoTracking().AnyAsync(r => r.Running, ct);
+
+    /// <summary>
+    /// A message over MCP that Jev refused (docs/mcp-plan.md §8.2): kept in the person's thread, marked, and never answered,
+    /// so the person sees what was tried in their name.
+    /// </summary>
+    public async Task<long> RefusedMessageAsync(ClaimsPrincipal user, string text, string to, Guid tokenId, bool readOnly, string why, CancellationToken ct)
+    {
+        var message = new CookieMessageEntity
+        {
+            UserId = user.UserId() ?? throw ApiException.NotFound("User"), At = Clock.UtcNow, From = "person", Text = CaseBook.Cut(text, MaxMessageChars)!,
+            To = to, Answered = true, Source = "mcp", McpTokenId = tokenId, ReadOnly = readOnly, RefusedWhy = CaseBook.Cut(why, 300),
+        };
+        db.CookieMessages.Add(message);
+        await db.SaveChangesAsync(ct);
+        return message.Id;
+    }
+
     /// <summary>A message to Cookie: it wakes Cookie at once (§10.2). At most 20 an hour per person.</summary>
-    public async Task<CookieMessageItem> PostMessageAsync(CookieMessageRequest request, ClaimsPrincipal user, CancellationToken ct)
+    public async Task<CookieMessageItem> PostMessageAsync(CookieMessageRequest request, ClaimsPrincipal user, CancellationToken ct) =>
+        await PostMessageAsync(request, user, null, ct);
+
+    /// <summary>
+    /// The same over MCP (docs/mcp-plan.md §8.5): from the token, counted per token as well, and from a read-only token marked
+    /// so that Cookie answers it as a question only.
+    /// </summary>
+    public async Task<CookieMessageItem> PostMessageAsync(CookieMessageRequest request, ClaimsPrincipal user, McpMessageOrigin? mcp, CancellationToken ct)
     {
         var text = request.Text?.Trim() ?? "";
         var to = string.IsNullOrWhiteSpace(request.To) ? "cookie" : request.To.Trim().ToLowerInvariant();
@@ -515,7 +542,17 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         {
             throw new ApiException(StatusCodes.Status429TooManyRequests, "cookie_too_many_messages", $"At most {MessagesPerHour} messages an hour.");
         }
+        if (mcp is not null && await db.CookieMessages.CountAsync(m => m.McpTokenId == mcp.TokenId && m.At >= hour, ct) >= mcp.PerHour)
+        {
+            throw new ApiException(StatusCodes.Status429TooManyRequests, "cookie_too_many_messages", $"At most {mcp.PerHour} messages an hour over this token.");
+        }
         var message = new CookieMessageEntity { UserId = userId, At = Clock.UtcNow, From = "person", Text = text, To = to };
+        if (mcp is not null)
+        {
+            message.Source = "mcp";
+            message.McpTokenId = mcp.TokenId;
+            message.ReadOnly = mcp.ReadOnly;
+        }
         db.CookieMessages.Add(message);
         await db.SaveChangesAsync(ct);
         services.GetRequiredService<CookieSignals>().Raise($"message from {user.Identity?.Name}");
@@ -795,3 +832,6 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         _ => section,
     };
 }
+
+/// <summary>Where a message over MCP came from (docs/mcp-plan.md §8.5): the token, whether it reads only, its limit an hour.</summary>
+public sealed record McpMessageOrigin(Guid TokenId, bool ReadOnly, int PerHour);

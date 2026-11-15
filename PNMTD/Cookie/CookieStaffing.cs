@@ -18,7 +18,7 @@ public static class CookieStaffing
 {
     public const int MaxDays = 14;
 
-    public static async Task<IReadOnlyList<object>> DescribeAsync(AvailabilityPlan plan, PnmtdDbContext db, DateOnly from, DateOnly to, Pseudonyms p,
+    public static async Task<IReadOnlyList<object>> DescribeAsync(AvailabilityPlan plan, PnmtdDbContext db, DateOnly from, DateOnly to, PNMTD.Tools.IMasker p,
         CancellationToken ct)
     {
         var snapshot = await plan.ReadAsync(from, to, ct);
@@ -79,7 +79,7 @@ public static class CookieStaffing
     }
 
     /// <summary>The people's short codes in a text, as their placeholders.</summary>
-    private static string Codes(string text, IReadOnlyList<UserEntity> people, Pseudonyms p)
+    private static string Codes(string text, IReadOnlyList<UserEntity> people, PNMTD.Tools.IMasker p)
     {
         foreach (var person in people.Where(u => u.ShortCode is { Length: 3 }))
         {

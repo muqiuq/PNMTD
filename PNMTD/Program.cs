@@ -1,3 +1,4 @@
+using PNMTD.Mcp;
 using PNMTD.Redmine;
 using PNMTD.Zabbix;
 using System.Net;
@@ -104,6 +105,8 @@ public partial class Program
         // Cookie, the assistant (docs/cookie-plan.md §19).
         PNMTD.Cookie.CookieSetup.AddCookie(builder.Services, builder.Configuration);
         PNMTD.Availability.AvailabilitySetup.AddAvailability(builder.Services);
+        // The MCP server (docs/mcp-plan.md §5), mapped only with Mcp__Enabled=true.
+        PNMTD.Mcp.McpSetup.AddPnmtdMcp(builder.Services, builder.Configuration);
 
         // The build writes the OpenAPI document by starting the host without a database (GetDocument.Insider).
         var documentBuild = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
@@ -148,6 +151,8 @@ public partial class Program
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Zabbix.ZabbixHostSync>());
             // Cookie's case book (docs/cookie-plan.md §19.3), with Cookie:Enabled=true.
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CaseBookTask>());
+            // The MCP tokens' expiry (docs/mcp-plan.md §4.3).
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Mcp.McpTokenExpiryTask>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CookieLoop>());
             // Cookie's lessons and Seraph's drift report, once a day while Cookie runs (docs/cookie-plan.md §21.1).
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CookieDailyTask>());
@@ -210,7 +215,11 @@ public partial class Program
         // The sensor API is anonymous and must not see the session cookie (a sliding renewal would
         // add a Set-Cookie header v0.12 never sent).
         // Nor do the agents' paths, which authenticate by token or key (docs/windows-sensor-plan.md §9.1).
-        app.UseWhen(c => !SensorPaths.IsSensorPath(c.Request.Path) && !PNMTD.Agents.AgentPaths.IsAgentPath(c.Request.Path), b => b.UseAuthentication());
+        // /mcp neither (docs/mcp-plan.md §5.2): a browser's cookie never authenticates an MCP call; its policy runs the token
+        // scheme itself.
+        app.UseMcpOriginCheck();
+        app.UseWhen(c => !SensorPaths.IsSensorPath(c.Request.Path) && !PNMTD.Agents.AgentPaths.IsAgentPath(c.Request.Path)
+            && !PNMTD.Mcp.McpSetup.IsMcpPath(c.Request.Path), b => b.UseAuthentication());
         app.UseAuthorization();            // deny by default (§3.6)
         app.UseSessionGates();   // a temporary password must be changed first
 
@@ -225,6 +234,7 @@ public partial class Program
 
         app.MapControllers();              // /api/v1/**, /event/**, /read/**
         app.MapAgentEndpoints();           // /agent/v1/join, /agent/v1/ws
+        app.MapPnmtdMcp();                 // /mcp, with Mcp__Enabled=true (docs/mcp-plan.md §5)
         app.MapWebUi();                    // SPA deep links, /api 404s
 
         appTask = app.RunAsync();

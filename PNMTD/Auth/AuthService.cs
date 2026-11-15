@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using PNMTD.Data;
 using PNMTD.Lib.Helper;
 using PNMTD.Lib.Security;
@@ -101,10 +102,44 @@ public sealed class AuthService(PnmtdDbContext db, UserAccounts accounts, TotpSe
         {
             return new LoginOutcome(LoginStatus.LoginExpired);
         }
+        if (await CheckCodeAsync(user, code, audit, null, ct) is { } refused)
+        {
+            return refused;
+        }
+        user.LastLoginAt = Clock.UtcNow;
+        accounts.Log(AuditEvents.LoginSucceeded, user, audit, "with 2FA");
+        await accounts.SaveAsync(ct);
+        return new LoginOutcome(LoginStatus.Success, user);
+    }
+
+    /// <summary>
+    /// The day's code (docs/mcp-plan.md §3.3), for a session that is signed in: the checks and the lockout of step 2.
+    /// LoginExpired: the user has no 2FA any more, or is gone.
+    /// </summary>
+    public async Task<LoginOutcome> ConfirmDailyTotpAsync(Guid userId, string? code, AuditContext audit, CancellationToken ct = default)
+    {
+        var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId, ct);
+        if (user is null || !user.IsActive || !user.IsTotpEnabled)
+        {
+            return new LoginOutcome(LoginStatus.LoginExpired);
+        }
+        if (await CheckCodeAsync(user, code, audit, "the day's code", ct) is { } refused)
+        {
+            return refused;
+        }
+        accounts.Log(AuditEvents.TotpDailyConfirmed, user, audit, null);
+        await accounts.SaveAsync(ct);
+        return new LoginOutcome(LoginStatus.Success, user);
+    }
+
+    /// <summary>Null when the code is right (then it is used up, and the count of failures cleared); otherwise why not, saved.</summary>
+    private async Task<LoginOutcome?> CheckCodeAsync(UserEntity user, string? code, AuditContext audit, string? what, CancellationToken ct)
+    {
         var now = Clock.UtcNow;
+        var suffix = what is null ? "" : $" ({what})";
         if (user.LockoutEnd is { } lockedUntil && lockedUntil > now)
         {
-            accounts.Log(AuditEvents.TotpFailed, user, audit, "locked out");
+            accounts.Log(AuditEvents.TotpFailed, user, audit, "locked out" + suffix);
             await accounts.SaveAsync(ct);
             return new LoginOutcome(LoginStatus.LockedOut, RetryAfter: lockedUntil - now);
         }
@@ -114,17 +149,14 @@ public sealed class AuthService(PnmtdDbContext db, UserAccounts accounts, TotpSe
         if (check != TotpCheck.Valid)
         {
             accounts.Log(AuditEvents.TotpFailed, user, audit,
-                secret is null ? "secret unreadable (Data Protection keys lost?)" : check == TotpCheck.Reused ? "code already used" : "wrong code");
+                (secret is null ? "secret unreadable (Data Protection keys lost?)" : check == TotpCheck.Reused ? "code already used" : "wrong code") + suffix);
             CountFailure(user, audit, now);
             await accounts.SaveAsync(ct);
             return new LoginOutcome(LoginStatus.InvalidCode);
         }
         user.TotpLastUsedStep = step;
         UserAccounts.Unlock(user);
-        user.LastLoginAt = now;
-        accounts.Log(AuditEvents.LoginSucceeded, user, audit, "with 2FA");
-        await accounts.SaveAsync(ct);
-        return new LoginOutcome(LoginStatus.Success, user);
+        return null;
     }
 
     private void CountFailure(UserEntity user, AuditContext audit, DateTime now)
@@ -216,8 +248,32 @@ public sealed class SessionCache(IMemoryCache cache)
             return;
         }
         var identity = (ClaimsIdentity)principal!.Identity!;
-        foreach (var claim in identity.Claims.Where(c => c.Type is SessionClaims.TotpSetupPending or SessionClaims.Admin or SessionClaims.Right
-            or ClaimTypes.Role).ToList())
+        var options = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<AuthOptions>>().CurrentValue;
+        var now = Clock.UtcNow;
+        var signedIn = SessionRules.Time(principal, SessionClaims.SignedIn);
+        var totpAt = SessionRules.Time(principal, SessionClaims.TotpAt);
+        if (signedIn is null)
+        {
+            // A session from before 1.6 (docs/mcp-plan.md §3.3): signed in, with the code, as of now. Nobody is signed
+            // out by the update; the first daily code is due at the next reset.
+            signedIn = now;
+            identity.AddClaim(SessionRules.TimeClaim(SessionClaims.SignedIn, now));
+            if (entry.IsTotpEnabled && totpAt is null)
+            {
+                totpAt = now;
+                identity.AddClaim(SessionRules.TimeClaim(SessionClaims.TotpAt, now));
+            }
+            context.ShouldRenew = true;
+        }
+        if (SessionRules.LoginEnds(signedIn.Value, options) is { } ends && ends <= now)
+        {
+            context.HttpContext.Items[SessionRules.LoginExpiredItem] = true;
+            context.RejectPrincipal();
+            await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return;
+        }
+        foreach (var claim in identity.Claims.Where(c => c.Type is SessionClaims.TotpSetupPending or SessionClaims.TotpDue or SessionClaims.Admin
+            or SessionClaims.Right or ClaimTypes.Role).ToList())
         {
             identity.RemoveClaim(claim);
         }
@@ -226,6 +282,10 @@ public sealed class SessionCache(IMemoryCache cache)
         if (!entry.IsTotpEnabled && AuthService.TotpRequired(policy, entry.Rights.IsAdmin))
         {
             identity.AddClaim(new Claim(SessionClaims.TotpSetupPending, "true"));
+        }
+        if (entry.IsTotpEnabled && options.TotpDays > 0 && (totpAt is null || SessionRules.TotpDue(totpAt.Value, options) <= now))
+        {
+            identity.AddClaim(new Claim(SessionClaims.TotpDue, "true"));
         }
     }
 }

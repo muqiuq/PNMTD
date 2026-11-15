@@ -149,6 +149,19 @@ public sealed class AuditScope
         }
     }
 
+    /// <summary>
+    /// Which of the declared events this request turned out to be, as an MCP tool that links or unlinks says (docs/mcp-plan.md
+    /// §9.4). The detail stays what the changes or the service make of it.
+    /// </summary>
+    public void UseEvent(string eventType)
+    {
+        if (EventTypes.Contains(eventType) && !Explicit)
+        {
+            EventType = eventType;
+            Dirty = true;
+        }
+    }
+
     internal void End(AuditOutcome outcome, string? error)
     {
         if (outcome != Outcome || error != Error)

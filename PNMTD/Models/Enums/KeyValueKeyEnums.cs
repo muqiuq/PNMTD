@@ -42,6 +42,9 @@
         // Cookie's case book (docs/cookie-plan.md §19.3).
         LAST_COOKIE_CASEBOOK = 290,
 
+        // The MCP tokens' expiry (docs/mcp-plan.md §4.3).
+        LAST_MCP_TOKEN_EXPIRY = 300,
+
         UNUSED = 999,
     }
 }

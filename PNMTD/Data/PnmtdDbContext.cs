@@ -159,6 +159,10 @@ namespace PNMTD.Data
         public DbSet<CookieMessageEntity> CookieMessages { get; set; }
         public DbSet<CookiePseudonymEntity> CookiePseudonyms { get; set; }
 
+        // The MCP server (docs/mcp-plan.md §11.1)
+        public DbSet<McpTokenEntity> McpTokens { get; set; }
+        public DbSet<McpLogEntity> McpLog { get; set; }
+
         public PnmtdDbContext(DbContextOptions<PnmtdDbContext> options) : base(options)
         {
         }
@@ -727,6 +731,25 @@ namespace PNMTD.Data
                 e.HasOne<UserEntity>().WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(m => new { m.UserId, m.Id });
                 e.HasIndex(m => m.Answered).HasFilter("NOT \"Answered\"");
+            });
+            // The MCP server (docs/mcp-plan.md §4.2, §9.1): text for the enums, as in the audit log.
+            modelBuilder.Entity<McpTokenEntity>(e =>
+            {
+                e.Property(t => t.Kind).HasConversion<string>().HasMaxLength(8);
+                e.Property(t => t.EndedWhy).HasConversion<string>().HasMaxLength(16);
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(t => new { t.UserId, t.Kind }).IsUnique();
+                e.HasIndex(t => t.Hash).IsUnique();
+            });
+            modelBuilder.Entity<McpLogEntity>(e =>
+            {
+                e.Property(l => l.Kind).HasConversion<string>().HasMaxLength(8);
+                e.Property(l => l.Outcome).HasConversion<string>().HasMaxLength(16);
+                e.HasIndex(l => l.At);
+                e.HasIndex(l => new { l.UserId, l.Id });
+                e.HasIndex(l => new { l.TokenId, l.Id });
+                e.HasIndex(l => new { l.Tool, l.Id });
+                e.HasIndex(l => l.CorrelationId);
             });
             modelBuilder.Entity<CookiePseudonymEntity>(e =>
             {

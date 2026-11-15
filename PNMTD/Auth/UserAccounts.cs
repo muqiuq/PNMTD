@@ -371,7 +371,23 @@ public static class SessionClaims
     /// <summary>One per area: "Monitoring:Edit".</summary>
     public const string Right = "pnmt:right";
 
-    public static ClaimsPrincipal Create(UserEntity user)
+    /// <summary>
+    /// When the password was last entered for this session (docs/mcp-plan.md §3.3), Unix seconds. In the cookie: a sliding
+    /// renewal changes the ticket's <c>IssuedUtc</c>, so it can't say this.
+    /// </summary>
+    public const string SignedIn = "pnmt:signed_in";
+
+    /// <summary>When the 2FA code was last entered for this session, Unix seconds. In the cookie.</summary>
+    public const string TotpAt = "pnmt:totp_at";
+
+    /// <summary>The day's code is due (§3.3). Like <see cref="Admin"/> never in the cookie: added on every request.</summary>
+    public const string TotpDue = "pnmt:totp_due";
+
+    /// <summary>
+    /// A session's principal. <paramref name="signedIn"/> defaults to now; <paramref name="totpAt"/> is when the code was
+    /// entered, null for a sign-in without 2FA.
+    /// </summary>
+    public static ClaimsPrincipal Create(UserEntity user, DateTime? signedIn = null, DateTime? totpAt = null)
     {
         var claims = new List<Claim>
         {
@@ -379,7 +395,12 @@ public static class SessionClaims
             new(ClaimTypes.Name, user.Username),
             new(DisplayName, user.DisplayName),
             new(SecurityStamp, user.SecurityStamp),
+            SessionRules.TimeClaim(SignedIn, signedIn ?? PNMTD.Lib.Helper.Clock.UtcNow),
         };
+        if (totpAt is { } at)
+        {
+            claims.Add(SessionRules.TimeClaim(TotpAt, at));
+        }
         if (user.MustChangePassword)
         {
             claims.Add(new Claim(MustChangePassword, "true"));

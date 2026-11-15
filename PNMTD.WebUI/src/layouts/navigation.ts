@@ -163,6 +163,7 @@ export const navigation: NavGroup[] = [
         name: 'audit-log',
         right: ['AuditLog', 'View'],
       },
+      { label: 'MCP', icon: 'pi pi-link', to: '/admin/mcp', name: 'admin-mcp', right: ['Mcp', 'View'] },
       { label: 'System health', icon: 'pi pi-heart', to: '/admin/system', name: 'system', right: ['System', 'Manage'] },
       { label: 'AI', icon: 'pi pi-sparkles', to: '/admin/ai', name: 'ai', right: ['Ai', 'Manage'] },
       { label: 'Cookie', icon: 'pi pi-cog', to: '/admin/cookie', name: 'cookie-admin', right: ['Cookie', 'Manage'] },

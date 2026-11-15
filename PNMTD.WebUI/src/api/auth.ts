@@ -2,6 +2,7 @@ import { call, client, type Schemas } from './client'
 
 export type CurrentUser = Schemas['CurrentUser']
 export type SessionFlags = Schemas['SessionFlags']
+export type SessionTimes = Schemas['SessionTimes']
 export type LoginResponse = Schemas['LoginResponse']
 export type TotpSetup = Schemas['TotpSetup']
 export type SystemInfo = Schemas['SystemInfo']
@@ -13,6 +14,8 @@ export const authApi = {
   login: (username: string, password: string) =>
     call(client.POST('/api/v1/auth/login', { body: { username, password } })),
   loginTotp: (code: string) => call(client.POST('/api/v1/auth/login/totp', { body: { code } })),
+  /** The day's 2FA code (docs/mcp-plan.md §3.3): the session goes on. */
+  totpDaily: (code: string) => call(client.POST('/api/v1/auth/totp/daily', { body: { code } })),
   logout: () => call(client.POST('/api/v1/auth/logout')),
   changePassword: (currentPassword: string, newPassword: string) =>
     call(client.POST('/api/v1/account/password', { body: { currentPassword, newPassword } })),

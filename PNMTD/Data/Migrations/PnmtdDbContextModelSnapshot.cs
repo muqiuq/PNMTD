@@ -1596,8 +1596,23 @@ namespace PNMTD.Data.Migrations
                     b.Property<Guid?>("InstructionId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("McpTokenId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("ReadOnly")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RefusedWhy")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<long?>("RoundId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
 
                     b.Property<string>("Text")
                         .IsRequired()
@@ -2849,6 +2864,10 @@ namespace PNMTD.Data.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
+                    b.Property<string>("Via")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("At");
@@ -3232,6 +3251,200 @@ namespace PNMTD.Data.Migrations
                     b.HasIndex("ProcessedById");
 
                     b.ToTable("maillogs");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.McpLogEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Arguments")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Client")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<long?>("CookieMessageId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("CorrelationId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Guard")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Ip")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Kind")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<byte[]>("Result")
+                        .HasColumnType("bytea");
+
+                    b.Property<bool>("Strike")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Targets")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid?>("TokenId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Tool")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ToolKind")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<bool>("Truncated")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.HasIndex("CorrelationId");
+
+                    b.HasIndex("TokenId", "Id");
+
+                    b.HasIndex("Tool", "Id");
+
+                    b.HasIndex("UserId", "Id");
+
+                    b.ToTable("mcp_log");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.McpTokenEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("BlockedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DeleteCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("DeleteUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EndedNote")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("EndedWhy")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Hash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Hint")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<DateTime?>("IssuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("LastClient")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastUsedFrom")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("OnSince")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OnStamp")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("OnUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.PrimitiveCollection<List<DateTime>>("Strikes")
+                        .IsRequired()
+                        .HasColumnType("timestamp with time zone[]");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Hash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "Kind")
+                        .IsUnique();
+
+                    b.ToTable("mcp_tokens");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.MikrotikBackupEntity", b =>
@@ -4867,6 +5080,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("LockoutCount")
                         .HasColumnType("integer");
 
@@ -5666,6 +5882,15 @@ namespace PNMTD.Data.Migrations
                         .HasForeignKey("ProcessedById");
 
                     b.Navigation("ProcessedBy");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.McpTokenEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.MikrotikBackupEntity", b =>

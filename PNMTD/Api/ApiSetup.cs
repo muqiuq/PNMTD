@@ -67,8 +67,14 @@ public static class ApiSetup
             {
                 return;
             }
-            context.ProblemDetails.Extensions.TryAdd("code",
-                ApiErrorCodes.ForStatus(context.ProblemDetails.Status ?? context.HttpContext.Response.StatusCode));
+            var status = context.ProblemDetails.Status ?? context.HttpContext.Response.StatusCode;
+            // A session whose 30 days ended (docs/mcp-plan.md §3.3): the sign-in page says why.
+            if (status == StatusCodes.Status401Unauthorized && context.HttpContext.Items.ContainsKey(Auth.SessionRules.LoginExpiredItem))
+            {
+                context.ProblemDetails.Detail ??= "Please sign in again: PNMT asks for the password at least once a month.";
+                context.ProblemDetails.Extensions.TryAdd("code", Auth.SessionRules.LoginExpiredCode);
+            }
+            context.ProblemDetails.Extensions.TryAdd("code", ApiErrorCodes.ForStatus(status));
         });
 
         return services;

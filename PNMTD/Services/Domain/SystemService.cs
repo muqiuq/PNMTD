@@ -39,6 +39,8 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new("Zabbix hosts", KeyValueKeyEnums.LAST_ZABBIX_HOST_SYNC, 600, c => Zabbix.ZabbixSetup.Configured(c)),
         // docs/cookie-plan.md §19.3: the case book every 30 seconds, with Cookie__Enabled=true.
         new("Cookie's case book", KeyValueKeyEnums.LAST_COOKIE_CASEBOOK, 30, c => c.GetValue("Cookie:Enabled", false)),
+        // docs/mcp-plan.md §4.3: the tokens' expiry every 5 minutes, with Mcp__Enabled=true.
+        new("MCP tokens", KeyValueKeyEnums.LAST_MCP_TOKEN_EXPIRY, 300, c => c.GetValue("Mcp:Enabled", false)),
     ];
 
     public static bool MailboxConfigured(IConfiguration c) =>

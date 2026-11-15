@@ -37,6 +37,9 @@
     <!-- Locations and the knowledge base (docs/locations-knowledge-plan.md §5.1, §8.3): the server reads Markdown (plain text for the
          search, file references, page links) and never renders it. -->
     <PackageVersion Include="Markdig" Version="1.6.0" />
+    <!-- The MCP server (docs/mcp-plan.md §5.1): Streamable HTTP, stateless (the 2026-07-28 specification). The tool
+         catalog doesn't depend on it, so the SDK can move. -->
+    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.4.0" />
     <!-- Tests: MSTest 4 on Microsoft.Testing.Platform (global.json), as in plm. -->
     <PackageVersion Include="MSTest.TestFramework" Version="4.5.2" />
     <PackageVersion Include="MSTest.TestAdapter" Version="4.5.2" />

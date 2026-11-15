@@ -1755,6 +1755,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/totp/daily": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TotpCodeRequest"];
+                    "text/json": components["schemas"]["TotpCodeRequest"];
+                    "application/*+json": components["schemas"]["TotpCodeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/logout": {
         parameters: {
             query?: never;
@@ -8091,6 +8130,474 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/mcp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["McpAccountItem"];
+                        "text/json": components["schemas"]["McpAccountItem"];
+                        "text/plain": components["schemas"]["McpAccountItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/mcp/{kind}/on": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    kind: components["schemas"]["McpTokenKind"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["McpTokenIssued"];
+                        "text/json": components["schemas"]["McpTokenIssued"];
+                        "text/plain": components["schemas"]["McpTokenIssued"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/mcp/{kind}/off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    kind: components["schemas"]["McpTokenKind"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["McpTokenItem"];
+                        "text/json": components["schemas"]["McpTokenItem"];
+                        "text/plain": components["schemas"]["McpTokenItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/mcp/{kind}/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    kind: components["schemas"]["McpTokenKind"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["McpTokenIssued"];
+                        "text/json": components["schemas"]["McpTokenIssued"];
+                        "text/plain": components["schemas"]["McpTokenIssued"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/mcp/write/delete-window": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["McpTokenItem"];
+                        "text/json": components["schemas"]["McpTokenItem"];
+                        "text/plain": components["schemas"]["McpTokenItem"];
+                    };
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["McpTokenItem"];
+                        "text/json": components["schemas"]["McpTokenItem"];
+                        "text/plain": components["schemas"]["McpTokenItem"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/mcp/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    userId?: string;
+                    tokenId?: string;
+                    kind?: components["schemas"]["McpTokenKind"];
+                    tool?: string;
+                    outcome?: components["schemas"]["McpOutcome"];
+                    from?: string;
+                    to?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfMcpLogItem"];
+                        "text/json": components["schemas"]["PagedOfMcpLogItem"];
+                        "text/plain": components["schemas"]["PagedOfMcpLogItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["McpCatalog"];
+                        "text/json": components["schemas"]["McpCatalog"];
+                        "text/plain": components["schemas"]["McpCatalog"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    userId?: string;
+                    tokenId?: string;
+                    kind?: components["schemas"]["McpTokenKind"];
+                    tool?: string;
+                    outcome?: components["schemas"]["McpOutcome"];
+                    from?: string;
+                    to?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfMcpLogItem"];
+                        "text/json": components["schemas"]["PagedOfMcpLogItem"];
+                        "text/plain": components["schemas"]["PagedOfMcpLogItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/log/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["McpLogDetail"];
+                        "text/json": components["schemas"]["McpLogDetail"];
+                        "text/plain": components["schemas"]["McpLogDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["McpAdminTokenItem"][];
+                        "text/json": components["schemas"]["McpAdminTokenItem"][];
+                        "text/plain": components["schemas"]["McpAdminTokenItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/tokens/{id}/off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["McpTurnOffRequest"];
+                    "text/json": components["schemas"]["McpTurnOffRequest"];
+                    "application/*+json": components["schemas"]["McpTurnOffRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["McpAdminTokenItem"];
+                        "text/json": components["schemas"]["McpAdminTokenItem"];
+                        "text/plain": components["schemas"]["McpAdminTokenItem"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -14670,13 +15177,13 @@ export interface components {
             complaining: number;
         };
         /** @enum {unknown} */
-        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability";
+        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability" | "Mcp";
         /** @enum {unknown} */
         AssignMode: "Add" | "Remove";
         /** @enum {unknown} */
-        AuditActor: "User" | "Cli" | "Agent" | "System" | "Cookie";
+        AuditActor: "User" | "Cli" | "Agent" | "System" | "Cookie" | "Mcp";
         /** @enum {unknown} */
-        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix" | "Cookie" | "Availability";
+        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix" | "Cookie" | "Availability" | "Mcp";
         AuditChange: {
             object: null | string;
             field: string;
@@ -16275,6 +16782,7 @@ export interface components {
             persistent: boolean;
         };
         JsonElement: unknown;
+        JsonObject: Record<string, never>;
         KbAiTagsRequest: {
             /** Format: int32 */
             revision?: number;
@@ -17197,6 +17705,160 @@ export interface components {
             /** Format: int32 */
             unprocessed: number;
         };
+        McpAccountItem: {
+            enabled: boolean;
+            url: string;
+            /** Format: int32 */
+            writeHours: number;
+            /** Format: int32 */
+            readDaysAfterOnline: number;
+            writeRequiresTotp: boolean;
+            totpEnabled: boolean;
+            /** Format: int32 */
+            deleteMinutes: number;
+            /** Format: int32 */
+            deletesPerWindow: number;
+            read: components["schemas"]["McpTokenItem"];
+            write: components["schemas"]["McpTokenItem"];
+        };
+        McpAdminTokenItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            userId: string;
+            username: string;
+            displayName: string;
+            token: components["schemas"]["McpTokenItem"];
+        };
+        McpCatalog: {
+            enabled: boolean;
+            url: string;
+            instructions: string;
+            /** Format: int32 */
+            writeHours: number;
+            /** Format: int32 */
+            readDaysAfterOnline: number;
+            writeRequiresTotp: boolean;
+            /** Format: int32 */
+            deleteMinutes: number;
+            /** Format: int32 */
+            deletesPerWindow: number;
+            /** Format: int32 */
+            callsPerMinute: number;
+            /** Format: int32 */
+            writesPerMinute: number;
+            /** Format: int32 */
+            cookieMessagesPerHour: number;
+            /** Format: int32 */
+            maxResultChars: number;
+            /** Format: int32 */
+            strikesToBlock: number;
+            /** Format: int32 */
+            logEntries: number;
+            ceiling: components["schemas"]["McpCeilingRow"][];
+            guardQuestions: {
+                [key: string]: string;
+            };
+            tools: components["schemas"]["McpToolDoc"][];
+        };
+        McpCeilingRow: {
+            area: components["schemas"]["Area"];
+            label: string;
+            readWrite: null | components["schemas"]["Level"];
+            readOnly: null | components["schemas"]["Level"];
+        };
+        McpLogDetail: {
+            item: components["schemas"]["McpLogItem"];
+            correlationId: string;
+            userAgent: null | string;
+            arguments: null | string;
+            result: null | string;
+            truncated: boolean;
+            error: null | string;
+            targets: null | string;
+            guard: null | string;
+            /** Format: int64 */
+            cookieMessageId: null | number;
+            changes: components["schemas"]["AuditLogItem"][];
+        };
+        McpLogItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            at: string;
+            /** Format: uuid */
+            tokenId: null | string;
+            kind: null | components["schemas"]["McpTokenKind"];
+            /** Format: uuid */
+            userId: null | string;
+            username: string;
+            ip: null | string;
+            client: null | string;
+            method: string;
+            tool: null | string;
+            toolKind: null | string;
+            outcome: components["schemas"]["McpOutcome"];
+            errorCode: null | string;
+            summary: string;
+            strike: boolean;
+            /** Format: int32 */
+            durationMs: number;
+        };
+        /** @enum {unknown} */
+        McpOutcome: "Ok" | "ToolError" | "Denied" | "Refused" | "RateLimited" | "Unauthenticated";
+        /** @enum {unknown} */
+        McpTokenEnd: "Off" | "Expired" | "Regenerated" | "Stamp" | "Strikes" | "Admin" | "UserInactive" | "TotpOff" | null;
+        McpTokenIssued: {
+            token: components["schemas"]["McpTokenItem"];
+            value: null | string;
+        };
+        McpTokenItem: {
+            kind: components["schemas"]["McpTokenKind"];
+            on: boolean;
+            state: string;
+            /** Format: date-time */
+            until: null | string;
+            hasValue: boolean;
+            hint: null | string;
+            /** Format: date-time */
+            issuedAt: null | string;
+            /** Format: date-time */
+            lastUsedAt: null | string;
+            lastUsedFrom: null | string;
+            lastClient: null | string;
+            /** Format: date-time */
+            endedAt: null | string;
+            endedWhy: null | components["schemas"]["McpTokenEnd"];
+            endedNote: null | string;
+            /** Format: date-time */
+            blockedAt: null | string;
+            /** Format: int32 */
+            strikes: number;
+            /** Format: date-time */
+            deleteUntil: null | string;
+            /** Format: int32 */
+            deleteCount: number;
+            rights: {
+                [key: string]: components["schemas"]["Level"];
+            };
+        };
+        /** @enum {unknown} */
+        McpTokenKind: "Read" | "Write";
+        McpToolDoc: {
+            name: string;
+            title: string;
+            description: string;
+            kind: components["schemas"]["ToolKind"];
+            right: string;
+            readOnlyToken: boolean;
+            destructive: boolean;
+            forCookie: boolean;
+            parameters: components["schemas"]["JsonObject"];
+            available: boolean;
+        };
+        McpTurnOffRequest: {
+            reason: null | string;
+        };
         MemoryInfo: {
             /** Format: int64 */
             totalBytes: number;
@@ -17214,6 +17876,7 @@ export interface components {
         MeResponse: {
             user: components["schemas"]["CurrentUser"];
             flags: components["schemas"]["SessionFlags"];
+            session: components["schemas"]["SessionTimes"];
         };
         MikrotikBackupContent: {
             backup: components["schemas"]["MikrotikBackupItem"];
@@ -18218,6 +18881,15 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
+        PagedOfMcpLogItem: {
+            items: components["schemas"]["McpLogItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfMikrotikBackupItem: {
             items: components["schemas"]["MikrotikBackupItem"][];
             /** Format: int32 */
@@ -19068,6 +19740,11 @@ export interface components {
             /** Format: date-time */
             logonAt?: null | string;
         };
+        SessionTimes: {
+            totpDue: boolean;
+            /** Format: date-time */
+            signedInUntil: null | string;
+        };
         ShutdownInfo: {
             /** Format: date-time */
             at: string;
@@ -19658,6 +20335,8 @@ export interface components {
             host: components["schemas"]["Ref"];
             matched: string;
         };
+        /** @enum {unknown} */
+        ToolKind: "Read" | "Write" | "Action" | "Delete" | "Ask";
         TotpCodeRequest: {
             code?: null | string;
         };

@@ -18,7 +18,7 @@ namespace PNMTD.Api.V1;
 [Route("api/v1/auth")]
 [Authorize]
 public sealed class AuthController(AuthService auth, UserAccounts accounts, TotpSecrets secrets, PnmtdDbContext db,
-    IConfiguration configuration) : V1ControllerBase
+    IConfiguration configuration, Microsoft.Extensions.Options.IOptionsMonitor<AuthOptions> authOptions) : V1ControllerBase
 {
     /// <summary>
     /// Step 1. 200 <c>{ next: "done" }</c> with the session cookie, or <c>{ next: "totp" }</c> with the
@@ -36,7 +36,7 @@ public sealed class AuthController(AuthService auth, UserAccounts accounts, Totp
         switch (outcome.Status)
         {
             case LoginStatus.Success:
-                return await SignInAsync(outcome.User!);
+                return await SignInAsync(outcome.User!, withTotp: false);
             case LoginStatus.TotpRequired:
                 Response.Cookies.Append(AuthSetup.TwoFactorCookieName, secrets.IssueTicket(outcome.User!), TwoFactorCookie(TwoFactorService.LoginStepLifetime));
                 return new LoginResponse("totp", null, null);
@@ -65,7 +65,36 @@ public sealed class AuthController(AuthService auth, UserAccounts accounts, Totp
             throw Refused(outcome);
         }
         Response.Cookies.Delete(AuthSetup.TwoFactorCookieName, TwoFactorCookie(maxAge: null));
-        return outcome.Status == LoginStatus.Success ? await SignInAsync(outcome.User!) : throw Refused(outcome);
+        return outcome.Status == LoginStatus.Success ? await SignInAsync(outcome.User!, withTotp: true) : throw Refused(outcome);
+    }
+
+    /// <summary>
+    /// The day's 2FA code (docs/mcp-plan.md §3.3), while <c>/auth/me</c> says <c>totpDue</c>. 204, and the session goes on
+    /// with the code entered now; 401 invalid_code (wrong, or used already), which counts towards the lockout; 429 locked_out;
+    /// 409 totp_not_enabled when the account has no 2FA.
+    /// </summary>
+    [HttpPost("totp/daily")]
+    [EnableRateLimiting(AuthSetup.LoginRateLimit)]
+    [NotAudited("logged by AuthService: TotpDailyConfirmed, TotpFailed, LockedOut")]
+    public async Task<IActionResult> ConfirmDailyTotp(TotpCodeRequest request, CancellationToken ct)
+    {
+        var id = User.UserId() ?? throw new ApiException(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Not signed in.");
+        var outcome = await auth.ConfirmDailyTotpAsync(id, request.Code, AuditContext.From(HttpContext), ct);
+        if (outcome.Status == LoginStatus.LoginExpired)
+        {
+            throw new ApiException(StatusCodes.Status409Conflict, "totp_not_enabled", "This account has no two-factor authentication.");
+        }
+        if (outcome.Status != LoginStatus.Success)
+        {
+            throw Refused(outcome);
+        }
+        if (User.Identity?.AuthenticationType == CookieAuthenticationDefaults.AuthenticationScheme)
+        {
+            var principal = SessionClaims.Create(outcome.User!, SessionRules.Time(User, SessionClaims.SignedIn), Clock.UtcNow);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
+                new AuthenticationProperties { IsPersistent = true, IssuedUtc = Clock.UtcNow });
+        }
+        return NoContent();
     }
 
     private ApiException Refused(LoginOutcome outcome)
@@ -119,14 +148,17 @@ public sealed class AuthController(AuthService auth, UserAccounts accounts, Totp
             throw new ApiException(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Not signed in.");
         }
         CsrfTokens.Issue(HttpContext);
-        return new MeResponse(ToCurrentUser(user, User.Rights()), Flags(user));
+        var until = SessionRules.Time(User, SessionClaims.SignedIn) is { } signedIn ? SessionRules.LoginEnds(signedIn, authOptions.CurrentValue) : null;
+        return new MeResponse(ToCurrentUser(user, User.Rights()), Flags(user), new SessionTimes(User.HasClaim(SessionClaims.TotpDue, "true"), until));
     }
 
-    private async Task<LoginResponse> SignInAsync(UserEntity user)
+    /// <summary>A complete sign-in: the password now, and the code now when <paramref name="withTotp"/> (docs/mcp-plan.md §3.3).</summary>
+    private async Task<LoginResponse> SignInAsync(UserEntity user, bool withTotp)
     {
-        var principal = SessionClaims.Create(user);
+        var now = Clock.UtcNow;
+        var principal = SessionClaims.Create(user, now, withTotp ? now : null);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
-            new AuthenticationProperties { IsPersistent = true, IssuedUtc = Clock.UtcNow });
+            new AuthenticationProperties { IsPersistent = true, IssuedUtc = now });
         // The request tokens are bound to the user: issued for the new session, not the anonymous one.
         HttpContext.User = principal;
         CsrfTokens.Issue(HttpContext);
@@ -160,7 +192,7 @@ public sealed class AccountController(UserAccounts accounts, TwoFactorService tw
     {
         var id = User.UserId() ?? throw ApiException.NotFound("User");
         await accounts.ChangePasswordAsync(id, request.CurrentPassword, request.NewPassword, AuditContext.From(HttpContext), ct);
-        await RenewSessionAsync(id, ct);
+        await RenewSessionAsync(id, ct, password: true);
         return NoContent();
     }
 
@@ -194,7 +226,7 @@ public sealed class AccountController(UserAccounts accounts, TwoFactorService tw
     {
         var id = User.UserId() ?? throw ApiException.NotFound("User");
         await twoFactor.ConfirmAsync(id, request.Code, AuditContext.From(HttpContext), ct);
-        await RenewSessionAsync(id, ct);
+        await RenewSessionAsync(id, ct, totp: true);
         return NoContent();
     }
 
@@ -208,7 +240,7 @@ public sealed class AccountController(UserAccounts accounts, TwoFactorService tw
     {
         var id = User.UserId() ?? throw ApiException.NotFound("User");
         await twoFactor.DisableAsync(id, request.Password, request.Code, AuditContext.From(HttpContext), ct);
-        await RenewSessionAsync(id, ct);
+        await RenewSessionAsync(id, ct, password: true, totp: true);
         return NoContent();
     }
 
@@ -249,14 +281,22 @@ public sealed class AccountController(UserAccounts accounts, TwoFactorService tw
         return new ContactTestResult(result.Ok, result.Detail);
     }
 
-    private async Task RenewSessionAsync(Guid id, CancellationToken ct)
+    /// <summary>
+    /// The session goes on with a fresh cookie (a new stamp). It keeps when the password and the code were entered, unless
+    /// this request entered them (docs/mcp-plan.md §3.3).
+    /// </summary>
+    private async Task RenewSessionAsync(Guid id, CancellationToken ct, bool password = false, bool totp = false)
     {
         // Cookie sessions only: the tests' sign-in has no cookie to renew.
         if (User.Identity?.AuthenticationType == CookieAuthenticationDefaults.AuthenticationScheme)
         {
             var user = await accounts.GetAsync(id, ct);
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, SessionClaims.Create(user),
-                new AuthenticationProperties { IsPersistent = true, IssuedUtc = Clock.UtcNow });
+            var now = Clock.UtcNow;
+            var signedIn = password ? now : SessionRules.Time(User, SessionClaims.SignedIn) ?? now;
+            var totpAt = totp ? now : SessionRules.Time(User, SessionClaims.TotpAt);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
+                SessionClaims.Create(user, signedIn, user.IsTotpEnabled ? totpAt : null),
+                new AuthenticationProperties { IsPersistent = true, IssuedUtc = now });
         }
     }
 }

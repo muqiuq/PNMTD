@@ -4,8 +4,8 @@ using PNMTD.Auth;
 
 namespace PNMTD.Audit;
 
-/// <summary>Who did it (docs/audit-redmine-zabbix-plan.md §3.2). Packages eight to ten add Mcp, Cookie and Seraph.</summary>
-public enum AuditActor { User, Cli, Agent, System, Cookie }
+/// <summary>Who did it (docs/audit-redmine-zabbix-plan.md §3.2). Mcp: a person's MCP token (docs/mcp-plan.md §9.4).</summary>
+public enum AuditActor { User, Cli, Agent, System, Cookie, Mcp }
 
 /// <summary>How it ended (§3.5).</summary>
 public enum AuditOutcome { Succeeded, Failed, Denied }
@@ -25,12 +25,20 @@ public sealed record AuditWho(AuditActor Actor, Guid? UserId, string Username, s
 
     public static AuditWho Agent(string? address, string? reference = null) => new(AuditActor.Agent, null, "agent", reference, address, null);
 
-    /// <summary>The signed-in user of a request, or nobody (an anonymous step of the sign-in).</summary>
+    /// <summary>
+    /// The signed-in user of a request, or nobody (an anonymous step of the sign-in). Through an MCP token, the token's user
+    /// with <c>Actor = Mcp</c> and the token as <see cref="ActorRef"/> (docs/mcp-plan.md §9.4), so every entry an MCP call
+    /// makes, the services' own too, says so.
+    /// </summary>
     public static AuditWho From(HttpContext http)
     {
         var context = AuditContext.From(http);
-        return new AuditWho(AuditActor.User, http.User.UserId(), http.User.Identity?.IsAuthenticated == true ? http.User.Identity.Name ?? "" : "",
-            null, context.IpAddress, context.UserAgent);
+        var name = http.User.Identity?.IsAuthenticated == true ? http.User.Identity.Name ?? "" : "";
+        if (Mcp.McpPrincipal.Reference(http.User) is { } token)
+        {
+            return new AuditWho(AuditActor.Mcp, http.User.UserId(), name, token, context.IpAddress, context.UserAgent);
+        }
+        return new AuditWho(AuditActor.User, http.User.UserId(), name, null, context.IpAddress, context.UserAgent);
     }
 
     /// <summary>The request's user, or the CLI when there is no request.</summary>

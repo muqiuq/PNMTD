@@ -1,6 +1,7 @@
 import type { Router } from 'vue-router'
 import { onApiError } from '@/api/client'
 import { queryClient } from '@/api/queries'
+import { useDailyTotp } from '@/composables/useDailyTotp'
 import { useSession } from '@/stores/session'
 
 /**
@@ -19,8 +20,14 @@ export function installSessionHandling(router: Router) {
       session.set(null, null)
       queryClient.clear()
       if (!current.meta.public) {
-        await router.replace({ name: 'login', query: { returnUrl: current.fullPath } })
+        // The 30 days are over (docs/mcp-plan.md §3.3): the sign-in page says why.
+        const query: Record<string, string> = { returnUrl: current.fullPath }
+        if (error.code === 'login_expired') query.reason = 'monthly'
+        await router.replace({ name: 'login', query })
       }
+    } else if (error.status === 403 && error.code === 'totp_due') {
+      // The day's code, over the current page (§3.3).
+      useDailyTotp().ask()
     } else if (
       error.status === 403 &&
       (error.code === 'must_change_password' || error.code === 'totp_setup_required')

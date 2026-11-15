@@ -154,7 +154,7 @@ public sealed partial class PrivacyFilter(IDbContextFactory<PnmtdDbContext> dbs,
 }
 
 /// <summary>One round's masking, with the names known when it began.</summary>
-public sealed class Pseudonyms(PrivacyFilter owner, Regex? names)
+public sealed class Pseudonyms(PrivacyFilter owner, Regex? names) : PNMTD.Tools.IMasker
 {
     /// <summary>The text with people, e-mail addresses and phone numbers replaced.</summary>
     public string Mask(string? text)

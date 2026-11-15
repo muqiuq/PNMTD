@@ -10,6 +10,9 @@ public static class AuditEvents
     public const string LoginFailed = "LoginFailed";
     public const string LockedOut = "LockedOut";
     public const string TotpFailed = "TotpFailed";
+
+    /// <summary>The day's 2FA code (docs/mcp-plan.md §3.3).</summary>
+    public const string TotpDailyConfirmed = "TotpDailyConfirmed";
     public const string Logout = "Logout";
     public const string TotpEnabled = "TotpEnabled";
     public const string TotpDisabled = "TotpDisabled";
@@ -222,13 +225,23 @@ public static class AuditEvents
     public const string KbAiTagsRequested = "KbAiTagsRequested";
     public const string KbTagRenamed = "KbTagRenamed";
     public const string FileUploaded = "FileUploaded";
+
+    // The MCP server (docs/mcp-plan.md §9.4): the tokens and the window for deleting. A tool's own writes keep their events.
+    public const string McpTokenOn = "McpTokenOn";
+    public const string McpTokenOff = "McpTokenOff";
+    public const string McpTokenRegenerated = "McpTokenRegenerated";
+    public const string McpTokenExpired = "McpTokenExpired";
+    public const string McpTokenBlocked = "McpTokenBlocked";
+    public const string McpTokenTurnedOffByAdmin = "McpTokenTurnedOffByAdmin";
+    public const string McpDeleteAllowed = "McpDeleteAllowed";
+    public const string McpDeleteEnded = "McpDeleteEnded";
 }
 
 /// <summary>What an entry is about: its category on the page and in the filter (docs/audit-redmine-zabbix-plan.md §3.2).</summary>
 public enum AuditCategory
 {
     Auth, Users, Hosts, Sensors, Notifications, Locations, Knowledge, Files, Udp, Mikrotik, WireGuard, Agents, SshKeys,
-    Diagnostics, Dns, Mail, Ai, Decisions, System, Redmine, Zabbix, Cookie, Availability,
+    Diagnostics, Dns, Mail, Ai, Decisions, System, Redmine, Zabbix, Cookie, Availability, Mcp,
 }
 
 /// <summary>The colour of an event's tag.</summary>
@@ -268,6 +281,7 @@ public static class AuditTargets
     public const string RedmineTicket = "RedmineTicket";
     public const string ZabbixHost = "ZabbixHost";
     public const string CookieCase = "CookieCase";
+    public const string McpToken = "McpToken";
 }
 
 /// <summary>An event type of the catalog: its category, a label for people, the tone of its tag, what it is about.</summary>
@@ -361,7 +375,7 @@ public static class AuditCatalog
         Add(AuditCategory.Notifications, null, AuditEvents.NotificationsAssigned);
         Add(AuditCategory.Dns, AuditTargets.DnsZone, AuditEvents.DnsZoneCreated, AuditEvents.DnsZoneUpdated, AuditEvents.DnsZoneDeleted, AuditEvents.DnsZoneUpdateForced, AuditEvents.DnsRecordUpdated);
         Add(AuditCategory.Mail, AuditTargets.MailInputRule, AuditEvents.MailInputRuleCreated, AuditEvents.MailInputRuleUpdated, AuditEvents.MailInputRuleDeleted);
-        Add(AuditCategory.Auth, AuditTargets.User, AuditEvents.TotpSetupStarted);
+        Add(AuditCategory.Auth, AuditTargets.User, AuditEvents.TotpSetupStarted, AuditEvents.TotpDailyConfirmed);
         Add(AuditCategory.System, AuditTargets.KeyValue, AuditEvents.KeyValueCreated, AuditEvents.KeyValueUpdated, AuditEvents.KeyValueDeleted);
         Add(AuditCategory.System, null, AuditEvents.UplinkCheckRun, AuditEvents.AuditLogExported);
         Add(AuditCategory.Udp, AuditTargets.UdpCommand, AuditEvents.UdpCommandQueued, AuditEvents.UdpCommandCancelled);
@@ -380,6 +394,9 @@ public static class AuditCatalog
         Add(AuditCategory.Knowledge, AuditTargets.KbPage, AuditEvents.KbPageCreated, AuditEvents.KbPageSaved, AuditEvents.KbPageArchived, AuditEvents.KbPageRestored, AuditEvents.KbRevisionRestored, AuditEvents.KbAiTagsRequested);
         Add(AuditCategory.Knowledge, AuditTargets.KbTag, AuditEvents.KbTagRenamed);
         Add(AuditCategory.Files, AuditTargets.File, AuditEvents.FileUploaded);
+        Add(AuditCategory.Mcp, AuditTargets.McpToken, AuditEvents.McpTokenOn, AuditEvents.McpTokenOff, AuditEvents.McpTokenRegenerated,
+            AuditEvents.McpTokenExpired, AuditEvents.McpTokenBlocked, AuditEvents.McpTokenTurnedOffByAdmin, AuditEvents.McpDeleteAllowed,
+            AuditEvents.McpDeleteEnded);
     }
 
     public static IReadOnlyList<AuditEventInfo> All => Entries;
@@ -394,7 +411,7 @@ public static class AuditCatalog
     {
         ["Totp"] = "2FA", ["Udp"] = "UDP", ["Kb"] = "KB", ["Ai"] = "AI", ["Ssh"] = "SSH", ["Dns"] = "DNS", ["Wmi"] = "WMI",
         ["Ota"] = "OTA", ["Mikrotik"] = "MikroTik", ["Wireguard"] = "WireGuard", ["Csv"] = "CSV", ["Redmine"] = "Redmine",
-        ["Zabbix"] = "Zabbix", ["Windows"] = "Windows",
+        ["Zabbix"] = "Zabbix", ["Windows"] = "Windows", ["Mcp"] = "MCP",
     };
 
     /// <summary>"MikrotikJoinScriptViewed" → "MikroTik join script viewed".</summary>
