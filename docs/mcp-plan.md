@@ -2,14 +2,14 @@
 
 | | |
 |---|---|
-| Status | **Built: M0 to M6** (§19 *As built*); open: the nginx document and trying real clients (§19.3). Revision 3 |
+| Status | **Built: M0 to M6, released in 1.6.0** (§19 *As built*); open: trying real clients (§19.3). Revision 3 |
 | Date | 2026-11-15 |
 | Revision | 3: **strikes agreed** (Q7), and **a blocked token alerts every admin** by Pushover and e-mail (§8.6).<br>2: **the answers to revision 1's questions** (§18.1):<ul><li>**deleting, for 10 minutes:** a button on the dashboard allows the read-write token to delete for 10 minutes (§7.5);</li><li>**mail input rules can be edited over MCP;** notification rules and DNS zones stay readable only (§7.3);</li><li>the rest as proposed: values shown once, 30 days, MikroTik commands allowed, 2FA for read-write, MCP use doesn't count as online, the area *MCP*.</li></ul>1: the first plan, from the code as of `51394a9` |
 | Scope | Package eight of docs/ideas2.md:<ul><li>**an MCP server with operational access to everything:** routers, sensors, hosts, locations, the knowledge base, Redmine, Zabbix, Cookie. **No admin access:** nothing that changes PNMT's settings;</li><li>**two tokens per user, read-only and read-write,** that the user can regenerate. **Switched on from the dashboard:** the read-write token for 12 hours, the read-only one until a week after the user was last online;</li><li>**signing in again every month, and the 2FA code once a day,** both at 4 in the morning and both set in ENV;</li><li>**Admin → MCP:** the documentation of every tool, and **a log of every access and every call**, in the database, the last 10,000 entries (configurable), detailed enough to say exactly what happened and what changed;</li><li>**a tool to talk to the internal AI (Cookie),** where **Jev first checks the request for malice:** write access through the read-only token, changing PNMT's settings, reading sensitive data</li></ul> |
 | Non-goals | **OAuth** and dynamic client registration (§2.4). **MCP resources, prompts, sampling and elicitation** (§5.1). **stdio:** PNMT is a server, clients connect over HTTP. **Deleting over MCP, except in the 10 minutes a person allows it** (§7.5), and never what needs *Manage* (locations, pages, files). **Secrets over MCP**, in any direction (§6.4). **Approving anything over MCP:** decisions, Cookie's proposals, mute and suppress stay in PNMT's UI. **Server consoles:** package ten, which adds its tools to this server (§17). **Writing to Redmine or Zabbix over MCP** |
 | Depends on | Five point five (groups and rights, the audit log with `Actor` and `ActorRef`). Five (`MachineAccess`). Nine (`CookieTools`, the chat, Jev's use in Cookie). **Package nine was built expecting this one** (docs/cookie-plan.md §3.5, §10.2) |
 | References | **docs/audit-redmine-zabbix-plan.md:** rights (§5), the audit (§3), what eight gets (§5.7, §8.7). **docs/cookie-plan.md:** Cookie and MCP (§3.5), messages from MCP (§10.2), the tools as built (§19.8). **docs/locations-knowledge-plan.md:** `MachineAccess` (§7.4). **docs/ai-operations-plan.md:** Jev, `Untrusted`. **deploy/nginx-reverse-proxy.md.** **The protocol:** MCP specification 2026-07-28 (stateless Streamable HTTP). **The SDK:** `ModelContextProtocol.AspNetCore` 2.4.0 (2026-11-07, net10.0) |
-| Target | The release after 1.5 (1.6.0) |
+| Target | 1.6.0, which also releases 1.4 and 1.5 |
 
 ---
 
@@ -1136,5 +1136,4 @@ None at the moment.
 
 ### 19.3 Not built yet
 
-- **deploy/nginx-reverse-proxy.md** (an untracked draft in the working tree, not this package's) doesn't list `/mcp` yet; deploy/README.md says what nginx needs: `/mcp` on the internal server only, `proxy_buffering off`, `proxy_read_timeout 120s`.
 - **Real clients** (§15 M0): Claude Code, VS Code and the MCP Inspector against a running PNMT through nginx. The protocol is tested with the SDK's own client against the test server; how a client shows a 401 or 403 is still to see.

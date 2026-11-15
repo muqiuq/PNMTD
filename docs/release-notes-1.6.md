@@ -1,6 +1,6 @@
 # PNMT 1.6: the MCP server, and signing in once a month
 
-Version 1.6.0. Draft: package eight is being built (docs/mcp-plan.md §19).
+Version 1.6.0. **It is also the release of 1.4 and 1.5,** which weren't released on their own: read [docs/release-notes-1.4.md](release-notes-1.4.md) (groups and rights, the audit log, Redmine and Zabbix) and [docs/release-notes-1.5.md](release-notes-1.5.md) (Cookie and the availability plan) too.
 
 ## What's new
 
@@ -19,6 +19,14 @@ Version 1.6.0. Draft: package eight is being built (docs/mcp-plan.md §19).
   - **the 2FA code once a day,** asked for over the page you are on;
   - **both renew at 04:00** in PNMT's time zone, and are set in `.env` (`Auth__LoginDays`, `Auth__TotpDays`, `Auth__ResetHour`; 0 turns a rule off);
   - sessions from before the update go on, and the first daily code is asked for at the next 04:00.
+
+## Updating from 1.3
+
+In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.6.0`. It takes a backup first. The migrations of 1.4, 1.5 and 1.6 run when the new image starts; the updating notes of 1.4 and 1.5 apply as well.
+
+- **Nobody is signed out by the update.** The first daily 2FA code is asked for at the next 04:00, and the password 30 days after that.
+- **MCP stays off** until `Mcp__Enabled=true` (`.env.example`, deploy/README.md "MCP"). Behind nginx, `/mcp` gets a location of its own on the internal server only ([deploy/nginx-reverse-proxy.md](../deploy/nginx-reverse-proxy.md)).
+- **The agents' files** come from the GitHub release `sensor-1.6.0`, fetched by PNMTD as before. Its agents are built from the same code as 1.3.0's, but carry the new version: until they are updated (`pnmt-agent update` on Linux, the new installer on Windows), the servers' pages show them as outdated.
 
 ## Good to know
 
