@@ -11,17 +11,20 @@ namespace PNMTD.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Empty for the cases there are already (docs/cookie-plan.md §21.8).
             migrationBuilder.AddColumn<List<string>>(
                 name: "SolutionAreas",
                 table: "cookie_cases",
                 type: "text[]",
-                nullable: false);
+                nullable: false,
+                defaultValueSql: "'{}'::text[]");
 
             migrationBuilder.AddColumn<List<string>>(
                 name: "StoppedMembers",
                 table: "cookie_cases",
                 type: "text[]",
-                nullable: false);
+                nullable: false,
+                defaultValueSql: "'{}'::text[]");
         }
 
         /// <inheritdoc />
