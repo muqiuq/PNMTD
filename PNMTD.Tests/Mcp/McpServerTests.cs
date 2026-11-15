@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -223,6 +224,10 @@ public sealed class McpServerTests
     [TestMethod]
     public async Task TheReadWriteTokenNeedsTwoFactorAndLastsTwelveHours()
     {
+        // Just after the day's reset: the 12 hours below don't reach the next one, where the browser's session would ask for the
+        // day's code again (totp_due), whatever the hour the test runs.
+        var options = app.Services.GetRequiredService<IOptionsMonitor<AuthOptions>>().CurrentValue;
+        time.SetUtcNow(SessionRules.NextReset(Clock.UtcNow, options.ResetHour).AddMinutes(1));
         var (_, _, _, browser) = await PersonAsync(app);
         using (var refused = await browser.PostAsync("/api/v1/account/mcp/write/on"))
         {
