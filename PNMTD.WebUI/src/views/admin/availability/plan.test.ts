@@ -13,7 +13,9 @@ import {
   fullWeek,
   inSelection,
   mergeDays,
+  monthLabel,
   movePoint,
+  planRows,
   responsibleWarning,
   selectionRect,
   shouldBeSet,
@@ -64,6 +66,19 @@ describe('the availability plan (docs/cookie-plan.md §8.2, §9.4)', () => {
     ])
     expect(merged.map((d) => d.date)).toEqual(['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05'])
     expect(merged[3].comment).toBe('new')
+  })
+
+  it('puts a row with the month before each 1st, January standing out, and none inside a month', () => {
+    const rows = planRows(datesBetween('2026-12-30', '2027-02-02').map((d) => day(d)))
+    const months = rows.flatMap((r, i) => (r.kind === 'month' ? [{ i, label: r.label, year: r.year }] : []))
+    expect(months).toEqual([
+      { i: 2, label: 'January 2027', year: true },
+      { i: 34, label: 'February 2027', year: false },
+    ])
+    expect(rows[3]).toMatchObject({ kind: 'day', key: '2027-01-01', date: '2027-01-01' })
+    expect(rows.filter((r) => r.kind === 'day')).toHaveLength(35)
+    expect(planRows([day('2026-11-15'), day('2026-11-16')]).map((r) => r.kind)).toEqual(['day', 'day'])
+    expect(monthLabel('2026-12-24')).toBe('December 2026')
   })
 
   it('writes black on light colours and white on dark ones', () => {

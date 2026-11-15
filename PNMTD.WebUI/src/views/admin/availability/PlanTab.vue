@@ -7,9 +7,11 @@ import ProgressSpinner from 'primevue/progressspinner'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ApiError } from '@/api/client'
 import { api, type S } from '@/api/resources'
+import ColumnEdge from '@/components/ColumnEdge.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import { useActions } from '@/composables/useActions'
+import { useColumnWidths } from '@/composables/useColumnWidths'
 import CodeChip from './CodeChip.vue'
 import FillAgainDialog from './FillAgainDialog.vue'
 import {
@@ -20,12 +22,12 @@ import {
   belowMinimum,
   chipStyle,
   datesBetween,
-  daysBetween,
   exactCode,
   fallbackWarning,
   formatPlanDate,
   mergeDays,
   movePoint,
+  planRows,
   responsibleWarning,
   selectionRect,
   shouldBeSet,
@@ -44,6 +46,7 @@ import { planKey } from './useAvailability'
  * for a dozen people stay quick. Today's row is marked, Today goes back to it. A click on a cell picks a type, typing a
  * code sets it; shift-click or dragging selects several. Everyone in the plan edits their own column from today on;
  * Availability: Edit edits everything, the responsible, the fallback and the comments too. The warnings of §8.2 are red.
+ * Each month starts with a row of its own; the columns are as wide as a person drags them (docs/adjustments1.md).
  */
 type Plan = S['AvailabilityPlanItem']
 type Range = { from: string; to: string } | null
@@ -68,7 +71,11 @@ const plan = useInfiniteQuery({
 const pages = computed(() => plan.data.value?.pages ?? [])
 const meta = computed<Plan | undefined>(() => pages.value[pages.value.length - 1])
 const days = computed(() => mergeDays(pages.value))
+/** Where a date is among the days loaded. */
 const index = computed(() => new Map(days.value.map((d, i) => [d.date, i])))
+/** The table's rows: the days and a row per month (planRows); and where a date's row is among them. */
+const rows = computed(() => planRows(days.value))
+const rowIndex = computed(() => new Map(rows.value.flatMap((r, i) => (r.kind === 'day' ? [[r.date, i] as const] : []))))
 const today = computed(() => meta.value?.today ?? '')
 const people = computed(() => meta.value?.people ?? [])
 const peopleById = computed(() => new Map(people.value.map((p) => [p.id, p])))
@@ -92,7 +99,7 @@ const typeOf = (d: PlanDay, userId: string) => {
   return c ? typesById.value.get(c.typeId) : undefined
 }
 
-// --- the rows in view -----------------------------------------------------------------------------------------------
+// --- the rows in view: all as high as each other, a month's row too ---------------------------------------------------
 const scroller = ref<HTMLElement | null>(null)
 const pickerEl = ref<HTMLElement | null>(null)
 const scrollTop = ref(0)
@@ -102,11 +109,11 @@ const rowHeight = ref(40)
 const headHeight = ref(40)
 const start = computed(() => Math.max(0, Math.floor(scrollTop.value / rowHeight.value) - OVERSCAN))
 const end = computed(() =>
-  Math.min(days.value.length, Math.ceil((scrollTop.value + viewHeight.value) / rowHeight.value) + OVERSCAN),
+  Math.min(rows.value.length, Math.ceil((scrollTop.value + viewHeight.value) / rowHeight.value) + OVERSCAN),
 )
-const visible = computed(() => days.value.slice(start.value, end.value))
+const visible = computed(() => rows.value.slice(start.value, end.value))
 const padTop = computed(() => start.value * rowHeight.value)
-const padBottom = computed(() => Math.max(0, days.value.length - end.value) * rowHeight.value)
+const padBottom = computed(() => Math.max(0, rows.value.length - end.value) * rowHeight.value)
 const span = computed(() => 5 + columns.value.length + people.value.length)
 
 const resize =
@@ -149,19 +156,22 @@ function loadNearEdges() {
   const first = Math.floor(el.scrollTop / rowHeight.value)
   const last = Math.ceil((el.scrollTop + el.clientHeight) / rowHeight.value)
   if (first < NEAR && plan.hasPreviousPage.value) void plan.fetchPreviousPage()
-  else if (last > days.value.length - NEAR && plan.hasNextPage.value) void plan.fetchNextPage()
+  else if (last > rows.value.length - NEAR && plan.hasNextPage.value) void plan.fetchNextPage()
 }
 watch(
   () => plan.isFetching.value,
   (fetching) => !fetching && nextTick(loadNearEdges),
 )
 
-// Earlier days loaded: the rows in view move down by as many, so the view stays where it was.
+// Earlier days loaded: the rows in view move down by as many rows as came before them (months' rows too), so the view
+// stays where it was.
 watch(
-  () => days.value[0]?.date,
+  () => rows.value[0]?.key,
   (now, was) => {
-    if (!now || !was || now >= was) return
-    const shift = daysBetween(now, was) * rowHeight.value
+    if (!now || !was || now === was) return
+    const moved = rows.value.findIndex((r) => r.key === was)
+    if (moved <= 0) return
+    const shift = moved * rowHeight.value
     scrollTop.value += shift
     if (picker.value) picker.value = { ...picker.value, top: picker.value.top + shift }
     void nextTick(() => {
@@ -177,9 +187,9 @@ function scrollToRow(i: number) {
   scrollTop.value = el.scrollTop
 }
 
-/** Today's row, with two days before it. */
+/** Today's row, with two rows before it. */
 function scrollToToday() {
-  const i = index.value.get(today.value)
+  const i = rowIndex.value.get(today.value)
   if (i !== undefined) scrollToRow(i - 2)
 }
 
@@ -198,7 +208,7 @@ watch(
 /** A row brought into view, below the header. */
 function reveal(date: string) {
   const el = scroller.value
-  const i = index.value.get(date)
+  const i = rowIndex.value.get(date)
   if (!el || i === undefined) return
   const top = i * rowHeight.value
   if (top < el.scrollTop) el.scrollTop = top
@@ -560,16 +570,16 @@ const rowClass = (d: PlanDay) => ({
   closed: d.closed,
   today: d.date === today.value,
   past: d.date < today.value,
-  // A month's first day draws a line with the month's name, a year's a bolder one with the year (docs/adjustments1.md).
-  'month-start': d.date.endsWith('-01'),
-  'year-start': d.date.endsWith('-01-01'),
 })
-/** The label on a month's or a year's line: "December", "2027 · January". */
-const monthMark = (d: PlanDay): string | null => {
-  if (!d.date.endsWith('-01')) return null
-  const month = new Date(`${d.date}T12:00:00`).toLocaleString('en', { month: 'long' })
-  return d.date.endsWith('-01-01') ? `${d.date.slice(0, 4)} · ${month}` : month
-}
+
+// --- the columns' widths --------------------------------------------------------------------------------------------
+const widths = useColumnWidths('availability-plan')
+const colStyle = (key: string) => ({ width: widths.width(key) })
+/** The date column sticks right of the day's, however wide that is. */
+const dateLeft = computed(() => ({ left: widths.width('day') }))
+const scrollPad = computed(() => ({
+  scrollPaddingLeft: `calc(${widths.width('day') ?? '2.6rem'} + ${widths.width('date') ?? '7.6rem'})`,
+}))
 </script>
 
 <template>
@@ -637,27 +647,30 @@ const monthMark = (d: PlanDay): string | null => {
       tabindex="0"
       role="region"
       aria-label="The plan"
-      :class="{ dragging }"
+      :class="{ dragging, resizing: !!widths.resizing.value }"
+      :style="scrollPad"
       @scroll.passive="onScroll"
       @keydown="key"
     >
       <table class="grid">
         <colgroup>
-          <col class="w-day" />
-          <col class="w-date" />
-          <col class="w-staff" />
-          <col class="w-staff" />
-          <col class="w-comment" />
-          <col v-for="c in columns" :key="c.id" class="w-count" />
-          <col v-for="p in people" :key="p.id" class="w-person" />
+          <col class="w-day" :style="colStyle('day')" />
+          <col class="w-date" :style="colStyle('date')" />
+          <col class="w-staff" :style="colStyle('responsible')" />
+          <col class="w-staff" :style="colStyle('fallback')" />
+          <col class="w-comment" :style="colStyle('comment')" />
+          <col v-for="c in columns" :key="c.id" class="w-count" :style="colStyle(`count:${c.id}`)" />
+          <col v-for="p in people" :key="p.id" class="w-person" :style="colStyle(`person:${p.id}`)" />
         </colgroup>
         <thead>
           <tr>
-            <th class="c-day sticky-1" scope="col">Day</th>
-            <th class="c-date sticky-2" scope="col">Date</th>
-            <th scope="col">Responsible</th>
-            <th scope="col">Fallback</th>
-            <th scope="col">Comment</th>
+            <th class="c-day sticky-1" scope="col">Day<ColumnEdge :widths="widths" column="day" label="Day" /></th>
+            <th class="c-date sticky-2" scope="col" :style="dateLeft">
+              Date<ColumnEdge :widths="widths" column="date" label="Date" />
+            </th>
+            <th scope="col">Responsible<ColumnEdge :widths="widths" column="responsible" label="Responsible" /></th>
+            <th scope="col">Fallback<ColumnEdge :widths="widths" column="fallback" label="Fallback" /></th>
+            <th scope="col">Comment<ColumnEdge :widths="widths" column="comment" label="Comment" /></th>
             <th
               v-for="c in columns"
               :key="c.id"
@@ -665,10 +678,11 @@ const monthMark = (d: PlanDay): string | null => {
               class="count-head"
               :title="c.minimum !== null ? `${c.name}: at least ${c.minimum}` : c.name"
             >
-              {{ c.name }}
+              {{ c.name }}<ColumnEdge :widths="widths" :column="`count:${c.id}`" :label="c.name" />
             </th>
             <th v-for="p in people" :key="p.id" scope="col" class="person-head" :title="p.name">
               <CodeChip :code="p.code" :colour="p.color" />
+              <ColumnEdge :widths="widths" :column="`person:${p.id}`" :label="p.name" />
             </th>
           </tr>
         </thead>
@@ -676,102 +690,102 @@ const monthMark = (d: PlanDay): string | null => {
           <tr v-if="padTop" class="pad" aria-hidden="true" :style="{ height: `${padTop}px` }">
             <td :colspan="span" />
           </tr>
-          <tr
-            v-for="d in visible"
-            :key="d.date"
-            class="day"
-            :class="rowClass(d)"
-            :aria-current="d.date === today ? 'date' : undefined"
-          >
-            <td class="c-day sticky-1">{{ d.weekday }}</td>
-            <td class="c-date sticky-2" :title="dateLine(d)">
-              <span v-if="monthMark(d)" class="month-mark">{{ monthMark(d) }}</span>
-              <div class="date">
-                {{ formatPlanDate(d.date) }}
-                <i
-                  v-if="d.missing"
-                  class="pi pi-exclamation-circle missing-icon"
-                  :title="`${d.missing} empty ${d.missing === 1 ? 'cell' : 'cells'}`"
-                  :aria-label="`${d.missing} empty`"
-                  role="img"
+          <template v-for="d in visible" :key="d.key">
+            <!-- A month's row before its first day (docs/adjustments1.md), as high as a day's: the view counts in rows. -->
+            <tr v-if="d.kind === 'month'" class="month" :class="{ year: d.year }">
+              <td colspan="2" class="c-month sticky-1">{{ d.label }}</td>
+              <td :colspan="span - 2" class="c-month-rest" />
+            </tr>
+            <tr v-else class="day" :class="rowClass(d)" :aria-current="d.date === today ? 'date' : undefined">
+              <td class="c-day sticky-1">{{ d.weekday }}</td>
+              <td class="c-date sticky-2" :style="dateLeft" :title="dateLine(d)">
+                <div class="date">
+                  {{ formatPlanDate(d.date) }}
+                  <i
+                    v-if="d.missing"
+                    class="pi pi-exclamation-circle missing-icon"
+                    :title="`${d.missing} empty ${d.missing === 1 ? 'cell' : 'cells'}`"
+                    :aria-label="`${d.missing} empty`"
+                    role="img"
+                  />
+                </div>
+                <div class="hours ellipsis" :class="{ holiday: d.holiday }">{{ dateLine(d) }}</div>
+              </td>
+              <td
+                v-for="col in STAFF"
+                :key="col"
+                class="c-staff cell"
+                :class="{
+                  selected: isSelected(d.date, col),
+                  editable: editable(d.date, col),
+                  warning: !!staffWarning(d, col),
+                }"
+                :data-cell="`${d.date}|${col}`"
+                :title="staffTitle(d, col)"
+                :aria-label="staffLabel(d, col)"
+                @mousedown="down($event, d.date, col)"
+                @mouseenter="enter(d.date, col)"
+              >
+                <CodeChip
+                  v-if="staffId(d, col)"
+                  :code="peopleById.get(staffId(d, col)!)?.code ?? '?'"
+                  :colour="peopleById.get(staffId(d, col)!)?.color"
                 />
-              </div>
-              <div class="hours ellipsis" :class="{ holiday: d.holiday }">{{ dateLine(d) }}</div>
-            </td>
-            <td
-              v-for="col in STAFF"
-              :key="col"
-              class="c-staff cell"
-              :class="{
-                selected: isSelected(d.date, col),
-                editable: editable(d.date, col),
-                warning: !!staffWarning(d, col),
-              }"
-              :data-cell="`${d.date}|${col}`"
-              :title="staffTitle(d, col)"
-              :aria-label="staffLabel(d, col)"
-              @mousedown="down($event, d.date, col)"
-              @mouseenter="enter(d.date, col)"
-            >
-              <CodeChip
-                v-if="staffId(d, col)"
-                :code="peopleById.get(staffId(d, col)!)?.code ?? '?'"
-                :colour="peopleById.get(staffId(d, col)!)?.color"
-              />
-              <span v-else-if="staffWarning(d, col)" class="nobody">–</span>
-            </td>
-            <td
-              class="c-comment"
-              :class="{ editable: canEditAll }"
-              :title="d.comment ?? undefined"
-              @click="editComment(d)"
-            >
-              <InputText
-                v-if="editingComment === d.date"
-                v-model="commentDraft"
-                size="small"
-                class="comment-input"
-                maxlength="500"
-                :aria-label="`Comment on ${formatPlanDate(d.date)}`"
-                @keydown.enter.prevent="saveComment(d)"
-                @keydown.esc.stop.prevent="cancelComment"
-                @blur="saveComment(d)"
-              />
-              <span v-else class="ellipsis comment">{{ d.comment }}</span>
-            </td>
-            <td
-              v-for="(c, i) in columns"
-              :key="c.id"
-              class="c-count"
-              :class="{ low: belowMinimum(d, i, columns) }"
-              :title="d.closed ? undefined : countTitle(d, i)"
-            >
-              <template v-if="!d.closed">
-                <span class="bar" :style="{ width: `${barShare(d.counts[i] ?? 0, people.length)}%` }" />
-                <span class="n">{{ d.counts[i] ?? 0 }}</span>
-              </template>
-            </td>
-            <td
-              v-for="p in people"
-              :key="p.id"
-              class="c-person cell"
-              :class="{
-                selected: isSelected(d.date, p.id),
-                editable: editable(d.date, p.id),
-                missing: missingHere(d, p),
-                typed: !!typeOf(d, p.id),
-                retired: typeOf(d, p.id)?.retired,
-              }"
-              :style="chipStyle(typeOf(d, p.id)?.color)"
-              :data-cell="`${d.date}|${p.id}`"
-              :title="cellTitle(d, p)"
-              :aria-label="cellLabel(d, p)"
-              @mousedown="down($event, d.date, p.id)"
-              @mouseenter="enter(d.date, p.id)"
-            >
-              {{ typeOf(d, p.id)?.code }}
-            </td>
-          </tr>
+                <span v-else-if="staffWarning(d, col)" class="nobody">–</span>
+              </td>
+              <td
+                class="c-comment"
+                :class="{ editable: canEditAll }"
+                :title="d.comment ?? undefined"
+                @click="editComment(d)"
+              >
+                <InputText
+                  v-if="editingComment === d.date"
+                  v-model="commentDraft"
+                  size="small"
+                  class="comment-input"
+                  maxlength="500"
+                  :aria-label="`Comment on ${formatPlanDate(d.date)}`"
+                  @keydown.enter.prevent="saveComment(d)"
+                  @keydown.esc.stop.prevent="cancelComment"
+                  @blur="saveComment(d)"
+                />
+                <span v-else class="ellipsis comment">{{ d.comment }}</span>
+              </td>
+              <td
+                v-for="(c, i) in columns"
+                :key="c.id"
+                class="c-count"
+                :class="{ low: belowMinimum(d, i, columns) }"
+                :title="d.closed ? undefined : countTitle(d, i)"
+              >
+                <template v-if="!d.closed">
+                  <span class="bar" :style="{ width: `${barShare(d.counts[i] ?? 0, people.length)}%` }" />
+                  <span class="n">{{ d.counts[i] ?? 0 }}</span>
+                </template>
+              </td>
+              <td
+                v-for="p in people"
+                :key="p.id"
+                class="c-person cell"
+                :class="{
+                  selected: isSelected(d.date, p.id),
+                  editable: editable(d.date, p.id),
+                  missing: missingHere(d, p),
+                  typed: !!typeOf(d, p.id),
+                  retired: typeOf(d, p.id)?.retired,
+                }"
+                :style="chipStyle(typeOf(d, p.id)?.color)"
+                :data-cell="`${d.date}|${p.id}`"
+                :title="cellTitle(d, p)"
+                :aria-label="cellLabel(d, p)"
+                @mousedown="down($event, d.date, p.id)"
+                @mouseenter="enter(d.date, p.id)"
+              >
+                {{ typeOf(d, p.id)?.code }}
+              </td>
+            </tr>
+          </template>
           <tr v-if="padBottom" class="pad" aria-hidden="true" :style="{ height: `${padBottom}px` }">
             <td :colspan="span" />
           </tr>
@@ -828,6 +842,10 @@ const monthMark = (d: PlanDay): string | null => {
         its minimum, an empty cell.</span
       >
       <span v-if="meta?.globalFallback">Global fallback: {{ meta.globalFallback }}.</span>
+      <span
+        >Drag a column's edge in the header to make it wider or narrower; a double-click gives it its default
+        width.</span
+      >
     </div>
   </div>
 </template>
@@ -1073,33 +1091,40 @@ tr.pad td {
   font-weight: 500;
 }
 
-/* Month and year changes (docs/adjustments1.md): an inset line, so the rows keep their height, and the name on it. */
-tr.month-start td {
-  box-shadow: inset 0 3px 0 color-mix(in srgb, var(--pnmt-text) 45%, transparent);
+/* A month's row (docs/adjustments1.md): as high as a day's, its name where the day and the date are. January's, a year's,
+   stands out more. */
+tr.month td {
+  height: 40px;
+  background: color-mix(in srgb, var(--pnmt-text) 8%, var(--pnmt-panel));
+  border-right: none;
 }
 
-tr.year-start td {
-  box-shadow: inset 0 5px 0 var(--pnmt-text);
+.c-month {
+  border-right: 2px solid var(--pnmt-border) !important;
+  padding-left: var(--pnmt-space-2);
+  font-weight: 700;
+  font-size: 0.857rem;
+  letter-spacing: 0.02em;
 }
 
-.month-mark {
-  position: absolute;
-  top: -0.7rem;
-  left: 0.2rem;
-  z-index: 4;
-  padding: 0 0.4rem;
-  border-radius: 999px;
+tr.month td.c-month {
+  background: color-mix(in srgb, var(--pnmt-text) 14%, var(--pnmt-panel));
+}
+
+tr.month.year td {
+  background: color-mix(in srgb, var(--pnmt-text) 16%, var(--pnmt-panel));
+  box-shadow: inset 0 2px 0 var(--pnmt-text);
+}
+
+tr.month.year td.c-month {
   background: var(--pnmt-text);
   color: var(--pnmt-bg);
-  font-size: 0.7rem;
-  font-weight: 600;
-  line-height: 1.2rem;
-  white-space: nowrap;
-  pointer-events: none;
+  font-size: 0.929rem;
 }
 
-tr.month-start:not(.year-start) .month-mark {
-  background: color-mix(in srgb, var(--pnmt-text) 70%, var(--pnmt-bg));
+.resizing {
+  cursor: col-resize;
+  user-select: none;
 }
 
 .c-count.low {

@@ -54,6 +54,55 @@ export function mergeDays(pages: readonly { days: readonly PlanDay[] }[]): PlanD
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date))
 }
 
+// --- rows -----------------------------------------------------------------------------------------------------------
+
+/** A month's row before its first day; January's, a year's, stands out more. */
+export type MonthRow = { kind: 'month'; key: string; label: string; year: boolean }
+/** A day's row: the day itself, so the table reads it as before. */
+export type DayRow = PlanDay & { kind: 'day'; key: string }
+export type PlanRow = MonthRow | DayRow
+
+const monthNames = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
+
+/** "December 2026", for the month of a date. */
+export function monthLabel(iso: string): string {
+  return `${monthNames[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`
+}
+
+/**
+ * The table's rows (docs/adjustments1.md): every day, and a row of its own before each month's first day with the
+ * month's name, so a change of month is plain however the table is scrolled. Only before a 1st: the first days loaded
+ * may start inside a month, and its row comes when the days before them do.
+ */
+export function planRows(days: readonly PlanDay[]): PlanRow[] {
+  const rows: PlanRow[] = []
+  for (const d of days) {
+    if (d.date.endsWith('-01')) {
+      rows.push({
+        kind: 'month',
+        key: `month:${d.date.slice(0, 7)}`,
+        label: monthLabel(d.date),
+        year: d.date.endsWith('-01-01'),
+      })
+    }
+    rows.push({ ...d, kind: 'day', key: d.date })
+  }
+  return rows
+}
+
 // --- colours --------------------------------------------------------------------------------------------------------
 
 export const isColour = (value: string | null | undefined): value is string => !!value && /^#[0-9a-f]{6}$/i.test(value)

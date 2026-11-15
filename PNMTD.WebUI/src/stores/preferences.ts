@@ -18,7 +18,11 @@ interface Stored {
   navFolds?: Record<string, boolean>
   hostsView?: HostsView
   editorModes?: Partial<EditorModes>
+  /** Column widths a person dragged, in px, per table and column (useColumnWidths). */
+  tableWidths?: TableWidths
 }
+
+export type TableWidths = Record<string, Record<string, number>>
 
 function read(): Stored {
   try {
@@ -30,9 +34,24 @@ function read(): Stored {
 
 const isMode = (value: unknown): value is EditorMode => value === 'visual' || value === 'markdown'
 
+/** Only tables of columns of finite numbers: whatever else was stored is dropped. */
+function widthsOf(value: unknown): TableWidths {
+  if (!value || typeof value !== 'object') return {}
+  const out: TableWidths = {}
+  for (const [table, columns] of Object.entries(value as Record<string, unknown>)) {
+    if (!columns || typeof columns !== 'object') continue
+    const kept = Object.entries(columns as Record<string, unknown>).filter(
+      (e): e is [string, number] => typeof e[1] === 'number' && Number.isFinite(e[1]),
+    )
+    if (kept.length) out[table] = Object.fromEntries(kept)
+  }
+  return out
+}
+
 /**
- * Per-browser preferences (§5.3, §5.5): theme, the drawer as a rail and its folded groups, the dashboard's host view, and
- * the Markdown editor's last mode for pages and for fields (docs/locations-knowledge-plan.md §5.4).
+ * Per-browser preferences (§5.3, §5.5): theme, the drawer as a rail and its folded groups, the dashboard's host view,
+ * the Markdown editor's last mode for pages and for fields (docs/locations-knowledge-plan.md §5.4), and the widths of
+ * columns a person dragged.
  */
 export const usePreferences = defineStore('preferences', () => {
   const stored = read()
@@ -48,6 +67,7 @@ export const usePreferences = defineStore('preferences', () => {
     page: isMode(modes.page) ? modes.page : 'visual',
     field: isMode(modes.field) ? modes.field : 'visual',
   })
+  const tableWidths = ref<TableWidths>(widthsOf(stored.tableWidths))
   const systemDark = ref(false)
 
   // The editing page folds the drawer to its rail while it is open (docs/locations-knowledge-plan.md
@@ -84,7 +104,7 @@ export const usePreferences = defineStore('preferences', () => {
 
   watch([theme, systemDark], apply, { immediate: true })
   watch(
-    [theme, drawerCollapsed, navFolds, hostsView, editorModes],
+    [theme, drawerCollapsed, navFolds, hostsView, editorModes, tableWidths],
     () =>
       localStorage.setItem(
         storageKey,
@@ -94,6 +114,7 @@ export const usePreferences = defineStore('preferences', () => {
           navFolds: navFolds.value,
           hostsView: hostsView.value,
           editorModes: editorModes.value,
+          tableWidths: tableWidths.value,
         }),
       ),
     { deep: true },
@@ -119,6 +140,7 @@ export const usePreferences = defineStore('preferences', () => {
     navFolds,
     hostsView,
     editorModes,
+    tableWidths,
     railHeld,
     holdRail,
     isDark,

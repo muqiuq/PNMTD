@@ -1,6 +1,6 @@
 # PNMT 1.6: the MCP server, and signing in once a month
 
-Version 1.6.2: 1.6.0 and the changes of 1.6.1 and 1.6.2 below. **1.6.0 is also the release of 1.4 and 1.5,** which weren't released on their own: read [docs/release-notes-1.4.md](release-notes-1.4.md) (groups and rights, the audit log, Redmine and Zabbix) and [docs/release-notes-1.5.md](release-notes-1.5.md) (Cookie and the availability plan) too.
+Version 1.6.3: 1.6.0 and the changes of 1.6.1 to 1.6.3 below. **1.6.0 is also the release of 1.4 and 1.5,** which weren't released on their own: read [docs/release-notes-1.4.md](release-notes-1.4.md) (groups and rights, the audit log, Redmine and Zabbix) and [docs/release-notes-1.5.md](release-notes-1.5.md) (Cookie and the availability plan) too.
 
 ## What's new
 
@@ -20,10 +20,14 @@ Version 1.6.2: 1.6.0 and the changes of 1.6.1 and 1.6.2 below. **1.6.0 is also t
   - **both renew at 04:00** in PNMT's time zone, and are set in `.env` (`Auth__LoginDays`, `Auth__TotpDays`, `Auth__ResetHour`; 0 turns a rule off);
   - sessions from before the update go on, and the first daily code is asked for at the next 04:00.
 
+## 1.6.3
+
+- **The availability plan:** each month begins with a row of its own with its name ("December 2026"), January's standing out; 1.6.1's line with the name on it was cut off by the cell, so the name didn't show. **The columns resize:** drag a column's edge in the header; a double-click gives it its default width. The widths stay in the browser.
+- **Updating from 1.6.0 to 1.6.2:** `./update.sh --tag v1.6.3`. From 1.6.0, the migration of 1.6.1 runs. The agents' files come from `sensor-1.6.3`, the same agents with the new version, so the servers' pages show older agents as outdated until they are updated.
+
 ## 1.6.2
 
 - ***Add server*** opens its host list at once, also while the hosts are still loading. Before, a click in that moment did nothing; the browser tests failed on it on a slow runner.
-- **Updating from 1.6.0 or 1.6.1:** `./update.sh --tag v1.6.2`. From 1.6.0, the migration of 1.6.1 runs. The agents' files come from `sensor-1.6.2`, the same agents with the new version, so the servers' pages show older agents as outdated until they are updated.
 
 ## 1.6.1
 
@@ -41,11 +45,11 @@ Smaller changes after 1.6.0 (docs/adjustments1.md):
 
 ## Updating from 1.3
 
-In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.6.2`. It takes a backup first. The migrations of 1.4, 1.5 and 1.6 run when the new image starts; the updating notes of 1.4 and 1.5 apply as well.
+In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.6.3`. It takes a backup first. The migrations of 1.4, 1.5 and 1.6 run when the new image starts; the updating notes of 1.4 and 1.5 apply as well.
 
 - **Nobody is signed out by the update.** The first daily 2FA code is asked for at the next 04:00, and the password 30 days after that.
 - **MCP stays off** until `Mcp__Enabled=true` (`.env.example`, deploy/README.md "MCP"). Behind nginx, `/mcp` gets a location of its own on the internal server only ([deploy/nginx-reverse-proxy.md](../deploy/nginx-reverse-proxy.md)).
-- **The agents' files** come from the GitHub release `sensor-1.6.2`, fetched by PNMTD as before. Its agents are built from the same code as 1.3.0's, but carry the new version: until they are updated (`pnmt-agent update` on Linux, the new installer on Windows), the servers' pages show them as outdated.
+- **The agents' files** come from the GitHub release `sensor-1.6.3`, fetched by PNMTD as before. Its agents are built from the same code as 1.3.0's, but carry the new version: until they are updated (`pnmt-agent update` on Linux, the new installer on Windows), the servers' pages show them as outdated.
 
 ## Good to know
 

@@ -69,6 +69,31 @@ test('the availability plan: the table, a cell set to HOME, People and Settings'
   await page.getByRole('button', { name: 'Today' }).click()
   await expect(grid.locator('tr[aria-current="date"]')).toBeVisible()
 
+  // Each month starts with a row of its own, its name readable (docs/adjustments1.md): the next month's.
+  const [y, m] = plan.today.split('-').map(Number)
+  const next = new Date(Date.UTC(m === 12 ? y! + 1 : y!, m === 12 ? 0 : m!, 1))
+  const label = `${next.toLocaleString('en', { month: 'long', timeZone: 'UTC' })} ${next.getUTCFullYear()}`
+  const month = grid.locator('tr.month', { hasText: label })
+  await month.scrollIntoViewIfNeeded()
+  await expect(month.locator('td.c-month')).toHaveText(label)
+  await expect(month.locator('td.c-month')).toBeVisible()
+  await shot(page, 'availability-month')
+
+  // A column is as wide as its header's edge is dragged, also after a reload; a double-click gives the default back.
+  const comment = () => grid.getByRole('columnheader', { name: 'Comment' })
+  const width = async () => (await comment().boundingBox())?.width ?? 0
+  const before = await width()
+  const edge = (await comment().locator('.column-edge').boundingBox())!
+  await page.mouse.move(edge.x + edge.width / 2, edge.y + edge.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(edge.x + edge.width / 2 + 80, edge.y + edge.height / 2, { steps: 5 })
+  await page.mouse.up()
+  await expect.poll(width).toBeGreaterThan(before + 70)
+  await page.reload()
+  await expect.poll(width).toBeGreaterThan(before + 70)
+  await comment().locator('.column-edge').dblclick()
+  await expect.poll(width).toBeLessThan(before + 2)
+
   // People: ADM is in the plan.
   const tabs = page.getByRole('navigation', { name: 'Availability plan' })
   await tabs.getByRole('link', { name: 'People' }).click()
