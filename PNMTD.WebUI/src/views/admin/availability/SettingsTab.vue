@@ -20,7 +20,7 @@ import ColorField from './ColorField.vue'
 import HoursEditor from './HoursEditor.vue'
 import { normalizeWeek, tidyPeriods } from './hours'
 import { flags, isColour, works, type Flag } from './plan'
-import { settingsKey, useAvailabilityPeople, useAvailabilitySettings, useGroupChoices } from './useAvailability'
+import { settingsKey, useAvailabilityPeople, useAvailabilitySettings } from './useAvailability'
 
 /**
  * The plan's settings (docs/cookie-plan.md §8.2, §9.4), for Availability: Manage, saved as a whole: the availability types
@@ -44,7 +44,9 @@ const queryClient = useQueryClient()
 const notify = useNotify()
 const settings = useAvailabilitySettings()
 const people = useAvailabilityPeople()
-const groups = useGroupChoices()
+/** The groups to pick from, as the settings name them (for Availability: Manage too); a removed one shows as such. */
+const groupChoices = computed(() => (settings.data.value?.groups ?? []).map((g) => ({ label: g.name, value: g.id })))
+const removedGroup = () => 'A removed group'
 const draft = ref<Draft | null>(null)
 const fallback = ref<Fallback>('none')
 const base = ref('')
@@ -169,9 +171,9 @@ function removeColumn(i: number) {
 const groupOptions = computed(() => [
   { label: 'Everyone', value: null as string | null },
   ...withUnknown(
-    groups.options.value,
+    groupChoices.value,
     (draft.value?.settings.countColumns ?? []).map((c) => c.groupId),
-    groups.unknown,
+    removedGroup,
   ),
 ])
 function columnProblems(c: S['CountColumn']): string[] {
@@ -198,7 +200,7 @@ const userOptions = computed(() =>
   ),
 )
 const fallbackGroupOptions = computed(() =>
-  withUnknown(groups.options.value, [draft.value?.settings.globalFallbackGroupId], groups.unknown),
+  withUnknown(groupChoices.value, [draft.value?.settings.globalFallbackGroupId], removedGroup),
 )
 
 // --- saving ---------------------------------------------------------------------------------------------------------
@@ -526,9 +528,6 @@ const placed = (f: string) =>
             </tbody>
           </table>
         </div>
-        <p v-if="!groups.listed.value" class="muted small intro">
-          The groups are listed for admins and for Cookie: Manage; a group chosen before stays as it is.
-        </p>
       </div>
     </section>
 
@@ -561,21 +560,17 @@ const placed = (f: string) =>
           class="fallback"
           aria-label="Global fallback, user"
         />
-        <template v-else-if="fallback === 'group'">
-          <Select
-            v-model="draft.settings.globalFallbackGroupId"
-            :options="fallbackGroupOptions"
-            option-label="label"
-            option-value="value"
-            filter
-            placeholder="Choose a group"
-            class="fallback"
-            aria-label="Global fallback, group"
-          />
-          <small v-if="!groups.listed.value" class="field-hint"
-            >The groups are listed for admins and for Cookie: Manage.</small
-          >
-        </template>
+        <Select
+          v-else-if="fallback === 'group'"
+          v-model="draft.settings.globalFallbackGroupId"
+          :options="fallbackGroupOptions"
+          option-label="label"
+          option-value="value"
+          filter
+          placeholder="Choose a group"
+          class="fallback"
+          aria-label="Global fallback, group"
+        />
         <small v-if="errors.globalFallback" class="field-error">{{ errors.globalFallback.join(' ') }}</small>
       </div>
     </section>

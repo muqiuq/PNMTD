@@ -6,15 +6,18 @@ import TabNav from '@/components/TabNav.vue'
 import ActionsTab from './ActionsTab.vue'
 import CaseSettingsTab from './CaseSettingsTab.vue'
 import IdentityTab from './IdentityTab.vue'
+import InstructionsTab from './InstructionsTab.vue'
+import LessonsTab from './LessonsTab.vue'
 import ModelsTab from './ModelsTab.vue'
 import OverviewTab from './OverviewTab.vue'
 import RedmineTab from './RedmineTab.vue'
 import RightsTab from './RightsTab.vue'
 
 /**
- * Admin → Cookie (docs/cookie-plan.md §9.3), for Cookie's Manage: what Cookie and PNMT's duties are doing, and every
- * setting, each section saved as a version that can be viewed and rolled back. Cookie itself can't reach any of it.
- * Revision 7 moved the working hours to the availability plan's settings, and who gets what to the plan and the user.
+ * Admin → Cookie (docs/cookie-plan.md §9.3, §21.5), for Cookie's Manage: what Cookie and PNMT's duties are doing, and
+ * every setting, each section saved as a version that can be viewed and rolled back; the mutes and suppressions code
+ * enforces, and the lessons from people's ratings. Cookie itself can't reach any of it. Revision 7 moved the working
+ * hours to the availability plan's settings, and who gets what to the plan and the user.
  */
 const route = useRoute()
 const tab = computed(() => (typeof route.params.tab === 'string' && route.params.tab ? route.params.tab : 'overview'))
@@ -25,6 +28,8 @@ const tabs = [
   item('cases', 'Cases'),
   item('redmine', 'Redmine'),
   item('actions', 'Actions'),
+  item('instructions', 'Mute, suppress'),
+  item('lessons', 'Lessons'),
   item('models', 'Models'),
   item('rights', 'Rights'),
 ]
@@ -39,6 +44,8 @@ const tabs = [
     <CaseSettingsTab v-else-if="tab === 'cases'" />
     <RedmineTab v-else-if="tab === 'redmine'" />
     <ActionsTab v-else-if="tab === 'actions'" />
+    <InstructionsTab v-else-if="tab === 'instructions'" />
+    <LessonsTab v-else-if="tab === 'lessons'" />
     <ModelsTab v-else-if="tab === 'models'" />
     <RightsTab v-else-if="tab === 'rights'" />
   </div>

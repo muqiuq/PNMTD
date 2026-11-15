@@ -1,3 +1,5 @@
+import type { S } from '@/api/resources'
+
 /** Helpers of Admin → Cookie (docs/cookie-plan.md §9.3) that hold no state. */
 
 export interface Option<T = string> {
@@ -47,4 +49,44 @@ export function setOverride(overrides: Record<string, string>, key: string, text
   } else {
     overrides[key] = text
   }
+}
+
+/** Cookie's actions with a level (docs/cookie-plan.md §6, §21.1), by the names the settings use. */
+export const actionKeys = [
+  'pushover',
+  'email',
+  'ticket',
+  'privateNote',
+  'publicAnswer',
+  'objectNote',
+  'mailEvent',
+] as const
+
+export type ActionKey = (typeof actionKeys)[number]
+
+/**
+ * The defaults of §13.4 and §21.1: what leaves PNMT or reaches people at Propose, a note on a host or sensor and a mail
+ * rule's event at Auto; every threshold 0.7.
+ */
+export const actionDefaults: Record<ActionKey, S['ActionRule']> = {
+  pushover: { level: 'Propose', minConfidence: 0.7 },
+  email: { level: 'Propose', minConfidence: 0.7 },
+  ticket: { level: 'Propose', minConfidence: 0.7 },
+  privateNote: { level: 'Propose', minConfidence: 0.7 },
+  publicAnswer: { level: 'Propose', minConfidence: 0.7 },
+  objectNote: { level: 'Auto', minConfidence: 0.7 },
+  mailEvent: { level: 'Auto', minConfidence: 0.7 },
+}
+
+/** Every action with a rule, the defaults for any the settings lack. */
+export function normalizeLevels(levels: S['ActionLevels'] | undefined): Required<S['ActionLevels']> {
+  return Object.fromEntries(
+    actionKeys.map((k) => [
+      k,
+      {
+        level: levels?.[k]?.level ?? actionDefaults[k].level,
+        minConfidence: levels?.[k]?.minConfidence ?? actionDefaults[k].minConfidence,
+      },
+    ]),
+  ) as Required<S['ActionLevels']>
 }

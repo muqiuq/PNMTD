@@ -15,6 +15,7 @@ import RelativeTime from '@/components/RelativeTime.vue'
 import { useActions } from '@/composables/useActions'
 import { useServerTable } from '@/composables/useServerTable'
 import { formatAbsolute, formatDuration } from '@/format'
+import { useSession } from '@/stores/session'
 import { usd } from '@/views/admin/ai/aiFormat'
 import {
   channelLabel,
@@ -30,11 +31,14 @@ import {
   overallSeverity,
   sourceLabel,
 } from '@/views/cookie/cookieFormat'
+import { useCookieSettings } from './useSection'
 
 /**
- * Admin → Cookie → Overview (docs/cookie-plan.md §9.3, §19.1): Start, Stop and Run now; the status and Cookie's own
- * state, its budget and its last rounds; how the case book keeps up; the duties of the last 7 days; and the outbox:
- * everything that went out, and what a limit held back, which a person can send from here. Every 5 s while Cookie works.
+ * Admin → Cookie → Overview (docs/cookie-plan.md §9.3, §19.1, §21.5): Start, Stop and Run now; the status and Cookie's
+ * own state, its budget and its last rounds; how the case book keeps up; what Cookie did today (proposals waiting in the
+ * inbox, done, rejected by Seraph, declined by people, held back), whether Seraph has a model, the big brother's budget,
+ * and the active mutes, suppressions and lessons; the duties of the last 7 days; and the outbox: everything that went
+ * out, and what a limit held back, which a person can send from here. Every 5 s while Cookie works.
  */
 const overview = useQuery({
   queryKey: [...keys.cookie, 'admin', 'overview'],
@@ -48,11 +52,14 @@ const rounds = useQuery({
   queryFn: api.cookie.rounds,
   refetchInterval: computed(() => (working.value ? 5_000 : 30_000)),
 })
-const share = computed(() =>
-  o.value && o.value.budget.limit > 0
-    ? Math.min(100, Math.round((o.value.budget.spent / o.value.budget.limit) * 100))
-    : null,
-)
+const percent = (b: S['CookieBudgetItem']) =>
+  b.limit > 0 ? Math.min(100, Math.round((b.spent / b.limit) * 100)) : null
+const share = computed(() => (o.value ? percent(o.value.budget) : null))
+const acting = computed(() => o.value?.acting ?? null)
+const session = useSession()
+const canDecide = computed(() => session.can('Decisions', 'Decide'))
+const settings = useCookieSettings()
+const bigBrotherOn = computed(() => settings.data.value?.actions.bigBrother ?? null)
 const took = (r: S['CookieRoundItem']) =>
   r.endedAt ? formatDuration(new Date(r.endedAt).getTime() - new Date(r.startedAt).getTime()) : 'running'
 
@@ -66,13 +73,14 @@ const table = useServerTable<S['CookieOutboxItem']>({
   pageSize: 25,
 })
 const expanded = ref<Record<string, boolean>>({})
+// "Every …" is no filter (null), which the select shows as its placeholder.
 const stateOptions = [
-  { label: 'Every state', value: null },
-  ...outboxStates.map((s) => ({ label: outboxStateLabel[s], value: s })),
+  { label: 'Every state', value: null as S['CookieOutboxState'] | null },
+  ...outboxStates.map((s) => ({ label: outboxStateLabel[s], value: s as S['CookieOutboxState'] | null })),
 ]
 const channelOptions = [
-  { label: 'Every channel', value: null },
-  ...channels.map((c) => ({ label: channelLabel[c], value: c })),
+  { label: 'Every channel', value: null as S['CookieChannel'] | null },
+  ...channels.map((c) => ({ label: channelLabel[c], value: c as S['CookieChannel'] | null })),
 ]
 
 const { run, ask, busy } = useActions()
@@ -241,6 +249,72 @@ async function control(what: 'start' | 'stop' | 'run') {
       </section>
     </div>
 
+    <section v-if="acting" class="panel" aria-labelledby="cookie-acting-title">
+      <div class="panel-header">
+        <span id="cookie-acting-title">Acting</span> <span class="muted normal">(today)</span>
+        <RouterLink :to="{ name: 'cookie', params: { tab: 'decisions' } }" class="end">The decision log</RouterLink>
+      </div>
+      <dl class="panel-body stats">
+        <div>
+          <dt>Waiting in the inbox</dt>
+          <dd>
+            {{ acting.waiting }}
+            <RouterLink v-if="acting.waiting && canDecide" :to="{ name: 'decisions' }" class="small">Decide</RouterLink>
+          </dd>
+        </div>
+        <div>
+          <dt>Done</dt>
+          <dd>{{ acting.doneToday }}</dd>
+        </div>
+        <div>
+          <dt>Rejected by Seraph</dt>
+          <dd>{{ acting.rejectedToday }}</dd>
+        </div>
+        <div>
+          <dt>Declined by people</dt>
+          <dd>{{ acting.declinedToday }}</dd>
+        </div>
+        <div>
+          <dt>Held back</dt>
+          <dd>{{ acting.heldBackToday }}</dd>
+        </div>
+        <div>
+          <dt>Seraph</dt>
+          <dd class="words">
+            <template v-if="acting.seraphConfigured">has a model</template>
+            <span v-else class="warn-text">no model: what it would review goes to a person</span>
+          </dd>
+        </div>
+        <div>
+          <dt>The big brother</dt>
+          <dd class="words">
+            <template v-if="bigBrotherOn === false">off · </template>{{ usd(acting.bigBrother.spent) }}
+            <template v-if="acting.bigBrother.limit > 0">
+              of {{ usd(acting.bigBrother.limit) }} this month
+              <ProgressBar :value="percent(acting.bigBrother) ?? 0" :show-value="false" class="budget" />
+            </template>
+            <template v-else> this month, no limit</template>
+          </dd>
+        </div>
+        <div>
+          <dt>Mute, suppress</dt>
+          <dd>
+            {{ acting.activeInstructions }}
+            <RouterLink :to="{ name: 'cookie-admin', params: { tab: 'instructions' } }" class="small"
+              >active</RouterLink
+            >
+          </dd>
+        </div>
+        <div>
+          <dt>Lessons</dt>
+          <dd>
+            {{ acting.lessons }}
+            <RouterLink :to="{ name: 'cookie-admin', params: { tab: 'lessons' } }" class="small">active</RouterLink>
+          </dd>
+        </div>
+      </dl>
+    </section>
+
     <section class="panel" aria-labelledby="cookie-rounds-title">
       <div class="panel-header">
         <span id="cookie-rounds-title">Last rounds</span>
@@ -318,6 +392,7 @@ async function control(what: 'start' | 'stop' | 'run') {
           :options="stateOptions"
           option-label="label"
           option-value="value"
+          placeholder="Every state"
           size="small"
           aria-label="State"
         />
@@ -326,6 +401,7 @@ async function control(what: 'start' | 'stop' | 'run') {
           :options="channelOptions"
           option-label="label"
           option-value="value"
+          placeholder="Every channel"
           size="small"
           aria-label="Channel"
         />
@@ -459,6 +535,42 @@ async function control(what: 'start' | 'stop' | 'run') {
   height: 6px;
   margin-top: var(--pnmt-space-1);
   max-width: 16rem;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: var(--pnmt-space-3) var(--pnmt-space-4);
+  margin: 0;
+}
+
+.stats dt {
+  color: var(--pnmt-muted);
+  font-size: 0.857rem;
+}
+
+.stats dd {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--pnmt-space-2);
+}
+
+.stats dd.words {
+  font-size: 0.929rem;
+  font-weight: 400;
+  display: block;
+}
+
+.stats dd .small {
+  font-weight: 400;
+}
+
+.warn-text {
+  color: var(--pnmt-warn);
 }
 
 .stopped-note {

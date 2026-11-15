@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 
 /**
- * The documentation of Cookie, PNMT's assistant (docs/cookie-plan.md, package nine and revision 7): what it does in this
- * release. The availability plan has a section of its own (AvailabilityDocs).
+ * The documentation of Cookie, PNMT's assistant (docs/cookie-plan.md, packages nine and nine point five, revision 7):
+ * what it does in this release. The availability plan has a section of its own (AvailabilityDocs).
  */
 const props = defineProps<{ search: string }>()
 const has = (...texts: string[]) => {
@@ -14,7 +14,11 @@ const cookieText =
   'cookie assistant ai case book cases deadlines tickets first answer update duties reminders escalation outbox held back limits ' +
   'dashboard card summary window trace chat rights use instruct manage admin start stop run privacy placeholders person email phone ' +
   'budget Cookie__Enabled Cookie__BudgetUsd Redmine__WriteApiKey working hours prompts comment stop go on stopped ' +
-  'contact details account pushover key send a test redmine user availability plan responsible fallback'
+  'contact details account pushover key send a test redmine user availability plan responsible fallback ' +
+  'proposal propose auto off level threshold confidence seraph review verdict approve revise reject inbox decisions do it ' +
+  "don't noted dismiss decision log rating right wrong lessons summariser mute suppress instruction draft confirm end now " +
+  'big brother solution model budget Cookie__BigBrother__BudgetUsd Cookie__SeraphModel drift report duties texts ' +
+  'ai every time mail rule event'
 const show = computed(() => has(cookieText))
 </script>
 
@@ -24,10 +28,12 @@ const show = computed(() => has(cookieText))
     <div class="panel-body prose">
       <p>
         <strong>Cookie is PNMT's assistant.</strong> It keeps an eye on what PNMT knows (sensors, Zabbix problems,
-        Redmine tickets) so that nothing important falls through the cracks.
-        <strong>In this release Cookie watches:</strong> it explains the state, writes notes on cases and short personal
-        summaries, and answers in its chat. Everything it writes stays inside PNMT: no text from the AI leaves PNMT, by
-        mail, Pushover or Redmine.
+        Redmine tickets) so that nothing important falls through the cracks. It explains the state, writes notes on
+        cases and short personal summaries, and answers in its chat.
+        <strong>In this release Cookie also proposes actions</strong>: a Pushover or an e-mail to a person, a Redmine
+        ticket, a private note or a public answer on a ticket, a note on a host or sensor, or handing something to a
+        person. <strong>Code decides whether a proposal happens</strong>, and Seraph, a second model, reviews whatever
+        leaves PNMT or reaches people. Every action only adds: Cookie never deletes, closes or changes anything.
       </p>
       <p>
         <strong>The bookkeeping runs in code, without AI</strong>, whenever <code>Cookie__Enabled=true</code>, whether
@@ -63,20 +69,85 @@ const show = computed(() => has(cookieText))
         </li>
         <li>
           <strong>The chat:</strong> a message wakes Cookie, and it answers in the same thread with the lower of your
-          rights and its own. At most 20 messages an hour; nothing while Cookie is stopped.
+          rights and its own. Pick <em>Seraph</em> to ask Seraph instead: it explains its verdicts from the last 14
+          days' decisions you may see, and can't act. At most 20 messages an hour; nothing while Cookie is stopped. The
+          chat doesn't act: proposals come only from Cookie's work on cases.
         </li>
         <li>
-          <strong>Rights</strong>, in the area <em>Cookie</em>: <em>Use</em> opens the window, the chat and comments;
-          <em>Instruct</em> adds stopping a case and letting Cookie go on (temporary instructions come with a later
-          release); <em>Manage</em> adds Admin → Cookie, and starting and stopping it. The card needs no right.
+          <strong>How a proposal goes</strong>, each step in Cookie's decision log: the action's level (Off drops it);
+          the confidence (below the action's minimum, a person decides); the targets (an active PNMT user with the
+          channel's address, the case's own ticket, Cookie's group's rights); mute and suppress, and a stopped case;
+          duplicates (the same action on the same target for the same case within a day); then Seraph, who approves,
+          sends it back once with a reason, rejects it, or asks a person. Without Seraph, a person decides. At
+          <em>Propose</em> it waits in the decisions inbox; at <em>Auto</em> it goes out, through the output limits,
+          with Cookie's name as the signature.
         </li>
         <li>
-          <strong>Admin → Cookie</strong> (Cookie: Manage): Start, Stop and Run now, the last rounds, the budget, the
-          duties and the outbox; who Cookie is and its prompts, each with its default; the instructions for each kind of
-          case; the watched Redmine projects with their escalation groups; the duties and the output limits; the models;
-          and Cookie's group, whose rights it reads with, never the admin flag. Every save is a version that can be
-          viewed and rolled back. Cookie itself can't reach any of it. The working hours and holidays are in the
-          availability plan's settings.
+          <strong>The levels</strong> are set per action under Admin → Cookie → Actions: <em>Off</em>,
+          <em>Propose</em> (a person approves, after Seraph) or <em>Auto</em> (Seraph's approval is enough), with a
+          minimum confidence (0.7 by default). Everything that leaves PNMT or reaches people starts at Propose; a note
+          on a host or sensor and a mail rule's event start at Auto.
+        </li>
+        <li>
+          <strong>The decisions inbox</strong> (Monitoring → Decisions) shows Cookie's proposals as
+          <em>Cookie's proposal</em>: <em>Do it</em> sends it through the limits; <em>Don't</em> takes a comment that
+          says why. What Cookie hands to a person is <em>Noted</em> or <em>Dismiss</em>.
+        </li>
+        <li>
+          <strong>The decision log</strong> (Cookie's window → Decisions) lists every proposal with what came of it
+          (done, proposed, approved, declined, rejected, off, refused, duplicate, muted, held back, failed), Seraph's
+          verdict and reason, the confidence and the model. Whoever may see an entry's case marks it <em>Right</em> or
+          <em>Wrong</em>, with a comment.
+        </li>
+        <li>
+          <strong>Lessons:</strong> once a day, or after 10 new ratings, a summariser turns the ratings into short rules
+          that go into every prompt of Cookie and Seraph, at most 30 active. Admins edit, turn off and roll them back
+          under Admin → Cookie → Lessons. A lesson that is a rule ("no Pushover for toner warnings") becomes a suppress
+          for 30 days, which code enforces. Once a day Seraph also writes a drift report into the log.
+        </li>
+        <li>
+          <strong>Mute and suppress</strong> (Cookie: Instruct) are enforced by code, for at most 30 days:
+          <em>mute</em> a host, a sensor, a location or a case (no messages, tickets, notes on tickets or big brother
+          calls for it; its cases still open), <em>suppress</em> a channel (Pushover, e-mail, tickets, notes on
+          tickets), a sensor type or a kind of case. A <em>note</em> is a free-text instruction that goes into the
+          prompts with your name; it can narrow or steer, never widen. In the chat, Cookie fills one in as a draft that
+          you confirm with <em>Confirm</em>; Admin → Cookie → Mute, suppress creates them directly. Each has
+          <em>End now</em>, and all are in the audit log.
+        </li>
+        <li>
+          <strong>The big brother</strong> is two strong models for problems nobody fixes. When a case matters and
+          nobody has taken care of it for a working day, code offers it to Cookie; someone with Cookie: Instruct can
+          also <em>Ask the big brother</em> on a case. One of the two models answers at random, the other on a second
+          call or a failure. It returns the likely cause, the steps of a fix for a person, and how to check it; nothing
+          is run. The solution shows on the case, and goes as a private note to the case's ticket, or into the decisions
+          inbox. It is off until an admin turns it on (Actions), and has a budget of its own
+          (<code>Cookie__BigBrother__BudgetUsd</code>).
+        </li>
+        <li>
+          <strong>The duties' texts:</strong> with <em>Cookie writes the duties' texts</em> on (Actions), Cookie writes
+          each reminder and escalation from the case, and Seraph reviews it; code still decides when, to whom and
+          through which limits. The template is used whenever Cookie is stopped, paused, slow or rejected.
+        </li>
+        <li>
+          <strong>Mail rules set to <em>AI every time</em></strong> go to Cookie while it is enabled: a matching mail
+          waits for its next round, Cookie decides OK or fail, Seraph reviews it, and the rule's code goes to its
+          sensor. What Cookie can't decide becomes the inbox's <em>The AI could not decide</em>. While Cookie is stopped
+          or paused, such mails wait, visible in the mail log.
+        </li>
+        <li>
+          <strong>Rights</strong>, in the area <em>Cookie</em>: <em>Use</em> opens the window, the chat, comments and
+          ratings; <em>Instruct</em> adds stopping a case and letting Cookie go on, mute, suppress and notes from the
+          chat, and asking the big brother; <em>Manage</em> adds Admin → Cookie, and starting and stopping it. The card
+          needs no right.
+        </li>
+        <li>
+          <strong>Admin → Cookie</strong> (Cookie: Manage): Start, Stop and Run now, the last rounds, the budget, what
+          Cookie did today, the duties and the outbox; who Cookie is and its prompts, each with its default; the
+          instructions for each kind of case; the watched Redmine projects with their escalation groups; the actions'
+          levels, the duties and the output limits; mute and suppress; the lessons; the models, Seraph's and the big
+          brother's too; and Cookie's group, whose rights it reads with, never the admin flag. Every save is a version
+          that can be viewed and rolled back. Cookie itself can't reach any of it. The working hours and holidays are in
+          the availability plan's settings.
         </li>
         <li>
           <strong>Who gets what</strong> follows the availability plan: a ticket's reminder goes to its assignee (found
@@ -109,7 +180,8 @@ const show = computed(() => has(cookieText))
         <li>
           <strong>Cookie has a budget of its own</strong>: <code>Cookie__BudgetUsd</code> (30 USD a month by default),
           or the one set under Admin → Cookie → Models. At the budget Cookie pauses until the next month; the case book
-          and the duties go on. Its requests are in Admin → AI's request log.
+          and the duties go on. The big brother's budget is separate. Their requests are in Admin → AI's request log.
+          Seraph's model is <code>Cookie__SeraphModel</code>, or the one under Models.
         </li>
       </ul>
     </div>
