@@ -33,6 +33,12 @@ public sealed record ToolSpec(
     /// </summary>
     public bool ForCookie { get; init; }
 
+    /// <summary>
+    /// Only Cookie gets it, never an MCP token (docs/cookie-access-plan.md §9): PNMT's own sign-ins need <i>Audit log: View</i>,
+    /// which MCP's ceiling doesn't have.
+    /// </summary>
+    public bool CookieOnly { get; init; }
+
     /// <summary>A second right it needs, as attaching a Zabbix host needs Zabbix View besides Monitoring Edit.</summary>
     public IReadOnlyList<(Area Area, Level Level)> Requires { get; init; } = [];
 

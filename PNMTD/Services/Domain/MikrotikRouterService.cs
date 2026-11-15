@@ -29,7 +29,8 @@ public sealed class MikrotikRouterService(
     IOptionsMonitor<MikrotikOptions> options,
     WireGuardNetwork wireGuard,
     IHttpContextAccessor accessor,
-    AdvisoryFeed advisories)
+    AdvisoryFeed advisories,
+    Cookie.CookieSettings cookieSettings)
 {
     /// <summary>Set when a change concerns the gateway's peers: <see cref="NotifyGatewayAsync"/> after saving.</summary>
     private bool peersChanged;
@@ -104,6 +105,8 @@ public sealed class MikrotikRouterService(
         if (router is null)
         {
             router = new MikrotikRouterEntity { SensorId = sensor.Id, Created = now, ScriptChangedAt = now, SetupState = MikrotikSetupState.AwaitingRouter };
+            // The access watch (docs/cookie-access-plan.md §4.2): a new router takes the Access tab's "Watch new routers".
+            router.WatchLogins = (await cookieSettings.GetAsync<Cookie.Access.AccessSettings>(ct)).WatchNewRouters;
             db.MikrotikRouters.Add(router);
         }
         else

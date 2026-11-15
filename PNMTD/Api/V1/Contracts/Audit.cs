@@ -22,7 +22,8 @@ public sealed record AuditLogItem(
     string? TargetName,
     string? Request,
     string? CorrelationId,
-    IReadOnlyList<AuditChange> Changes);
+    IReadOnlyList<AuditChange> Changes,
+    AccessReviewRef? Review = null);
 
 /// <summary>
 /// <c>GET /audit-log</c>: newest first. Search: user, detail and target name. <see cref="UserId"/> finds what a user did

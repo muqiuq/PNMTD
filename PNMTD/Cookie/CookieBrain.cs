@@ -137,6 +137,7 @@ public sealed class CookieBrain(CookieSettings settings, Instructions instructio
     {
         CookieCaseKind.Ticket => c.FirstAnswerAt is null && !c.AuthorIsStaff ? "firstAnswer" : "noUpdate",
         CookieCaseKind.Request => "request",
+        CookieCaseKind.Access => Access.AccessJudge.Instruction,
         _ when now - c.ProgressAt >= TimeSpan.FromHours(unresolvedHours) => "unresolved",
         _ when recurrences >= 3 => "recurring",
         _ when members.Count > 0 && members.All(m => m.Type == CaseMember.Zabbix) => "zabbixProblem",

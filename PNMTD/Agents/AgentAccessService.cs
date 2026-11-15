@@ -17,7 +17,7 @@ namespace PNMTD.Agents;
 /// exist (<see cref="LinuxLogins.InvalidUser"/>, the internet's scanners) never count. sudo and su are stored, never page. Both
 /// optional per server, on by default.
 /// </summary>
-public sealed class AgentAccessService(IDbContextFactory<PnmtdDbContext> dbs, IOptionsMonitor<AgentOptions> options)
+public sealed class AgentAccessService(IDbContextFactory<PnmtdDbContext> dbs, IOptionsMonitor<AgentOptions> options, Cookie.Access.AccessWatch watch)
 {
     public const int MaxPerBatch = 1000;
 
@@ -81,6 +81,11 @@ public sealed class AgentAccessService(IDbContextFactory<PnmtdDbContext> dbs, IO
             await db.SaveChangesAsync(ct);
         }
         await transaction.CommitAsync(ct);
+        // The access watch (docs/cookie-access-plan.md §4): the new logins, once stored, whatever it finds.
+        if (write)
+        {
+            await watch.ServerLoginsAsync(agent.SensorId, [.. fresh.Select(f => f.Id)], ct);
+        }
     }
 
     private static void Apply(AgentLoginEntity row, LoginRecord record)

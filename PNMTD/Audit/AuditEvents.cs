@@ -152,6 +152,14 @@ public static class AuditEvents
     public const string CookieDecisionRated = "CookieDecisionRated";
     public const string CookieBigBrotherAsked = "CookieBigBrotherAsked";
 
+    // The access watch (docs/cookie-access-plan.md §10.1).
+    public const string AccessAnswered = "AccessAnswered";
+    public const string AccessPersonAnswered = "AccessPersonAnswered";
+    public const string AccessTicketAsked = "AccessTicketAsked";
+    public const string AccessKnownAdded = "AccessKnownAdded";
+    public const string AccessKnownEnded = "AccessKnownEnded";
+    public const string AccessWatchChanged = "AccessWatchChanged";
+
     // The person and the availability plan (docs/cookie-plan.md §8.1, §8.2).
     public const string ContactChanged = "ContactChanged";
     public const string ContactTested = "ContactTested";
@@ -365,7 +373,9 @@ public static class AuditCatalog
             AuditEvents.CookieStopped, AuditEvents.CookieRunRequested);
         Add(AuditCategory.Cookie, AuditTargets.CookieCase, AuditEvents.CookieTicketCreated, AuditEvents.CookieNoteAdded, AuditEvents.CookieMessageSent,
             AuditEvents.CookieHeldBackSent, AuditEvents.CookieCaseCommented, AuditEvents.CookieCaseStopped, AuditEvents.CookieCaseGoOn, AuditEvents.CookieDecisionRated,
-            AuditEvents.CookieBigBrotherAsked);
+            AuditEvents.CookieBigBrotherAsked, AuditEvents.AccessAnswered, AuditEvents.AccessPersonAnswered, AuditEvents.AccessTicketAsked);
+        Add(AuditCategory.Cookie, null, AuditEvents.AccessKnownAdded, AuditEvents.AccessKnownEnded);
+        Add(AuditCategory.Cookie, AuditTargets.Sensor, AuditEvents.AccessWatchChanged);
         Add(AuditCategory.Cookie, null, AuditEvents.CookieInstructionCreated, AuditEvents.CookieInstructionConfirmed, AuditEvents.CookieInstructionEnded);
         Add(AuditCategory.Users, AuditTargets.User, AuditEvents.ContactChanged, AuditEvents.ContactTested);
         Add(AuditCategory.Availability, null, AuditEvents.AvailabilityChanged, AuditEvents.AvailabilityFilled, AuditEvents.AvailabilityPeopleChanged,

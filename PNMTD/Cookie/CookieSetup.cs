@@ -91,6 +91,15 @@ public static class CookieSetup
         services.AddSingleton<Lessons>();
         services.AddSingleton<CookieDailyTask>();
         services.AddSingleton<PNMTD.Decisions.IDecisionKind, CookieActionDecision>();
+        // The access watch (docs/cookie-access-plan.md §10.2).
+        services.AddSingleton<Access.AccessHistory>();
+        services.AddSingleton<Access.AccessWatch>();
+        services.AddSingleton<Access.RouterLoginStore>();
+        services.AddSingleton<Access.AccessNotices>();
+        services.AddSingleton<Access.WasThisYou>();
+        services.AddSingleton<Access.AccessJudge>();
+        services.AddSingleton<Access.AccessWatchTask>();
+        services.AddScoped<Access.AccessService>();
         return services;
     }
 }

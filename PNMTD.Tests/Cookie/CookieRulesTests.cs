@@ -151,7 +151,7 @@ public sealed class CookieRulesTests
                 StringAssert.Contains(prompt.Text, required, key);
             }
         }
-        Assert.AreEqual(9, CookiePrompts.CaseKinds.Count);
+        Assert.AreEqual(10, CookiePrompts.CaseKinds.Count);
         Assert.AreEqual("Hi Cookie, {unknown}", CookiePrompts.Fill("Hi {name}, {unknown}", new Dictionary<string, string> { ["name"] = "Cookie" }));
     }
 }

@@ -10,8 +10,8 @@ public enum CookieState { Stopped, Sleeping, Working, Paused }
 /// <summary>The overall state on the dashboard (docs/cookie-plan.md §8).</summary>
 public enum OverallState { AllFine, Info, Warning, Alert }
 
-/// <summary>What a case is about (docs/cookie-plan.md §4.3, §19.1).</summary>
-public enum CookieCaseKind { Problem, Ticket, Request }
+/// <summary>What a case is about (docs/cookie-plan.md §4.3, §19.1); <see cref="Access"/>: an unusual login (docs/cookie-access-plan.md §5.1).</summary>
+public enum CookieCaseKind { Problem, Ticket, Request, Access }
 
 /// <summary>A deadline's step (docs/cookie-plan.md §7, §19.1).</summary>
 public enum CookieDutyKind { FirstAnswerReminder, FirstAnswerMissed, UpdateReminder, UpdateMissed, ProblemTicket, ClosingNote }
@@ -19,8 +19,11 @@ public enum CookieDutyKind { FirstAnswerReminder, FirstAnswerMissed, UpdateRemin
 /// <summary>What came of a duty: still due, done, held back by a limit, switched off, not possible, failed, or stopped with its case.</summary>
 public enum CookieDutyState { Due, Done, HeldBack, Off, NotPossible, Failed, Stopped }
 
-/// <summary>How something left PNMT (docs/cookie-plan.md §6.1).</summary>
-public enum CookieChannel { Email, Pushover, RedmineNote, RedminePrivateNote, RedmineTicket }
+/// <summary>
+/// How something left PNMT (docs/cookie-plan.md §6.1). The access watch's own (docs/cookie-access-plan.md §6) have limits of their
+/// own: its notices by e-mail and Pushover, and <i>Was this you?</i>.
+/// </summary>
+public enum CookieChannel { Email, Pushover, RedmineNote, RedminePrivateNote, RedmineTicket, AccessEmail, AccessPushover, WasThisYou }
 
 public enum CookieOutboxState { Sent, HeldBack, Failed, Simulated }
 
@@ -137,6 +140,15 @@ public class CookieRuntimeEntity
     public int Failures { get; set; }
 
     public DateTime? PausedUntil { get; set; }
+
+    /// <summary>The access watch's cursor in the audit log: PNMT's sign-ins up to here are looked at (docs/cookie-access-plan.md §4.3).</summary>
+    public DateTime? AccessAuditAt { get; set; }
+
+    /// <summary>The same in the MCP log: its calls up to this id are looked at.</summary>
+    public long? AccessMcpLogId { get; set; }
+
+    /// <summary>The hour whose held-back access e-mails went out in a digest (§6.4).</summary>
+    public DateTime? AccessDigestAt { get; set; }
 }
 
 /// <summary>
@@ -272,6 +284,46 @@ public class CookieCaseEntity
 
     /// <summary>The areas the big brother's tools read: only readers with all of them see the solution (§9.2).</summary>
     public List<string> SolutionAreas { get; set; } = [];
+
+    // An access case (docs/cookie-access-plan.md §5.1, §6, §7).
+
+    /// <summary>The server's or router's sensor; null for PNMT's sign-ins.</summary>
+    public Guid? SensorId { get; set; }
+
+    /// <summary>The highest verdict on its logins: normal, unusual, suspicious, alarming.</summary>
+    [MaxLength(16)]
+    public string? AccessVerdict { get; set; }
+
+    /// <summary>expected or not-expected, a contact's answer (§7).</summary>
+    [MaxLength(16)]
+    public string? AccessAnswer { get; set; }
+
+    public DateTime? AccessAnsweredAt { get; set; }
+
+    [MaxLength(200)]
+    public string? AccessAnsweredBy { get; set; }
+
+    /// <summary>The verdict the contacts were last told, and when: one notice per case and verdict (§6.3).</summary>
+    [MaxLength(16)]
+    public string? AccessNotifiedVerdict { get; set; }
+
+    public DateTime? AccessNotifiedAt { get; set; }
+
+    /// <summary>A notice that waits for working hours (§6.1): its verdict, its reason, and who wrote it.</summary>
+    [MaxLength(16)]
+    public string? AccessPendingVerdict { get; set; }
+
+    [MaxLength(300)]
+    public string? AccessPendingReason { get; set; }
+
+    [MaxLength(16)]
+    public string? AccessPendingSource { get; set; }
+
+    /// <summary>A person asked Cookie for a ticket (§7): the only way an access case gets one.</summary>
+    public DateTime? TicketAskedAt { get; set; }
+
+    [MaxLength(200)]
+    public string? TicketAskedBy { get; set; }
 }
 
 /// <summary>

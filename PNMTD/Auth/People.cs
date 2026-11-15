@@ -22,7 +22,8 @@ public sealed record PersonProfile(
     string? ShortCode,
     string? Color,
     IReadOnlyList<DefaultDay> DefaultWeek,
-    int PlanOrder);
+    int PlanOrder,
+    IReadOnlyList<string>? ServerAccounts = null);
 
 /// <summary>
 /// What belongs to a person (docs/cookie-plan.md §8.1, revision 7): the e-mail address, the Pushover key and the Redmine user,
@@ -65,7 +66,19 @@ public static partial class People
     }
 
     public static PersonProfile Of(UserEntity u) =>
-        new(u.Email, u.PushoverKey, u.RedmineName, u.InPlan, u.ShortCode, u.Color, WeekOf(u.DefaultWeek), u.PlanOrder);
+        new(u.Email, u.PushoverKey, u.RedmineName, u.InPlan, u.ShortCode, u.Color, WeekOf(u.DefaultWeek), u.PlanOrder, u.ServerAccounts);
+
+    /// <summary>
+    /// The person's accounts on servers and routers (docs/cookie-access-plan.md §5.3), cleaned: trimmed, each once, at most 20 of at
+    /// most 256 characters.
+    /// </summary>
+    public static List<string> CleanAccounts(ApiValidator v, IReadOnlyList<string>? accounts)
+    {
+        var list = (accounts ?? []).Select(a => a.Trim()).Where(a => a.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        v.Check(list.Count <= 20, "serverAccounts", "At most 20.");
+        v.Check(list.All(a => a.Length <= 256), "serverAccounts", "At most 256 characters each.");
+        return list;
+    }
 
     public static void ValidateContact(ApiValidator v, string? email, string? pushoverKey)
     {

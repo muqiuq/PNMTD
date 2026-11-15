@@ -276,7 +276,8 @@ public sealed record AgentLoginItem(
     IReadOnlyList<string>? TriedUsers = null,
     string? KeyName = null,
     string? KeyOwner = null,
-    Guid? KeyId = null);
+    Guid? KeyId = null,
+    AccessReviewRef? Review = null);
 
 public sealed class AgentLoginQuery : PageQuery
 {

@@ -12,7 +12,10 @@ using PNMTD.Redmine;
 
 namespace PNMTD.Cookie;
 
-/// <summary>What is to go out: a message to a person (e-mail, Pushover), a note on a ticket, or a ticket.</summary>
+/// <summary>
+/// What is to go out: a message to a person (e-mail, Pushover), a note on a ticket, or a ticket. <see cref="Unlimited"/>: no limit
+/// holds it back, for an <i>alarming</i> access notice (docs/cookie-access-plan.md §6.4).
+/// </summary>
 public sealed record OutboxRequest(
     CookieChannel Channel,
     string Subject,
@@ -26,7 +29,8 @@ public sealed record OutboxRequest(
     int? ProjectId = null,
     int? TrackerId = null,
     Urgency Urgency = Urgency.Important,
-    string Source = "code");
+    string Source = "code",
+    bool Unlimited = false);
 
 /// <summary>
 /// Everything that leaves PNMT for Cookie goes through here (docs/cookie-plan.md §6.1, §19.1): the limits are counted
@@ -40,6 +44,10 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
     /// <summary>The limit it would break, or null.</summary>
     public async Task<string?> LimitAsync(PnmtdDbContext db, OutboxRequest r, CancellationToken ct)
     {
+        if (r.Unlimited)
+        {
+            return null;
+        }
         var limits = (await settings.GetAsync<ActionSettings>(ct)).Limits;
         var today = Clock.ToUtc(Clock.LocalNow.Date);
         var hour = Clock.UtcNow.AddHours(-1);
@@ -64,6 +72,21 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
                     return $"e-mail per person: {limits.EmailPerPersonDay} a day";
                 }
                 break;
+            case CookieChannel.AccessEmail or CookieChannel.AccessPushover:
+            {
+                // The access watch's own limits (docs/cookie-access-plan.md §6.4): per contact and channel, a day and an hour.
+                var access = (await settings.GetAsync<Access.AccessSettings>(ct)).Limits;
+                var mine = sent.Where(o => o.Channel == r.Channel && o.UserId == r.UserId);
+                if (await mine.CountAsync(ct) >= access.PerContactDay)
+                {
+                    return $"access notices per contact: {access.PerContactDay} a day";
+                }
+                if (await mine.CountAsync(o => o.CreatedAt >= hour, ct) >= access.PerContactHour)
+                {
+                    return $"access notices per contact: {access.PerContactHour} an hour";
+                }
+                break;
+            }
             case CookieChannel.RedmineTicket:
                 if (await sent.CountAsync(o => o.Channel == CookieChannel.RedmineTicket, ct) >= limits.TicketsPerDay)
                 {
@@ -138,8 +161,8 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
         var person = row.UserId is { } u ? await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == u, ct) : null;
         var address = row.Channel switch
         {
-            CookieChannel.Email => person?.Email,
-            CookieChannel.Pushover => person?.PushoverKey,
+            CookieChannel.Email or CookieChannel.AccessEmail or CookieChannel.WasThisYou => person?.Email,
+            CookieChannel.Pushover or CookieChannel.AccessPushover => person?.PushoverKey,
             _ => null,
         };
         var redmineSettings = await settings.GetAsync<CookieRedmineSettings>(ct);
@@ -159,15 +182,16 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
         {
             switch (r.Channel)
             {
-                case CookieChannel.Email or CookieChannel.Pushover:
+                case CookieChannel.Email or CookieChannel.Pushover or CookieChannel.AccessEmail or CookieChannel.AccessPushover or CookieChannel.WasThisYou:
                 {
+                    var pushover = r.Channel is CookieChannel.Pushover or CookieChannel.AccessPushover;
                     if (string.IsNullOrWhiteSpace(r.Address))
                     {
                         row.State = CookieOutboxState.Failed;
-                        row.Detail = r.Channel == CookieChannel.Email ? "The person has no e-mail address." : "The person has no Pushover key.";
+                        row.Detail = pushover ? "The person has no Pushover key." : "The person has no e-mail address.";
                         return;
                     }
-                    var recipient = r.Channel == CookieChannel.Pushover ? $"pushover://{r.Address.Trim()}" : r.Address.Trim();
+                    var recipient = pushover ? $"pushover://{r.Address.Trim()}" : r.Address.Trim();
                     var importance = r.Urgency == Urgency.Urgent ? Importance.High : Importance.Normal;
                     var message = new NotificationMessage(recipient, r.Subject, CaseBook.Cut(r.Body, 900)!, r.Body, importance);
                     var simulate = configuration.GetValue("Development:DoNotSendNotifications", false);
@@ -258,6 +282,9 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
         CookieChannel.RedmineNote => "Note",
         CookieChannel.RedminePrivateNote => "Private note",
         CookieChannel.RedmineTicket => "Ticket",
+        CookieChannel.AccessEmail => "Access e-mail",
+        CookieChannel.AccessPushover => "Access Pushover",
+        CookieChannel.WasThisYou => "Was this you?",
         _ => channel.ToString(),
     };
 }

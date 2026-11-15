@@ -80,10 +80,13 @@ public sealed class McpToolsTests
             "every change declares its events: " + string.Join(", ", all.Where(t => t.Writes && (t.AuditEvents.Count == 0 || !t.AuditEvents.All(AuditCatalog.Contains))).Select(t => t.Name)));
         Assert.IsTrue(all.Where(t => t.Kind == ToolKind.Delete).All(t => t.Destructive || t.Kind == ToolKind.Delete));
         Assert.IsFalse(all.Any(t => t.Level == PNMTD.Auth.Rights.Level.Manage || t.Requires.Any(r => r.Level == PNMTD.Auth.Rights.Level.Manage)), "no Manage level");
-        Assert.IsTrue(all.Where(t => t.Area is { } a).All(t => McpRights.Ceiling.ContainsKey(t.Area!.Value)), "every area is within MCP's ceiling");
+        Assert.IsTrue(all.Where(t => t.Area is { } a && !t.CookieOnly).All(t => McpRights.Ceiling.ContainsKey(t.Area!.Value)), "every area is within MCP's ceiling");
+        Assert.IsTrue(all.Where(t => t.CookieOnly).All(t => t.ForCookie), "a tool only for Cookie is Cookie's");
         Assert.IsTrue(all.Where(t => t.ForCookie).All(t => t.Kind == ToolKind.Read), "Cookie only reads");
+        // The access watch (docs/cookie-access-plan.md §5.2) added four: logins, PNMT's sign-ins (Cookie's only), a profile, an account everywhere.
         CollectionAssert.AreEquivalent(new[] { "cases_list", "case_get", "hosts_search", "host_get", "sensor_events", "location_get", "kb_search", "kb_page",
-            "ticket_get", "zabbix_problems", "availability_get" }, all.Where(t => t.ForCookie).Select(t => t.Name).ToList(), "Cookie keeps its eleven");
+            "ticket_get", "zabbix_problems", "availability_get", "logins_list", "pnmt_signins", "access_profile", "account_logins" },
+            all.Where(t => t.ForCookie).Select(t => t.Name).ToList(), "Cookie keeps its fifteen");
         foreach (var tool in all)
         {
             Assert.AreEqual("object", tool.InputSchema["type"]!.GetValue<string>(), tool.Name);

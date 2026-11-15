@@ -51,6 +51,7 @@ public sealed class RouterPollService(
     IOptionsMonitor<MikrotikOptions> options,
     WireGuardNetwork wireGuard,
     BackupDigestKey digestKey,
+    Cookie.Access.RouterLoginStore logins,
     ILogger<RouterPollService> logger)
 {
     /// <summary>The key of the exports' keyed digests (docs/mikrotik-backup-plan.md §3.7), for the jobs' exports too.</summary>
@@ -418,6 +419,7 @@ public sealed class RouterPollService(
         var now = Clock.UtcNow;
         var sensor = router.Sensor;
         var events = new List<RouterEvent>();
+        var previousSuccessAt = router.LastSuccessAt;
         router.LastPollAt = now;
         var everLoggedIn = router.LastSuccessAt is not null || router.HostKeyPinnedAt is not null;
 
@@ -495,6 +497,11 @@ public sealed class RouterPollService(
         if (result.Reading is null)
         {
             logger.LogDebug("MikroTik {Sensor}: {Error}", sensor.Name, result.Error);
+        }
+        else
+        {
+            // The router's logins (docs/cookie-access-plan.md §4.2), read with the poll; a failure there doesn't fail the poll.
+            await logins.StoreAsync(router.SensorId, result.Reading, previousSuccessAt, ct);
         }
         var last = events.LastOrDefault();
         return new RouterPollOutcome(result.Reading is not null && last?.Code is not PNMTStatusCodes.MIKROTIK_ACCESS_DENIED,

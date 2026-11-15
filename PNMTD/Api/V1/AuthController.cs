@@ -421,6 +421,11 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
         u.Email = People.Clean(request.Email, 254);
         u.PushoverKey = People.Clean(request.PushoverKey, 30);
         u.RedmineName = People.Clean(request.RedmineName, 200);
+        // The access watch (docs/cookie-access-plan.md §5.3): left as they are when the request doesn't name them.
+        if (request.ServerAccounts is not null)
+        {
+            u.ServerAccounts = People.CleanAccounts(v, request.ServerAccounts);
+        }
         await People.ApplyPlanAsync(db, u, request.InPlan, request.ShortCode, request.Color, request.DefaultWeek, request.PlanOrder, v, ct);
         await db.SaveChangesAsync(ct);
         return People.Of(u);

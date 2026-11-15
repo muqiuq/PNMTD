@@ -98,13 +98,18 @@ public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs
             return log;
         }
         var active = await instructions.ActiveAsync(ct);
-        if (Instructions.Blocks(active, a.Action, r.Case, members, Guid.TryParse(a.ObjectId, out var obj) ? obj : null) is { } blocked)
+        // Mute doesn't stop an access notice, and a suppress of the channel "access" never an alarming one (docs/cookie-access-plan.md §6.4).
+        var blocked = a.Action == CookieActionKind.AccessNotice
+            ? Instructions.SuppressesAccess(active, proposal.Access)
+            : Instructions.Blocks(active, a.Action, r.Case, members, Guid.TryParse(a.ObjectId, out var obj) ? obj : null);
+        if (blocked is not null)
         {
             Done("muted", $"{blocked.Kind} {blocked.Scope} {blocked.Label ?? blocked.Value}, by {blocked.CreatedByName}");
             await db.SaveChangesAsync(ct);
             return log;
         }
-        var since = Clock.UtcNow.AddDays(-1);
+        // An access notice again after 4 hours, or when its verdict rises (its target names the verdict, docs/cookie-access-plan.md §6.3).
+        var since = a.Action == CookieActionKind.AccessNotice ? Clock.UtcNow.AddHours(-4) : Clock.UtcNow.AddDays(-1);
         if (target is not null && await db.CookieDecisions.AnyAsync(d => d.CaseId == log.CaseId && d.Kind == log.Kind && d.Target == target
                 && (d.Outcome == "proposed" || d.Outcome == "running" || d.At >= since && (d.Outcome == "done" || d.Outcome == "approved")), ct))
         {
@@ -114,8 +119,10 @@ public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs
         }
 
         // Seraph (§5): approve, revise (one retry), reject, or a person. Without Seraph, a person.
+        // An access notice below its threshold went one lower already; only an unusual one goes to a person (docs/cookie-access-plan.md §6.4).
+        var thresholded = a.Action != CookieActionKind.AccessNotice || proposal.Access?.Verdict == "unusual";
         var toPerson = a.Action == CookieActionKind.HandToPerson ? "Cookie hands it to a person."
-            : a.Confidence < rule.MinConfidence ? $"Below the threshold ({a.Confidence:0.00} < {rule.MinConfidence:0.00})." : null;
+            : thresholded && a.Confidence < rule.MinConfidence ? $"Below the threshold ({a.Confidence:0.00} < {rule.MinConfidence:0.00})." : null;
         // Outside working hours Cookie reaches nobody by itself (§8.3): a message waits for a person's decision.
         if (a.Action is CookieActionKind.Pushover or CookieActionKind.Email && !(await plan.CalendarAsync(ct)).IsWorking(Clock.UtcNow))
         {
@@ -245,6 +252,7 @@ public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs
         CookieActionKind.PublicAnswer => "Public answer",
         CookieActionKind.ObjectNote => "Note",
         CookieActionKind.MailEvent => "Mail rule event",
+        CookieActionKind.AccessNotice => "Access notice",
         _ => "For a person",
     };
 
@@ -322,9 +330,14 @@ public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs
                 {
                     return ("Cookie's group needs Redmine: Link for a ticket.", null);
                 }
-                if (c is null || c.Kind != CookieCaseKind.Problem)
+                if (c is null || c.Kind is not (CookieCaseKind.Problem or CookieCaseKind.Access))
                 {
                     return ("A ticket is for a problem's case.", null);
+                }
+                // An access case gets a ticket only when a person asked for one (docs/cookie-access-plan.md §7).
+                if (c.Kind == CookieCaseKind.Access && c.TicketAskedAt is null)
+                {
+                    return ("An access case gets a ticket only when someone asks for one (Ask Cookie for a ticket).", null);
                 }
                 if (c.OwnIssueId is { } own && !await db.RedmineIssues.AnyAsync(i => i.IssueId == own && i.IsClosed, ct))
                 {
@@ -361,6 +374,19 @@ public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs
             }
             case CookieActionKind.MailEvent:
                 return (p.Mail is null ? "A mail rule's event needs its mail." : null, p.Mail is null ? null : $"mail:{p.Mail.MailId}");
+            case CookieActionKind.AccessNotice:
+            {
+                // The recipients are the Access tab's contacts, never the model's (docs/cookie-access-plan.md §6.4).
+                if (p.Access is not { } access || c is null || c.Id != access.CaseId || c.Kind != CookieCaseKind.Access || !c.Open)
+                {
+                    return ("An access notice is for its own open access case.", null);
+                }
+                if (Access.AccessSignals.VerdictOf(access.Verdict) is not { } v || v == Access.AccessVerdict.Normal)
+                {
+                    return ("An access notice needs a verdict above normal.", null);
+                }
+                return (null, $"access:{c.Id}:{access.Verdict}");
+            }
             default:
                 // One thing per case waits for a person at a time.
                 return (null, c is null ? null : $"case:{c.Id}");
@@ -395,6 +421,11 @@ public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs
         if (Guid.TryParse(p.Action.UserId, out var userId) && await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.DisplayName).FirstOrDefaultAsync(ct) is { } name)
         {
             text.AppendLine(CultureInfo.InvariantCulture, $"The recipient {userId} is {privacy.Mask(name)}.");
+        }
+        if (p.Access is { } access)
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $"The verdict, held to the signals by code: {access.Verdict}; a strong signal: {(access.Strong ? "yes" : "no")}.");
+            text.AppendLine(await Access.AccessJudge.EvidenceAsync(db, access.CaseId, privacy, ct));
         }
         if (p.Mail is { } mail && await db.MailLogs.AsNoTracking().SingleOrDefaultAsync(m => m.Id == mail.MailId, ct) is { } log)
         {
@@ -463,6 +494,16 @@ public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs
                 case CookieActionKind.MailEvent:
                     await MailEventAsync(db, log, p.Mail!, ct);
                     break;
+                case CookieActionKind.AccessNotice:
+                {
+                    var access = p.Access!;
+                    var notified = await services.GetRequiredService<Access.AccessNotices>().NotifyAsync(access.CaseId, Access.AccessSignals.VerdictOf(access.Verdict)!.Value,
+                        privacy.Unmask(a.Reason), source, ct);
+                    log.Outcome = notified.Sent > 0 || notified.Waiting ? "done" : notified.HeldBack > 0 ? "held-back" : "failed";
+                    log.Detail = CaseBook.Cut(notified.Detail, 1000);
+                    log.OutboxId = notified.FirstOutboxId;
+                    break;
+                }
             }
         }
         catch (Exception e) when (e is not OperationCanceledException)

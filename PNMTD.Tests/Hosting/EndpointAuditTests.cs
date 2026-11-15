@@ -45,6 +45,9 @@ public sealed class EndpointAuditTests
         "GET /agent/v1/download",
         "GET /agent/v1/download/{asset}",
         "HEAD /agent/v1/download/{asset}",
+        // Was this you? (docs/cookie-access-plan.md §6.6, §9): a one-time token answers one question; rate-limited.
+        "GET /api/v1/access/was-this-you/{token}",
+        "POST /api/v1/access/was-this-you/{token}",
     ];
 
     /// <summary>
@@ -191,6 +194,22 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/cookie/admin/instructions"] = ("Cookie:Manage", Roles.Admin),
         ["POST /api/v1/cookie/admin/instructions"] = ("Cookie:Manage", Roles.Admin),
         ["PUT /api/v1/cookie/admin/settings/lessons"] = ("Cookie:Manage", Roles.Admin),
+        // The access watch (docs/cookie-access-plan.md §10.3): an access case for Use, its answer for a contact or Instruct (checked
+        // in code), a ticket for Instruct and Link, "This wasn't expected" for Monitoring Edit; the tab, known access and the
+        // routers' switches for Manage; a router's logins for Monitoring Edit.
+        ["GET /api/v1/cookie/access/cases/{id:guid}"] = ("Cookie:Use", Roles.Admin),
+        ["POST /api/v1/cookie/access/cases/{id:guid}/answer"] = ("Cookie:Use", Roles.Admin),
+        ["POST /api/v1/cookie/access/cases/{id:guid}/ticket"] = ("Cookie:Instruct&Redmine:Link", Roles.Admin),
+        ["POST /api/v1/cookie/access/logins/{id:guid}/not-expected"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/cookie/admin/access/state"] = ("Cookie:Manage", Roles.Admin),
+        ["GET /api/v1/cookie/admin/access/known"] = ("Cookie:Manage", Roles.Admin),
+        ["POST /api/v1/cookie/admin/access/known"] = ("Cookie:Manage", Roles.Admin),
+        ["POST /api/v1/cookie/admin/access/known/{id:guid}/end"] = ("Cookie:Manage", Roles.Admin),
+        ["GET /api/v1/cookie/admin/access/routers"] = ("Cookie:Manage", Roles.Admin),
+        ["PUT /api/v1/cookie/admin/access/routers"] = ("Cookie:Manage", Roles.Admin),
+        ["PUT /api/v1/cookie/admin/settings/access"] = ("Cookie:Manage", Roles.Admin),
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/logins"] = ("Monitoring:Edit", Roles.User),
+        ["PUT /api/v1/sensors/{id:guid}/mikrotik/access-watch"] = ("Cookie:Manage", Roles.Admin),
         // The person and the availability plan (docs/cookie-plan.md §8.1, §8.2): one's own contact details and column for
         // everyone (the plan's code checks the column), the rest by the area Availability; a user's profile for admins.
         ["GET /api/v1/account/contact"] = ("signed-in", Roles.Viewer),
@@ -540,7 +559,9 @@ public sealed class EndpointAuditTests
     {
         var v1 = Endpoints()
             .Where(e => e.Pattern.StartsWith("/api/v1/", StringComparison.Ordinal) && !e.Pattern.Contains("{**rest}")
-                && e.Key is not ("GET /api/v1/system/info" or "POST /api/v1/auth/login" or "POST /api/v1/auth/login/totp"))
+                && e.Key is not ("GET /api/v1/system/info" or "POST /api/v1/auth/login" or "POST /api/v1/auth/login/totp"
+                    // Was this you? (docs/cookie-access-plan.md §6.6): anonymous, in the allowlist.
+                    or "GET /api/v1/access/was-this-you/{token}" or "POST /api/v1/access/was-this-you/{token}"))
             .Select(e => e.Key)
             .Order(StringComparer.Ordinal)
             .ToList();

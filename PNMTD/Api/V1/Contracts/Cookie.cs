@@ -168,7 +168,8 @@ public sealed record CookieAllSettings(
     ActionSettings Actions,
     ModelSettings Models,
     CookieRightsSettings Rights,
-    LessonSettings Lessons);
+    LessonSettings Lessons,
+    PNMTD.Cookie.Access.AccessSettings Access);
 
 public sealed record CookieSaved(string Section, int Version);
 

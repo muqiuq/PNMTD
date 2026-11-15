@@ -190,6 +190,11 @@ public sealed class CookieAdminController(CookieService cookie) : V1ControllerBa
     [Audit(AuditEvents.CookieSettingsChanged)]
     public async Task<CookieSaved> SaveLessons(LessonSettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);
 
+    /// <summary>The access watch (docs/cookie-access-plan.md §8).</summary>
+    [HttpPut("settings/access")]
+    [Audit(AuditEvents.CookieSettingsChanged)]
+    public async Task<CookieSaved> SaveAccess(PNMTD.Cookie.Access.AccessSettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);
+
     [HttpPut("settings/rights")]
     [Audit(AuditEvents.CookieSettingsChanged)]
     public async Task<CookieSaved> SaveRights(CookieRightsSettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);

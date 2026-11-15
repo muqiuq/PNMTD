@@ -24,6 +24,235 @@ namespace PNMTD.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("PNMTD.Models.Db.AccessKnownEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Account")
+                        .HasMaxLength(520)
+                        .HasColumnType("character varying(520)");
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatedByName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EndedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("FromCaseId")
+                        .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<List<string>>("Groups")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<Guid?>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Source")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Target")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime?>("Until")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EndedAt");
+
+                    b.ToTable("access_known");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AccessReviewEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Account")
+                        .IsRequired()
+                        .HasMaxLength(520)
+                        .HasColumnType("character varying(520)");
+
+                    b.Property<Guid?>("AgentLoginId")
+                        .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<List<string>>("AskedAddresses")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<DateTime?>("AskedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AuditLogId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<double?>("Confidence")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DecisionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Device")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("Flagged")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Group")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("JudgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("JudgedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("KeyFingerprint")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("Late")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("McpLogId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("PersonAnswer")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<DateTime?>("PersonAnsweredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PersonAnsweredFrom")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("PersonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid?>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Signals")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Source")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<bool>("Strong")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Target")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("TargetName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("TargetUser")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime?>("TokenExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Way")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgentLoginId");
+
+                    b.HasIndex("AuditLogId");
+
+                    b.HasIndex("CaseId");
+
+                    b.HasIndex("SensorId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasFilter("\"TokenHash\" IS NOT NULL");
+
+                    b.HasIndex("Source", "At");
+
+                    b.HasIndex("State", "CreatedAt");
+
+                    b.ToTable("access_reviews");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.AgentChangeEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -445,8 +674,12 @@ namespace PNMTD.Data.Migrations
 
                     b.HasIndex("SensorId", "At");
 
+                    b.HasIndex("SourceAddress", "At");
+
                     b.HasIndex("SensorId", "Channel", "RecordId")
                         .IsUnique();
+
+                    b.HasIndex("SensorId", "User", "At");
 
                     b.ToTable("agent_logins");
                 });
@@ -987,6 +1220,8 @@ namespace PNMTD.Data.Migrations
 
                     b.HasIndex("UserId", "CreatedAt");
 
+                    b.HasIndex("EventType", "Username", "CreatedAt");
+
                     b.ToTable("audit_log");
                 });
 
@@ -1137,6 +1372,40 @@ namespace PNMTD.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AccessAnswer")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime?>("AccessAnsweredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AccessAnsweredBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("AccessNotifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AccessNotifiedVerdict")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("AccessPendingReason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("AccessPendingSource")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("AccessPendingVerdict")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("AccessVerdict")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
                     b.PrimitiveCollection<List<string>>("Areas")
                         .IsRequired()
                         .HasColumnType("text[]");
@@ -1239,6 +1508,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<int?>("ProjectId")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("SensorId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Solution")
                         .HasColumnType("text");
 
@@ -1277,6 +1549,13 @@ namespace PNMTD.Data.Migrations
                     b.PrimitiveCollection<List<string>>("StoppedMembers")
                         .IsRequired()
                         .HasColumnType("text[]");
+
+                    b.Property<DateTime?>("TicketAskedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TicketAskedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime?>("TicketCreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1808,6 +2087,15 @@ namespace PNMTD.Data.Migrations
                 {
                     b.Property<int>("SingletonId")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("AccessAuditAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("AccessDigestAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("AccessMcpLogId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("BriefHash")
                         .HasMaxLength(64)
@@ -3776,6 +4064,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<Guid>("SensorId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ActiveUsers")
+                        .HasColumnType("text");
+
                     b.Property<string>("Address")
                         .HasColumnType("text");
 
@@ -3857,6 +4148,18 @@ namespace PNMTD.Data.Migrations
                     b.Property<DateTime?>("LastSuccessAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("LogGap")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LogOldestAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("LogUnmatched")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LoginsFirstReadAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("ManagementAccess")
                         .HasColumnType("boolean");
 
@@ -3878,11 +4181,18 @@ namespace PNMTD.Data.Migrations
                     b.Property<string>("PendingHostKeyType")
                         .HasColumnType("text");
 
+                    b.Property<string>("PnmtAddress")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("PnmtSourceAddress")
                         .HasColumnType("text");
 
                     b.Property<string>("Reading")
                         .HasColumnType("jsonb");
+
+                    b.Property<string>("RouterUsers")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("ScriptChangedAt")
                         .HasColumnType("timestamp with time zone");
@@ -3907,6 +4217,9 @@ namespace PNMTD.Data.Migrations
 
                     b.Property<string>("Version")
                         .HasColumnType("text");
+
+                    b.Property<bool>("WatchLogins")
+                        .HasColumnType("boolean");
 
                     b.Property<Guid?>("WgPeerId")
                         .HasColumnType("uuid");
@@ -5135,6 +5448,10 @@ namespace PNMTD.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.PrimitiveCollection<List<string>>("ServerAccounts")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
                     b.Property<string>("ShortCode")
                         .HasMaxLength(3)
                         .HasColumnType("character varying(3)");
@@ -5479,6 +5796,24 @@ namespace PNMTD.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("zabbix_sensors");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AccessReviewEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.AgentLoginEntity", null)
+                        .WithMany()
+                        .HasForeignKey("AgentLoginId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.CookieCaseEntity", null)
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.AgentChangeEntity", b =>

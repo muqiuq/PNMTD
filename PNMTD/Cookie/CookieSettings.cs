@@ -219,6 +219,12 @@ public sealed record ActionLevels
 
     public ActionRule MailEvent { get; init; } = new(ActionLevel.Auto);
 
+    /// <summary>
+    /// The access watch's notice (docs/cookie-access-plan.md §6.4): <i>Auto</i> as the safest default, because <i>Propose</i> holds a
+    /// break-in in the inbox until someone looks; below 0.6, a verdict goes one lower.
+    /// </summary>
+    public ActionRule AccessNotice { get; init; } = new(ActionLevel.Auto, 0.6);
+
     public ActionRule Of(CookieActionKind kind) => kind switch
     {
         CookieActionKind.Pushover => Pushover,
@@ -228,6 +234,7 @@ public sealed record ActionLevels
         CookieActionKind.PublicAnswer => PublicAnswer,
         CookieActionKind.ObjectNote => ObjectNote,
         CookieActionKind.MailEvent => MailEvent,
+        CookieActionKind.AccessNotice => AccessNotice,
         _ => new ActionRule(ActionLevel.Propose, 0),
     };
 }
@@ -386,7 +393,7 @@ public sealed class CookieSettings(IDbContextFactory<PnmtdDbContext> dbs, IMemor
     public static readonly IReadOnlyList<string> Sections =
     [
         IdentitySettings.Section, PromptSettings.Section, CaseSettings.Section, CookieRedmineSettings.Section, ActionSettings.Section,
-        ModelSettings.Section, CookieRightsSettings.Section, LessonSettings.Section,
+        ModelSettings.Section, CookieRightsSettings.Section, LessonSettings.Section, Access.AccessSettings.Section,
     ];
 
     private static string Key(string section) => $"cookie-settings:{section}";

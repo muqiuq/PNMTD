@@ -83,8 +83,18 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 trace.Add(null, "mail", "Mails wait", "AI every time mails wait: Cookie's group needs Mail: Read.", ["Mail"]);
             }
 
+            // 0c. The access cases (docs/cookie-access-plan.md §5.1): before the others, without triage.
+            var access = await services.GetRequiredService<Access.AccessJudge>().RunAsync(round.Id, rights, p, models, provider, toolCalls,
+                (caseId, kind, title, body, areas) => trace.Add(caseId, kind, title, body, areas), ct);
+            calls += access.Calls;
+            toolCalls += access.ToolCalls;
+            cost += access.Cost;
+            mailsMore |= access.More;
+
             // 1. The brief: open cases Cookie may see, those that changed or are due in full, the rest as one line each.
-            var visible = (await db.CookieCases.Where(c => c.Open && c.Kind != CookieCaseKind.Request).ToListAsync(ct))
+            // An access case is judged in its own step; here only when a person asked for a ticket or the big brother (§7).
+            var visible = (await db.CookieCases.Where(c => c.Open && c.Kind != CookieCaseKind.Request
+                    && (c.Kind != CookieCaseKind.Access || c.TicketAskedAt != null || c.BigBrotherAskedAt != null)).ToListAsync(ct))
                 .Where(c => CookieAccess.CanSee(rights, c.Areas)).ToList();
             // A stopped case (§4.3): Cookie leaves it alone, and the brief lists it in one line, with why.
             var stopped = visible.Where(c => c.StoppedAt is not null).ToList();
@@ -107,7 +117,8 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             {
                 // Nothing changed: no call, and Cookie's status stays as it was (§3.3).
                 runtime.CookieStatusAt = now;
-                return await EndAsync(db, round, runtime, replies.Count > 0 ? "replied" : "quiet", 0, calls, toolCalls, cost, replies.More || mailsMore, ct);
+                return await EndAsync(db, round, runtime, access.Worked > 0 ? "access" : replies.Count > 0 ? "replied" : "quiet", access.Worked, calls, toolCalls, cost,
+                    replies.More || mailsMore, ct);
             }
 
             // 2. Screening (§4.2, §13.1): Jev on the outside text the brief carries; flagged, every message is withheld this round.
@@ -165,6 +176,10 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             // A case a person asked the big brother for is worked in any case (§15.2).
             chosen.AddRange(open.Where(c => c.BigBrotherAskedAt is not null && chosen.All(x => !string.Equals(x.Id, c.Id.ToString(), StringComparison.OrdinalIgnoreCase)))
                 .Take(2).Select(c => new TriageCase(c.Id.ToString(), $"{c.BigBrotherAskedBy} asked the big brother.")));
+            // An access case's ticket, only when a person asked for it (docs/cookie-access-plan.md §7).
+            chosen.AddRange(open.Where(c => c.Kind == CookieCaseKind.Access && c.TicketAskedAt is not null
+                    && chosen.All(x => !string.Equals(x.Id, c.Id.ToString(), StringComparison.OrdinalIgnoreCase)))
+                .Take(2).Select(c => new TriageCase(c.Id.ToString(), $"{c.TicketAskedBy} asked you for a ticket about these logins: propose one.")));
             trace.Add(null, "triage", $"Triage: {triage.State}, {chosen.Count} of {open.Count} cases", p.Mask(Reasoned(triageTurn,
                 $"{triage.Reason}\n\n{string.Join("\n", chosen.Select(x => $"- {known[x.Id].Title}: {x.Why}"))}")),
                 [.. open.SelectMany(c => c.Areas).Distinct()]);
@@ -285,6 +300,12 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                         $"{p.Mask(proposed.Text)}\n\nWhy: {p.Mask(proposed.Reason)} ({proposed.Confidence:0.00})" +
                         (decision.Verdict is null ? "" : $"\nSeraph: {decision.Verdict}, {decision.VerdictReason}") +
                         (decision.Detail is null ? "" : $"\n{decision.Detail}"), c.CookieNoteAreas);
+                }
+                if (c.Kind == CookieCaseKind.Access && c.TicketAskedAt is not null)
+                {
+                    // Asked once, whatever came of it (docs/cookie-access-plan.md §7).
+                    c.TicketAskedAt = null;
+                    await db.SaveChangesAsync(ct);
                 }
                 if ((offered && note.NeedsFixing) || c.BigBrotherAskedAt is not null)
                 {

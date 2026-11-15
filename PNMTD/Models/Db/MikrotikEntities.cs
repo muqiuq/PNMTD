@@ -18,6 +18,32 @@ public class MikrotikRouterEntity
 
     public virtual SensorEntity Sensor { get; set; } = null!;
 
+    // The access watch (docs/cookie-access-plan.md §4.2).
+
+    /// <summary>Cookie watches this router's logins. Off, they are still read and shown; nothing is opened, sent or asked.</summary>
+    public bool WatchLogins { get; set; } = true;
+
+    /// <summary>When the poll first read the router's log: the learning period counts from here.</summary>
+    public DateTime? LoginsFirstReadAt { get; set; }
+
+    /// <summary>The router's users with their group and whether it makes them admins, as JSON (from the poll).</summary>
+    public string? RouterUsers { get; set; }
+
+    /// <summary>Who is logged in now, as JSON (from the poll).</summary>
+    public string? ActiveUsers { get; set; }
+
+    /// <summary>PNMTD's address as the router sees it: the poll's own session's.</summary>
+    [System.ComponentModel.DataAnnotations.MaxLength(100)]
+    public string? PnmtAddress { get; set; }
+
+    /// <summary>The oldest login line of the last read; newer than the poll before it, lines may be missing.</summary>
+    public DateTime? LogOldestAt { get; set; }
+
+    public bool LogGap { get; set; }
+
+    /// <summary>Lines of the last read that spoke of a login but matched no pattern.</summary>
+    public int LogUnmatched { get; set; }
+
     public MikrotikMode Mode { get; set; }
 
     /// <summary>The router's tunnel in the WireGuard modes (§3.2).</summary>

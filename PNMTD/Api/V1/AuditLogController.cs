@@ -21,7 +21,15 @@ public sealed class AuditLogController(PnmtdDbContext db) : V1ControllerBase
     {
         var log = Filter(query);
         var page = await Services.Domain.Paging.PageAsync(log.OrderByDescending(l => l.CreatedAt).ThenBy(l => l.Id), query, ct);
-        return new Paged<AuditLogItem>(page.Items.Select(ToItem).ToList(), page.Page, page.PageSize, page.TotalCount);
+        // A sign-in the access watch reviewed (docs/cookie-access-plan.md §10.4): its verdict and case, for the badge.
+        var ids = page.Items.Select(l => l.Id).ToList();
+        var reviews = (await db.AccessReviews.AsNoTracking().Where(r => r.AuditLogId != null && ids.Contains(r.AuditLogId.Value))
+            .Select(r => new { Id = r.AuditLogId!.Value, ReviewId = r.Id, r.CaseId, r.State }).ToListAsync(ct))
+            .GroupBy(r => r.Id).ToDictionary(g => g.Key, g => g.First());
+        return new Paged<AuditLogItem>(page.Items.Select(l => ToItem(l) with
+        {
+            Review = reviews.TryGetValue(l.Id, out var r) ? new AccessReviewRef(r.ReviewId, r.CaseId, r.State) : null,
+        }).ToList(), page.Page, page.PageSize, page.TotalCount);
     }
 
     /// <summary>

@@ -24,7 +24,7 @@ public sealed class Instructions(IDbContextFactory<PnmtdDbContext> dbs)
     public static readonly IReadOnlyList<string> Kinds = ["mute", "suppress", "note"];
     public static readonly IReadOnlyList<string> MuteScopes = ["host", "sensor", "location", "case"];
     public static readonly IReadOnlyList<string> SuppressScopes = ["channel", "sensor-type", "case-kind"];
-    public static readonly IReadOnlyList<string> Channels = ["pushover", "email", "ticket", "redmine-note"];
+    public static readonly IReadOnlyList<string> Channels = ["pushover", "email", "ticket", "redmine-note", "access"];
 
     public async Task<List<CookieInstructionEntity>> ActiveAsync(CancellationToken ct)
     {
@@ -97,6 +97,14 @@ public sealed class Instructions(IDbContextFactory<PnmtdDbContext> dbs)
         return null;
     }
 
+    /// <summary>
+    /// A suppress of the channel <c>access</c> (docs/cookie-access-plan.md §6.4): it stops <i>unusual</i> and <i>suspicious</i> access
+    /// notices for a while, never an <i>alarming</i> one. Mute doesn't stop them: a maintenance window is when nobody would notice.
+    /// </summary>
+    public static CookieInstructionEntity? SuppressesAccess(IReadOnlyList<CookieInstructionEntity> active, AccessNoticePayload? access) =>
+        access is null || access.Verdict == "alarming" ? null
+            : active.FirstOrDefault(i => i.Kind == "suppress" && i.Scope == "channel" && string.Equals(i.Value?.Trim(), "access", StringComparison.OrdinalIgnoreCase));
+
     /// <summary>The prompts' <c>{instructions}</c>: every active one, with who gave it and until when.</summary>
     public static string PromptText(IReadOnlyList<CookieInstructionEntity> active)
     {
@@ -127,7 +135,7 @@ public sealed class Instructions(IDbContextFactory<PnmtdDbContext> dbs)
         {
             v.Check(SuppressScopes.Contains(d.Scope), "scope", "channel, sensor-type or case-kind.");
             v.Check(!string.IsNullOrWhiteSpace(d.Value) && d.Value.Trim().Length <= 100, "value", "What is suppressed.");
-            v.Check(d.Scope != "channel" || Channels.Contains(d.Value?.Trim().ToLowerInvariant() ?? ""), "value", "pushover, email, ticket or redmine-note.");
+            v.Check(d.Scope != "channel" || Channels.Contains(d.Value?.Trim().ToLowerInvariant() ?? ""), "value", "pushover, email, ticket, redmine-note or access.");
             v.Check(d.Scope != "case-kind" || d.Value?.Trim().ToLowerInvariant() is "problem" or "ticket", "value", "problem or ticket.");
         }
         else

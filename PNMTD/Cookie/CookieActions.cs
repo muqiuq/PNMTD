@@ -3,8 +3,11 @@ using System.Text.Json;
 
 namespace PNMTD.Cookie;
 
-/// <summary>The closed list of Cookie's actions (docs/cookie-plan.md §6): every one only adds.</summary>
-public enum CookieActionKind { Pushover, Email, Ticket, PrivateNote, PublicAnswer, ObjectNote, MailEvent, HandToPerson }
+/// <summary>
+/// The closed list of Cookie's actions (docs/cookie-plan.md §6): every one only adds. <see cref="AccessNotice"/>: telling the access
+/// watch's contacts about an unusual login (docs/cookie-access-plan.md §6.4); its recipients come from the settings, never the model.
+/// </summary>
+public enum CookieActionKind { Pushover, Email, Ticket, PrivateNote, PublicAnswer, ObjectNote, MailEvent, HandToPerson, AccessNotice }
 
 /// <summary>
 /// A proposal at the end of a case's work (§21.1): the action, its targets as ids from the brief or the tools (never an
@@ -28,8 +31,11 @@ public sealed record ProposedAction(
 /// <summary>An <i>AI every time</i> mail's event (§12, §21.1): the rule's sensor and code, decided by Cookie.</summary>
 public sealed record MailEventPayload(Guid MailId, Guid RuleId, Guid SensorId, int Code, string Message);
 
-/// <summary>What the decision log keeps of a proposal: the action, and for a mail its event.</summary>
-public sealed record CookieProposal(ProposedAction Action, MailEventPayload? Mail = null);
+/// <summary>An access notice's case and verdict (docs/cookie-access-plan.md §6.4): code wrote both; the model only the reason.</summary>
+public sealed record AccessNoticePayload(Guid CaseId, string Verdict, bool Strong);
+
+/// <summary>What the decision log keeps of a proposal: the action, and for a mail its event, for an access notice its case and verdict.</summary>
+public sealed record CookieProposal(ProposedAction Action, MailEventPayload? Mail = null, AccessNoticePayload? Access = null);
 
 public enum SeraphVerdictKind { Approve, Revise, Reject, Ask }
 

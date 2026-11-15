@@ -18,6 +18,7 @@ public static class ToolCatalog
         .. KnowledgeReadTools.All,
         .. IntegrationReadTools.All,
         .. OperationsReadTools.All,
+        .. AccessReadTools.All,
         .. CookieCaseTools.All,
         .. CookieChatTools.All,
         .. Write.MonitoringWriteTools.All,
@@ -40,5 +41,5 @@ public static class ToolCatalog
 
     /// <summary>A token's tools: its kind's, within its capped rights.</summary>
     public static IEnumerable<ToolSpec> ForMcp(UserRights rights, McpTokenKind kind) =>
-        All.Where(t => KindAllows(t, kind) && t.Allows(rights, ToolCaller.Mcp));
+        All.Where(t => !t.CookieOnly && KindAllows(t, kind) && t.Allows(rights, ToolCaller.Mcp));
 }

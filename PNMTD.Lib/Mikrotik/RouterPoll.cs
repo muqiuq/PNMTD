@@ -44,6 +44,13 @@ public static class RouterPoll
             $":set ($r->\"wireguard\") [/interface/wireguard/print as-value proplist=name,listen-port,mtu,public-key,disabled,running where comment={t}]",
             $":set ($r->\"peers\") [/interface/wireguard/peers/print as-value proplist=public-key,endpoint-address,endpoint-port,allowed-address,persistent-keepalive,disabled where comment={t}]",
             $":set ($r->\"firewall\") [/ip/firewall/filter/print as-value proplist=chain,action,src-address,dst-port,disabled where comment={t}]",
+            // The access watch (docs/cookie-access-plan.md §4.2): the log's login lines, the users and their groups, who is logged in
+            // now, and the clock to read the lines' times with. Each on its own, so that none can fail the poll.
+            ":do { :set ($r->\"log\") [/log/print as-value where topics~\"account\"] } on-error={}",
+            ":do { :set ($r->\"users\") [/user/print as-value proplist=name,group,disabled] } on-error={}",
+            ":do { :set ($r->\"groups\") [/user/group/print as-value proplist=name,policy] } on-error={}",
+            ":do { :set ($r->\"active\") [/user/active/print as-value proplist=name,when,address,via] } on-error={}",
+            ":do { :set ($r->\"clock\") ([/system/clock/get date] . \" \" . [/system/clock/get time]) } on-error={}",
             ":put [:serialize to=json $r]",
         ];
         return "{ " + string.Join("; ", parts) + " }";
@@ -116,6 +123,15 @@ public static class RouterPoll
                     peer?.List("allowed-address") ?? [], peer?.Text("public-key")) : null,
                 FirewallRules = root.Items("firewall").Select(f => new RouterFirewallRule(f.Text("chain"), f.Text("action"), f.Text("src-address"),
                     f.Text("dst-port"), f.Bool("disabled") ?? false)).ToList(),
+                LogRead = root.TryGetProperty("log", out _),
+                LogLines = root.Items("log").Select(l => new RouterLogLine(l.Text("time"), l.Text("message") ?? "")).Where(l => l.Message.Length > 0).ToList(),
+                Users = root.Items("users").Select(u => new RouterUser(u.Text("name") ?? "", u.Text("group"), u.Bool("disabled") ?? false))
+                    .Where(u => u.Name.Length > 0).ToList(),
+                Groups = root.Items("groups").Select(g => new RouterGroup(g.Text("name") ?? "", g.List("policy").Where(p => !p.StartsWith('!')).ToList()))
+                    .Where(g => g.Name.Length > 0).ToList(),
+                Active = root.Items("active").Select(a => new RouterActiveUser(a.Text("name") ?? "", a.Text("when"), a.Text("address"), a.Text("via")))
+                    .Where(a => a.Name.Length > 0).ToList(),
+                Clock = root.Text("clock"),
             };
         }
     }
@@ -195,6 +211,29 @@ public sealed record RouterReading
     public RouterWireGuard? WireGuard { get; init; }
 
     public IReadOnlyList<RouterFirewallRule> FirewallRules { get; init; } = [];
+
+    // The access watch's reads (docs/cookie-access-plan.md §4.2): stored elsewhere, never in the router's stored reading.
+
+    /// <summary>Whether the log was read at all (an older poll script, or a refusal, reads nothing).</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool LogRead { get; init; }
+
+    /// <summary>The log's lines of the topic <c>account</c>: logins, logouts, failures.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyList<RouterLogLine> LogLines { get; init; } = [];
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyList<RouterUser> Users { get; init; } = [];
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyList<RouterGroup> Groups { get; init; } = [];
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyList<RouterActiveUser> Active { get; init; } = [];
+
+    /// <summary>The router's clock when the poll ran: <c>/system clock</c>'s date and time.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? Clock { get; init; }
 
     /// <summary>The model where a RouterBOARD names it, else the board ("CHR").</summary>
     public string? DisplayModel => Model ?? BoardName;

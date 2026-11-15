@@ -21,8 +21,16 @@ namespace PNMTD.Cookie;
 /// </summary>
 public static class CookieAccess
 {
+    /// <summary>An access case's servers' and routers' logins (docs/cookie-access-plan.md §9): names and addresses, <i>Monitoring: Edit</i>.</summary>
+    public const string LoginsArea = "Logins";
+
+    /// <summary>An access case's PNMT sign-ins: the audit log's, <i>Audit log: View</i>.</summary>
+    public const string AuditLogArea = "AuditLog";
+
     public static (Area Area, Level Level)? RightOf(string area) => area switch
     {
+        LoginsArea => (Area.Monitoring, Level.Edit),
+        AuditLogArea => (Area.AuditLog, Level.View),
         "Monitoring" => (Area.Monitoring, Level.View),
         "Zabbix" => (Area.Zabbix, Level.View),
         "Redmine" => (Area.Redmine, Level.View),
@@ -713,7 +721,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         await settings.GetAsync<IdentitySettings>(ct), await settings.GetAsync<PromptSettings>(ct), await settings.GetAsync<CaseSettings>(ct),
         await settings.GetAsync<CookieRedmineSettings>(ct),
         await settings.GetAsync<ActionSettings>(ct), await settings.GetAsync<ModelSettings>(ct), await settings.GetAsync<CookieRightsSettings>(ct),
-        await settings.GetAsync<LessonSettings>(ct));
+        await settings.GetAsync<LessonSettings>(ct), await settings.GetAsync<Access.AccessSettings>(ct));
 
     public async Task<CookieSaved> SaveAsync<T>(T value, ClaimsPrincipal user, CancellationToken ct) where T : class, ICookieSection, new()
     {
@@ -819,6 +827,21 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
             case CookieRightsSettings { GroupId: { } groupId }:
                 v.Check(await db.Groups.AnyAsync(g => g.Id == groupId, ct), "groupId", "No such group.");
                 break;
+            case Access.AccessSettings a:
+            {
+                // The contacts are PNMT's users and groups (docs/cookie-access-plan.md §6.2), by id.
+                var users = a.Contacts.Where(c => c.UserId is not null).Select(c => c.UserId!.Value).Distinct().ToList();
+                var groups = a.Contacts.Where(c => c.GroupId is not null).Select(c => c.GroupId!.Value).Distinct().ToList();
+                v.Check(await db.Users.CountAsync(u => users.Contains(u.Id), ct) == users.Count, "contacts", "A user that doesn't exist.");
+                v.Check(await db.Groups.CountAsync(g => groups.Contains(g.Id), ct) == groups.Count, "contacts", "A group that doesn't exist.");
+                var routerWatchOn = a.On && a.Routers && !(await settings.GetAsync<Access.AccessSettings>(ct)).Routers;
+                if (routerWatchOn || a.On && !(await settings.GetAsync<Access.AccessSettings>(ct)).On)
+                {
+                    // Switched on: the routers get Watch new routers (§4.2).
+                    await db.MikrotikRouters.ExecuteUpdateAsync(u => u.SetProperty(r => r.WatchLogins, a.WatchNewRouters), ct);
+                }
+                break;
+            }
         }
         v.ThrowIfInvalid();
     }
@@ -836,6 +859,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         "models" => "Models",
         "lessons" => "Lessons",
         "rights" => "Rights",
+        "access" => "Access",
         _ => section,
     };
 }

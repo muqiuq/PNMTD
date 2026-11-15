@@ -137,4 +137,5 @@ public sealed record UserProfileRequest(
     string? ShortCode,
     string? Color,
     IReadOnlyList<DefaultDay>? DefaultWeek,
-    int PlanOrder);
+    int PlanOrder,
+    IReadOnlyList<string>? ServerAccounts = null);

@@ -402,10 +402,28 @@ public sealed class AgentServerService(
             query, ct);
         // The keys' names (docs/linux-sensor-plan.md §6.4), for a key registered now: past logins are named too.
         var names = await SshKeyManager.SshKeyRegistry.ByFingerprintAsync(db, page.Items.Select(l => l.KeyFingerprint).OfType<string>(), ct);
-        return names.Count == 0 ? page : page with
+        page = names.Count == 0 ? page : page with
         {
             Items = page.Items.Select(l => l.KeyFingerprint is { } f && names.TryGetValue(f, out var key) ? l with { KeyName = key.Name, KeyOwner = key.Owner, KeyId = key.Id } : l)
                 .ToList(),
+        };
+        return await WithReviewsAsync(db, page, ct);
+    }
+
+    /// <summary>Each login's review by the access watch (docs/cookie-access-plan.md §10.3): its verdict and case, for the <i>Access</i> tab's badge.</summary>
+    public static async Task<Paged<AgentLoginItem>> WithReviewsAsync(PnmtdDbContext db, Paged<AgentLoginItem> page, CancellationToken ct)
+    {
+        var ids = page.Items.Select(l => l.Id).ToList();
+        var reviews = await db.AccessReviews.AsNoTracking().Where(r => r.AgentLoginId != null && ids.Contains(r.AgentLoginId.Value))
+            .Select(r => new { r.Id, LoginId = r.AgentLoginId!.Value, r.CaseId, r.State }).ToListAsync(ct);
+        if (reviews.Count == 0)
+        {
+            return page;
+        }
+        var byLogin = reviews.GroupBy(r => r.LoginId).ToDictionary(g => g.Key, g => g.First());
+        return page with
+        {
+            Items = page.Items.Select(l => byLogin.TryGetValue(l.Id, out var r) ? l with { Review = new AccessReviewRef(r.Id, r.CaseId, r.State) } : l).ToList(),
         };
     }
 

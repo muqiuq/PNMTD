@@ -258,8 +258,12 @@ public sealed record SecurityLogInfo(long MaxBytes, DateTimeOffset? OldestAt, do
 
 public sealed record AccessCounts(int Successes, int Failures, int AdminLogins, int Lockouts);
 
+/// <summary>
+/// How a login came. The last five are a MikroTik router's ways (docs/cookie-access-plan.md §4.2): WinBox, WebFig, the API,
+/// Telnet and FTP; a router's SSH is <see cref="Ssh"/> and its console <see cref="Console"/>. Stored as numbers: new ones go last.
+/// </summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LogonKind>))]
-public enum LogonKind { Console, Rdp, RdpConnection, Ssh, WinRm, Network, Cached, Unlock, Explicit, Batch, Lockout, Sudo, Su, Sftp }
+public enum LogonKind { Console, Rdp, RdpConnection, Ssh, WinRm, Network, Cached, Unlock, Explicit, Batch, Lockout, Sudo, Su, Sftp, Winbox, Web, Api, Telnet, Ftp }
 
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LogonOutcome>))]
 public enum LogonOutcome { Success, Failure }

@@ -596,8 +596,10 @@ public static class CookieStatusRules
     public sealed record Result(OverallState State, string Reason, IReadOnlyList<Guid> Cases);
 
     /// <summary>
-    /// Alert: a problem of importance High, or 3 hosts with problems at one location. Warning: any other problem of normal
-    /// importance, or a ticket's deadline missed. Info: only minor problems, or a ticket's reminder due. All fine otherwise.
+    /// Alert: a problem of importance High, or 3 hosts with problems at one location, or a login answered <i>Not expected</i> or
+    /// judged <i>alarming</i> and not answered (docs/cookie-access-plan.md §10.2). Warning: any other problem of normal importance, a
+    /// ticket's deadline missed, or a <i>suspicious</i> login not answered. Info: only minor problems, a ticket's reminder due, or an
+    /// <i>unusual</i> login not answered. All fine otherwise.
     /// </summary>
     public static Result Compute(IReadOnlyList<CookieCaseEntity> all, IReadOnlyList<CookieDutyEntity> passed, IReadOnlyDictionary<Guid, string> locations,
         string? staffing = null)
@@ -612,10 +614,21 @@ public static class CookieStatusRules
         var reminders = passed.Where(d => d.Kind is CookieDutyKind.FirstAnswerReminder or CookieDutyKind.UpdateReminder).Select(d => d.CaseId)
             .Distinct().Except(missed).ToList();
         var high = problems.Where(c => c.Importance == Importance.High).ToList();
+        var logins = open.Where(c => c.Kind == CookieCaseKind.Access).ToList();
+        var alarming = logins.Where(c => c.AccessAnswer == Access.AccessService.NotExpected || c.AccessVerdict == "alarming" && c.AccessAnswer is null).ToList();
+        var suspicious = logins.Where(c => c.AccessVerdict == "suspicious" && c.AccessAnswer is null).ToList();
+        var unusual = logins.Where(c => c.AccessVerdict == "unusual" && c.AccessAnswer is null).ToList();
         var crowded = problems.Where(c => c.LocationId is not null && c.HostId is not null).GroupBy(c => c.LocationId!.Value)
             .Where(g => g.Select(c => c.HostId).Distinct().Count() >= 3).OrderByDescending(g => g.Count()).FirstOrDefault();
 
         string More(int count, string what) => count > 0 ? $"; {count} more {what}" : "";
+        if (alarming.Count > 0)
+        {
+            var first = alarming[0];
+            var why = first.AccessAnswer == Access.AccessService.NotExpected ? "not expected" : "alarming";
+            return new(OverallState.Alert, $"A login {why}: {first.Title}{More(alarming.Count - 1 + high.Count, "to look at")}",
+                [.. alarming.Concat(high).Distinct().Take(10).Select(c => c.Id)]);
+        }
         if (high.Count > 0)
         {
             return new(OverallState.Alert, $"{high[0].Title}{More(problems.Count - 1, problems.Count == 2 ? "problem" : "problems")}",
@@ -628,9 +641,13 @@ public static class CookieStatusRules
                 [.. crowded.Take(10).Select(c => c.Id)]);
         }
         var normal = problems.Where(c => c.Importance == Importance.Normal).ToList();
-        if (normal.Count > 0 || missed.Count > 0)
+        if (normal.Count > 0 || missed.Count > 0 || suspicious.Count > 0)
         {
             var parts = new List<string>();
+            if (suspicious.Count > 0)
+            {
+                parts.Add(suspicious.Count == 1 ? $"a suspicious login: {suspicious[0].Title}" : $"{suspicious.Count} suspicious logins");
+            }
             if (normal.Count > 0)
             {
                 parts.Add(normal.Count == 1 ? normal[0].Title : $"{normal.Count} problems, the first: {normal[0].Title}");
@@ -639,11 +656,15 @@ public static class CookieStatusRules
             {
                 parts.Add(missed.Count == 1 ? "a ticket's deadline missed" : $"{missed.Count} tickets' deadlines missed");
             }
-            return new(OverallState.Warning, string.Join("; ", parts), [.. normal.Select(c => c.Id).Concat(missed).Take(10)]);
+            return new(OverallState.Warning, string.Join("; ", parts), [.. suspicious.Select(c => c.Id).Concat(normal.Select(c => c.Id)).Concat(missed).Take(10)]);
         }
-        if (problems.Count > 0 || reminders.Count > 0 || stopped.Count > 0 || staffing is not null)
+        if (problems.Count > 0 || reminders.Count > 0 || stopped.Count > 0 || staffing is not null || unusual.Count > 0)
         {
             var parts = new List<string>();
+            if (unusual.Count > 0)
+            {
+                parts.Add(unusual.Count == 1 ? $"an unusual login: {unusual[0].Title}" : $"{unusual.Count} unusual logins");
+            }
             if (staffing is not null)
             {
                 parts.Add(staffing);
@@ -660,7 +681,7 @@ public static class CookieStatusRules
             {
                 parts.Add(stopped.Count == 1 ? $"stopped: {stopped[0].Title}" : $"{stopped.Count} stopped cases");
             }
-            return new(OverallState.Info, string.Join("; ", parts), [.. problems.Select(c => c.Id).Concat(reminders).Concat(stoppedIds).Take(10)]);
+            return new(OverallState.Info, string.Join("; ", parts), [.. unusual.Select(c => c.Id).Concat(problems.Select(c => c.Id)).Concat(reminders).Concat(stoppedIds).Take(10)]);
         }
         return new(OverallState.AllFine, "Nothing needs attention.", []);
     }

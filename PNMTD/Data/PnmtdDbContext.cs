@@ -159,6 +159,10 @@ namespace PNMTD.Data
         public DbSet<CookieMessageEntity> CookieMessages { get; set; }
         public DbSet<CookiePseudonymEntity> CookiePseudonyms { get; set; }
 
+        // The access watch (docs/cookie-access-plan.md §10.1)
+        public DbSet<AccessReviewEntity> AccessReviews { get; set; }
+        public DbSet<AccessKnownEntity> AccessKnown { get; set; }
+
         // The MCP server (docs/mcp-plan.md §11.1)
         public DbSet<McpTokenEntity> McpTokens { get; set; }
         public DbSet<McpLogEntity> McpLog { get; set; }
@@ -260,6 +264,8 @@ namespace PNMTD.Data
                 e.HasIndex(l => l.CreatedAt);
                 e.HasIndex(l => new { l.UserId, l.CreatedAt });
                 e.HasIndex(l => new { l.EventType, l.CreatedAt });
+                // The access watch's history of PNMT's sign-ins (docs/cookie-access-plan.md §4.3).
+                e.HasIndex(l => new { l.EventType, l.Username, l.CreatedAt });
                 e.HasIndex(l => l.TargetId);
                 e.HasIndex(l => l.Subjects).HasMethod("gin");
             });
@@ -396,6 +402,29 @@ namespace PNMTD.Data
                 e.HasIndex(l => l.At);
                 // Linux (docs/linux-sensor-plan.md §5.6, §6.3): the logins with a key, for the filter and the keys' last use.
                 e.HasIndex(l => l.KeyFingerprint);
+                // The access watch's history (docs/cookie-access-plan.md §4.4): one account's logins on one target.
+                e.HasIndex(l => new { l.SensorId, l.User, l.At });
+                // Its signals across targets: a source's failures and fan-out.
+                e.HasIndex(l => new { l.SourceAddress, l.At });
+            });
+            modelBuilder.Entity<AccessReviewEntity>(e =>
+            {
+                e.Property(r => r.Target).HasConversion<string>().HasMaxLength(16);
+                e.Property(r => r.State).HasConversion<string>().HasMaxLength(16);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(r => r.SensorId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<AgentLoginEntity>().WithMany().HasForeignKey(r => r.AgentLoginId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<CookieCaseEntity>().WithMany().HasForeignKey(r => r.CaseId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(r => new { r.State, r.CreatedAt });
+                e.HasIndex(r => r.CaseId);
+                e.HasIndex(r => r.AgentLoginId);
+                e.HasIndex(r => r.AuditLogId);
+                e.HasIndex(r => new { r.Source, r.At });
+                e.HasIndex(r => r.TokenHash).IsUnique().HasFilter("\"TokenHash\" IS NOT NULL");
+            });
+            modelBuilder.Entity<AccessKnownEntity>(e =>
+            {
+                e.Property(k => k.Target).HasConversion<string>().HasMaxLength(16);
+                e.HasIndex(k => k.EndedAt);
             });
             modelBuilder.Entity<AgentChangeEntity>(e =>
             {

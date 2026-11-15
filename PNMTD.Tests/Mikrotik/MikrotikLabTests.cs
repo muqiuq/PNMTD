@@ -62,6 +62,16 @@ public sealed class MikrotikLabTests
             var router = await db.MikrotikRouters.SingleAsync(r => r.SensorId == sensor.Id);
             Assert.IsNotNull(router.HostKeyFingerprint, name);
             Assert.AreEqual(MikrotikSetupState.Ready, router.SetupState);
+            // The access watch (docs/cookie-access-plan.md §4.2): the import's admin login, read from the router's own log with the
+            // poll; every login line matched; the poll's own session named PNMTD's address, and its login isn't stored.
+            var logins = await db.AgentLogins.Where(l => l.SensorId == sensor.Id && l.Channel == PNMTD.Lib.Mikrotik.RouterLogins.Channel).ToListAsync();
+            Assert.IsTrue(logins.Any(l => l.User == "admin" && l.Outcome == PNMTD.Lib.Agent.LogonOutcome.Success && l.Kind == PNMTD.Lib.Agent.LogonKind.Ssh),
+                $"{name}: the admin's SSH login, from the log: {string.Join("; ", logins.Select(l => $"{l.User} {l.Kind} {l.Outcome} {l.SourceAddress}"))}");
+            Assert.IsFalse(logins.Any(l => l.User == PNMTD.Lib.Mikrotik.RouterPoll.UserName), $"{name}: the poll's own login isn't stored");
+            Assert.AreEqual(0, router.LogUnmatched, $"{name}: every login line matched a pattern");
+            Assert.IsNotNull(router.PnmtAddress, $"{name}: PNMTD's address from the poll's own session");
+            Assert.IsNotNull(router.RouterUsers, name);
+            StringAssert.Contains(router.RouterUsers, "\"admin\":true", $"{name}: admin is in a group with write");
             var detail = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}")).ReadAsync<SensorDetail>();
             Assert.IsFalse(detail.Mikrotik!.ScriptOutdated, $"{name}: {string.Join("; ", detail.Mikrotik.ScriptDifferences)}");
 
@@ -74,7 +84,15 @@ public sealed class MikrotikLabTests
             StringAssert.Contains(text.Content, $"/system identity set name={name}");
             Assert.IsFalse(text.Content.Contains("private-key=\"", StringComparison.Ordinal), $"{name}: no secret without the policy");
             var unchanged = await (await user.PostAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/backups", null)).ReadAsync<MikrotikBackupResult>();
-            Assert.IsFalse(unchanged.Changed, $"{name}: {unchanged.Message}");
+            if (unchanged.Changed)
+            {
+                // Which lines differ, so that a failure says why.
+                var latest = (await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}")).ReadAsync<SensorDetail>()).Mikrotik!.LatestBackup!;
+                var second = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/backups/{latest.Id}")).ReadAsync<MikrotikBackupContent>();
+                var was = text.Content.Split('\n');
+                var now = second.Content.Split('\n');
+                Assert.Fail($"{name}: {unchanged.Message}\n- {string.Join("\n- ", was.Except(now))}\n+ {string.Join("\n+ ", now.Except(was))}");
+            }
             var note = $"pnmt lab {Guid.NewGuid():N}";
             Lab("ssh", name, $"/system note set note=\"{note}\"");
             var changed = await (await user.PostAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/backups", null)).ReadAsync<MikrotikBackupResult>();

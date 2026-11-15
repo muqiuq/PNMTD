@@ -110,6 +110,12 @@ public class UserEntity
     [MaxLength(200)]
     public string? RedmineName { get; set; }
 
+    /// <summary>
+    /// The person's accounts on servers and routers (docs/cookie-access-plan.md §5.3): <c>CONTOSO\jdoe</c>, <c>jdoe</c>. The access
+    /// watch links a login to the person by them. Only admins set them.
+    /// </summary>
+    public List<string> ServerAccounts { get; set; } = [];
+
     /// <summary>The person has a column in the availability plan (§8.2).</summary>
     public bool InPlan { get; set; }
 

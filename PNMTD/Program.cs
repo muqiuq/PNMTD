@@ -156,6 +156,8 @@ public partial class Program
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CookieLoop>());
             // Cookie's lessons and Seraph's drift report, once a day while Cookie runs (docs/cookie-plan.md §21.1).
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CookieDailyTask>());
+            // The access watch (docs/cookie-access-plan.md §6.5): PNMT's sign-ins, code's notice, the waiting notices, with Cookie:Enabled=true.
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.Access.AccessWatchTask>());
             // The availability plan stays filled for the next 365 days (docs/cookie-plan.md §8.2).
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Availability.AvailabilityFillTask>());
         }
