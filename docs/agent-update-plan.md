@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **U1 built** (§15.1); U2 to U4 to build. No open questions |
+| Status | **U1 and U2 built** (§15.1, §15.2); U3 and U4 to build. No open questions |
 | Date | 2026-11-15 |
 | Revision | 3: **checked against 1.7.0** (the access watch, the sensor's notes on the overviews): nothing this plan builds on changed. `AgentDownloads`, both updaters, `AgentsController`, `sensor.yml` and `agent_settings` are as they were; the access watch only adds logins (`LogonKind`) and reviews. The target moves to 1.8.0, and the versions in the examples with it.<br>2: **the review's answers** (§14):<ul><li>one chosen version per platform;</li><li>**uploads for admins**, no setting;</li><li>**versions newer than PNMT allowed, with a warning**;</li><li>the automatic rollback on both platforms;</li><li>**no guard against scripts:** a script PNMT runs may update the agent (§7.3)</li></ul>1: the first draft |
 | Scope | **Which agent version PNMT hands out, and how the agents update.** The download folder keeps several versions; a new tab, *Admin → Servers → Versions*, lists, fetches, uploads, downloads and deletes them and **chooses the version each platform's agents get**. The signed manifest is per platform. **`pnmt-sensor.exe update` downloads from PNMT**, as `pnmt-agent update` does. **PNMT has no way to start an update**, apart from a script the machine lets it run (§7.3) |
@@ -375,3 +375,22 @@ As built, plus:
 **Tests:** `PNMTD.Tests/Agents/AgentVersionTests.cs` (the list with a stub GitHub, choosing and what follows, newer than PNMT, deleting, fetching, uploads and their checks, the versions' order, the headers) and `AgentDownloadTests` (the manifest per platform and its expiry, the retention). The matrix of `EndpointAuditTests` has the six endpoints. The e2e `linux.spec.ts` opens *Versions*.
 
 **Known:** `McpServerTests.TheReadWriteTokenNeedsTwoFactorAndLastsTwelveHours` fails in the evening in Europe/Zurich, before and after U1: it moves the clock 12 hours, past midnight, and the day's 2FA code is then due.
+
+### 15.2 U2: the shared updater, the Linux agent (2026-11-15)
+
+**Where it is:**
+- **`PNMTD.Sensor.Core/Update/AgentUpdate.cs`:** the offer (`?platform=`, the manifest checked against the pinned key, its type, agent id and expiry; a PNMT before 1.8 signs no expiry and is still trusted), the download (size and SHA-256 against the manifest, into a folder the platform secures first), `VersionProblem` (product, architecture, the manifest's version), and `WaitRunningAsync` (the new service wrote `status.json` as its version).
+- **`PNMTD.Sensor.Linux/Update/Updater.cs`:** `update`, `update --check` (exit 10 when PNMT offers a newer version), `update --rollback`, and the hidden `update-install`, which keeps the program as `/usr/local/sbin/pnmt-agent.previous`.
+
+**Where it differs from the plan:**
+- **`--rollback` swaps:** the previous program installs itself (with its own `update-install`, which every Linux release since 1.3.0 has), and the program it replaces becomes `.previous`, so a second `--rollback` switches back.
+- **The automatic rollback:** `update-install` exits 3 when the new version doesn't run within 30 seconds, or when `systemctl start` fails. The previous program goes back, writes its own unit (`install-unit`, since 1.3.0), and must run again. The caller says *1.8.0 did not start: back on 1.7.0*.
+- **A connection to PNMT** is not part of the check: `status.json` written by the new version is (§6.2, step 7).
+
+**The lab** (2026-11-15; Debian 12, arm64, `tools/linux-lab.sh`; a PNMT stack of its own with builds `1.8.0-lab1` to `-lab4` uploaded on *Versions*):
+1. `update --check` while Linux agents get an older version: *Up to date … newer than 1.7.0*, exit 0. With `1.8.0-lab2` chosen (409 without `confirmNewer`): exit 10, with *uploaded to PNMT by lab-admin*.
+2. `update` from lab1 to lab2: downloaded, checked, `.previous` kept, the service running as lab2, the journal written.
+3. `update --rollback` twice: lab1, then lab2 again; no files left behind.
+4. A build whose service exits at once (lab3): **the first run found a bug.** `systemctl start` failed, `update-install` stopped before its check, and lab3 stayed in a restart loop. Fixed (0d058e1): with lab4, lab2 came back, ran, and the update exited 1 with the reason.
+5. A released 1.7.0 agent, installed from PNMT and joined, updated with its own `update` (no `platform` in the request) to lab2; lab2 kept 1.7.0 as `.previous`.
+6. `update --rollback` from lab2 to the released 1.7.0: its own `update-install` installed it, the service ran.
