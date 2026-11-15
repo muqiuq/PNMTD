@@ -133,3 +133,24 @@ export function speed(bps: number | null | undefined): string {
   if (!bps) return '–'
   return bps >= 1e9 ? `${bps / 1e9} Gbit/s` : bps >= 1e6 ? `${bps / 1e6} Mbit/s` : `${bps / 1e3} kbit/s`
 }
+
+/** The Windows agent's update line, for PowerShell as an administrator (docs/agent-update-plan.md §8.3). */
+export const windowsUpdateLine = '& "C:\\Program Files\\PNMT Sensor\\pnmt-sensor.exe" update'
+
+/** The Linux agent's update line, as root. */
+export const linuxUpdateLine = 'pnmt-agent update'
+
+/**
+ * How an agent updates (docs/agent-update-plan.md §6, §10): Linux with its line; Windows from 1.8 with its line too; a Windows
+ * agent before 1.8 can't download from PNMT, so the new executable is run on the server once ('windows-legacy').
+ */
+export function updateHow(
+  platform: S['AgentPlatform'],
+  agentVersion: string | null | undefined,
+): 'linux' | 'windows' | 'windows-legacy' {
+  if (platform === 'Linux') return 'linux'
+  const [major, minor] = (agentVersion ?? '').split(/[.+-]/).map((n) => Number.parseInt(n, 10))
+  return Number.isFinite(major) && Number.isFinite(minor) && (major > 1 || (major === 1 && minor >= 8))
+    ? 'windows'
+    : 'windows-legacy'
+}

@@ -108,30 +108,6 @@ internal static class ServiceControl
         }
     }
 
-    /// <summary>Update (§10.4): stop, replace the installed program with the one that runs, start. agent.json, the keys and the buffers stay.</summary>
-    public static void Update()
-    {
-        if (!IsInstalled)
-        {
-            throw new InvalidOperationException("The service is not installed: join first.");
-        }
-        Stop();
-        var executable = InstallProgram();
-        Install(executable);
-        Start();
-    }
-
-    /// <summary>The version of the program the service runs, to offer Update (§10.4).</summary>
-    public static Version? InstalledVersion()
-    {
-        if (!File.Exists(AgentInfo.InstalledExecutable))
-        {
-            return null;
-        }
-        var info = FileVersionInfo.GetVersionInfo(AgentInfo.InstalledExecutable);
-        return Version.TryParse(info.ProductVersion?.Split('+', '-')[0], out var version) ? version : null;
-    }
-
     private static void Sc(string arguments)
     {
         using var process = Process.Start(new ProcessStartInfo("sc.exe", arguments)

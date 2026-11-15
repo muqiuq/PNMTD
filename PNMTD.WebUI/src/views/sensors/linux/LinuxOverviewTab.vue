@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import AgentUpdateHint from '../agent/AgentUpdateHint.vue'
 import { useQuery } from '@tanstack/vue-query'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import { computed, toRef } from 'vue'
 import { api, keys, type S } from '@/api/resources'
-import CopyField from '@/components/CopyField.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { connection, logKindLabel, logKindSeverity, logonKindLabel } from '@/views/admin/servers/agentFormat'
 import AgentOverviewPanels from '../agent/AgentOverviewPanels.vue'
@@ -86,10 +86,7 @@ const tab = (t: string) => ({ name: 'sensor', params: { id: id.value, tab: t } }
               :severity="rightsSource(rights).severity"
             />
           </div>
-          <template v-if="server.server.outdated">
-            <span class="small muted">Run it on the server, as root: PNMT can't start an update.</span>
-            <CopyField value="pnmt-agent update" label="Update line" />
-          </template>
+          <AgentUpdateHint :server="server.server" />
           <Message v-if="rights?.problem" severity="error" :closable="false" size="small">{{ rights.problem }}</Message>
           <p v-if="!server.recentProblems.length" class="muted small">No problems reported.</p>
           <ul v-else class="plain">

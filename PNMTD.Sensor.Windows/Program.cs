@@ -10,6 +10,7 @@ using PNMTD.Sensor.Windows.Join;
 using PNMTD.Sensor.Windows.Platform;
 using PNMTD.Sensor.Windows.Service;
 using PNMTD.Sensor.Windows.State;
+using PNMTD.Sensor.Core.Update;
 
 namespace PNMTD.Sensor.Windows;
 
@@ -28,8 +29,15 @@ internal static partial class Program
         pnmt-sensor.exe status                the service and the connection, as status.json says
         pnmt-sensor.exe uninstall [--delete-logs]
                                               stops and deletes the service, the key and the data; PNMT keeps the server
-        pnmt-sensor.exe update                replaces the installed agent with this executable: stop, replace, start;
-                                              the identity, the key and the configuration stay
+        pnmt-sensor.exe update [<file>] [--force]
+                                              from the installed program: the version Windows agents get, from PNMT,
+                                              checked against its signed manifest; from another executable: that one;
+                                              or a file. Stops the service, keeps the program as pnmt-sensor.previous.exe,
+                                              replaces it and starts it; back to the previous one if it doesn't run.
+                                              The identity, the key and the configuration stay. Exit 0 when there is
+                                              nothing newer (for a scheduled task of your own)
+        pnmt-sensor.exe update --check        whether PNMT offers a newer version: exit 10 if so, 0 if not
+        pnmt-sensor.exe update --rollback     puts the previous program back (and keeps this one as the previous one)
         pnmt-sensor.exe collect               collects every section once and prints them as JSON (for support)
         pnmt-sensor.exe version
         """;
@@ -47,7 +55,12 @@ internal static partial class Program
         {
             return RunService();
         }
-        AttachConsole(-1);
+        // A WinExe has no console. Started from one, it writes to it; started with its output read (an update reads the new
+        // executable's update-install, docs/agent-update-plan.md §6.3), it writes to that pipe or file instead.
+        if (!OutputRedirected())
+        {
+            AttachConsole(-1);
+        }
         try
         {
             return args[0] switch
@@ -56,7 +69,8 @@ internal static partial class Program
                 "status" => Status(),
                 "uninstall" => Uninstall(args[1..]),
                 "collect" => Collect(),
-                "update" => Update(),
+                "update" => Update(args[1..]),
+                "update-install" when args is [_, "--from", var from] => Updater.InstallSelf(from, Steps(quiet: false)),
                 "version" or "--version" => Print($"PNMT Sensor {AgentInfo.Version} ({AgentInfo.Architecture})", 0),
                 _ => Print(Usage, args[0] is "help" or "--help" or "-h" or "/?" ? 0 : 2),
             };
@@ -253,14 +267,68 @@ internal static partial class Program
         return 0;
     }
 
-    /// <summary>Update (§10.4): the newer executable replaces the installed one; agent.json and the key stay.</summary>
-    private static int Update()
+    /// <summary>
+    /// Update (§10.4; docs/agent-update-plan.md §6.3): run by an administrator on this machine, never started by PNMT. From the
+    /// installed program it asks PNMT; from another executable it installs that one. <c>--check</c> asks only; <c>--rollback</c>
+    /// puts the previous program back.
+    /// </summary>
+    private static int Update(string[] args)
     {
-        var installed = ServiceControl.InstalledVersion();
-        ServiceControl.Update();
-        WriteEventLog($"PNMT Sensor updated from {installed} to {AgentInfo.Version}.", EventLogEntryType.Information);
-        return Print($"Updated from {installed?.ToString() ?? "?"} to {AgentInfo.Version}; the service runs again.", 0);
+        if (args is ["--check"])
+        {
+            var (line, code, _) = Updater.CheckAsync(Steps(quiet: true), CancellationToken.None).GetAwaiter().GetResult();
+            return Print(line, code);
+        }
+        if (args is ["--rollback"])
+        {
+            var was = Updater.InstalledVersionText();
+            var now = Updater.Rollback(Steps(quiet: false));
+            return Print($"PNMT Sensor {now} runs again instead of {was}, which is kept as {AgentInfo.PreviousExecutable}: update --rollback switches back.", 0);
+        }
+        var force = args.Contains("--force");
+        var files = args.Where(a => a != "--force").ToList();
+        if (files.Count > 1 || files.Any(f => f.StartsWith('-')))
+        {
+            return Print(Usage, 2);
+        }
+        var before = Updater.InstalledVersionText();
+        try
+        {
+            var after = Updater.UpdateAsync(files.FirstOrDefault(), force, Steps(quiet: false), CancellationToken.None).GetAwaiter().GetResult();
+            return Print($"Updated PNMT Sensor from {before} to {after}; the service runs again.", 0);
+        }
+        catch (AlreadyUpToDateException e)
+        {
+            return Print(e.Message, 0);
+        }
     }
+
+    private static IProgress<string> Steps(bool quiet) => new SyncSteps(quiet);
+
+    /// <summary>The steps as they happen, on this thread (Progress&lt;T&gt; would post them to the thread pool, out of order).</summary>
+    private sealed class SyncSteps(bool quiet) : IProgress<string>
+    {
+        public void Report(string value)
+        {
+            if (!quiet)
+            {
+                Console.WriteLine($"… {value}");
+            }
+        }
+    }
+
+    /// <summary>Whether standard output is a pipe or a file this process was given (then it doesn't attach to a console).</summary>
+    private static bool OutputRedirected()
+    {
+        var handle = GetStdHandle(-11);
+        return handle != IntPtr.Zero && handle != new IntPtr(-1) && GetFileType(handle) is 1 or 3;
+    }
+
+    [LibraryImport("kernel32.dll")]
+    private static partial IntPtr GetStdHandle(int standardHandle);
+
+    [LibraryImport("kernel32.dll")]
+    private static partial uint GetFileType(IntPtr handle);
 
     private static int Collect()
     {

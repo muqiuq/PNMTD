@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **U1 and U2 built** (§15.1, §15.2); U3 and U4 to build. No open questions |
+| Status | **U1 to U3 built** (§15.1 to §15.3); the Windows test on a Windows machine and U4 open. No open questions |
 | Date | 2026-11-15 |
 | Revision | 3: **checked against 1.7.0** (the access watch, the sensor's notes on the overviews): nothing this plan builds on changed. `AgentDownloads`, both updaters, `AgentsController`, `sensor.yml` and `agent_settings` are as they were; the access watch only adds logins (`LogonKind`) and reviews. The target moves to 1.8.0, and the versions in the examples with it.<br>2: **the review's answers** (§14):<ul><li>one chosen version per platform;</li><li>**uploads for admins**, no setting;</li><li>**versions newer than PNMT allowed, with a warning**;</li><li>the automatic rollback on both platforms;</li><li>**no guard against scripts:** a script PNMT runs may update the agent (§7.3)</li></ul>1: the first draft |
 | Scope | **Which agent version PNMT hands out, and how the agents update.** The download folder keeps several versions; a new tab, *Admin → Servers → Versions*, lists, fetches, uploads, downloads and deletes them and **chooses the version each platform's agents get**. The signed manifest is per platform. **`pnmt-sensor.exe update` downloads from PNMT**, as `pnmt-agent update` does. **PNMT has no way to start an update**, apart from a script the machine lets it run (§7.3) |
@@ -394,3 +394,20 @@ As built, plus:
 4. A build whose service exits at once (lab3): **the first run found a bug.** `systemctl start` failed, `update-install` stopped before its check, and lab3 stayed in a restart loop. Fixed (0d058e1): with lab4, lab2 came back, ran, and the update exited 1 with the reason.
 5. A released 1.7.0 agent, installed from PNMT and joined, updated with its own `update` (no `platform` in the request) to lab2; lab2 kept 1.7.0 as `.previous`.
 6. `update --rollback` from lab2 to the released 1.7.0: its own `update-install` installed it, the service ran.
+
+### 15.3 U3: the Windows agent (2026-11-15)
+
+**Where it is:**
+- **`PNMTD.Sensor.Windows/Service/Updater.cs`:** `update` (from the installed program: PNMT's version for Windows; from another executable: that one, as before 1.8; or a file), `update --check` (exit 10), `update --rollback`, and the hidden `update-install`. `AgentInfo.PreviousExecutable` is `C:\Program Files\PNMT Sensor\pnmt-sensor.previous.exe`, `AgentInfo.UpdateFolder` the download's folder in the state folder.
+- **`Program.cs`:** the commands, and **standard output**: a WinExe attaches to the console it was started from, except when its output is a pipe or a file it was given (`GetStdHandle`, `GetFileType`). So `update-install`, run by the update with its output read, writes there.
+- **The window's *Update* card** (`Ui/StatusView.cs`): asks PNMT when the window opens and on *Check PNMT*; *Update* (PNMT's offer, or the newer executable that runs) and *Roll back to x.y.z* while a previous program exists, the steps shown as they come. `ServiceControl.Update` and `InstalledVersion` are gone.
+- **Uninstall** deletes the previous program and what updates renamed before the program and its folder.
+- **The web UI:** `views/sensors/agent/AgentUpdateHint.vue` on the *Agent* tab and both overviews (Windows: a panel *Update available*): Linux's line; Windows' line for PowerShell as an administrator, from 1.8; before 1.8, *run the new executable once* (`updateHow` in `agentFormat.ts`, with its test). *Download* describes both updates.
+
+**Where it differs from the plan:**
+- **The new executable is read, not run, to check it:** its version resource (`ProductName` PNMT Sensor, `ProductVersion`) and its PE header's machine. A build on Linux (`sensor.yml`) has the resource: checked on a build on macOS, whose `.rsrc` has *PNMT Sensor 1.7.0+…*. Running it is left to the hand-over, whose exit code decides.
+- **The hand-over to a version before 1.8** (a rollback to it, or `--force` to an older one) uses its `update`, after the installed program was renamed to the previous one: that `update` copies itself over the installed path, which a running program would block.
+- **`pnmt-sensor.previous.exe`**, not `pnmt-sensor.exe.previous`: an executable has to end in `.exe` to run.
+- **A rollback renames the installed program** to `pnmt-sensor.next.exe` first and keeps it as the previous one afterwards; if the previous program doesn't install itself, it goes back.
+
+**Not run on Windows yet.** It builds (`EnableWindowsTargeting`), but this machine has no Windows. **The manual test of §11 is open:** an update from the installed program on the command line and in the window, the rename while the window runs from the installed file, the automatic rollback, `--rollback` (also to a 1.7 executable), `update-install`'s lines over the pipe, and a 1.7 agent updated the old way to 1.8.

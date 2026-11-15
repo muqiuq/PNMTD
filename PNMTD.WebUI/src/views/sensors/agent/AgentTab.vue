@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AgentUpdateHint from './AgentUpdateHint.vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Dialog from 'primevue/dialog'
@@ -19,7 +20,7 @@ import { rightsRows, rightsSource } from '../linux/linuxFormat'
  * A server's agent (docs/windows-sensor-plan.md §10.2; docs/linux-sensor-plan.md §11.3), on either platform: the connection,
  * the version, both keys' fingerprints, the switches for its events with the platform's codes, Collect now, Send log,
  * Re-join and Revoke, and its log. Linux adds the switches for unregistered keys (465) and pending security updates (462), the
- * rights its config.yaml gives PNMT with the line that would grant what is off, and `pnmt-agent update` when it is outdated.
+ * rights its config.yaml gives PNMT with the line that would grant what is off, and how to update it when it is outdated.
  */
 const props = defineProps<{ server: S['AgentServerDetail']; canWrite: boolean; isAdmin: boolean }>()
 const id = () => props.server.server.sensorId
@@ -109,12 +110,7 @@ const rejoining = ref(false)
                 :value="`newer than ${server.server.chosenVersion}, the version agents get`"
                 severity="secondary"
               />
-              <template v-if="linux && server.server.outdated">
-                <div class="small muted">
-                  Run it on the server, as root: PNMT can't start an update. It checks PNMT's signature.
-                </div>
-                <CopyField value="pnmt-agent update" label="Update line" />
-              </template>
+              <AgentUpdateHint :server="server.server" />
             </dd>
             <dt>Joined</dt>
             <dd><RelativeTime :value="server.joinedAt" /></dd>

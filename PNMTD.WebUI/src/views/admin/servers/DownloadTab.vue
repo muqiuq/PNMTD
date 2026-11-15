@@ -5,6 +5,7 @@ import Tag from 'primevue/tag'
 import { computed } from 'vue'
 import { api, keys, type S } from '@/api/resources'
 import CopyField from '@/components/CopyField.vue'
+import { windowsUpdateLine } from './agentFormat'
 import LinuxInstallLine from './LinuxInstallLine.vue'
 
 /**
@@ -83,8 +84,15 @@ const missing = computed(() =>
             />
             <h3>Updating</h3>
             <p class="small">
-              Run the newer executable on the server: its window offers <em>Update</em>, or
-              <code>pnmt-sensor.exe update</code>. The identity and key stay.
+              On the server, in PowerShell as an administrator, or with <em>Update</em> in the agent's window: it
+              downloads the version Windows agents get from PNMT, checks it against PNMT's signature, and restarts the
+              service, back to the previous version if the new one doesn't run. The identity and key stay. PNMT never
+              starts an update; a scheduled task of your own can run the line (exit 0 when there is nothing newer).
+            </p>
+            <CopyField :value="windowsUpdateLine" label="Windows update line" />
+            <p class="small muted">
+              Agents before 1.8 can't download from PNMT: run the new executable on the server once, and use
+              <em>Update</em> in its window.
             </p>
           </div>
         </section>
@@ -106,8 +114,10 @@ const missing = computed(() =>
             <LinuxInstallLine :downloads="d" />
             <h3>Updating</h3>
             <p class="small">
-              On the server, as root: it downloads the newer agent from PNMT, checks it against PNMT's signature, and
-              restarts the service. The identity and key stay.
+              On the server, as root: it downloads the version Linux agents get from PNMT, checks it against PNMT's
+              signature, and restarts the service, back to the previous version if the new one doesn't run. The identity
+              and key stay. PNMT never starts an update; a schedule of your own can run the line (exit 0 when there is
+              nothing newer).
             </p>
             <CopyField :value="d.updateLine" label="Update line" />
           </div>

@@ -11,6 +11,9 @@ internal static class AgentInfo
     public const string EventSource = "PNMT Sensor";
     public const string ExecutableName = "pnmt-sensor.exe";
 
+    /// <summary>What <c>version</c> answers first, and what an update's version resource must name (docs/agent-update-plan.md §6.3).</summary>
+    public const string Product = "PNMT Sensor";
+
     public static string Version { get; } =
         typeof(AgentInfo).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
         ?? typeof(AgentInfo).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
@@ -26,6 +29,9 @@ internal static class AgentInfo
 
     public static string InstalledExecutable => Path.Combine(ProgramFolder, ExecutableName);
 
+    /// <summary>The program before the last update or rollback (docs/agent-update-plan.md §6.3): <c>update --rollback</c> puts it back.</summary>
+    public static string PreviousExecutable => Path.Combine(ProgramFolder, "pnmt-sensor.previous.exe");
+
     public static string DataFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "PNMT Sensor");
 
     public static string ConfigFile => Path.Combine(DataFolder, "agent.json");
@@ -35,6 +41,9 @@ internal static class AgentInfo
     public static string StateFolder => Path.Combine(DataFolder, "state");
 
     public static string LogFolder => Path.Combine(DataFolder, "logs");
+
+    /// <summary>Where the update downloads the new executable: in the state folder, SYSTEM and Administrators only.</summary>
+    public static string UpdateFolder => Path.Combine(StateFolder, "update");
 
     /// <summary>Written when the window asks for Collect now; the service picks it up within 10 s.</summary>
     public static string CollectNowFile => Path.Combine(StateFolder, "collect-now");

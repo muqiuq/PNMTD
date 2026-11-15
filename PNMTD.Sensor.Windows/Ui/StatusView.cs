@@ -35,6 +35,14 @@ internal sealed class StatusView : UserControl
     private Button restart = null!;
     private Card updateCard = null!;
     private Label updateText = null!;
+    private Label updateSteps = null!;
+    private Button checkUpdate = null!;
+    private Button doUpdate = null!;
+    private Button rollBack = null!;
+    private PNMTD.Sensor.Core.Update.UpdateOffer? offer;
+    private string? previousVersion;
+    private bool updating;
+    private bool askedPnmt;
     private Card problemsCard = null!;
     private Card diagnosticsCard = null!;
     private Card sectionsCard = null!;
@@ -118,10 +126,17 @@ internal sealed class StatusView : UserControl
         connection.Add(Kit.Row(start, stop, restart));
         Kit.Add(stack, connection);
 
+        // docs/agent-update-plan.md §6.3: PNMT decides which version Windows agents get; an update starts only here.
         updateCard = new Card("Update");
-        updateText = updateCard.Add(Kit.Label(""));
-        updateCard.Add(Kit.Row(Kit.Button("Update", ButtonKind.Primary, (s, _) => Run($"Updated the installed agent to {AgentInfo.Version}", ServiceControl.Update, (Control)s!))));
-        updateCard.Visible = false;
+        updateText = updateCard.Add(Kit.Label("Asking PNMT which version Windows agents get…"));
+        updateSteps = updateCard.Add(Kit.Label("", color: Theme.Muted));
+        checkUpdate = Kit.Button("Check PNMT", ButtonKind.Secondary, (_, _) => CheckForUpdate());
+        doUpdate = Kit.Button("Update", ButtonKind.Primary, (_, _) => RunUpdate());
+        rollBack = Kit.Button("Roll back", ButtonKind.Secondary, (_, _) => RunRollback());
+        doUpdate.Enabled = false;
+        rollBack.Visible = false;
+        updateCard.Add(Kit.Row(checkUpdate, doUpdate, rollBack));
+        previousVersion = Updater.PreviousVersion();
         Kit.Add(stack, updateCard);
 
         problemsCard = new Card("Problems") { Visible = false };
@@ -181,13 +196,11 @@ internal sealed class StatusView : UserControl
         Kit.SetText(agentKey, config.AgentKeyFingerprint);
         Kit.SetText(pnmtdKey, config.PnmtdFingerprint);
 
-        var installed = ServiceControl.InstalledVersion();
-        var newer = installed is not null && Version.TryParse(AgentInfo.Version.Split('-')[0], out var mine) && mine > installed
-            && !string.Equals(Path.GetFullPath(AgentInfo.CurrentExecutable), Path.GetFullPath(AgentInfo.InstalledExecutable), StringComparison.OrdinalIgnoreCase);
-        updateCard.Visible = newer;
-        if (newer)
+        ShowUpdate();
+        if (!askedPnmt)
         {
-            Kit.SetText(updateText, $"The installed agent is {installed}; this executable is {AgentInfo.Version}. Update stops the service, replaces the program and starts it again; the identity and the key stay.");
+            askedPnmt = true;
+            CheckForUpdate();
         }
 
         ShowProblems(status?.Problems ?? []);
@@ -465,6 +478,97 @@ internal sealed class StatusView : UserControl
     // --- helpers -------------------------------------------------------------------------------------------------
 
     /// <summary>A slow action (the service manager waits) off the UI thread, with the button disabled meanwhile.</summary>
+    // --- the update (docs/agent-update-plan.md §6.3) ------------------------------------------------------------------------
+
+    /// <summary>A newer executable that runs (one downloaded by hand) installs itself; else PNMT's offer, when it is newer.</summary>
+    private bool NewerExecutableRuns =>
+        !Updater.RunsInstalled && ServiceControl.IsInstalled
+        && AgentVersionOrder.IsNewer(AgentInfo.Version, Updater.InstalledVersionText()) && AgentVersionOrder.IsValid(AgentInfo.Version);
+
+    private void ShowUpdate()
+    {
+        if (updating)
+        {
+            return;
+        }
+        if (NewerExecutableRuns)
+        {
+            Kit.SetText(updateText, $"The installed agent is {Updater.InstalledVersionText()}; this executable is {AgentInfo.Version}. Update stops the service, "
+                + "keeps the installed program as the previous one, puts this one in its place and starts it; the identity and the key stay.");
+        }
+        doUpdate.Enabled = NewerExecutableRuns || offer?.Newer == true;
+        rollBack.Visible = previousVersion is not null;
+        rollBack.Text = previousVersion is null ? "Roll back" : $"Roll back to {previousVersion}";
+        checkUpdate.Visible = !NewerExecutableRuns;
+    }
+
+    private async void CheckForUpdate()
+    {
+        if (updating || NewerExecutableRuns)
+        {
+            ShowUpdate();
+            return;
+        }
+        checkUpdate.Enabled = false;
+        try
+        {
+            var (line, _, found) = await Task.Run(() => Updater.CheckAsync(new Progress<string>(), CancellationToken.None));
+            offer = found;
+            Kit.SetText(updateText, line + (found.Newer ? " Update downloads it from PNMT, checks it against PNMT's signature, and restarts the service." : ""));
+        }
+        catch (Exception e)
+        {
+            logger.LogInformation("Asking PNMT for an update failed: {Message}", e.Message);
+            Kit.SetText(updateText, $"PNMT could not be asked: {e.Message}");
+        }
+        finally
+        {
+            checkUpdate.Enabled = true;
+            ShowUpdate();
+        }
+    }
+
+    private void RunUpdate() =>
+        RunUpdating("Update", steps => Updater.UpdateAsync(null, false, steps, CancellationToken.None).GetAwaiter().GetResult(),
+            version => $"Updated to {version}; the service runs again. Close this window and open it again for its new version.");
+
+    private void RunRollback() =>
+        RunUpdating("Roll back", Updater.Rollback,
+            version => $"{version} runs again; the version it replaced is kept as the previous one. Close this window and open it again.");
+
+    /// <summary>An update or a rollback in the background, its steps shown as they come; the card says how it ended.</summary>
+    private async void RunUpdating(string what, Func<IProgress<string>, string> action, Func<string, string> done)
+    {
+        updating = true;
+        doUpdate.Enabled = checkUpdate.Enabled = rollBack.Enabled = false;
+        UseWaitCursor = true;
+        var steps = new Progress<string>(step => Kit.SetText(updateSteps, step));
+        try
+        {
+            var version = await Task.Run(() => action(steps));
+            logger.LogInformation("{What}: {Version}", what, version);
+            Kit.SetText(updateText, done(version));
+            offer = null;
+        }
+        catch (PNMTD.Sensor.Core.Update.AlreadyUpToDateException e)
+        {
+            Kit.SetText(updateText, e.Message);
+        }
+        catch (Exception e)
+        {
+            Error(what, e);
+        }
+        finally
+        {
+            UseWaitCursor = false;
+            updating = false;
+            rollBack.Enabled = checkUpdate.Enabled = true;
+            previousVersion = Updater.PreviousVersion();
+            ShowUpdate();
+            Tick(Config);
+        }
+    }
+
     private async void Run(string what, Action action, Control button, Action? done = null)
     {
         button.Enabled = false;

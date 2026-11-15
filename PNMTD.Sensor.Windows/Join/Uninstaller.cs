@@ -65,6 +65,19 @@ internal static class Uninstaller
         done.Add(deleteLogs ? "The data folder and the logs are deleted." : $"The data folder is deleted; the logs stay in {AgentInfo.LogFolder}.");
         if (File.Exists(AgentInfo.InstalledExecutable))
         {
+            // The previous program of an update and what updates renamed (docs/agent-update-plan.md §6.3) first: the folder goes
+            // only when it is empty, and the delayed deletions run in the order given.
+            foreach (var other in Directory.EnumerateFiles(AgentInfo.ProgramFolder).Where(f => !string.Equals(f, AgentInfo.InstalledExecutable, StringComparison.OrdinalIgnoreCase)))
+            {
+                try
+                {
+                    File.Delete(other);
+                }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+                {
+                    Win32.MoveFileEx(other, null, Win32.MoveFileDelayUntilReboot);
+                }
+            }
             Win32.MoveFileEx(AgentInfo.InstalledExecutable, null, Win32.MoveFileDelayUntilReboot);
             Win32.MoveFileEx(AgentInfo.ProgramFolder, null, Win32.MoveFileDelayUntilReboot);
             done.Add("The program is deleted at the next reboot.");
