@@ -30,10 +30,10 @@ import { useLocationFields } from './useLocations'
 
 /**
  * A location's page (docs/locations-knowledge-plan.md §3.4), a small dashboard: the path as a breadcrumb, the state and
- * the hosts counted with sub-locations'. *Overview*: on the left its sub-locations, then its hosts in the dashboard's
- * panel (each naming its sub-location); on the right the fields marked *Overview*, in their order, then the linked
- * pages. On a phone the information comes first. *Information*: every field, by group. *Knowledge base*: the pages.
- * *History*. It refreshes like the dashboard.
+ * the hosts counted with sub-locations'. *Overview*: on the left, two thirds wide, the fields marked *Overview*, in their
+ * order; on the right its sub-locations, then its hosts in the dashboard's panel (each naming its sub-location), then
+ * the linked pages and tickets. On a phone the information comes first. *Information*: every field, by group.
+ * *Knowledge base*: the pages. *History*. It refreshes like the dashboard.
  */
 const route = useRoute()
 const router = useRouter()
@@ -197,6 +197,31 @@ async function fillIn() {
 
       <div v-if="tab === 'overview'" class="overview">
         <div class="left">
+          <section class="panel" aria-label="Information">
+            <EmptyState
+              v-if="!overviewFields.length"
+              icon="pi pi-info-circle"
+              title="Nothing on the overview yet."
+              :text="
+                session.can('Locations', 'Manage')
+                  ? 'Admin → Location fields marks fields for the overview.'
+                  : undefined
+              "
+            />
+            <FieldCard
+              v-for="field in overviewFields"
+              :key="field.id"
+              :field="field"
+              :value="valueOf(field.id)"
+              :location-id="location.id"
+              :can-write="canWrite"
+              :users="users"
+              :files="files"
+              @saved="refresh"
+            />
+          </section>
+        </div>
+        <div class="right">
           <section class="panel" aria-labelledby="subs-title">
             <header id="subs-title" class="panel-header">
               Sub-locations ({{ location.subLocations.length }})
@@ -246,31 +271,6 @@ async function fillIn() {
               />
             </template>
           </HostsPanel>
-        </div>
-        <div class="right">
-          <section class="panel" aria-label="Information">
-            <EmptyState
-              v-if="!overviewFields.length"
-              icon="pi pi-info-circle"
-              title="Nothing on the overview yet."
-              :text="
-                session.can('Locations', 'Manage')
-                  ? 'Admin → Location fields marks fields for the overview.'
-                  : undefined
-              "
-            />
-            <FieldCard
-              v-for="field in overviewFields"
-              :key="field.id"
-              :field="field"
-              :value="valueOf(field.id)"
-              :location-id="location.id"
-              :can-write="canWrite"
-              :users="users"
-              :files="files"
-              @saved="refresh"
-            />
-          </section>
           <!-- The knowledge base: the pages linked to the location, at most 10, with All pages… (§3.4, §6.5). -->
           <KbPanel :location-id="location.id" :name="location.name" :limit="10" own-only />
           <RedminePanel :location-id="location.id" :name="location.name" :path="`/locations/${location.id}`" own-only />
@@ -348,7 +348,7 @@ async function fillIn() {
 
 .overview {
   display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: var(--pnmt-space-3);
   align-items: start;
 }
@@ -406,14 +406,10 @@ async function fillIn() {
   justify-content: flex-end;
 }
 
-/* On a phone, the information first: that is what one opens a location for on site (§3.4). */
+/* On a phone, one column, the information first: that is what one opens a location for on site (§3.4). */
 @media (max-width: 959px) {
   .overview {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .right {
-    order: -1;
   }
 }
 

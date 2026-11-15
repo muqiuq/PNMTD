@@ -84,6 +84,12 @@ test("a location from a host's text, a sub-location, its Overview with a pasted 
   const image = overview.locator('img[src^="/api/v1/files/"]')
   await expect(image).toBeVisible()
   await expect.poll(() => image.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth)).toBe(64)
+  // The information on the left, two thirds wide; the sub-locations and hosts on the right (§3.4).
+  const info = await page.locator('.overview > .left').boundingBox()
+  const side = await page.locator('.overview > .right').boundingBox()
+  expect(info!.x).toBeLessThan(side!.x)
+  expect(info!.width / side!.width).toBeCloseTo(2, 0)
+  await expect(page.locator('.overview > .right .hosts-panel')).toBeVisible()
   await shot(page, 'locations-sub-location')
 
   // The parent counts the sub-location's host, and names where it is.

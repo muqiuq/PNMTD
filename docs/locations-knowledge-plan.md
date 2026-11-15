@@ -17,7 +17,7 @@
 
 - **A host can be assigned to one location.** Its free-text location stays as it is, for a rack or a room.
 - **Locations nest:** a site, its buildings, their rooms. A location counts the hosts of its sub-locations too.
-- **The location's page works like a small dashboard:** its hosts on the left, with their state, and on the right the fields an Admin marked for the overview. Markdown is rendered there, images and diagrams included.
+- **The location's page works like a small dashboard:** on the left, two thirds wide, the fields an Admin marked for the overview, and on the right its hosts, with their state. Markdown is rendered there, images and diagrams included.
 
 **The knowledge base is a collection of Markdown pages:**
 
@@ -42,7 +42,7 @@
 |---|---|
 | Locations | **A `locations` table.** A host has at most one location (`hosts.LocationId`); deleting a location sets it to null. **The text `hosts.Location` stays** and is still shown and searched. *From the hosts' texts…* creates locations from the texts already in use and assigns those hosts (§3.2) |
 | Sub-locations | **A location can have a parent**, at most 6 levels deep, with no cycles. Names are unique among siblings. **A location's hosts and state include its sub-locations'.** Fields can be inherited. A location with sub-locations can't be deleted (§3.3) |
-| The location's page | **Its hosts on the left**, using the dashboard's host panel, with its sub-locations above them. **The *Overview* fields on the right**, then the linked pages. Further tabs: *Information* (every field), *Knowledge base* and *History*. On a phone, the information comes first (§3.4) |
+| The location's page | **The *Overview* fields on the left, two thirds wide.** **On the right its sub-locations, then its hosts** in the dashboard's host panel, then the linked pages. Further tabs: *Information* (every field), *Knowledge base* and *History*. On a phone, the information comes first (§3.4) |
 | Location fields | **Defined by Admins** on *Admin → Location fields*: 12 types, Markdown being the main one. **One set of fields for every location.** A field can be shown on the overview, inherited by sub-locations, and marked sensitive. **A new installation starts with one Markdown field, *Overview*** (§4) |
 | Markdown | **GitHub Flavored Markdown:** CommonMark plus tables, task lists, strikethrough and autolinks. **Stored exactly as the editor wrote it.** **Raw HTML is never rendered**, and only PNMT's own images are shown (§5.1, §5.6) |
 | The visual editor | **Milkdown's Crepe 7** (MIT). It is built on remark, so the document *is* Markdown. Its top bar, its toolbar on selections, `/` commands, tables, task lists, images and code blocks are used. Its AI and LaTeX features are off. It gets PNMT's theme (§5.2) |
@@ -73,7 +73,7 @@ From docs/ideas2.md, package five, and the reviews:
 |---|---|
 | R1 | **Locations as objects.** One location has many hosts |
 | R2 | **Hosts keep their location text**, and can be assigned to a location |
-| R3 | **A dashboard per location:** the hosts on the left, the most important information on the right |
+| R3 | **A dashboard per location:** the hosts on the left, the most important information on the right. Changed after building (2026-11-15): **the information on the left, two thirds wide, the hosts on the right** |
 | R4 | **The most important information is stored as Markdown** |
 | R5 | **A manager for location information types** in the admin UI: common field types, Markdown above all, filled out per location |
 | R6 | **A WYSIWYG Markdown editor, powerful but simple.** Most important: an image is uploaded by pasting it, at most 2 MB per image |
@@ -203,36 +203,38 @@ From docs/ideas2.md, package five, and the reviews:
 ```
 ┌ Zurich DC  ● 2 failing · 14 hosts                              [Edit] [⋯] ┐
 │ Overview │ Information │ Knowledge base (5) │ History                      │
-├────────────────────────────────────┬───────────────────────────────────────┤
-│ Sub-locations (2)  [+ Sub-location]│ Overview                           ✎  │
-│ ● Cage B            9 hosts        │ Rack 4–6, cage B. Badges at the       │
-│ ● Office, 3rd floor 5 hosts        │ front desk; ask for the IT cage.      │
-│                                    │ [photo of the cage]                   │
-│ Hosts (14)            [Add hosts…] │ Access                             ✎  │
-│ ● fw-zrh-01   Cage B  2 failing ▁▃ │ Door codes are in the password        │
-│ ● sw-core-01  Cage B  ok        ▁▁ │ manager, entry "ZRH DC".              │
-│ ● nas-01      Cage B  ok        ▁▁ │ On-site contact    Anna Muster        │
-│ ● pr-3og      Office  ok        ▁▁ │ Uplink             Init7 · 12-3456    │
-│ …                                  │ Knowledge base                        │
-│ 2 disabled                      ▾  │ KB-12  Power outage procedure         │
-│                                    │ KB-31  Replacing a UPS battery 📎     │
-└────────────────────────────────────┴───────────────────────────────────────┘
+├─────────────────────────────────────────────────┬──────────────────────────┤
+│ Overview                                     ✎  │ Sub-locations (2)    [+] │
+│ Rack 4–6, cage B. Badges at the front desk;     │ ● Cage B        9 hosts  │
+│ ask for the IT cage.                            │ ● Office, 3rd   5 hosts  │
+│ [photo of the cage]                             │                          │
+│ Access                                       ✎  │ Hosts (14)  [Add hosts…] │
+│ Door codes are in the password manager, entry   │ ● fw-zrh-01   2 failing  │
+│ "ZRH DC".                                       │ ● sw-core-01  ok         │
+│ On-site contact    Anna Muster                  │ ● nas-01      ok         │
+│ Uplink             Init7 · 12-3456              │ ● pr-3og      ok         │
+│                                                 │ …                        │
+│                                                 │ 2 disabled            ▾  │
+│                                                 │ Knowledge base           │
+│                                                 │ KB-12  Power outage …    │
+│                                                 │ KB-31  Replacing a UPS … │
+└─────────────────────────────────────────────────┴──────────────────────────┘
 ```
 
 - **The header** shows the path as a breadcrumb (*Zurich DC › Cage B*), the state, and the hosts counted with sub-locations.
-- **Left:**
-  - **its sub-locations**, each with its state and hosts;
-  - **then its hosts**, in the dashboard's host panel: failing first, then by name, with the 90-day bar or as tiles, and disabled hosts folded. A click opens the host. *Add hosts…* picks hosts with a search; *Remove from location* is in each row's menu (Users).
-
-  **It refreshes like the dashboard.**
-- **Right: the fields marked *Overview*, in their order** (§4.2):
+- **Left, two thirds wide: the fields marked *Overview*, in their order** (§4.2):
   - Markdown is rendered (§5.6). The other types are formatted: a link opens, an e-mail is a `mailto:`, a user shows their name. Inherited values say where they come from.
   - **Users edit:**
     - a short field in place;
     - **a Markdown field on the editing page** (§5.9), which comes back here after *Save*.
   - Empty fields show *Not filled in* for Users, and are hidden for Viewers.
-  - **Then the pages linked to the location**, at most 10, with *All pages…*.
-- **On a phone, the information comes first** (that is what one opens a location for on site), and the sub-locations and hosts follow.
+- **Right, a third wide:**
+  - **its sub-locations**, each with its state and hosts;
+  - **then its hosts**, in the dashboard's host panel: failing first, then by name, with the 90-day bar or as tiles, and disabled hosts folded. A click opens the host. *Add hosts…* picks hosts with a search; *Remove from location* is in each row's menu (Users);
+  - **then the pages linked to the location**, at most 10, with *All pages…*, and its Redmine tickets.
+
+  **It refreshes like the dashboard.**
+- **On a phone, one column, the information first** (that is what one opens a location for on site), and the sub-locations and hosts follow.
 - **Information:** every field, grouped by the fields' groups, the same cards. *Fill in* jumps to the empty ones.
 - **Knowledge base:**
   - the pages linked to the location;
@@ -300,7 +302,7 @@ For Markdown fields, *Show changes* opens the diff of §6.3. Restoring an old va
 | **Help** | At most 256 characters, shown under the field while editing |
 | **Group** | Optional (*Access*, *Network*, *Contacts*). It groups the *Information* tab |
 | **Position** | The order, by dragging |
-| **On the overview** | Shown on the right side of the location's page (R3) |
+| **On the overview** | Shown on the left side of the location's page (R3, §3.4) |
 | **Inherited** | **Sub-locations without a value show their nearest ancestor's** (§3.3) |
 | **Sensitive** | **Its values never reach an AI or MCP** (§7.4). Shown with a lock icon |
 | Type options | The choices, unit, minimum and maximum, decimals |
