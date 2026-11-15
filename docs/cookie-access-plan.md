@@ -546,7 +546,7 @@ Text:            admin by WinBox from 203.0.113.7 (public), Sun 03:12,
 
 ## 14. As built (2026-11-15)
 
-**S1 to S4 are built on master; S5 is this section, docs/cookie-prompts.md §7.10, and the release notes when the version is next released.** Where the code differs from the sections above, this section says so; the rest is as planned.
+**S1 to S4 are built on master; S5 is this section, docs/cookie-prompts.md §7.10, and docs/release-notes-1.7.md. Released in 1.7.0.** Where the code differs from the sections above, this section says so; the rest is as planned.
 
 **Where it is:**
 
