@@ -174,7 +174,8 @@ public sealed record CookieDefaults(
     CookieEnvDefaults Env);
 
 /// <summary>What .env sets (§13.3, §14.3), in force where Admin → Cookie → Models leaves a field empty.</summary>
-public sealed record CookieEnvDefaults(bool Enabled, string Privacy, string Model, string Providers, bool Zdr, string MinQuantization, decimal BudgetUsd);
+public sealed record CookieEnvDefaults(bool Enabled, string Privacy, string Model, string Providers, bool Zdr, string MinQuantization, decimal BudgetUsd,
+    string SeraphModel = "", string SeraphProviders = "", string BigBrotherPrimary = "", string BigBrotherBackup = "", decimal BigBrotherBudgetUsd = 0);
 
 /// <summary>Who Admin → Cookie can name: users and groups, for Cookie: Manage, which may not open Admin → Users.</summary>
 public sealed record CookiePeople(IReadOnlyList<CookiePerson> Users, IReadOnlyList<CookieGroupRef> Groups);

@@ -22798,6 +22798,27 @@
           "budgetUsd": {
             "type": "number",
             "format": "double"
+          },
+          "seraphModel": {
+            "type": "string",
+            "default": ""
+          },
+          "seraphProviders": {
+            "type": "string",
+            "default": ""
+          },
+          "bigBrotherPrimary": {
+            "type": "string",
+            "default": ""
+          },
+          "bigBrotherBackup": {
+            "type": "string",
+            "default": ""
+          },
+          "bigBrotherBudgetUsd": {
+            "type": "number",
+            "format": "double",
+            "default": 0
           }
         }
       },
@@ -28208,6 +28229,10 @@
               "null",
               "string"
             ]
+          },
+          "byPerson": {
+            "type": "boolean",
+            "default": false
           }
         }
       },

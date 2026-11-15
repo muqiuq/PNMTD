@@ -22,8 +22,8 @@ import { useSection } from './useSection'
 /**
  * Lessons (docs/cookie-plan.md §11, §21.1): short rules the summariser draws from people's Right and Wrong in the
  * decision log, once a day or after 10 new ratings, a versioned section like the others. Active ones (at most 30) go into
- * every prompt of Cookie and Seraph. A lesson that is a rule names what it suppresses; the summariser makes it a suppress
- * object for 30 days. Admins edit, turn off, add and remove them, and roll back.
+ * every prompt of Cookie and Seraph. A lesson that is a rule names what it suppresses, and becomes a suppress object for 30
+ * days. Admins edit, turn off, add and remove them, and roll back; the summariser keeps what a person wrote or changed.
  */
 const s = useSection('lessons', {
   normalize: (v) => ({
@@ -34,6 +34,8 @@ const s = useSection('lessons', {
       active: l.active ?? true,
       suppressScope: l.suppressScope ?? null,
       suppressValue: l.suppressValue ?? null,
+      // The server marks a lesson a person wrote or changed; the summariser keeps those.
+      byPerson: l.byPerson ?? false,
     })),
   }),
   prepare: (v) => ({
@@ -61,7 +63,14 @@ function setScope(l: Lesson, scope: string | null) {
   l.suppressValue = null
 }
 function add() {
-  s.draft.value?.lessons.push({ id: newId(), text: '', active: true, suppressScope: null, suppressValue: null })
+  s.draft.value?.lessons.push({
+    id: newId(),
+    text: '',
+    active: true,
+    suppressScope: null,
+    suppressValue: null,
+    byPerson: true,
+  })
 }
 function remove(i: number) {
   s.draft.value?.lessons.splice(i, 1)
@@ -97,8 +106,9 @@ const placed = (f: string) => f === 'lessons' || f.startsWith('lessons.')
           <p class="muted small intro">
             Short rules from people's Right and Wrong in Cookie's decision log: the summariser writes them once a day,
             or after 10 new ratings, and merges similar ones. The active ones go into every prompt of Cookie and Seraph.
-            A lesson that is a rule names what it suppresses, and the summariser makes it a suppress object for 30 days
-            (Mute, suppress). Each summary replaces the active lessons with its own; the ones turned off stay.
+            A lesson that is a rule names what it suppresses, and becomes a suppress object for 30 days when it is saved
+            (Mute, suppress). Each summary replaces the summariser's own lessons; the ones you wrote or changed stay,
+            and so do the ones turned off.
           </p>
           <div v-if="listProblem" class="field-error" role="alert">{{ listProblem }}</div>
           <p v-if="!lessons.length" class="muted none">

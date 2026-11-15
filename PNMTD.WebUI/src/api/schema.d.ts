@@ -15173,6 +15173,19 @@ export interface components {
             minQuantization: string;
             /** Format: double */
             budgetUsd: number;
+            /** @default  */
+            seraphModel: string;
+            /** @default  */
+            seraphProviders: string;
+            /** @default  */
+            bigBrotherPrimary: string;
+            /** @default  */
+            bigBrotherBackup: string;
+            /**
+             * Format: double
+             * @default 0
+             */
+            bigBrotherBudgetUsd: number;
         };
         CookieGroupRef: {
             /** Format: uuid */
@@ -16554,6 +16567,8 @@ export interface components {
             active: boolean;
             suppressScope?: null | string;
             suppressValue?: null | string;
+            /** @default false */
+            byPerson: boolean;
         };
         LessonSettings: {
             lessons?: components["schemas"]["Lesson"][];

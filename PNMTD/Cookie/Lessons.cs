@@ -30,6 +30,28 @@ public sealed class Lessons(IDbContextFactory<PnmtdDbContext> dbs, CookieModel m
     public const int NewRatings = 10;
     public const int MinRatings = 2;
 
+    /// <summary>A lesson that is a rule becomes a rule (§11): a suppress object for 30 days, unless one like it is active.</summary>
+    public async Task ApplyRulesAsync(LessonSettings lessons, CancellationToken ct)
+    {
+        foreach (var l in lessons.Lessons.Where(l => l.Active && l.SuppressScope is not null && !string.IsNullOrWhiteSpace(l.SuppressValue)))
+        {
+            var active = await instructions.ActiveAsync(ct);
+            if (active.Any(i => i.Kind == "suppress" && i.Scope == l.SuppressScope && string.Equals(i.Value, l.SuppressValue, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+            try
+            {
+                await instructions.CreateAsync(new InstructionDraft("suppress", l.SuppressScope!, l.SuppressValue!.Trim(), l.SuppressValue.Trim(), l.Text,
+                    Clock.UtcNow.AddDays(Instructions.MaxDays)), confirmed: true, "lesson", null, l.ByPerson ? "A lesson" : "Cookie's lessons", ct);
+            }
+            catch (Api.ApiException e)
+            {
+                logger.LogInformation("A lesson's suppress rule wasn't valid: {Error}", e.Message);
+            }
+        }
+    }
+
     public async Task<bool> DueAsync(DateTime? lastRun, CancellationToken ct)
     {
         await using var db = await dbs.CreateDbContextAsync(ct);
@@ -67,26 +89,15 @@ public sealed class Lessons(IDbContextFactory<PnmtdDbContext> dbs, CookieModel m
                 var rule = Instructions.SuppressScopes.Contains(scope ?? "") && !string.IsNullOrWhiteSpace(l.SuppressValue);
                 return new Lesson(Guid.NewGuid(), CaseBook.Cut(p.Unmask(l.Text.Trim()), 300)!, true, rule ? scope : null, rule ? l.SuppressValue.Trim() : null);
             }).ToList();
-            // An admin's disabled lessons stay disabled and kept; the summariser's list replaces the active ones.
-            var next = new LessonSettings { Lessons = [.. lessons, .. current.Lessons.Where(l => !l.Active).Take(100 - lessons.Count)] };
-            await settings.SaveAsync(next, null, "Cookie's lessons summariser", $"From {rated.Count} ratings", ct);
-            foreach (var l in lessons.Where(l => l.SuppressScope is not null))
+            // A person's lessons stay as they are, and disabled ones stay disabled; the summariser's replace its own active ones.
+            var byPerson = current.Lessons.Where(l => l.ByPerson).ToList();
+            var room = Math.Max(0, LessonSettings.MaxActive - byPerson.Count(l => l.Active));
+            var next = new LessonSettings
             {
-                var active = await instructions.ActiveAsync(ct);
-                if (active.Any(i => i.Kind == "suppress" && i.Scope == l.SuppressScope && string.Equals(i.Value, l.SuppressValue, StringComparison.OrdinalIgnoreCase)))
-                {
-                    continue;
-                }
-                try
-                {
-                    await instructions.CreateAsync(new InstructionDraft("suppress", l.SuppressScope!, l.SuppressValue, l.SuppressValue, l.Text,
-                        Clock.UtcNow.AddDays(Instructions.MaxDays)), confirmed: true, "lesson", null, "Cookie's lessons", ct);
-                }
-                catch (Api.ApiException e)
-                {
-                    logger.LogInformation("A lesson's suppress rule wasn't valid: {Error}", e.Message);
-                }
-            }
+                Lessons = [.. byPerson, .. lessons.Take(room), .. current.Lessons.Where(l => !l.Active && !l.ByPerson).Take(Math.Max(0, 100 - byPerson.Count - room))],
+            };
+            await settings.SaveAsync(next, null, "Cookie's lessons summariser", $"From {rated.Count} ratings", ct);
+            await ApplyRulesAsync(next, ct);
             await db.CookieDecisions.Where(d => d.Rating != null && !d.RatingRead).ExecuteUpdateAsync(u => u.SetProperty(d => d.RatingRead, true), ct);
             return lessons.Count;
         }

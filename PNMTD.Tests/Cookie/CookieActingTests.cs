@@ -346,12 +346,15 @@ public sealed class CookieActingTests
         {
             Assert.AreEqual(HttpStatusCode.NotFound, hidden.StatusCode, "without Monitoring, the decision isn't there");
         }
+        var mine = new Lesson(Guid.NewGuid(), "Printers are the service desk's.");
+        await Save("lessons", new LessonSettings { Lessons = [mine] });
         router.Answer = (schema, _) => schema == nameof(LessonsAnswer)
             ? """{"lessons":[{"text":"No e-mail about toner.","suppressScope":"channel","suppressValue":"email"},{"text":"Say which printer.","suppressScope":"","suppressValue":""}]}"""
             : """{"answer":"pong"}""";
         Assert.AreEqual(2, await app.Services.GetRequiredService<Lessons>().SummariseAsync(CancellationToken.None));
         var all = await (await admin.GetAsync("/api/v1/cookie/admin/settings")).ReadAsync<CookieAllSettings>();
         CollectionAssert.Contains(all.Lessons.Lessons.Select(l => l.Text).ToList(), "Say which printer.");
+        Assert.IsTrue(all.Lessons.Lessons.Single(l => l.Id == mine.Id).ByPerson, "a person's lesson stays when the summariser runs");
         var active = await app.Services.GetRequiredService<Instructions>().ActiveAsync(CancellationToken.None);
         Assert.IsTrue(active.Any(i => i.Source == "lesson" && i.Kind == "suppress" && i.Value == "email"));
         var prompt = await app.Services.GetRequiredService<CookieBrain>().ValuesAsync(CancellationToken.None);

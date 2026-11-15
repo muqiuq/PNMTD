@@ -163,7 +163,7 @@ describe('Mute, suppress and instructions (docs/cookie-plan.md §10.3)', () => {
 })
 
 describe('Lessons (docs/cookie-plan.md §11)', () => {
-  const lesson = (id: string, active = true) => ({ id, text: `Lesson ${id}`, active })
+  const lesson = (id: string, active = true) => ({ id, text: `Lesson ${id}`, active, byPerson: false })
 
   it('allows at most 30 active, however many are off', () => {
     const lessons = Array.from({ length: 30 }, (_, i) => lesson(String(i)))
@@ -173,14 +173,23 @@ describe('Lessons (docs/cookie-plan.md §11)', () => {
   })
 
   it('wants a text, and a value for a suppress rule', () => {
-    expect(lessonProblems([{ id: 'a', text: ' ', active: true }]).a).toBe('Write the lesson.')
-    expect(lessonProblems([{ id: 'a', text: 'x'.repeat(301), active: true }]).a).toBeTruthy()
+    expect(lessonProblems([{ id: 'a', text: ' ', active: true, byPerson: false }]).a).toBe('Write the lesson.')
+    expect(lessonProblems([{ id: 'a', text: 'x'.repeat(301), active: true, byPerson: false }]).a).toBeTruthy()
     expect(
-      lessonProblems([{ id: 'a', text: 'No Pushover', active: true, suppressScope: 'channel', suppressValue: null }]).a,
+      lessonProblems([
+        { id: 'a', text: 'No Pushover', active: true, suppressScope: 'channel', suppressValue: null, byPerson: false },
+      ]).a,
     ).toBe('Choose what it suppresses.')
     expect(
       lessonProblems([
-        { id: 'a', text: 'No Pushover', active: true, suppressScope: 'channel', suppressValue: 'pushover' },
+        {
+          id: 'a',
+          text: 'No Pushover',
+          active: true,
+          suppressScope: 'channel',
+          suppressValue: 'pushover',
+          byPerson: false,
+        },
       ]),
     ).toEqual({})
   })

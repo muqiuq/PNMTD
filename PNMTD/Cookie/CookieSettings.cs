@@ -322,7 +322,7 @@ public sealed record ModelSettings : ICookieSection
 }
 
 /// <summary>A lesson (§11): a short rule from people's ratings; one that is "never send X" names what to suppress.</summary>
-public sealed record Lesson(Guid Id, string Text, bool Active = true, string? SuppressScope = null, string? SuppressValue = null);
+public sealed record Lesson(Guid Id, string Text, bool Active = true, string? SuppressScope = null, string? SuppressValue = null, bool ByPerson = false);
 
 /// <summary>Lessons (§11, §21.1): versioned like every section, edited and disabled by admins, written by the summariser.</summary>
 public sealed record LessonSettings : ICookieSection
@@ -342,6 +342,13 @@ public sealed record LessonSettings : ICookieSection
         {
             v.Check(l.Text.Trim().Length is > 0 and <= 300, $"lessons.{l.Id}", "1 to 300 characters.");
             v.Check(l.SuppressScope is null || Instructions.SuppressScopes.Contains(l.SuppressScope), $"lessons.{l.Id}", "channel, sensor-type or case-kind.");
+            if (l.SuppressScope is { } scope)
+            {
+                var d = new InstructionDraft("suppress", scope, l.SuppressValue, l.SuppressValue, l.Text, Lib.Helper.Clock.UtcNow.AddDays(1));
+                var check = new ApiValidator();
+                Instructions.Validate(d, check);
+                v.Check(!check.HasErrors, $"lessons.{l.Id}", "What it suppresses: pushover, email, ticket or redmine-note; a sensor type; problem or ticket.");
+            }
         }
     }
 }

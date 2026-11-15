@@ -532,7 +532,8 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
     {
         var since = Clock.UtcNow.AddDays(-30);
         return [.. (await db.CookieInstructions.AsNoTracking().Where(i => i.CreatedAt >= since || (i.EndedAt == null && i.Until > since))
-            .OrderByDescending(i => i.CreatedAt).Take(500).ToListAsync(ct)).Select(InstructionItem).OrderByDescending(i => i.Active)];
+            .OrderByDescending(i => i.CreatedAt).Take(500).ToListAsync(ct)).Select(InstructionItem)
+            .OrderBy(i => i.Active ? 0 : !i.Confirmed && i.EndedAt is null && i.Until > Clock.UtcNow ? 1 : 2).ThenByDescending(i => i.CreatedAt)];
     }
 
     public async Task<CookieInstructionItem> CreateInstructionAsync(CookieInstructionRequest request, ClaimsPrincipal user, CancellationToken ct)
@@ -673,7 +674,25 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
     public async Task<CookieSaved> SaveAsync<T>(T value, ClaimsPrincipal user, CancellationToken ct) where T : class, ICookieSection, new()
     {
         await CheckAsync(value, ct);
+        if (value is LessonSettings lessons)
+        {
+            // A lesson a person wrote or changed is theirs: the summariser keeps it (§11, §21.8).
+            var before = (await settings.GetAsync<LessonSettings>(ct)).Lessons.ToDictionary(l => l.Id);
+            var marked = lessons with
+            {
+                Lessons = [.. lessons.Lessons.Select(l => l with
+                {
+                    ByPerson = before.TryGetValue(l.Id, out var old) && old with { Active = l.Active, ByPerson = false } == l with { ByPerson = false }
+                        ? old.ByPerson : true,
+                })],
+            };
+            value = (T)(object)marked;
+        }
         var version = await settings.SaveAsync(value, user.UserId(), user.Identity?.Name ?? "", null, ct);
+        if (value is LessonSettings saved)
+        {
+            await services.GetRequiredService<Lessons>().ApplyRulesAsync(saved, ct);
+        }
         AuditLog.Summary($"Admin → Cookie, {Label(T.Section)}: version {version}");
         return new CookieSaved(T.Section, version);
     }
@@ -701,7 +720,8 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
             CookiePrompts.Defaults.Select(p => new CookiePromptItem(p.Key, p.Value.Label, p.Value.UsedFor, p.Value.Text, CookiePrompts.Required(p.Key))).ToList(),
             CookiePrompts.CaseKinds.Select(p => new CookiePromptItem(p.Key, p.Value.Label, p.Value.UsedFor, p.Value.Text, [])).ToList(),
             OutputLimits.Ceilings, new OutputLimits(), WatchedProject.Default(0),
-            new CookieEnvDefaults(o.Enabled, o.Privacy, o.Model, o.Providers, o.Zdr, o.MinQuantization, o.BudgetUsd));
+            new CookieEnvDefaults(o.Enabled, o.Privacy, o.Model, o.Providers, o.Zdr, o.MinQuantization, o.BudgetUsd, o.SeraphModel, o.SeraphProviders,
+                o.BigBrother.Primary.Model, o.BigBrother.Backup.Model, o.BigBrother.BudgetUsd));
     }
 
     public async Task<CookieRedmineLookups> RedmineLookupsAsync(CancellationToken ct)

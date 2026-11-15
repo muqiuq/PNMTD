@@ -54,7 +54,14 @@ const fields = [
   'seraphSampleEvery',
 ]
 /** Seraph's and the big brother's fields: what .env names when they are left empty. */
-const others: { field: TextField; label: string; env: string; hint: string; panel: 'seraph' | 'bigBrother' }[] = [
+type EnvKey = 'seraphModel' | 'seraphProviders' | 'bigBrotherPrimary' | 'bigBrotherBackup'
+const others: {
+  field: TextField & EnvKey
+  label: string
+  env: string
+  hint: string
+  panel: 'seraph' | 'bigBrother'
+}[] = [
   {
     field: 'seraphModel',
     label: 'Model',
@@ -256,7 +263,12 @@ const bigBrotherFields = others.filter((o) => o.panel === 'bigBrother')
                   @update:model-value="(v) => setText(o.field, v)"
                 />
                 <small v-if="s.error(o.field)" class="field-error">{{ s.error(o.field) }}</small>
-                <small v-else class="field-hint">{{ o.hint }} Empty: from .env ({{ o.env }}).</small>
+                <small v-else class="field-hint"
+                  >{{ o.hint }} Empty: from .env ({{ o.env
+                  }}<template v-if="env?.[o.field]"
+                    >, <span class="mono">{{ env[o.field] }}</span></template
+                  >).</small
+                >
               </div>
               <div class="field">
                 <label id="models-seraph-effort">Effort</label>
@@ -299,7 +311,9 @@ const bigBrotherFields = others.filter((o) => o.panel === 'bigBrother')
           <div class="panel-body form">
             <p class="muted small intro">
               Two strong models for problems nobody fixes. They are called only while the big brother is on (Actions),
-              from a budget of their own (Cookie__BigBrother__BudgetUsd); their providers come from .env.
+              from a budget of their own (Cookie__BigBrother__BudgetUsd<template v-if="env"
+                >, {{ budget(env.bigBrotherBudgetUsd) }}</template
+              >); their providers come from .env.
             </p>
             <div class="form-grid">
               <div v-for="o in bigBrotherFields" :key="o.field" class="field">
@@ -313,7 +327,12 @@ const bigBrotherFields = others.filter((o) => o.panel === 'bigBrother')
                   @update:model-value="(v) => setText(o.field, v)"
                 />
                 <small v-if="s.error(o.field)" class="field-error">{{ s.error(o.field) }}</small>
-                <small v-else class="field-hint">{{ o.hint }} Empty: from .env ({{ o.env }}).</small>
+                <small v-else class="field-hint"
+                  >{{ o.hint }} Empty: from .env ({{ o.env
+                  }}<template v-if="env?.[o.field]"
+                    >, <span class="mono">{{ env[o.field] }}</span></template
+                  >).</small
+                >
               </div>
             </div>
           </div>
