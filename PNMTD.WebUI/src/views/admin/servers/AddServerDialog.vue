@@ -20,6 +20,8 @@ import TokenCreated from './TokenCreated.vue'
 const visible = defineModel<boolean>('visible', { required: true })
 const props = defineProps<{ hostId?: string | null; rejoin?: { sensorId: string; name: string } | null }>()
 
+// Not the Select's `loading`: PrimeVue ignores clicks while it is set, so a click before the hosts arrive did nothing (and
+// e2e's Add server failed on a slow runner). The list opens at once and says it is loading.
 const hosts = useQuery({
   queryKey: [...keys.hosts, 'all'],
   queryFn: () => api.hosts.list({ pageSize: 500, sort: 'name' }),
@@ -91,8 +93,7 @@ async function create() {
           option-value="id"
           filter
           placeholder="Choose a host"
-          :loading="hosts.isLoading.value"
-          empty-message="No host yet: create one first."
+          :empty-message="hosts.isPending.value ? 'Loading hosts…' : 'No host yet: create one first.'"
         />
         <small class="field-hint">A server is a sensor of an existing host. Its details arrive when it joins.</small>
       </div>

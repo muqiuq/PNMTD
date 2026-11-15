@@ -30,9 +30,16 @@ test('the admin page, Add server and every tab of a server', async ({ page }) =>
   await expect(page.getByRole('link', { name: 'backup-srv / Windows' })).toBeVisible()
   await shot(page, 'servers')
 
+  // The hosts arriving late, as on a slow runner: the list opens anyway and fills when they come.
+  await page.route('**/api/v1/hosts?*', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+    await route.continue()
+  })
   await page.getByRole('button', { name: 'Add server' }).click()
   await page.getByRole('dialog').getByRole('combobox').click()
+  await expect(page.getByRole('listbox')).toContainText('Loading hosts…')
   await page.getByRole('option', { name: 'wiki', exact: true }).click()
+  await page.unroute('**/api/v1/hosts?*')
   await page.getByRole('button', { name: 'Create token' }).click()
   await expect(page.getByLabel('Join token').first()).toHaveText(/^[a-z2-9]{4}-[a-z2-9]{4}$/)
   await expect(page.getByRole('dialog')).toContainText('Get-FileHash')
