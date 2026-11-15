@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **U1 to U3 built** (§15.1 to §15.3); the Windows test on a Windows machine and U4 open. No open questions |
+| Status | **Built** (§15): U1 to U4. **Open: the Windows test on a Windows machine** (§15.3) |
 | Date | 2026-11-15 |
 | Revision | 3: **checked against 1.7.0** (the access watch, the sensor's notes on the overviews): nothing this plan builds on changed. `AgentDownloads`, both updaters, `AgentsController`, `sensor.yml` and `agent_settings` are as they were; the access watch only adds logins (`LogonKind`) and reviews. The target moves to 1.8.0, and the versions in the examples with it.<br>2: **the review's answers** (§14):<ul><li>one chosen version per platform;</li><li>**uploads for admins**, no setting;</li><li>**versions newer than PNMT allowed, with a warning**;</li><li>the automatic rollback on both platforms;</li><li>**no guard against scripts:** a script PNMT runs may update the agent (§7.3)</li></ul>1: the first draft |
 | Scope | **Which agent version PNMT hands out, and how the agents update.** The download folder keeps several versions; a new tab, *Admin → Servers → Versions*, lists, fetches, uploads, downloads and deletes them and **chooses the version each platform's agents get**. The signed manifest is per platform. **`pnmt-sensor.exe update` downloads from PNMT**, as `pnmt-agent update` does. **PNMT has no way to start an update**, apart from a script the machine lets it run (§7.3) |
@@ -411,3 +411,10 @@ As built, plus:
 - **A rollback renames the installed program** to `pnmt-sensor.next.exe` first and keeps it as the previous one afterwards; if the previous program doesn't install itself, it goes back.
 
 **Not run on Windows yet.** It builds (`EnableWindowsTargeting`), but this machine has no Windows. **The manual test of §11 is open:** an update from the installed program on the command line and in the window, the rename while the window runs from the installed file, the automatic rollback, `--rollback` (also to a 1.7 executable), `update-install`'s lines over the pipe, and a 1.7 agent updated the old way to 1.8.
+
+### 15.4 U4: the documents (2026-11-15)
+
+- **deploy/README.md and deploy/.env.example** (with U1): the chosen versions, what the folder keeps, `Agents__ReleasesApiUrl` and `Agents__KeepVersions`, the proxy's body limit for uploads, and that only the server starts an update, a script PNMT runs there included.
+- **docs/release-notes-1.8.md:** started with this plan, *not released yet*; the version and the release are the maintainer's to decide.
+- **Not done:** the web UI's *Documentation* page has no section on updating the agents yet; this plan and the release notes describe it.
+- **Still open:** the Windows test of §11 on a Windows machine (§15.3).
