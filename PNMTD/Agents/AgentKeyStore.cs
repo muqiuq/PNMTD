@@ -43,10 +43,12 @@ public sealed class AgentKeyStore(IDbContextFactory<PnmtdDbContext> dbs, IDataPr
         }
     }
 
-    public async Task<SignedEnvelope> SignAsync<T>(string type, Guid agentId, T body, CancellationToken ct, TimeSpan? lifetime = null, string? requestId = null)
+    /// <summary><paramref name="session"/>: the connection's nonce (<see cref="AgentConnection.Session"/>) for what goes to a connected agent.</summary>
+    public async Task<SignedEnvelope> SignAsync<T>(string type, Guid agentId, T body, CancellationToken ct, TimeSpan? lifetime = null, string? requestId = null,
+        string? session = null)
     {
         var key = await GetAsync(ct);
-        return AgentSigning.Sign(key.Key, type, agentId, body, lifetime, requestId);
+        return AgentSigning.Sign(key.Key, type, agentId, body, lifetime, requestId, session);
     }
 
     /// <summary>The settings row, created with the key if there is none yet.</summary>

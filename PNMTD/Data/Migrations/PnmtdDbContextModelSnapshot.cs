@@ -5193,6 +5193,12 @@ namespace PNMTD.Data.Migrations
                     b.Property<byte[]>("PendingSessionKey")
                         .HasColumnType("bytea");
 
+                    b.Property<long?>("PlainFcntHigh")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("PlainFcntWindow")
+                        .HasColumnType("bigint");
+
                     b.Property<bool>("ReplayProtection")
                         .HasColumnType("boolean");
 

@@ -11,8 +11,10 @@ namespace PNMTD.Cookie;
 /// <summary>
 /// The privacy filter in <c>Code</c> mode (docs/cookie-plan.md §13.2, §19.1): the names of PNMT's users and of the Redmine
 /// people Cookie has seen, e-mail addresses and phone numbers become <c>PERSON_n</c>, <c>EMAIL_n</c> and <c>PHONE_n</c>.
-/// Host names and addresses stay. The placeholders are stable: one mapping for the whole server, handed out under a lock,
-/// kept in <c>cookie_pseudonyms</c>, and restored by code before anything is shown. <c>Off</c> leaves the text as it is.
+/// Host names and addresses stay, except for the access watch (<see cref="Pseudonyms.ForAccess"/>, docs/cookie-access-plan.md
+/// §9): there the logins' accounts are people too, and addresses become <c>ADDRESS_n</c>. The placeholders are stable: one
+/// mapping for the whole server, handed out under a lock, kept in <c>cookie_pseudonyms</c>, and restored by code before
+/// anything is shown. <c>Off</c> leaves the text as it is.
 /// </summary>
 public sealed partial class PrivacyFilter(IDbContextFactory<PnmtdDbContext> dbs, IOptionsMonitor<CookieOptions> options)
 {
@@ -149,14 +151,25 @@ public sealed partial class PrivacyFilter(IDbContextFactory<PnmtdDbContext> dbs,
         await db.SaveChangesAsync(ct);
     }
 
-    [GeneratedRegex(@"\b(?:PERSON|EMAIL|PHONE)_\d+\b")]
+    [GeneratedRegex(@"\b(?:PERSON|EMAIL|PHONE|ADDRESS)_\d+\b")]
     private static partial Regex PlaceholderPattern();
+
+    /// <summary>An account name as such: one word of account characters, which carries no instructions worth screening.</summary>
+    [GeneratedRegex(@"^[\w.$@\\-]{1,64}$")]
+    internal static partial Regex PlainAccount();
 }
 
 /// <summary>One round's masking, with the names known when it began.</summary>
-public sealed class Pseudonyms(PrivacyFilter owner, Regex? names) : PNMTD.Tools.IMasker
+/// <summary>
+/// The filter for one round or request. <see cref="ForAccess"/> is the access watch's variant (docs/cookie-access-plan.md §9):
+/// the logins' accounts are people too, and addresses become <c>ADDRESS_n</c>, because code has already said what matters
+/// about an address (public, trusted, seen before) and the model never needs the address itself.
+/// </summary>
+public sealed class Pseudonyms(PrivacyFilter owner, Regex? names, bool addresses = false) : PNMTD.Tools.IMasker
 {
-    /// <summary>The text with people, e-mail addresses and phone numbers replaced.</summary>
+    private static readonly TimeSpan MatchTimeout = TimeSpan.FromMilliseconds(500);
+
+    /// <summary>The text with people, e-mail addresses and phone numbers replaced; addresses too for the access watch.</summary>
     public string Mask(string? text)
     {
         if (string.IsNullOrEmpty(text) || owner.Off)
@@ -168,7 +181,62 @@ public sealed class Pseudonyms(PrivacyFilter owner, Regex? names) : PNMTD.Tools.
         {
             text = names.Replace(text, m => owner.Placeholder("PERSON", m.Value));
         }
+        if (addresses)
+        {
+            text = Scrubber.IPv6().Replace(text, m => owner.Placeholder("ADDRESS", m.Value));
+            text = Scrubber.IPv4().Replace(text, m => owner.Placeholder("ADDRESS", m.Value));
+        }
         return Scrubber.Phone().Replace(text, m => Scrubber.IsPhoneNumber(m.Value) ? owner.Placeholder("PHONE", m.Value) : m.Value);
+    }
+
+    /// <summary>
+    /// A login's account as the model sees it: <c>Administrator</c>, <c>root</c> and the other ordinary words of
+    /// <see cref="PrivacyFilter.AccountWords"/> as they are, anything else a <c>PERSON_n</c>, however short or strange.
+    /// </summary>
+    public string Account(string? account)
+    {
+        var trimmed = account?.Trim();
+        if (string.IsNullOrEmpty(trimmed) || owner.Off || PrivacyFilter.AccountWords.Contains(trimmed))
+        {
+            return trimmed ?? "";
+        }
+        return owner.Placeholder("PERSON", trimmed);
+    }
+
+    /// <summary>
+    /// This filter for the access watch: the accounts of <paramref name="accounts"/> (plain account names of at least three
+    /// characters, with and without their domain) are people in every text, and addresses are masked.
+    /// </summary>
+    public Pseudonyms ForAccess(IEnumerable<string?> accounts)
+    {
+        var list = accounts.OfType<string>().SelectMany(Forms).Select(a => a.Trim())
+            .Where(a => a.Length >= 3 && !a.All(char.IsDigit) && PrivacyFilter.PlainAccount().IsMatch(a) && !PrivacyFilter.AccountWords.Contains(a))
+            .Distinct(StringComparer.OrdinalIgnoreCase).OrderByDescending(a => a.Length).ToList();
+        var pattern = list.Count == 0 ? null : $@"(?<![\w.-])(?:{string.Join("|", list.Select(Regex.Escape))})(?![\w-])";
+        var combined = (names, pattern) switch
+        {
+            (null, null) => null,
+            (null, { } only) => new Regex(only, RegexOptions.IgnoreCase, MatchTimeout),
+            ({ } known, null) => known,
+            ({ } known, { } more) => new Regex($"(?:{known})|(?:{more})", RegexOptions.IgnoreCase, MatchTimeout),
+        };
+        return new Pseudonyms(owner, combined, addresses: true);
+    }
+
+    /// <summary>An account, and its name alone: <c>DOMAIN\name</c> and <c>name@domain</c> both name <c>name</c>.</summary>
+    private static IEnumerable<string> Forms(string account)
+    {
+        yield return account;
+        var slash = account.LastIndexOf('\\');
+        if (slash >= 0 && slash < account.Length - 1)
+        {
+            yield return account[(slash + 1)..];
+        }
+        var at = account.IndexOf('@');
+        if (at > 0)
+        {
+            yield return account[..at];
+        }
     }
 
     public string Unmask(string? text) => owner.Unmask(text);

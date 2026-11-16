@@ -53,7 +53,8 @@ public sealed class AgentHandshakeException(string message, int? closeCode = nul
 /// <summary>
 /// The agent's side of a connection (docs/windows-sensor-plan.md §3.4–§3.6), shared by the Windows agent and
 /// <c>pnmtd windows simulate</c>: the challenge and hello, the signed welcome, then messages both ways. Every request from
-/// PNMTD is verified against the pinned key, bound to this agent, unexpired by PNMTD's clock (the challenge's time gives
+/// PNMTD is verified against the pinned key, bound to this agent and to this connection (the challenge's nonce, so a
+/// request captured on one connection is refused on the next), unexpired by PNMTD's clock (the challenge's time gives
 /// the offset), and run once.
 /// </summary>
 public sealed class AgentSession : IAsyncDisposable
@@ -63,11 +64,13 @@ public sealed class AgentSession : IAsyncDisposable
     private readonly int maxMessageBytes;
     private readonly SemaphoreSlim sendGate = new(1, 1);
     private readonly ConcurrentDictionary<string, DateTimeOffset> seenRequests = new(StringComparer.Ordinal);
+    private readonly string nonce;
 
-    private AgentSession(WebSocket socket, AgentIdentity identity, int maxMessageBytes, TimeSpan serverOffset, AgentConfig config)
+    private AgentSession(WebSocket socket, AgentIdentity identity, int maxMessageBytes, TimeSpan serverOffset, AgentConfig config, string nonce)
     {
         this.socket = socket;
         this.identity = identity;
+        this.nonce = nonce;
         this.maxMessageBytes = maxMessageBytes;
         ServerOffset = serverOffset;
         Config = config;
@@ -111,9 +114,9 @@ public sealed class AgentSession : IAsyncDisposable
         {
             throw new AgentHandshakeException($"Expected the welcome, got \"{welcomeEnvelope.T}\".");
         }
-        var config = VerifyConfig(identity, wb, AgentMessageTypes.Welcome)
-            ?? throw new AgentHandshakeException("The welcome is not signed by the PNMTD this agent joined: refused.");
-        return new AgentSession(socket, identity, maxMessageBytes, offset, config);
+        var config = VerifyConfig(identity, wb, AgentMessageTypes.Welcome, challenge.Nonce)
+            ?? throw new AgentHandshakeException("The welcome is not signed by the PNMTD this agent joined for this connection: refused.");
+        return new AgentSession(socket, identity, maxMessageBytes, offset, config, challenge.Nonce);
     }
 
     /// <summary>Sends a message; large ones go compressed.</summary>
@@ -150,7 +153,7 @@ public sealed class AgentSession : IAsyncDisposable
         {
             if (envelope.T == AgentMessageTypes.Config)
             {
-                if (envelope.B is { } body && VerifyConfig(identity, body, AgentMessageTypes.Config) is { } config)
+                if (envelope.B is { } body && VerifyConfig(identity, body, AgentMessageTypes.Config, nonce) is { } config)
                 {
                     Config = config;
                     await handler.OnConfigAsync(config, ct);
@@ -197,7 +200,10 @@ public sealed class AgentSession : IAsyncDisposable
         }
     }
 
-    /// <summary>Why a verified request is refused, or null: another agent's, the wrong type, expired, or seen before.</summary>
+    /// <summary>
+    /// Why a verified request is refused, or null: another agent's, another connection's, the wrong type, expired, or seen
+    /// before.
+    /// </summary>
     private string? Check(SignedContent content, string type)
     {
         if (content.Type != type)
@@ -207,6 +213,10 @@ public sealed class AgentSession : IAsyncDisposable
         if (content.AgentId != identity.AgentId)
         {
             return "a request for another agent";
+        }
+        if (content.Session is not null && !string.Equals(content.Session, nonce, StringComparison.Ordinal))
+        {
+            return "a request for another connection";
         }
         var serverNow = DateTimeOffset.UtcNow + ServerOffset;
         if (content.ExpiresAt is not { } expires || expires < serverNow)
@@ -223,11 +233,13 @@ public sealed class AgentSession : IAsyncDisposable
         return seenRequests.TryAdd(content.RequestId, serverNow) ? null : "a request seen before";
     }
 
-    private static AgentConfig? VerifyConfig(AgentIdentity identity, JsonElement body, string type)
+    /// <summary>The welcome or a config: PNMTD's signature, the type, this agent, and this connection (when PNMTD names one).</summary>
+    private static AgentConfig? VerifyConfig(AgentIdentity identity, JsonElement body, string type, string nonce)
     {
         var signed = AgentJson.Deserialize<SignedEnvelope>(body);
         var content = AgentSigning.Verify(identity.PnmtdKey, signed);
-        if (content is null || content.Type != type || content.AgentId != identity.AgentId)
+        if (content is null || content.Type != type || content.AgentId != identity.AgentId
+            || (content.Session is not null && !string.Equals(content.Session, nonce, StringComparison.Ordinal)))
         {
             return null;
         }

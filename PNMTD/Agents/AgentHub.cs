@@ -17,7 +17,7 @@ public sealed class AgentOfflineException(string message) : Exception(message);
 /// An authenticated agent's connection: its socket, a send gate, and the requests waiting for their answer.
 /// </summary>
 public sealed class AgentConnection(Guid sensorId, Guid agentId, string agentName, WebSocket socket, string? address, int maxMessageBytes,
-    AgentPlatform platform)
+    AgentPlatform platform, string session)
 {
     private readonly SemaphoreSlim sendGate = new(1, 1);
     private readonly ConcurrentDictionary<string, TaskCompletionSource<JsonElement>> pending = new(StringComparer.Ordinal);
@@ -27,6 +27,12 @@ public sealed class AgentConnection(Guid sensorId, Guid agentId, string agentNam
     public Guid SensorId { get; } = sensorId;
 
     public Guid AgentId { get; } = agentId;
+
+    /// <summary>
+    /// The nonce of this connection's challenge. Every signed message to the agent names it, so one captured here is refused
+    /// on the agent's next connection (docs/windows-sensor-plan.md §3.4).
+    /// </summary>
+    public string Session { get; } = session;
 
     /// <summary>The agent row's platform, from its join token (docs/linux-sensor-plan.md §3.3).</summary>
     public AgentPlatform Platform { get; } = platform;
@@ -57,7 +63,7 @@ public sealed class AgentConnection(Guid sensorId, Guid agentId, string agentNam
         pending[requestId] = completion;
         try
         {
-            var signed = await keys.SignAsync(type, AgentId, body, ct, AgentProtocol.RequestLifetime, requestId);
+            var signed = await keys.SignAsync(type, AgentId, body, ct, AgentProtocol.RequestLifetime, requestId, Session);
             await SendAsync(type, signed, ct, requestId);
             using var wait = CancellationTokenSource.CreateLinkedTokenSource(ct);
             wait.CancelAfter(timeout);
@@ -158,7 +164,7 @@ public sealed class AgentHub(
             {
                 await using var db = await dbs.CreateDbContextAsync(ct);
                 var config = await AgentConfiguration.BuildAsync(db, keys, options.CurrentValue, connection.SensorId, ct);
-                var signed = await keys.SignAsync(AgentMessageTypes.Config, connection.AgentId, config, ct);
+                var signed = await keys.SignAsync(AgentMessageTypes.Config, connection.AgentId, config, ct, session: connection.Session);
                 await connection.SendAsync(AgentMessageTypes.Config, signed, ct);
             }
             catch (Exception e) when (e is not OperationCanceledException)
@@ -280,7 +286,7 @@ public sealed class AgentHub(
             return null;
         }
 
-        var connection = new AgentConnection(agent.SensorId, agent.AgentId, name, socket, address, settings.MaxMessageBytes, agent.Platform)
+        var connection = new AgentConnection(agent.SensorId, agent.AgentId, name, socket, address, settings.MaxMessageBytes, agent.Platform, nonce)
         {
             Capabilities = hello.Capabilities.Take(50).Select(c => Cuts.Cut(c, 50)).ToList(),
         };
@@ -347,7 +353,7 @@ public sealed class AgentHub(
         await db.SaveChangesAsync(ct);
 
         var config = await AgentConfiguration.BuildAsync(db, keys, settings, agent.SensorId, ct);
-        var welcome = await keys.SignAsync(AgentMessageTypes.Welcome, agent.AgentId, config, ct);
+        var welcome = await keys.SignAsync(AgentMessageTypes.Welcome, agent.AgentId, config, ct, session: nonce);
         await connection.SendAsync(AgentMessageTypes.Welcome, welcome, ct);
         if (connection.Capabilities.Contains(AgentCapabilities.Parse))
         {

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Net;
 using System.Net.WebSockets;
@@ -208,6 +209,69 @@ public sealed class AgentTests
         Assert.AreEqual(AgentMessageTypes.Challenge, challenge?.T);
         Assert.IsNull(await AgentFrames.ReceiveAsync(socket, 65536, new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token));
         Assert.AreEqual(AgentCloseCodes.HelloTimeout, (int?)socket.CloseStatus);
+    }
+
+    [TestMethod]
+    public async Task ARequestSignedForAnotherConnectionIsRefused()
+    {
+        // Every signed message names its connection's nonce (docs/windows-sensor-plan.md §3.4): a request captured on one
+        // connection, by a proxy that reads the TLS, can't be replayed on the agent's next connection within the five minutes.
+        var joined = await AgentHarness.JoinAsync(app, (await AgentHarness.TokenAsync(admin, hostId, null)).Token, "SRV-SESSION");
+        var hub = app.Services.GetRequiredService<AgentHub>();
+        var keys = app.Services.GetRequiredService<AgentKeyStore>();
+        var none = CancellationToken.None;
+        SignedEnvelope captured;
+        string first;
+        await using (var session = await AgentHarness.OpenAsync(app, joined))
+        {
+            var handler = new RecordingHandler();
+            _ = session.RunAsync(handler, none);
+            var connection = (await AgentHarness.EventuallyAsync(() => Task.FromResult(hub.Connection(joined.Grant.SensorId)), c => c is not null))!;
+            first = connection.Session;
+
+            // Signed for some other connection: refused, and the request never reaches the handler.
+            var foreign = await keys.SignAsync(AgentMessageTypes.Collect, joined.Grant.AgentId, new { }, none, AgentProtocol.RequestLifetime, "req-foreign", "another");
+            await connection.SendAsync(AgentMessageTypes.Collect, foreign, none, "req-foreign");
+            // Signed for this one: runs.
+            captured = await keys.SignAsync(AgentMessageTypes.Collect, joined.Grant.AgentId, new { }, none, AgentProtocol.RequestLifetime, "req-own", connection.Session);
+            await connection.SendAsync(AgentMessageTypes.Collect, captured, none, "req-own");
+            await AgentHarness.EventuallyAsync(() => Task.FromResult(handler.Requests.Count == 1));
+            Assert.AreEqual("req-own", handler.Requests.Single().RequestId);
+            Assert.IsTrue(handler.Ignored.Any(r => r.Contains("another connection")), string.Join("; ", handler.Ignored));
+
+            // Once more on the same connection: seen before, as always.
+            await connection.SendAsync(AgentMessageTypes.Collect, captured, none, "req-own");
+            await AgentHarness.EventuallyAsync(() => Task.FromResult(handler.Ignored.Any(r => r.Contains("seen before"))));
+            Assert.AreEqual(1, handler.Requests.Count);
+        }
+
+        // Replayed on the agent's next connection: refused.
+        await using (var session = await AgentHarness.OpenAsync(app, joined))
+        {
+            var handler = new RecordingHandler();
+            _ = session.RunAsync(handler, none);
+            var connection = (await AgentHarness.EventuallyAsync(() => Task.FromResult(hub.Connection(joined.Grant.SensorId)), c => c is not null && c.Session != first))!;
+            await connection.SendAsync(AgentMessageTypes.Collect, captured, none, "req-own");
+            await AgentHarness.EventuallyAsync(() => Task.FromResult(handler.Ignored.Any(r => r.Contains("another connection"))));
+            Assert.AreEqual(0, handler.Requests.Count);
+        }
+    }
+
+    private sealed class RecordingHandler : IAgentSessionHandler
+    {
+        public ConcurrentQueue<SignedContent> Requests { get; } = [];
+
+        public ConcurrentQueue<string> Ignored { get; } = [];
+
+        public Task OnConfigAsync(AgentConfig config, CancellationToken ct) => Task.CompletedTask;
+
+        public Task<Ack> OnRequestAsync(AgentSession session, SignedContent request, CancellationToken ct)
+        {
+            Requests.Enqueue(request);
+            return Task.FromResult(new Ack(request.RequestId, true));
+        }
+
+        public void OnIgnored(string type, string reason) => Ignored.Enqueue(reason);
     }
 
     [TestMethod]

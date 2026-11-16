@@ -13,6 +13,9 @@ public interface IMasker
 {
     /// <summary>The text with people replaced, or as it is; never null (an empty text for none).</summary>
     string Mask(string? text);
+
+    /// <summary>The placeholders back to their values, so that a tool can look up what the model only knows masked.</summary>
+    string Unmask(string? text);
 }
 
 /// <summary>MCP's masking: none. An MCP user sees what their rights allow (docs/cookie-plan.md §3.5).</summary>
@@ -21,6 +24,8 @@ public sealed class NoMasking : IMasker
     public static readonly NoMasking Instance = new();
 
     public string Mask(string? text) => text ?? "";
+
+    public string Unmask(string? text) => text ?? "";
 }
 
 /// <summary>Who a tool runs for.</summary>

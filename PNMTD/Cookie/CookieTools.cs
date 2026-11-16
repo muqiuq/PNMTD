@@ -28,6 +28,28 @@ public static class CookieTools
     })]);
 
     /// <summary>Runs a tool the model asked for: unknown, not allowed or failing comes back as an error the model can read.</summary>
+    /// <summary>
+    /// Placeholders in the arguments back to their values: Cookie knows an account or an address only as PERSON_3 or
+    /// ADDRESS_2 (docs/cookie-access-plan.md §9), and a lookup must still find it.
+    /// </summary>
+    private static JsonElement Unmask(JsonElement args, PNMTD.Tools.IMasker privacy)
+    {
+        if (args.ValueKind != JsonValueKind.Object || JsonObject.Create(args) is not { } node)
+        {
+            return args;
+        }
+        var changed = false;
+        foreach (var (name, value) in node.ToList())
+        {
+            if (value is JsonValue v && v.TryGetValue<string>(out var text) && privacy.Unmask(text) is var unmasked && unmasked != text)
+            {
+                node[name] = unmasked;
+                changed = true;
+            }
+        }
+        return changed ? JsonSerializer.SerializeToElement(node) : args;
+    }
+
     public static async Task<string> RunAsync(string name, string arguments, ToolContext ctx, CancellationToken ct)
     {
         var tool = For(ctx.Rights).FirstOrDefault(t => t.Name == name);
@@ -44,6 +66,7 @@ public static class CookieTools
         {
             return Error("The arguments are not JSON.");
         }
+        args = Unmask(args, ctx.Privacy);
         try
         {
             await using var scope = ctx.Services.CreateAsyncScope();

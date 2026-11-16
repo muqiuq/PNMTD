@@ -265,7 +265,7 @@ All of them are records in `PNMTD.Lib/Agent/`, shared by both sides. The same re
 | agent → PNMTD | `bye` | uninstalling |
 
 - **Unknown types are ignored and logged** on both sides.
-- **A signed request** carries the request id, the agent id, an expiry (5 minutes), and PNMTD's signature over all of them. The agent keeps the ids of the last hour, so a request runs once.
+- **A signed request** carries the request id, the agent id, an expiry (5 minutes), the nonce of the connection's challenge, and PNMTD's signature over all of them. The agent keeps the ids of the last hour, so a request runs once; and it runs only on the connection it was signed for, so a request captured on one connection (a proxy that reads the TLS) can't be replayed on the next, within the five minutes, by dropping the connection. The welcome and each config name the connection too. A request without the nonce, from an older PNMTD, is accepted as before.
 
 ### 3.7 Offline, and time
 
@@ -987,7 +987,7 @@ W0 needs real machines (one Windows Server 2019, one Windows 10 Pro or 11) and t
 ### W1: the server side
 
 - **The protocol** is in `PNMTD.Lib/Agent/`: the records of §3.6 (`AgentMessages.cs`, `AgentDiagnostics.cs`), the frames with their limits (`AgentFrames.cs`), the signatures and join tokens (`AgentSigning.cs`), and **the agent's side of a connection, `AgentSession`**, with the HTTP join (`AgentJoinClient`). The Windows agent and `pnmtd windows simulate` share that code, and the tests run it against the in-memory server, so the agent's protocol code is tested after all, without testing the agent.
-- **Signed messages** carry the signed JSON as text (`{ "p": text, "s": signature }`): the text is verified as it is, then parsed, so neither side needs canonical JSON. What is signed names its type, its agent, a request id and, for requests, an expiry; the agent checks the expiry against PNMTD's clock (the challenge's time gives the offset), so a server whose clock is off still accepts requests. The hello signs `pnmt-agent-v1`, the origin, the agent id, the nonce and its time.
+- **Signed messages** carry the signed JSON as text (`{ "p": text, "s": signature }`): the text is verified as it is, then parsed, so neither side needs canonical JSON. What is signed names its type, its agent, a request id, the connection's nonce (`session`) and, for requests, an expiry; the agent checks the nonce against its challenge's and the expiry against PNMTD's clock (the challenge's time gives the offset), so a server whose clock is off still accepts requests. The hello signs `pnmt-agent-v1`, the origin, the agent id, the nonce and its time.
 - **The origin check:** the origin an agent signs must name PNMT's host: `PublicBaseUrl`'s, the request's `Host`, or `X-Forwarded-Host`. `Windows:CheckOrigin=false` turns it off for proxies that rewrite the host.
 - **Plain HTTP is the agent's choice, confirmed by a person** (revised after W6; first it was a server setting for development only): the window shows PNMT's key as the URL answers and needs a tick that it matches the one in PNMT's *Add server* dialog, which warns about plain HTTP and shows the key; the command line needs `--allow-http` and prints the key, and PNMT's command line includes the flag for an http:// PNMT. The join must answer the same key as the check, or the agent refuses it. `agent.json` notes `plainHttp`, and the window shows it.
 - **A re-join gives the agent a new id** as well as a new key, so each key has a name of its own on the server; the old id is refused (4401).

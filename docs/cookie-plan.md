@@ -605,7 +605,7 @@ Cookie gets its own area in the groups-and-rights model of five point five (audi
 | **`Code`** (default) | **Code finds people:** the names of PNMT's and Redmine's users, e-mail addresses, phone numbers |
 | `LocalModel` | `Code`, **plus a local model** (any OpenAI-compatible URL on the LAN) that finds the names code doesn't know |
 
-- **Only people are pseudonymised.** Host names and IP addresses stay as they are. Without them, Cookie and the big brother can't reason about subnets, gateways and which host is which, and that is what they are for.
+- **Only people are pseudonymised.** Host names and IP addresses stay as they are. Without them, Cookie and the big brother can't reason about subnets, gateways and which host is which, and that is what they are for. **The access watch is the exception** (cookie-access-plan §9): there code has already judged what matters about an address, so the logins' source addresses go as `ADDRESS_n`, and every account in a case as `PERSON_n`.
 - **Each text is pseudonymised once, when it comes in** (a ticket, a mail, a note), and the result is kept. Rounds don't wait for the filter.
 - **Before adding the local model, check whether EU endpoints with zero data retention (§14) and a data processing agreement already meet the requirement.** The local model is for when they don't, or when `Code` misses too much.
 

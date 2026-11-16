@@ -492,7 +492,14 @@ internal static class DevSeedCommand
             var heartbeat = device.Build(PacketType.Heartbeat, suite, [], ack: true);
             var ack = PacketCodec.Build(new PacketHeader(PacketType.Ack, suite, device.DeviceId, (ushort)heartbeat.Fcnt), [], device.SessionKey ?? key, token, heartbeat.Fcnt);
             var data = device.Build(PacketType.Data, plan.Suites[^1], System.Text.Encoding.UTF8.GetBytes($"{random.Next(19, 24)}.{random.Next(0, 9)}C {random.Next(35, 60)}%"));
-            node.Counter = FrameCounter.Accept(CounterState.Empty, data.Fcnt);
+            if (plan.Suites[^1].IsKeyed())
+            {
+                node.Counter = FrameCounter.Accept(CounterState.Empty, data.Fcnt);
+            }
+            else
+            {
+                node.PlainCounter = FrameCounter.Accept(CounterState.Empty, data.Fcnt);
+            }
             db.UdpNodes.Add(node);
             db.UdpLastPackets.Add(new UdpLastPacketEntity
             {

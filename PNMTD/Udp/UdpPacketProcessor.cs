@@ -40,6 +40,8 @@ public sealed class UdpPacketProcessor(
     {
         public long Generation;
         public CounterState Counter;
+        /// <summary>The window of NONE and TOKEN32 uplinks (§3.7), apart from the keyed suites'.</summary>
+        public CounterState PlainCounter;
         public long? LastUplinkFcnt;
         public byte[]? LastUplinkDigest;
         public DateTime? LastUplinkAt;
@@ -73,7 +75,36 @@ public sealed class UdpPacketProcessor(
 
     private enum KeyUse { None, Root, Active, Pending }
 
-    private sealed record Verified(byte[] Payload, long Full, CounterState NewState, bool Fresh, KeyUse Use, bool CounterReset);
+    /// <summary><see cref="Plain"/>: a NONE or TOKEN32 uplink, whose <see cref="NewState"/> is the plain window's (§3.7).</summary>
+    private sealed record Verified(byte[] Payload, long Full, CounterState NewState, bool Fresh, KeyUse Use, bool CounterReset, bool Plain)
+    {
+        public void Apply(NodeRuntime rt)
+        {
+            if (Plain)
+            {
+                rt.PlainCounter = NewState;
+            }
+            else
+            {
+                rt.Counter = NewState;
+            }
+        }
+
+        public void Apply(UdpNodeEntity row)
+        {
+            if (Plain)
+            {
+                row.PlainCounter = NewState;
+            }
+            else
+            {
+                row.Counter = NewState;
+            }
+        }
+
+        /// <summary>The window this uplink was checked against.</summary>
+        public CounterState StateOf(NodeRuntime rt) => Plain ? rt.PlainCounter : rt.Counter;
+    }
 
     public async Task<byte[]?> ProcessAsync(byte[] datagram, IPEndPoint remote, CancellationToken ct)
     {
@@ -257,12 +288,14 @@ public sealed class UdpPacketProcessor(
                 rejection = (UdpRejectReason.BadTag, null);
                 return null;
             }
-            return new Verified(join, 0, rt.Counter, true, KeyUse.Root, false);
+            return new Verified(join, 0, rt.Counter, true, KeyUse.Root, false, false);
         }
 
         byte[]? payload = null;
         var use = KeyUse.None;
-        var state = rt.Counter;
+        // NONE and TOKEN32 have a window of their own (§3.7): anyone can send one, so it must never move the keyed suites' window.
+        var plain = !h.Suite.IsKeyed();
+        var state = plain ? rt.PlainCounter : rt.Counter;
         long full;
         if (h.Suite.IsKeyed() && node.SessionMode == UdpSessionMode.JoinRequired)
         {
@@ -274,7 +307,7 @@ public sealed class UdpPacketProcessor(
             }
             else if (node.SessionKey is { } session)
             {
-                full = FrameCounter.Reconstruct(rt.Counter.High, h.Counter);
+                full = FrameCounter.Reconstruct(state.High, h.Counter);
                 if (full is >= 0 and <= FrameCounter.Max)
                 {
                     payload = PacketCodec.Open(packet, session, node.Token, (uint)full);
@@ -284,7 +317,7 @@ public sealed class UdpPacketProcessor(
         }
         else
         {
-            full = FrameCounter.Reconstruct(rt.Counter.High, h.Counter);
+            full = FrameCounter.Reconstruct(state.High, h.Counter);
             if (full is >= 0 and <= FrameCounter.Max || !h.Suite.IsKeyed())
             {
                 payload = PacketCodec.Open(packet, node.Key, node.Token, (uint)Math.Clamp(full, 0, FrameCounter.Max));
@@ -311,7 +344,7 @@ public sealed class UdpPacketProcessor(
         // Not enforced (NONE, TOKEN32, or replay protection off): a counter that goes back starts the window again.
         var reset = !fresh;
         var next = fresh ? FrameCounter.Accept(state, full) : FrameCounter.Accept(CounterState.Empty, full);
-        return new Verified(payload, full, next, fresh, use, reset);
+        return new Verified(payload, full, next, fresh, use, reset, plain);
     }
 
     private bool IsRetransmission(NodeRuntime rt, long full, byte[] datagram) =>
@@ -344,12 +377,13 @@ public sealed class UdpPacketProcessor(
         }
         await using var db = await dbs.CreateDbContextAsync(ct);
         var row = await db.UdpNodes.AsNoTracking().Where(n => n.SensorId == node.SensorId)
-            .Select(n => new { n.FcntHigh, n.FcntWindow, n.LastUplinkFcnt, n.LastUplinkDigest, n.LastUplinkAt, n.LastResponse })
+            .Select(n => new { n.FcntHigh, n.FcntWindow, n.PlainFcntHigh, n.PlainFcntWindow, n.LastUplinkFcnt, n.LastUplinkDigest, n.LastUplinkAt, n.LastResponse })
             .SingleOrDefaultAsync(ct);
         var fresh = new NodeRuntime
         {
             Generation = generation,
             Counter = new CounterState(row?.FcntHigh, unchecked((ulong)(row?.FcntWindow ?? 0))),
+            PlainCounter = new CounterState(row?.PlainFcntHigh, unchecked((ulong)(row?.PlainFcntWindow ?? 0))),
             LastUplinkFcnt = row?.LastUplinkFcnt,
             LastUplinkDigest = row?.LastUplinkDigest,
             LastUplinkAt = row?.LastUplinkAt,
@@ -397,9 +431,13 @@ public sealed class UdpPacketProcessor(
         {
             var high = rt.Counter.High;
             var window = unchecked((long)rt.Counter.Window);
+            var plainHigh = rt.PlainCounter.High;
+            var plainWindow = unchecked((long)rt.PlainCounter.Window);
             await db.UdpNodes.Where(n => n.SensorId == node.SensorId).ExecuteUpdateAsync(s => s
                 .SetProperty(n => n.FcntHigh, high)
                 .SetProperty(n => n.FcntWindow, window)
+                .SetProperty(n => n.PlainFcntHigh, plainHigh)
+                .SetProperty(n => n.PlainFcntWindow, plainWindow)
                 .SetProperty(n => n.LastUplinkFcnt, rt.LastUplinkFcnt)
                 .SetProperty(n => n.LastUplinkDigest, rt.LastUplinkDigest)
                 .SetProperty(n => n.LastUplinkAt, rt.LastUplinkAt)
@@ -497,7 +535,7 @@ public sealed class UdpPacketProcessor(
         var response = PacketCodec.Build(new PacketHeader(PacketType.OtaChunk, suite, h.DeviceId, h.Counter, IdLength: h.IdLength),
             Payloads.OtaChunk(new OtaChunkPayload(get.UpdateId, offset, data)), key, node.Token, (uint)v.Full);
 
-        rt.Counter = v.NewState;
+        v.Apply(rt);
         rt.LastUplinkFcnt = v.Full;
         rt.LastUplinkDigest = SHA256.HashData(datagram);
         rt.LastUplinkAt = now;
@@ -529,10 +567,10 @@ public sealed class UdpPacketProcessor(
         row.PendingSessionKey = null;
         row.PendingSessionAt = null;
         row.SessionStartedAt = Clock.UtcNow;
-        row.Counter = v.NewState;
+        v.Apply(row);
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
-        rt.Counter = v.NewState;
+        v.Apply(rt);
         cache.Invalidate();
         return true;
     }
@@ -569,7 +607,8 @@ public sealed class UdpPacketProcessor(
         var row = await db.UdpNodes.FromSqlInterpolated($"SELECT * FROM udp_nodes WHERE \"SensorId\" = {node.SensorId} FOR UPDATE")
             .SingleOrDefaultAsync(ct);
         if (row is null || cache.Generation != rt.Generation
-            || (h.Type != PacketType.Join && (row.FcntHigh != rt.Counter.High || row.FcntWindow != unchecked((long)rt.Counter.Window))))
+            || (h.Type != PacketType.Join && (row.FcntHigh != rt.Counter.High || row.FcntWindow != unchecked((long)rt.Counter.Window)
+                || row.PlainFcntHigh != rt.PlainCounter.High || row.PlainFcntWindow != unchecked((long)rt.PlainCounter.Window))))
         {
             // Deleted, or changed since this packet was checked (a reset, new keys; also from
             // `pnmtd udp reset-counter` in another process): drop it, the device sends again.
@@ -590,7 +629,7 @@ public sealed class UdpPacketProcessor(
         }
         if (h.Type != PacketType.Join)
         {
-            row.Counter = v.NewState;
+            v.Apply(row);
         }
         row.LastSeenAt = now;
         row.LastEndpoint = endpoint;
@@ -669,6 +708,7 @@ public sealed class UdpPacketProcessor(
         await tx.CommitAsync(ct);
 
         rt.Counter = row.Counter;
+        rt.PlainCounter = row.PlainCounter;
         rt.LastUplinkFcnt = row.LastUplinkFcnt;
         rt.LastUplinkDigest = row.LastUplinkDigest;
         rt.LastUplinkAt = now;
@@ -685,7 +725,7 @@ public sealed class UdpPacketProcessor(
         {
             cache.Invalidate();
         }
-        if (v.CounterReset && rt.Counter.High is { } high && high > 1)
+        if (v.CounterReset && v.StateOf(rt).High is { } high && high > 1)
         {
             logger.LogDebug("UDP node {DeviceId}: counter reset to {Counter} (restart?)", h.DeviceId, high);
         }
@@ -898,7 +938,9 @@ public sealed class UdpPacketProcessor(
     /// <summary>
     /// The key for a downlink in <paramref name="suite"/>, or null when this slot cannot use it: a
     /// keyed suite without a key (no session yet), a suite of another family, or AES-CCM in answer
-    /// to an unkeyed uplink whose counter was not fresh (the nonce would repeat, §3.5).
+    /// to an unkeyed uplink whose counter was not fresh (the nonce would repeat, §3.5) or whose node
+    /// also allows keyed uplinks: their windows are separate (§3.7), so the one's counter could meet
+    /// the other's, and with it the nonce.
     /// </summary>
     private static byte[]? KeyFor(UdpNodeEntity row, SecuritySuite suite, Verified v, SecuritySuite uplinkSuite)
     {
@@ -910,7 +952,7 @@ public sealed class UdpPacketProcessor(
         {
             return null;
         }
-        if (suite.IsEncrypted() && !uplinkSuite.IsKeyed() && !v.Fresh)
+        if (suite.IsEncrypted() && !uplinkSuite.IsKeyed() && (!v.Fresh || SecuritySuites.FromMask(row.AllowedSuites).Any(s => s.IsKeyed())))
         {
             return null;
         }

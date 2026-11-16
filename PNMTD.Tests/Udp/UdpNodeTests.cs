@@ -259,6 +259,49 @@ public sealed class UdpNodeTests
     }
 
     [TestMethod]
+    public async Task AnUnkeyedUplinkCannotLockTheKeyedSuitesOut()
+    {
+        // NONE and TOKEN32 have a window of their own (§3.7): a forged NONE heartbeat with a high counter, which anyone who knows
+        // the device id can send, must not make the device's signed packets look like replays.
+        var (sensor, device) = await udp.CreateNodeAsync(suites: [SecuritySuite.None, SecuritySuite.HmacSha256_32]);
+        Assert.IsNotNull(await udp.ExchangeAsync(device, device.Build(PacketType.Heartbeat, SecuritySuite.HmacSha256_32, [], ack: true)));
+        Assert.IsNotNull(await udp.SendAsync(device.Build(PacketType.Heartbeat, SecuritySuite.None, [], ack: true, fcnt: 40_000).Datagram));
+
+        // The device's next signed heartbeat, counter 2, is as fresh as before.
+        var ack = await udp.ExchangeAsync(device, device.Build(PacketType.Heartbeat, SecuritySuite.HmacSha256_32, [], ack: true));
+        Assert.AreEqual(PacketType.Ack, ack!.Header.Type);
+        var row = await udp.WithDbAsync(db => db.UdpNodes.AsNoTracking().SingleAsync(n => n.SensorId == sensor.Id));
+        Assert.AreEqual(2, row.FcntHigh, "the keyed suites' window");
+        Assert.AreEqual(40_000, row.PlainFcntHigh, "the plain window");
+
+        // Another forged one, far off the plain window: that window starts again, the keyed one doesn't notice.
+        Assert.IsNotNull(await udp.SendAsync(device.Build(PacketType.Heartbeat, SecuritySuite.None, [], ack: true, fcnt: 1).Datagram));
+        Assert.IsNotNull(await udp.ExchangeAsync(device, device.Build(PacketType.Heartbeat, SecuritySuite.HmacSha256_32, [], ack: true)));
+        row = await udp.WithDbAsync(db => db.UdpNodes.AsNoTracking().SingleAsync(n => n.SensorId == sensor.Id));
+        Assert.AreEqual(3, row.FcntHigh);
+    }
+
+    [TestMethod]
+    public async Task AnEncryptedAnswerToAnUnkeyedUplinkNeedsANodeWithoutKeyedUplinks()
+    {
+        // The windows are separate (§3.7), so a NONE uplink's counter could meet a signed one's and repeat an AES-CCM nonce: on a
+        // node that also allows keyed uplinks, the encrypted response suite is refused for a NONE uplink and the ack comes as the
+        // uplink did. A node that allows no keyed uplink still gets its encrypted acks, bound to the plain window as before.
+        var (_, mixed) = await udp.CreateNodeAsync(KeyFamily.Aes, suites: [SecuritySuite.None, SecuritySuite.AesCmac32, SecuritySuite.AesCcm64],
+            responseSuite: SecuritySuite.AesCcm64);
+        mixed.ResponseSuite = SecuritySuite.AesCcm64;
+        var plain = await udp.ExchangeAsync(mixed, mixed.Build(PacketType.Heartbeat, SecuritySuite.None, [], ack: true));
+        Assert.AreEqual(SecuritySuite.None, plain!.Header.Suite);
+        var signed = await udp.ExchangeAsync(mixed, mixed.Build(PacketType.Heartbeat, SecuritySuite.AesCmac32, [], ack: true));
+        Assert.AreEqual(SecuritySuite.AesCcm64, signed!.Header.Suite);
+
+        var (_, unkeyed) = await udp.CreateNodeAsync(KeyFamily.Aes, suites: [SecuritySuite.None], responseSuite: SecuritySuite.AesCcm64);
+        unkeyed.ResponseSuite = SecuritySuite.AesCcm64;
+        var encrypted = await udp.ExchangeAsync(unkeyed, unkeyed.Build(PacketType.Heartbeat, SecuritySuite.None, [], ack: true));
+        Assert.AreEqual(SecuritySuite.AesCcm64, encrypted!.Header.Suite);
+    }
+
+    [TestMethod]
     public async Task CommandsAndTheirLogOutliveTheNode()
     {
         var (sensor, device) = await udp.CreateNodeAsync();

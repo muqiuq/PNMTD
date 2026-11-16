@@ -44,7 +44,7 @@ public sealed class AgentScriptResults(IDbContextFactory<PnmtdDbContext> dbs, Ag
                 try
                 {
                     var signed = await keys.SignAsync(AgentMessageTypes.ParseScript, parser.AgentId, new ParseScriptRequest(version.Hash, version.Text), ct,
-                        AgentProtocol.RequestLifetime);
+                        AgentProtocol.RequestLifetime, session: parser.Session);
                     await parser.SendAsync(AgentMessageTypes.ParseScript, signed, ct, AgentSigning.NewRequestId());
                 }
                 catch (Exception e) when (e is not OperationCanceledException)

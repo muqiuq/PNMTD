@@ -165,6 +165,7 @@ The numbers 8–11 come after the existing suites, so suites 0–7 and the vecto
   - JOIN_ACCEPT always uses the JOIN's suite.
   - OTA downlinks use the response suite only if it is keyed, and otherwise the GET's suite (§3.11).
   - With a keyed response suite, the server enforces the counter for every uplink of the node, whatever its suite (§3.7). Every keyed response is then bound to a fresh uplink counter, and an AES-CCM nonce is never reused.
+  - **An encrypted answer to a NONE or TOKEN32 uplink comes only from a node that allows no keyed uplink suite.** Keyed and unkeyed uplinks have counter windows of their own (§3.7), so on a node with both, an unkeyed uplink's counter could meet a signed one's and repeat the nonce. There the AES-CCM response suite is skipped for unkeyed uplinks: the ack comes as the uplink did, and a command waits for a keyed uplink. A node that only ever sends NONE or TOKEN32 gets its encrypted answers as before.
 - **On 32-bit tags:** a forgery succeeds with a probability of 2⁻³² per attempt, and every attempt is a packet. The per-node rate limit and the "rejected" counter that alerts the operator (§4.10) make brute force impractical. LoRaWAN relies on the same size. Use the 64-bit suites when commands matter.
 
 ### 3.6 Tags, encryption and nonces
@@ -202,6 +203,7 @@ Notation: `‖` is concatenation. `P` is every byte of the packet before the tag
   - `HIGH − 63 ≤ FCNT32 ≤ HIGH` and the packet has not been seen (a 64-bit window bitmap, as in IPsec, which tolerates reordering).
 - **Everything else is a replay** and is rejected. The exception is an identical retransmission (§3.9).
 - **For NONE and TOKEN32**, the counter is only used to detect losses, retransmissions and restarts. It is not enforced: a counter that jumps back is noted as "counter reset (restart?)". The exception is a node with a keyed response suite: the counter is then enforced for all of its uplinks (§3.5).
+- **NONE and TOKEN32 uplinks have a window of their own,** apart from the keyed suites' (`PlainFcntHigh`, `PlainFcntWindow`). Anyone who knows a device id can send an unkeyed packet, so it must never move the window the keyed suites are checked against: a forged NONE heartbeat with a high counter can't make a node's signed packets look like replays. The node's page shows the higher of the two, and a reset clears both.
 - **Per node, replay protection can be switched off** for keyed suites, for bench testing. It is on by default.
 
 **The device's side (normative):**

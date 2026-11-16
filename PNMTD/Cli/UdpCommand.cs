@@ -181,6 +181,8 @@ internal static class UdpCommand
         }
         node.FcntHigh = null;
         node.FcntWindow = 0;
+        node.PlainFcntHigh = null;
+        node.PlainFcntWindow = 0;
         node.LastUplinkFcnt = null;
         node.LastUplinkDigest = null;
         node.LastUplinkAt = null;

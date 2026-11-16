@@ -92,10 +92,10 @@ public sealed partial class Scrubber
     /// <summary>Candidates with "::" or eight groups; checked by parsing, so times like 12:30:45 stay.</summary>
     [GeneratedRegex(@"(?<![\w:])(?:(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}|(?:[0-9a-f]{1,4}:)*:(?::[0-9a-f]{1,4})*(?::?[0-9a-f]{1,4})?)(?:%\w+)?(?![\w:])",
         RegexOptions.IgnoreCase, 250)]
-    private static partial Regex IPv6();
+    internal static partial Regex IPv6();
 
     [GeneratedRegex(@"(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?(?![\w.])", RegexOptions.None, 250)]
-    private static partial Regex IPv4();
+    internal static partial Regex IPv4();
 
     /// <summary>
     /// A phone number as written: <c>+41 44 123 45 67</c>, <c>0041 44 …</c>, <c>044 123 45 67</c>, <c>(044) 123-45-67</c>,

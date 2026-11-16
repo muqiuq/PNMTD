@@ -223,6 +223,8 @@ public sealed class UdpNodeService(
     {
         node.FcntHigh = null;
         node.FcntWindow = 0;
+        node.PlainFcntHigh = null;
+        node.PlainFcntWindow = 0;
         node.LastUplinkFcnt = null;
         node.LastUplinkDigest = null;
         node.LastUplinkAt = null;
@@ -295,7 +297,7 @@ public sealed class UdpNodeService(
             node.AckMode, node.ReplayProtection, node.ResponseSuite,
             node.KeySource, Instants.Utc(node.KeyChangedAt), users.GetValueOrDefault(node.KeyChangedBy ?? Guid.Empty),
             node.TokenSource, Instants.Utc(node.TokenChangedAt), users.GetValueOrDefault(node.TokenChangedBy ?? Guid.Empty),
-            node.FcntHigh, UdpViews.NullableUtc(node.LastSeenAt), node.LastEndpoint, node.LastSuite, UdpViews.NullableUtc(node.LastBootAt),
+            UdpViews.HighestFcnt(node), UdpViews.NullableUtc(node.LastSeenAt), node.LastEndpoint, node.LastSuite, UdpViews.NullableUtc(node.LastBootAt),
             node.LastBootAt is null ? null : Payloads.BootReason(node.LastBootReason), node.FirmwareVersion,
             UdpViews.Numbers(numbers), numbers.BadTagWarning, openCommands, update, listener.Enabled, endpoint.Value, warnings);
     }

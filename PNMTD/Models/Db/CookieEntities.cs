@@ -678,7 +678,7 @@ public class CookiePseudonymEntity
     [Key]
     public long Id { get; set; }
 
-    /// <summary>PERSON, EMAIL or PHONE.</summary>
+    /// <summary>PERSON, EMAIL, PHONE or ADDRESS (the access watch's).</summary>
     [MaxLength(16)]
     public string Kind { get; set; } = "";
 

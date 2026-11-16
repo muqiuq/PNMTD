@@ -78,11 +78,16 @@ public static class AgentSigning
     public static string Origin(Uri url) =>
         url.IsDefaultPort ? $"{url.Scheme}://{url.Host}".ToLowerInvariant() : $"{url.Scheme}://{url.Host}:{url.Port}".ToLowerInvariant();
 
-    public static SignedEnvelope Sign<T>(ECDsa key, string type, Guid agentId, T body, TimeSpan? lifetime = null, string? requestId = null)
+    /// <summary>
+    /// <paramref name="session"/>: the nonce of the connection's challenge, for everything sent to a connected agent (§3.4);
+    /// null for the join grant and the download manifest, which belong to no connection.
+    /// </summary>
+    public static SignedEnvelope Sign<T>(ECDsa key, string type, Guid agentId, T body, TimeSpan? lifetime = null, string? requestId = null,
+        string? session = null)
     {
         var now = DateTimeOffset.UtcNow;
         var content = new SignedContent(type, agentId, requestId ?? NewRequestId(), now, lifetime is { } l ? now + l : null,
-            AgentJson.ToElement(body));
+            AgentJson.ToElement(body), session);
         var text = JsonSerializer.Serialize(content, AgentJson.Options);
         var signature = key.SignData(SignedPayload(text), HashAlgorithmName.SHA256);
         return new SignedEnvelope(text, Convert.ToBase64String(signature));

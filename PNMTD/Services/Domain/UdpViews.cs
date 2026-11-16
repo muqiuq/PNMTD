@@ -115,6 +115,10 @@ internal static class UdpViews
 
     public static DateTime? NullableUtc(DateTime? value) => value is { } v ? Clock.AsUtc(v) : null;
 
+    /// <summary>The highest counter accepted on either window (§3.7): the keyed suites' or the plain one's, whichever is higher.</summary>
+    public static long? HighestFcnt(UdpNodeEntity node) =>
+        node.FcntHigh is { } keyed && node.PlainFcntHigh is { } plain ? Math.Max(keyed, plain) : node.FcntHigh ?? node.PlainFcntHigh;
+
     public static IReadOnlyList<UdpReasonCount> Reasons(IReadOnlyDictionary<Models.Enums.UdpRejectReason, long> counts) =>
         counts.Where(kv => kv.Value > 0).OrderByDescending(kv => kv.Value).Select(kv => new UdpReasonCount(kv.Key, kv.Value)).ToList();
 

@@ -17,9 +17,12 @@ public sealed record SignedEnvelope(string P, string S);
 
 /// <summary>
 /// What PNMTD signs: the type (so a signed config can't pass as a request), the agent it is for, a request id that
-/// runs once, an expiry (requests only), and the body.
+/// runs once, an expiry (requests only), the body, and the connection it is for: the nonce of the challenge the agent
+/// answered, so that a request captured on one connection can't be replayed on the next (§3.4). Null from an older
+/// PNMTD, which the agent accepts as before.
 /// </summary>
-public sealed record SignedContent(string Type, Guid AgentId, string RequestId, DateTimeOffset IssuedAt, DateTimeOffset? ExpiresAt, JsonElement Body);
+public sealed record SignedContent(string Type, Guid AgentId, string RequestId, DateTimeOffset IssuedAt, DateTimeOffset? ExpiresAt, JsonElement Body,
+    string? Session = null);
 
 // --- the handshake (§3.4) -------------------------------------------------------------------------------
 

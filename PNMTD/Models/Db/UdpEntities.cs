@@ -81,10 +81,18 @@ public class UdpNodeEntity
     /// <summary>Null: answer in the suite the uplink came with (§3.5).</summary>
     public SecuritySuite? ResponseSuite { get; set; }
 
-    /// <summary>The counter window (§3.7): the highest accepted FCNT32, and the 64-bit bitmap below it.</summary>
+    /// <summary>The counter window of the keyed suites (§3.7): the highest accepted FCNT32, and the 64-bit bitmap below it.</summary>
     public long? FcntHigh { get; set; }
 
     public long FcntWindow { get; set; }
+
+    /// <summary>
+    /// The counter window of NONE and TOKEN32 uplinks (§3.7), kept apart: anyone can send one, so it must never move the
+    /// window the keyed suites are checked against.
+    /// </summary>
+    public long? PlainFcntHigh { get; set; }
+
+    public long PlainFcntWindow { get; set; }
 
     /// <summary>The last accepted uplink, for retransmissions (§3.9): its counter, a SHA-256 of its bytes, and what PNMTD answered.</summary>
     public long? LastUplinkFcnt { get; set; }
@@ -122,6 +130,17 @@ public class UdpNodeEntity
         {
             FcntHigh = value.High;
             FcntWindow = unchecked((long)value.Window);
+        }
+    }
+
+    [NotMapped]
+    public CounterState PlainCounter
+    {
+        get => new(PlainFcntHigh, unchecked((ulong)PlainFcntWindow));
+        set
+        {
+            PlainFcntHigh = value.High;
+            PlainFcntWindow = unchecked((long)value.Window);
         }
     }
 }

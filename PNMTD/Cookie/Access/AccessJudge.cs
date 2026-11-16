@@ -98,6 +98,9 @@ public sealed class AccessJudge(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
         var weekAgo = Clock.UtcNow.AddDays(-7);
         var judged = await db.AccessReviews.AsNoTracking().Where(r => r.CaseId == c.Id && r.State != AccessReviewState.Waiting && r.CreatedAt >= weekAgo)
             .OrderByDescending(r => r.At).Take(10).ToListAsync(ct);
+        // The access watch's filter (§9), for the brief, the tools, Seraph's evidence and the notice: the logins' accounts are
+        // people, and addresses are placeholders. Code has said what matters about them; the model never needs them.
+        p = p.ForAccess(reviews.Select(r => r.Account).Concat(judged.Select(r => r.Account)).Concat(reviews.Select(r => r.TargetUser)));
         var (brief, untrusted) = await BriefAsync(db, c, reviews, judged, p, ct);
 
         // Screening (§9): Jev on the outside text; a flagged login is at least suspicious, whatever Cookie says.
@@ -281,7 +284,24 @@ public sealed class AccessJudge(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
         return $"<untrusted source=\"{source}\">{clean}</untrusted>";
     }
 
-    /// <summary>The case as Cookie reads it (§5.2): the target, each login with its signals, the person, and the context. Masked; outside text wrapped.</summary>
+    /// <summary>
+    /// An account for the brief (§9): a placeholder, or an ordinary word such as <c>root</c>. One that isn't a plain account
+    /// name may be an instruction to an AI, and goes to the screen as it is; the model still sees only the placeholder.
+    /// </summary>
+    private static string Account(string? account, Pseudonyms p, List<string> untrusted)
+    {
+        var clean = InputSanitizer.Clean(account, 200).Text;
+        if (clean.Length > 0 && !PrivacyFilter.PlainAccount().IsMatch(clean))
+        {
+            untrusted.Add(clean);
+        }
+        return p.Account(clean);
+    }
+
+    /// <summary>
+    /// The case as Cookie reads it (§5.2): the target, each login with its signals, the person, and the context. Masked, the
+    /// accounts and addresses too (§9); outside text wrapped.
+    /// </summary>
     private static async Task<(string Brief, List<string> Untrusted)> BriefAsync(PnmtdDbContext db, CookieCaseEntity c, List<AccessReviewEntity> reviews,
         List<AccessReviewEntity> judged, Pseudonyms p, CancellationToken ct)
     {
@@ -318,7 +338,7 @@ public sealed class AccessJudge(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
         var account = first.Account;
         var known = (await db.AccessKnown.AsNoTracking().Where(k => k.EndedAt == null).ToListAsync(ct))
             .Where(k => k.Account is null || AccessSignals.SameAccount(k.Account, account))
-            .Select(k => $"{k.Label}: {(k.Account is null ? "any account" : p.Mask(k.Account))} from {k.Source ?? "anywhere"}, {(k.Groups.Count == 0 ? "any way" : string.Join(", ", k.Groups))}" +
+            .Select(k => $"{k.Label}: {(k.Account is null ? "any account" : p.Account(k.Account))} from {p.Mask(k.Source ?? "anywhere")}, {(k.Groups.Count == 0 ? "any way" : string.Join(", ", k.Groups))}" +
                 $"{(k.Until is { } u ? $", until {Clock.ToLocal(u):yyyy-MM-dd}" : "")}: {Untrusted("comment", k.Comment, p, untrusted, 200)}").Take(10).ToList();
         var earlier = await db.CookieCases.AsNoTracking().Where(x => x.Key == c.Key && x.Id != c.Id && x.AccessAnswer != null).OrderByDescending(x => x.ClosedAt)
             .Take(5).Select(x => new { x.AccessAnswer, x.AccessAnsweredAt, x.AccessVerdict }).ToListAsync(ct);
@@ -331,7 +351,7 @@ public sealed class AccessJudge(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
         {
             Case = c.Id,
             Target = target,
-            Account = Untrusted("account", account, p, untrusted, 200),
+            Account = Account(account, p, untrusted),
             Shared = AccessSignals.Shared(account),
             Person = person ?? (AccessSignals.Shared(account) ? "a shared account: nobody, unless a key says who" : "no PNMT user is linked to the account"),
             Logins = reviews.Select(r => new
@@ -340,11 +360,11 @@ public sealed class AccessJudge(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 At = Clock.ToLocal(r.At).ToString("yyyy-MM-dd HH:mm ddd", CultureInfo.InvariantCulture),
                 Admin = r.IsAdmin,
                 Way = AccessWatch.Way(r.Way),
-                r.Source,
+                Source = p.Mask(r.Source),
                 Public = AccessSignals.IsPublic(r.Source),
                 Device = r.Device is null ? null : Untrusted("device", r.Device, p, untrusted, 200),
                 Key = r.KeyFingerprint is { } f ? keys.TryGetValue(f, out var key) ? $"{Untrusted("key name", key.Name, p, untrusted, 100)}{(key.State == SshKeyState.Retired ? " (retired)" : "")}" : $"{f}, unknown to PNMT" : null,
-                BecameUser = r.TargetUser is null ? null : Untrusted("target user", r.TargetUser, p, untrusted, 100),
+                BecameUser = r.TargetUser is null ? null : Account(r.TargetUser, p, untrusted),
                 r.Late,
                 Signals = AccessWatch.SignalsOf(r).Select(x => $"{x.Strength}: {p.Mask(x.Text)}"),
             }),
