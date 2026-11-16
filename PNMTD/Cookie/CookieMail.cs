@@ -28,7 +28,7 @@ public sealed record MailAnswer(
 /// paused, the mails wait.
 /// </summary>
 public sealed class CookieMail(IDbContextFactory<PnmtdDbContext> dbs, CookieModel model, CookieBrain brain, CookieExecutor executor, DecisionBook inbox,
-    DecisionClient guard, IOptionsMonitor<AiOptions> ai)
+    DecisionClient guard, IOptionsMonitor<AiOptions> ai, IOptionsMonitor<CookieOptions> options)
 {
     public const int PerRound = 5;
 
@@ -119,7 +119,8 @@ public sealed class CookieMail(IDbContextFactory<PnmtdDbContext> dbs, CookieMode
                     ["role"] = "user",
                     ["content"] = $"<untrusted source=\"mail\">{p.Mask($"From: {sender}\nSubject: {subject}\n\n{body}")}</untrusted>",
                 });
-            var turn = await model.CompleteAsync("mail", messages, null, (nameof(MailAnswer), AiJson.SchemaFor<MailAnswer>()), effort, null, 600, ct);
+            var turn = await model.CompleteAsync("mail", messages, null, (nameof(MailAnswer), AiJson.SchemaFor<MailAnswer>()), effort, null,
+                options.CurrentValue.Tokens.Mail, ct);
             calls++;
             cost += turn.Cost;
             var answer = JsonSerializer.Deserialize<MailAnswer>(turn.Content ?? "", AiJson.Options)

@@ -251,13 +251,11 @@ public sealed record ReleaseRating(
 public sealed record ReleaseInput(string Version, string Channel, string UntrustedChangelog);
 
 /// <summary>How bad a RouterOS release's fixes are; critical only for a very bad issue (§10.3).</summary>
-public sealed class RouterOsRateTask : AiTask<ReleaseInput, ReleaseRating>
+public sealed class RouterOsRateTask(int maxTokens) : AiTask<ReleaseInput, ReleaseRating>(maxTokens)
 {
     public override string Purpose => AdvisoryFeed.Purpose;
 
     public override string PromptVersion => "routeros-rate-1";
-
-    public override int MaxTokens => 800;
 
     public override bool Verify => true;
 
@@ -281,7 +279,8 @@ public sealed class RouterOsRateTask : AiTask<ReleaseInput, ReleaseRating>
 /// verification model's agreement; otherwise it becomes Important, marked disputed. Then the routers are evaluated.
 /// </summary>
 /// <remarks>The feed is resolved when needed: it enqueues through the queue, whose worker holds the handlers.</remarks>
-public sealed class RouterOsRateHandler(IDbContextFactory<PnmtdDbContext> dbs, AiPipeline pipeline, IServiceProvider services) : IAiWorkHandler
+public sealed class RouterOsRateHandler(IDbContextFactory<PnmtdDbContext> dbs, AiPipeline pipeline, IOptionsMonitor<AiOptions> ai, IServiceProvider services)
+    : IAiWorkHandler
 {
     public string Purpose => AdvisoryFeed.Purpose;
 
@@ -289,8 +288,8 @@ public sealed class RouterOsRateHandler(IDbContextFactory<PnmtdDbContext> dbs, A
     {
         await using var db = await dbs.CreateDbContextAsync(ct);
         var release = await db.MikrotikReleases.SingleOrDefaultAsync(r => r.Id == work.SubjectId, ct) ?? throw new AiWorkStaleException("The release is gone.");
-        var result = await pipeline.RunAsync(new RouterOsRateTask(), new ReleaseInput(release.Version, release.Channel, release.Changelog),
-            [release.Changelog], new AiCall(Purpose, work.Id, work.Attempts + 1), ct);
+        var result = await pipeline.RunAsync(new RouterOsRateTask(ai.CurrentValue.Tokens.RouterOsRate),
+            new ReleaseInput(release.Version, release.Channel, release.Changelog), [release.Changelog], new AiCall(Purpose, work.Id, work.Attempts + 1), ct);
         if (result.Blocked)
         {
             release.Summary = $"The AI did not rate it (stopped by the {result.BlockedBy}); the code's assessment stands. " + release.Summary;

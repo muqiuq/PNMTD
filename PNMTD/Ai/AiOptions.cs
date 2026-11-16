@@ -36,6 +36,9 @@ public sealed class AiOptions
 
     public MailOptions Mail { get; set; } = new();
 
+    /// <summary>The most tokens an answer may have, per task (§16, <c>Ai__Tokens__*</c>): on a reasoning model, the reasoning counts too.</summary>
+    public TokenOptions Tokens { get; set; } = new();
+
     /// <summary>On, with a key: the AI can be called.</summary>
     public bool Usable => Enabled && !string.IsNullOrWhiteSpace(ApiKey);
 
@@ -90,5 +93,25 @@ public sealed class AiOptions
         public bool Enabled { get; set; } = true;
 
         public int WaitMinutes { get; set; } = 5;
+    }
+
+    /// <summary>
+    /// <c>max_tokens</c> per task. A reasoning model spends part of it on its reasoning before the answer, so a limit that is
+    /// too low ends the request without an answer (the request log says "no message content").
+    /// </summary>
+    public sealed class TokenOptions
+    {
+        public int MailAnalyse { get; set; } = 4500;
+
+        public int MailEvaluate { get; set; } = 1200;
+
+        public int RouterOsRate { get; set; } = 800;
+
+        public int KbTags { get; set; } = 400;
+
+        public int Verify { get; set; } = 600;
+
+        /// <summary>Admin → Debug → Test the AI.</summary>
+        public int Debug { get; set; } = 50;
     }
 }

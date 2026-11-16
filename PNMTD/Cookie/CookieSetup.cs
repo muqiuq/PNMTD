@@ -41,6 +41,9 @@ public sealed class CookieOptions
     /// <summary>The big brother (§15): two models, one budget.</summary>
     public BigBrotherOptions BigBrother { get; set; } = new();
 
+    /// <summary>The most tokens an answer may have, per call (§13.3, <c>Cookie__Tokens__*</c>): the reasoning counts too.</summary>
+    public CookieTokenOptions Tokens { get; set; } = new();
+
     public bool PrivacyOff => string.Equals(Privacy, "Off", StringComparison.OrdinalIgnoreCase);
 }
 
@@ -59,6 +62,54 @@ public sealed class BigBrotherModel
     public string Model { get; set; } = "";
 
     public string Providers { get; set; } = "";
+}
+
+/// <summary>
+/// <c>max_tokens</c> per call of Cookie's model, Seraph's and the big brother's (docs/cookie-plan.md §13.3). The reasoning is
+/// part of it, so a limit that is too low ends a call before its answer.
+/// </summary>
+public sealed class CookieTokenOptions
+{
+    /// <summary>Cookie's round: the triage, a work turn with tools, the case note, the status, a chat turn, and reading an instruction.</summary>
+    public int Triage { get; set; } = 8000;
+
+    public int Work { get; set; } = 12_000;
+
+    public int Note { get; set; } = 6000;
+
+    public int Status { get; set; } = 4000;
+
+    public int Chat { get; set; } = 12_000;
+
+    public int Instruction { get; set; } = 2000;
+
+    /// <summary>A person's summary, a mail of an AI-every-time rule, a duty's text, and the day's lessons.</summary>
+    public int Summary { get; set; } = 6000;
+
+    public int Mail { get; set; } = 1200;
+
+    public int Duty { get; set; } = 4000;
+
+    public int Lessons { get; set; } = 8000;
+
+    /// <summary>The access watch (docs/cookie-access-plan.md): the work turn with tools, and the verdict.</summary>
+    public int Access { get; set; } = 12_000;
+
+    public int AccessVerdict { get; set; } = 6000;
+
+    /// <summary>Seraph (§5): a review, an answer in the chat, the morning coffee, and the drift report.</summary>
+    public int Seraph { get; set; } = 4000;
+
+    public int SeraphChat { get; set; } = 4000;
+
+    public int SeraphCoffee { get; set; } = 1200;
+
+    public int SeraphDrift { get; set; } = 4000;
+
+    /// <summary>The big brother (§15): a work turn with tools, and the solution.</summary>
+    public int BigBrother { get; set; } = 16_000;
+
+    public int BigBrotherSolution { get; set; } = 8000;
 }
 
 /// <summary>Cookie's services (docs/cookie-plan.md §19.3).</summary>

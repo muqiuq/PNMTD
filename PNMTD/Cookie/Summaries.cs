@@ -112,7 +112,7 @@ public sealed partial class Summaries(IDbContextFactory<PnmtdDbContext> dbs, Coo
                 new JsonObject { ["role"] = "user", ["content"] = CookiePrompts.Fill(await brain.PromptAsync("summary", ct), values) });
             var models = await settings.GetAsync<ModelSettings>(ct);
             var turn = await model.CompleteAsync("summary", messages, null, (nameof(SummaryAnswer), AiJson.SchemaFor<SummaryAnswer>()), models.TriageEffort, null,
-                3000, ct);
+                options.CurrentValue.Tokens.Summary, ct);
             var answer = JsonSerializer.Deserialize<SummaryAnswer>(turn.Content ?? "", AiJson.Options)
                 ?? throw new AiRequestException(AiOutcome.InvalidOutput, "The summary is empty.");
             var byId = cases.ToDictionary(c => c.Id.ToString(), StringComparer.OrdinalIgnoreCase);

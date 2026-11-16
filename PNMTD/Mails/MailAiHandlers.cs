@@ -91,7 +91,8 @@ public class MailAnalyseHandler(IDbContextFactory<PnmtdDbContext> dbs, AiPipelin
             scan.Flags, candidates.Select(c => c.Candidate).ToList(), rules, unsure is null ? null : Known(unsure));
         var force = work.InputHash == Force;
         var untrusted = force ? Array.Empty<string>() : new[] { $"From: {sender}\nSubject: {subject}\n\n{cleaned.Text}" };
-        var result = await pipeline.RunAsync(new MailAnalyseTask(), input, untrusted, new AiCall(Purpose, work.Id, work.Attempts + 1), ct);
+        var result = await pipeline.RunAsync(new MailAnalyseTask(options.CurrentValue.Tokens.MailAnalyse), input, untrusted,
+            new AiCall(Purpose, work.Id, work.Attempts + 1), ct);
         Guid decision;
         if (result.Blocked)
         {
@@ -228,8 +229,8 @@ public sealed class MailEvaluateHandler(IDbContextFactory<PnmtdDbContext> dbs, A
         var body = InputSanitizer.Clean(mail.Content, options.CurrentValue.MaxInputChars).Text;
         var sender = RuleTemplate.SenderOf(mail.From);
         var input = new MailEvaluateInput(sender, subject, body, sensor.Parent.Name, sensor.Name, rule.Name);
-        var result = await pipeline.RunAsync(new MailEvaluateTask(rule.VerifyAi), input, [$"From: {sender}\nSubject: {subject}\n\n{body}"],
-            new AiCall(Purpose, work.Id, work.Attempts + 1), ct);
+        var result = await pipeline.RunAsync(new MailEvaluateTask(rule.VerifyAi, options.CurrentValue.Tokens.MailEvaluate), input,
+            [$"From: {sender}\nSubject: {subject}\n\n{body}"], new AiCall(Purpose, work.Id, work.Attempts + 1), ct);
         var payload = new MailDecisionPayload(null, MailAi.Evidence(mail, body), MailAi.Ai(result), rule.Id);
         if (result.Blocked)
         {

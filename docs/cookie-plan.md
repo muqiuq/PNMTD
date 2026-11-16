@@ -630,6 +630,8 @@ Redmine__WriteApiKey=            # separate from the read-only key (audit plan ย
 
 Everything else is set on the admin page (ยง9.3).
 
+**The token limits** (`Cookie__Tokens__*`, deploy/.env.example): `max_tokens` per call, one setting each for Cookie's triage, work turn, case note, status, chat turn and instruction, the summary, the mail, the duty text, the lessons, the access watch's work turn and verdict, Seraph's review, chat, coffee and drift report, and the big brother's work turn and solution. The reasoning counts against the limit. 1.8.2 doubled them (work and chat 12000, Seraph 4000).
+
 ### 13.4 Rollout (package nine point five)
 
 1. **Watch only, which is package nine:** status, summaries, chat, the trace. Cookie takes no actions, and code sends the reminders.

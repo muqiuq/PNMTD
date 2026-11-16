@@ -25,7 +25,7 @@ if (( QUIET )); then
 fi
 
 image="$(env_value PNMTD_IMAGE)"; image="${image:-uisach/pnmtd}"
-tag="$(env_value PNMTD_IMAGE_TAG)"; tag="${tag:-v1.8.1}"
+tag="$(env_value PNMTD_IMAGE_TAG)"; tag="${tag:-v1.8.2}"
 url="$(env_value PublicBaseUrl)"
 echo "PNMTD"
 echo "  Image:      ${image}:${tag}"

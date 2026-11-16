@@ -14,6 +14,8 @@ namespace PNMTD.Cookie;
 /// </summary>
 public sealed class Seraph(CookieModel model, CookieBrain brain, CookieSettings settings, IOptionsMonitor<CookieOptions> options, ILogger<Seraph> logger)
 {
+    private CookieTokenOptions Tokens => options.CurrentValue.Tokens;
+
     public async Task<ModelChoice?> ChoiceAsync(CancellationToken ct)
     {
         var models = await settings.GetAsync<ModelSettings>(ct);
@@ -46,7 +48,7 @@ public sealed class Seraph(CookieModel model, CookieBrain brain, CookieSettings 
                 new JsonObject { ["role"] = "system", ["content"] = rules },
                 new JsonObject { ["role"] = "user", ["content"] = CookiePrompts.Fill(await brain.PromptAsync("seraph", ct), values) });
             var effort = (await settings.GetAsync<ModelSettings>(ct)).SeraphEffort;
-            var turn = await model.CompleteAsync("seraph", messages, null, (nameof(SeraphVerdict), AiJson.SchemaFor<SeraphVerdict>()), effort, null, 2000, ct,
+            var turn = await model.CompleteAsync("seraph", messages, null, (nameof(SeraphVerdict), AiJson.SchemaFor<SeraphVerdict>()), effort, null, Tokens.Seraph, ct,
                 choice);
             var verdict = JsonSerializer.Deserialize<SeraphVerdict>(turn.Content ?? "", AiJson.Options)
                 ?? throw new AiRequestException(AiOutcome.InvalidOutput, "Seraph's answer is empty.");
@@ -74,7 +76,7 @@ public sealed class Seraph(CookieModel model, CookieBrain brain, CookieSettings 
             },
             new JsonObject { ["role"] = "user", ["content"] = $"The recent decisions:\n{decisions}\n\nThe question:\n{question}" });
         var turn = await model.CompleteAsync("seraph.chat", messages, null, (nameof(SeraphReply), AiJson.SchemaFor<SeraphReply>()),
-            (await settings.GetAsync<ModelSettings>(ct)).SeraphEffort, null, 2000, ct, choice);
+            (await settings.GetAsync<ModelSettings>(ct)).SeraphEffort, null, Tokens.SeraphChat, ct, choice);
         return JsonSerializer.Deserialize<SeraphReply>(turn.Content ?? "", AiJson.Options)?.Reply ?? "";
     }
 
@@ -98,7 +100,7 @@ public sealed class Seraph(CookieModel model, CookieBrain brain, CookieSettings 
             },
             new JsonObject { ["role"] = "user", ["content"] = $"The overall state: {state}\nCookie says: <untrusted>{cookieSays}</untrusted>\nThe last day's decisions: {decisions}" });
         var turn = await model.CompleteAsync("seraph.coffee", messages, null, (nameof(SeraphCoffeeAnswer), AiJson.SchemaFor<SeraphCoffeeAnswer>()),
-            (await settings.GetAsync<ModelSettings>(ct)).SeraphEffort, null, 600, ct, choice);
+            (await settings.GetAsync<ModelSettings>(ct)).SeraphEffort, null, Tokens.SeraphCoffee, ct, choice);
         var answer = JsonSerializer.Deserialize<SeraphCoffeeAnswer>(turn.Content ?? "", AiJson.Options);
         return answer is null || string.IsNullOrWhiteSpace(answer.Coffee) ? null : (answer.Coffee.Trim(), turn.Cost);
     }
@@ -117,7 +119,7 @@ public sealed class Seraph(CookieModel model, CookieBrain brain, CookieSettings 
             },
             new JsonObject { ["role"] = "user", ["content"] = $"The last day's decisions and a sample of Cookie's notes:\n{decisions}" });
         var turn = await model.CompleteAsync("seraph.drift", messages, null, (nameof(SeraphReport), AiJson.SchemaFor<SeraphReport>()),
-            (await settings.GetAsync<ModelSettings>(ct)).SeraphEffort, null, 2000, ct, choice);
+            (await settings.GetAsync<ModelSettings>(ct)).SeraphEffort, null, Tokens.SeraphDrift, ct, choice);
         return JsonSerializer.Deserialize<SeraphReport>(turn.Content ?? "", AiJson.Options) ?? new SeraphReport([], "");
     }
 }

@@ -26,13 +26,11 @@ public sealed record KbTagInput(
     int MaxTags);
 
 /// <summary><c>kb-tags</c> (§7.3): tags for a knowledge base page.</summary>
-public sealed class KbTagTask : AiTask<KbTagInput, KbTagSuggestion>
+public sealed class KbTagTask(int maxTokens) : AiTask<KbTagInput, KbTagSuggestion>(maxTokens)
 {
     public override string Purpose => KbTagsHandler.Name;
 
     public override string PromptVersion => "kb-tags-1";
-
-    public override int MaxTokens => 400;
 
     protected override string Instructions =>
         "The data is a page of PNMT's knowledge base, written by the IT team: its title, summary and text, the tags it has, and the tags " +
@@ -256,7 +254,7 @@ public sealed partial class KbTagsHandler(IDbContextFactory<PnmtdDbContext> dbs,
 
     public const string PersonalDataQuestion = "Does the text contain personal data about identifiable people?";
 
-    private static readonly KbTagTask Task = new();
+    private KbTagTask Task => new(ai.CurrentValue.Tokens.KbTags);
 
     private static readonly IReadOnlyDictionary<string, DecisionQuestion> GuardQuestions = new Dictionary<string, DecisionQuestion>
     {

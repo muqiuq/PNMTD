@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using PNMTD.Ai;
 using PNMTD.Data;
 using PNMTD.Lib.Helper;
@@ -22,7 +23,7 @@ public sealed record DutyTextAnswer(
 /// the text; <b>the template is used whenever Cookie is stopped, paused, slow or rejected.</b>
 /// </summary>
 public sealed class DutyWriter(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings settings, CookieModel model, CookieBrain brain, PrivacyFilter privacy,
-    Seraph seraph, ILogger<DutyWriter> logger)
+    Seraph seraph, IOptionsMonitor<CookieOptions> options, ILogger<DutyWriter> logger)
 {
     public static readonly TimeSpan MaxTime = TimeSpan.FromSeconds(90);
 
@@ -67,8 +68,8 @@ public sealed class DutyWriter(IDbContextFactory<PnmtdDbContext> dbs, CookieSett
                             "Keep every fact of the template (the deadline, the ticket, who it is assigned to, the links); say it plainly and briefly, " +
                             $"and sign as {values["name"]}.\n\n{CookieBrain.Json(facts)}",
                     });
-                var turn = await model.CompleteAsync("duty", messages, null, (nameof(DutyTextAnswer), AiJson.SchemaFor<DutyTextAnswer>()), "low", null, 2000,
-                    timeout.Token);
+                var turn = await model.CompleteAsync("duty", messages, null, (nameof(DutyTextAnswer), AiJson.SchemaFor<DutyTextAnswer>()), "low", null,
+                    options.CurrentValue.Tokens.Duty, timeout.Token);
                 var answer = JsonSerializer.Deserialize<DutyTextAnswer>(turn.Content ?? "", AiJson.Options)
                     ?? throw new AiRequestException(AiOutcome.InvalidOutput, "The answer is empty.");
                 var proposal = new CookieProposal(new ProposedAction(CookieActionKind.Email, null, c.IssueId ?? 0, null, answer.Subject,

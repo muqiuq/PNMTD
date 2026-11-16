@@ -1,6 +1,6 @@
 # PNMT 1.8: the agents' versions, chosen in PNMT
 
-Version 1.8.1.
+Version 1.8.2.
 
 ## What's new
 
@@ -19,18 +19,19 @@ Version 1.8.1.
 
 ## Updating from 1.7
 
-In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.8.1`. It takes a backup first.
+In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.8.2`. It takes a backup first.
 
 - **The migration `AgentVersions`** adds two columns to `agent_settings`: the versions Windows and Linux agents get. Empty, they get PNMT's own version, as before.
 - **New settings,** both optional (deploy/.env.example):
   - `Agents__ReleasesApiUrl`: GitHub's list of releases, derived from `Agents__AgentDownloadBaseUrl`; set it empty for a mirror;
   - `Agents__KeepVersions`: how many other versions the download folder keeps (2).
+- **The token limits are settings now:** `Ai__Tokens__*` and `Cookie__Tokens__*` (deploy/.env.example), the most tokens an answer may have, per kind of request. **The mail analysis gets three times as many** (4500, and 1200 for a mail of an *AI every time* rule); **Cookie, Seraph and the big brother twice as many.** On a reasoning model the reasoning counts against the limit, and the old 1500 for the mail analysis could end a request before its answer, as *invalid output: no message content* in *Admin → AI*.
 - **Windows agents of 1.7 and older can't download from PNMT yet:** run the 1.8 executable on each server once (*Update* in its window). From then on, the agent updates from PNMT. Linux agents update as before, and get the chosen version.
 - **Uploading an agent's file** through a reverse proxy needs a body limit of about 310 MB for `/api/v1/agents/versions/` (deploy/README.md). Without uploads, nothing changes.
 
 ## Security
 
-Three findings of a review of 2026-11-16, fixed in 1.8.1:
+Three findings of a review of 2026-11-16, fixed in 1.8.2:
 
 - **UDP nodes: a forged NONE or TOKEN32 packet could lock a node's signed packets out.** The server kept one frame counter window per node, whatever the suite, so anyone who knew a device id could send an unkeyed heartbeat with a high counter and make the device's HMAC or AES packets look like replays until an admin reset the counter. NONE and TOKEN32 uplinks now have a window of their own (docs/udp-protocol.md §3.7): **the migration `UdpPlainCounter`** adds `PlainFcntHigh` and `PlainFcntWindow` to `udp_nodes`. On a node that also allows keyed uplinks, an AES-CCM answer to an unkeyed uplink is no longer sent (the nonce could repeat across the two windows); such a node's acks come as the uplink did, and its commands wait for a keyed uplink. Nodes that only send NONE or TOKEN32, and nodes that only send keyed packets, work as before.
 - **Agents: a signed request could be replayed on the next connection.** The agent remembered request ids per connection, so a proxy that reads the TLS could capture a `run-script` or `remove-ssh-key` frame, drop the connection, and replay it within its five minutes. Every signed message (the welcome, each config, each request) now names the connection's challenge nonce, and the agent refuses one for another connection (docs/windows-sensor-plan.md §3.4). Older agents ignore the new field; a newer agent accepts messages from an older PNMT, which has no nonce to name.

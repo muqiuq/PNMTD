@@ -192,7 +192,7 @@ public sealed class AiService(PnmtdDbContext db, IOptionsMonitor<AiOptions> opti
             throw ApiException.Conflict("ai_not_configured", "AI is off or has no key: Ai__Enabled=true and Ai__ApiKey in .env.");
         }
         var call = new AiCall("debug", PromptVersion: PingTask.Version);
-        var task = new PingTask();
+        var task = new PingTask(o.Tokens.Debug);
         var results = new List<DebugAiResult>();
         foreach (var (role, model) in new[] { (AiRole.Main, o.MainModel), (AiRole.Verify, o.VerifyModel) })
         {
@@ -234,7 +234,7 @@ public sealed class AiService(PnmtdDbContext db, IOptionsMonitor<AiOptions> opti
     }
 
     /// <summary>The debug test's task: answer "pong".</summary>
-    private sealed class PingTask : AiTask<PingTask.Input, PingTask.Pong>
+    private sealed class PingTask(int maxTokens) : AiTask<PingTask.Input, PingTask.Pong>(maxTokens)
     {
         public const string Version = "ping-1";
 
@@ -247,7 +247,5 @@ public sealed class AiService(PnmtdDbContext db, IOptionsMonitor<AiOptions> opti
         public override string PromptVersion => Version;
 
         protected override string Instructions => "This is a connection test. Set answer to the word pong.";
-
-        public override int MaxTokens => 50;
     }
 }

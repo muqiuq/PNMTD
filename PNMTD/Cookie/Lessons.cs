@@ -25,7 +25,7 @@ public sealed record LessonDraft(
 /// suppress object for 30 days. Ratings and comments are untrusted text, masked like everything Cookie reads.
 /// </summary>
 public sealed class Lessons(IDbContextFactory<PnmtdDbContext> dbs, CookieModel model, CookieBrain brain, CookieSettings settings, PrivacyFilter privacy,
-    Instructions instructions, ILogger<Lessons> logger)
+    Instructions instructions, IOptionsMonitor<CookieOptions> options, ILogger<Lessons> logger)
 {
     public const int NewRatings = 10;
     public const int MinRatings = 2;
@@ -81,7 +81,8 @@ public sealed class Lessons(IDbContextFactory<PnmtdDbContext> dbs, CookieModel m
                 Comment = d.RatingComment is null ? null : $"<untrusted source=\"comment\">{p.Mask(InputSanitizer.Clean(d.RatingComment, 500).Text)}</untrusted>",
             }));
             var messages = new JsonArray(new JsonObject { ["role"] = "user", ["content"] = CookiePrompts.Fill(await brain.PromptAsync("lessons", ct), values) });
-            var turn = await model.CompleteAsync("lessons", messages, null, (nameof(LessonsAnswer), AiJson.SchemaFor<LessonsAnswer>()), "medium", null, 4000, ct);
+            var turn = await model.CompleteAsync("lessons", messages, null, (nameof(LessonsAnswer), AiJson.SchemaFor<LessonsAnswer>()), "medium", null,
+                options.CurrentValue.Tokens.Lessons, ct);
             var answer = JsonSerializer.Deserialize<LessonsAnswer>(turn.Content ?? "", AiJson.Options) ?? new LessonsAnswer([]);
             var lessons = answer.Lessons.Where(l => !string.IsNullOrWhiteSpace(l.Text)).Take(LessonSettings.MaxActive).Select(l =>
             {

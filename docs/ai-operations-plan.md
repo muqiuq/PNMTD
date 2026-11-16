@@ -854,6 +854,7 @@ One EF migration per phase:
 | `Ai__DataCollection` | `deny` | OpenRouter's provider preference |
 | `Ai__Retry__QuickAttempts`, `…__QuickDelaySeconds`, `…__LongDelaysHours` | 5, 60, `1,3,24` | R14: the last value repeats |
 | `Ai__Mail__Enabled`, `Ai__Mail__WaitMinutes` | `true` (with `Ai__Enabled`), 5 | |
+| `Ai__Tokens__MailAnalyse`, `…__MailEvaluate`, `…__RouterOsRate`, `…__KbTags`, `…__Verify`, `…__Debug` | 4500, 1200, 800, 400, 600, 50 | `max_tokens` per task. A reasoning model's reasoning counts too: too low, and the request ends without an answer. 1.8.2 tripled the mail limits (1500 and 400 before) |
 | `Ai__Analysis__Enabled`, `Ai__Analysis__IntervalMinutes` | `true`, 60 | Runs only when something changed |
 | `Mikrotik__Advisories__Enabled`, `…__FeedUrl`, `…__IntervalMinutes` | `true`, the feed above, 60 | R9 |
 | `UplinkCheck__TimeoutSeconds` | 15 | |

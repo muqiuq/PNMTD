@@ -84,13 +84,11 @@ public sealed record MailAiProposal(
 /// <summary>
 /// An unmatched mail, or a mail its rule was unsure about: what it is, and the rule that would handle it (§6.2, §6.3).
 /// </summary>
-public sealed class MailAnalyseTask : AiTask<MailAnalyseInput, MailAiProposal>
+public sealed class MailAnalyseTask(int maxTokens) : AiTask<MailAnalyseInput, MailAiProposal>(maxTokens)
 {
     public override string Purpose => "mail.analyse";
 
     public override string PromptVersion => "mail-analyse-1";
-
-    public override int MaxTokens => 1500;
 
     public override bool Verify => true;
 
@@ -159,13 +157,11 @@ public sealed record MailEvaluation(
     [property: Description("At most 200 characters, preferably copied from the mail")] string Message);
 
 /// <summary>A mail of a rule set to AI every time: did the monitored thing succeed? (§6.4).</summary>
-public sealed class MailEvaluateTask(bool verify) : AiTask<MailEvaluateInput, MailEvaluation>
+public sealed class MailEvaluateTask(bool verify, int maxTokens) : AiTask<MailEvaluateInput, MailEvaluation>(maxTokens)
 {
     public override string Purpose => "mail.evaluate";
 
     public override string PromptVersion => "mail-evaluate-1";
-
-    public override int MaxTokens => 400;
 
     public override bool Verify => verify;
 

@@ -45,7 +45,7 @@ public sealed class AiFoundationTests
         Other,
     }
 
-    private sealed class ProposalTask : AiTask<ProposalTask.Input, Proposal>
+    private sealed class ProposalTask() : AiTask<ProposalTask.Input, Proposal>(2000)
     {
         public sealed record Input(string UntrustedText);
 

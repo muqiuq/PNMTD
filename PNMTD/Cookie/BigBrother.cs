@@ -35,6 +35,8 @@ public sealed record Solution(
 public sealed class BigBrother(IDbContextFactory<PnmtdDbContext> dbs, CookieModel model, CookieBrain brain, CookieSettings settings, CookieExecutor executor,
     Instructions instructions, IOptionsMonitor<CookieOptions> options, IServiceProvider services, ILogger<BigBrother> logger)
 {
+    private CookieTokenOptions Tokens => options.CurrentValue.Tokens;
+
     public const int MaxToolCalls = 60;
 
     public const string Kind = "big-brother";
@@ -201,7 +203,7 @@ public sealed class BigBrother(IDbContextFactory<PnmtdDbContext> dbs, CookieMode
         for (var step = 0; step < 30; step++)
         {
             var allow = toolCalls < MaxToolCalls;
-            var turn = await model.CompleteAsync("bigbrother", work, allow ? tools : null, null, "high", provider, 8000, ct, choice);
+            var turn = await model.CompleteAsync("bigbrother", work, allow ? tools : null, null, "high", provider, Tokens.BigBrother, ct, choice);
             provider ??= turn.Provider;
             if (turn.ToolCalls.Count == 0)
             {
@@ -221,7 +223,7 @@ public sealed class BigBrother(IDbContextFactory<PnmtdDbContext> dbs, CookieMode
         }
         var final = new JsonArray(work[0]!.DeepClone(), new JsonObject { ["role"] = "assistant", ["content"] = findings },
             new JsonObject { ["role"] = "user", ["content"] = "Now give your solution." });
-        var answer = await model.CompleteAsync("bigbrother.solution", final, null, (nameof(Solution), AiJson.SchemaFor<Solution>()), "high", provider, 4000, ct, choice);
+        var answer = await model.CompleteAsync("bigbrother.solution", final, null, (nameof(Solution), AiJson.SchemaFor<Solution>()), "high", provider, Tokens.BigBrotherSolution, ct, choice);
         areas.UnionWith(context.Areas);
         return JsonSerializer.Deserialize<Solution>(answer.Content ?? "", AiJson.Options) ?? throw new AiRequestException(AiOutcome.InvalidOutput, "The solution is empty.");
     }

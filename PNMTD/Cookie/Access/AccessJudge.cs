@@ -33,8 +33,10 @@ public sealed record AccessJudged(int Worked, int Calls, int ToolCalls, decimal 
 /// (Seraph rejects it, can't review it, the level isn't <i>Auto</i>) gets code's notice at once (§6.4, §6.5).
 /// </summary>
 public sealed class AccessJudge(IDbContextFactory<PnmtdDbContext> dbs, IServiceProvider services, CookieSettings settings, CookieModel model, CookieBrain brain,
-    DecisionClient guard, IOptionsMonitor<AiOptions> ai, ILogger<AccessJudge> logger)
+    DecisionClient guard, IOptionsMonitor<AiOptions> ai, IOptionsMonitor<CookieOptions> options, ILogger<AccessJudge> logger)
 {
+    private CookieTokenOptions Tokens => options.CurrentValue.Tokens;
+
     public const int PerRound = 5;
     public const string DecisionKind = "access";
     public const string Instruction = "unusualLogin";
@@ -137,7 +139,7 @@ public sealed class AccessJudge(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
         for (var step = 0; step < 8; step++)
         {
             var allow = models.MaxToolCalls == 0 || toolCallsSoFar + toolCalls < models.MaxToolCalls;
-            var turn = await model.CompleteAsync("access", work, allow ? definitions : null, null, models.WorkEffort, provider, 6000, ct);
+            var turn = await model.CompleteAsync("access", work, allow ? definitions : null, null, models.WorkEffort, provider, Tokens.Access, ct);
             calls++;
             cost += turn.Cost;
             provider ??= turn.Provider;
@@ -169,7 +171,7 @@ public sealed class AccessJudge(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             Message("user", "Now give your verdict on these logins: normal, unusual, suspicious or alarming, how sure you are, one sentence for the people " +
                 "who look after access, and your case note."));
         var answerTurn = await model.CompleteAsync("access-verdict", verdictMessages, null, (nameof(AccessVerdictAnswer), AiJson.SchemaFor<AccessVerdictAnswer>()),
-            models.WorkEffort, provider, 3000, ct);
+            models.WorkEffort, provider, Tokens.AccessVerdict, ct);
         calls++;
         cost += answerTurn.Cost;
         var answer = Parse(answerTurn);
@@ -236,7 +238,7 @@ public sealed class AccessJudge(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             again.Add(Message("assistant", answerTurn.Content ?? ""));
             again.Add(Message("user", $"Seraph, the reviewer, sent your notice back: {why}\nGive your verdict again, with that corrected."));
             var turn = await model.CompleteAsync("access-verdict", again, null, (nameof(AccessVerdictAnswer), AiJson.SchemaFor<AccessVerdictAnswer>()),
-                models.WorkEffort, provider, 3000, token);
+                models.WorkEffort, provider, Tokens.AccessVerdict, token);
             calls++;
             cost += turn.Cost;
             var second = Parse(turn);
