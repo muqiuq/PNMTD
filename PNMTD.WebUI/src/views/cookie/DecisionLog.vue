@@ -126,6 +126,7 @@ const ratingLabel = (r: string) => (r === 'right' ? 'Right' : r === 'wrong' ? 'W
         <div class="head">
           <RelativeTime :value="d.at" class="muted small" />
           <Tag :value="decisionKindLabel(d.kind)" severity="secondary" />
+          <Tag v-if="d.orderedBy" :value="`ordered by ${d.orderedBy}`" severity="warn" />
           <span class="title">{{ d.title }}</span>
           <Tag :value="decisionOutcomeLabel(d.outcome)" :severity="decisionOutcomeSeverity(d.outcome)" class="end" />
         </div>
@@ -146,6 +147,9 @@ const ratingLabel = (r: string) => (r === 'right' ? 'Right' : r === 'wrong' ? 'W
         <div v-if="d.verdict" class="verdict">
           <span class="muted small">Seraph</span>
           <Tag :value="verdictLabel(d.verdict)" :severity="verdictSeverity(d.verdict)" />
+          <span v-if="d.verdictConfidence != null" class="muted small">{{
+            formatConfidence(d.verdictConfidence)
+          }}</span>
           <span v-if="d.verdictReason" class="wrap">{{ d.verdictReason }}</span>
         </div>
         <div v-if="d.text || d.reason">

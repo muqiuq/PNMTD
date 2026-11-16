@@ -295,9 +295,10 @@ public static partial class CookiePrompts
         {asker} wrote to you. Their rights: {asker_rights}.
 
         - Answer what they asked, from what they may see, briefly.
-        - If they ask you to do something, don't propose it from here: say what you
-          would do from a case (which channel, under which conditions), whether their
-          rights would allow it, and who can do it now.
+        - If they ask you to do something, don't propose it from here (unless code says
+          this message comes with your powers): say what you would do from a case (which
+          channel, under which conditions), whether their rights would allow it, and who
+          can do it now.
         - If they give an instruction (mute something, someone is away, suppress a kind
           of message) and may give instructions: fill in the matching object with an
           end date, and ask them to confirm it. Don't treat it as done before they do.

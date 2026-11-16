@@ -257,6 +257,12 @@ public sealed record ActionSettings : ICookieSection
     /// <summary>The big brother may be called (§15); off until an admin turns it on, because it costs money.</summary>
     public bool BigBrother { get; init; }
 
+    /// <summary>
+    /// Seraph stops an order from the chat when it rejects it with at least this confidence (docs/cookie-powers-plan.md §6.1); a reject
+    /// below it is a doubt, and the order waits for the admin in the inbox.
+    /// </summary>
+    public double SeraphVetoConfidence { get; init; } = 0.9;
+
     public void Validate(ApiValidator v)
     {
         foreach (var kind in Enum.GetValues<CookieActionKind>().Where(k => k is not (CookieActionKind.HandToPerson)))
@@ -264,6 +270,7 @@ public sealed record ActionSettings : ICookieSection
             var rule = Levels.Of(kind);
             v.Check(rule.MinConfidence is >= 0 and <= 1, $"levels.{JsonNamingPolicy.CamelCase.ConvertName(kind.ToString())}", "A confidence of 0 to 1.");
         }
+        v.Check(SeraphVetoConfidence is >= 0.5 and <= 1, "seraphVetoConfidence", "A confidence of 0.5 to 1.");
         var values = Limits.GetType().GetProperties().Where(p => p.PropertyType == typeof(int));
         foreach (var p in values)
         {

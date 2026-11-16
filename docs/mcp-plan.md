@@ -713,6 +713,7 @@ Cookie's placeholders stay Cookie's step: `ToolContext.Masker` is `Pseudonyms` f
 - **Instructions from a read-write token with *Cookie: Instruct*** become drafts, as in the chat. **They are confirmed only in PNMT's UI** (cookie plan §10.2).
 - **Cookie's window** shows MCP messages with their label, and refused ones greyed out with the reason.
 - **Cookie never gets `cookie_ask` or `cookie_reply`** (`Audience = McpOnly`), so it can't message itself (cookie plan §3.5).
+- **An MCP message never carries Cookie's powers** (docs/cookie-powers-plan.md §4, 1.11): the endpoint for an empowered message is the UI's, admin-only and audited; the tool posts plain messages, and the service drops the flag for any message with an MCP origin.
 
 ### 8.6 Strikes
 

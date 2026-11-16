@@ -103,11 +103,16 @@ public sealed class CookieActingTests
     private static ProposedAction Email(Guid to, string subject, double confidence = 0.95) =>
         new(CookieActionKind.Email, to.ToString(), 0, null, subject, $"{subject}: please have a look.", "It is down since this morning.", [], confidence, Urgency.Important);
 
-    private static async Task<CookieDecisionEntity> HandleAsync(ProposedAction a, CookieCaseEntity? c, Func<string, CancellationToken, Task<ProposedAction?>>? retry = null)
+    private static async Task<CookieDecisionEntity> HandleAsync(ProposedAction a, CookieCaseEntity? c, Func<string, CancellationToken, Task<ProposedAction?>>? retry = null,
+        CookieOrder? order = null)
     {
         var p = await app.Services.GetRequiredService<PrivacyFilter>().OpenAsync(CancellationToken.None);
-        return await Executor.HandleAsync(new ActionRequest(new CookieProposal(a), c, null, Rights, p, ["Monitoring"], retry), CancellationToken.None);
+        return await Executor.HandleAsync(new ActionRequest(new CookieProposal(a), c, null, Rights, p, ["Monitoring"], retry, order), CancellationToken.None);
     }
+
+    private static void SeraphWith(string verdict, double confidence) => router.Answer = (schema, _) => schema == nameof(SeraphVerdict)
+        ? $$"""{"verdict":"{{verdict}}","reason":"the evidence says so","confidence":{{confidence.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)}}}"""
+        : """{"answer":"pong"}""";
 
     private static void Seraph(params string[] verdicts)
     {
@@ -193,6 +198,51 @@ public sealed class CookieActingTests
             StringAssert.Contains(after.Detail, "Approved by");
             Assert.IsTrue(await db.CookieOutbox.AnyAsync(o => o.Id == after.OutboxId && o.Subject == "mail is down"));
         }
+    }
+
+    [TestMethod]
+    public async Task An_order_passes_the_gates_of_judgement_and_Seraph_can_stop_it()
+    {
+        // E-mail off, a mute on the host, urgency info: Cookie's own proposal ends at the first gate; an order passes them, named in the detail
+        // (docs/cookie-powers-plan.md §6).
+        await Save("actions", new ActionSettings { Levels = new ActionLevels { Email = new ActionRule(ActionLevel.Off) }, SeraphVetoConfidence = 0.9 });
+        var c = await ProblemAsync("nas");
+        using (var mute = await admin.PostAsJsonAsync("/api/v1/cookie/admin/instructions",
+            new CookieInstructionRequest("mute", "host", c.HostId.ToString(), null, "Maintenance", Clock.UtcNow.AddDays(1))))
+        {
+            Assert.AreEqual(HttpStatusCode.OK, mute.StatusCode, await mute.Content.ReadAsStringAsync());
+        }
+        var order = new CookieOrder(TestUsers.Admin, "Test Admin", 1, "Send Bea an e-mail: the NAS is back.");
+        var info = Email(bea, "The NAS is back") with { Urgency = Urgency.Info };
+        SeraphWith("approve", 0.9);
+        Assert.AreEqual("off", (await HandleAsync(info, c)).Outcome, "Cookie's own proposal");
+        var done = await HandleAsync(info, c, order: order);
+        Assert.AreEqual("done", done.Outcome, done.Detail);
+        Assert.AreEqual(("Test Admin", "approve", 0.9), (done.OrderedBy, done.Verdict, done.VerdictConfidence));
+        StringAssert.StartsWith(done.Detail, "On Test Admin's order from the chat. Passed: E-mail is off; mute host");
+        await using (var db = app.NewDb())
+        {
+            var mail = await db.CookieOutbox.SingleAsync(o => o.Id == done.OutboxId);
+            Assert.AreEqual(("order", CookieOutboxState.Simulated), (mail.Source, mail.State));
+        }
+        Assert.AreEqual("done", (await HandleAsync(info, c, order: order)).Outcome, "a repeat on purpose is the admin's");
+        Assert.IsTrue(router.Requests.Any(r => r.Body.Contains("This proposal is an order") && r.Body.Contains("Ordered by ")), "Seraph got the order as evidence");
+        // A note on a host is reviewed on an order, although a case's isn't; the mute is passed too.
+        var note = await HandleAsync(new ProposedAction(CookieActionKind.ObjectNote, null, 0, c.HostId.ToString(), "The NAS", "The NAS is back.", "asked", [], 0.9, Urgency.Info),
+            c, order: order);
+        Assert.AreEqual(("done", "approve"), (note.Outcome, note.Verdict), note.Detail);
+        // Seraph on an order (§6.1): a doubt waits for the admin in the inbox; a sure reject stops it.
+        SeraphWith("reject", 0.6);
+        var doubted = await HandleAsync(Email(carl, "The NAS is back"), c, order: order);
+        Assert.AreEqual("proposed", doubted.Outcome, doubted.Detail);
+        Assert.IsNotNull(doubted.InboxDecisionId);
+        StringAssert.Contains(doubted.Detail, "Seraph doubts it (0.60)");
+        SeraphWith("reject", 0.95);
+        var stopped = await HandleAsync(Email(carl, "The NAS is back, again"), c, order: order);
+        Assert.AreEqual("rejected", stopped.Outcome, stopped.Detail);
+        Assert.IsNull(stopped.InboxDecisionId);
+        StringAssert.Contains(stopped.Detail, "Seraph stopped the order (0.95)");
+        await Save("actions", new ActionSettings());
     }
 
     [TestMethod]

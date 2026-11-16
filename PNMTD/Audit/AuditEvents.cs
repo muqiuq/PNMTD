@@ -160,6 +160,7 @@ public static class AuditEvents
     public const string CookieInstructionEnded = "CookieInstructionEnded";
     public const string CookieDecisionRated = "CookieDecisionRated";
     public const string CookieBigBrotherAsked = "CookieBigBrotherAsked";
+    public const string CookiePowersUsed = "CookiePowersUsed";
 
     // The access watch (docs/cookie-access-plan.md §10.1).
     public const string AccessAnswered = "AccessAnswered";
@@ -383,7 +384,7 @@ public static class AuditCatalog
         Add(AuditCategory.Zabbix, AuditTargets.ZabbixHost, AuditEvents.ZabbixHostsAttached);
         Add(AuditCategory.Zabbix, null, AuditEvents.ZabbixTested);
         Add(AuditCategory.Cookie, null, AuditEvents.CookieSettingsChanged, AuditEvents.CookieSettingsRolledBack, AuditEvents.CookieStarted,
-            AuditEvents.CookieStopped, AuditEvents.CookieRunRequested);
+            AuditEvents.CookieStopped, AuditEvents.CookieRunRequested, AuditEvents.CookiePowersUsed);
         Add(AuditCategory.Cookie, AuditTargets.CookieCase, AuditEvents.CookieTicketCreated, AuditEvents.CookieNoteAdded, AuditEvents.CookieNoteRemoved, AuditEvents.CookieMessageSent,
             AuditEvents.CookieHeldBackSent, AuditEvents.CookieCaseCommented, AuditEvents.CookieCaseStopped, AuditEvents.CookieCaseGoOn, AuditEvents.CookieDecisionRated,
             AuditEvents.CookieBigBrotherAsked, AuditEvents.AccessAnswered, AuditEvents.AccessPersonAnswered, AuditEvents.AccessTicketAsked);

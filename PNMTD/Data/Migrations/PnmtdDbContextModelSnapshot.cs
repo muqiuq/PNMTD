@@ -1676,6 +1676,10 @@ namespace PNMTD.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("OrderedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<long?>("OutboxId")
                         .HasColumnType("bigint");
 
@@ -1724,6 +1728,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<string>("Verdict")
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
+
+                    b.Property<double?>("VerdictConfidence")
+                        .HasColumnType("double precision");
 
                     b.Property<string>("VerdictReason")
                         .HasMaxLength(1000)
@@ -1874,6 +1881,9 @@ namespace PNMTD.Data.Migrations
 
                     b.Property<Guid?>("CaseId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("Empowered")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("From")
                         .IsRequired()

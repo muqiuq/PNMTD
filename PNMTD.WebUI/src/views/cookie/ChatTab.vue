@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import SelectButton from 'primevue/selectbutton'
 import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
+import { useConfirm } from 'primevue/useconfirm'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { ApiError } from '@/api/client'
 import { api, type S } from '@/api/resources'
@@ -15,10 +17,13 @@ import { useNow } from '@/composables/useNow'
 import { formatAbsolute } from '@/format'
 import { useSession } from '@/stores/session'
 import {
+  decisionKindLabel,
+  decisionOutcomeSeverity,
   instructionKindLabel,
   instructionState,
   instructionStateSeverity,
   instructionTarget,
+  orderOutcomeLabel,
   type InstructionItem,
 } from './acting'
 import { lastId } from './trace'
@@ -29,7 +34,9 @@ import { usePoll } from './usePoll'
  * message wakes Cookie; while it waits for a reply the thread is asked every 2 s, otherwise every 30 s. Cookie answers
  * with the lower of the person's rights and its own; Seraph, picked for a message, explains its verdicts from the
  * decision log and can't act. For someone with Cookie: Instruct, Cookie fills in a mute, a suppress or a note from the
- * message as a draft, which counts only once the person confirms it here.
+ * message as a draft, which counts only once the person confirms it here. An admin can give Cookie its powers for one
+ * message (docs/cookie-powers-plan.md §3): a checkbox nobody else sees, a warning to confirm each time, and Cookie acts on
+ * what the message asks; the reply shows what came of each action.
  */
 type Item = S['CookieMessageItem']
 type To = 'cookie' | 'seraph'
@@ -38,7 +45,37 @@ const session = useSession()
 const notify = useNotify()
 const now = useNow()
 const canInstruct = computed(() => session.can('Cookie', 'Instruct'))
+const isAdmin = computed(() => session.isAdmin)
+const confirm = useConfirm()
 const to = ref<To>('cookie')
+
+// --- Cookie's powers for one message (docs/cookie-powers-plan.md §3) ---------------------------------------------------
+const powers = ref(false)
+const powersWarning =
+  'Cookie will act on this one message. It may send Pushover and e-mail to any PNMT user, create a ticket, and write notes on tickets, ' +
+  'hosts and sensors, as you ask, past its action levels, its mutes and suppressions, the working hours and its daily limits. Seraph ' +
+  'still reads every order: what it doubts waits for you in the decisions inbox, and what it is sure is harmful it stops. Every action ' +
+  "is logged under your name. Cookie still can't delete, change or close anything, and can't write to anyone outside PNMT."
+/** Ticking the box asks first, every time; it stays unticked until the admin says they understand. */
+function askPowers(value: boolean) {
+  if (!value) {
+    powers.value = false
+    return
+  }
+  confirm.require({
+    header: 'Give Cookie its powers for this message?',
+    message: powersWarning,
+    icon: 'pi pi-exclamation-triangle',
+    acceptProps: { label: 'I understand', severity: 'danger' },
+    rejectProps: { label: 'Cancel', severity: 'secondary', text: true },
+    accept: () => (powers.value = true),
+    reject: () => (powers.value = false),
+  })
+}
+// Seraph can't act: no powers for a message to it.
+watch(to, (t) => {
+  if (t === 'seraph') powers.value = false
+})
 const recipients = [
   { label: 'Cookie', value: 'cookie' },
   { label: 'Seraph', value: 'seraph' },
@@ -109,10 +146,12 @@ async function send() {
   sending.value = true
   problem.value = null
   try {
-    const sent = await api.cookie.post(message, to.value)
+    const sent = powers.value ? await api.cookie.postEmpowered(message) : await api.cookie.post(message, to.value)
     messages.value = [...messages.value, sent]
     waiting.value = true
     text.value = ''
+    // One message, one confirmation (docs/cookie-powers-plan.md §3).
+    powers.value = false
     poll.schedule()
   } catch (e) {
     problem.value = explain(e)
@@ -156,6 +195,9 @@ function onKey(event: KeyboardEvent) {
     <p class="muted small note">
       Cookie answers with the lower of your rights and its own. Seraph, which reviews what Cookie sends, explains its
       verdicts and can't act.
+      <template v-if="isAdmin">
+        As an admin you can give Cookie its powers for one message: it then acts on what you ask.
+      </template>
     </p>
     <ErrorState v-if="loadError && !loaded" :error="loadError" what="the chat" @retry="poll.restart()" />
     <div v-else-if="!loaded" class="center"><ProgressSpinner style="width: 32px; height: 32px" /></div>
@@ -174,10 +216,22 @@ function onKey(event: KeyboardEvent) {
               severity="secondary"
               class="via"
             />
+            <Tag v-if="m.empowered" value="with powers" severity="warn" class="via" />
           </div>
           <div class="bubble" :class="{ refused: m.refusedWhy }">{{ m.text }}</div>
           <div v-if="m.refusedWhy" class="small muted refused-why">
             <i class="pi pi-ban" aria-hidden="true" /> Refused before Cookie saw it: {{ m.refusedWhy }}
+          </div>
+          <!-- What came of an order (docs/cookie-powers-plan.md §7): from the decision log, written by code, never by the model. -->
+          <div v-if="m.actions?.length" class="instruction" role="group" aria-label="What came of the order">
+            <div v-for="a in m.actions" :key="a.decisionId" class="action">
+              <div class="line">
+                <Tag :value="decisionKindLabel(a.kind)" severity="secondary" />
+                <span class="target">{{ a.title }}</span>
+                <Tag :value="orderOutcomeLabel(a.outcome)" :severity="decisionOutcomeSeverity(a.outcome)" class="end" />
+              </div>
+              <div v-if="a.detail" class="muted small wrap">{{ a.detail }}</div>
+            </div>
           </div>
           <div
             v-if="m.instruction"
@@ -233,6 +287,9 @@ function onKey(event: KeyboardEvent) {
       <Message v-if="stopped" severity="info" :closable="false" size="small" class="state">
         Cookie is stopped: an admin starts it on Admin → Cookie. Until then you can read your thread, but not write.
       </Message>
+      <Message v-if="powers" severity="warn" :closable="false" size="small" class="state">
+        Cookie will act on this message.
+      </Message>
       <form class="compose" novalidate @submit.prevent="send">
         <SelectButton
           v-model="to"
@@ -245,12 +302,25 @@ function onKey(event: KeyboardEvent) {
           aria-label="Write to"
           :disabled="stopped"
         />
+        <!-- Admins only, and absent for everyone else (docs/cookie-powers-plan.md §3): not disabled, not there. -->
+        <label v-if="isAdmin && to === 'cookie'" class="powers small" for="chat-powers">
+          <Checkbox
+            :model-value="powers"
+            binary
+            input-id="chat-powers"
+            :disabled="stopped"
+            @update:model-value="askPowers"
+          />
+          With powers
+        </label>
         <Textarea
           v-model="text"
           rows="2"
           auto-resize
           class="input"
-          :placeholder="to === 'seraph' ? 'Ask Seraph about its verdicts' : 'Write to Cookie'"
+          :placeholder="
+            powers ? 'Tell Cookie what to do' : to === 'seraph' ? 'Ask Seraph about its verdicts' : 'Write to Cookie'
+          "
           :aria-label="to === 'seraph' ? 'Your message to Seraph' : 'Your message to Cookie'"
           :disabled="stopped"
           :invalid="tooLong"
@@ -258,8 +328,9 @@ function onKey(event: KeyboardEvent) {
         />
         <Button
           type="submit"
-          label="Send"
+          :label="powers ? 'Send with powers' : 'Send'"
           icon="pi pi-send"
+          :severity="powers ? 'warn' : undefined"
           :loading="sending"
           :disabled="stopped || !text.trim() || tooLong"
         />
@@ -406,6 +477,19 @@ function onKey(event: KeyboardEvent) {
 
 .to {
   flex: none;
+}
+
+.powers {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pnmt-space-1);
+  flex: none;
+  white-space: nowrap;
+  align-self: center;
+}
+
+.action + .action {
+  margin-top: var(--pnmt-space-1);
 }
 
 @media (max-width: 599px) {

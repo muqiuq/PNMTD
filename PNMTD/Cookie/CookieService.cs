@@ -201,7 +201,8 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
             }
             return new CookieDecisionItem(d.Id, d.At, d.CaseId, d.CaseId is { } id ? titles.GetValueOrDefault(id) : null, d.Kind, d.Title,
                 a is null ? null : privacy.Unmask(a.Text), a is null ? null : privacy.Unmask(a.Reason), d.Confidence, d.Verdict, privacy.Unmask(d.VerdictReason),
-                d.Outcome, privacy.Unmask(d.Detail), d.Model, d.InboxDecisionId, d.Rating, d.RatingComment, d.RatedByName, canRate && d.Kind != "drift");
+                d.Outcome, privacy.Unmask(d.Detail), d.Model, d.InboxDecisionId, d.Rating, d.RatingComment, d.RatedByName, canRate && d.Kind != "drift", d.OrderedBy,
+                d.VerdictConfidence);
         })], page, size, rows.Count);
     }
 
@@ -237,7 +238,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         var caseTitle = d.CaseId is { } caseId ? await db.CookieCases.AsNoTracking().Where(c => c.Id == caseId).Select(c => c.Title).FirstOrDefaultAsync(ct) : null;
         return new CookieDecisionItem(d.Id, d.At, d.CaseId, caseTitle, d.Kind, d.Title, a is null ? null : privacy.Unmask(a.Text), a is null ? null : privacy.Unmask(a.Reason),
             d.Confidence, d.Verdict, privacy.Unmask(d.VerdictReason), d.Outcome, privacy.Unmask(d.Detail), d.Model, d.InboxDecisionId, d.Rating, d.RatingComment,
-            d.RatedByName, true);
+            d.RatedByName, true, d.OrderedBy, d.VerdictConfidence);
     }
 
     /// <summary>A person's comment on a case (§4.3): in its timeline, and in Cookie's next round, screened.</summary>
@@ -513,8 +514,20 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         var rows = (await q.OrderByDescending(m => m.Id).Take(100).ToListAsync(ct)).OrderBy(m => m.Id).ToList();
         var drafts = rows.Where(m => m.InstructionId is not null).Select(m => m.InstructionId!.Value).ToList();
         var instructions = await db.CookieInstructions.AsNoTracking().Where(i => drafts.Contains(i.Id)).ToDictionaryAsync(i => i.Id, ct);
+        // What came of an order (docs/cookie-powers-plan.md §7): the reply's case's decisions, by rights the reader's own (it is their thread).
+        var replies = rows.Where(m => m.From == "cookie" && m.CaseId != null).Select(m => m.CaseId!.Value).ToList();
+        var ordered = replies.Count == 0 ? []
+            : await db.CookieDecisions.AsNoTracking().Where(d => d.CaseId != null && replies.Contains(d.CaseId.Value) && d.OrderedBy != null).OrderBy(d => d.Id).ToListAsync(ct);
+        var privacy = services.GetRequiredService<PrivacyFilter>();
+        if (ordered.Count > 0)
+        {
+            await privacy.EnsureLoadedAsync(ct);
+        }
+        var actions = ordered.GroupBy(d => d.CaseId!.Value)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<CookieMessageActionItem>)[.. g.Select(d => new CookieMessageActionItem(d.Id, d.Kind, d.Title, d.Outcome, privacy.Unmask(d.Detail)))]);
         var messages = rows.Select(m => new CookieMessageItem(m.Id, m.At, m.From, m.Text, m.Answered, m.To,
-            m.InstructionId is { } i && instructions.TryGetValue(i, out var x) ? InstructionItem(x) : null, m.Source, m.ReadOnly, m.RefusedWhy)).ToList();
+            m.InstructionId is { } i && instructions.TryGetValue(i, out var x) ? InstructionItem(x) : null, m.Source, m.ReadOnly, m.RefusedWhy, m.Empowered,
+            m.CaseId is { } caseId && actions.TryGetValue(caseId, out var a) ? a : null)).ToList();
         var waiting = await db.CookieMessages.AnyAsync(m => m.UserId == userId && m.From == "person" && !m.Answered, ct);
         var runtime = await db.CookieRuntime.AsNoTracking().SingleOrDefaultAsync(ct);
         return new CookieThread(messages, waiting, options.CurrentValue.Enabled ? runtime?.State ?? CookieState.Stopped : CookieState.Stopped);
@@ -545,10 +558,26 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         await PostMessageAsync(request, user, null, ct);
 
     /// <summary>
+    /// An admin's message with Cookie's powers (docs/cookie-powers-plan.md §4): admins only, checked here behind the endpoint's attribute,
+    /// never over MCP, to Cookie, audited; Cookie acts on it in its next round.
+    /// </summary>
+    public async Task<CookieMessageItem> PostEmpoweredAsync(CookieMessageRequest request, ClaimsPrincipal user, CancellationToken ct)
+    {
+        if (!user.Rights().IsAdmin)
+        {
+            throw ApiException.Forbidden("Only an admin can give Cookie its powers for a message.");
+        }
+        var item = await PostMessageAsync(request with { To = "cookie" }, user, null, ct, empowered: true);
+        AuditLog.Summary($"With powers: {CaseBook.Cut(item.Text, 120)}");
+        return item;
+    }
+
+    /// <summary>
     /// The same over MCP (docs/mcp-plan.md §8.5): from the token, counted per token as well, and from a read-only token marked
     /// so that Cookie answers it as a question only.
     /// </summary>
-    public async Task<CookieMessageItem> PostMessageAsync(CookieMessageRequest request, ClaimsPrincipal user, McpMessageOrigin? mcp, CancellationToken ct)
+    public async Task<CookieMessageItem> PostMessageAsync(CookieMessageRequest request, ClaimsPrincipal user, McpMessageOrigin? mcp, CancellationToken ct,
+        bool empowered = false)
     {
         var text = request.Text?.Trim() ?? "";
         var to = string.IsNullOrWhiteSpace(request.To) ? "cookie" : request.To.Trim().ToLowerInvariant();
@@ -569,7 +598,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         {
             throw new ApiException(StatusCodes.Status429TooManyRequests, "cookie_too_many_messages", $"At most {mcp.PerHour} messages an hour over this token.");
         }
-        var message = new CookieMessageEntity { UserId = userId, At = Clock.UtcNow, From = "person", Text = text, To = to };
+        var message = new CookieMessageEntity { UserId = userId, At = Clock.UtcNow, From = "person", Text = text, To = to, Empowered = empowered && mcp is null };
         if (mcp is not null)
         {
             message.Source = "mcp";
@@ -579,7 +608,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         db.CookieMessages.Add(message);
         await db.SaveChangesAsync(ct);
         services.GetRequiredService<CookieSignals>().Raise($"message from {user.Identity?.Name}");
-        return new CookieMessageItem(message.Id, message.At, message.From, message.Text, false, to);
+        return new CookieMessageItem(message.Id, message.At, message.From, message.Text, false, to, Empowered: message.Empowered);
     }
 
     // --- Mute, suppress and instructions (§10.3, §21.1) ------------------------------------------------------------------

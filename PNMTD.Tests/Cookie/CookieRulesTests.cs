@@ -139,6 +139,11 @@ public sealed class CookieRulesTests
         new ActionSettings { Limits = OutputLimits.Ceilings }.Validate(ok);
         Assert.IsFalse(ok.HasErrors);
         Assert.IsTrue(new DutySwitches().GetType().GetProperties().All(p => p.GetValue(new DutySwitches()) is false), "every duty starts off");
+        // Seraph's veto on an order (docs/cookie-powers-plan.md §6.1): 0.5 to 1, 0.9 by default.
+        var veto = new PNMTD.Api.ApiValidator();
+        new ActionSettings { SeraphVetoConfidence = 0.4 }.Validate(veto);
+        Assert.IsTrue(veto.HasErrors, "below 0.5 Seraph would stop orders it merely dislikes");
+        Assert.AreEqual(0.9, new ActionSettings().SeraphVetoConfidence);
     }
 
     [TestMethod]

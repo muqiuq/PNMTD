@@ -3864,6 +3864,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cookie/messages/empowered": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CookieMessageRequest"];
+                    "text/json": components["schemas"]["CookieMessageRequest"];
+                    "application/*+json": components["schemas"]["CookieMessageRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieMessageItem"];
+                        "text/json": components["schemas"]["CookieMessageItem"];
+                        "text/plain": components["schemas"]["CookieMessageItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cookie/cases": {
         parameters: {
             query?: never;
@@ -15998,6 +16041,8 @@ export interface components {
             levels?: components["schemas"]["ActionLevels"];
             cookieWritesDuties?: boolean;
             bigBrother?: boolean;
+            /** Format: double */
+            seraphVetoConfidence?: number;
         };
         ActivationInfo: {
             status: string;
@@ -17118,6 +17163,9 @@ export interface components {
             ratingComment: null | string;
             ratedByName: null | string;
             canRate: boolean;
+            orderedBy?: null | string;
+            /** Format: double */
+            verdictConfidence?: null | number;
         };
         CookieDefaults: {
             prompts: components["schemas"]["CookiePromptItem"][];
@@ -17233,6 +17281,14 @@ export interface components {
             ticketProject: boolean;
             zabbix: components["schemas"]["CookieIntegrationItem"];
         };
+        CookieMessageActionItem: {
+            /** Format: int64 */
+            decisionId: number;
+            kind: string;
+            title: string;
+            outcome: string;
+            detail: null | string;
+        };
         CookieMessageItem: {
             /** Format: int64 */
             id: number;
@@ -17249,6 +17305,9 @@ export interface components {
             /** @default false */
             readOnly: boolean;
             refusedWhy?: null | string;
+            /** @default false */
+            empowered: boolean;
+            actions?: null | components["schemas"]["CookieMessageActionItem"][];
         };
         CookieMessageRequest: {
             text: string;

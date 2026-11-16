@@ -509,6 +509,8 @@ export const api = {
     /** A message to Cookie, or to Seraph (§21.1), who explains its verdicts and can't act. */
     post: (text: string, to: 'cookie' | 'seraph' = 'cookie') =>
       call(client.POST('/api/v1/cookie/messages', { body: { text, to } })),
+    /** A message with Cookie's powers (docs/cookie-powers-plan.md §4): admins only, audited; Cookie acts on it. */
+    postEmpowered: (text: string) => call(client.POST('/api/v1/cookie/messages/empowered', { body: { text } })),
     cases: (query: ListQuery & { open?: boolean; kind?: S['CookieCaseKind'] }) =>
       call(client.GET('/api/v1/cookie/cases', { params: { query } })),
     case: (id: Id) => call(client.GET('/api/v1/cookie/cases/{id}', { params: { path: { id } } })),

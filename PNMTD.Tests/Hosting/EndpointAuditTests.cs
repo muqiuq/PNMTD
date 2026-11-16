@@ -181,6 +181,7 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/cookie/summary"] = ("signed-in", Roles.Viewer),
         ["GET /api/v1/cookie/messages"] = ("Cookie:Use", Roles.Admin),
         ["POST /api/v1/cookie/messages"] = ("Cookie:Use", Roles.Admin),
+        ["POST /api/v1/cookie/messages/empowered"] = ("admin", Roles.Admin),
         ["GET /api/v1/cookie/cases"] = ("Cookie:Use", Roles.Admin),
         ["GET /api/v1/cookie/cases/{id:guid}"] = ("Cookie:Use", Roles.Admin),
         ["GET /api/v1/cookie/trace"] = ("Cookie:Use", Roles.Admin),

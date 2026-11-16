@@ -42,7 +42,18 @@ public enum SeraphVerdictKind { Approve, Revise, Reject, Ask }
 /// <summary>Seraph's verdict on a proposal (docs/cookie-prompts.md §8).</summary>
 public sealed record SeraphVerdict(
     [property: Description("approve, revise, reject or ask")] SeraphVerdictKind Verdict,
-    [property: Description("One concrete reason, at most 300 characters")] string Reason);
+    [property: Description("One concrete reason, at most 300 characters")] string Reason,
+    [property: Description("How sure you are of the verdict, 0 to 1; 0.95 means you would be wrong 1 time in 20")] double Confidence = 1);
+
+/// <summary>
+/// The actions an admin's empowered message asked for (docs/cookie-powers-plan.md §5): proposals as a case makes them, each through
+/// the executor as an order.
+/// </summary>
+public sealed record OrderAnswer(
+    [property: Description("The actions the message asked for, at most 5; empty when it asked for none")] IReadOnlyList<ProposedAction> Proposals);
+
+/// <summary>Who ordered a proposal from the chat, with which message (docs/cookie-powers-plan.md §6): the executor passes the gates of judgement for it.</summary>
+public sealed record CookieOrder(Guid UserId, string Name, long MessageId, string Text);
 
 /// <summary>Seraph's daily drift report (§5).</summary>
 public sealed record SeraphReport(

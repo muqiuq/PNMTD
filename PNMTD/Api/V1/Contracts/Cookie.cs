@@ -121,7 +121,9 @@ public sealed record CookieDecisionItem(
     string? Rating,
     string? RatingComment,
     string? RatedByName,
-    bool CanRate);
+    bool CanRate,
+    string? OrderedBy = null,
+    double? VerdictConfidence = null);
 
 public sealed class CookieDecisionQuery : PageQuery
 {
@@ -255,7 +257,11 @@ public sealed record CookiePromptPreview(string Key, string Text);
 /// read-only token, <see cref="RefusedWhy"/> when Jev refused it before Cookie saw it.
 /// </summary>
 public sealed record CookieMessageItem(long Id, DateTime At, string From, string Text, bool Answered, string To = "cookie",
-    CookieInstructionItem? Instruction = null, string Source = "ui", bool ReadOnly = false, string? RefusedWhy = null);
+    CookieInstructionItem? Instruction = null, string Source = "ui", bool ReadOnly = false, string? RefusedWhy = null, bool Empowered = false,
+    IReadOnlyList<CookieMessageActionItem>? Actions = null);
+
+/// <summary>What came of an order in a reply (docs/cookie-powers-plan.md §7): one per proposal, from the decision log, written by code.</summary>
+public sealed record CookieMessageActionItem(long DecisionId, string Kind, string Title, string Outcome, string? Detail);
 
 /// <summary>Mute, suppress or an instruction (§10.3, §21.1): a draft from the chat until a person confirms it.</summary>
 public sealed record CookieInstructionItem(

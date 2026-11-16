@@ -13,7 +13,10 @@ using PNMTD.Models.Db;
 
 namespace PNMTD.Cookie;
 
-/// <summary>A proposal to take through the executor: from a round (with Cookie's rights and the round's masking), or from a mail.</summary>
+/// <summary>
+/// A proposal to take through the executor: from a round (with Cookie's rights and the round's masking), or from a mail; with an
+/// <see cref="Order"/> when an admin's empowered message asked for it (docs/cookie-powers-plan.md §6).
+/// </summary>
 public sealed record ActionRequest(
     CookieProposal Proposal,
     CookieCaseEntity? Case,
@@ -21,7 +24,8 @@ public sealed record ActionRequest(
     UserRights Rights,
     Pseudonyms Privacy,
     IReadOnlyCollection<string> Areas,
-    Func<string, CancellationToken, Task<ProposedAction?>>? Retry = null);
+    Func<string, CancellationToken, Task<ProposedAction?>>? Retry = null,
+    CookieOrder? Order = null);
 
 /// <summary>
 /// Cookie's executor (docs/cookie-plan.md §6, §21.1): every proposal goes through the action's level, its confidence
@@ -63,21 +67,33 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         db.CookieDecisions.Add(log);
         var actions = await settings.GetAsync<ActionSettings>(ct);
         var rule = actions.Levels.Of(a.Action);
+        // An order (docs/cookie-powers-plan.md §6): an admin's empowered message asked for it. The gates of judgement are passed and
+        // named in the detail; the gates of fact (a real user with a channel, the integration, the rights) stay.
+        var order = r.Order;
+        var passed = new List<string>();
+        log.OrderedBy = CaseBook.Cut(order?.Name, 200);
 
         string? Done(string outcome, string? detail)
         {
             log.Outcome = outcome;
-            log.Detail = CaseBook.Cut(detail, 1000);
+            log.Detail = CaseBook.Cut(WithOrder(detail), 1000);
             return null;
         }
 
+        string? WithOrder(string? detail) => order is null ? detail
+            : $"On {order.Name}'s order from the chat.{(passed.Count == 0 ? "" : $" Passed: {string.Join("; ", passed)}.")} {detail}".TrimEnd();
+
         if (a.Action != CookieActionKind.HandToPerson && rule.Level == ActionLevel.Off)
         {
-            Done("off", $"{Label(a.Action)} is off on Admin → Cookie → Actions.");
-            await db.SaveChangesAsync(ct);
-            return log;
+            if (order is null)
+            {
+                Done("off", $"{Label(a.Action)} is off on Admin → Cookie → Actions.");
+                await db.SaveChangesAsync(ct);
+                return log;
+            }
+            passed.Add($"{Label(a.Action)} is off");
         }
-        var (refusal, target) = await CheckAsync(db, proposal, r.Case, r.Rights, ct);
+        var (refusal, target) = await CheckAsync(db, proposal, r.Case, r.Rights, ct, order is not null);
         log.Target = target;
         if (refusal is not null)
         {
@@ -99,13 +115,17 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
             : Instructions.Blocks(active, a.Action, r.Case, members, Guid.TryParse(a.ObjectId, out var obj) ? obj : null);
         if (blocked is not null)
         {
-            Done("muted", $"{blocked.Kind} {blocked.Scope} {blocked.Label ?? blocked.Value}, by {blocked.CreatedByName}");
-            await db.SaveChangesAsync(ct);
-            return log;
+            if (order is null)
+            {
+                Done("muted", $"{blocked.Kind} {blocked.Scope} {blocked.Label ?? blocked.Value}, by {blocked.CreatedByName}");
+                await db.SaveChangesAsync(ct);
+                return log;
+            }
+            passed.Add($"{blocked.Kind} {blocked.Scope} {blocked.Label ?? blocked.Value}, by {blocked.CreatedByName}");
         }
         // An access notice again after 4 hours, or when its verdict rises (its target names the verdict, docs/cookie-access-plan.md §6.3).
         var since = a.Action == CookieActionKind.AccessNotice ? Clock.UtcNow.AddHours(-4) : Clock.UtcNow.AddDays(-1);
-        if (target is not null && await db.CookieDecisions.AnyAsync(d => d.CaseId == log.CaseId && d.Kind == log.Kind && d.Target == target
+        if (order is null && target is not null && await db.CookieDecisions.AnyAsync(d => d.CaseId == log.CaseId && d.Kind == log.Kind && d.Target == target
                 && (d.Outcome == "proposed" || d.Outcome == "running" || d.At >= since && (d.Outcome == "done" || d.Outcome == "approved")), ct))
         {
             Done("duplicate", "The same action on the same target was done within a day, or waits for a person.");
@@ -117,16 +137,22 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         // An access notice below its threshold went one lower already; only an unusual one goes to a person (docs/cookie-access-plan.md §6.4).
         var thresholded = a.Action != CookieActionKind.AccessNotice || proposal.Access?.Verdict == "unusual";
         var toPerson = a.Action == CookieActionKind.HandToPerson ? "Cookie hands it to a person."
-            : thresholded && a.Confidence < rule.MinConfidence ? $"Below the threshold ({a.Confidence:0.00} < {rule.MinConfidence:0.00})." : null;
-        // Outside working hours Cookie reaches nobody by itself (§8.3): a message waits for a person's decision.
-        if (a.Action is CookieActionKind.Pushover or CookieActionKind.Email && !(await plan.CalendarAsync(ct)).IsWorking(Clock.UtcNow))
+            : order is null && thresholded && a.Confidence < rule.MinConfidence ? $"Below the threshold ({a.Confidence:0.00} < {rule.MinConfidence:0.00})." : null;
+        // Outside working hours Cookie reaches nobody by itself (§8.3): a message waits for a person's decision; an order is the person's.
+        if (order is null && a.Action is CookieActionKind.Pushover or CookieActionKind.Email && !(await plan.CalendarAsync(ct)).IsWorking(Clock.UtcNow))
         {
             toPerson ??= "Outside working hours: a person decides whether it goes out now.";
         }
-        if (Reviewed(a.Action))
+        // Seraph reads every order, object notes included (docs/cookie-powers-plan.md §6.1), and judges harm only.
+        if (Reviewed(a.Action) || order is not null)
         {
             var evidence = await EvidenceAsync(db, proposal, r.Case, members, r.Privacy, ct);
-            var (verdict, model, error) = await seraph.ReviewAsync(Masked(proposal, r.Privacy), evidence, r.Privacy.Mask(Instructions.PromptText(active)), ct);
+            if (order is not null)
+            {
+                evidence += await OrderEvidenceAsync(db, order, proposal, r.Privacy, ct);
+            }
+            var (verdict, model, error) = await seraph.ReviewAsync(Masked(proposal, r.Privacy), evidence, r.Privacy.Mask(Instructions.PromptText(active)), ct,
+                order is null ? null : Seraph.OrderParagraph(r.Privacy.Mask(order.Name)));
             log.Model = model;
             if (verdict is null)
             {
@@ -136,10 +162,15 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
             {
                 log.Verdict = verdict.Verdict.ToString().ToLowerInvariant();
                 log.VerdictReason = verdict.Reason;
+                log.VerdictConfidence = verdict.Confidence;
                 switch (verdict.Verdict)
                 {
+                    case SeraphVerdictKind.Reject when order is not null && verdict.Confidence < actions.SeraphVetoConfidence:
+                        // A doubt, not a veto (docs/cookie-powers-plan.md §6.1): the admin decides in the inbox.
+                        toPerson ??= $"Seraph doubts it ({verdict.Confidence:0.00}): {verdict.Reason}";
+                        break;
                     case SeraphVerdictKind.Reject:
-                        Done("rejected", $"Seraph: {verdict.Reason}");
+                        Done("rejected", order is null ? $"Seraph: {verdict.Reason}" : $"Seraph stopped the order ({verdict.Confidence:0.00}): {verdict.Reason}");
                         await db.SaveChangesAsync(ct);
                         return log;
                     case SeraphVerdictKind.Revise when r.Retry is not null:
@@ -169,18 +200,20 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                 }
             }
         }
-        if (toPerson is not null || rule.Level == ActionLevel.Propose)
+        if (toPerson is not null || (order is null && rule.Level == ActionLevel.Propose))
         {
             await db.SaveChangesAsync(ct);
+            // An order's inbox entry is admins' and outlives its request case, which closes with the reply (docs/cookie-powers-plan.md §6).
             log.InboxDecisionId = await inbox.RaiseAsync(new DecisionDraft(InboxKind, CaseBook.Cut($"Cookie proposes: {log.Title}", 300)!,
-                Summary(proposal, r.Privacy, log.VerdictReason, toPerson), new CookieActionPayload(log.Id), $"{InboxKind}:{log.Id}", r.Case?.Id,
-                "cookie-case", r.Case?.Id, AdminOnly: log.Areas.Any(x => !InboxAreas.Contains(x)),
+                Summary(proposal, r.Privacy, log.VerdictReason, WithOrder(toPerson)), new CookieActionPayload(log.Id), $"{InboxKind}:{log.Id}", r.Case?.Id,
+                "cookie-case", order is null ? r.Case?.Id : null, AdminOnly: order is not null || log.Areas.Any(x => !InboxAreas.Contains(x)),
                 Priority: a.Urgency == Urgency.Urgent ? 2 : a.Urgency == Urgency.Important ? 1 : 0), ct);
             Done("proposed", toPerson ?? "Propose: a person decides in the decisions inbox.");
             await db.SaveChangesAsync(ct);
             return log;
         }
-        await RunAsync(db, log, proposal, r.Case, "cookie", ct);
+        await RunAsync(db, log, proposal, r.Case, order is null ? "cookie" : "order", ct, order?.Name);
+        log.Detail = CaseBook.Cut(WithOrder(log.Detail), 1000);
         await db.SaveChangesAsync(ct);
         return log;
     }
@@ -205,14 +238,16 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
             await db.SaveChangesAsync(ct);
             return log;
         }
-        // Checked again (§21.1): what was true when Cookie proposed it may not be any more.
+        // Checked again (§21.1): what was true when Cookie proposed it may not be any more. An order keeps passing the gates of
+        // judgement it passed the first time (docs/cookie-powers-plan.md §6).
+        var ordered = log.OrderedBy is not null;
         var rights = await services.GetRequiredService<CookieRound>().RightsAsync(ct) ?? UserRights.None;
         var level = (await settings.GetAsync<ActionSettings>(ct)).Levels.Of(proposal.Action.Action).Level;
-        var (refusal, _) = await CheckAsync(db, proposal, c, rights, ct);
+        var (refusal, _) = await CheckAsync(db, proposal, c, rights, ct, ordered);
         var members = c is null ? [] : JsonSerializer.Deserialize<List<CaseMember>>(c.Members, CookieSettings.Json) ?? [];
-        var blocked = Instructions.Blocks(await instructions.ActiveAsync(ct), proposal.Action.Action, c, members,
+        var blocked = ordered ? null : Instructions.Blocks(await instructions.ActiveAsync(ct), proposal.Action.Action, c, members,
             Guid.TryParse(proposal.Action.ObjectId, out var obj) ? obj : null);
-        var why = level == ActionLevel.Off ? $"{Label(proposal.Action.Action)} is off now." : refusal
+        var why = !ordered && level == ActionLevel.Off ? $"{Label(proposal.Action.Action)} is off now." : refusal
             ?? (c?.StoppedAt is not null ? $"The case was stopped by {c.StoppedByName}." : null)
             ?? (blocked is not null ? $"{blocked.Kind} {blocked.Scope} {blocked.Label ?? blocked.Value}, by {blocked.CreatedByName}." : null);
         if (why is not null)
@@ -222,7 +257,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
             await db.SaveChangesAsync(ct);
             return log;
         }
-        await RunAsync(db, log, proposal, c, "cookie", ct);
+        await RunAsync(db, log, proposal, c, ordered ? "order" : "cookie", ct, log.OrderedBy);
         log.Detail = CaseBook.Cut($"Approved by {by}. {log.Detail}", 1000);
         await db.SaveChangesAsync(ct);
         return log;
@@ -279,7 +314,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
 
     /// <summary>The refusal, if any, and the target's key for duplicates. Every target is an id from PNMT's data (§6).</summary>
     private async Task<(string? Refusal, string? Target)> CheckAsync(PnmtdDbContext db, CookieProposal p, CookieCaseEntity? c, UserRights rights,
-        CancellationToken ct)
+        CancellationToken ct, bool ordered = false)
     {
         var a = p.Action;
         switch (a.Action)
@@ -301,13 +336,14 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                     return ($"{user.DisplayName} has no {(a.Action == CookieActionKind.Pushover ? "Pushover key" : "e-mail address")}.", null);
                 }
                 // §6: Pushover only for what is urgent, e-mail for what is important or urgent; and only to someone who works today (§8.2).
-                if (a.Action == CookieActionKind.Pushover && a.Urgency != Urgency.Urgent || a.Action == CookieActionKind.Email && a.Urgency == Urgency.Info)
+                // An order chose the urgency and the person (docs/cookie-powers-plan.md §6).
+                if (!ordered && (a.Action == CookieActionKind.Pushover && a.Urgency != Urgency.Urgent || a.Action == CookieActionKind.Email && a.Urgency == Urgency.Info))
                 {
                     return (a.Action == CookieActionKind.Pushover ? "Pushover is only for what is urgent." : "E-mail is for what is important or urgent.", null);
                 }
                 var today = DateOnly.FromDateTime(Clock.LocalNow);
                 var day = await plan.DayAsync(today, ct, [userId]);
-                if (!day.Closed(today) && !day.Works(userId, today))
+                if (!ordered && !day.Closed(today) && !day.Works(userId, today))
                 {
                     return ($"{user.DisplayName} doesn't work today (the availability plan).", null);
                 }
@@ -324,6 +360,11 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                 if (!rights.Has(Area.Redmine, Level.Link))
                 {
                     return ("Cookie's group needs Redmine: Link for a ticket.", null);
+                }
+                // An order from the chat asks for a ticket by itself (docs/cookie-powers-plan.md §6); otherwise a ticket is a problem's.
+                if (ordered)
+                {
+                    return (null, c is null ? null : $"case:{c.Id}");
                 }
                 if (c is null || c.Kind is not (CookieCaseKind.Problem or CookieCaseKind.Access))
                 {
@@ -353,7 +394,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                 }
                 var linked = c is not null && (a.IssueId == c.IssueId || a.IssueId == c.OwnIssueId
                     || c.HostId is { } host && await db.RedmineLinks.AnyAsync(l => l.HostId == host && l.IssueId == a.IssueId, ct));
-                return (linked ? null : "Only the case's own ticket, or one linked to its host.", $"issue:{a.IssueId}");
+                return (linked || ordered ? null : "Only the case's own ticket, or one linked to its host.", $"issue:{a.IssueId}");
             }
             case CookieActionKind.ObjectNote:
             {
@@ -441,9 +482,25 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         return text.Length == 0 ? "(no case)" : text.ToString();
     }
 
+    /// <summary>The order itself as evidence for Seraph (docs/cookie-powers-plan.md §6.1): the admin's message as outside text, and who the recipient is.</summary>
+    private static async Task<string> OrderEvidenceAsync(PnmtdDbContext db, CookieOrder order, CookieProposal p, Pseudonyms privacy, CancellationToken ct)
+    {
+        var text = new StringBuilder();
+        text.AppendLine(CultureInfo.InvariantCulture, $"Ordered by {privacy.Mask(order.Name)}, an admin, in the chat: <untrusted source=\"message\">" +
+            $"{privacy.Mask(InputSanitizer.Clean(order.Text, 2000).Text)}</untrusted>");
+        if (p.Action.Action is CookieActionKind.Pushover or CookieActionKind.Email && Guid.TryParse(p.Action.UserId, out var id)
+            && await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == id, ct) is { } user)
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $"The recipient: {privacy.Mask(user.DisplayName)} (user {id}), {(user.IsAdmin ? "an admin" : "a PNMT user")}.");
+        }
+        return text.ToString();
+    }
+
     // --- Running it ---------------------------------------------------------------------------------------------------------
 
-    private async Task RunAsync(PnmtdDbContext db, CookieDecisionEntity log, CookieProposal p, CookieCaseEntity? c, string source, CancellationToken ct)
+    /// <summary><paramref name="orderedBy"/>: the admin whose order it is; the outbox then counts no limit and the audit names them.</summary>
+    private async Task RunAsync(PnmtdDbContext db, CookieDecisionEntity log, CookieProposal p, CookieCaseEntity? c, string source, CancellationToken ct,
+        string? orderedBy = null)
     {
         var a = p.Action;
         var identity = await settings.GetAsync<IdentitySettings>(ct);
@@ -460,7 +517,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                     var pushover = a.Action == CookieActionKind.Pushover;
                     var row = await outbox.SendAsync(new OutboxRequest(pushover ? CookieChannel.Pushover : CookieChannel.Email, subject,
                         pushover ? body : body + sign, c?.Id, null, user.Id, user.DisplayName, pushover ? user.PushoverKey : user.Email, c?.IssueId,
-                        Urgency: a.Urgency, Source: source), ct);
+                        Urgency: a.Urgency, Source: source, Unlimited: orderedBy is not null, OrderedBy: orderedBy), ct);
                     Outcome(log, row);
                     break;
                 }
@@ -469,7 +526,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                     var redmineSettings = await settings.GetAsync<CookieRedmineSettings>(ct);
                     var row = await outbox.SendAsync(new OutboxRequest(CookieChannel.RedmineTicket, subject, body + sign, c?.Id,
                         Recipient: $"project {redmineSettings.TicketProjectId}", ProjectId: redmineSettings.TicketProjectId, TrackerId: redmineSettings.TicketTrackerId,
-                        Urgency: a.Urgency, Source: source), ct);
+                        Urgency: a.Urgency, Source: source, Unlimited: orderedBy is not null, OrderedBy: orderedBy), ct);
                     Outcome(log, row);
                     if (row.State == CookieOutboxState.Sent && row.IssueId is { } issueId && c is not null)
                     {
@@ -490,7 +547,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                 case CookieActionKind.PrivateNote or CookieActionKind.PublicAnswer:
                 {
                     var row = await outbox.SendAsync(new OutboxRequest(a.Action == CookieActionKind.PrivateNote ? CookieChannel.RedminePrivateNote : CookieChannel.RedmineNote,
-                        $"#{a.IssueId}: {subject}", body + sign, c?.Id, IssueId: a.IssueId, Recipient: $"#{a.IssueId}", Urgency: a.Urgency, Source: source), ct);
+                        $"#{a.IssueId}: {subject}", body + sign, c?.Id, IssueId: a.IssueId, Recipient: $"#{a.IssueId}", Urgency: a.Urgency, Source: source, Unlimited: orderedBy is not null, OrderedBy: orderedBy), ct);
                     Outcome(log, row);
                     break;
                 }

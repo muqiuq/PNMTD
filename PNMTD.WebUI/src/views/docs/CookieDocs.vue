@@ -73,7 +73,10 @@ const show = computed(() => has(cookieText))
           rights and its own. Pick <em>Seraph</em> to ask Seraph instead: it explains its verdicts from the last 14
           days' decisions you may see, and can't act. At most 20 messages an hour; nothing while Cookie is stopped. The
           chat doesn't act: it says what Cookie would do from a case and under which conditions; proposals come only
-          from Cookie's work on cases.
+          from Cookie's work on cases. <strong>Except on an admin's order:</strong> an admin ticks <em>With powers</em>,
+          confirms a warning, and Cookie acts on that one message, past its levels, mutes, working hours and limits.
+          Seraph still reads every order and stops one it is sure is harmful; a doubt waits in the decisions inbox.
+          Every action is logged under the admin's name. Nobody else sees the checkbox.
         </li>
         <li>
           <strong>Without Redmine or Zabbix:</strong> when Redmine isn't configured, can't be written, or has been

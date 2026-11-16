@@ -291,6 +291,102 @@ public sealed class CookieLoopTests
     }
 
     [TestMethod]
+    public async Task An_admins_message_with_powers_makes_Cookie_act_and_nobody_else_can_send_one()
+    {
+        await Save("rights", new CookieRightsSettings { GroupId = group });
+        await Save("actions", new ActionSettings { Levels = new ActionLevels { Email = new ActionRule(ActionLevel.Off) } });
+        await admin.PostAsync("/api/v1/cookie/admin/start", null);
+        Guid ben;
+        await using (var db = app.NewDb())
+        {
+            var u = new UserEntity
+            {
+                Id = Guid.NewGuid(), Username = V1.Unique("ben"), NormalizedUsername = V1.Unique("ben"), DisplayName = "Ben Example", PasswordHash = "x", SecurityStamp = "s",
+                Email = "ben@example.com",
+            };
+            db.Users.Add(u);
+            await db.SaveChangesAsync();
+            ben = u.Id;
+        }
+        // Only an admin (docs/cookie-powers-plan.md §4): Cookie: Manage is not enough.
+        using (var denied = await app.ClientWithRights("Cookie:Manage").PostJsonAsync("/api/v1/cookie/messages/empowered", new CookieMessageRequest("Send Ben an e-mail")))
+        {
+            Assert.AreEqual(HttpStatusCode.Forbidden, denied.StatusCode);
+        }
+        router.Message = request =>
+        {
+            if (request["tools"] is null)
+            {
+                return null;
+            }
+            var system = request["messages"]![0]!["content"]!.GetValue<string>();
+            StringAssert.Contains(system, "comes with your powers");
+            Assert.IsFalse(system.Contains(CookieBrain.ChatNoProposal, StringComparison.Ordinal), "the powers replace the chat's denial");
+            var turns = request["messages"]!.AsArray();
+            var user = turns[turns.Count - 1]!["content"]!.GetValue<string>();
+            Assert.IsTrue(user.Contains("PeopleYouMayAddress") && user.Contains(ben.ToString()) && !user.Contains("Ben Example"), "ids, not names: " + user);
+            return new JsonObject { ["role"] = "assistant", ["content"] = "Beep: I tell PERSON_1 that the NAS is back." };
+        };
+        router.Answer = (schema, _) => schema switch
+        {
+            nameof(OrderAnswer) => new JsonObject
+            {
+                ["proposals"] = new JsonArray(new JsonObject
+                {
+                    ["action"] = "email", ["userId"] = ben.ToString(), ["issueId"] = 0, ["objectId"] = null, ["subject"] = "The NAS is back",
+                    ["text"] = "The NAS is back; the backup ran.", ["reason"] = "PERSON_2 asked for it.", ["evidence"] = new JsonArray(), ["confidence"] = 0.9,
+                    ["urgency"] = "info",
+                }),
+            }.ToJsonString(),
+            nameof(SeraphVerdict) => """{"verdict":"approve","reason":"harmless","confidence":0.9}""",
+            _ => """{"answer":"pong"}""",
+        };
+        try
+        {
+            using (var post = await admin.PostJsonAsync("/api/v1/cookie/messages/empowered", new CookieMessageRequest("Send Ben an e-mail: the NAS is back.")))
+            {
+                Assert.AreEqual(HttpStatusCode.OK, post.StatusCode, await post.Content.ReadAsStringAsync());
+                Assert.IsTrue((await post.ReadAsync<CookieMessageItem>()).Empowered);
+            }
+            await Loop.StepAsync(DateTime.MinValue, 0, CancellationToken.None, wait: false);
+            var thread = await (await admin.GetAsync("/api/v1/cookie/messages")).ReadAsync<CookieThread>();
+            var reply = thread.Messages[^1];
+            Assert.AreEqual(("cookie", true), (reply.From, thread.Messages[^2].Empowered), "the admin's message is marked");
+            var action = reply.Actions?.Single() ?? throw new AssertFailedException("the reply says what came of the order");
+            Assert.AreEqual(("email", "done"), (action.Kind, action.Outcome), action.Detail);
+            StringAssert.StartsWith(action.Detail, "On Test Admin's order from the chat. Passed: E-mail is off");
+            await using (var db = app.NewDb())
+            {
+                var decision = await db.CookieDecisions.SingleAsync(d => d.Id == action.DecisionId);
+                Assert.AreEqual(("Test Admin", "approve", 0.9), (decision.OrderedBy, decision.Verdict, decision.VerdictConfidence));
+                var mail = await db.CookieOutbox.SingleAsync(o => o.Id == decision.OutboxId);
+                Assert.AreEqual((CookieOutboxState.Simulated, "order"), (mail.State, mail.Source));
+                Assert.IsTrue(await db.AuditLog.AnyAsync(a => a.EventType == PNMTD.Audit.AuditEvents.CookiePowersUsed), "the order is audited under the admin");
+                Assert.IsTrue(await db.AuditLog.AnyAsync(a => a.EventType == PNMTD.Audit.AuditEvents.CookieMessageSent && a.Detail!.Contains("on Test Admin's order")),
+                    "the send names the admin");
+            }
+            Assert.IsTrue(router.Requests.Any(r => r.Body.Contains("This proposal is an order") && r.Body.Contains("Ordered by ")), "Seraph read the order");
+            Assert.IsTrue(router.Requests.Any(r => r.Url.Contains("/decisions") && !r.Body.Contains("beyond what the person")), "Jev's question for an admin's order");
+
+            // The same words without powers: no order call, no proposal, the chat's denial back in place.
+            var before = router.Requests.Count;
+            router.Message = request => request["tools"] is null ? null : new JsonObject { ["role"] = "assistant", ["content"] = "From a case I would e-mail PERSON_1." };
+            await admin.PostJsonAsync("/api/v1/cookie/messages", new CookieMessageRequest("Send Ben an e-mail: the NAS is back."));
+            await Loop.StepAsync(DateTime.MinValue, 0, CancellationToken.None, wait: false);
+            var plain = router.Requests.Skip(before).Where(r => r.Url.EndsWith("/chat/completions", StringComparison.Ordinal)).Select(r => r.Body).ToList();
+            Assert.IsTrue(plain.Count > 0 && plain.All(b => !b.Contains(nameof(OrderAnswer))) && plain.Any(b => b.Contains("Nothing asked in this chat")));
+            thread = await (await admin.GetAsync("/api/v1/cookie/messages")).ReadAsync<CookieThread>();
+            Assert.IsFalse(thread.Messages[^2].Empowered);
+            Assert.IsNull(thread.Messages[^1].Actions);
+        }
+        finally
+        {
+            await Save("actions", new ActionSettings());
+            await admin.PostAsync("/api/v1/cookie/admin/stop", null);
+        }
+    }
+
+    [TestMethod]
     public async Task The_summary_comes_from_Cookie_while_it_runs_is_kept_and_from_code_otherwise()
     {
         await Save("rights", new CookieRightsSettings { GroupId = group });

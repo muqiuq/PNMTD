@@ -4848,6 +4848,55 @@
         }
       }
     },
+    "/api/v1/cookie/messages/empowered": {
+      "post": {
+        "tags": [
+          "Cookie"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieMessageRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieMessageRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieMessageItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieMessageItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieMessageItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cookie/cases": {
       "get": {
         "tags": [
@@ -21311,6 +21360,10 @@
           },
           "bigBrother": {
             "type": "boolean"
+          },
+          "seraphVetoConfidence": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -26087,6 +26140,19 @@
           },
           "canRate": {
             "type": "boolean"
+          },
+          "orderedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "verdictConfidence": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
           }
         }
       },
@@ -26498,6 +26564,37 @@
           }
         }
       },
+      "CookieMessageActionItem": {
+        "required": [
+          "decisionId",
+          "kind",
+          "title",
+          "outcome",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "decisionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "CookieMessageItem": {
         "required": [
           "id",
@@ -26552,6 +26649,19 @@
               "null",
               "string"
             ]
+          },
+          "empowered": {
+            "type": "boolean",
+            "default": false
+          },
+          "actions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/CookieMessageActionItem"
+            }
           }
         }
       },

@@ -366,6 +366,13 @@ public class CookieDecisionEntity
     [MaxLength(1000)]
     public string? VerdictReason { get; set; }
 
+    /// <summary>How sure Seraph was of its verdict, 0 to 1 (docs/cookie-powers-plan.md §6.1); null before 1.11.</summary>
+    public double? VerdictConfidence { get; set; }
+
+    /// <summary>The admin whose empowered message ordered it (docs/cookie-powers-plan.md §6); null for Cookie's own proposals.</summary>
+    [MaxLength(200)]
+    public string? OrderedBy { get; set; }
+
     /// <summary>done, proposed, approved, declined, rejected, off, below-threshold, refused, duplicate, muted, held-back, failed, noted.</summary>
     [MaxLength(32)]
     public string Outcome { get; set; } = "";
@@ -664,6 +671,9 @@ public class CookieMessageEntity
 
     /// <summary>Through a read-only token: questions only, no instructions (docs/mcp-plan.md §8.3).</summary>
     public bool ReadOnly { get; set; }
+
+    /// <summary>An admin sent it with Cookie's powers (docs/cookie-powers-plan.md §4): Cookie acts on it, past the gates of judgement.</summary>
+    public bool Empowered { get; set; }
 
     /// <summary>Jev refused it before Cookie saw it (docs/mcp-plan.md §8.2); never answered.</summary>
     [MaxLength(300)]

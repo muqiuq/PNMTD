@@ -108,6 +108,22 @@ public sealed class CookieBrain(CookieSettings settings, Instructions instructio
     public const string ChatNoProposal = "Nothing asked in this chat becomes a proposal: say what you would do from a case, under which conditions, " +
         "and who can do it now.";
 
+    /// <summary>
+    /// What an admin's empowered message allows (docs/cookie-powers-plan.md §5), fixed in code in place of <see cref="ChatActingAsync"/>'s
+    /// sentence: the actions possible now, to anyone in PeopleYouMayAddress, as the person asks; code and Seraph still check each one.
+    /// </summary>
+    public static string Powers(IntegrationsReading reading, string asker)
+    {
+        var on = string.Join(", ", Proposable.Where(k => Possible(k, reading)).Select(ProposedAction.Name));
+        return $"This message comes with your powers: {asker}, an admin, switched them on for this one message and confirmed a warning. From this " +
+            $"message you may propose: {on}, as the person asks: to anyone in PeopleYouMayAddress, with the urgency and the text they want, also " +
+            "outside working hours. Code still checks the targets, Seraph reads every order and stops a harmful one, and every action is logged under " +
+            "their name; code tells them what came of each, so never claim that something was sent. Propose exactly what the message asks for: " +
+            "nothing more, and nothing on your own judgement. If it asks for something you can't do (someone outside PNMT, a ticket without a ticket " +
+            "system, deleting or changing anything), say so instead of proposing. Look up the ids you need with your tools." +
+            (reading.CanTicket ? "" : $" Tickets aren't possible now: {reading.NoTicketReason}");
+    }
+
     private async Task<List<CookieActionKind>> OnAsync(IntegrationsReading reading, CancellationToken ct)
     {
         var levels = (await settings.GetAsync<ActionSettings>(ct)).Levels;

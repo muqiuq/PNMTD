@@ -274,6 +274,7 @@
   - reads pages marked as sensitive.
 - **Every target is an id from PNMT's data** (a user id, a ticket id, a host id), never an address or a name taken from free text. An injected "send this to x@example.com" therefore has nowhere to go.
 - **Without a writable Redmine** (not configured, no write key, or unreachable for longer than the grace period), the ticket actions leave Cookie's list and the executor refuses them with why; **what would have been a ticket goes by e-mail to whoever is responsible, and by Pushover too when it is urgent** (docs/cookie-fallback-plan.md, 1.9).
+- **On an admin's order from the chat** (docs/cookie-powers-plan.md, 1.11): an admin sends a message *with powers*, confirmed in a warning each time, and Cookie proposes exactly what it asks for. For such an order the executor **passes the gates of judgement** (the level, including *Off*; the urgency rule; works today; mutes and suppressions; duplicates; the threshold; working hours; the inbox for *Propose*; the limits of §6.1) and **keeps the gates of fact** (a real PNMT user with a channel, the integration, Cookie's group's rights, nobody outside PNMT). **Seraph reads every order, object notes included, and judges harm only:** a reject with a confidence at or above *Seraph stops an order from this confidence* (Actions, 0.90) stops it; a less sure one, *ask*, or a second *revise* waits for the admin in the inbox, admins-only. Every action is logged under the admin's name, in the decision log (*ordered by*) and the audit log.
 
 ### 6.1 Output limits
 
@@ -534,6 +535,7 @@ Cookie gets its own area in the groups-and-rights model of five point five (audi
   - **Asking Cookie to act needs the right for that action.** For example, a ticket needs Redmine *Link*, and messages to other people need *Instruct*.
 - **Seraph explains itself:** ask it why it approved or rejected something. Seraph answers, and still can't act.
 - **The chat doesn't act, and says so truthfully** (docs/cookie-fallback-plan.md §5, 1.9): code tells Cookie which actions it may propose from a case and under which conditions, and that nothing asked in the chat becomes a proposal.
+- **Except on an admin's order** (docs/cookie-powers-plan.md, 1.11): an admin ticks *With powers*, confirms the warning, and Cookie acts on that one message (§6). Nobody else sees the checkbox, the endpoint is admin-only and audited, and MCP messages never carry powers.
 - **Messages are screened** like any other text (§13.1).
 - **From MCP (package eight):** the tool for talking to the internal AI **sends a message to Cookie.**
   - It comes from the token's user, with that user's rights. **A read-only token can only ask questions**: no instructions, and no requests to act.

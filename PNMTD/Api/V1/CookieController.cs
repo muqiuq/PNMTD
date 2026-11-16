@@ -42,6 +42,12 @@ public sealed class CookieController(CookieService cookie, CookieObjectNoteServi
     [NotAudited("a chat message, kept in the person's thread with Cookie")]
     public async Task<CookieMessageItem> Post(CookieMessageRequest request, CancellationToken ct) => await cookie.PostMessageAsync(request, User, ct);
 
+    /// <summary>A message with Cookie's powers (docs/cookie-powers-plan.md §4): admins only, audited; Cookie acts on it.</summary>
+    [HttpPost("messages/empowered")]
+    [RequireAdmin]
+    [Audit(AuditEvents.CookiePowersUsed)]
+    public async Task<CookieMessageItem> PostEmpowered(CookieMessageRequest request, CancellationToken ct) => await cookie.PostEmpoweredAsync(request, User, ct);
+
     [HttpGet("cases")]
     [RequireRight(Area.Cookie, Level.Use)]
     public async Task<Paged<CookieCaseItem>> Cases([FromQuery] CookieCaseQuery query, CancellationToken ct) => await cookie.CasesAsync(query, User, ct);

@@ -77,6 +77,14 @@ export const decisionOutcomes = [
 
 export const decisionOutcomeLabel = (outcome: string) => outcome.replace(/-/g, ' ')
 
+/** What came of an order from the chat (docs/cookie-powers-plan.md §7), under Cookie's reply: a doubt waits, a sure reject stopped it. */
+export const orderOutcomeLabel = (outcome: string) =>
+  outcome === 'proposed'
+    ? 'waits in the inbox'
+    : outcome === 'rejected'
+      ? 'stopped by Seraph'
+      : decisionOutcomeLabel(outcome)
+
 /**
  * Green for what happened, blue for what waits for a person, amber for what was held, red for what was refused or
  * failed, grey for what code dropped on purpose. An access verdict by how suspicious it looks: normal green, unusual

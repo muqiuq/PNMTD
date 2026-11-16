@@ -30,7 +30,8 @@ public sealed record OutboxRequest(
     int? TrackerId = null,
     Urgency Urgency = Urgency.Important,
     string Source = "code",
-    bool Unlimited = false);
+    bool Unlimited = false,
+    string? OrderedBy = null);
 
 /// <summary>
 /// Everything that leaves PNMT for Cookie goes through here (docs/cookie-plan.md §6.1, §19.1): the limits are counted
@@ -245,7 +246,8 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
             if (!byPerson)
             {
                 var caseTitle = r.CaseId is { } caseId ? await db.CookieCases.Where(c => c.Id == caseId).Select(c => c.Title).FirstOrDefaultAsync(ct) : null;
-                AuditLog.Record(db, type, AuditLog.Cut($"{Label(r.Channel)} to {Who(r)}: {r.Subject}", AuditLog.MaxDetail), AuditWho.Cookie(r.Source),
+                var ordered = r.OrderedBy is null ? "" : $" (on {r.OrderedBy}'s order from the chat)";
+                AuditLog.Record(db, type, AuditLog.Cut($"{Label(r.Channel)} to {Who(r)}: {r.Subject}{ordered}", AuditLog.MaxDetail), AuditWho.Cookie(r.Source),
                     r.CaseId is { } id ? AuditTarget.Of(AuditTargets.CookieCase, id, caseTitle) : null);
             }
         }

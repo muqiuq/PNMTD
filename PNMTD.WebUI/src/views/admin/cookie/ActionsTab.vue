@@ -204,6 +204,32 @@ const placed = (f: string) => f.startsWith('limits.') || f.startsWith('levels.')
               </tbody>
             </table>
           </div>
+          <div class="duty veto">
+            <InputNumber
+              v-model="s.draft.value.seraphVetoConfidence"
+              input-id="actions-veto"
+              :min="0.5"
+              :max="1"
+              :step="0.05"
+              :min-fraction-digits="2"
+              :max-fraction-digits="2"
+              show-buttons
+              size="small"
+              class="confidence"
+              :invalid="!!s.error('seraphVetoConfidence')"
+            />
+            <div>
+              <label for="actions-veto" class="label">Seraph stops an order from this confidence</label>
+              <div class="muted small">
+                An admin's message with powers (the chat's checkbox) makes Cookie act on it, past the levels above,
+                mutes, working hours and limits. Seraph still reads every such order and judges harm only: a reject this
+                sure stops it, a less sure one waits for the admin in the decisions inbox. 0.5 to 1; default 0.90.
+              </div>
+              <small v-if="s.error('seraphVetoConfidence')" class="field-error">{{
+                s.error('seraphVetoConfidence')
+              }}</small>
+            </div>
+          </div>
           <div class="duty">
             <ToggleSwitch v-model="s.draft.value.bigBrother" input-id="actions-big-brother" />
             <div>
