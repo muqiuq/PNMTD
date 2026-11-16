@@ -908,7 +908,7 @@ PNMTD.WebUI/src/
 
 **Acceptance targets** (Playwright, `SEED=1` fixture: 50 hosts, 300 sensors, 6 failing sensors in 3 hosts):
 
-- At 1440×900: the summary, all problems and at least 20 host rows are visible without page scrolling.
+- At 1440×900: the summary, all problems and at least 20 host rows are visible without page scrolling. Since Cookie's card heads the left side (docs/cookie-plan.md §19.8), all problems only while its summary for the reader lists no open cases; with them (up to five and "n more"), only their beginning: the heading and the first failing host.
 - At 1920×1080: the same, plus the recent state changes. Since Cookie's card heads the left side (docs/cookie-plan.md §19.8), only their beginning: the heading and the newest change.
 - At 390×844: the summary and the first failing host are above the fold. There is no horizontal scrolling at 360 px.
 - Both themes, with screenshots attached to the CI run.
