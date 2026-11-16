@@ -273,6 +273,7 @@
   - writes to anyone who isn't a PNMT user;
   - reads pages marked as sensitive.
 - **Every target is an id from PNMT's data** (a user id, a ticket id, a host id), never an address or a name taken from free text. An injected "send this to x@example.com" therefore has nowhere to go.
+- **Without a writable Redmine** (not configured, no write key, or unreachable for longer than the grace period), the ticket actions leave Cookie's list and the executor refuses them with why; **what would have been a ticket goes by e-mail to whoever is responsible, and by Pushover too when it is urgent** (docs/cookie-fallback-plan.md, 1.9).
 
 ### 6.1 Output limits
 
@@ -303,6 +304,7 @@
 - **If the case shows no progress for 2 days, a ticket is created** (by code from a template in package nine, by Cookie in nine point five). Progress means a Zabbix acknowledgement, a note on the host or sensor, or a linked ticket that is moving. PNMT itself has no acknowledgement. The ticket goes into the configured project, is linked to the host, sensor and location, and carries the case's timeline. The 2 days can be changed.
 - **When it's serious, Cookie acts at once.** Examples: a host with importance High is down, or many hosts at one location fail together. Cookie judges this, and Seraph checks the judgment.
 - **Once the problem is resolved, Cookie adds a closing note to its ticket** ("resolved at …"). It does not close the ticket itself.
+- **Without a ticket system,** the ticket's duty e-mails whoever is responsible instead, and a short e-mail follows when the problem is resolved (docs/cookie-fallback-plan.md §4.5, 1.9).
 
 ### 7.2 IT support tickets
 
@@ -531,6 +533,7 @@ Cookie gets its own area in the groups-and-rights model of five point five (audi
   - Anyone with *Use* can ask about what they themselves can see.
   - **Asking Cookie to act needs the right for that action.** For example, a ticket needs Redmine *Link*, and messages to other people need *Instruct*.
 - **Seraph explains itself:** ask it why it approved or rejected something. Seraph answers, and still can't act.
+- **The chat doesn't act, and says so truthfully** (docs/cookie-fallback-plan.md §5, 1.9): code tells Cookie which actions it may propose from a case and under which conditions, and that nothing asked in the chat becomes a proposal.
 - **Messages are screened** like any other text (§13.1).
 - **From MCP (package eight):** the tool for talking to the internal AI **sends a message to Cookie.**
   - It comes from the token's user, with that user's rights. **A read-only token can only ask questions**: no instructions, and no requests to act.

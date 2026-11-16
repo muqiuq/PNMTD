@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { useQuery } from '@tanstack/vue-query'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
 import SelectButton from 'primevue/selectbutton'
 import ToggleSwitch from 'primevue/toggleswitch'
-import type { S } from '@/api/resources'
+import { computed } from 'vue'
+import { api, keys, type S } from '@/api/resources'
 import ErrorState from '@/components/ErrorState.vue'
 import { dutyLabel, type DutyKind } from '@/views/cookie/cookieFormat'
 import { actionDefaults, normalizeLevels, type ActionKey } from './cookieAdmin'
@@ -16,10 +18,24 @@ import { useCookieDefaults, useSection } from './useSection'
  * the decisions inbox, after Seraph) or Auto (Seraph's approval is enough), with the confidence below which it goes to a
  * person; the big brother, off until an admin turns it on; PNMT's duties, each off until an admin turns it on, and
  * whether Cookie writes their texts; and the output limits, which hold back whatever would go over them, Cookie's
- * messages and the duties' alike.
+ * messages and the duties' alike. The ticket actions say when Redmine can't take them now, whatever their level
+ * (docs/cookie-fallback-plan.md §6.2).
  */
 const s = useSection('actions', { normalize: (v) => ({ ...v, levels: normalizeLevels(v.levels) }) })
 const defaults = useCookieDefaults()
+const overview = useQuery({ queryKey: [...keys.cookie, 'admin', 'overview'], queryFn: api.cookie.overview })
+const integrations = computed(() => overview.data.value?.acting?.integrations ?? null)
+/** Why an action can't happen now, whatever its level: the level stays what Cookie does once Redmine is back. */
+const unavailable = (key: ActionKey): string | null => {
+  const i = integrations.value
+  if (!i) return null
+  if (key === 'ticket') {
+    if (i.redmine.state !== 'writable') return i.redmine.reason
+    return i.ticketProject ? null : "no project for Cookie's tickets (the Redmine tab)"
+  }
+  if (key === 'privateNote' || key === 'publicAnswer') return i.redmine.state !== 'writable' ? i.redmine.reason : null
+  return null
+}
 
 const actions: { key: ActionKey; label: string; text: string }[] = [
   {
@@ -146,6 +162,9 @@ const placed = (f: string) => f.startsWith('limits.') || f.startsWith('levels.')
                   <td>
                     <div class="label">{{ a.label }}</div>
                     <div class="muted small">{{ a.text }}</div>
+                    <div v-if="unavailable(a.key)" class="small warn-text">
+                      Unavailable now: {{ unavailable(a.key) }}
+                    </div>
                     <small v-if="s.error(`levels.${a.key}`)" class="field-error">{{
                       s.error(`levels.${a.key}`)
                     }}</small>
@@ -353,5 +372,9 @@ const placed = (f: string) => f.startsWith('limits.') || f.startsWith('levels.')
 
 .small {
   font-size: 0.857rem;
+}
+
+.warn-text {
+  color: var(--pnmt-warn);
 }
 </style>

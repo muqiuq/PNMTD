@@ -16815,6 +16815,7 @@ export interface components {
             activeInstructions: number;
             /** Format: int32 */
             lessons: number;
+            integrations: components["schemas"]["CookieIntegrationsItem"];
         };
         CookieAdminOverview: {
             status: components["schemas"]["CookieStatusItem"];
@@ -17043,6 +17044,17 @@ export interface components {
             text: string;
             /** Format: date-time */
             until: string;
+        };
+        CookieIntegrationItem: {
+            state: string;
+            reason: null | string;
+            /** Format: date-time */
+            since: null | string;
+        };
+        CookieIntegrationsItem: {
+            redmine: components["schemas"]["CookieIntegrationItem"];
+            ticketProject: boolean;
+            zabbix: components["schemas"]["CookieIntegrationItem"];
         };
         CookieMessageItem: {
             /** Format: int64 */

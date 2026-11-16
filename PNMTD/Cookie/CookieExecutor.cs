@@ -10,7 +10,6 @@ using PNMTD.Data;
 using PNMTD.Decisions;
 using PNMTD.Lib.Helper;
 using PNMTD.Models.Db;
-using PNMTD.Redmine;
 
 namespace PNMTD.Cookie;
 
@@ -31,7 +30,7 @@ public sealed record ActionRequest(
 /// Whatever a model said, code decides here.
 /// </summary>
 public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings settings, Seraph seraph, Instructions instructions, Outbox outbox,
-    DecisionBook inbox, PrivacyFilter privacy, IOptionsMonitor<RedmineOptions> redmineOptions, PNMTD.Availability.AvailabilityPlan plan, IServiceProvider services,
+    DecisionBook inbox, PrivacyFilter privacy, PNMTD.Availability.AvailabilityPlan plan, IServiceProvider services, CookieIntegrations integrations,
     ILogger<CookieExecutor> logger)
 {
     public const string InboxKind = "cookie.action";
@@ -287,7 +286,6 @@ public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs
         CancellationToken ct)
     {
         var a = p.Action;
-        var redmine = redmineOptions.CurrentValue;
         switch (a.Action)
         {
             case CookieActionKind.Pushover or CookieActionKind.Email:
@@ -321,10 +319,11 @@ public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs
             }
             case CookieActionKind.Ticket:
             {
-                var redmineSettings = await settings.GetAsync<CookieRedmineSettings>(ct);
-                if (!redmine.CanWrite || redmineSettings.TicketProjectId is null)
+                // Without a writable Redmine there is no ticket (docs/cookie-fallback-plan.md §4.4): the reading says why.
+                var reading = await integrations.ReadAsync(ct);
+                if (!reading.CanTicket)
                 {
-                    return ("A ticket needs Redmine__WriteApiKey and a project for Cookie's tickets.", null);
+                    return (reading.NoTicketReason, null);
                 }
                 if (!rights.Has(Area.Redmine, Level.Link))
                 {
@@ -347,9 +346,10 @@ public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs
             }
             case CookieActionKind.PrivateNote or CookieActionKind.PublicAnswer:
             {
-                if (!redmine.CanWrite)
+                var reading = await integrations.ReadAsync(ct);
+                if (!reading.RedmineWritable)
                 {
-                    return ("A note on a ticket needs Redmine__WriteApiKey.", null);
+                    return (reading.NoNoteReason, null);
                 }
                 if (!rights.Has(Area.Redmine, Level.View))
                 {

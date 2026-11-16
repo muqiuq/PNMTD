@@ -154,7 +154,15 @@ public sealed record CookieAdminOverview(
 /// whether Seraph has a model; the big brother's budget.
 /// </summary>
 public sealed record CookieActingItem(int Waiting, int DoneToday, int RejectedToday, int DeclinedToday, int HeldBackToday, bool SeraphConfigured,
-    CookieBudgetItem BigBrother, int ActiveInstructions, int Lessons);
+    CookieBudgetItem BigBrother, int ActiveInstructions, int Lessons, CookieIntegrationsItem Integrations);
+
+/// <summary>
+/// What Cookie counts as available (docs/cookie-fallback-plan.md §3, §6.1): Redmine as <c>none</c>, <c>readOnly</c> or <c>writable</c>, Zabbix as
+/// <c>none</c> or <c>available</c>, each with why not and since when; and whether Cookie has a project for its tickets.
+/// </summary>
+public sealed record CookieIntegrationsItem(CookieIntegrationItem Redmine, bool TicketProject, CookieIntegrationItem Zabbix);
+
+public sealed record CookieIntegrationItem(string State, string? Reason, DateTime? Since);
 
 /// <summary>How the duties of one kind ended in the last 7 days.</summary>
 public sealed record CookieDutyCount(CookieDutyKind Kind, bool On, int Due, int Done, int HeldBack, int Off, int Failed);

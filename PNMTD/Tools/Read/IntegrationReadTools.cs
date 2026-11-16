@@ -19,10 +19,16 @@ public static class IntegrationReadTools
     public static readonly IReadOnlyList<ToolSpec> All =
     [
         new("ticket_get", "A Redmine ticket", "A Redmine ticket of the projects PNMT shows: header, description and its journals.",
-            Schema(Int("number", "The ticket's number", true)), Area.Redmine, Level.View, ToolKind.Read, TicketAsync) { ForCookie = true, OpenWorld = true },
+            Schema(Int("number", "The ticket's number", true)), Area.Redmine, Level.View, ToolKind.Read, TicketAsync)
+        {
+            ForCookie = true, OpenWorld = true, Available = RedmineReadable,
+        },
         new("zabbix_problems", "Zabbix's problems",
             "Zabbix's open problems, the most severe first, for one Zabbix host or all: name, severity, since, acknowledged, host.",
-            Schema(Int("zabbixHostId", "One Zabbix host's id; all when left out")), Area.Zabbix, Level.View, ToolKind.Read, ZabbixAsync) { ForCookie = true },
+            Schema(Int("zabbixHostId", "One Zabbix host's id; all when left out")), Area.Zabbix, Level.View, ToolKind.Read, ZabbixAsync)
+        {
+            ForCookie = true, Available = ZabbixAvailable,
+        },
         new("availability_get", "The availability plan",
             "The availability plan for some days (at most 14): who is responsible, who works and where (on site, work travel, home office), who is away " +
             "and why, the counts below their minimum, the day's comment.",
@@ -50,6 +56,11 @@ public static class IntegrationReadTools
             "A Zabbix host: its groups, interfaces, availability, problems, and with Zabbix Details its inventory.",
             Schema(Int("id", "The Zabbix host's id", true)), Area.Zabbix, Level.View, ToolKind.Read, ZabbixHostAsync),
     ];
+
+    /// <summary>Not offered while Redmine or Zabbix isn't available (docs/cookie-fallback-plan.md §4.3): Cookie's and MCP's lists agree.</summary>
+    private static bool RedmineReadable(IServiceProvider services) => services.GetRequiredService<CookieIntegrations>().Current.RedmineReadable;
+
+    private static bool ZabbixAvailable(IServiceProvider services) => services.GetRequiredService<CookieIntegrations>().Current.Zabbix;
 
     private static async Task<object> TicketAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
     {

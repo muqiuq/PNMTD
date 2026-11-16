@@ -372,4 +372,73 @@ public sealed class CookieActingTests
         Assert.AreSame(people, CaseBook.PeoplesNotes(people), "notes without Cookie's lines stay as they are");
         Assert.AreEqual(people, CaseBook.PeoplesNotes($"{people}\n\n[Cookie, 2026-11-15 10:30] The ping fails since 08:00."));
     }
+
+    [TestMethod]
+    public async Task Without_a_writable_Redmine_Cookie_proposes_no_tickets_and_says_what_it_does_instead()
+    {
+        await Save("actions", new ActionSettings());
+        var brain = app.Services.GetRequiredService<CookieBrain>();
+        var all = await brain.ActingAsync(IntegrationsReading.Everything, CancellationToken.None);
+        StringAssert.Contains(all, "pushover, email, ticket, private-note, public-answer, object-note, and hand-to-person");
+        Assert.IsFalse(all.Contains("no ticket system", StringComparison.OrdinalIgnoreCase));
+
+        var none = CookieIntegrations.Read(new PNMTD.Redmine.RedmineOptions(), new PNMTD.Zabbix.ZabbixOptions(), new PNMTD.Zabbix.ZabbixSnapshot.State([], null, null, null),
+            null, false, Clock.UtcNow);
+        var acting = await brain.ActingAsync(none, CancellationToken.None);
+        StringAssert.Contains(acting, "pushover, email, object-note, and hand-to-person");
+        StringAssert.Contains(acting, "There is no ticket system you can write to now");
+        StringAssert.Contains(acting, "e-mail to whoever is responsible (PeopleYouMayAddress), important; when it is urgent, Pushover too");
+        var chat = await brain.ChatActingAsync(none, CancellationToken.None);
+        StringAssert.Contains(chat, CookieBrain.ChatNoProposal);
+        StringAssert.Contains(chat, "pushover (only for what is urgent");
+        StringAssert.Contains(chat, "email (for what is important or urgent");
+        Assert.IsFalse(chat.Contains("ticket (", StringComparison.Ordinal), "no ticket from the chat's list either");
+        StringAssert.Contains(chat, "Admin → Debug");
+        await Save("actions", new ActionSettings { Levels = new ActionLevels { Pushover = new ActionRule(ActionLevel.Off), Email = new ActionRule(ActionLevel.Off),
+            ObjectNote = new ActionRule(ActionLevel.Off) } });
+        StringAssert.Contains(await brain.ChatActingAsync(none, CancellationToken.None), "You only watch", "the ticket actions are on, but there is no Redmine");
+        StringAssert.StartsWith(await brain.ActingAsync(none, CancellationToken.None), CookieBrain.WatchOnly);
+        await Save("actions", new ActionSettings());
+
+        // Unreachable for longer than the grace period (docs/cookie-fallback-plan.md §3.3): the executor refuses a ticket with why, the ticket
+        // tool isn't offered, and the admin tabs see it; the first successful read brings everything back.
+        var c = await ProblemAsync("nas");
+        await using (var db = app.NewDb())
+        {
+            var runtime = await CaseBook.RuntimeAsync(db, CancellationToken.None);
+            runtime.CaseBookError = "Redmine: 502 Bad Gateway";
+            runtime.TicketsAt = Clock.UtcNow - CookieIntegrations.Grace - TimeSpan.FromMinutes(1);
+            await db.SaveChangesAsync();
+        }
+        try
+        {
+            var ticket = new ProposedAction(CookieActionKind.Ticket, null, 0, null, "nas is down", "The NAS has been down since this morning.", "Nobody took care.", [],
+                0.95, Urgency.Important);
+            var refused = await HandleAsync(ticket, c);
+            Assert.AreEqual("refused", refused.Outcome, refused.Detail);
+            StringAssert.Contains(refused.Detail, "Redmine is unreachable since");
+            StringAssert.Contains(refused.Detail, "what matters goes by e-mail");
+            var note = new ProposedAction(CookieActionKind.PrivateNote, null, 1, null, "nas", "A note.", "Because.", [], 0.95, Urgency.Important);
+            StringAssert.Contains((await HandleAsync(note, c)).Detail, "no note on a ticket");
+
+            var tools = CookieTools.For(Rights, app.Services).Select(t => t.Name).ToList();
+            Assert.IsFalse(tools.Contains("ticket_get"), string.Join(",", tools));
+            Assert.IsTrue(tools.Contains("host_get"));
+            var overview = await admin.GetFromJsonAsync<JsonElement>("/api/v1/cookie/admin/overview");
+            var integrations = overview.GetProperty("acting").GetProperty("integrations");
+            Assert.AreEqual("none", integrations.GetProperty("redmine").GetProperty("state").GetString());
+            StringAssert.Contains(integrations.GetProperty("redmine").GetProperty("reason").GetString(), "502 Bad Gateway");
+        }
+        finally
+        {
+            await using var db = app.NewDb();
+            var runtime = await CaseBook.RuntimeAsync(db, CancellationToken.None);
+            runtime.CaseBookError = null;
+            runtime.TicketsAt = Clock.UtcNow;
+            await db.SaveChangesAsync();
+        }
+        var back = await app.Services.GetRequiredService<CookieIntegrations>().ReadAsync(CancellationToken.None);
+        Assert.AreEqual(RedmineAvailability.Writable, back.Redmine, back.RedmineReason);
+        Assert.IsTrue(CookieTools.For(Rights, app.Services).Any(t => t.Name == "ticket_get"), "the first successful read brings the tool back");
+    }
 }

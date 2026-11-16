@@ -127,6 +127,7 @@ public static class CookieSetup
         // Cookie itself (package nine, B): the model, the prompts, the privacy filter, a round, the loop.
         services.AddSingleton<CookieModel>();
         services.AddSingleton<CookieBrain>();
+        services.AddSingleton<CookieIntegrations>();
         services.AddSingleton<PrivacyFilter>();
         services.AddSingleton<CookieRound>();
         services.AddSingleton<CookieLoop>();

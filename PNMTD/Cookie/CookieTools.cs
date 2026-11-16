@@ -21,6 +21,13 @@ public static class CookieTools
     /// <summary>The tools these rights allow; never one that writes (§3.5).</summary>
     public static IReadOnlyList<ToolSpec> For(UserRights rights) => [.. ToolCatalog.ForCookie(rights)];
 
+    /// <summary>
+    /// The same, less what isn't available now (docs/cookie-fallback-plan.md §4.3): a tool for a Redmine or a Zabbix Cookie
+    /// can't reach isn't offered, so the model isn't told it exists and then refused.
+    /// </summary>
+    public static IReadOnlyList<ToolSpec> For(UserRights rights, IServiceProvider services) =>
+        [.. ToolCatalog.ForCookie(rights).Where(t => t.Available?.Invoke(services) ?? true)];
+
     public static JsonArray Definitions(IEnumerable<ToolSpec> tools) => new([.. tools.Select(t => (JsonNode)new JsonObject
     {
         ["type"] = "function",

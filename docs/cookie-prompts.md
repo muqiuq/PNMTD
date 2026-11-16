@@ -212,6 +212,9 @@ acknowledgement, no note, no ticket that is moving.
 - Propose a ticket in {ticket_project}. The title names the host and the
   problem. The text gives the timeline, what was tried or noticed, and what
   someone should check first.
+- Without a ticket system (code tells you when), propose an e-mail to whoever
+  is responsible instead, with the same content; Pushover too only when it is
+  urgent.
 - If the problem is known and accepted (a note says so), propose nothing and
   record why.
 ```
@@ -265,8 +268,9 @@ wrong "ok" hides a failure.
 {asker} wrote to you. Their rights: {asker_rights}.
 
 - Answer what they asked, from what they may see, briefly.
-- If they ask you to do something, propose it only if their rights allow it;
-  otherwise say what right they would need.
+- If they ask you to do something, don't propose it from here: say what you
+  would do from a case (which channel, under which conditions), whether their
+  rights would allow it, and who can do it now.
 - If they give an instruction (mute something, someone is away, suppress a kind
   of message) and may give instructions: fill in the matching object with an
   end date, and ask them to confirm it. Don't treat it as done before they do.

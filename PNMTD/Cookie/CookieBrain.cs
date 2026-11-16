@@ -60,26 +60,103 @@ public sealed class CookieBrain(CookieSettings settings, Instructions instructio
 
     public const int StatusChars = 160;
 
+    /// <summary>The actions Cookie proposes, in the order the prompts name them.</summary>
+    private static readonly CookieActionKind[] Proposable =
+    [
+        CookieActionKind.Pushover, CookieActionKind.Email, CookieActionKind.Ticket, CookieActionKind.PrivateNote, CookieActionKind.PublicAnswer,
+        CookieActionKind.ObjectNote,
+    ];
+
     /// <summary>
-    /// What Cookie may propose now (§6, §21.1), fixed in code from the levels on Admin → Cookie → Actions; with every action off,
-    /// it only watches, as in package nine.
+    /// What Cookie may propose now (§6, §21.1), fixed in code from the levels on Admin → Cookie → Actions and from what is
+    /// available (docs/cookie-fallback-plan.md §4.1); with every action off, it only watches, as in package nine.
     /// </summary>
-    public async Task<string> ActingAsync(CancellationToken ct)
+    public async Task<string> ActingAsync(IntegrationsReading reading, CancellationToken ct)
     {
-        var levels = (await settings.GetAsync<ActionSettings>(ct)).Levels;
-        var kinds = new[] { CookieActionKind.Pushover, CookieActionKind.Email, CookieActionKind.Ticket, CookieActionKind.PrivateNote,
-            CookieActionKind.PublicAnswer, CookieActionKind.ObjectNote };
-        var on = kinds.Where(k => levels.Of(k).Level != ActionLevel.Off).Select(ProposedAction.Name).ToList();
+        var on = (await OnAsync(reading, ct)).Select(ProposedAction.Name).ToList();
+        var fallback = reading.CanTicket ? "" : " " + NoTicketSystem(reading);
         if (on.Count == 0)
         {
-            return WatchOnly;
+            return WatchOnly + fallback;
         }
         return "You may propose actions now: " + string.Join(", ", on) + ", and hand-to-person for anything else. Each proposal goes through " +
             "code (rights, limits, duplicates, mute and suppress) and Seraph, the reviewer; some wait for a person. Propose only what the case " +
             "needs now; most rounds need none, and a note is enough when someone is already on it. Name people only by the user ids in " +
             "PeopleYouMayAddress, tickets by their number, hosts and sensors by their ids. Write each text as it is to be sent, in the " +
-            "requester's language for a public answer, and never with secrets.";
+            "requester's language for a public answer, and never with secrets." + fallback;
     }
+
+    /// <summary>
+    /// What the chat says about Cookie's abilities (docs/cookie-fallback-plan.md §5.1): the same actions and conditions the
+    /// cases get, and that nothing asked in the chat becomes a proposal.
+    /// </summary>
+    public async Task<string> ChatActingAsync(IntegrationsReading reading, CancellationToken ct)
+    {
+        var on = (await OnAsync(reading, ct)).Select(k => $"{ProposedAction.Name(k)} ({Condition(k)})").ToList();
+        var text = on.Count == 0
+            ? "You only watch: you propose nothing, from the chat or from a case. For anything the person wants done, say what would happen and " +
+              "who could do it."
+            : "From the cases you work on your own, you may propose: " + string.Join(", ", on) + ". Each goes through code, Seraph and, at Propose, " +
+              "a person in the decisions inbox; the levels are on Admin → Cookie → Actions. " + ChatNoProposal;
+        if (!reading.CanTicket)
+        {
+            text += " " + NoTicketSystem(reading);
+        }
+        return text + " To test their own Pushover or e-mail, an admin uses Admin → Debug.";
+    }
+
+    public const string ChatNoProposal = "Nothing asked in this chat becomes a proposal: say what you would do from a case, under which conditions, " +
+        "and who can do it now.";
+
+    private async Task<List<CookieActionKind>> OnAsync(IntegrationsReading reading, CancellationToken ct)
+    {
+        var levels = (await settings.GetAsync<ActionSettings>(ct)).Levels;
+        return [.. Proposable.Where(k => levels.Of(k).Level != ActionLevel.Off && Possible(k, reading))];
+    }
+
+    /// <summary>Whether what is available allows the action at all (docs/cookie-fallback-plan.md §4.1).</summary>
+    public static bool Possible(CookieActionKind kind, IntegrationsReading reading) => kind switch
+    {
+        CookieActionKind.Ticket => reading.CanTicket,
+        CookieActionKind.PrivateNote or CookieActionKind.PublicAnswer => reading.RedmineWritable,
+        _ => true,
+    };
+
+    private static string Condition(CookieActionKind kind) => kind switch
+    {
+        CookieActionKind.Pushover => "only for what is urgent, to a PNMT user with a Pushover key who works today, in working hours",
+        CookieActionKind.Email => "for what is important or urgent, to a PNMT user with an e-mail address who works today",
+        CookieActionKind.Ticket => "for a problem nobody takes care of",
+        CookieActionKind.PrivateNote => "on the case's ticket, to staff",
+        CookieActionKind.PublicAnswer => "on a support ticket, to its requester",
+        _ => "on a host or sensor",
+    };
+
+    /// <summary>The sentence for a Cookie without a ticket system it can write to (docs/cookie-fallback-plan.md §4.1).</summary>
+    public static string NoTicketSystem(IntegrationsReading reading) =>
+        (reading.RedmineWritable
+            ? "You have no project for your own tickets (Admin → Cookie → Redmine → Cookie's tickets): don't propose tickets."
+            : $"There is no ticket system you can write to now: {reading.RedmineReason}. Don't propose tickets or notes on tickets.") +
+        " What would have been a ticket is an e-mail to whoever is responsible (PeopleYouMayAddress), important; when it is urgent, Pushover too.";
+
+    /// <summary>What isn't there (docs/cookie-fallback-plan.md §4.2), fixed in code after the instructions; empty when everything is.</summary>
+    public static string Missing(IntegrationsReading reading)
+    {
+        var parts = new List<string>();
+        if (!reading.RedmineReadable)
+        {
+            parts.Add($"{reading.RedmineReason}: don't look for tickets, and don't count on one being open.");
+        }
+        if (!reading.Zabbix)
+        {
+            parts.Add($"{reading.ZabbixReason}: don't look for Zabbix problems or acknowledgements; PNMT's own sensors are what you have.");
+        }
+        return string.Join(" ", parts);
+    }
+
+    /// <summary>The case's instructions with what isn't there appended (§4.2).</summary>
+    public static string WithMissing(string instructions, IntegrationsReading reading) =>
+        Missing(reading) is { Length: > 0 } missing ? $"{instructions}\n\n{missing}" : instructions;
 
     public async Task<string> PromptAsync(string key, CancellationToken ct)
     {

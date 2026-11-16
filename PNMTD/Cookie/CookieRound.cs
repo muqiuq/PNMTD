@@ -22,7 +22,8 @@ public sealed record RoundResult(long RoundId, string Outcome, int Cases, int Ca
 /// </summary>
 public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceProvider services, CookieSettings settings, CookieModel model,
     CookieBrain brain, PrivacyFilter privacy, DecisionClient guard, Microsoft.Extensions.Options.IOptionsMonitor<AiOptions> ai,
-    Microsoft.Extensions.Options.IOptionsMonitor<CookieOptions> options, PNMTD.Availability.AvailabilityPlan plan, ILogger<CookieRound> logger)
+    Microsoft.Extensions.Options.IOptionsMonitor<CookieOptions> options, PNMTD.Availability.AvailabilityPlan plan, CookieIntegrations integrations,
+    ILogger<CookieRound> logger)
 {
     private CookieTokenOptions Tokens => options.CurrentValue.Tokens;
 
@@ -48,6 +49,8 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
     public async Task<RoundResult> RunAsync(string trigger, bool force, CancellationToken ct)
     {
         var rights = await RightsAsync(ct) ?? throw new CookiePausedException("Choose Cookie's group on Admin → Cookie → Rights: Cookie reads with its rights.");
+        // What is available, once per round (docs/cookie-fallback-plan.md §3): the prompts, the tools and the chat read the same.
+        var reading = await integrations.ReadAsync(ct);
         var models = await settings.GetAsync<ModelSettings>(ct);
         var cases = await settings.GetAsync<CaseSettings>(ct);
         var now = Clock.UtcNow;
@@ -65,7 +68,7 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
         try
         {
             // 0. Messages first (§10.2): each person's question, answered with the lower of their rights and Cookie's.
-            var replies = await RepliesAsync(db, trace, p, rights, models, ct);
+            var replies = await RepliesAsync(db, trace, p, rights, models, reading, ct);
             calls += replies.Calls;
             toolCalls += replies.ToolCalls;
             cost += replies.Cost;
@@ -187,12 +190,12 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 [.. open.SelectMany(c => c.Areas).Distinct()]);
 
             // 3. Work, case by case, with the read tools; each ends in a note, and the proposals it needs (§21.1).
-            var acting = await brain.ActingAsync(ct);
+            var acting = await brain.ActingAsync(reading, ct);
             var executor = services.GetRequiredService<CookieExecutor>();
             var bigBrother = services.GetRequiredService<BigBrother>();
             var missed = (await db.CookieDuties.AsNoTracking().Where(d => openIds.Contains(d.CaseId) && d.DueAt <= now
                     && (d.Kind == CookieDutyKind.FirstAnswerMissed || d.Kind == CookieDutyKind.UpdateMissed)).Select(d => d.CaseId).ToListAsync(ct)).ToHashSet();
-            var tools = CookieTools.For(rights);
+            var tools = CookieTools.For(rights, services);
             var definitions = CookieTools.Definitions(tools);
             var worked = 0;
             var recent = now.AddDays(-7);
@@ -214,7 +217,7 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                     ["elapsed"] = c.TicketCreatedAt is { } created ? $"{calendar.WorkingTimeBetween(created, now).TotalHours:0.#}" : "?",
                     ["status"] = c.StatusName ?? "?", ["escalation_group"] = "the project's escalation group", ["ticket_project"] = "Cookie's ticket project",
                 };
-                var instructions = await brain.InstructionsAsync(c, kind, members, manyAtOnce, caseValues, ct);
+                var instructions = CookieBrain.WithMissing(await brain.InstructionsAsync(c, kind, members, manyAtOnce, caseValues, ct), reading);
                 var context = new ToolContext(services, rights, p);
                 context.Areas.UnionWith(c.Areas);
                 var people = await PeopleAsync(db, c, p, ct);
@@ -401,7 +404,8 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
     /// lower of the asker's rights and Cookie's, and the reply in the thread. Instructions (mute, away, suppress) come with
     /// nine point five, and Cookie says so.
     /// </summary>
-    private async Task<Replies> RepliesAsync(PnmtdDbContext db, Trace trace, Pseudonyms p, UserRights cookie, ModelSettings models, CancellationToken ct)
+    private async Task<Replies> RepliesAsync(PnmtdDbContext db, Trace trace, Pseudonyms p, UserRights cookie, ModelSettings models, IntegrationsReading reading,
+        CancellationToken ct)
     {
         var waiting = await db.CookieMessages.Where(m => !m.Answered && m.From == "person").OrderBy(m => m.Id).Take(RepliesPerRound + 1).ToListAsync(ct);
         if (waiting.Count == 0)
@@ -482,12 +486,12 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                     ["asker_rights"] = string.Join(", ", RightsCatalog.Areas.Where(a => rights.Levels.ContainsKey(a.Area)).Select(a => $"{a.Label}: {rights.Levels[a.Area]}"))
                         is { Length: > 0 } r ? r : "none",
                 };
-                var instructions = CookiePrompts.Fill(await brain.CaseInstructionAsync("request", ct), requestValues);
-                var allowed = CookieTools.Definitions(CookieTools.For(rights));
+                var instructions = CookieBrain.WithMissing(CookiePrompts.Fill(await brain.CaseInstructionAsync("request", ct), requestValues), reading);
+                var allowed = CookieTools.Definitions(CookieTools.For(rights, services));
                 // A read-only token only asks (docs/mcp-plan.md §8.3), whatever its user may do.
                 var canInstruct = !message.ReadOnly && askerRights.Has(Auth.Rights.Area.Cookie, Auth.Rights.Level.Instruct);
-                var work = new JsonArray(Message("system", $"{system}\n\n{instructions}\n\nYou don't act from the chat: for anything the person wants " +
-                    "done, say what would happen and who could do it. " + (canInstruct
+                // What Cookie does from its cases, and that nothing asked here becomes a proposal (docs/cookie-fallback-plan.md §5.1).
+                var work = new JsonArray(Message("system", $"{system}\n\n{instructions}\n\n{await brain.ChatActingAsync(reading, ct)} " + (canInstruct
                         ? "This person may give instructions: if they give one (mute something, suppress a kind of message, a note on how you should " +
                           "work for a while), look up the ids you need with your tools, and say briefly that you filled it in below for them to confirm."
                         : "This person can't give instructions (that needs Cookie: Instruct); if they try, say so.") +

@@ -26,7 +26,7 @@ public sealed record CaseBookResult(int Opened, int Changed, int Closed, int Ope
 /// </summary>
 public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScopeFactory scopes, CookieSettings settings, ZabbixSnapshot zabbix,
     RedmineClient redmine, IOptionsMonitor<RedmineOptions> redmineOptions, IMemoryCache cache, CookieSignals signals,
-    PNMTD.Availability.AvailabilityPlan plan, ILogger<CaseBook> logger)
+    PNMTD.Availability.AvailabilityPlan plan, CookieIntegrations integrations, ILogger<CaseBook> logger)
 {
     public const int MaxTicketPages = 10;
     public static readonly TimeSpan StaffFor = TimeSpan.FromHours(1);
@@ -79,6 +79,8 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
         await StatusAsync(db, now, ticketsRead, error, ct);
         db.UpdateKeyValueTimestampToNow(KeyValueKeyEnums.LAST_COOKIE_CASEBOOK);
         await db.SaveChangesAsync(ct);
+        // What is available follows this run's reads (docs/cookie-fallback-plan.md §3): the tools' lists see it at once.
+        await integrations.ReadAsync(ct);
         if (counts.Opened + counts.Changed + counts.Closed + counts.DutiesDue > 0)
         {
             signals.Raise($"case book: {counts.Opened} opened, {counts.Changed} changed, {counts.Closed} closed, {counts.DutiesDue} due");
@@ -449,8 +451,11 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
         var redmineSettings = await settings.GetAsync<CookieRedmineSettings>(ct);
         var calendar = await plan.CalendarAsync(ct);
         var closedSince = now.AddDays(-1);
+        // A closed problem comes back for its closing note when it has a ticket of Cookie's, or when its problem duty told people by e-mail
+        // instead (docs/cookie-fallback-plan.md §4.5): the duty is done either way.
         var cases = await db.CookieCases.AsNoTracking()
-            .Where(c => c.Open || (c.Kind == CookieCaseKind.Problem && c.OwnIssueId != null && c.ClosedAt >= closedSince)).ToListAsync(ct);
+            .Where(c => c.Open || (c.Kind == CookieCaseKind.Problem && c.ClosedAt >= closedSince && (c.OwnIssueId != null
+                || db.CookieDuties.Any(d => d.CaseId == c.Id && d.Kind == CookieDutyKind.ProblemTicket && d.State == CookieDutyState.Done)))).ToListAsync(ct);
         var problemHosts = cases.Where(c => c.Kind == CookieCaseKind.Problem && c.Open && c.HostId is not null).Select(c => c.HostId!.Value).ToList();
         var problemSensors = cases.Where(c => c.Kind == CookieCaseKind.Problem && c.Open)
             .SelectMany(c => (JsonSerializer.Deserialize<List<CaseMember>>(c.Members, Json) ?? []).Where(m => m.Type == CaseMember.Sensor))

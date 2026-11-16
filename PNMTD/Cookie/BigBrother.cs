@@ -193,7 +193,7 @@ public sealed class BigBrother(IDbContextFactory<PnmtdDbContext> dbs, CookieMode
             CookiesNote = p.Mask(c.CookieNote),
         });
         var context = new ToolContext(services, rights, p);
-        var tools = CookieTools.Definitions(CookieTools.For(rights));
+        var tools = CookieTools.Definitions(CookieTools.For(rights, services));
         var work = new JsonArray(
             new JsonObject { ["role"] = "system", ["content"] = CookiePrompts.Fill(await brain.PromptAsync("bigBrother", ct), values) },
             new JsonObject { ["role"] = "user", ["content"] = "Look at what you need with the tools, then say what you found, without calling more tools." });

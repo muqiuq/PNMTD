@@ -15,6 +15,7 @@ const cookieText =
   'dashboard card summary window trace chat rights use instruct manage admin start stop run privacy placeholders person email phone ' +
   'budget Cookie__Enabled Cookie__BudgetUsd Redmine__WriteApiKey working hours prompts comment stop go on stopped ' +
   'contact details account pushover key send a test redmine user availability plan responsible fallback ' +
+  'without redmine zabbix unavailable unreachable grace period e-mail instead of a ticket ' +
   'proposal propose auto off level threshold confidence seraph review verdict approve revise reject inbox decisions do it ' +
   "don't noted dismiss decision log rating right wrong lessons summariser mute suppress instruction draft confirm end now " +
   'big brother solution model budget Cookie__BigBrother__BudgetUsd Cookie__SeraphModel drift report duties texts ' +
@@ -71,7 +72,16 @@ const show = computed(() => has(cookieText))
           <strong>The chat:</strong> a message wakes Cookie, and it answers in the same thread with the lower of your
           rights and its own. Pick <em>Seraph</em> to ask Seraph instead: it explains its verdicts from the last 14
           days' decisions you may see, and can't act. At most 20 messages an hour; nothing while Cookie is stopped. The
-          chat doesn't act: proposals come only from Cookie's work on cases.
+          chat doesn't act: it says what Cookie would do from a case and under which conditions; proposals come only
+          from Cookie's work on cases.
+        </li>
+        <li>
+          <strong>Without Redmine or Zabbix:</strong> when Redmine isn't configured, can't be written, or has been
+          unreachable for half an hour, Cookie proposes no tickets and no notes on tickets, and the ticket tool isn't
+          offered to it. What would have been a ticket goes by e-mail to whoever is responsible, and by Pushover too
+          when it is urgent; the problem's own duty does the same, and a short e-mail follows when the problem is
+          resolved. Without Zabbix, Cookie doesn't look for Zabbix problems. The first successful read brings everything
+          back. <em>Admin → Cookie → Overview</em> and <em>Actions</em> show what Cookie counts as available.
         </li>
         <li>
           <strong>How a proposal goes</strong>, each step in Cookie's decision log: the action's level (Off drops it);

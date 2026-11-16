@@ -25310,7 +25310,8 @@
           "seraphConfigured",
           "bigBrother",
           "activeInstructions",
-          "lessons"
+          "lessons",
+          "integrations"
         ],
         "type": "object",
         "properties": {
@@ -25347,6 +25348,9 @@
           "lessons": {
             "type": "integer",
             "format": "int32"
+          },
+          "integrations": {
+            "$ref": "#/components/schemas/CookieIntegrationsItem"
           }
         }
       },
@@ -26249,6 +26253,51 @@
           "until": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "CookieIntegrationItem": {
+        "required": [
+          "state",
+          "reason",
+          "since"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "since": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "CookieIntegrationsItem": {
+        "required": [
+          "redmine",
+          "ticketProject",
+          "zabbix"
+        ],
+        "type": "object",
+        "properties": {
+          "redmine": {
+            "$ref": "#/components/schemas/CookieIntegrationItem"
+          },
+          "ticketProject": {
+            "type": "boolean"
+          },
+          "zabbix": {
+            "$ref": "#/components/schemas/CookieIntegrationItem"
           }
         }
       },

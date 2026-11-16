@@ -246,6 +246,10 @@ public sealed class CookieLoopTests
             var tools = request["tools"]!.AsArray().Select(t => t!["function"]!["name"]!.GetValue<string>()).ToList();
             Assert.IsTrue(tools.Contains("host_get") && !tools.Contains("kb_page") && !tools.Contains("ticket_get"),
                 "an admin asks, but Cookie's group only has Monitoring: " + string.Join(",", tools));
+            // The chat knows what Cookie does from its cases, and that nothing asked here becomes a proposal (docs/cookie-fallback-plan.md §5.1).
+            StringAssert.Contains(system, CookieBrain.ChatNoProposal);
+            StringAssert.Contains(system, "From the cases you work on your own, you may propose: pushover (only for what is urgent");
+            Assert.IsFalse(system.Contains("You don't act from the chat", StringComparison.Ordinal), "the old denial is gone");
             return request["messages"]!.AsArray().Any(m => m!["role"]!.GetValue<string>() == "tool")
                 ? new JsonObject { ["role"] = "assistant", ["content"] = "The printer is fine: no sensor of it fails." }
                 : new JsonObject

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PNMTD.Data;
 using PNMTD.Lib.Helper;
+using PNMTD.Lib.Models.Enum;
 using PNMTD.Models.Db;
 using PNMTD.Redmine;
 
@@ -61,7 +62,7 @@ public static class Recipients
 /// outside working hours waits for the next working period; a reminder whose deadline is due as well gives way to it.
 /// </summary>
 public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings settings, Outbox outbox, IOptionsMonitor<RedmineOptions> redmineOptions,
-    IConfiguration configuration, PNMTD.Availability.AvailabilityPlan plan, DutyWriter writer, ILogger<DutyRunner> logger)
+    IConfiguration configuration, PNMTD.Availability.AvailabilityPlan plan, DutyWriter writer, CookieIntegrations integrations, ILogger<DutyRunner> logger)
 {
     public const int PerRun = 50;
     private static readonly JsonSerializerOptions Json = CookieSettings.Json;
@@ -92,6 +93,7 @@ public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSett
         var actions = await settings.GetAsync<ActionSettings>(ct);
         var calendar = await plan.CalendarAsync(ct);
         var working = calendar.IsWorking(now);
+        var reading = await integrations.ReadAsync(ct);
         var caseIds = due.Select(d => d.CaseId).Distinct().ToList();
         var cases = await db.CookieCases.Where(c => caseIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id, ct);
         var dueKeys = due.Select(d => (d.CaseId, d.Key)).ToHashSet();
@@ -121,8 +123,12 @@ public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSett
                 done++;
                 continue;
             }
+            // To people, so only in working hours (§8.3): the ticket duties, and the e-mails that stand in for a problem's ticket and its
+            // closing note (docs/cookie-fallback-plan.md §4.5).
             var toPeople = duty.Kind is CookieDutyKind.FirstAnswerReminder or CookieDutyKind.FirstAnswerMissed or CookieDutyKind.UpdateReminder
-                or CookieDutyKind.UpdateMissed;
+                or CookieDutyKind.UpdateMissed
+                || duty.Kind == CookieDutyKind.ProblemTicket && !reading.CanTicket
+                || duty.Kind == CookieDutyKind.ClosingNote && c.OwnIssueId is null;
             if (toPeople && !working)
             {
                 continue;
@@ -131,9 +137,9 @@ public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSett
             {
                 var (state, outcome) = duty.Kind switch
                 {
-                    CookieDutyKind.ProblemTicket => await TicketAsync(db, c, duty, ct),
-                    CookieDutyKind.ClosingNote => await ClosingNoteAsync(db, c, duty, ct),
-                    _ => await TicketDutyAsync(db, c, duty, ct),
+                    CookieDutyKind.ProblemTicket => await TicketAsync(db, c, duty, reading, ct),
+                    CookieDutyKind.ClosingNote => await ClosingNoteAsync(db, c, duty, reading, ct),
+                    _ => await TicketDutyAsync(db, c, duty, reading, ct),
                 };
                 Close(duty, state, outcome, now);
                 CaseBook.Entry(db, c.Id, now, EntryKind(duty.Kind), outcome);
@@ -186,7 +192,8 @@ public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSett
 
     // --- A ticket's reminders and escalations (§7.2) --------------------------------------------------------------------
 
-    private async Task<(CookieDutyState, string)> TicketDutyAsync(PnmtdDbContext db, CookieCaseEntity c, CookieDutyEntity duty, CancellationToken ct)
+    private async Task<(CookieDutyState, string)> TicketDutyAsync(PnmtdDbContext db, CookieCaseEntity c, CookieDutyEntity duty, IntegrationsReading reading,
+        CancellationToken ct)
     {
         var redmineSettings = await settings.GetAsync<CookieRedmineSettings>(ct);
         var identity = await settings.GetAsync<IdentitySettings>(ct);
@@ -205,14 +212,16 @@ public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSett
 
         if (!missed)
         {
-            if (redmineOptions.CurrentValue.CanWrite)
+            if (reading.RedmineWritable)
             {
                 rows.Add(await outbox.SendAsync(new OutboxRequest(CookieChannel.RedminePrivateNote, text.Subject, text.Note, c.Id, duty.Id, IssueId: issueId,
                     Recipient: $"#{issueId}", Urgency: urgency), ct));
             }
             else
             {
-                notes.Add("no note on the ticket: Redmine__WriteApiKey is not set");
+                // Not attempted while Redmine can't be written (docs/cookie-fallback-plan.md §4.5); the e-mail below goes out regardless.
+                notes.Add(reading.Redmine == RedmineAvailability.ReadOnly ? "no note on the ticket: Redmine__WriteApiKey is not set"
+                    : $"no note on the ticket: {reading.RedmineReason}");
             }
         }
 
@@ -260,13 +269,14 @@ public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSett
 
     // --- A problem's ticket and its closing note (§7.1) -----------------------------------------------------------------
 
-    private async Task<(CookieDutyState, string)> TicketAsync(PnmtdDbContext db, CookieCaseEntity c, CookieDutyEntity duty, CancellationToken ct)
+    private async Task<(CookieDutyState, string)> TicketAsync(PnmtdDbContext db, CookieCaseEntity c, CookieDutyEntity duty, IntegrationsReading reading,
+        CancellationToken ct)
     {
         var redmineSettings = await settings.GetAsync<CookieRedmineSettings>(ct);
-        if (!redmineOptions.CurrentValue.CanWrite || redmineSettings.TicketProjectId is not { } projectId)
+        if (!reading.CanTicket || redmineSettings.TicketProjectId is not { } projectId)
         {
-            return (CookieDutyState.NotPossible,
-                "Not possible: a ticket needs Redmine__WriteApiKey and a project under Admin → Cookie → Redmine → Cookie's tickets.");
+            // No ticket system to open one in: whoever is responsible is told instead (docs/cookie-fallback-plan.md §4.5).
+            return await ProblemByEmailAsync(db, c, duty, reading, ct);
         }
         var identity = await settings.GetAsync<IdentitySettings>(ct);
         var caseSettings = await settings.GetAsync<CaseSettings>(ct);
@@ -291,25 +301,103 @@ public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSett
         return Summarise([row], []);
     }
 
-    private async Task<(CookieDutyState, string)> ClosingNoteAsync(PnmtdDbContext db, CookieCaseEntity c, CookieDutyEntity duty, CancellationToken ct)
+    private async Task<(CookieDutyState, string)> ClosingNoteAsync(PnmtdDbContext db, CookieCaseEntity c, CookieDutyEntity duty, IntegrationsReading reading,
+        CancellationToken ct)
     {
         if (c.OwnIssueId is not { } issueId)
         {
-            return (CookieDutyState.Off, "The case has no ticket of Cookie's.");
+            return await ClosingEmailAsync(db, c, duty, ct);
         }
         if (await db.RedmineIssues.AsNoTracking().AnyAsync(i => i.IssueId == issueId && i.IsClosed, ct))
         {
             return (CookieDutyState.Off, $"#{issueId} is closed already.");
         }
-        if (!redmineOptions.CurrentValue.CanWrite)
+        if (!reading.RedmineWritable)
         {
-            return (CookieDutyState.NotPossible, "Not possible: Redmine__WriteApiKey is not set.");
+            return (CookieDutyState.NotPossible, $"Not possible: {reading.NoNoteReason}");
         }
         var identity = await settings.GetAsync<IdentitySettings>(ct);
         var note = DutyTexts.ClosingNote(c, identity.Name);
         var row = await outbox.SendAsync(new OutboxRequest(CookieChannel.RedmineNote, $"#{issueId} resolved", note, c.Id, duty.Id, IssueId: issueId,
             Recipient: $"#{issueId}", Urgency: Urgency.Info), ct);
         return Summarise([row], []);
+    }
+
+    /// <summary>
+    /// The problem ticket's stand-in (docs/cookie-fallback-plan.md §4.5): the ticket's content as an e-mail to whoever is responsible
+    /// now, and Pushover too for a case of importance High. Nobody comes from an escalation group: that is a ticket project's.
+    /// </summary>
+    private async Task<(CookieDutyState, string)> ProblemByEmailAsync(PnmtdDbContext db, CookieCaseEntity c, CookieDutyEntity duty, IntegrationsReading reading,
+        CancellationToken ct)
+    {
+        var why = reading.NoTicketShort;
+        var today = DateOnly.FromDateTime(Clock.LocalNow);
+        var snapshot = await plan.DayAsync(today, ct);
+        var named = snapshot.ResponsibleAt(Clock.UtcNow).UserIds;
+        var users = await db.Users.AsNoTracking().Where(u => named.Contains(u.Id) && u.IsActive).OrderBy(u => u.DisplayName).ToListAsync(ct);
+        if (users.Count == 0)
+        {
+            return (CookieDutyState.NotPossible, $"Not possible: no ticket ({why}), and nobody is responsible now (the availability plan), so nobody to tell.");
+        }
+        var identity = await settings.GetAsync<IdentitySettings>(ct);
+        var caseSettings = await settings.GetAsync<CaseSettings>(ct);
+        var members = JsonSerializer.Deserialize<List<CaseMember>>(c.Members, Json) ?? [];
+        var timeline = await db.CookieCaseEntries.AsNoTracking().Where(e => e.CaseId == c.Id).OrderBy(e => e.At).Take(30).ToListAsync(ct);
+        var text = DutyTexts.ProblemEmail(c, members, timeline, caseSettings.UnresolvedHours, identity.Name, configuration["PublicBaseUrl"], why);
+        // Urgent as the prompts define it (docs/cookie-prompts.md §7.1): importance High.
+        var urgent = c.Importance == Importance.High;
+        var rows = new List<CookieOutboxEntity>();
+        var notes = new List<string>();
+        foreach (var user in users)
+        {
+            if (!string.IsNullOrWhiteSpace(user.Email))
+            {
+                rows.Add(await outbox.SendAsync(new OutboxRequest(CookieChannel.Email, text.Subject, text.Message, c.Id, duty.Id, user.Id, user.DisplayName,
+                    user.Email, Urgency: Urgency.Important), ct));
+            }
+            if (urgent && !string.IsNullOrWhiteSpace(user.PushoverKey))
+            {
+                rows.Add(await outbox.SendAsync(new OutboxRequest(CookieChannel.Pushover, text.Subject, text.Short, c.Id, duty.Id, user.Id, user.DisplayName,
+                    user.PushoverKey, Urgency: Urgency.Urgent), ct));
+            }
+            if (string.IsNullOrWhiteSpace(user.Email) && !(urgent && !string.IsNullOrWhiteSpace(user.PushoverKey)))
+            {
+                notes.Add($"{user.DisplayName} has no e-mail address");
+            }
+        }
+        if (rows.Count == 0)
+        {
+            return (CookieDutyState.NotPossible, $"Not possible: no ticket ({why}), and nobody to tell: {string.Join("; ", notes)}.");
+        }
+        var (state, outcome) = Summarise(rows, notes);
+        return (state, $"No ticket ({why}): {outcome}");
+    }
+
+    /// <summary>Told by e-mail instead of a ticket (docs/cookie-fallback-plan.md §4.5): the same people hear that it is resolved, in two lines.</summary>
+    private async Task<(CookieDutyState, string)> ClosingEmailAsync(PnmtdDbContext db, CookieCaseEntity c, CookieDutyEntity duty, CancellationToken ct)
+    {
+        var told = await db.CookieOutbox.AsNoTracking()
+            .Where(o => o.CaseId == c.Id && o.Channel == CookieChannel.Email && o.Source == "code" && o.UserId != null
+                && (o.State == CookieOutboxState.Sent || o.State == CookieOutboxState.Simulated)
+                && db.CookieDuties.Any(d => d.Id == o.DutyId && d.Kind == CookieDutyKind.ProblemTicket))
+            .Select(o => o.UserId!.Value).Distinct().ToListAsync(ct);
+        if (told.Count == 0)
+        {
+            return (CookieDutyState.Off, "The case has no ticket of Cookie's, and nobody was told by e-mail.");
+        }
+        var identity = await settings.GetAsync<IdentitySettings>(ct);
+        var subject = CaseBook.Cut($"{c.Title}: resolved", 250)!;
+        var body = DutyTexts.ClosingEmail(c, identity.Name);
+        var users = await db.Users.AsNoTracking().Where(u => told.Contains(u.Id) && u.IsActive && u.Email != null && u.Email != "").OrderBy(u => u.DisplayName)
+            .ToListAsync(ct);
+        var rows = new List<CookieOutboxEntity>();
+        foreach (var user in users)
+        {
+            rows.Add(await outbox.SendAsync(new OutboxRequest(CookieChannel.Email, subject, body, c.Id, duty.Id, user.Id, user.DisplayName, user.Email,
+                Urgency: Urgency.Info), ct));
+        }
+        var (state, outcome) = Summarise(rows, []);
+        return (state, $"Resolved, told by e-mail: {outcome}");
     }
 
     private string? IssueUrl(int issueId) => redmineOptions.CurrentValue is { Enabled: true } o ? $"{o.BrowserUrl}/issues/{issueId}" : null;
@@ -362,11 +450,44 @@ public static class DutyTexts
     public static Text ProblemTicket(CookieCaseEntity c, IReadOnlyList<CaseMember> members, IReadOnlyList<CookieCaseEntryEntity> timeline, double hours,
         string name, string? pnmtUrl)
     {
-        var days = hours >= 48 && hours % 24 == 0 ? $"{hours / 24:0} days" : $"{hours:0} hours";
         var text = new StringBuilder();
         text.AppendLine(CultureInfo.InvariantCulture,
-            $"{name}, PNMT's assistant, opened this ticket: this problem has shown no progress for {days} (no acknowledgement, no note, no linked ticket that moved).");
+            $"{name}, PNMT's assistant, opened this ticket: this problem has shown no progress for {Days(hours)} (no acknowledgement, no note, no linked ticket that moved).");
         text.AppendLine();
+        ProblemBody(text, c, members, timeline, pnmtUrl);
+        var subject = CaseBook.Cut($"{c.Title}: unresolved since {Clock.ToLocal(c.OpenedAt):d MMM}", 250)!;
+        return new Text(subject, subject, text.ToString().TrimEnd(), text.ToString().TrimEnd());
+    }
+
+    /// <summary>
+    /// The ticket's stand-in without a ticket system (docs/cookie-fallback-plan.md §4.5): the same content as an e-mail to whoever is
+    /// responsible, and a Pushover line for what is urgent.
+    /// </summary>
+    public static Text ProblemEmail(CookieCaseEntity c, IReadOnlyList<CaseMember> members, IReadOnlyList<CookieCaseEntryEntity> timeline, double hours,
+        string name, string? pnmtUrl, string why)
+    {
+        var text = new StringBuilder();
+        text.AppendLine(CultureInfo.InvariantCulture,
+            $"This problem has shown no progress for {Days(hours)} (no acknowledgement, no note, no linked ticket that moved). There is no ticket to open " +
+            $"for it ({why}), so it comes to you, who are responsible today.");
+        text.AppendLine();
+        ProblemBody(text, c, members, timeline, pnmtUrl);
+        text.Append(CultureInfo.InvariantCulture, $"\n\n— {name}, PNMT's assistant");
+        var since = Clock.ToLocal(c.OpenedAt).ToString("d MMM", CultureInfo.InvariantCulture);
+        var body = text.ToString().TrimEnd();
+        return new Text(CaseBook.Cut($"{c.Title}: unresolved since {since}, nobody took care", 250)!,
+            CaseBook.Cut($"{c.Title}: unresolved since {since} and nobody took care. No ticket system now, so this reaches you.", 200)!, body, body);
+    }
+
+    public static string ClosingEmail(CookieCaseEntity c, string name) =>
+        $"Resolved: everything of this case has been fine again since {When(c.ClosedAt ?? Clock.UtcNow)}. Nothing is left to do; this closes the e-mail " +
+        $"about it.\n\n— {name}, PNMT's assistant";
+
+    private static string Days(double hours) => hours >= 48 && hours % 24 == 0 ? $"{hours / 24:0} days" : $"{hours:0} hours";
+
+    /// <summary>What is failing, the timeline and the link, shared by the ticket and its stand-in.</summary>
+    private static void ProblemBody(StringBuilder text, CookieCaseEntity c, IReadOnlyList<CaseMember> members, IReadOnlyList<CookieCaseEntryEntity> timeline, string? pnmtUrl)
+    {
         text.AppendLine("What is failing:");
         foreach (var m in members)
         {
@@ -385,8 +506,6 @@ public static class DutyTexts
             text.AppendLine();
             text.Append(CultureInfo.InvariantCulture, $"In PNMT: {pnmtUrl.TrimEnd('/')}{(c.HostId is { } h ? $"/hosts/{h}" : $"/cookie?case={c.Id}")}");
         }
-        var subject = CaseBook.Cut($"{c.Title}: unresolved since {Clock.ToLocal(c.OpenedAt):d MMM}", 250)!;
-        return new Text(subject, subject, text.ToString().TrimEnd(), text.ToString().TrimEnd());
     }
 
     public static string ClosingNote(CookieCaseEntity c, string name) =>

@@ -397,8 +397,14 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
             await day.CountAsync(d => d.Outcome == "rejected", ct), await day.CountAsync(d => d.Outcome == "declined", ct),
             await day.CountAsync(d => d.Outcome == "held-back", ct), await services.GetRequiredService<Seraph>().ChoiceAsync(ct) is not null,
             new CookieBudgetItem(options.CurrentValue.BigBrother.BudgetUsd, await model.BigBrotherSpentAsync(ct)),
-            (await services.GetRequiredService<Instructions>().ActiveAsync(ct)).Count, (await settings.GetAsync<LessonSettings>(ct)).Lessons.Count(l => l.Active));
+            (await services.GetRequiredService<Instructions>().ActiveAsync(ct)).Count, (await settings.GetAsync<LessonSettings>(ct)).Lessons.Count(l => l.Active),
+            Integrations(await services.GetRequiredService<CookieIntegrations>().ReadAsync(ct)));
     }
+
+    /// <summary>What is available, for the admin tabs (docs/cookie-fallback-plan.md §6).</summary>
+    public static CookieIntegrationsItem Integrations(IntegrationsReading r) => new(
+        new CookieIntegrationItem(r.RedmineState, r.RedmineReason, r.RedmineSince), r.TicketProject,
+        new CookieIntegrationItem(r.Zabbix ? "available" : "none", r.ZabbixReason, r.ZabbixSince));
 
     private async Task<CookieBudgetItem> BudgetAsync(CancellationToken ct)
     {
@@ -472,8 +478,10 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         string text;
         if (key.StartsWith("case:", StringComparison.Ordinal) && CookiePrompts.CaseKinds.ContainsKey(key[5..]))
         {
-            text = $"{basePrompt}\n\n{CookiePrompts.Fill(await brain.CaseInstructionAsync(key[5..], ct), values)}\n\n{await brain.ActingAsync(ct)}\n\n" +
-                "The case:\n[the case]";
+            // The preview shows the prompt as a case gets it now: what is missing, then what Cookie may propose (docs/cookie-fallback-plan.md §4).
+            var reading = await services.GetRequiredService<CookieIntegrations>().ReadAsync(ct);
+            text = $"{basePrompt}\n\n{CookieBrain.WithMissing(CookiePrompts.Fill(await brain.CaseInstructionAsync(key[5..], ct), values), reading)}\n\n" +
+                $"{await brain.ActingAsync(reading, ct)}\n\nThe case:\n[the case]";
         }
         else if (CookiePrompts.Defaults.ContainsKey(key))
         {

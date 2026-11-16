@@ -217,6 +217,91 @@ public sealed class DutiesTests
 
 
     [TestMethod]
+    public async Task Without_a_ticket_system_the_problem_goes_by_email_to_whoever_is_responsible_and_so_does_its_end()
+    {
+        await SaveAsync("redmine", new CookieRedmineSettings { TicketProjectId = 3 });
+        await SaveAsync("actions", new ActionSettings { Duties = new DutySwitches(ProblemTicket: true, ClosingNote: true) });
+        var today = DateOnly.FromDateTime(Clock.LocalNow);
+        var writes = redmine.Writes.Count;
+        await using (var db = app.NewDb())
+        {
+            // Anna is responsible today (§8.2), and Redmine has been unreachable for longer than the grace period (docs/cookie-fallback-plan.md §3.3).
+            if (await db.AvailabilityDays.FindAsync(today) is { } row)
+            {
+                row.ResponsibleId = anna;
+            }
+            else
+            {
+                db.AvailabilityDays.Add(new AvailabilityDayEntity { Date = today, ResponsibleId = anna, ChangedAt = Clock.UtcNow, ChangedBy = "test" });
+            }
+            var runtime = await CaseBook.RuntimeAsync(db, CancellationToken.None);
+            runtime.CaseBookError = "Redmine: 502 Bad Gateway";
+            runtime.TicketsAt = Clock.UtcNow - CookieIntegrations.Grace - TimeSpan.FromMinutes(1);
+            await db.SaveChangesAsync();
+        }
+        try
+        {
+            var host = await V1.CreateHostAsync(admin, V1.Unique("nas"));
+            var sensor = await V1.CreateSensorAsync(admin, host.Id, name: "raid");
+            var back = Clock.UtcNow.AddDays(-3);
+            V1.AddEvents(app, sensor.Id, (back, 200, "ok"), (back.AddMinutes(1), 500, "disk 2 failed"));
+            await Book.RunAsync(false, CancellationToken.None);
+            await Runner.RunAsync(CancellationToken.None);
+
+            Guid caseId;
+            await using (var db = app.NewDb())
+            {
+                var c = await db.CookieCases.AsNoTracking().SingleAsync(x => x.Key == $"host:{host.Id}" && x.Open);
+                caseId = c.Id;
+                Assert.IsNull(c.OwnIssueId, "no ticket");
+                var duty = await db.CookieDuties.AsNoTracking().SingleAsync(d => d.CaseId == c.Id && d.Kind == CookieDutyKind.ProblemTicket);
+                Assert.AreEqual(CookieDutyState.Done, duty.State, duty.Outcome);
+                StringAssert.Contains(duty.Outcome, "No ticket (Redmine is unreachable since");
+                StringAssert.Contains(duty.Outcome, "Anna");
+            }
+            Assert.AreEqual(writes, redmine.Writes.Count, "nothing written to Redmine");
+            var told = (await OutboxAsync(caseId)).Single();
+            Assert.AreEqual(CookieChannel.Email, told.Channel, "importance Normal: e-mail only, no Pushover");
+            Assert.AreEqual("Anna", told.Recipient);
+            Assert.AreEqual(CookieOutboxState.Simulated, told.State, told.Detail);
+            StringAssert.Contains(told.Subject, "nobody took care");
+            StringAssert.Contains(told.Body, "disk 2 failed");
+            StringAssert.Contains(told.Body, "There is no ticket to open for it");
+            StringAssert.Contains(told.Body, "PNMT's assistant");
+
+            V1.AddEvents(app, sensor.Id, (back.AddMinutes(5), 200, "disk replaced"));
+            await Book.RunAsync(false, CancellationToken.None);
+            await Runner.RunAsync(CancellationToken.None);
+            await using (var db = app.NewDb())
+            {
+                var closing = await db.CookieDuties.AsNoTracking().SingleAsync(d => d.CaseId == caseId && d.Kind == CookieDutyKind.ClosingNote);
+                Assert.AreEqual(CookieDutyState.Done, closing.State, closing.Outcome);
+                StringAssert.StartsWith(closing.Outcome, "Resolved, told by e-mail");
+            }
+            var rows = await OutboxAsync(caseId);
+            Assert.AreEqual(2, rows.Count, string.Join(" | ", rows.Select(r => $"{r.Channel} {r.Subject}")));
+            var resolved = rows.Last();
+            Assert.AreEqual("Anna", resolved.Recipient);
+            StringAssert.EndsWith(resolved.Subject, ": resolved");
+            StringAssert.Contains(resolved.Body, "fine again since");
+            Assert.AreEqual(writes, redmine.Writes.Count, "still nothing written to Redmine");
+        }
+        finally
+        {
+            await using var db = app.NewDb();
+            var runtime = await CaseBook.RuntimeAsync(db, CancellationToken.None);
+            runtime.CaseBookError = null;
+            runtime.TicketsAt = Clock.UtcNow;
+            if (await db.AvailabilityDays.FindAsync(today) is { } row)
+            {
+                row.ResponsibleId = null;
+            }
+            await db.SaveChangesAsync();
+            await SaveAsync("actions", new ActionSettings());
+        }
+    }
+
+    [TestMethod]
     public async Task An_assignee_who_doesnt_work_today_leaves_the_reminder_to_the_escalation_group()
     {
         await SaveAsync("redmine", new CookieRedmineSettings { Projects = [WatchedProject.Default(1) with { EscalationGroupId = team }] });

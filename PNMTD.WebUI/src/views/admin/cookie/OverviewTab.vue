@@ -37,8 +37,9 @@ import { useCookieSettings } from './useSection'
  * Admin → Cookie → Overview (docs/cookie-plan.md §9.3, §19.1, §21.5): Start, Stop and Run now; the status and Cookie's
  * own state, its budget and its last rounds; how the case book keeps up; what Cookie did today (proposals waiting in the
  * inbox, done, rejected by Seraph, declined by people, held back), whether Seraph has a model, the big brother's budget,
- * and the active mutes, suppressions and lessons; the duties of the last 7 days; and the outbox: everything that went
- * out, and what a limit held back, which a person can send from here. Every 5 s while Cookie works.
+ * and the active mutes, suppressions and lessons; what Cookie counts as available (docs/cookie-fallback-plan.md §6.2);
+ * the duties of the last 7 days; and the outbox: everything that went out, and what a limit held back, which a person can
+ * send from here. Every 5 s while Cookie works.
  */
 const overview = useQuery({
   queryKey: [...keys.cookie, 'admin', 'overview'],
@@ -283,6 +284,25 @@ async function control(what: 'start' | 'stop' | 'run') {
           <dd class="words">
             <template v-if="acting.seraphConfigured">has a model</template>
             <span v-else class="warn-text">no model: what it would review goes to a person</span>
+          </dd>
+        </div>
+        <div>
+          <dt>Redmine</dt>
+          <dd class="words">
+            <template v-if="acting.integrations.redmine.state === 'writable'">
+              writable<template v-if="!acting.integrations.ticketProject">, no project for Cookie's tickets</template>
+            </template>
+            <span v-else class="warn-text"
+              >{{ acting.integrations.redmine.state === 'readOnly' ? 'read-only' : 'unavailable' }}:
+              {{ acting.integrations.redmine.reason }}</span
+            >
+          </dd>
+        </div>
+        <div>
+          <dt>Zabbix</dt>
+          <dd class="words">
+            <template v-if="acting.integrations.zabbix.state === 'available'">available</template>
+            <span v-else class="warn-text">unavailable: {{ acting.integrations.zabbix.reason }}</span>
           </dd>
         </div>
         <div>

@@ -33,7 +33,7 @@ public sealed record AccessJudged(int Worked, int Calls, int ToolCalls, decimal 
 /// (Seraph rejects it, can't review it, the level isn't <i>Auto</i>) gets code's notice at once (§6.4, §6.5).
 /// </summary>
 public sealed class AccessJudge(IDbContextFactory<PnmtdDbContext> dbs, IServiceProvider services, CookieSettings settings, CookieModel model, CookieBrain brain,
-    DecisionClient guard, IOptionsMonitor<AiOptions> ai, IOptionsMonitor<CookieOptions> options, ILogger<AccessJudge> logger)
+    DecisionClient guard, IOptionsMonitor<AiOptions> ai, IOptionsMonitor<CookieOptions> options, CookieIntegrations integrations, ILogger<AccessJudge> logger)
 {
     private CookieTokenOptions Tokens => options.CurrentValue.Tokens;
 
@@ -126,10 +126,11 @@ public sealed class AccessJudge(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
 
         var values = await brain.ValuesAsync(ct);
         var system = await brain.BaseAsync(values, ct);
-        var instructions = await brain.InstructionsAsync(c, Instruction, [], false, values, ct);
+        // The round read what is available before this step (docs/cookie-fallback-plan.md §4.2, §4.3).
+        var instructions = CookieBrain.WithMissing(await brain.InstructionsAsync(c, Instruction, [], false, values, ct), integrations.Current);
         var context = new ToolContext(services, rights, p);
         context.Areas.UnionWith(c.Areas);
-        var tools = CookieTools.For(rights);
+        var tools = CookieTools.For(rights, services);
         var definitions = CookieTools.Definitions(tools);
         var caseText = $"The access case:\n{brief}";
         var work = new JsonArray(Message("system", $"{system}\n\n{instructions}"),
