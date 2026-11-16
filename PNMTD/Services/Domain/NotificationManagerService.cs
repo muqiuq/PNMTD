@@ -5,6 +5,7 @@ using PNMTD.Data;
 using PNMTD.Lib.Helper;
 using PNMTD.Lib.Models.Enum;
 using PNMTD.Models.Db;
+using PNMTD.Notifications;
 
 namespace PNMTD.Services.Domain;
 
@@ -12,7 +13,7 @@ namespace PNMTD.Services.Domain;
 /// The Notification Manager (docs/ai-operations-plan.md §11): which rules cover which sensors, through links, scopes
 /// and exclusions; assignments in bulk; the sensors no rule covers; and a rule's scopes with their preview.
 /// </summary>
-public sealed class NotificationManagerService(PnmtdDbContext db, MonitoringReader reader)
+public sealed class NotificationManagerService(PnmtdDbContext db, MonitoringReader reader, NotificationRecipients recipients)
 {
     public const int MaxScopes = 20;
 
@@ -32,6 +33,11 @@ public sealed class NotificationManagerService(PnmtdDbContext db, MonitoringRead
         public required HashSet<(Guid Rule, Guid Sensor)> Exclusions { get; init; }
         public required Dictionary<Guid, List<(NotificationRuleScopeEntity Scope, string? HostName)>> Scopes { get; init; }
 
+        /// <summary>The enabled rules that reach nobody right now (docs/notification-recipients-plan.md §9), and why.</summary>
+        public List<NotificationRuleReach> ReachingNobody { get; init; } = [];
+
+        private HashSet<Guid>? unreachable;
+
         /// <summary>link, scope (with which) or excluded; null when the rule does not concern the sensor.</summary>
         public NotificationMatrixCell? Cell(Guid ruleId, SensorInfo sensor)
         {
@@ -50,16 +56,18 @@ public sealed class NotificationManagerService(PnmtdDbContext db, MonitoringRead
             return Exclusions.Contains((ruleId, sensor.Id)) ? new NotificationMatrixCell(ruleId, "excluded", label) : new NotificationMatrixCell(ruleId, "scope", label);
         }
 
-        /// <summary>Whether an enabled rule covers the sensor.</summary>
-        public bool Covered(SensorInfo sensor) =>
-            Rules.Where(r => r.Enabled).Any(r => Cell(r.Id, sensor) is { Via: "link" or "scope" });
+        /// <summary>Whether an enabled rule that reaches somebody covers the sensor (§9: a rule that reaches nobody covers nothing).</summary>
+        public bool Covered(SensorInfo sensor)
+        {
+            unreachable ??= ReachingNobody.Select(r => r.Rule.Id).ToHashSet();
+            return Rules.Where(r => r.Enabled && !unreachable.Contains(r.Id)).Any(r => Cell(r.Id, sensor) is { Via: "link" or "scope" });
+        }
     }
 
-    private async Task<Coverage> CoverageAsync(CancellationToken ct)
+    /// <summary><paramref name="withReach"/>: also whom each enabled rule reaches now, for <see cref="Coverage.Covered"/>; a bulk assignment needs no such thing.</summary>
+    private async Task<Coverage> CoverageAsync(CancellationToken ct, bool withReach = false)
     {
-        var rules = await db.NotificationRules.AsNoTracking().OrderBy(r => r.Name)
-            .Select(r => new NotificationRuleService.RuleRow(r.Id, r.Name, r.Recipient, r.Type, r.Enabled, r.SubscribedSensors.Count, r.Scopes.Count))
-            .ToListAsync(ct);
+        var rules = await db.NotificationRules.AsNoTracking().OrderBy(r => r.Name).Select(NotificationRuleService.Row).ToListAsync(ct);
         var links = await db.NotificationRuleSensor.AsNoTracking().Select(l => new { l.NotificationRuleId, l.SensorId }).ToListAsync(ct);
         var exclusions = await db.NotificationRuleExclusions.AsNoTracking().ToListAsync(ct);
         var scopes = await db.NotificationRuleScopes.AsNoTracking().Select(s => new { Scope = s, HostName = s.Host != null ? s.Host.Name : null }).ToListAsync(ct);
@@ -69,7 +77,25 @@ public sealed class NotificationManagerService(PnmtdDbContext db, MonitoringRead
             Links = links.Select(l => (l.NotificationRuleId, l.SensorId)).ToHashSet(),
             Exclusions = exclusions.Select(x => (x.RuleId, x.SensorId)).ToHashSet(),
             Scopes = scopes.GroupBy(s => s.Scope.RuleId).ToDictionary(g => g.Key, g => g.Select(s => (s.Scope, s.HostName)).ToList()),
+            ReachingNobody = withReach ? await ReachingNobodyAsync(ct) : [],
         };
+    }
+
+    /// <summary>The enabled rules whose recipients resolve to nobody at this moment (docs/notification-recipients-plan.md §9).</summary>
+    private async Task<List<NotificationRuleReach>> ReachingNobodyAsync(CancellationToken ct)
+    {
+        var enabled = await db.NotificationRules.AsNoTracking().Where(r => r.Enabled).OrderBy(r => r.Name).ToListAsync(ct);
+        var now = Clock.UtcNow;
+        var result = new List<NotificationRuleReach>();
+        foreach (var rule in enabled)
+        {
+            var resolved = await recipients.ResolveAsync(db, rule, now, ct);
+            if (resolved.Deliveries.Count == 0)
+            {
+                result.Add(new NotificationRuleReach(new Ref(rule.Id, rule.Name), resolved.Why ?? "Nobody to tell."));
+            }
+        }
+        return result;
     }
 
     private static NotificationMatrixRow Row(SensorStatus s, Coverage coverage, IReadOnlyList<NotificationRuleService.RuleRow> columns) =>
@@ -78,7 +104,7 @@ public sealed class NotificationManagerService(PnmtdDbContext db, MonitoringRead
 
     public async Task<NotificationMatrix> MatrixAsync(NotificationMatrixQuery query, bool withSecrets, CancellationToken ct)
     {
-        var coverage = await CoverageAsync(ct);
+        var coverage = await CoverageAsync(ct, withReach: query.Uncovered == true);
         var columns = coverage.Rules.Where(r => r.Enabled).ToList();
         var snapshot = await reader.SnapshotAsync(query.HostId is { } h ? s => s.ParentId == h : null, ct);
         var rows = snapshot.Sensors.Values
@@ -98,7 +124,7 @@ public sealed class NotificationManagerService(PnmtdDbContext db, MonitoringRead
 
     public async Task<NotificationCoverage> UncoveredAsync(CancellationToken ct)
     {
-        var coverage = await CoverageAsync(ct);
+        var coverage = await CoverageAsync(ct, withReach: true);
         var columns = coverage.Rules.Where(r => r.Enabled).ToList();
         var snapshot = await reader.SnapshotAsync(null, ct);
         var all = snapshot.Sensors.Values.ToList();
@@ -109,7 +135,8 @@ public sealed class NotificationManagerService(PnmtdDbContext db, MonitoringRead
             uncovered.Count(s => s.Info.EffectiveImportance == Importance.Low),
             uncovered.OrderByDescending(s => s.Info.EffectiveImportance)
                 .ThenBy(s => s.Info.HostName, StringComparer.OrdinalIgnoreCase).ThenBy(s => s.Info.Name, StringComparer.OrdinalIgnoreCase)
-                .Take(500).Select(s => Row(s, coverage, columns)).ToList());
+                .Take(500).Select(s => Row(s, coverage, columns)).ToList(),
+            coverage.ReachingNobody);
     }
 
     public async Task<NotificationAssignResult> AssignAsync(NotificationAssignRequest request, CancellationToken ct)

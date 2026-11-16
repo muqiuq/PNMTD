@@ -14061,6 +14061,35 @@
         }
       }
     },
+    "/api/v1/notification-rules/people": {
+      "get": {
+        "tags": [
+          "NotificationRules"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPeople"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPeople"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPeople"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/notification-rules/{id}/sensors": {
       "get": {
         "tags": [
@@ -37952,7 +37981,8 @@
           "uncoveredHigh",
           "uncoveredNormal",
           "uncoveredLow",
-          "sensors"
+          "sensors",
+          "rulesReachingNobody"
         ],
         "type": "object",
         "properties": {
@@ -37981,8 +38011,42 @@
             "items": {
               "$ref": "#/components/schemas/NotificationMatrixRow"
             }
+          },
+          "rulesReachingNobody": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationRuleReach"
+            }
           }
         }
+      },
+      "NotificationGroupRef": {
+        "required": [
+          "id",
+          "name",
+          "members"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "members": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "NotificationHours": {
+        "enum": [
+          "Always",
+          "WorkingHours"
+        ],
+        "default": "Always"
       },
       "NotificationMatrix": {
         "required": [
@@ -38093,6 +38157,96 @@
           }
         }
       },
+      "NotificationPeople": {
+        "required": [
+          "users",
+          "groups"
+        ],
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationPerson"
+            }
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationGroupRef"
+            }
+          }
+        }
+      },
+      "NotificationPerson": {
+        "required": [
+          "id",
+          "username",
+          "displayName",
+          "isActive",
+          "hasEmail",
+          "hasPushover"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "hasEmail": {
+            "type": "boolean"
+          },
+          "hasPushover": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NotificationReach": {
+        "required": [
+          "people",
+          "deliveries",
+          "who",
+          "why"
+        ],
+        "type": "object",
+        "properties": {
+          "people": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deliveries": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "who": {
+            "type": "string"
+          },
+          "why": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NotificationRecipientKind": {
+        "enum": [
+          "Address",
+          "User",
+          "Group",
+          "Responsible"
+        ],
+        "default": "Address"
+      },
       "NotificationRuleDetail": {
         "required": [
           "id",
@@ -38147,6 +38301,63 @@
             "items": {
               "$ref": "#/components/schemas/LinkedSensor"
             }
+          },
+          "recipientKind": {
+            "$ref": "#/components/schemas/NotificationRecipientKind"
+          },
+          "user": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "group": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "byEmail": {
+            "type": "boolean",
+            "default": true
+          },
+          "byPushover": {
+            "type": "boolean",
+            "default": true
+          },
+          "hours": {
+            "$ref": "#/components/schemas/NotificationHours"
+          },
+          "reach": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NotificationReach"
+              }
+            ]
+          },
+          "lastSentAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastSentTo": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -38195,6 +38406,24 @@
               "null",
               "string"
             ]
+          },
+          "recipientKind": {
+            "$ref": "#/components/schemas/NotificationRecipientKind"
+          }
+        }
+      },
+      "NotificationRuleReach": {
+        "required": [
+          "rule",
+          "why"
+        ],
+        "type": "object",
+        "properties": {
+          "rule": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "why": {
+            "type": "string"
           }
         }
       },
@@ -38218,6 +38447,32 @@
           },
           "enabled": {
             "type": "boolean"
+          },
+          "recipientKind": {
+            "$ref": "#/components/schemas/NotificationRecipientKind"
+          },
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "groupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "byEmail": {
+            "type": "boolean"
+          },
+          "byPushover": {
+            "type": "boolean"
+          },
+          "hours": {
+            "$ref": "#/components/schemas/NotificationHours"
           }
         }
       },

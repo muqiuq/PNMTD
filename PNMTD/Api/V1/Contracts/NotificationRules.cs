@@ -4,9 +4,10 @@ using PNMTD.Models.Db;
 namespace PNMTD.Api.V1.Contracts;
 
 /// <summary>
-/// A notification rule. <see cref="Provider"/> is what the recipient matched: <c>email</c>,
-/// <c>pushover</c> or <c>http</c>. For a Viewer, pushover and http recipients show their scheme and
-/// host only: they can contain keys.
+/// A notification rule. For an address, <see cref="Provider"/> is what it matched: <c>email</c>, <c>pushover</c> or <c>http</c>,
+/// and for a Viewer, pushover and http recipients show their scheme and host only: they can contain keys. For the other kinds
+/// (docs/notification-recipients-plan.md §6.2), <see cref="Provider"/> is <c>user</c>, <c>group</c> or <c>responsible</c>, and
+/// <see cref="Recipient"/> carries the label: the user's name, the group's name, or "The responsible of the day".
 /// </summary>
 public sealed record NotificationRuleItem(
     Guid Id,
@@ -17,8 +18,13 @@ public sealed record NotificationRuleItem(
     bool Enabled,
     int SensorCount,
     int ScopeCount = 0,
-    string? Via = null);
+    string? Via = null,
+    NotificationRecipientKind RecipientKind = NotificationRecipientKind.Address);
 
+/// <summary>
+/// A rule with everything (§6.2). <see cref="User"/> and <see cref="Group"/> are the person, the group, or the responsible's stand-in;
+/// null when deleted. <see cref="Reach"/> says whom it reaches now; <see cref="LastSentTo"/> whom it last reached.
+/// </summary>
 public sealed record NotificationRuleDetail(
     Guid Id,
     string Name,
@@ -28,7 +34,29 @@ public sealed record NotificationRuleDetail(
     bool Enabled,
     IReadOnlyList<LinkedSensor> Sensors,
     IReadOnlyList<NotificationScope>? Scopes = null,
-    IReadOnlyList<LinkedSensor>? Exclusions = null);
+    IReadOnlyList<LinkedSensor>? Exclusions = null,
+    NotificationRecipientKind RecipientKind = NotificationRecipientKind.Address,
+    Ref? User = null,
+    Ref? Group = null,
+    bool ByEmail = true,
+    bool ByPushover = true,
+    NotificationHours Hours = NotificationHours.Always,
+    NotificationReach? Reach = null,
+    DateTime? LastSentAt = null,
+    string? LastSentTo = null);
+
+/// <summary>Whom a rule reaches now (§6.2): how many people and messages, who, or why nobody.</summary>
+public sealed record NotificationReach(int People, int Deliveries, string Who, string? Why);
+
+/// <summary>What the rule editor chooses a user or a group from (§6.3): names and whether a user can be reached, never the details.</summary>
+public sealed record NotificationPeople(IReadOnlyList<NotificationPerson> Users, IReadOnlyList<NotificationGroupRef> Groups);
+
+public sealed record NotificationPerson(Guid Id, string Username, string DisplayName, bool IsActive, bool HasEmail, bool HasPushover);
+
+public sealed record NotificationGroupRef(Guid Id, string Name, int Members);
+
+/// <summary>An enabled rule that reaches nobody right now (§9), and why.</summary>
+public sealed record NotificationRuleReach(Ref Rule, string Why);
 
 /// <summary>
 /// A lasting assignment (docs/ai-operations-plan.md §11.2): every sensor of at least an importance, of a host, or
@@ -103,9 +131,12 @@ public sealed class NotificationAssignRequest
 
 public sealed record NotificationAssignResult(int Linked, int Unlinked, int Excluded, int Included);
 
-/// <summary>Sensors no enabled rule covers, by effective importance (§11.3); <c>Sensors</c> lists at most 500, High first.</summary>
+/// <summary>
+/// Sensors no enabled rule covers, by effective importance (§11.3); <c>Sensors</c> lists at most 500, High first. A rule that
+/// reaches nobody right now (docs/notification-recipients-plan.md §9) covers nothing, and is listed in <c>RulesReachingNobody</c>.
+/// </summary>
 public sealed record NotificationCoverage(int Total, int Covered, int UncoveredHigh, int UncoveredNormal, int UncoveredLow,
-    IReadOnlyList<NotificationMatrixRow> Sensors);
+    IReadOnlyList<NotificationMatrixRow> Sensors, IReadOnlyList<NotificationRuleReach> RulesReachingNobody);
 
 public sealed record LinkedSensor(Guid SensorId, string SensorName, SensorType Type, Guid HostId, string HostName);
 
@@ -135,8 +166,10 @@ public sealed class NotificationSettingsRequest
 }
 
 /// <summary>
-/// POST and PUT <c>/notification-rules</c>. The recipient must match a provider: an e-mail address,
-/// <c>pushover://&lt;user key&gt;</c> or an <c>http(s)://</c> webhook.
+/// POST and PUT <c>/notification-rules</c>. For an address (the default kind) the recipient must match a provider: an e-mail
+/// address, <c>pushover://&lt;user key&gt;</c> or an <c>http(s)://</c> webhook. For a user or a group, their id; for the responsible,
+/// an optional stand-in (a user or a group, not both) and the hours (docs/notification-recipients-plan.md §6.1). The person kinds
+/// need at least one channel. Fields of another kind are ignored.
 /// </summary>
 public sealed class NotificationRuleRequest
 {
@@ -147,4 +180,16 @@ public sealed class NotificationRuleRequest
     public NotificationRuleType Type { get; init; } = NotificationRuleType.ALWAYS;
 
     public bool Enabled { get; init; } = true;
+
+    public NotificationRecipientKind RecipientKind { get; init; } = NotificationRecipientKind.Address;
+
+    public Guid? UserId { get; init; }
+
+    public Guid? GroupId { get; init; }
+
+    public bool ByEmail { get; init; } = true;
+
+    public bool ByPushover { get; init; } = true;
+
+    public NotificationHours Hours { get; init; } = NotificationHours.Always;
 }

@@ -4370,21 +4370,49 @@ namespace PNMTD.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("ByEmail")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ByPushover")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("Enabled")
                         .HasColumnType("boolean");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Hours")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime?>("LastSentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastSentTo")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Recipient")
-                        .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<short>("RecipientKind")
+                        .HasColumnType("smallint");
 
                     b.Property<int>("Type")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("notificationrules");
                 });
@@ -6405,6 +6433,23 @@ namespace PNMTD.Data.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Sensor");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NotificationRuleEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.GroupEntity", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.UserEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Group");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.NotificationRuleEventEntity", b =>

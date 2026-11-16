@@ -14,7 +14,10 @@ import { useServerTable } from '@/composables/useServerTable'
 import { useSession } from '@/stores/session'
 import { providerIcon, providerLabel } from './ruleHelp'
 
-/** Who hears about what (§5.6): type, recipient, the provider it goes to, how many sensors. */
+/**
+ * Who hears about what (§5.6): type, recipient (an address, a user, a group or the responsible, docs/notification-recipients-plan.md
+ * §7.2), the provider it goes to, how many sensors.
+ */
 const session = useSession()
 const router = useRouter()
 const { invalidate } = useActions()
@@ -47,7 +50,7 @@ const table = useServerTable<S['NotificationRuleItem']>({
         />
       </template>
     </PageHeader>
-    <FilterBar v-model:search="table.search.value" placeholder="Search name or recipient" />
+    <FilterBar v-model:search="table.search.value" placeholder="Search name, recipient, user or group" />
     <ListTable :table="table" what="notification rules" :row-class="(r) => (r.enabled ? undefined : 'row-muted')">
       <Column field="name" header="Name" sortable>
         <template #body="{ data }">
@@ -64,7 +67,9 @@ const table = useServerTable<S['NotificationRuleItem']>({
         <template #body="{ data }">
           <span class="recipient" :title="providerLabel(data.provider)">
             <i :class="providerIcon(data.provider)" class="muted" aria-hidden="true" />
-            <span class="mono ellipsis">{{ data.recipient }}</span>
+            <span class="ellipsis" :class="{ mono: (data.recipientKind ?? 'Address') === 'Address' }">{{
+              data.recipient
+            }}</span>
           </span>
         </template>
       </Column>

@@ -699,6 +699,7 @@ Viewers see the page. Changes need User (CanWrite), as for the rules today.
 
 - The rule's page gets a **Scopes** section (*also every sensor with importance at least …*, *every sensor of host …*, *everything*) and an **Exclusions** section.
 - The sensor's page lists its rules with how each one covers it.
+- **Since 1.12 a rule's recipient is an address, a user, a group or the responsible of the day** (docs/notification-recipients-plan.md): the page shows whom it reaches now and whom it last reached, and the coverage lists the rules that reach nobody.
 
 ### 11.5 Pushover priority, and the importance in messages
 

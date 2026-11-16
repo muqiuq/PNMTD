@@ -49,6 +49,8 @@
             services.AddSingleton<INotificationProvider>(sp => sp.GetRequiredService<HttpNotification>());
             services.AddSingleton<INotificationProvider>(sp => sp.GetRequiredService<EMailNotification>());
             services.AddSingleton<NotificationService>();
+            // Whom a rule reaches (docs/notification-recipients-plan.md §4): reads the availability plan, so it is a singleton like it.
+            services.AddSingleton<NotificationRecipients>();
             return services;
         }
     }

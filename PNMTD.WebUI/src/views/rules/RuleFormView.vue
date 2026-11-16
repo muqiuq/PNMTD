@@ -10,15 +10,19 @@ import { api, keys, type RuleType } from '@/api/resources'
 import PageHeader from '@/components/PageHeader.vue'
 import { useActions } from '@/composables/useActions'
 import { humanize, useRuleTypes } from '@/composables/useLookups'
-import { recipientHint } from './ruleHelp'
+import RuleRecipientFields from './RuleRecipientFields.vue'
+import { recipientDraft, recipientErrors, recipientRequest } from './ruleHelp'
 
-/** A new notification rule (§5.6); sensors are linked on its page. */
+/**
+ * A new notification rule (§5.6): whom it tells, an address, a user, a group or the responsible (docs/notification-recipients-plan.md
+ * §7.2), and when; sensors are linked on its page.
+ */
 const router = useRouter()
 const ruleTypes = useRuleTypes()
 const { invalidate, notify } = useActions()
 
 const name = ref('')
-const recipient = ref('')
+const recipient = ref(recipientDraft())
 const type = ref<RuleType>('ONLY_FAILURES_ON_CHANGE_AND_BACK_TO_OK')
 const enabled = ref(true)
 const errors = ref<Record<string, string | undefined>>({})
@@ -28,25 +32,30 @@ const description = computed(() => ruleTypes.list.value.find((t) => t.type === t
 async function submit() {
   errors.value = {
     name: name.value.trim() ? undefined : 'A rule needs a name.',
-    recipient: recipient.value.trim() ? undefined : recipientHint,
+    ...recipientErrors(recipient.value),
   }
-  if (errors.value.name || errors.value.recipient) {
+  if (Object.values(errors.value).some((e) => e)) {
     return
   }
   busy.value = true
   try {
     const rule = await api.rules.create({
       name: name.value.trim(),
-      recipient: recipient.value.trim(),
       type: type.value,
       enabled: enabled.value,
+      ...recipientRequest(recipient.value),
     })
     await invalidate([keys.rules])
     notify.success(`Rule ${rule.name} created`, 'Link sensors to it on its page.')
     await router.replace({ name: 'notification-rule', params: { id: rule.id } })
   } catch (e) {
     if (e instanceof ApiError && Object.keys(e.errors).length) {
-      errors.value = { name: e.field('name'), recipient: e.field('recipient'), type: e.field('type') }
+      errors.value = Object.fromEntries(
+        ['name', 'recipient', 'type', 'recipientKind', 'userId', 'groupId', 'byEmail', 'hours'].map((f) => [
+          f,
+          e.field(f),
+        ]),
+      )
     } else {
       notify.error(e, 'Not created')
     }
@@ -68,12 +77,7 @@ async function submit() {
         <InputText id="rule-name" v-model="name" autofocus :invalid="!!errors.name" placeholder="Ops on-call" />
         <small v-if="errors.name" class="field-error">{{ errors.name }}</small>
       </div>
-      <div class="field">
-        <label for="rule-recipient">Recipient</label>
-        <InputText id="rule-recipient" v-model="recipient" class="mono" :invalid="!!errors.recipient" />
-        <small v-if="errors.recipient" class="field-error">{{ errors.recipient }}</small>
-        <small v-else class="field-hint">{{ recipientHint }}</small>
-      </div>
+      <RuleRecipientFields v-model:draft="recipient" :errors="errors" />
       <div class="field">
         <label for="rule-type">Sends</label>
         <Select
@@ -100,10 +104,6 @@ async function submit() {
 <style scoped>
 .narrow {
   max-width: 560px;
-}
-
-.mono {
-  font-family: var(--pnmt-mono);
 }
 
 .switch-row {

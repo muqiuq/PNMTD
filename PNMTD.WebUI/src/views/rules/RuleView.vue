@@ -4,31 +4,44 @@ import AutoComplete from 'primevue/autocomplete'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
+import Dialog from 'primevue/dialog'
 import ProgressSpinner from 'primevue/progressspinner'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ApiError } from '@/api/client'
 import { api, keys, ruleRequest, type S } from '@/api/resources'
 import EmptyState from '@/components/EmptyState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import InlineField from '@/components/InlineField.vue'
 import MoreMenu from '@/components/MoreMenu.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import RelativeTime from '@/components/RelativeTime.vue'
 import { useActions } from '@/composables/useActions'
 import { humanize, typeIcon, useRuleTypes } from '@/composables/useLookups'
 import { useSession } from '@/stores/session'
+import RuleRecipientFields from './RuleRecipientFields.vue'
 import RuleScopes from './RuleScopes.vue'
-import { providerIcon, providerLabel, recipientHint } from './ruleHelp'
+import {
+  providerIcon,
+  providerLabel,
+  reachText,
+  recipientDetails,
+  recipientDraft,
+  recipientErrors,
+  recipientRequest,
+} from './ruleHelp'
 
 /**
- * A notification rule (§5.6): its properties edited in place, with what each type sends; and its
- * sensors, by host and name, linked and unlinked from here.
+ * A notification rule (§5.6): its properties edited in place, with what each type sends; whom it tells, changed in a dialog,
+ * with whom it reaches now and whom it last reached (docs/notification-recipients-plan.md §7.2); and its sensors, by host and
+ * name, linked and unlinked from here.
  */
 const route = useRoute()
 const router = useRouter()
 const session = useSession()
 const ruleTypes = useRuleTypes()
 const queryClient = useQueryClient()
-const { run, ask, invalidate, done } = useActions()
+const { run, ask, invalidate, done, notify } = useActions()
 
 const id = computed(() => String(route.params.id))
 const query = useQuery({ queryKey: computed(() => keys.rule(id.value)), queryFn: () => api.rules.get(id.value) })
@@ -36,11 +49,44 @@ const rule = computed(() => query.data.value)
 const canWrite = computed(() => session.can('Monitoring', 'Edit'))
 const typeOptions = computed(() => ruleTypes.list.value.map((t) => ({ label: humanize(t.type), value: t.type })))
 const description = computed(() => ruleTypes.list.value.find((t) => t.type === rule.value?.type)?.description)
+const isAddress = computed(() => (rule.value?.recipientKind ?? 'Address') === 'Address')
 
 async function save(patch: Partial<S['NotificationRuleRequest']>) {
   const updated = await api.rules.update(id.value, ruleRequest(rule.value!, patch))
   queryClient.setQueryData(keys.rule(id.value), updated)
-  await invalidate([keys.rules])
+  await invalidate([keys.rules, keys.notifications])
+}
+
+// Whom it tells: the same block as the form, in a dialog, with the server's field errors.
+const changing = ref(false)
+const draft = ref(recipientDraft())
+const errors = ref<Record<string, string | undefined>>({})
+const saving = ref(false)
+watch(changing, (open) => {
+  if (open) {
+    draft.value = recipientDraft(rule.value)
+    errors.value = {}
+  }
+})
+async function saveRecipient() {
+  errors.value = recipientErrors(draft.value)
+  if (Object.values(errors.value).some((e) => e)) return
+  saving.value = true
+  try {
+    await save(recipientRequest(draft.value))
+    changing.value = false
+    notify.success('Recipient changed')
+  } catch (e) {
+    if (e instanceof ApiError && Object.keys(e.errors).length) {
+      errors.value = Object.fromEntries(
+        ['recipient', 'recipientKind', 'userId', 'groupId', 'byEmail', 'hours'].map((f) => [f, e.field(f)]),
+      )
+    } else {
+      notify.error(e, 'Not changed')
+    }
+  } finally {
+    saving.value = false
+  }
 }
 
 // Linking: sensors found by name (hosts are listed with them).
@@ -113,17 +159,33 @@ const more = computed(() => [{ label: 'Delete rule…', icon: 'pi pi-trash', com
                 :save="(v) => save({ name: String(v) })"
               />
             </dd>
-            <dt>Recipient</dt>
+            <dt>Send to</dt>
             <dd>
-              <InlineField
-                :value="rule.recipient"
-                label="Recipient"
-                field="recipient"
-                mono
-                :readonly="!canWrite"
-                :save="(v) => save({ recipient: String(v) })"
-              />
-              <small v-if="canWrite" class="field-hint block">{{ recipientHint }}</small>
+              <span class="recipient">
+                <i :class="providerIcon(rule.provider)" class="muted" aria-hidden="true" />
+                <span :class="{ mono: isAddress }">{{ rule.recipient }}</span>
+                <Button
+                  v-if="canWrite"
+                  label="Change…"
+                  size="small"
+                  text
+                  aria-label="Change whom the rule tells"
+                  @click="changing = true"
+                />
+              </span>
+              <small v-if="recipientDetails(rule)" class="field-hint block">{{ recipientDetails(rule) }}</small>
+            </dd>
+            <dt>Reaches now</dt>
+            <dd>
+              <span v-if="rule.reach?.why" class="nobody"
+                ><i class="pi pi-exclamation-triangle" aria-hidden="true" /> {{ rule.reach.why }}</span
+              >
+              <span v-else>{{ reachText(rule) }}</span>
+            </dd>
+            <dt>Last sent</dt>
+            <dd>
+              <RelativeTime :value="rule.lastSentAt" empty="never" />
+              <small v-if="rule.lastSentTo" class="field-hint block">to {{ rule.lastSentTo }}</small>
             </dd>
             <dt>Sends</dt>
             <dd>
@@ -224,6 +286,22 @@ const more = computed(() => [{ label: 'Delete rule…', icon: 'pi pi-trash', com
         </section>
       </div>
       <RuleScopes :rule="rule" :can-write="canWrite" class="scopes" />
+
+      <Dialog
+        v-model:visible="changing"
+        header="Whom the rule tells"
+        modal
+        :style="{ width: '34rem' }"
+        :breakpoints="{ '600px': '95vw' }"
+      >
+        <form class="form" novalidate @submit.prevent="saveRecipient">
+          <RuleRecipientFields v-model:draft="draft" :errors="errors" />
+        </form>
+        <template #footer>
+          <Button label="Cancel" severity="secondary" text @click="changing = false" />
+          <Button label="Save" :loading="saving" @click="saveRecipient" />
+        </template>
+      </Dialog>
     </template>
   </div>
 </template>
@@ -238,10 +316,24 @@ const more = computed(() => [{ label: 'Delete rule…', icon: 'pi pi-trash', com
   padding: var(--pnmt-space-6);
 }
 
-.provider {
+.provider,
+.recipient {
   display: inline-flex;
   align-items: center;
   gap: var(--pnmt-space-1);
+}
+
+.recipient {
+  gap: var(--pnmt-space-2);
+  flex-wrap: wrap;
+}
+
+.mono {
+  font-family: var(--pnmt-mono);
+}
+
+.nobody {
+  color: var(--pnmt-warn);
 }
 
 .block {

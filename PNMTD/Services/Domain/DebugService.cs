@@ -19,7 +19,7 @@ public sealed class DebugService(PnmtdDbContext db, PushoverNotification pushove
     {
         var key = pushover.ApiKey;
         var rules = await db.NotificationRules.AsNoTracking()
-            .Where(r => r.Recipient.StartsWith(PushoverNotification.Prefix))
+            .Where(r => r.Recipient != null && r.Recipient.StartsWith(PushoverNotification.Prefix))
             .OrderBy(r => r.Name)
             .Select(r => new Ref(r.Id, r.Name))
             .ToListAsync(ct);
@@ -46,7 +46,7 @@ public sealed class DebugService(PnmtdDbContext db, PushoverNotification pushove
         {
             var rule = await db.NotificationRules.AsNoTracking().SingleOrDefaultAsync(r => r.Id == ruleId, ct)
                 ?? throw ApiException.NotFound("Notification rule");
-            if (!PushoverNotification.Matches(rule.Recipient))
+            if (rule.Recipient is null || !PushoverNotification.Matches(rule.Recipient))
             {
                 throw ApiException.Invalid("ruleId", "That rule does not notify by Pushover.");
             }

@@ -108,9 +108,18 @@ public static partial class OperationsReadTools
     private static async Task<object> RulesAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
     {
         var rules = ctx.Services.GetRequiredService<NotificationRuleService>();
+        // A rule to people never names them here (docs/notification-recipients-plan.md R9): "a user", "a group", "the responsible".
         object Rule(NotificationRuleItem r) => new
         {
-            r.Id, r.Name, Recipient = MaskRecipient(r.Recipient), r.Provider, Type = r.Type.ToString(), r.Enabled, r.SensorCount, r.ScopeCount, r.Via,
+            r.Id, r.Name,
+            Recipient = r.RecipientKind switch
+            {
+                NotificationRecipientKind.User => "a user",
+                NotificationRecipientKind.Group => "a group",
+                NotificationRecipientKind.Responsible => "the responsible",
+                _ => MaskRecipient(r.Recipient),
+            },
+            RecipientKind = r.RecipientKind.ToString(), r.Provider, Type = r.Type.ToString(), r.Enabled, r.SensorCount, r.ScopeCount, r.Via,
         };
         if (OptionalId(args, "sensorId") is { } sensor)
         {

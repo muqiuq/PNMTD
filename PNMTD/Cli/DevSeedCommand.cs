@@ -321,6 +321,28 @@ internal static class DevSeedCommand
             Enabled = false,
         };
         db.NotificationRules.AddRange(onCall, team, chat);
+        // The person kinds (docs/notification-recipients-plan.md §8): the responsible of the day with the Operators as the stand-in,
+        // scoped to every High sensor; and the first admin by Pushover alone. Both reach whom the seed's plan and admin say.
+        var operators = db.Groups.Any(g => g.Id == GroupEntity.Operators) ? GroupEntity.Operators : (Guid?)null;
+        var onDuty = new NotificationRuleEntity
+        {
+            Id = Guid.NewGuid(), Name = "Storage on duty", RecipientKind = NotificationRecipientKind.Responsible, GroupId = operators,
+            Type = NotificationRuleType.ONLY_FAILURES_ON_CHANGE_AND_BACK_TO_OK, Enabled = true,
+        };
+        db.NotificationRules.Add(onDuty);
+        db.NotificationRuleScopes.Add(new NotificationRuleScopeEntity
+        {
+            Id = Guid.NewGuid(), RuleId = onDuty.Id, Kind = NotificationScopeKind.Importance, Importance = Importance.High,
+        });
+        if (db.Users.FirstOrDefault(u => u.IsAdmin && u.IsActive) is { } admin)
+        {
+            admin.PushoverKey ??= "uQiRzpo4DXghDmr9QzzfQu27cmVRsG";
+            db.NotificationRules.Add(new NotificationRuleEntity
+            {
+                Id = Guid.NewGuid(), Name = "Admin by Pushover", RecipientKind = NotificationRecipientKind.User, UserId = admin.Id, ByEmail = false,
+                Type = NotificationRuleType.ONLY_FAILURES_ON_CHANGE, Enabled = true,
+            });
+        }
         // Daily sensors only: none of them has an event in the notification task's 30-minute window.
         var daily = sensors.Where(s => s.Interval == 86_400 && s.Enabled).ToList();
         foreach (var sensor in daily.Where(s => hosts.Values.First(h => h.Id == s.ParentId).Name is "backup-srv" or "nas-01" or "nas-02" or "db-01" or "db-02"))

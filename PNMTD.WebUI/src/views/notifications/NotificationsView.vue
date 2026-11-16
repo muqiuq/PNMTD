@@ -160,11 +160,14 @@ async function setImportance() {
 }
 
 // --- coverage ---------------------------------------------------------------------------------------
+// Read for the Coverage tab, and for the matrix's column heads: a rule that reaches nobody right now (docs/notification-recipients-plan.md §9).
 const coverage = useQuery({
   queryKey: [...keys.notifications, 'coverage'],
   queryFn: api.notifications.coverage,
-  enabled: computed(() => tab.value === 'coverage'),
+  enabled: computed(() => tab.value !== 'pushover'),
 })
+const reachesNobody = (ruleId: string) =>
+  (coverage.data.value?.rulesReachingNobody ?? []).find((r) => r.rule.id === ruleId)?.why
 </script>
 
 <template>
@@ -261,8 +264,10 @@ const coverage = useQuery({
               <RouterLink
                 :to="{ name: 'notification-rule', params: { id: rule.id } }"
                 class="rule-head"
-                :title="`${rule.name} · ${rule.provider}`"
-                >{{ rule.name }}</RouterLink
+                :title="`${rule.name} · ${rule.provider}${reachesNobody(rule.id) ? ` · reaches nobody: ${reachesNobody(rule.id)}` : ''}`"
+                ><i v-if="reachesNobody(rule.id)" class="pi pi-exclamation-triangle nobody" aria-hidden="true" />{{
+                  rule.name
+                }}</RouterLink
               >
             </template>
             <template #body="{ data }">
@@ -307,6 +312,18 @@ const coverage = useQuery({
           <Message v-if="coverage.data.value.uncoveredHigh" severity="warn" :closable="false" size="small">
             {{ coverage.data.value.uncoveredHigh }} High sensor(s) would fail without anyone being told. A scope
             "importance at least High" on a rule covers them, and every High sensor added later.
+          </Message>
+          <Message v-if="coverage.data.value.rulesReachingNobody.length" severity="warn" :closable="false" size="small">
+            {{ coverage.data.value.rulesReachingNobody.length }} enabled rule(s) reach nobody right now, so their
+            sensors count as uncovered:
+            <ul class="nobody-list">
+              <li v-for="r in coverage.data.value.rulesReachingNobody" :key="r.rule.id">
+                <RouterLink :to="{ name: 'notification-rule', params: { id: r.rule.id } }">{{
+                  r.rule.name
+                }}</RouterLink>
+                <span class="muted">{{ r.why }}</span>
+              </li>
+            </ul>
           </Message>
           <ul class="uncovered">
             <li v-for="s in coverage.data.value.sensors" :key="s.sensorId">
@@ -444,6 +461,20 @@ const coverage = useQuery({
   display: flex;
   align-items: center;
   gap: var(--pnmt-space-2);
+}
+.nobody {
+  color: var(--pnmt-warn);
+  margin-right: var(--pnmt-space-1);
+  font-size: 0.75rem;
+}
+.nobody-list {
+  margin: var(--pnmt-space-2) 0 0;
+  padding-left: var(--pnmt-space-4);
+}
+.nobody-list li {
+  display: flex;
+  gap: var(--pnmt-space-2);
+  flex-wrap: wrap;
 }
 .small {
   font-size: 0.857rem;

@@ -42,6 +42,11 @@ public sealed class NotificationRulesController(NotificationRuleService rules, N
         return NoContent();
     }
 
+    /// <summary>What the editor chooses a user or a group from (docs/notification-recipients-plan.md §6.3): names, never contact details.</summary>
+    [HttpGet("people")]
+    [RequireRight(Area.Monitoring, Level.Edit)]
+    public async Task<ActionResult<NotificationPeople>> People(CancellationToken ct) => await rules.PeopleAsync(ct);
+
     [HttpGet("{id:guid}/sensors")]
     public async Task<ActionResult<IReadOnlyList<LinkedSensor>>> Sensors(Guid id, CancellationToken ct) => Ok(await rules.SensorsAsync(id, ct));
 

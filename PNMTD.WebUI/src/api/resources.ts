@@ -117,6 +117,8 @@ export const api = {
     update: (id: Id, body: S['NotificationRuleRequest']) =>
       call(client.PUT('/api/v1/notification-rules/{id}', { params: { path: { id } }, body })),
     remove: (id: Id) => call(client.DELETE('/api/v1/notification-rules/{id}', { params: { path: { id } } })),
+    /** The users and groups a rule can be sent to (docs/notification-recipients-plan.md §6.3): Monitoring's Edit. */
+    people: () => call(client.GET('/api/v1/notification-rules/people')),
     link: (id: Id, sensorId: Id) =>
       call(client.PUT('/api/v1/notification-rules/{id}/sensors/{sensorId}', { params: { path: { id, sensorId } } })),
     unlink: (id: Id, sensorId: Id) =>
@@ -1108,8 +1110,25 @@ export function udpNodeRequest(u: S['UdpNodeDetail'], patch: Partial<S['UdpNodeR
   }
 }
 
-export function ruleRequest(r: S['NotificationRuleDetail'], patch: Partial<S['NotificationRuleRequest']> = {}) {
-  return { name: r.name, recipient: r.recipient, type: r.type, enabled: r.enabled, ...patch }
+/** The whole rule as a request (docs/notification-recipients-plan.md §6.1): the recipient only for an address, the ids from the refs. */
+export function ruleRequest(
+  r: S['NotificationRuleDetail'],
+  patch: Partial<S['NotificationRuleRequest']> = {},
+): S['NotificationRuleRequest'] {
+  const kind = r.recipientKind ?? 'Address'
+  return {
+    name: r.name,
+    recipient: kind === 'Address' ? r.recipient : null,
+    type: r.type,
+    enabled: r.enabled,
+    recipientKind: kind,
+    userId: r.user?.id ?? null,
+    groupId: r.group?.id ?? null,
+    byEmail: r.byEmail,
+    byPushover: r.byPushover,
+    hours: r.hours ?? 'Always',
+    ...patch,
+  }
 }
 
 export function mailRuleRequest(

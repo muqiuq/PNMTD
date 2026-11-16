@@ -2,6 +2,7 @@ using PNMTD.Tasks.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using PNMTD.Data;
+using PNMTD.Lib.Helper;
 using PNMTD.Lib.Logic;
 using PNMTD.Lib.Models;
 using PNMTD.Lib.Models.Enum;
@@ -24,16 +25,19 @@ namespace PNMTD.Tasks
         private Timer _timer;
         private int executionCount;
         private readonly NotificationService notificationService;
+        private readonly NotificationRecipients recipients;
 
         public NotificationTask(ILogger<NotificationTask> _logger,
-            IServiceProvider services, 
+            IServiceProvider services,
             IConfiguration configuration,
-            NotificationService service)
+            NotificationService service,
+            NotificationRecipients recipients)
         {
             logger = _logger;
             this.services = services;
             this.configuration = configuration;
             this.notificationService = service;
+            this.recipients = recipients;
         }
 
         public void Dispose()
@@ -71,7 +75,10 @@ namespace PNMTD.Tasks
             }
         }
 
-        private void doWork(object? state)
+        private void doWork(object? state) => RunOnce();
+
+        /// <summary>One run: the pending notifications of the last 30 minutes, evaluated, sent and recorded. The tests call it directly.</summary>
+        internal void RunOnce()
         {
             using (var dbContext = services.CreateDbContext())
             {
@@ -80,6 +87,10 @@ namespace PNMTD.Tasks
                 IList<PendingNotification> allPendingNotifications;
 
                 allPendingNotifications = dbContext.GetAllPendingNotificationsForLastMinutes();
+
+                // Whom each rule reaches (docs/notification-recipients-plan.md §5): once per rule per run; the responsible doesn't
+                // change inside 30 minutes of events.
+                var resolvedByRule = new Dictionary<Guid, Resolved>();
 
                 // Every run, so that /api/v1/system/tasks can tell a stalled task from a quiet one.
                 dbContext.UpdateKeyValueTimestampToNow(Models.Enums.KeyValueKeyEnums.LAST_NOTIFICATION_TASK_RUN);
@@ -151,17 +162,49 @@ namespace PNMTD.Tasks
                         !pnm.EventEntity.Sensor.Ignore &&
                         pnm.EventEntity.Sensor.Parent.Enabled)
                     {
-                        var emailSubject = pnm.EventEntity.IsSuccess ? "Resolved" : "Alert";
-                        pnm.NoAction = false;
-                        var messageShort = $"Host {pnm.EventEntity.Sensor.Parent.Name}, Sensor {pnm.EventEntity.Sensor.Name} is now State {pnm.EventEntity.Code}";
-                        var message = new NotificationMessage(
-                            pnm.NotitificationRule.Recipient,
-                            $"{emailSubject} ({pnm.EventEntity.Sensor.Name})",
-                            messageShort,
-                            $"{messageShort}\n\n--- DATA ---\n{JsonSerializer.Serialize(eventEntityPoco)}",
-                            pnm.Importance);
-                        notificationService.SendAsync(message, $"rule {pnm.NotitificationRule.Name}",
-                            configuration.GetValue("Development:DoNotSendNotifications", false), CancellationToken.None).GetAwaiter().GetResult();
+                        var rule = pnm.NotitificationRule;
+                        if (!resolvedByRule.TryGetValue(rule.Id, out var resolved))
+                        {
+                            resolved = recipients.ResolveAsync(dbContext, rule, Clock.UtcNow, CancellationToken.None).GetAwaiter().GetResult();
+                            resolvedByRule[rule.Id] = resolved;
+                            if (resolved.Deliveries.Count == 0)
+                            {
+                                logger.LogWarning("Rule {Rule} reached nobody: {Why}", rule.Name, resolved.Why);
+                            }
+                        }
+                        if (resolved.Deliveries.Count == 0)
+                        {
+                            // Fired, but nobody to tell: recorded as no action; the page and the coverage say why (§5).
+                            pnm.NoAction = true;
+                        }
+                        else
+                        {
+                            var emailSubject = pnm.EventEntity.IsSuccess ? "Resolved" : "Alert";
+                            pnm.NoAction = false;
+                            var messageShort = $"Host {pnm.EventEntity.Sensor.Parent.Name}, Sensor {pnm.EventEntity.Sensor.Name} is now State {pnm.EventEntity.Code}";
+                            var messageLong = $"{messageShort}\n\n--- DATA ---\n{JsonSerializer.Serialize(eventEntityPoco)}";
+                            if (resolved.Because is { } because)
+                            {
+                                // Why this person got it (R4): "— Rule Storage on duty: to you as the responsible today".
+                                messageLong += $"\n\n— Rule {rule.Name}: {because}";
+                            }
+                            var simulate = configuration.GetValue("Development:DoNotSendNotifications", false);
+                            var sent = false;
+                            foreach (var delivery in resolved.Deliveries)
+                            {
+                                var message = new NotificationMessage(delivery.Recipient, $"{emailSubject} ({pnm.EventEntity.Sensor.Name})", messageShort,
+                                    messageLong, pnm.Importance);
+                                var result = notificationService.SendAsync(message,
+                                    $"rule {rule.Name} → {(delivery.Person.Length > 0 ? delivery.Person : delivery.Channel)}", simulate, CancellationToken.None)
+                                    .GetAwaiter().GetResult();
+                                sent |= result is { Ok: true };
+                            }
+                            if (sent)
+                            {
+                                rule.LastSentAt = Clock.UtcNow;
+                                rule.LastSentTo = resolved.Who.Length <= 500 ? resolved.Who : resolved.Who[..499] + "…";
+                            }
+                        }
                     }
                     else
                     {

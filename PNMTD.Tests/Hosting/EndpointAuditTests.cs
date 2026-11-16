@@ -91,6 +91,7 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/notification-rules"] = ("Monitoring:Edit", Roles.User),
         ["PUT /api/v1/notification-rules/{id:guid}"] = ("Monitoring:Edit", Roles.User),
         ["DELETE /api/v1/notification-rules/{id:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/notification-rules/people"] = ("Monitoring:Edit", Roles.User),
         ["GET /api/v1/notification-rules/{id:guid}/sensors"] = ("Monitoring:View", Roles.Viewer),
         ["PUT /api/v1/notification-rules/{id:guid}/sensors/{sensorId:guid}"] = ("Monitoring:Edit", Roles.User),
         ["DELETE /api/v1/notification-rules/{id:guid}/sensors/{sensorId:guid}"] = ("Monitoring:Edit", Roles.User),

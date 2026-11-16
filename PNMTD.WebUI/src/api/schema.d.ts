@@ -11065,6 +11065,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notification-rules/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationPeople"];
+                        "text/json": components["schemas"]["NotificationPeople"];
+                        "text/plain": components["schemas"]["NotificationPeople"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notification-rules/{id}/sensors": {
         parameters: {
             query?: never;
@@ -20083,7 +20120,20 @@ export interface components {
             /** Format: int32 */
             uncoveredLow: number;
             sensors: components["schemas"]["NotificationMatrixRow"][];
+            rulesReachingNobody: components["schemas"]["NotificationRuleReach"][];
         };
+        NotificationGroupRef: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: int32 */
+            members: number;
+        };
+        /**
+         * @default Always
+         * @enum {unknown}
+         */
+        NotificationHours: "Always" | "WorkingHours";
         NotificationMatrix: {
             rules: components["schemas"]["NotificationRuleItem"][];
             rows: components["schemas"]["NotificationMatrixRow"][];
@@ -20111,6 +20161,32 @@ export interface components {
             state: components["schemas"]["SensorState"];
             cells: components["schemas"]["NotificationMatrixCell"][];
         };
+        NotificationPeople: {
+            users: components["schemas"]["NotificationPerson"][];
+            groups: components["schemas"]["NotificationGroupRef"][];
+        };
+        NotificationPerson: {
+            /** Format: uuid */
+            id: string;
+            username: string;
+            displayName: string;
+            isActive: boolean;
+            hasEmail: boolean;
+            hasPushover: boolean;
+        };
+        NotificationReach: {
+            /** Format: int32 */
+            people: number;
+            /** Format: int32 */
+            deliveries: number;
+            who: string;
+            why: null | string;
+        };
+        /**
+         * @default Address
+         * @enum {unknown}
+         */
+        NotificationRecipientKind: "Address" | "User" | "Group" | "Responsible";
         NotificationRuleDetail: {
             /** Format: uuid */
             id: string;
@@ -20122,6 +20198,18 @@ export interface components {
             sensors: components["schemas"]["LinkedSensor"][];
             scopes?: null | components["schemas"]["NotificationScope"][];
             exclusions?: null | components["schemas"]["LinkedSensor"][];
+            recipientKind?: components["schemas"]["NotificationRecipientKind"];
+            user?: null | components["schemas"]["Ref"];
+            group?: null | components["schemas"]["Ref"];
+            /** @default true */
+            byEmail: boolean;
+            /** @default true */
+            byPushover: boolean;
+            hours?: components["schemas"]["NotificationHours"];
+            reach?: null | components["schemas"]["NotificationReach"];
+            /** Format: date-time */
+            lastSentAt?: null | string;
+            lastSentTo?: null | string;
         };
         NotificationRuleItem: {
             /** Format: uuid */
@@ -20139,12 +20227,25 @@ export interface components {
              */
             scopeCount: number;
             via?: null | string;
+            recipientKind?: components["schemas"]["NotificationRecipientKind"];
+        };
+        NotificationRuleReach: {
+            rule: components["schemas"]["Ref"];
+            why: string;
         };
         NotificationRuleRequest: {
             name?: null | string;
             recipient?: null | string;
             type?: components["schemas"]["NotificationRuleType"];
             enabled?: boolean;
+            recipientKind?: components["schemas"]["NotificationRecipientKind"];
+            /** Format: uuid */
+            userId?: null | string;
+            /** Format: uuid */
+            groupId?: null | string;
+            byEmail?: boolean;
+            byPushover?: boolean;
+            hours?: components["schemas"]["NotificationHours"];
         };
         /** @enum {unknown} */
         NotificationRuleType: "ALWAYS" | "ONLY_ON_CHANGE" | "ONLY_FAILURES" | "ONLY_FAILURES_ON_CHANGE" | "ONLY_FAILURES_ON_CHANGE_AND_BACK_TO_OK";

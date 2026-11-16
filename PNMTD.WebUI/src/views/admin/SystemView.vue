@@ -95,6 +95,10 @@ const info = computed(() => session.info)
             <dd :class="{ error: coverage.data.value.uncoveredHigh > 0 }">
               {{ coverage.data.value.uncoveredHigh }}
             </dd>
+            <dt>Rules reaching nobody</dt>
+            <dd :class="{ error: coverage.data.value.rulesReachingNobody.length > 0 }">
+              {{ coverage.data.value.rulesReachingNobody.length }}
+            </dd>
           </dl>
         </section>
         <section class="panel" aria-labelledby="udp-title">

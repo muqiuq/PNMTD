@@ -1,0 +1,27 @@
+# PNMT 1.12: notification rules to a user, a group, or the responsible of the day
+
+Version 1.12.0.
+
+## What's new
+
+- **A notification rule can tell a person PNMT knows, not only an address** (docs/notification-recipients-plan.md). *Send to* on a rule is now *An address*, *A user*, *A group* or *The responsible*. A user is reached at the e-mail address and Pushover key of their account (Account → Contact); a group tells every active member at the time of the send, each at their own details; the rule says which channels it uses, e-mail, Pushover or both. People without the chosen details are skipped and named on the rule's page.
+- **The responsible of the day is a recipient.** The rule asks the availability plan at the moment of the send: the day's responsible if they work, else the fallback, else the plan's global fallback. When the plan names nobody (a closed day, nobody works), the rule's stand-in is told: a user or a group, whether or not they work. A rule alerts at any hour by default; *in working hours only* makes the night and the closed days the stand-in's, or nobody's.
+- **The message says why the person got it:** *— Rule Storage on duty: to you as the responsible today*, *as a member of Storage team*, *as the stand-in for the responsible*.
+- **A rule that reaches nobody is visible.** The rule's page shows *Reaches now* and *Last sent* (when, and to whom). The Notification manager's Coverage tab lists enabled rules that reach nobody right now and why; their sensors count as uncovered; the matrix flags their columns; System health counts them.
+- **The address stays exactly as it was.** Same field, same validation, same providers, same masking for a Viewer, preselected in the form, and the API's default when the kind is left out. An address rule made in 1.12 is indistinguishable from one made in 1.11.
+- **Whoever edits rules can pick users and groups** without being an admin: the picker lists names and whether a person has an address or a key, never the values. MCP's and Cookie's read tools name the people a rule reaches as *a user*, *a group*, *the responsible*.
+
+## Updating from 1.11
+
+In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.12.0`. It takes a backup first.
+
+- **One migration:** `NotificationRecipients` on `notificationrules`: the recipient kind, the user and the group (set to null when they are deleted), the channels, the hours, and the last delivery. Every new column has a default, so existing rules stay address rules reached as before; a v0.12 import needs nothing new. It runs at the start.
+- **The audit** records a rule to people with a summary naming the person or group; the field changes are recorded as before. No new event types.
+- **Nothing changes for existing rules,** their sensors, scopes, exclusions, or the Pushover priorities.
+
+## Good to know
+
+- **A rule to one user who has neither an address nor a key is refused** when it is saved: one person is a fact the editor can fix now. A group may be empty or unreachable, since membership changes; the page and the coverage say so.
+- **A group rule tells every active member,** not only those who work today. The plan's judgement is the responsible kind's.
+- **A deleted user or group leaves the rule in place,** shown as *removed*, reaching nobody until it is changed; the coverage lists it.
+- **The plan:** docs/notification-recipients-plan.md, with the decisions (§11) and what was built (§13).

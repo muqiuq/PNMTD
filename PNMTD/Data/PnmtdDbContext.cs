@@ -518,6 +518,13 @@ namespace PNMTD.Data
                 e.HasOne<NotificationRuleEntity>().WithMany(r => r.Exclusions).HasForeignKey(x => x.RuleId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(x => x.SensorId).OnDelete(DeleteBehavior.Cascade);
             });
+            // A rule's user or group (docs/notification-recipients-plan.md §3.1): deleting them leaves the rule, which then shows
+            // "removed" and reaches nobody until it is changed.
+            modelBuilder.Entity<NotificationRuleEntity>(e =>
+            {
+                e.HasOne(r => r.User).WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne(r => r.Group).WithMany().HasForeignKey(r => r.GroupId).OnDelete(DeleteBehavior.SetNull);
+            });
 
             ConfigureLocations(modelBuilder);
             ConfigureKnowledgeBase(modelBuilder);
