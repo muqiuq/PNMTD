@@ -82,12 +82,16 @@ public sealed class MikrotikCommandTests
         return await response.ReadAsync<MikrotikCommandsCreated>();
     }
 
+    /// <summary>
+    /// Waits for the runner's bookkeeping, not just the state: a cancel marks a running command Cancelled at once, and the
+    /// runner writes the error and FinishedAt a moment later when it has closed the session.
+    /// </summary>
     private static async Task<MikrotikCommandDetail> FinishedAsync(HttpClient client, Guid jobId)
     {
         for (var i = 0; i < 300; i++)
         {
             var detail = await (await client.GetAsync($"/api/v1/mikrotik/commands/{jobId}")).ReadAsync<MikrotikCommandDetail>();
-            if (detail.Command.State is not (MikrotikJobState.Queued or MikrotikJobState.Running))
+            if (detail.Command.State is not (MikrotikJobState.Queued or MikrotikJobState.Running) && detail.Command.FinishedAt is not null)
             {
                 return detail;
             }
