@@ -280,4 +280,32 @@ public sealed class CaseBookTests
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, await response.Content.ReadAsStringAsync());
         return (await response.ReadAsync<CookieSaved>()).Version;
     }
+
+
+    [TestMethod]
+    public async Task Cookies_own_note_on_the_host_is_not_progress()
+    {
+        // docs/cookie-object-notes-plan.md §3.4: the people's notes are hashed as they are; Cookie's notes are rows of their own.
+        var host = await V1.CreateHostAsync(admin, V1.Unique("noted"));
+        var sensor = await V1.CreateSensorAsync(admin, host.Id, name: "uplink");
+        V1.AddEvents(app, sensor.Id, (Back.AddMinutes(-30), 500, "down"));
+        await Book.RunAsync(false, CancellationToken.None);
+        var c = (await OpenCaseAsync($"host:{host.Id}"))!;
+        await using (var db = app.NewDb())
+        {
+            db.CookieObjectNotes.Add(new CookieObjectNoteEntity { HostId = host.Id, At = Clock.UtcNow, Text = "The uplink flaps at night.", Areas = ["Monitoring"] });
+            db.CookieObjectNotes.Add(new CookieObjectNoteEntity { SensorId = sensor.Id, At = Clock.UtcNow, Text = "Known since Monday.", Areas = ["Monitoring"] });
+            await db.SaveChangesAsync();
+        }
+        await Book.RunAsync(false, CancellationToken.None);
+        var after = (await OpenCaseAsync($"host:{host.Id}"))!;
+        Assert.AreEqual(c.ProgressAt, after.ProgressAt, "Cookie's notes aren't progress");
+        await using (var db = app.NewDb())
+        {
+            (await db.Hosts.SingleAsync(h => h.Id == host.Id)).Notes = "Called the provider.";
+            await db.SaveChangesAsync();
+        }
+        await Book.RunAsync(false, CancellationToken.None);
+        Assert.IsTrue((await OpenCaseAsync($"host:{host.Id}"))!.ProgressAt > c.ProgressAt, "a person's note is");
+    }
 }

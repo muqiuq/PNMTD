@@ -26,10 +26,13 @@ public static class McpRights
         [Area.Availability] = Level.View,
     };
 
-    /// <summary>The read-only token: the reading levels only. <i>Cookie: Use</i> is for questions.</summary>
+    /// <summary>
+    /// The read-only token: the reading levels only, Monitoring's <i>Details</i> among them (docs/cookie-object-notes-plan.md §4.4).
+    /// <i>Cookie: Use</i> is for questions.
+    /// </summary>
     public static readonly IReadOnlyDictionary<Area, Level> ReadOnlyCap = new Dictionary<Area, Level>
     {
-        [Area.Monitoring] = Level.View,
+        [Area.Monitoring] = Level.Details,
         [Area.Mail] = Level.Read,
         [Area.Locations] = Level.View,
         [Area.KnowledgeBase] = Level.View,

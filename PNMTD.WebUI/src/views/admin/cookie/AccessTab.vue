@@ -601,7 +601,7 @@ const rowError = (field: string) => s.error(field)
           <p class="muted small intro">
             Who is told, a user or a group. In working hours every contact is; group members who don't work today by the
             plan are skipped, a user named here never. Outside working hours, as the verdict's row says. A contact needs
-            Monitoring: Edit for servers and routers, Audit log: View for PNMT.
+            Monitoring: Details for servers and routers, Audit log: View for PNMT.
           </p>
           <p v-if="!s.draft.value.contacts.length" class="muted none">None: the watch reaches nobody.</p>
           <div v-else class="wide-table">

@@ -133,6 +133,7 @@ public static class CookieSetup
         services.AddSingleton<CookieLoop>();
         services.AddSingleton<Summaries>();
         services.AddScoped<CookieService>();
+        services.AddScoped<CookieObjectNoteService>();
         // Cookie acts (package nine point five, §21): instructions, Seraph, the executor and the inbox's kinds.
         services.AddSingleton<Instructions>();
         services.AddSingleton<Seraph>();

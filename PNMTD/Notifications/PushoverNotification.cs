@@ -6,10 +6,10 @@ namespace PNMTD.Notifications
 {
     /// <summary>
     /// <c>pushover://USERKEY</c>. The API key is <c>Pushover:ApiKey</c>; <c>Pushover:Endpoint</c> lets tests
-    /// send to a fake. The priority follows the importance (docs/ai-operations-plan.md §11.5): Low −1, Normal 0,
-    /// High 1, unless <c>Notifications:PushoverPriorityByImportance=false</c>.
+    /// send to a fake. The priority is the message's own (the debug page's), else the settings' for its importance
+    /// (<see cref="PushoverPriorities"/>, docs/cookie-object-notes-plan.md §5.2); an emergency carries the settings' retry and expiry.
     /// </summary>
-    public sealed class PushoverNotification(IConfiguration configuration, IHttpClientFactory http) : INotificationProvider
+    public sealed class PushoverNotification(IConfiguration configuration, IHttpClientFactory http, PushoverPriorities priorities) : INotificationProvider
     {
         public const string PUSHOVER_APIKEY_KEY = "Pushover:ApiKey";
         public const string PUSHOVER_ENDPOINT = "https://api.pushover.net/1/messages.json";
@@ -27,11 +27,6 @@ namespace PNMTD.Notifications
 
         public string Endpoint => configuration["Pushover:Endpoint"] is { Length: > 0 } endpoint ? endpoint : PUSHOVER_ENDPOINT;
 
-        public int PriorityOf(NotificationMessage message) =>
-            message.Priority ?? (configuration.GetValue("Notifications:PushoverPriorityByImportance", true)
-                ? message.Importance switch { Importance.Low => -1, Importance.High => 1, _ => 0 }
-                : 0);
-
         public async Task<DeliveryResult> SendAsync(NotificationMessage message, CancellationToken ct)
         {
             var watch = Stopwatch.StartNew();
@@ -39,14 +34,22 @@ namespace PNMTD.Notifications
             {
                 return DeliveryResult.Failed($"No API key: {PUSHOVER_APIKEY_KEY} is not set.", watch.Elapsed);
             }
+            var settings = await priorities.GetAsync(ct);
+            var priority = message.Priority ?? settings.Of(message.Importance);
             var body = new Dictionary<string, object>
             {
                 ["token"] = ApiKey!,
                 ["user"] = UserKey(message.Recipient),
                 ["title"] = message.Subject,
                 ["message"] = message.Short,
-                ["priority"] = PriorityOf(message),
+                ["priority"] = priority,
             };
+            if (priority == PushoverPrioritySettings.Emergency)
+            {
+                // Pushover needs both for an emergency: how often the phone repeats it, and when it gives up (§5.2).
+                body["retry"] = settings.RetrySeconds;
+                body["expire"] = settings.ExpireSeconds;
+            }
             if (!string.IsNullOrWhiteSpace(message.Device))
             {
                 body["device"] = message.Device!.Trim();

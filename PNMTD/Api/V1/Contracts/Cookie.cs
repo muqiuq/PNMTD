@@ -10,6 +10,12 @@ namespace PNMTD.Api.V1.Contracts;
 public sealed record CookieCaseRef(Guid Id, string Title);
 
 /// <summary>
+/// A note of Cookie's on a host or a sensor (docs/cookie-object-notes-plan.md §5): shown on the object's page to readers with its
+/// areas; <c>CaseTitle</c> only for <i>Cookie: Use</i>, and while the case exists.
+/// </summary>
+public sealed record CookieObjectNoteItem(long Id, DateTime At, string Text, Guid? CaseId, string? CaseTitle, IReadOnlyList<string> Areas);
+
+/// <summary>
 /// The overall state (§8): Cookie's while it runs, the code's otherwise. A reader who can't see every case behind it gets
 /// the state with a reason that names none of them.
 /// </summary>

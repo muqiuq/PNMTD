@@ -42,6 +42,8 @@ import RedminePanel from '@/views/redmine/RedminePanel.vue'
 import SensorTicket from '@/views/redmine/SensorTicket.vue'
 import ZabbixSensorTab from './zabbix/ZabbixSensorTab.vue'
 import SensorNotesPanel from './SensorNotesPanel.vue'
+import CookieNotesPanel from '@/views/cookie/CookieNotesPanel.vue'
+import { useCookieNotes } from '@/views/cookie/cookieNotes'
 import BackupsTab from './mikrotik/BackupsTab.vue'
 import MikrotikCommandsTab from './mikrotik/CommandsTab.vue'
 import UpdatesTab from './mikrotik/UpdatesTab.vue'
@@ -103,6 +105,10 @@ const query = useQuery({
 })
 const sensor = computed(() => query.data.value)
 const canWrite = computed(() => session.can('Monitoring', 'Edit'))
+// What names people (docs/cookie-object-notes-plan.md §4): logins, the journal, the event log, SSH keys.
+const canDetails = computed(() => session.can('Monitoring', 'Details'))
+// Cookie's notes on the sensor (docs/cookie-object-notes-plan.md §6), below the people's notes.
+const cookieNotes = useCookieNotes('sensor', () => id.value)
 // What only the Manage of the sensor's own area may do (docs/audit-redmine-zabbix-plan.md §5.2): a router's MikroTik &
 // WireGuard, a node's UDP nodes, a server's Servers.
 const isAdmin = computed(() =>
@@ -162,8 +168,8 @@ const linuxTabs = computed(() => {
     { key: 'network', label: 'Network', icon: 'pi pi-sitemap', to: to('network') },
     { key: 'services', label: 'Services', icon: 'pi pi-cog', to: to('services') },
     { key: 'remote-access', label: 'Remote access', icon: 'pi pi-desktop', to: to('remote-access') },
-    // Logins, the journal and the SSH keys hold names, addresses and key comments: Monitoring's Edit (§11.2).
-    ...(canWrite.value
+    // Logins, the journal and the SSH keys hold names, addresses and key comments: Monitoring's Details.
+    ...(canDetails.value
       ? [
           { key: 'access', label: 'Access', icon: 'pi pi-sign-in', to: to('access') },
           { key: 'journal', label: 'Journal', icon: 'pi pi-exclamation-triangle', to: to('journal') },
@@ -187,8 +193,8 @@ const windowsTabs = computed(() => {
     { key: 'network', label: 'Network', icon: 'pi pi-sitemap', to: to('network') },
     { key: 'services', label: 'Services', icon: 'pi pi-cog', to: to('services') },
     { key: 'remote-access', label: 'Remote access', icon: 'pi pi-desktop', to: to('remote-access') },
-    // Logins and the event log hold names and addresses: the User role (§10.2).
-    ...(canWrite.value
+    // Logins and the event log hold names and addresses: Monitoring's Details.
+    ...(canDetails.value
       ? [
           { key: 'access', label: 'Access', icon: 'pi pi-sign-in', to: to('access') },
           { key: 'event-log', label: 'Event log', icon: 'pi pi-exclamation-triangle', to: to('event-log') },
@@ -233,8 +239,8 @@ const mikrotikTabs = computed(() => {
           },
           // Remote commands need CanWrite (§8.3).
           ...(canWrite.value ? [{ key: 'commands', label: 'Commands', icon: 'pi pi-code', to: to('commands') }] : []),
-          // Its logins hold names and addresses: Monitoring's Edit, as a server's (docs/cookie-access-plan.md §10.4).
-          ...(canWrite.value ? [{ key: 'access', label: 'Access', icon: 'pi pi-sign-in', to: to('access') }] : []),
+          // Its logins hold names and addresses: Monitoring's Details, as a server's (docs/cookie-access-plan.md §10.4).
+          ...(canDetails.value ? [{ key: 'access', label: 'Access', icon: 'pi pi-sign-in', to: to('access') }] : []),
         ]
       : []),
     { key: 'history', label: 'History', icon: 'pi pi-history', to: to('history') },
@@ -490,7 +496,7 @@ const more = computed(() =>
         :is-admin="isAdmin"
       />
       <MikrotikCommandsTab v-else-if="isMikrotik && tab === 'commands'" :sensor="sensor" :is-admin="isAdmin" />
-      <RouterAccessTab v-else-if="isMikrotik && tab === 'access' && canWrite" :sensor="sensor" />
+      <RouterAccessTab v-else-if="isMikrotik && tab === 'access' && canDetails" :sensor="sensor" />
       <LastPacketsTab v-else-if="tab === 'last-packets'" :sensor="sensor" />
       <CommandsTab v-else-if="tab === 'commands'" :sensor="sensor" :can-write="canWrite" />
       <FirmwareTab v-else-if="tab === 'firmware'" :sensor="sensor" :is-admin="isAdmin" @update="updating = true" />
@@ -504,11 +510,23 @@ const more = computed(() =>
         >
           <template #notes>
             <SensorNotesPanel :notes="sensor.notes ?? null" :can-write="canWrite" :save="saveNotes" />
+            <CookieNotesPanel
+              :notes="cookieNotes.notes.value"
+              :can-remove="cookieNotes.canRemove.value"
+              :can-link-case="cookieNotes.canLinkCase.value"
+              @remove="cookieNotes.remove"
+            />
           </template>
         </WindowsOverviewTab>
         <LinuxOverviewTab v-else-if="isLinux && tab === 'overview'" :server="agent.server.value" :can-write="canWrite">
           <template #notes>
             <SensorNotesPanel :notes="sensor.notes ?? null" :can-write="canWrite" :save="saveNotes" />
+            <CookieNotesPanel
+              :notes="cookieNotes.notes.value"
+              :can-remove="cookieNotes.canRemove.value"
+              :can-link-case="cookieNotes.canLinkCase.value"
+              @remove="cookieNotes.remove"
+            />
           </template>
         </LinuxOverviewTab>
         <AgentHardwareTab v-else-if="tab === 'hardware'" :server="agent.server.value" :can-write="canWrite" />
@@ -534,29 +552,29 @@ const more = computed(() =>
           :can-write="canWrite"
         />
         <WindowsAccessTab
-          v-else-if="isWindows && tab === 'access' && canWrite"
+          v-else-if="isWindows && tab === 'access' && canDetails"
           :server="agent.server.value"
           :can-write="canWrite"
         />
         <LinuxAccessTab
-          v-else-if="isLinux && tab === 'access' && canWrite"
+          v-else-if="isLinux && tab === 'access' && canDetails"
           :server="agent.server.value"
           :can-write="canWrite"
           :key-fingerprint="keyQuery"
         />
         <LinuxJournalTab
-          v-else-if="isLinux && tab === 'journal' && canWrite"
+          v-else-if="isLinux && tab === 'journal' && canDetails"
           :server="agent.server.value"
           :can-write="canWrite"
         />
         <LinuxSshKeysTab
-          v-else-if="isLinux && tab === 'ssh-keys' && canWrite"
+          v-else-if="isLinux && tab === 'ssh-keys' && canDetails"
           :server="agent.server.value"
           :can-write="canWrite"
           :is-admin="isAdmin"
         />
         <WindowsEventLogTab
-          v-else-if="isWindows && tab === 'event-log' && canWrite"
+          v-else-if="isWindows && tab === 'event-log' && canDetails"
           :server="agent.server.value"
           :can-write="canWrite"
         />
@@ -722,6 +740,12 @@ const more = computed(() =>
               </template>
             </dl>
           </section>
+          <CookieNotesPanel
+            :notes="cookieNotes.notes.value"
+            :can-remove="cookieNotes.canRemove.value"
+            :can-link-case="cookieNotes.canLinkCase.value"
+            @remove="cookieNotes.remove"
+          />
 
           <section v-if="isUdp" class="panel" aria-labelledby="integration-title">
             <div id="integration-title" class="panel-header">Reporting over UDP</div>

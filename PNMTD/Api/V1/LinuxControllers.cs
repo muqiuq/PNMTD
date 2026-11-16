@@ -15,8 +15,8 @@ namespace PNMTD.Api.V1;
 [RequireRight(Area.Monitoring, Level.View)]
 public sealed class LinuxServersController(AgentServerService servers) : V1ControllerBase
 {
-    /// <summary>A section, typed by Linux's records (§5). <c>access</c>, <c>journal</c> and <c>ssh-keys</c> need the User role. 404 for a Windows server.</summary>
+    /// <summary>A section, typed by Linux's records (§5). <c>access</c>, <c>journal</c> and <c>ssh-keys</c> need Monitoring's Details. 404 for a Windows server.</summary>
     [HttpGet("{id:guid}/sections/{section}")]
     public async Task<ActionResult<LinuxSectionView>> Section(Guid id, string section, CancellationToken ct) =>
-        await servers.LinuxSectionAsync(id, section, CanSeeSecrets, ct);
+        await servers.LinuxSectionAsync(id, section, CanSeeDetails, ct);
 }

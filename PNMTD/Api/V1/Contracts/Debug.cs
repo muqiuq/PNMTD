@@ -17,7 +17,7 @@ public sealed class DebugPushoverRequest
 
     public string? Device { get; init; }
 
-    /// <summary>−1, 0 or 1. Emergency (2) needs acknowledgements, and is left out.</summary>
+    /// <summary>−2 to 2. An emergency (2) repeats with the settings' retry and expiry (docs/cookie-object-notes-plan.md §5.2).</summary>
     public int Priority { get; init; }
 
     public string? Title { get; init; }

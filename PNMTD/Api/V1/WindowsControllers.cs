@@ -16,11 +16,11 @@ namespace PNMTD.Api.V1;
 [Authorize]
 public sealed class WindowsServersController(AgentServerService servers, AgentScriptService scripts) : V1ControllerBase
 {
-    /// <summary>A section, typed (§4). <c>access</c> and <c>event-log</c> need the User role.</summary>
+    /// <summary>A section, typed (§4). <c>access</c> and <c>event-log</c> need Monitoring's Details.</summary>
     [HttpGet("{id:guid}/sections/{section}")]
     [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<WindowsSectionView>> Section(Guid id, string section, CancellationToken ct) =>
-        await servers.SectionAsync(id, section, CanSeeSecrets, ct);
+        await servers.SectionAsync(id, section, CanSeeDetails, ct);
 
     /// <summary>WMI (§16): PNMT's settings for the server, and its queries, their state and the own queries' rows. Admin.</summary>
     [HttpGet("{id:guid}/wmi")]

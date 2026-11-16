@@ -12,7 +12,7 @@ import { formatAbsolute } from '@/format'
 import AgentLoginsList from '../agent/AgentLoginsList.vue'
 
 /**
- * A router's Access tab (docs/cookie-access-plan.md §4.2, §10.4), for Monitoring: Edit: the switch Cookie watches this
+ * A router's Access tab (docs/cookie-access-plan.md §4.2, §10.4), for Monitoring: Details: the switch Cookie watches this
  * router's logins (Cookie: Manage changes it, the others see it), whether its log may be missing lines, who is logged in now,
  * its users, and its logins read from the log with the access watch's verdicts. With the switch off, the logins are still
  * read and shown, and nothing else happens.

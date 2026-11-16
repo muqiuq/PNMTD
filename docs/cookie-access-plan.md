@@ -56,7 +56,7 @@
 | **Routers** | `RouterPollService`, `RouterPoll.Script` | **Every 5 minutes** (the sensor's Interval), one SSH exec as the `pnmt` user, whose group has the *read* policy. *read* allows `/log print` and `/user print`. **The poll doesn't read the log yet.** RouterOS writes `user X logged in from A via winbox` (and `ssh`, `web`, `api`, `telnet`, `ftp`), `… logged out …` and `login failure for user X from A via …` to its memory log by default (topic *account*) |
 | **PNMT** | `audit_log` | `LoginSucceeded`, `LoginFailed`, `LockedOut`, `TotpFailed`, with the user, **the address and the user agent**; `McpTokenOn` (a token switched on with the day's 2FA code); every MCP call, with its token's user and address. **Kept 400 days** (`Audit__KeepDays`) |
 | **Events** | `AgentAccessService` | 254/264 for an admin login, 454/464 for a burst of failures. **They stay as they are** |
-| **The rights** | `GET agents/servers/{id}/logins`; *Admin → Audit log* | Logins carry names and addresses: ***Monitoring: Edit*** for a server's. **Cookie's group has it already** where Cookie writes notes on hosts (cookie-plan §21.8). The audit log needs ***Audit log: View*** |
+| **The rights** | `GET agents/servers/{id}/logins`; *Admin → Audit log* | Logins carry names and addresses: ***Monitoring: Details*** for a server's (since 1.10, docs/cookie-object-notes-plan.md §4; *Edit* before). Cookie's group needs it for the watch. The audit log needs ***Audit log: View*** |
 | **Keys and people** | `SshKeyEntity` | A key's name, its PNMT user (`UserId`) or outside owner, and whether it is retired |
 | **People** | `users`, the availability plan | E-mail, Pushover key, admin or not, active or not, who works today and where, who is on vacation |
 | **Cookie** | `PNMTD/Cookie/` | Cases, the round, tools, the executor with Seraph, the outbox and its limits, the decision log, ratings and lessons |
@@ -190,10 +190,10 @@
 
 | Tool | Right | What |
 |---|---|---|
-| `logins_list` | *Monitoring: Edit* | A server's or a router's logins in a period (at most 14 days, 100 a page): filter by account, source, kind group, outcome |
+| `logins_list` | *Monitoring: Details* | A server's or a router's logins in a period (at most 14 days, 100 a page): filter by account, source, kind group, outcome |
 | `pnmt_signins` | *Audit log: View* | PNMT's sign-ins, failures, lockouts and MCP token use in a period, by user or address, with the device family |
-| `access_profile` | *Monitoring: Edit*; for PNMT *Audit log: View* | One account on one target, over the history: first and last seen, counts by kind group, its source networks with counts and last use, the hours of the week it logs in, its keys or devices, its sudo targets |
-| `account_logins` | *Monitoring: Edit* | One account, or one source address, **across all servers and routers** in the last 24 hours, and PNMT's sign-ins from that address when Cookie's group has *Audit log: View* |
+| `access_profile` | *Monitoring: Details*; for PNMT *Audit log: View* | One account on one target, over the history: first and last seen, counts by kind group, its source networks with counts and last use, the hours of the week it logs in, its keys or devices, its sudo targets |
+| `account_logins` | *Monitoring: Details* | One account, or one source address, **across all servers and routers** in the last 24 hours, and PNMT's sign-ins from that address when Cookie's group has *Audit log: View* |
 
 Cookie also uses its existing tools: `host_get`, `ticket_get`, `kb_search` and `kb_page` (a page such as "Vendor X connects by TeamViewer on Tuesdays"), `availability_get`, `case_get`.
 
@@ -265,7 +265,7 @@ The work's last call (strict schema, no tools, cookie-plan §21.1) answers, besi
 
 - **In working hours,** every contact is told. **Group members who don't work today by the plan are skipped**, as everywhere (cookie-plan §8.3). **A user named directly is always told:** they were named on purpose.
 - **Outside working hours,** as the verdict's row says (§6.1).
-- **A contact needs the right to see what the notice names:** *Monitoring: Edit* for servers and routers, *Audit log: View* for PNMT. One without it is skipped for that target, and the tab warns.
+- **A contact needs the right to see what the notice names:** *Monitoring: Details* for servers and routers, *Audit log: View* for PNMT. One without it is skipped for that target, and the tab warns.
 - **The availability plan doesn't route these notices,** because the contacts are set here. Cookie still reads the plan to judge (§4.5, *not working*).
 - **When nobody can be reached,** the notice is held back as *nobody to reach* (the outbox, cookie-plan §8.2) and goes to the decisions inbox.
 
@@ -376,7 +376,7 @@ Text:            admin by WinBox from 203.0.113.7 (public), Sun 03:12,
 
 - ***Actions*** gains *access-notice* (level *Auto*, threshold, limits). ***Cases*** gains the instruction for *an unusual login*.
 - **The tab warns** when:
-  - Cookie's group lacks *Monitoring: Edit* (Cookie can't read servers' and routers' logins) or *Audit log: View* (PNMT's sign-ins); only code's strong signals work then;
+  - Cookie's group lacks *Monitoring: Details* (Cookie can't read servers' and routers' logins) or *Audit log: View* (PNMT's sign-ins); only code's strong signals work then;
   - a contact lacks the right for a target it is set for;
   - no contact is reached outside working hours for *suspicious*;
   - *access-notice* isn't at *Auto*;
@@ -394,11 +394,11 @@ Text:            admin by WinBox from 203.0.113.7 (public), Sun 03:12,
 - **A model can't quietly drop a strong signal.** Cookie may judge one *normal* (a vendor's known jump host, a ticket that explains it); otherwise every strong signal would page. **But that needs a confidence of at least 0.8, or code makes it *unusual*** (§5.4).
 - **A model can't wake everyone on a whim:** *alarming* needs a strong signal, which code computes (§5.4).
 - **Names and addresses:** in `Code` mode, PNMT's users' usernames and **every account in the case** are swapped for `PERSON_n` (`Pseudonyms.ForAccess`, `Pseudonyms.Account`), however short; `Administrator`, `root` and `admin` stay, as ordinary words do (cookie-plan §19.8). **Source addresses and networks become `ADDRESS_n`,** in the brief, the signals, the known access, the tools' results and Seraph's evidence: code has already said what matters about an address (public, trusted, seen before, the same as another login's), so the model never needs the address itself. **Host names stay** (cookie-plan §13.2). The placeholders are stable and restored by code before anything is shown, sent or looked up: a tool called with `ADDRESS_4` searches for the address. An account that isn't a plain account name (a name with spaces, an instruction) still goes to Jev as it is, so the screen sees it; the model sees only its placeholder.
-- **Rights:** the tools need *Monitoring: Edit* in Cookie's group, and *Audit log: View* for PNMT's sign-ins; in a chat, the asker's as well (the lower of the two). **An access case is shown only to readers with the target's right** (§6.2) besides *Cookie: Use*, because its timeline carries names and addresses; the case carries the area and level, and the trace by rights (cookie-plan §9.2) follows.
+- **Rights:** the tools need *Monitoring: Details* in Cookie's group, and *Audit log: View* for PNMT's sign-ins; in a chat, the asker's as well (the lower of the two). **An access case is shown only to readers with the target's right** (§6.2) besides *Cookie: Use*, because its timeline carries names and addresses; the case carries the area and level, and the trace by rights (cookie-plan §9.2) follows.
 - **The *Was this you?* page is the access watch's only page without sign-in.** Its token is random, one-time and valid 24 hours; only its hash is stored. It shows the one login and takes one answer, nothing else. It is rate-limited, in the anonymous allowlist (`EndpointAuditTests.AnonymousAllowlist`), and its answer is audited with the address it came from. A token used, expired or unknown shows the same page: *This link no longer works*.
 - **Switching a router's watch off is audited** and listed on the *Access* tab (§4.2), so silencing a router doesn't go unseen.
 - **Cookie still can't act on a target.** No new write tool; the access notice is an add-only action with recipients from configuration. **Reading the routers' log and users needs nothing new on them:** the `pnmt` user's *read* policy covers it.
-- **Over MCP,** `logins_list`, `access_profile` and `account_logins` are offered to a read-write token whose user has *Monitoring: Edit* (the read-only token is capped at *View*, `McpRights.ReadOnlyCap`). **`pnmt_signins` isn't:** the MCP ceiling has no *Audit log* (`McpRights.Ceiling`).
+- **Over MCP,** `logins_list`, `access_profile` and `account_logins` are offered to a token whose user has *Monitoring: Details*, read-write or read-only (`McpRights.ReadOnlyCap` reaches *Details*, a reading level). **`pnmt_signins` isn't:** the MCP ceiling has no *Audit log* (`McpRights.Ceiling`).
 
 ---
 
@@ -445,8 +445,8 @@ Text:            admin by WinBox from 203.0.113.7 (public), Sun 03:12,
 | `GET`, `POST cookie/admin/access/known`, `POST …/{id}/end` | Known access | *Cookie: Manage* |
 | `POST cookie/access/{reviewId}/answer` | *Expected* (with *Remember this*) or *Not expected*, with a comment | a contact for the target, or *Cookie: Instruct*; and the target's right |
 | `POST cookie/cases/{id}/ticket` | *Ask Cookie for a ticket* on an access case | *Cookie: Instruct* and *Redmine: Link* |
-| `GET agents/servers/{id}/logins` | **Now with** each login's review: verdict and case | *Monitoring: Edit* (as now) |
-| `GET sensors/{id}/mikrotik/logins` | **New:** a router's logins, who is logged in now, the gap, the switch, each login with its review | *Monitoring: Edit* |
+| `GET agents/servers/{id}/logins` | **Now with** each login's review: verdict and case | *Monitoring: Details* (*Edit* before 1.10) |
+| `GET sensors/{id}/mikrotik/logins` | **New:** a router's logins, who is logged in now, the gap, the switch, each login with its review | *Monitoring: Details* |
 | `PUT sensors/{id}/mikrotik/access-watch` | **New:** a router's switch, on or off | *Cookie: Manage* |
 | `PUT cookie/admin/access/routers` | **New:** many routers' switches at once | *Cookie: Manage* |
 | `GET access/was-this-you/{token}` | **New, without sign-in:** the one login the token asks about | anonymous, rate-limited |
@@ -494,7 +494,7 @@ Text:            admin by WinBox from 203.0.113.7 (public), Sun 03:12,
 - ***Was this you?*:** asked only for a linked, active person with an address, once per case, for the verdicts switched on, never for a late login; the e-mail is code's text only; opening the link answers nothing; the token works once and not after 24 hours; *No* makes the case *alarming* and tells the contacts; *Yes* closes an *unusual* case and only notes a *suspicious* one; an address changed within 7 days gets the e-mail at the old address too;
 - **the model can't silence or redirect,** with a fake model: an injected account name is flagged and the case is *suspicious*;
 - **the answers:** *Expected* with *Remember this* adds the entry and the next identical login is normal; the ratings are recorded; **a ticket proposal on an access case is refused until someone asks**, and goes through after *Ask Cookie for a ticket*;
-- **the tools** refuse without *Monitoring: Edit*, and `pnmt_signins` without *Audit log: View*;
+- **the tools** refuse without *Monitoring: Details*, and `pnmt_signins` without *Audit log: View*;
 - **the endpoints** in the access matrix.
 
 ---

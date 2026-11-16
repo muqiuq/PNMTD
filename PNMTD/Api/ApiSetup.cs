@@ -169,4 +169,7 @@ public abstract class V1ControllerBase : ControllerBase
 {
     /// <summary>Tokens and sensor URLs: Monitoring's Edit (docs/audit-redmine-zabbix-plan.md §5.2).</summary>
     protected bool CanSeeSecrets => Auth.Rights.RightsExtensions.Has(User, Auth.Rights.Area.Monitoring, Auth.Rights.Level.Edit);
+
+    /// <summary>What names people, as a server's logins, event log, journal and SSH keys: Monitoring's Details (docs/cookie-object-notes-plan.md §4).</summary>
+    protected bool CanSeeDetails => Auth.Rights.RightsExtensions.Has(User, Auth.Rights.Area.Monitoring, Auth.Rights.Level.Details);
 }

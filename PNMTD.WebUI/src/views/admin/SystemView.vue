@@ -86,6 +86,7 @@ const info = computed(() => session.info)
           <div id="coverage-title" class="panel-header">
             Notifications
             <RouterLink :to="{ name: 'notifications', query: { tab: 'coverage' } }" class="more">Coverage ›</RouterLink>
+            <RouterLink :to="{ name: 'notifications', query: { tab: 'pushover' } }" class="more">Pushover ›</RouterLink>
           </div>
           <dl v-if="coverage.data.value" class="panel-body facts">
             <dt>Covered</dt>

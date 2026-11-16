@@ -14,7 +14,7 @@ namespace PNMTD.Tools.Read;
 
 /// <summary>
 /// The access watch's read tools (docs/cookie-access-plan.md §5.2): a server's or router's logins, PNMT's sign-ins, one account's
-/// profile on one target, and one account or source across all targets. Logins carry names and addresses: <i>Monitoring: Edit</i>,
+/// profile on one target, and one account or source across all targets. Logins carry names and addresses: <i>Monitoring: Details</i>,
 /// and <i>Audit log: View</i> for PNMT's. Account names, workstations, devices and target users are untrusted text, masked.
 /// </summary>
 public static class AccessReadTools
@@ -27,7 +27,7 @@ public static class AccessReadTools
             Schema([Id("sensorId", "The WINDOWS, LINUX or MIKROTIK sensor"), Int("days", "The last this many days, 1 to 14; 7 when left out"),
                 Text("account", "Only this account (with or without its domain)"), Text("source", "Only this source address"),
                 Choice("group", "Only this kind of login", AccessSignals.Groups), Choice("outcome", "Only successes or failures", ["success", "failure"]), .. PageArgs]),
-            Area.Monitoring, Level.Edit, ToolKind.Read, LoginsAsync) { ForCookie = true },
+            Area.Monitoring, Level.Details, ToolKind.Read, LoginsAsync) { ForCookie = true },
         new("pnmt_signins", "PNMT's sign-ins",
             "PNMT's own sign-ins, failures, lockouts, failed 2FA codes and MCP tokens switched on, newest first: when, the user, from where, the device. " +
             "At most 14 days. Paged.",
@@ -38,12 +38,12 @@ public static class AccessReadTools
             "One account's logins on one server or router (or PNMT, without sensorId) over the access watch's history: first and last seen, counts by kind, " +
             "its source networks with counts and last use, the hours of the week it logs in, its keys or devices, whom it became with sudo or su.",
             Schema(Id("sensorId", "The server or router; PNMT when left out", required: false), Text("account", "The account", true)),
-            Area.Monitoring, Level.Edit, ToolKind.Read, ProfileAsync) { ForCookie = true },
+            Area.Monitoring, Level.Details, ToolKind.Read, ProfileAsync) { ForCookie = true },
         new("account_logins", "One account or source everywhere",
             "One account, or one source address, across all servers and routers in the last hours: where it logged in, how, the outcome; and PNMT's " +
             "sign-ins from that source or by that user when you may read them.",
             Schema(Text("account", "The account"), Text("source", "The source address"), Int("hours", "The last this many hours, 1 to 24; 24 when left out")),
-            Area.Monitoring, Level.Edit, ToolKind.Read, AccountAsync) { ForCookie = true },
+            Area.Monitoring, Level.Details, ToolKind.Read, AccountAsync) { ForCookie = true },
     ];
 
     private static object Login(AgentLoginEntity l, ToolContext ctx, AccessReviewState? state) => new

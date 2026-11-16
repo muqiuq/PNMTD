@@ -47,7 +47,7 @@ public static partial class OperationsReadTools
             Area.Monitoring, Level.View, ToolKind.Read, ServersAsync),
         new("server_get", "A server with an agent",
             "A server: its agent, OS, heartbeat, recent problems and changes; with section, one section the agent reports (as services, disks, " +
-            "updates). Sections with logins, the event log, the journal or SSH keys need Monitoring Edit.",
+            "updates). Sections with logins, the event log, the journal or SSH keys need Monitoring Details.",
             Schema(Id("sensorId", "The WINDOWS or LINUX sensor"), Text("section", "One section, by its key")),
             Area.Monitoring, Level.View, ToolKind.Read, ServerAsync),
         new("router_backup_diff", "A router backup's changes",
@@ -203,12 +203,12 @@ public static partial class OperationsReadTools
     {
         var id = IdOf(args, "sensorId");
         var servers = ctx.Services.GetRequiredService<AgentServerService>();
-        var canEdit = ctx.Rights.Has(Area.Monitoring, Level.Edit);
+        var withDetails = ctx.Rights.Has(Area.Monitoring, Level.Details);
         if (OptionalText(args, "section", 64) is { } section)
         {
             var platform = await db.Sensors.AsNoTracking().Where(s => s.Id == id).Select(s => (SensorType?)s.Type).SingleOrDefaultAsync(ct)
                 ?? throw ToolException.NotFound("server");
-            object view = platform == SensorType.LINUX ? await servers.LinuxSectionAsync(id, section, canEdit, ct) : await servers.SectionAsync(id, section, canEdit, ct);
+            object view = platform == SensorType.LINUX ? await servers.LinuxSectionAsync(id, section, withDetails, ct) : await servers.SectionAsync(id, section, withDetails, ct);
             ctx.Target("Sensor", id, section);
             ctx.Summary = $"section {section}";
             return ToolSafety.Scanned(view)!;

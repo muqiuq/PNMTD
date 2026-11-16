@@ -187,10 +187,11 @@ public sealed record OutputLimits(
     int PublicAnswersPerDay = 10,
     int ObjectNotesPerDay = 50,
     int BigBrotherPerDay = 10,
-    int BigBrotherPerCaseDay = 2)
+    int BigBrotherPerCaseDay = 2,
+    int MaxNotesPerObject = 20)
 {
     /// <summary>The ceilings in code: only a new release raises them.</summary>
-    public static readonly OutputLimits Ceilings = new(10, 5, 50, 200, 20, 10, 200, 50, 200, 30, 5);
+    public static readonly OutputLimits Ceilings = new(10, 5, 50, 200, 20, 10, 200, 50, 200, 30, 5, 100);
 }
 
 /// <summary>An action's level (§6): never, through a person, or on Seraph's approval.</summary>

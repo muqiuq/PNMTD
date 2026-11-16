@@ -101,7 +101,7 @@ public sealed class McpToolsTests
         var read = McpRights.For(admin, McpTokenKind.Read);
         Assert.IsFalse(write.IsAdmin || read.IsAdmin, "never the admin flag");
         Assert.AreEqual(PNMTD.Auth.Rights.Level.Edit, write.Levels[PNMTD.Auth.Rights.Area.Monitoring]);
-        Assert.AreEqual(PNMTD.Auth.Rights.Level.View, read.Levels[PNMTD.Auth.Rights.Area.Monitoring]);
+        Assert.AreEqual(PNMTD.Auth.Rights.Level.Details, read.Levels[PNMTD.Auth.Rights.Area.Monitoring], "the read-only cap reaches Details, a reading level");
         Assert.IsFalse(read.Levels.ContainsKey(PNMTD.Auth.Rights.Area.Commands));
         foreach (var area in Enum.GetValues<PNMTD.Auth.Rights.Area>())
         {
@@ -117,6 +117,7 @@ public sealed class McpToolsTests
         Assert.IsFalse(write.Levels.ContainsKey(PNMTD.Auth.Rights.Area.Decisions));
         var viewer = new PNMTD.Auth.Rights.UserRights(false, new Dictionary<PNMTD.Auth.Rights.Area, PNMTD.Auth.Rights.Level> { [PNMTD.Auth.Rights.Area.Monitoring] = PNMTD.Auth.Rights.Level.View });
         Assert.IsFalse(McpRights.For(viewer, McpTokenKind.Write).Has(PNMTD.Auth.Rights.Area.Monitoring, PNMTD.Auth.Rights.Level.Edit), "never more than the user");
+        Assert.IsFalse(McpRights.For(viewer, McpTokenKind.Read).Has(PNMTD.Auth.Rights.Area.Monitoring, PNMTD.Auth.Rights.Level.Details), "a viewer's read-only token stays at View");
     }
 
     [TestMethod]

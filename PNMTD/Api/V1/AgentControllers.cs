@@ -30,18 +30,18 @@ public sealed class AgentServersController(AgentServerService servers, SshKeySer
     [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<AgentServerDetail>> Get(Guid id, CancellationToken ct) => await servers.DetailAsync(id, ct);
 
-    /// <summary>Logins and connections (§4.7): every admin login, failures aggregated. The User role: names and addresses.</summary>
+    /// <summary>Logins and connections (§4.7): every admin login, failures aggregated. Monitoring's Details: names and addresses.</summary>
     [HttpGet("{id:guid}/logins")]
-    [RequireRight(Area.Monitoring, Level.Edit)]
+    [RequireRight(Area.Monitoring, Level.Details)]
     public async Task<ActionResult<Paged<AgentLoginItem>>> Logins(Guid id, [FromQuery] AgentLoginQuery query, CancellationToken ct) =>
         await servers.LoginsAsync(id, query, ct);
 
     /// <summary>
     /// A Linux server's SSH keys (docs/linux-sensor-plan.md §6.3, §10): sshd's key settings and CA keys, each file and key with its
-    /// registration, last use and whether PNMT may remove it here. The User role: key comments and accounts.
+    /// registration, last use and whether PNMT may remove it here. Monitoring's Details: key comments and accounts.
     /// </summary>
     [HttpGet("{id:guid}/ssh-keys")]
-    [RequireRight(Area.Monitoring, Level.Edit)]
+    [RequireRight(Area.Monitoring, Level.Details)]
     public async Task<ActionResult<SshKeyServerView>> SshKeys(Guid id, CancellationToken ct) => await keys.ServerKeysAsync(id, ct);
 
     /// <summary>A Linux server's accounts for the run dialog (docs/linux-sensor-plan.md §8.4), with what its config.yaml allows. Admin, as scripts are.</summary>

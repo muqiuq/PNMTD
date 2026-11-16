@@ -143,12 +143,13 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
 
         foreach (var group in groups.Values)
         {
-            // Each sensor's notes as a short hash, and the host's in the case: a change of either is progress (§7.1).
+            // Each sensor's notes as a short hash, and the host's in the case: a change of either is progress (§7.1). Cookie's own notes
+            // are rows of their own (docs/cookie-object-notes-plan.md §3.4), so the people's notes are hashed as they are.
             var members = group.Members.OrderBy(m => m.Since)
-                .Select(m => m.Type == CaseMember.Sensor ? m with { NotesHash = Hash(PeoplesNotes(sensorNotes.GetValueOrDefault(Guid.Parse(m.Id))))[..16] } : m)
+                .Select(m => m.Type == CaseMember.Sensor ? m with { NotesHash = Hash(sensorNotes.GetValueOrDefault(Guid.Parse(m.Id)) ?? "")[..16] } : m)
                 .ToList();
             var host = group.HostId is { } id ? hosts.GetValueOrDefault(id) : null;
-            var notes = Hash(PeoplesNotes(host?.Notes));
+            var notes = Hash(host?.Notes ?? "");
             // A sensor weighs by its own importance (or its host's); a Zabbix problem by its severity.
             var importance = members.Select(ImportanceOf).Max();
             var title = members.Count == 1 ? $"{group.Name}: {members[0].Name}" : $"{group.Name}: {members.Count} problems";
@@ -577,20 +578,6 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
 
     private static string Hash(string text) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
 
-    /// <summary>
-    /// The notes as people wrote them: Cookie's own lines (<see cref="CookieExecutor.NoteLine"/>) left out, so that Cookie's note
-    /// isn't progress (§7.1). Notes without one are returned as they are, so their fingerprints don't change.
-    /// </summary>
-    public static string PeoplesNotes(string? notes)
-    {
-        if (string.IsNullOrEmpty(notes))
-        {
-            return "";
-        }
-        var lines = notes.Split('\n');
-        var kept = lines.Where(l => !CookieExecutor.NoteLine().IsMatch(l)).ToList();
-        return kept.Count == lines.Length ? notes : string.Join('\n', kept).Trim();
-    }
 
     public static string? Cut(string? text, int max) => text is null ? null : text.Length <= max ? text : text[..(max - 1)] + "…";
 }

@@ -140,7 +140,7 @@ public sealed partial class AccessWatchTests
             var c = await db.CookieCases.SingleAsync(x => x.Id == reviews[0].CaseId);
             Assert.AreEqual(CookieCaseKind.Access, c.Kind);
             Assert.AreEqual(AccessWatch.KeyOf(sensor, "CONTOSO\\jdoe"), c.Key);
-            CollectionAssert.Contains(c.Areas, CookieAccess.LoginsArea, "names and addresses: Monitoring: Edit");
+            CollectionAssert.Contains(c.Areas, CookieAccess.LoginsArea, "names and addresses: Monitoring: Details");
         }
 
         using (var added = await admin.PostAsJsonAsync("/api/v1/cookie/admin/access/known",

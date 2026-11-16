@@ -61,7 +61,9 @@ const rights = computed(() => Object.entries(chosen.value?.rights ?? {}))
           />
           <small v-if="s.error('groupId')" class="field-error">{{ s.error('groupId') }}</small>
           <small v-else class="field-hint">
-            A group of its own is best, so that its rights are Cookie's alone. Groups are under Admin → Groups.
+            A group of its own is best, so that its rights are Cookie's alone. Groups are under Admin → Groups. For
+            notes on hosts and sensors Cookie needs Monitoring: View; for servers' and routers' logins Monitoring:
+            Details; for PNMT's sign-ins Audit log: View. It never needs Monitoring: Edit.
           </small>
         </div>
         <div v-if="chosen" class="field">

@@ -29,7 +29,7 @@ public sealed record ActionRequest(
 /// reaches people, and then the inbox (<i>Propose</i>) or the outbox (<i>Auto</i>). Each step is in Cookie's decision log.
 /// Whatever a model said, code decides here.
 /// </summary>
-public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings settings, Seraph seraph, Instructions instructions, Outbox outbox,
+public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings settings, Seraph seraph, Instructions instructions, Outbox outbox,
     DecisionBook inbox, PrivacyFilter privacy, PNMTD.Availability.AvailabilityPlan plan, IServiceProvider services, CookieIntegrations integrations,
     ILogger<CookieExecutor> logger)
 {
@@ -37,10 +37,6 @@ public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs
 
     /// <summary>The areas a Cookie proposal in the inbox may carry for everyone with <i>Decisions: Decide</i>; others are admins' (§9.2).</summary>
     private static readonly HashSet<string> InboxAreas = ["Monitoring", "Mail", "Cookie"];
-
-    /// <summary>A line Cookie added to a host's or sensor's notes: <c>[Cookie, 2026-11-15 10:30] …</c>. It isn't a person's progress (§7.1).</summary>
-    [System.Text.RegularExpressions.GeneratedRegex(@"^\[[^\]\n]{1,60}, \d{4}-\d{2}-\d{2} \d{2}:\d{2}\] ")]
-    public static partial System.Text.RegularExpressions.Regex NoteLine();
 
     private static readonly JsonSerializerOptions Json = AiJson.Options;
 
@@ -365,12 +361,22 @@ public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs
                 {
                     return ("A note names its host or sensor by id.", null);
                 }
-                if (!rights.Has(Area.Monitoring, Level.Edit))
+                // Cookie's notes are rows of its own (docs/cookie-object-notes-plan.md §3.6): it needs to see the object, nothing on the people's notes.
+                if (!rights.Has(Area.Monitoring, Level.View))
                 {
-                    return ("Cookie's group needs Monitoring: Edit for a note on a host or sensor.", null);
+                    return ("Cookie's group needs Monitoring: View for a note on a host or sensor.", null);
                 }
-                var known = await db.Hosts.AnyAsync(h => h.Id == id, ct) || await db.Sensors.AnyAsync(s => s.Id == id, ct);
-                return (known ? null : "No host or sensor with that id.", $"object:{id}");
+                if (await CookieObjectNotes.ObjectAsync(db, id, ct) is not { } o)
+                {
+                    return ("No host or sensor with that id.", null);
+                }
+                var cap = (await settings.GetAsync<ActionSettings>(ct)).Limits.MaxNotesPerObject;
+                var count = await CookieObjectNotes.CountAsync(db, id, ct);
+                if (count >= cap)
+                {
+                    return ($"{o.Name} has {count} notes of yours already; a person removes old ones. Don't propose another.", null);
+                }
+                return (null, $"object:{id}");
             }
             case CookieActionKind.MailEvent:
                 return (p.Mail is null ? "A mail rule's event needs its mail." : null, p.Mail is null ? null : $"mail:{p.Mail.MailId}");
@@ -489,7 +495,7 @@ public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs
                     break;
                 }
                 case CookieActionKind.ObjectNote:
-                    await ObjectNoteAsync(db, log, Guid.Parse(a.ObjectId!), body, identity.Name, ct);
+                    await ObjectNoteAsync(db, log, Guid.Parse(a.ObjectId!), body, ct);
                     break;
                 case CookieActionKind.MailEvent:
                     await MailEventAsync(db, log, p.Mail!, ct);
@@ -530,8 +536,11 @@ public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs
         log.Detail = CaseBook.Cut(row.Detail, 1000);
     }
 
-    /// <summary>A note on a host or sensor (§6): added to its notes, never replacing them, within the day's limit.</summary>
-    private async Task ObjectNoteAsync(PnmtdDbContext db, CookieDecisionEntity log, Guid id, string body, string name, CancellationToken ct)
+    /// <summary>
+    /// A note on a host or sensor (docs/cookie-object-notes-plan.md §3.2): a row of Cookie's own, shown on the object's page, never
+    /// the people's notes; within the day's limit.
+    /// </summary>
+    private async Task ObjectNoteAsync(PnmtdDbContext db, CookieDecisionEntity log, Guid id, string body, CancellationToken ct)
     {
         var limit = (await settings.GetAsync<ActionSettings>(ct)).Limits.ObjectNotesPerDay;
         var today = Clock.ToUtc(Clock.LocalNow.Date);
@@ -541,22 +550,15 @@ public sealed partial class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs
             log.Detail = $"Notes on hosts and sensors: {limit} a day.";
             return;
         }
-        var line = $"[{CaseBook.Cut(name, 40)}, {Clock.LocalNow:yyyy-MM-dd HH:mm}] {body.ReplaceLineEndings(" ")}";
-        if (await db.Hosts.SingleOrDefaultAsync(h => h.Id == id, ct) is { } host)
+        var name = (await CookieObjectNotes.ObjectAsync(db, id, ct))?.Name ?? id.ToString();
+        if (log.Id == 0)
         {
-            host.Notes = string.IsNullOrWhiteSpace(host.Notes) ? line : $"{host.Notes.TrimEnd()}\n\n{line}";
-            AuditLog.Record(db, AuditEvents.CookieNoteAdded, AuditLog.Cut($"A note on {host.Name}: {body}", AuditLog.MaxDetail), AuditWho.Cookie("note"),
-                AuditTarget.Of(AuditTargets.Host, host.Id, host.Name));
+            // The note names its decision: the log row needs its id first.
+            await db.SaveChangesAsync(ct);
         }
-        else
-        {
-            var sensor = await db.Sensors.SingleAsync(s => s.Id == id, ct);
-            sensor.Notes = string.IsNullOrWhiteSpace(sensor.Notes) ? line : $"{sensor.Notes.TrimEnd()}\n\n{line}";
-            AuditLog.Record(db, AuditEvents.CookieNoteAdded, AuditLog.Cut($"A note on {sensor.Name}: {body}", AuditLog.MaxDetail), AuditWho.Cookie("note"),
-                AuditTarget.Of(AuditTargets.Sensor, sensor.Id, sensor.Name, sensor.ParentId));
-        }
+        await CookieObjectNotes.AddAsync(db, id, body, log.CaseId, log.Id, log.Areas, ct);
         log.Outcome = "done";
-        log.Detail = "Added to the notes.";
+        log.Detail = $"Noted on {name}.";
     }
 
     /// <summary>An <i>AI every time</i> rule's event (§12): the rule's OK or fail code on its sensor, and the mail processed.</summary>

@@ -45,7 +45,7 @@ public sealed class CookieAccessController(AccessService access) : V1ControllerB
 
     /// <summary><i>This wasn't expected</i> on a server's or router's login (§7): its case, answered <i>Not expected</i>.</summary>
     [HttpPost("logins/{id:guid}/not-expected")]
-    [RequireRight(Area.Monitoring, Level.Edit)]
+    [RequireRight(Area.Monitoring, Level.Details)]
     [Audit(AuditEvents.AccessAnswered)]
     public async Task<CookieCaseRef> NotExpected(Guid id, AccessNotExpectedRequest request, CancellationToken ct) =>
         new(await access.NotExpectedAsync(id, request, User, ct), "");
@@ -83,13 +83,13 @@ public sealed class CookieAccessAdminController(AccessService access) : V1Contro
     }
 }
 
-/// <summary>A router's <i>Access</i> tab (§10.4): its logins for <i>Monitoring: Edit</i>, its switch for <i>Cookie: Manage</i>.</summary>
+/// <summary>A router's <i>Access</i> tab (§10.4): its logins for <i>Monitoring: Details</i>, its switch for <i>Cookie: Manage</i>.</summary>
 [Route("api/v1/sensors/{id:guid}/mikrotik")]
 [Authorize]
 public sealed class SensorMikrotikAccessController(AccessService access) : V1ControllerBase
 {
     [HttpGet("logins")]
-    [RequireRight(Area.Monitoring, Level.Edit)]
+    [RequireRight(Area.Monitoring, Level.Details)]
     public async Task<RouterAccessView> Logins(Guid id, [FromQuery] AgentLoginQuery query, CancellationToken ct) => await access.RouterAsync(id, query, User, ct);
 
     [HttpPut("access-watch")]

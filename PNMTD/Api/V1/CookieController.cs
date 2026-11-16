@@ -14,10 +14,20 @@ namespace PNMTD.Api.V1;
 /// </summary>
 [Route("api/v1/cookie")]
 [Authorize]
-public sealed class CookieController(CookieService cookie) : V1ControllerBase
+public sealed class CookieController(CookieService cookie, CookieObjectNoteService notes) : V1ControllerBase
 {
     [HttpGet("status")]
     public async Task<CookieStatusItem> Status(CancellationToken ct) => await cookie.StatusAsync(User, ct);
+
+    /// <summary>A person removes one of Cookie's notes on a host or sensor (docs/cookie-object-notes-plan.md §3.6): whoever looks after the object.</summary>
+    [HttpDelete("object-notes/{id:long}")]
+    [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.CookieNoteRemoved)]
+    public async Task<IActionResult> RemoveObjectNote(long id, CancellationToken ct)
+    {
+        await notes.RemoveAsync(id, User, ct);
+        return NoContent();
+    }
 
     /// <summary>The reader's personal summary (§8): written when asked, kept for 15 minutes.</summary>
     [HttpGet("summary")]

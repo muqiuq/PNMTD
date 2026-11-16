@@ -34,7 +34,7 @@ public sealed class DebugService(PnmtdDbContext db, PushoverNotification pushove
     {
         var v = new ApiValidator();
         v.Check(request.RuleId is not null ^ !string.IsNullOrWhiteSpace(request.UserKey), "userKey", "A notification rule, or a user key.");
-        v.Check(request.Priority is >= -1 and <= 1, "priority", "−1, 0 or 1.");
+        v.Check(request.Priority is >= PushoverPrioritySettings.Lowest and <= PushoverPrioritySettings.Emergency, "priority", "−2 to 2.");
         v.Check(request.UserKey is null || request.UserKey.Trim().Length is >= 1 and <= 64, "userKey", "At most 64 characters.");
         v.Check(request.Device is null || request.Device.Length <= 64, "device", "At most 64 characters.");
         v.Check(request.Title is null || request.Title.Length <= 250, "title", "At most 250 characters.");

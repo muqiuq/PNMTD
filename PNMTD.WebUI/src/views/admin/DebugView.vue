@@ -30,10 +30,13 @@ const targets = computed(() => [
   { label: 'A user key, typed in', value: 'typed' },
   ...(s.value?.pushoverRules ?? []).map((r) => ({ label: `Rule: ${r.name}`, value: r.id })),
 ])
+// Pushover's five (docs/cookie-object-notes-plan.md §5.2): an emergency repeats with the settings' retry and expiry.
 const priorities = [
+  { label: 'Lowest (−2, badge only)', value: -2 },
   { label: 'Low (−1, quiet)', value: -1 },
   { label: 'Normal (0)', value: 0 },
   { label: 'High (1, bypasses quiet hours)', value: 1 },
+  { label: 'Emergency (2, repeats until acknowledged)', value: 2 },
 ]
 
 async function sendPushover() {

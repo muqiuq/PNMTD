@@ -110,6 +110,31 @@ public sealed record NotificationCoverage(int Total, int Covered, int UncoveredH
 public sealed record LinkedSensor(Guid SensorId, string SensorName, SensorType Type, Guid HostId, string HostName);
 
 /// <summary>
+/// The Pushover priorities (docs/cookie-object-notes-plan.md §5): what a Low, Normal and High message is on the phone (−2 lowest,
+/// −1 low, 0 normal, 1 high, 2 emergency), and how an emergency repeats until it is acknowledged. Every Pushover PNMT sends
+/// follows them: the rules', Cookie's, the access watch's, MCP's strike notices.
+/// </summary>
+public sealed record NotificationSettings(int PushoverLow, int PushoverNormal, int PushoverHigh, int EmergencyRetrySeconds, int EmergencyExpireSeconds,
+    DateTime? ChangedAt, string? ChangedBy);
+
+/// <summary>
+/// PUT <c>/notifications/settings</c> (Monitoring Edit): each priority −2 to 2; the retry 30 to 3600 seconds, the expiry at
+/// least the retry and at most 10800 seconds. A field left out takes the default of a new installation.
+/// </summary>
+public sealed class NotificationSettingsRequest
+{
+    public int PushoverLow { get; init; } = -1;
+
+    public int PushoverNormal { get; init; }
+
+    public int PushoverHigh { get; init; } = 1;
+
+    public int EmergencyRetrySeconds { get; init; } = 60;
+
+    public int EmergencyExpireSeconds { get; init; } = 3600;
+}
+
+/// <summary>
 /// POST and PUT <c>/notification-rules</c>. The recipient must match a provider: an e-mail address,
 /// <c>pushover://&lt;user key&gt;</c> or an <c>http(s)://</c> webhook.
 /// </summary>

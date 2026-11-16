@@ -3726,6 +3726,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cookie/object-notes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cookie/summary": {
         parameters: {
             query?: never;
@@ -6987,6 +7022,45 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hosts/{id}/cookie-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieObjectNoteItem"][];
+                        "text/json": components["schemas"]["CookieObjectNoteItem"][];
+                        "text/plain": components["schemas"]["CookieObjectNoteItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -11312,6 +11386,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationSettings"];
+                        "text/json": components["schemas"]["NotificationSettings"];
+                        "text/plain": components["schemas"]["NotificationSettings"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NotificationSettingsRequest"];
+                    "text/json": components["schemas"]["NotificationSettingsRequest"];
+                    "application/*+json": components["schemas"]["NotificationSettingsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationSettings"];
+                        "text/json": components["schemas"]["NotificationSettings"];
+                        "text/plain": components["schemas"]["NotificationSettings"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/redmine/status": {
         parameters: {
             query?: never;
@@ -11979,6 +12117,45 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/cookie-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieObjectNoteItem"][];
+                        "text/json": components["schemas"]["CookieObjectNoteItem"][];
+                        "text/plain": components["schemas"]["CookieObjectNoteItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -17082,6 +17259,17 @@ export interface components {
             /** Format: date-time */
             dueAt: string;
         };
+        CookieObjectNoteItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            at: string;
+            text: string;
+            /** Format: uuid */
+            caseId: null | string;
+            caseTitle: null | string;
+            areas: string[];
+        };
         CookieOutboxItem: {
             /** Format: int64 */
             id: number;
@@ -19924,6 +20112,33 @@ export interface components {
             /** Format: uuid */
             hostId?: null | string;
         };
+        NotificationSettings: {
+            /** Format: int32 */
+            pushoverLow: number;
+            /** Format: int32 */
+            pushoverNormal: number;
+            /** Format: int32 */
+            pushoverHigh: number;
+            /** Format: int32 */
+            emergencyRetrySeconds: number;
+            /** Format: int32 */
+            emergencyExpireSeconds: number;
+            /** Format: date-time */
+            changedAt: null | string;
+            changedBy: null | string;
+        };
+        NotificationSettingsRequest: {
+            /** Format: int32 */
+            pushoverLow?: number;
+            /** Format: int32 */
+            pushoverNormal?: number;
+            /** Format: int32 */
+            pushoverHigh?: number;
+            /** Format: int32 */
+            emergencyRetrySeconds?: number;
+            /** Format: int32 */
+            emergencyExpireSeconds?: number;
+        };
         OperationalLog: {
             name: string;
             purpose: string;
@@ -20003,6 +20218,11 @@ export interface components {
              * @default 2
              */
             bigBrotherPerCaseDay: number;
+            /**
+             * Format: int32
+             * @default 20
+             */
+            maxNotesPerObject: number;
         };
         /** @enum {unknown} */
         OverallState: "AllFine" | "Info" | "Warning" | "Alert";

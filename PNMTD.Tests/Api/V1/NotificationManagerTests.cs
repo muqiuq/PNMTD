@@ -186,15 +186,15 @@ public sealed class NotificationManagerTests
     }
 
     [TestMethod]
-    public void Pushovers_priority_follows_the_importance()
+    public void Pushovers_priority_follows_the_importance_by_the_settings()
     {
-        var on = new PushoverNotification(new ConfigurationBuilder().Build(), null!);
-        Assert.AreEqual(-1, on.PriorityOf(new NotificationMessage("pushover://u", "s", "m", "m", Importance.Low)));
-        Assert.AreEqual(0, on.PriorityOf(new NotificationMessage("pushover://u", "s", "m", "m")));
-        Assert.AreEqual(1, on.PriorityOf(new NotificationMessage("pushover://u", "s", "m", "m", Importance.High)));
-        Assert.AreEqual(-1, on.PriorityOf(new NotificationMessage("pushover://u", "s", "m", "m", Importance.High, Priority: -1)), "the debug page's own");
-        var off = new PushoverNotification(new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["Notifications:PushoverPriorityByImportance"] = "false" }).Build(), null!);
-        Assert.AreEqual(0, off.PriorityOf(new NotificationMessage("pushover://u", "s", "m", "m", Importance.High)));
+        // The defaults are the fixed mapping of before 1.10 (docs/cookie-object-notes-plan.md §5.1); a send with the settings is in NotificationSettingsTests.
+        var defaults = PushoverPrioritySettings.Default;
+        Assert.AreEqual(-1, defaults.Of(Importance.Low));
+        Assert.AreEqual(0, defaults.Of(Importance.Normal));
+        Assert.AreEqual(1, defaults.Of(Importance.High));
+        var loud = defaults with { Low = 0, High = PushoverPrioritySettings.Emergency };
+        Assert.AreEqual(0, loud.Of(Importance.Low));
+        Assert.AreEqual(2, loud.Of(Importance.High));
     }
 }

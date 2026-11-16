@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth.Rights;
+using PNMTD.Cookie;
 using PNMTD.Data;
 using PNMTD.Lib.Helper;
 using PNMTD.Lib.Models.Enum;
@@ -86,6 +87,8 @@ public static class MonitoringReadTools
         {
             host.Id, host.Name, host.Importance, host.Enabled, host.LocationId, Location = host.LocationName ?? host.Location,
             Notes = string.IsNullOrWhiteSpace(host.Notes) ? null : ctx.Untrusted("host notes", host.Notes, 1500),
+            // Cookie's own notes (docs/cookie-object-notes-plan.md §3.3): within the caller's rights, Cookie's words.
+            CookieNotes = await CookieObjectNotes.ForToolAsync(db, ctx, id, ct),
             Sensors = snapshot.Sensors.Values.Where(s => !s.IsContainer).OrderByDescending(s => s.State == SensorState.Failing)
                 .ThenBy(s => s.Info.Name).Take(60).Select(s => new
                 {
@@ -207,6 +210,7 @@ public static class MonitoringReadTools
             State = status?.State, status?.LastCode, status?.LastEventAt, status?.FailingSince,
             LastMessage = ctx.UntrustedOrNull("sensor message", status?.LastMessage, 500),
             Notes = ctx.UntrustedOrNull("sensor notes", s.Notes, 1500),
+            CookieNotes = await CookieObjectNotes.ForToolAsync(db, ctx, id, ct),
             NotificationRules = s.Rules.Select(r => new { r.Id, r.Name, Type = r.Type.ToString(), r.Enabled }),
             Url = ctx.Link($"sensors/{s.Id}"),
         };

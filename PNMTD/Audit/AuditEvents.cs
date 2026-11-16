@@ -147,6 +147,9 @@ public static class AuditEvents
     public const string CookieRunRequested = "CookieRunRequested";
     public const string CookieTicketCreated = "CookieTicketCreated";
     public const string CookieNoteAdded = "CookieNoteAdded";
+
+    /// <summary>A person removed one of Cookie's notes on a host or sensor (docs/cookie-object-notes-plan.md §3.6).</summary>
+    public const string CookieNoteRemoved = "CookieNoteRemoved";
     public const string CookieMessageSent = "CookieMessageSent";
     public const string CookieHeldBackSent = "CookieHeldBackSent";
     public const string CookieCaseCommented = "CookieCaseCommented";
@@ -195,6 +198,9 @@ public static class AuditEvents
     public const string NotificationRuleExclusionAdded = "NotificationRuleExclusionAdded";
     public const string NotificationRuleExclusionRemoved = "NotificationRuleExclusionRemoved";
     public const string NotificationsAssigned = "NotificationsAssigned";
+
+    /// <summary>The Pushover priorities (docs/cookie-object-notes-plan.md §5): the detail names each value that changed.</summary>
+    public const string NotificationSettingsChanged = "NotificationSettingsChanged";
     public const string DnsZoneCreated = "DnsZoneCreated";
     public const string DnsZoneUpdated = "DnsZoneUpdated";
     public const string DnsZoneDeleted = "DnsZoneDeleted";
@@ -378,7 +384,7 @@ public static class AuditCatalog
         Add(AuditCategory.Zabbix, null, AuditEvents.ZabbixTested);
         Add(AuditCategory.Cookie, null, AuditEvents.CookieSettingsChanged, AuditEvents.CookieSettingsRolledBack, AuditEvents.CookieStarted,
             AuditEvents.CookieStopped, AuditEvents.CookieRunRequested);
-        Add(AuditCategory.Cookie, AuditTargets.CookieCase, AuditEvents.CookieTicketCreated, AuditEvents.CookieNoteAdded, AuditEvents.CookieMessageSent,
+        Add(AuditCategory.Cookie, AuditTargets.CookieCase, AuditEvents.CookieTicketCreated, AuditEvents.CookieNoteAdded, AuditEvents.CookieNoteRemoved, AuditEvents.CookieMessageSent,
             AuditEvents.CookieHeldBackSent, AuditEvents.CookieCaseCommented, AuditEvents.CookieCaseStopped, AuditEvents.CookieCaseGoOn, AuditEvents.CookieDecisionRated,
             AuditEvents.CookieBigBrotherAsked, AuditEvents.AccessAnswered, AuditEvents.AccessPersonAnswered, AuditEvents.AccessTicketAsked);
         Add(AuditCategory.Cookie, null, AuditEvents.AccessKnownAdded, AuditEvents.AccessKnownEnded);
@@ -390,7 +396,7 @@ public static class AuditCatalog
         Add(AuditCategory.Hosts, AuditTargets.Host, AuditEvents.HostsImportanceChanged, AuditEvents.HostsLocationChanged);
         Add(AuditCategory.Sensors, AuditTargets.Sensor, AuditEvents.SensorCreated, AuditEvents.SensorUpdated, AuditEvents.SensorDeleted, AuditEvents.SensorTokensRotated, AuditEvents.SensorsImportanceChanged);
         Add(AuditCategory.Notifications, AuditTargets.NotificationRule, AuditEvents.NotificationRuleCreated, AuditEvents.NotificationRuleUpdated, AuditEvents.NotificationRuleDeleted, AuditEvents.NotificationRuleSensorLinked, AuditEvents.NotificationRuleSensorUnlinked, AuditEvents.NotificationRuleScopesChanged, AuditEvents.NotificationRuleExclusionAdded, AuditEvents.NotificationRuleExclusionRemoved);
-        Add(AuditCategory.Notifications, null, AuditEvents.NotificationsAssigned);
+        Add(AuditCategory.Notifications, null, AuditEvents.NotificationsAssigned, AuditEvents.NotificationSettingsChanged);
         Add(AuditCategory.Dns, AuditTargets.DnsZone, AuditEvents.DnsZoneCreated, AuditEvents.DnsZoneUpdated, AuditEvents.DnsZoneDeleted, AuditEvents.DnsZoneUpdateForced, AuditEvents.DnsRecordUpdated);
         Add(AuditCategory.Mail, AuditTargets.MailInputRule, AuditEvents.MailInputRuleCreated, AuditEvents.MailInputRuleUpdated, AuditEvents.MailInputRuleDeleted);
         Add(AuditCategory.Auth, AuditTargets.User, AuditEvents.TotpSetupStarted, AuditEvents.TotpDailyConfirmed);

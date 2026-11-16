@@ -28,6 +28,7 @@ public static class DomainServicesSetup
         services.AddScoped<DebugService>();
         services.AddScoped<UplinkService>();
         services.AddScoped<NotificationManagerService>();
+        services.AddScoped<NotificationSettingsService>();
         services.AddScoped<AiService>();
         services.AddScoped<DecisionService>();
         // UDP nodes (docs/udp-iot-plan.md §5).

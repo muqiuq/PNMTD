@@ -129,7 +129,7 @@ public sealed class CookieBrain(CookieSettings settings, Instructions instructio
         CookieActionKind.Ticket => "for a problem nobody takes care of",
         CookieActionKind.PrivateNote => "on the case's ticket, to staff",
         CookieActionKind.PublicAnswer => "on a support ticket, to its requester",
-        _ => "on a host or sensor",
+        _ => "on a host or sensor, shown on its page to the people who look after it; read your notes there first (host_get, sensor_get) and don't repeat one",
     };
 
     /// <summary>The sentence for a Cookie without a ticket system it can write to (docs/cookie-fallback-plan.md §4.1).</summary>

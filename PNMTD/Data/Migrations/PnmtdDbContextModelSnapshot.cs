@@ -1923,6 +1923,54 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("cookie_messages");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.CookieObjectNoteEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.PrimitiveCollection<List<string>>("Areas")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long?>("DecisionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("HostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(1500)
+                        .HasColumnType("character varying(1500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId");
+
+                    b.HasIndex("DecisionId");
+
+                    b.HasIndex("HostId", "At");
+
+                    b.HasIndex("SensorId", "At");
+
+                    b.ToTable("cookie_object_notes", t =>
+                        {
+                            t.HasCheckConstraint("CK_cookie_object_notes_object", "(\"HostId\" IS NULL) <> (\"SensorId\" IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.CookieOutboxEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -4430,6 +4478,38 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("notificationrulesensor", (string)null);
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.NotificationSettingsEntity", b =>
+                {
+                    b.Property<int>("SingletonId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ChangedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("EmergencyExpireSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EmergencyRetrySeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PushoverHigh")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PushoverLow")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PushoverNormal")
+                        .HasColumnType("integer");
+
+                    b.HasKey("SingletonId");
+
+                    b.ToTable("notification_settings");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.RedmineIssueEntity", b =>
                 {
                     b.Property<int>("IssueId")
@@ -5981,6 +6061,29 @@ namespace PNMTD.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.CookieObjectNoteEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.CookieCaseEntity", null)
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.CookieDecisionEntity", null)
+                        .WithMany()
+                        .HasForeignKey("DecisionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.HostEntity", null)
+                        .WithMany()
+                        .HasForeignKey("HostId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.CookieOutboxEntity", b =>

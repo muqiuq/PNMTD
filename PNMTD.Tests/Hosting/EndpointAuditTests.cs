@@ -67,11 +67,13 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/system/notification-rule-types"] = ("Monitoring:View", Roles.Viewer),
         ["GET /api/v1/hosts"] = ("Monitoring:View", Roles.Viewer),
         ["GET /api/v1/hosts/{id:guid}"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/hosts/{id:guid}/cookie-notes"] = ("Monitoring:View", Roles.Viewer),
         ["POST /api/v1/hosts"] = ("Monitoring:Edit", Roles.User),
         ["PUT /api/v1/hosts/{id:guid}"] = ("Monitoring:Edit", Roles.User),
         ["DELETE /api/v1/hosts/{id:guid}"] = ("Monitoring:Edit", Roles.User),
         ["GET /api/v1/sensors"] = ("Monitoring:View", Roles.Viewer),
         ["GET /api/v1/sensors/{id:guid}"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/sensors/{id:guid}/cookie-notes"] = ("Monitoring:View", Roles.Viewer),
         ["POST /api/v1/sensors"] = ("Monitoring:Edit", Roles.User),
         ["PUT /api/v1/sensors/{id:guid}"] = ("Monitoring:Edit", Roles.User),
         ["DELETE /api/v1/sensors/{id:guid}"] = ("Monitoring:Edit", Roles.User),
@@ -189,18 +191,19 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/cookie/cases/{id:guid}/big-brother"] = ("Cookie:Instruct", Roles.Admin),
         ["GET /api/v1/cookie/decisions"] = ("Cookie:Use", Roles.Admin),
         ["PUT /api/v1/cookie/decisions/{id:long}/rating"] = ("Cookie:Use", Roles.Admin),
+        ["DELETE /api/v1/cookie/object-notes/{id:long}"] = ("Monitoring:Edit", Roles.User),
         ["POST /api/v1/cookie/instructions/{id:guid}/confirm"] = ("Cookie:Instruct", Roles.Admin),
         ["POST /api/v1/cookie/instructions/{id:guid}/end"] = ("Cookie:Instruct", Roles.Admin),
         ["GET /api/v1/cookie/admin/instructions"] = ("Cookie:Manage", Roles.Admin),
         ["POST /api/v1/cookie/admin/instructions"] = ("Cookie:Manage", Roles.Admin),
         ["PUT /api/v1/cookie/admin/settings/lessons"] = ("Cookie:Manage", Roles.Admin),
         // The access watch (docs/cookie-access-plan.md §10.3): an access case for Use, its answer for a contact or Instruct (checked
-        // in code), a ticket for Instruct and Link, "This wasn't expected" for Monitoring Edit; the tab, known access and the
-        // routers' switches for Manage; a router's logins for Monitoring Edit.
+        // in code), a ticket for Instruct and Link, "This wasn't expected" for Monitoring Details; the tab, known access and the
+        // routers' switches for Manage; a router's logins for Monitoring Details (docs/cookie-object-notes-plan.md §4).
         ["GET /api/v1/cookie/access/cases/{id:guid}"] = ("Cookie:Use", Roles.Admin),
         ["POST /api/v1/cookie/access/cases/{id:guid}/answer"] = ("Cookie:Use", Roles.Admin),
         ["POST /api/v1/cookie/access/cases/{id:guid}/ticket"] = ("Cookie:Instruct&Redmine:Link", Roles.Admin),
-        ["POST /api/v1/cookie/access/logins/{id:guid}/not-expected"] = ("Monitoring:Edit", Roles.User),
+        ["POST /api/v1/cookie/access/logins/{id:guid}/not-expected"] = ("Monitoring:Details", Roles.User),
         ["GET /api/v1/cookie/admin/access/state"] = ("Cookie:Manage", Roles.Admin),
         ["GET /api/v1/cookie/admin/access/known"] = ("Cookie:Manage", Roles.Admin),
         ["POST /api/v1/cookie/admin/access/known"] = ("Cookie:Manage", Roles.Admin),
@@ -208,7 +211,7 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/cookie/admin/access/routers"] = ("Cookie:Manage", Roles.Admin),
         ["PUT /api/v1/cookie/admin/access/routers"] = ("Cookie:Manage", Roles.Admin),
         ["PUT /api/v1/cookie/admin/settings/access"] = ("Cookie:Manage", Roles.Admin),
-        ["GET /api/v1/sensors/{id:guid}/mikrotik/logins"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/sensors/{id:guid}/mikrotik/logins"] = ("Monitoring:Details", Roles.User),
         ["PUT /api/v1/sensors/{id:guid}/mikrotik/access-watch"] = ("Cookie:Manage", Roles.Admin),
         // The person and the availability plan (docs/cookie-plan.md §8.1, §8.2): one's own contact details and column for
         // everyone (the plan's code checks the column), the rest by the area Availability; a user's profile for admins.
@@ -346,6 +349,8 @@ public sealed class EndpointAuditTests
         ["PUT /api/v1/sensors/importance"] = ("Monitoring:Edit", Roles.User),
         ["GET /api/v1/notifications/matrix"] = ("Monitoring:View", Roles.Viewer),
         ["GET /api/v1/notifications/coverage"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/notifications/settings"] = ("Monitoring:View", Roles.Viewer),
+        ["PUT /api/v1/notifications/settings"] = ("Monitoring:Edit", Roles.User),
         ["POST /api/v1/notifications/assign"] = ("Monitoring:Edit", Roles.User),
         ["PUT /api/v1/notification-rules/{id:guid}/scopes"] = ("Monitoring:Edit", Roles.User),
         ["POST /api/v1/notification-rules/{id:guid}/scopes/preview"] = ("Monitoring:Edit", Roles.User),
@@ -370,7 +375,7 @@ public sealed class EndpointAuditTests
         // /api/v1/windows/ before L1): the agent log, revoking and tokens are Admin, requests CanWrite.
         ["GET /api/v1/agents/servers"] = ("Monitoring:View", Roles.Viewer),
         ["GET /api/v1/agents/servers/{id:guid}"] = ("Monitoring:View", Roles.Viewer),
-        ["GET /api/v1/agents/servers/{id:guid}/logins"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/agents/servers/{id:guid}/logins"] = ("Monitoring:Details", Roles.User),
         ["GET /api/v1/agents/servers/{id:guid}/changes"] = ("Monitoring:View", Roles.Viewer),
         ["GET /api/v1/agents/servers/{id:guid}/log"] = ("Servers:Manage", Roles.Admin),
         ["POST /api/v1/agents/servers/{id:guid}/collect"] = ("Commands:Run", Roles.User),
@@ -379,7 +384,7 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/agents/servers/{id:guid}/revoke"] = ("Servers:Manage", Roles.Admin),
         ["POST /api/v1/agents/servers/{id:guid}/rejoin-token"] = ("Servers:Manage", Roles.Admin),
         // Linux (docs/linux-sensor-plan.md §6.3, §8.4): a server's SSH keys (key comments and accounts: CanWrite), its accounts for scripts.
-        ["GET /api/v1/agents/servers/{id:guid}/ssh-keys"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/agents/servers/{id:guid}/ssh-keys"] = ("Monitoring:Details", Roles.User),
         ["GET /api/v1/agents/servers/{id:guid}/run-as-accounts"] = ("Servers:Manage", Roles.Admin),
         ["GET /api/v1/agents/join-tokens"] = ("Servers:Manage", Roles.Admin),
         ["POST /api/v1/agents/join-tokens"] = ("Servers:Manage", Roles.Admin),

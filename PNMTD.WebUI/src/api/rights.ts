@@ -9,7 +9,7 @@ export type Right = readonly [Area, Level] | 'admin'
 
 /** Each area's levels in order: a level includes the ones before it. The server decides; this only spares dead ends. */
 export const levelOrder: Record<Area, readonly Level[]> = {
-  Monitoring: ['View', 'Edit'],
+  Monitoring: ['View', 'Details', 'Edit'],
   Commands: ['Run'],
   Mail: ['Read'],
   Decisions: ['Decide'],

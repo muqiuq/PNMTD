@@ -61,7 +61,7 @@ public sealed class AccessJudge(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
         {
             var missing = cases.Count - mine.Count;
             trace(null, "access", $"{missing} access {(missing == 1 ? "case" : "cases")} Cookie can't judge",
-                "Cookie's group needs Monitoring: Edit for servers' and routers' logins, and Audit log: View for PNMT's sign-ins; a stopped case waits. Code's notice covers their strong signals.",
+                "Cookie's group needs Monitoring: Details for servers' and routers' logins, and Audit log: View for PNMT's sign-ins; a stopped case waits. Code's notice covers their strong signals.",
                 [CookieAccess.LoginsArea]);
         }
         int calls = 0, toolCalls = 0, worked = 0;
@@ -377,6 +377,7 @@ public sealed class AccessJudge(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             Maintenance = maintenance,
             OpenTickets = tickets,
             HostNotes = hostNotes,
+            YourNotes = await CookieObjectNotes.ForCaseAsync(db, c, p, ct),
         };
         return (CookieBrain.Json(brief), untrusted);
     }

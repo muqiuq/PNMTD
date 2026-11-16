@@ -9,7 +9,7 @@ namespace PNMTD.Api.V1;
 
 [Route("api/v1/sensors")]
 [RequireRight(Area.Monitoring, Level.View)]
-public sealed class SensorsController(SensorService sensors, EventService events) : V1ControllerBase
+public sealed class SensorsController(SensorService sensors, EventService events, Cookie.CookieObjectNoteService notes) : V1ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<Paged<SensorListItem>>> List([FromQuery] SensorQuery query, CancellationToken ct) =>
@@ -54,6 +54,14 @@ public sealed class SensorsController(SensorService sensors, EventService events
     [NotAudited("a lookup by token: changes nothing")]
     public async Task<ActionResult<TokenLookupResult>> Lookup(TokenLookupRequest request, CancellationToken ct) =>
         await sensors.LookupAsync(request, ct);
+
+    /// <summary>Cookie's notes on the sensor (docs/cookie-object-notes-plan.md §5): those the reader may see, newest first.</summary>
+    [HttpGet("{id:guid}/cookie-notes")]
+    public async Task<ActionResult<IReadOnlyList<CookieObjectNoteItem>>> CookieNotes(Guid id, CancellationToken ct)
+    {
+        await sensors.EnsureExistsAsync(id, ct);
+        return Ok(await notes.ListAsync(id, User, ct));
+    }
 
     [HttpGet("{id:guid}/events")]
     public async Task<ActionResult<Paged<EventItem>>> Events(Guid id, [FromQuery] EventQuery query, CancellationToken ct)

@@ -541,7 +541,7 @@ Cookie's placeholders stay Cookie's step: `ToolContext.Masker` is `Pseudonyms` f
 | `mail_rules_list` *(new)* | The mail input rules, without mail contents | Monitoring View | `MailService` |
 | `mails_search`, `mail_get` *(new)* | The mail log, and a mail's content (untrusted) | Mail Read | `MailService` |
 | `servers_list` *(new)* | Windows and Linux agents: online, version, outdated | Monitoring View | `AgentServerService` |
-| `server_get` *(new)* | An agent server with its recent changes; `section` returns one section (services, disks, updates, …). Sections that need *Edit* (logins, event log, journal, SSH keys) only for tokens with Monitoring Edit | Monitoring View | `AgentServerService` |
+| `server_get` *(new)* | An agent server with its recent changes; `section` returns one section (services, disks, updates, …). Sections that name people (logins, event log, journal, SSH keys) only for tokens with Monitoring Details (1.10; Edit before) | Monitoring View | `AgentServerService` |
 | `udp_node_get` *(new)* | A UDP sensor's node: last packets, rejections, the commands and their states | Monitoring View | `UdpNodeService`, `UdpCommandService` |
 | `udp_command_get` *(new)* | One command with its log and result bytes | Monitoring View | `UdpCommandService` |
 | `router_get` *(new)* | A MikroTik router: state, changelog, backups (list), update jobs | Monitoring View | `MikrotikRouterService`, `MikrotikBackupService` |

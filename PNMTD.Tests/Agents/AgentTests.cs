@@ -389,6 +389,8 @@ public sealed class AgentTests
         Assert.AreEqual(2, logins.TotalCount);
         Assert.AreEqual(1, (await AgentHarness.EventsAsync(app, joined.Grant.SensorId)).Count);
         Assert.AreEqual(HttpStatusCode.Forbidden, (await app.Client(Roles.Viewer).GetAsync($"/api/v1/agents/servers/{joined.Grant.SensorId}/logins")).StatusCode);
+        Assert.AreEqual(HttpStatusCode.OK, (await app.ClientWithRights("Monitoring:Details").GetAsync($"/api/v1/agents/servers/{joined.Grant.SensorId}/logins")).StatusCode,
+            "Details reads logins without Edit (docs/cookie-object-notes-plan.md §4)");
     }
 
     [TestMethod]

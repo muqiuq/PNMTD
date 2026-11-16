@@ -434,7 +434,7 @@ public sealed class AccessService(PnmtdDbContext db, CookieSettings settings, IO
             .Select(a => a.IpAddress).Distinct().Take(2).ToListAsync(ct);
         var today = Clock.ToUtc(Clock.LocalNow.Date);
         var level = (await settings.GetAsync<ActionSettings>(ct)).Levels.AccessNotice.Level;
-        return new AccessAdminState(cookie.Has(Area.Monitoring, Level.Edit), cookie.Has(Area.AuditLog, Level.View),
+        return new AccessAdminState(cookie.Has(Area.Monitoring, Level.Details), cookie.Has(Area.AuditLog, Level.View),
             !string.IsNullOrWhiteSpace(configuration["PublicBaseUrl"]),
             s.Contacts.Any(c => c.OutsideHours) || s.Notices.Suspicious.Hours == AccessHours.Everyone, level == ActionLevel.Auto,
             addresses.Count == 1 && await db.AuditLog.CountAsync(a => a.EventType == AuditEvents.LoginSucceeded && a.CreatedAt >= monthAgo, ct) >= 20,

@@ -15,7 +15,7 @@ import { caseLink } from '@/views/cookie/access'
 /**
  * This wasn't expected (docs/cookie-access-plan.md §7), on a server's or router's successful login: its access case is
  * answered Not expected, and stays open with importance High. That is how a missed break-in teaches Cookie. Monitoring:
- * Edit. Afterwards, the case is a click away.
+ * Details. Afterwards, the case is a click away.
  */
 const login = defineModel<S['AgentLoginItem'] | null>('login', { required: true })
 const props = defineProps<{ invalidate: readonly unknown[] }>()

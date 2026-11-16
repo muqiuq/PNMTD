@@ -87,7 +87,7 @@ public sealed class DebugTests
     {
         Assert.AreEqual(HttpStatusCode.BadRequest, (await admin.PostJsonAsync("/api/v1/debug/pushover", new DebugPushoverRequest())).StatusCode);
         Assert.AreEqual(HttpStatusCode.BadRequest,
-            (await admin.PostJsonAsync("/api/v1/debug/pushover", new DebugPushoverRequest { UserKey = "u", Priority = 2 })).StatusCode);
+            (await admin.PostJsonAsync("/api/v1/debug/pushover", new DebugPushoverRequest { UserKey = "u", Priority = 3 })).StatusCode);
         Assert.AreEqual(HttpStatusCode.BadRequest, (await admin.PostJsonAsync("/api/v1/debug/mail", new DebugMailRequest { Recipient = "nope" })).StatusCode);
         var mail = await (await admin.PostJsonAsync("/api/v1/debug/mail", new DebugMailRequest { Recipient = "ops@example.com" })).ReadAsync<DebugResult>();
         Assert.IsFalse(mail.Ok);

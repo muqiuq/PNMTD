@@ -39,6 +39,8 @@ export const api = {
     list: (query: ListQuery & { state?: HostState; locationId?: Id; noLocation?: boolean }) =>
       call(client.GET('/api/v1/hosts', { params: { query } })),
     get: (id: Id) => call(client.GET('/api/v1/hosts/{id}', { params: { path: { id } } })),
+    /** Cookie's notes on the host the reader may see (docs/cookie-object-notes-plan.md §5). */
+    cookieNotes: (id: Id) => call(client.GET('/api/v1/hosts/{id}/cookie-notes', { params: { path: { id } } })),
     create: (body: S['HostRequest']) => call(client.POST('/api/v1/hosts', { body })),
     update: (id: Id, body: S['HostRequest']) =>
       call(client.PUT('/api/v1/hosts/{id}', { params: { path: { id } }, body })),
@@ -83,6 +85,7 @@ export const api = {
     list: (query: ListQuery & { hostId?: Id; type?: SensorType; state?: SensorState }) =>
       call(client.GET('/api/v1/sensors', { params: { query } })),
     get: (id: Id) => call(client.GET('/api/v1/sensors/{id}', { params: { path: { id } } })),
+    cookieNotes: (id: Id) => call(client.GET('/api/v1/sensors/{id}/cookie-notes', { params: { path: { id } } })),
     create: (body: S['SensorRequest']) => call(client.POST('/api/v1/sensors', { body })),
     update: (id: Id, body: S['SensorRequest']) =>
       call(client.PUT('/api/v1/sensors/{id}', { params: { path: { id } }, body })),
@@ -318,7 +321,7 @@ export const api = {
     redactCommand: (id: Id) => call(client.POST('/api/v1/mikrotik/commands/{id}/redact', { params: { path: { id } } })),
     removeBackup: (id: Id, backupId: Id) =>
       call(client.DELETE('/api/v1/sensors/{id}/mikrotik/backups/{backupId}', { params: { path: { id, backupId } } })),
-    // --- its logins (docs/cookie-access-plan.md §4.2, §10.4): Monitoring's Edit; the switch Cookie's Manage ---------
+    // --- its logins (docs/cookie-access-plan.md §4.2, §10.4): Monitoring's Details; the switch Cookie's Manage ------
     /** The router's Access tab: its switch, users, who is logged in now, the gap, and its logins, paged. */
     logins: (
       id: Id,
@@ -390,6 +393,10 @@ export const api = {
       },
     ) => call(client.GET('/api/v1/notifications/matrix', { params: { query } })),
     coverage: () => call(client.GET('/api/v1/notifications/coverage')),
+    /** The Pushover priorities (docs/cookie-object-notes-plan.md §5): Monitoring's View reads, Edit saves. */
+    settings: () => call(client.GET('/api/v1/notifications/settings')),
+    updateSettings: (body: S['NotificationSettingsRequest']) =>
+      call(client.PUT('/api/v1/notifications/settings', { body })),
     assign: (body: S['NotificationAssignRequest']) => call(client.POST('/api/v1/notifications/assign', { body })),
     setHostImportance: (body: S['ImportanceRequest']) => call(client.PUT('/api/v1/hosts/importance', { body })),
     setSensorImportance: (body: S['ImportanceRequest']) => call(client.PUT('/api/v1/sensors/importance', { body })),
@@ -585,9 +592,12 @@ export const api = {
     answerAccess: (id: Id, body: S['AccessAnswerRequest']) =>
       call(client.POST('/api/v1/cookie/access/cases/{id}/answer', { params: { path: { id } }, body })),
     /** Ask Cookie for a ticket (§7): Cookie: Instruct and Redmine: Link; 409 when closed or Cookie is stopped. */
+    /** A person removes one of Cookie's notes on a host or sensor (docs/cookie-object-notes-plan.md §3.6): Monitoring: Edit. */
+    removeObjectNote: (id: number) =>
+      call(client.DELETE('/api/v1/cookie/object-notes/{id}', { params: { path: { id } } })),
     askAccessTicket: (id: Id) =>
       call(client.POST('/api/v1/cookie/access/cases/{id}/ticket', { params: { path: { id } } })),
-    /** This wasn't expected, on a server's or router's successful login (Monitoring: Edit): its case. */
+    /** This wasn't expected, on a server's or router's successful login (Monitoring: Details): its case. */
     notExpected: (loginId: Id, comment: string | null) =>
       call(
         client.POST('/api/v1/cookie/access/logins/{id}/not-expected', {
@@ -959,6 +969,8 @@ export const keys = {
   dashboard: ['dashboard'] as const,
   hosts: ['hosts'] as const,
   host: (id: Id) => ['host', id] as const,
+  /** Cookie's notes on a host or a sensor (docs/cookie-object-notes-plan.md §6). */
+  cookieNotes: (type: 'host' | 'sensor', id: Id) => ['cookie-notes', type, id] as const,
   /** Locations: the tree, a location's page and history (docs/locations-knowledge-plan.md §3). */
   locations: ['locations'] as const,
   location: (id: Id) => ['locations', id] as const,

@@ -1472,7 +1472,7 @@ It is built like package nine: in phases, each with its tests, as commits on mas
   - a person must be an active user with the channel's address;
   - a ticket needs *Redmine: Link* in Cookie's group, `Redmine__WriteApiKey`, a project for Cookie's tickets, and a problem case without an open ticket of Cookie's;
   - a note or an answer on a ticket needs *Redmine: View*, and goes only to the case's own ticket or one linked to its host;
-  - a note on a host or sensor needs *Monitoring: Edit*, and is added below the notes with the date and Cookie's name. **Locations have no notes,** so there are none on locations;
+  - a note on a host or sensor needs *Monitoring: View* and is a row of Cookie's own, shown on the object's page (1.10, docs/cookie-object-notes-plan.md §3; until then it was added below the people's notes and needed *Edit*). **Locations have no notes,** so there are none on locations;
   - a duplicate is the same action on the same target for the same case within a day, done, proposed or approved.
 - **Mute and suppress stop** Pushover, e-mail, tickets, notes on tickets and the big brother; not a note inside PNMT, and not a mail rule's event. The channels are *pushover*, *email*, *ticket* and *redmine-note*.
 - **Seraph's *revise*** gets its retry in a case's work only. For a mail, a duty's text and the big brother's solution, *revise* goes to a person.
@@ -1489,7 +1489,7 @@ It is built like package nine: in phases, each with its tests, as commits on mas
   - **Approving a proposal claims it once and checks it again:** the level, the target, the rights, the case's stop, mute and suppress. A proposal still waiting is a duplicate whatever its age, and one *hand to a person* per case waits at a time.
   - **In the inbox,** Cookie's proposals that carry more than *Monitoring*, *Mail* and *Cookie* are for admins, because their text may come from Redmine, Zabbix or the knowledge base.
   - **Masking:** the instructions (with who gave them) and the lessons are masked in every prompt, and so is what Seraph reads of a proposal that code built.
-  - **Cookie's lines in a host's or sensor's notes** (`[Cookie, 2026-11-15 10:30] …`) aren't progress.
+  - **Cookie's notes on a host or sensor** are rows of their own (docs/cookie-object-notes-plan.md §3), never progress; the people's notes are hashed as they are.
   - **A stopped case goes on** only for a member it didn't have when it was stopped, and its stopped duties are planned again.
   - **The big brother** answers a person's ask once, whatever comes of it. Its solution carries the areas its tools read, and is shown only to readers who have them all.
   - **One failing mail, or a failing retry** after Seraph's *revise*, goes to a person instead of failing the round.

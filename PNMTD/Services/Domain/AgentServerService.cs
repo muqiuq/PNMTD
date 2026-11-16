@@ -262,8 +262,8 @@ public sealed class AgentServerService(
         return await CreateTokenAsync(agent.Platform, agent.ParentId, agent.Name, request.ValidHours, id, ct);
     }
 
-    /// <summary>A Windows server's section, typed (§9.2); access and event-log need CanWrite. Linux's typed sections come with L3.</summary>
-    public async Task<WindowsSectionView> SectionAsync(Guid id, string section, bool canWrite, CancellationToken ct)
+    /// <summary>A Windows server's section, typed (§9.2); access and event-log need Monitoring's Details. Linux's typed sections come with L3.</summary>
+    public async Task<WindowsSectionView> SectionAsync(Guid id, string section, bool withDetails, CancellationToken ct)
     {
         if ((await AgentAsync(id, ct)).Platform != AgentPlatform.Windows)
         {
@@ -283,7 +283,7 @@ public sealed class AgentServerService(
             // Own queries' rows may hold anything WMI knows: Admin only, through …/wmi.
             throw ApiException.NotFound("Section (WMI: GET /api/v1/windows/servers/{id}/wmi, Admin)");
         }
-        if (section is SectionNames.Access or SectionNames.EventLog && !canWrite)
+        if (section is SectionNames.Access or SectionNames.EventLog && !withDetails)
         {
             throw new ApiException(StatusCodes.Status403Forbidden, "forbidden", "Logins and the event log need the User role: they hold user names and addresses.");
         }
@@ -314,9 +314,9 @@ public sealed class AgentServerService(
 
     /// <summary>
     /// A Linux server's section, typed by Linux's records (docs/linux-sensor-plan.md §10): 404 for a Windows server, as Windows'
-    /// sections are for a Linux one. access, journal and ssh-keys need CanWrite: user names, addresses, key comments.
+    /// sections are for a Linux one. access, journal and ssh-keys need Monitoring's Details: user names, addresses, key comments.
     /// </summary>
-    public async Task<LinuxSectionView> LinuxSectionAsync(Guid id, string section, bool canWrite, CancellationToken ct)
+    public async Task<LinuxSectionView> LinuxSectionAsync(Guid id, string section, bool withDetails, CancellationToken ct)
     {
         if ((await AgentAsync(id, ct)).Platform != AgentPlatform.Linux)
         {
@@ -326,7 +326,7 @@ public sealed class AgentServerService(
         {
             throw ApiException.NotFound("Section");
         }
-        if (section is SectionNames.Access or SectionNames.Journal or SectionNames.SshKeys && !canWrite)
+        if (section is SectionNames.Access or SectionNames.Journal or SectionNames.SshKeys && !withDetails)
         {
             throw new ApiException(StatusCodes.Status403Forbidden, "forbidden",
                 "Logins, the journal and the SSH keys need the User role: they hold user names, addresses and key comments.");

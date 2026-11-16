@@ -366,14 +366,6 @@ public sealed class CookieActingTests
     }
 
     [TestMethod]
-    public void Cookies_own_lines_in_the_notes_are_not_progress()
-    {
-        const string people = "Replaced the disk.\nWaiting for the vendor.";
-        Assert.AreSame(people, CaseBook.PeoplesNotes(people), "notes without Cookie's lines stay as they are");
-        Assert.AreEqual(people, CaseBook.PeoplesNotes($"{people}\n\n[Cookie, 2026-11-15 10:30] The ping fails since 08:00."));
-    }
-
-    [TestMethod]
     public async Task Without_a_writable_Redmine_Cookie_proposes_no_tickets_and_says_what_it_does_instead()
     {
         await Save("actions", new ActionSettings());
@@ -441,4 +433,55 @@ public sealed class CookieActingTests
         Assert.AreEqual(RedmineAvailability.Writable, back.Redmine, back.RedmineReason);
         Assert.IsTrue(CookieTools.For(Rights, app.Services).Any(t => t.Name == "ticket_get"), "the first successful read brings the tool back");
     }
+
+
+    [TestMethod]
+    public async Task A_note_on_a_host_is_a_row_of_Cookies_own_with_Monitoring_View_and_leaves_the_peoples_notes_alone()
+    {
+        // docs/cookie-object-notes-plan.md §3: a row, never the people's field; View suffices; nothing without Monitoring; a cap per object.
+        var c = await ProblemAsync("noted");
+        var hostId = c.HostId!.Value;
+        await using (var db = app.NewDb())
+        {
+            (await db.Hosts.SingleAsync(h => h.Id == hostId)).Notes = "People's: the ISP is informed.";
+            await db.SaveChangesAsync();
+        }
+        var note = new ProposedAction(CookieActionKind.ObjectNote, null, 0, hostId.ToString(), "Noted", "The backup runs at 02:00; the heartbeat is late then.",
+            "Seen three nights in a row", [], 0.9, Urgency.Info);
+        var p = await app.Services.GetRequiredService<PrivacyFilter>().OpenAsync(CancellationToken.None);
+        var viewOnly = new UserRights(false, new Dictionary<Area, Level> { [Area.Monitoring] = Level.View });
+        var log = await Executor.HandleAsync(new ActionRequest(new CookieProposal(note), c, null, viewOnly, p, ["Monitoring"]), CancellationToken.None);
+        Assert.AreEqual("done", log.Outcome, log.Detail);
+        await using (var check = app.NewDb())
+        {
+            var row = await check.CookieObjectNotes.SingleAsync(n => n.HostId == hostId);
+            Assert.AreEqual("The backup runs at 02:00; the heartbeat is late then.", row.Text);
+            Assert.AreEqual(c.Id, row.CaseId);
+            Assert.AreEqual(log.Id, row.DecisionId);
+            CollectionAssert.AreEqual(new[] { "Monitoring" }, row.Areas);
+            Assert.AreEqual("People's: the ISP is informed.", (await check.Hosts.SingleAsync(h => h.Id == hostId)).Notes, "the people's notes are untouched");
+            Assert.IsTrue(await check.AuditLog.AnyAsync(l => l.EventType == AuditEvents.CookieNoteAdded && l.TargetId == hostId.ToString()));
+        }
+        var none = new UserRights(false, new Dictionary<Area, Level> { [Area.Redmine] = Level.View });
+        var refused = await Executor.HandleAsync(new ActionRequest(new CookieProposal(note with { Text = "Another" }), c, null, none, p, ["Monitoring"]), CancellationToken.None);
+        Assert.AreEqual("refused", refused.Outcome);
+        StringAssert.Contains(refused.Detail, "Monitoring: View");
+
+        // The cap (§3.5): a sensor with 20 notes already takes no more.
+        var sensorId = Guid.Parse(System.Text.Json.JsonSerializer.Deserialize<List<CaseMember>>(c.Members, CookieSettings.Json)!.Single(m => m.Type == CaseMember.Sensor).Id);
+        await using (var db = app.NewDb())
+        {
+            db.CookieObjectNotes.AddRange(Enumerable.Range(0, 20).Select(i => new CookieObjectNoteEntity
+            {
+                SensorId = sensorId, At = Clock.UtcNow.AddMinutes(-i), Text = $"Note {i}", Areas = ["Monitoring"],
+            }));
+            await db.SaveChangesAsync();
+        }
+        var full = await Executor.HandleAsync(new ActionRequest(new CookieProposal(note with { ObjectId = sensorId.ToString(), Text = "One more" }), c, null, Rights, p,
+            ["Monitoring"]), CookieTestsCancellation);
+        Assert.AreEqual("refused", full.Outcome, full.Detail);
+        StringAssert.Contains(full.Detail, "20 notes of yours already");
+    }
+
+    private static CancellationToken CookieTestsCancellation => CancellationToken.None;
 }

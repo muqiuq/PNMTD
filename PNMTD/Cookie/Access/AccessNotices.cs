@@ -160,7 +160,7 @@ public sealed class AccessNotices(IDbContextFactory<PnmtdDbContext> dbs, CookieS
 
     /// <summary>What a contact needs for a target's notices (§6.2): Cookie's window, and the logins' right.</summary>
     public static bool MaySee(UserRights rights, AccessTargetKind target) =>
-        rights.Has(Area.Cookie, Level.Use) && (target == AccessTargetKind.Pnmt ? rights.Has(Area.AuditLog, Level.View) : rights.Has(Area.Monitoring, Level.Edit));
+        rights.Has(Area.Cookie, Level.Use) && (target == AccessTargetKind.Pnmt ? rights.Has(Area.AuditLog, Level.View) : rights.Has(Area.Monitoring, Level.Details));
 
     /// <summary>The notice's text (§6.3): the facts from the logins, then Cookie's sentence, or code's signals.</summary>
     private (string Subject, string Body) Text(CookieCaseEntity c, List<AccessReviewEntity> reviews, AccessVerdict verdict, string? reason, string source)

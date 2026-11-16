@@ -58,7 +58,7 @@ const actions: { key: ActionKey; label: string; text: string }[] = [
   {
     key: 'objectNote',
     label: 'Note on a host or sensor',
-    text: "Added below the notes, with the date and Cookie's name; stays inside PNMT, so Seraph doesn't review it. Cookie's group needs Monitoring: Edit.",
+    text: "Shown on the host's or sensor's page as Cookie's own note, with the date; stays inside PNMT, so Seraph doesn't review it. Cookie's group needs Monitoring: View.",
   },
   {
     key: 'mailEvent',
@@ -124,6 +124,7 @@ const limits: { key: Limit; label: string }[] = [
   { key: 'redmineNotesPerDay', label: 'Notes on Redmine in total, a day' },
   { key: 'publicAnswersPerDay', label: 'Public answers on tickets, a day' },
   { key: 'objectNotesPerDay', label: 'Notes on hosts and sensors, a day' },
+  { key: 'maxNotesPerObject', label: 'Notes on one host or sensor' },
   { key: 'bigBrotherPerDay', label: 'Big brother calls, a day' },
   { key: 'bigBrotherPerCaseDay', label: 'Big brother calls per case, a day' },
 ]

@@ -10,7 +10,7 @@ namespace PNMTD.Api.V1;
 
 [Route("api/v1/hosts")]
 [Authorize]
-public sealed class HostsController(HostService hosts, LocationService locations) : V1ControllerBase
+public sealed class HostsController(HostService hosts, LocationService locations, Cookie.CookieObjectNoteService notes) : V1ControllerBase
 {
     [HttpGet]
     [RequireRight(Area.Monitoring, Level.View)]
@@ -20,6 +20,15 @@ public sealed class HostsController(HostService hosts, LocationService locations
     [HttpGet("{id:guid}")]
     [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<HostDetail>> Get(Guid id, CancellationToken ct) => await hosts.GetAsync(id, ct);
+
+    /// <summary>Cookie's notes on the host (docs/cookie-object-notes-plan.md §5): those the reader may see, newest first.</summary>
+    [HttpGet("{id:guid}/cookie-notes")]
+    [RequireRight(Area.Monitoring, Level.View)]
+    public async Task<ActionResult<IReadOnlyList<CookieObjectNoteItem>>> CookieNotes(Guid id, CancellationToken ct)
+    {
+        await hosts.GetAsync(id, ct);
+        return Ok(await notes.ListAsync(id, User, ct));
+    }
 
     [HttpPost]
     [RequireRight(Area.Monitoring, Level.Edit)]

@@ -155,10 +155,12 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             var calendar = await plan.CalendarAsync(ct);
             values["working_hours_state"] = calendar.IsWorking(now) ? "It is within working hours" : "It is outside working hours";
             values["max_cases"] = models.MaxCasesPerRound.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var yourNotes = await CookieObjectNotes.ForCasesAsync(db, focus, p, ct);
             var brief = new
             {
                 StateByCode = runtime.CodeStatus, ReasonByCode = p.Mask(runtime.CodeReason),
-                ChangedOrDue = focus.Select(c => Summary(c, due.GetValueOrDefault(c.Id), p, full: true, withheld, comments.GetValueOrDefault(c.Id))),
+                ChangedOrDue = focus.Select(c => Summary(c, due.GetValueOrDefault(c.Id), p, full: true, withheld, comments.GetValueOrDefault(c.Id),
+                    yourNotes.GetValueOrDefault(c.Id))),
                 Others = open.Except(focus).Take(OthersInBrief).Select(c => Summary(c, due.GetValueOrDefault(c.Id), p, full: false)),
                 OthersLeftOut = Math.Max(0, open.Count - focus.Count - OthersInBrief),
                 StoppedByPeople = stopped.Take(OthersInBrief).Select(c =>
@@ -223,7 +225,8 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 var people = await PeopleAsync(db, c, p, ct);
                 // The big brother (§15.2): code offers the case when it matters and nobody took care of it for a working day.
                 var offered = BigBrother.Offered(c, runtime, missed.Contains(c.Id), calendar, now);
-                var caseText = $"The case:\n{CookieBrain.Json(Summary(c, due.GetValueOrDefault(c.Id), p, full: true, withheld))}\n\n" +
+                var caseText = $"The case:\n{CookieBrain.Json(Summary(c, due.GetValueOrDefault(c.Id), p, full: true, withheld,
+                    yourNotes: await CookieObjectNotes.ForCaseAsync(db, c, p, ct)))}\n\n" +
                     $"PeopleYouMayAddress:\n{CookieBrain.Json(people)}" +
                     (offered ? "\n\nThis case matters and nobody has taken care of it for a working day: if something is broken that needs a technical " +
                         "fix nobody has found, set NeedsFixing, and say in your note what needs fixing." : "");
@@ -669,7 +672,7 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
     }
 
     private static object Summary(CookieCaseEntity c, CookieDutyEntity? next, Pseudonyms p, bool full, bool withheld = false,
-        IReadOnlyList<CookieCaseEntryEntity>? comments = null)
+        IReadOnlyList<CookieCaseEntryEntity>? comments = null, IReadOnlyList<object>? yourNotes = null)
     {
         if (!full)
         {
@@ -693,6 +696,8 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             },
             NextDeadline = next is null ? null : $"{next.Kind} at {next.DueAt:u}",
             YourLastNote = p.Mask(c.CookieNote),
+            // Cookie's own notes on the case's host and sensors (docs/cookie-object-notes-plan.md §3.3): its words, not outside text.
+            YourNotes = yourNotes,
             PeoplesComments = comments?.Select(e => new
             {
                 e.At, By = p.Mask(e.ActorName),

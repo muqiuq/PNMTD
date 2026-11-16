@@ -22,20 +22,25 @@ import { typeIcon } from '@/composables/useLookups'
 import { useServerTable } from '@/composables/useServerTable'
 import { useSession } from '@/stores/session'
 import { HOST, importanceOptions, importanceSeverity, type Importance } from './importance'
+import PushoverTab from './PushoverTab.vue'
 
 /**
  * The Notification Manager (docs/ai-operations-plan.md §11.3): which rule notifies about which sensor. A rule covers
  * a sensor through a link, or through a scope (an importance, a host, everything), unless it is excluded. Viewers
- * read; Users click cells and assign in bulk. Coverage lists the sensors no enabled rule reaches.
+ * read; Users click cells and assign in bulk. Coverage lists the sensors no enabled rule reaches. Pushover is the
+ * priority each importance gets on the phone (docs/cookie-object-notes-plan.md §5.4).
  */
 const session = useSession()
 const canWrite = computed(() => session.can('Monitoring', 'Edit'))
 const route = useRoute()
 const queryClient = useQueryClient()
-const tab = computed(() => (route.query.tab === 'coverage' ? 'coverage' : 'matrix'))
+const tab = computed(() =>
+  route.query.tab === 'coverage' ? 'coverage' : route.query.tab === 'pushover' ? 'pushover' : 'matrix',
+)
 const tabs = [
   { key: 'matrix', label: 'Matrix', to: { name: 'notifications' } },
   { key: 'coverage', label: 'Coverage', to: { name: 'notifications', query: { tab: 'coverage' } } },
+  { key: 'pushover', label: 'Pushover', to: { name: 'notifications', query: { tab: 'pushover' } } },
 ]
 
 // --- the matrix -----------------------------------------------------------------------------------
@@ -287,6 +292,8 @@ const coverage = useQuery({
         </ListTable>
       </div>
     </template>
+
+    <PushoverTab v-else-if="tab === 'pushover'" :can-write="canWrite" />
 
     <template v-else>
       <section v-if="coverage.data.value" class="panel" aria-labelledby="coverage-title">

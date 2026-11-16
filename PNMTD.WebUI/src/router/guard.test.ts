@@ -32,6 +32,13 @@ const to = (name: string, fullPath: string, extra: { public?: boolean; right?: R
 })
 
 describe('the route guard', () => {
+  it('ranks Monitoring: Details between View and Edit', () => {
+    expect(holds(false, { Monitoring: 'Details' }, 'Monitoring', 'View')).toBe(true)
+    expect(holds(false, { Monitoring: 'Details' }, 'Monitoring', 'Edit')).toBe(false)
+    expect(holds(false, { Monitoring: 'Edit' }, 'Monitoring', 'Details')).toBe(true)
+    expect(holds(false, { Monitoring: 'View' }, 'Monitoring', 'Details')).toBe(false)
+  })
+
   it('sends a signed-out user to the login, with the page as returnUrl', () => {
     expect(decide(to('host', '/hosts/1'), as(null))).toEqual({ name: 'login', query: { returnUrl: '/hosts/1' } })
     expect(decide(to('login', '/login', { public: true }), as(null))).toBe(true)

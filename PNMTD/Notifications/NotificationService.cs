@@ -41,6 +41,7 @@
         public static IServiceCollection AddNotifications(this IServiceCollection services)
         {
             services.AddHttpClient(NotificationService.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(30));
+            services.AddSingleton<PushoverPriorities>();
             services.AddSingleton<PushoverNotification>();
             services.AddSingleton<EMailNotification>();
             services.AddSingleton<HttpNotification>();

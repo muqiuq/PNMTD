@@ -9,7 +9,7 @@ namespace PNMTD.Cli;
 
 /// <summary>
 /// The seed's Cookie (docs/cookie-plan.md §19.6, B4): a group <i>Cookie</i> to read with (Monitoring, Zabbix, Redmine, the
-/// knowledge base, locations, the availability plan and the mails, all at their lowest level), the first admin's contact and column in the plan, and with Redmine the project IT
+/// knowledge base, locations, the availability plan and the mails, Monitoring at <i>Details</i> for its notes and the logins, the rest at their lowest level), the first admin's contact and column in the plan, and with Redmine the project IT
 /// Support watched, with Operators as its escalation group and Network for Cookie's tickets. The duties stay off, as on a
 /// fresh installation, and Cookie stays stopped.
 /// </summary>
@@ -29,7 +29,7 @@ internal static class DevSeedCookie
                 Id = Guid.NewGuid(), Name = "Cookie", NormalizedName = "cookie", CreatedAt = now, UpdatedAt = now,
                 Description = "What Cookie, the assistant, reads with (Admin → Cookie → Rights).",
             };
-            foreach (var (area, level) in new[] { (Area.Monitoring, Level.View), (Area.Zabbix, Level.View), (Area.Redmine, Level.View),
+            foreach (var (area, level) in new[] { (Area.Monitoring, Level.Details), (Area.Zabbix, Level.View), (Area.Redmine, Level.View),
                 (Area.KnowledgeBase, Level.View), (Area.Locations, Level.View), (Area.Availability, Level.View), (Area.Mail, Level.Read) })
             {
                 group.Rights.Add(new GroupRightEntity { GroupId = group.Id, Area = area, Level = level });

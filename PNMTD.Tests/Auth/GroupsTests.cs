@@ -38,6 +38,10 @@ public sealed class GroupsTests
         var combined = UserRights.Combine([(Area.Monitoring, Level.View), (Area.Monitoring, Level.Edit), (Area.KnowledgeBase, Level.Manage)]);
         var rights = new UserRights(false, combined);
         Assert.IsTrue(rights.Has(Area.Monitoring, Level.View), "Edit includes View");
+        Assert.IsTrue(rights.Has(Area.Monitoring, Level.Details), "Edit includes Details");
+        var details = new UserRights(false, new Dictionary<Area, Level> { [Area.Monitoring] = Level.Details });
+        Assert.IsTrue(details.Has(Area.Monitoring, Level.View), "Details includes View");
+        Assert.IsFalse(details.Has(Area.Monitoring, Level.Edit), "Details doesn't include Edit");
         Assert.IsTrue(rights.Has(Area.KnowledgeBase, Level.Edit));
         Assert.IsFalse(rights.Has(Area.Locations, Level.View));
         Assert.IsFalse(rights.Has(Area.Mail, Level.Read));

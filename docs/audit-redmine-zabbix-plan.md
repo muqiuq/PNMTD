@@ -411,7 +411,7 @@ This is **the first commit of A1**, on its own, so it ships even if the rest wai
 
 | Area | Levels | What each level allows | Until now |
 |---|---|---|---|
-| **Monitoring** | View · Edit | **View:** the dashboard, hosts, sensors, events, notification rules and the manager, DNS zones, mail input rules (without mail contents), the uplink, the global search, the hosts' and sensors' *History* (§4.3). **Edit:** create, change and delete all of these, see sensor tokens and URLs, importance, notification assignments, UDP keys and counters, a router's WireGuard keys, an agent's settings, attaching Zabbix hosts (with Zabbix *View*) | Viewer: View · User: Edit |
+| **Monitoring** | View · Details · Edit | **View:** the dashboard, hosts, sensors, events, notification rules and the manager, DNS zones, mail input rules (without mail contents), the uplink, the global search, the hosts' and sensors' *History* (§4.3). **Details** (1.10, docs/cookie-object-notes-plan.md §4): what names people: servers' and routers' logins and the access cases about them, a server's event log, journal and SSH keys. **Edit:** create, change and delete all of these, see sensor tokens and URLs, importance, notification assignments, UDP keys and counters, a router's WireGuard keys, an agent's settings, attaching Zabbix hosts (with Zabbix *View*) | Viewer: View · User: Edit |
 | **Commands** | Run | **Run:** UDP commands, a MikroTik router's poll, backup now and commands, an agent's *Collect now*, a diagnostics run | User |
 | **Mail** | Read | **Read:** the mail log and mail contents | User |
 | **Decisions** | Decide | **Decide:** the decisions inbox. Decisions marked for admins stay with admins | User |

@@ -4,7 +4,8 @@ namespace PNMTD.Notifications
 {
     /// <summary>
     /// One notification, as a provider sends it. <see cref="Priority"/> and <see cref="Device"/> are the
-    /// debug page's (docs/ai-operations-plan.md §8.2); otherwise Pushover's priority follows the importance (§11.5).
+    /// debug page's (docs/ai-operations-plan.md §8.2); otherwise Pushover's priority follows the importance by the settings
+    /// (docs/cookie-object-notes-plan.md §5).
     /// </summary>
     public sealed record NotificationMessage(
         string Recipient,

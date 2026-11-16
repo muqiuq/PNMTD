@@ -21,7 +21,7 @@ namespace PNMTD.Cookie;
 /// </summary>
 public static class CookieAccess
 {
-    /// <summary>An access case's servers' and routers' logins (docs/cookie-access-plan.md §9): names and addresses, <i>Monitoring: Edit</i>.</summary>
+    /// <summary>An access case's servers' and routers' logins (docs/cookie-access-plan.md §9): names and addresses, <i>Monitoring: Details</i>.</summary>
     public const string LoginsArea = "Logins";
 
     /// <summary>An access case's PNMT sign-ins: the audit log's, <i>Audit log: View</i>.</summary>
@@ -29,7 +29,7 @@ public static class CookieAccess
 
     public static (Area Area, Level Level)? RightOf(string area) => area switch
     {
-        LoginsArea => (Area.Monitoring, Level.Edit),
+        LoginsArea => (Area.Monitoring, Level.Details),
         AuditLogArea => (Area.AuditLog, Level.View),
         "Monitoring" => (Area.Monitoring, Level.View),
         "Zabbix" => (Area.Zabbix, Level.View),

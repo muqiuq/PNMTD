@@ -29,6 +29,8 @@ import AddServerDialog from '@/views/admin/servers/AddServerDialog.vue'
 import HostLocationField from '@/views/locations/HostLocationField.vue'
 import KbPanel from '@/views/kb/KbPanel.vue'
 import RedminePanel from '@/views/redmine/RedminePanel.vue'
+import CookieNotesPanel from '@/views/cookie/CookieNotesPanel.vue'
+import { useCookieNotes } from '@/views/cookie/cookieNotes'
 import TicketCount from '@/views/redmine/TicketCount.vue'
 
 /**
@@ -62,6 +64,8 @@ const query = useQuery({
 })
 const host = computed(() => query.data.value)
 const canWrite = computed(() => session.can('Monitoring', 'Edit'))
+// Cookie's notes on the host (docs/cookie-object-notes-plan.md §6): the reader's, below the properties.
+const cookieNotes = useCookieNotes('host', () => id.value)
 
 const rank: Record<string, number> = { Failing: 0, NoData: 1, Ok: 2, Ignored: 3, Disabled: 4 }
 const sensors = computed(() =>
@@ -217,6 +221,12 @@ const more = computed(() => [
               </dd>
             </dl>
           </section>
+          <CookieNotesPanel
+            :notes="cookieNotes.notes.value"
+            :can-remove="cookieNotes.canRemove.value"
+            :can-link-case="cookieNotes.canLinkCase.value"
+            @remove="cookieNotes.remove"
+          />
 
           <section class="panel" aria-labelledby="sensors-title">
             <div id="sensors-title" class="panel-header">

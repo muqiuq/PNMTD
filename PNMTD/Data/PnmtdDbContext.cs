@@ -67,6 +67,9 @@ namespace PNMTD.Data
         // MikroTik routers (docs/mikrotik-plan.md §9.2).
         public DbSet<MikrotikRouterEntity> MikrotikRouters { get; set; }
         public DbSet<MikrotikSettingsEntity> MikrotikSettings { get; set; }
+
+        /// <summary>The Pushover priorities, one row (docs/cookie-object-notes-plan.md §5.1).</summary>
+        public DbSet<NotificationSettingsEntity> NotificationSettings { get; set; }
         public DbSet<MikrotikSshKeyEntity> MikrotikSshKeys { get; set; }
 
         public DbSet<MikrotikBackupKeyEntity> MikrotikBackupKeys { get; set; }
@@ -151,6 +154,9 @@ namespace PNMTD.Data
         public DbSet<CookieInstructionEntity> CookieInstructions { get; set; }
         public DbSet<CookieRuntimeEntity> CookieRuntime { get; set; }
         public DbSet<CookieCaseEntity> CookieCases { get; set; }
+
+        /// <summary>Cookie's notes on hosts and sensors (docs/cookie-object-notes-plan.md §3.1).</summary>
+        public DbSet<CookieObjectNoteEntity> CookieObjectNotes { get; set; }
         public DbSet<CookieCaseEntryEntity> CookieCaseEntries { get; set; }
         public DbSet<CookieDutyEntity> CookieDuties { get; set; }
         public DbSet<CookieOutboxEntity> CookieOutbox { get; set; }
@@ -730,6 +736,17 @@ namespace PNMTD.Data
             {
                 e.HasOne<CookieCaseEntity>().WithMany().HasForeignKey(x => x.CaseId).OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(x => new { x.CaseId, x.At });
+            });
+            // Cookie's notes on hosts and sensors (docs/cookie-object-notes-plan.md §3.1): with their object, never the people's notes.
+            modelBuilder.Entity<CookieObjectNoteEntity>(e =>
+            {
+                e.HasOne<HostEntity>().WithMany().HasForeignKey(x => x.HostId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(x => x.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<CookieCaseEntity>().WithMany().HasForeignKey(x => x.CaseId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<CookieDecisionEntity>().WithMany().HasForeignKey(x => x.DecisionId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(x => new { x.HostId, x.At });
+                e.HasIndex(x => new { x.SensorId, x.At });
+                e.ToTable(t => t.HasCheckConstraint("CK_cookie_object_notes_object", "(\"HostId\" IS NULL) <> (\"SensorId\" IS NULL)"));
             });
             modelBuilder.Entity<CookieDutyEntity>(e =>
             {

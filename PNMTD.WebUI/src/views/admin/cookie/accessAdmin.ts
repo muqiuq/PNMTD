@@ -117,7 +117,7 @@ export function accessWarnings(state: S['AccessAdminState'] | undefined, v: Acce
     if (!state.cookieReadsLogins)
       add(
         'cookie-logins',
-        "Cookie's group lacks Monitoring: Edit, so Cookie can't read servers' and routers' logins. Only code's notice for strong signals works for them.",
+        "Cookie's group lacks Monitoring: Details, so Cookie can't read servers' and routers' logins. Only code's notice for strong signals works for them.",
       )
     if (!state.cookieReadsSignIns)
       add(

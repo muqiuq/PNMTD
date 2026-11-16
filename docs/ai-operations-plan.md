@@ -703,10 +703,10 @@ Viewers see the page. Changes need User (CanWrite), as for the rules today.
 ### 11.5 Pushover priority, and the importance in messages
 
 - **Every notification carries** the sensor's effective importance:
-  - **Pushover:** Low → priority −1 (quiet), Normal → 0, High → 1 (it bypasses the user's quiet hours);
+  - **Pushover:** Low → priority −1 (quiet), Normal → 0, High → 1 (it bypasses the user's quiet hours). **Since 1.10 this mapping is a setting** on the Notification manager's *Pushover* tab, with Pushover's emergency level available (docs/cookie-object-notes-plan.md §5); the values here are its defaults;
   - **E-mail:** the subject starts with `[High]` for High;
   - **Webhooks:** unchanged.
-- **Off with** `Notifications:PushoverPriorityByImportance=false`.
+- ~~**Off with** `Notifications:PushoverPriorityByImportance=false`.~~ Gone in 1.10: *off* is the three priorities set to 0 on the tab.
 
 ---
 
@@ -858,7 +858,6 @@ One EF migration per phase:
 | `Ai__Analysis__Enabled`, `Ai__Analysis__IntervalMinutes` | `true`, 60 | Runs only when something changed |
 | `Mikrotik__Advisories__Enabled`, `…__FeedUrl`, `…__IntervalMinutes` | `true`, the feed above, 60 | R9 |
 | `UplinkCheck__TimeoutSeconds` | 15 | |
-| `Notifications__PushoverPriorityByImportance` | `true` | |
 | `Decisions__ExpireDays` | 30 | |
 | `Pushover__Endpoint` | `https://api.pushover.net/1/messages.json` | For tests |
 
