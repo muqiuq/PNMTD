@@ -1,6 +1,6 @@
 # PNMT 1.8: the agents' versions, chosen in PNMT
 
-Version 1.8.0, **not released yet**: these notes grow until it is.
+Version 1.8.0.
 
 ## What's new
 
