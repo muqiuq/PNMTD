@@ -82,4 +82,7 @@ public sealed class PublicUrls(IConfiguration configuration, IHttpContextAccesso
     public string WriteUrl(string token) => $"{Base}/event/{token}";
 
     public string ReadUrl(string token) => $"{Base}/read/{token}/json";
+
+    /// <summary>Where an ADVANCED sensor's app POSTs its report, the token in the header (docs/advanced-sensor-plan.md §4.1).</summary>
+    public string ReportUrl => $"{Base}/report";
 }

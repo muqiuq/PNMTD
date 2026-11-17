@@ -180,9 +180,9 @@ public sealed class MonitoringApiTests
 
         // 8 monitoring tasks, the MikroTik poller and version check (docs/mikrotik-plan.md §5.2, §5.4), the audit log's
         // retention (docs/audit-redmine-zabbix-plan.md §3.8), Redmine's sync (§6.7), Zabbix's problems and hosts (§7.3), Cookie's
-        // case book (docs/cookie-plan.md §19.3), the MCP tokens' expiry (docs/mcp-plan.md §4.3), and the certificate checks
-        // (docs/ssl-certificate-plan.md §5.2).
-        Assert.AreEqual(17, tasks.Count);
+        // case book (docs/cookie-plan.md §19.3), the MCP tokens' expiry (docs/mcp-plan.md §4.3), the certificate checks
+        // (docs/ssl-certificate-plan.md §5.2), and the advanced sensors' evaluator (docs/advanced-sensor-plan.md §7.3).
+        Assert.AreEqual(18, tasks.Count);
         Assert.IsTrue(tasks.All(t => t.State == "off"), string.Join(",", tasks.Select(t => t.State)));
         Assert.IsTrue(tasks.Any(t => t.Key == "last_heartbeat_task_run" && t.IntervalSeconds == 10));
     }
@@ -198,6 +198,9 @@ public sealed class MonitoringApiTests
         Assert.IsTrue(codes.Where(c => c.Success).All(c => c.Code <= 399));
         // SSL certificates (docs/ssl-certificate-plan.md §3): the seven codes, 285 and 286 the successes.
         CollectionAssert.IsSubsetOf(new[] { 285, 286, 485, 486, 487, 488, 489 }, codes.Select(c => c.Code).ToArray());
+        // Advanced sensors (docs/advanced-sensor-plan.md §3): the four codes, 295 and 296 the successes.
+        CollectionAssert.IsSubsetOf(new[] { 295, 296, 495, 496 }, codes.Select(c => c.Code).ToArray());
+        CollectionAssert.AreEquivalent(new[] { 295, 296 }, codes.Where(c => c.Name.StartsWith("ADVANCED_") && c.Success).Select(c => c.Code).ToArray());
         CollectionAssert.AreEquivalent(new[] { 285, 286 }, codes.Where(c => c.Code is >= 285 and <= 489 && c.Name.StartsWith("SSL_") && c.Success).Select(c => c.Code).ToArray());
         Assert.AreEqual(Enum.GetValues<SensorType>().Length, types.GetArrayLength());
         Assert.IsTrue(types.EnumerateArray().Any(t => t.GetProperty("type").GetString() == "DNS" && !t.GetProperty("canCreate").GetBoolean()));

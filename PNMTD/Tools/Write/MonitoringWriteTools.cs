@@ -27,6 +27,8 @@ public static class MonitoringWriteTools
         SensorType.ONE_WITHIN_TIMESPAN, SensorType.ALL_WITHIN_TIMESPAN, SensorType.UDP_NODE,
         // docs/ssl-certificate-plan.md §9: the address as parameters, the public mode's defaults; Certificates: Edit besides.
         SensorType.SSL_CERTIFICATE,
+        // docs/advanced-sensor-plan.md §11: with the starter rule; its rules are made in PNMT.
+        SensorType.ADVANCED,
     ];
 
     public static readonly IReadOnlyList<ToolSpec> All =

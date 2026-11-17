@@ -19,6 +19,7 @@ import { useSession } from '@/stores/session'
 import MikrotikFields from './mikrotik/MikrotikFields.vue'
 import ZabbixFields, { type ZabbixDraft } from './zabbix/ZabbixFields.vue'
 import CertificateFields from './certificate/CertificateFields.vue'
+import AdvancedFields, { type AdvancedDraft } from './advanced/AdvancedFields.vue'
 import {
   CERTIFICATE_FIELDS,
   certificateRequestFromDraft,
@@ -39,7 +40,8 @@ import { KEY_BYTES, newUdpDraft, secretError, TOKEN_BYTES, udpRequest } from './
  * of its own; ?type=UDP_NODE&deviceId=42 preset it (the admin page's "Add UDP node", unknown senders).
  * So does a MikroTik router (docs/mikrotik-plan.md §11.1): after the creation its Setup tab shows the
  * join script. An SSL certificate (docs/ssl-certificate-plan.md §8.2) has its address, trust, schedule and
- * rules, for Certificates: Edit only.
+ * rules, for Certificates: Edit only. An Advanced sensor (docs/advanced-sensor-plan.md §10.2) has how often a report is
+ * expected, the starter rule and whether its data names people; after the creation it opens on its Data tab.
  */
 const route = useRoute()
 const router = useRouter()
@@ -63,6 +65,7 @@ const presets: SensorType[] = [
   'MIKROTIK',
   'ZABBIX',
   'SSL_CERTIFICATE',
+  'ADVANCED',
 ]
 const presetType =
   presets.find((t) => t === route.query.type && (t !== 'SSL_CERTIFICATE' || session.can('Certificates', 'Edit'))) ??
@@ -117,6 +120,7 @@ watch(
 )
 // An SSL certificate (docs/ssl-certificate-plan.md §8.2): the name follows the address (host:port) until someone types one.
 const certificate = ref(newCertificateDraft())
+const advanced = ref<AdvancedDraft>({ addStatusRule: true, namesPeople: false })
 let suggestedName = ''
 watch(parameters, (value) => {
   if (type.value !== 'SSL_CERTIFICATE') return
@@ -144,6 +148,7 @@ const isUdp = computed(() => type.value === 'UDP_NODE')
 const isMikrotik = computed(() => type.value === 'MIKROTIK')
 const isZabbix = computed(() => type.value === 'ZABBIX')
 const isCertificate = computed(() => type.value === 'SSL_CERTIFICATE')
+const isAdvanced = computed(() => type.value === 'ADVANCED')
 const timespan = computed(() => type.value === 'ONE_WITHIN_TIMESPAN' || type.value === 'ALL_WITHIN_TIMESPAN')
 
 // Sensible defaults per type: a ping every minute, a daily heartbeat with an hour of grace, a UDP
@@ -159,10 +164,13 @@ function defaults(t: SensorType) {
           ? 300
           : t === 'SSL_CERTIFICATE'
             ? DEFAULT_INTERVAL
-            : usesGracePeriod(t)
-              ? 86_400
-              : null
-  grace.value = t === 'UDP_NODE' ? 300 : t === 'MIKROTIK' ? 600 : usesGracePeriod(t) ? 3_600 : null
+            : t === 'ADVANCED'
+              ? 0
+              : usesGracePeriod(t)
+                ? 86_400
+                : null
+  grace.value =
+    t === 'UDP_NODE' ? 300 : t === 'MIKROTIK' ? 600 : t === 'ADVANCED' ? 0 : usesGracePeriod(t) ? 3_600 : null
 }
 defaults(type.value)
 watch(type, (t) => {
@@ -228,9 +236,13 @@ async function submit() {
           : undefined,
     interval: isCertificate.value
       ? intervalError(interval.value)
-      : info.value?.usesInterval && !interval.value
-        ? 'In seconds, more than 0.'
-        : undefined,
+      : isAdvanced.value
+        ? interval.value && interval.value < 30
+          ? 'At least 30 seconds, or no expectation.'
+          : undefined
+        : info.value?.usesInterval && !interval.value
+          ? 'In seconds, more than 0.'
+          : undefined,
     notes: notes.value.length > 4000 ? `At most 4000 characters (${notes.value.length}).` : undefined,
     'udp.allowedSuites': isUdp.value && !udp.value.allowedSuites.length ? 'Allow at least one suite.' : undefined,
     'udp.key': isUdp.value && udp.value.manual ? (secretError(udp.value.key, KEY_BYTES) ?? undefined) : undefined,
@@ -274,6 +286,10 @@ async function submit() {
     if (isCertificate.value) {
       request.certificate = certificateRequestFromDraft(certificate.value)
     }
+    if (isAdvanced.value) {
+      request.advanced = { ...advanced.value }
+      request.parameters = null
+    }
     const sensor = await api.sensors.create(request)
     await invalidate([keys.host(hostId.value), keys.hosts, keys.udp])
     notify.success(
@@ -286,12 +302,17 @@ async function submit() {
             ? "Its Zabbix host's problems are on its page."
             : isCertificate.value
               ? 'Its first check runs within 15 seconds; the Certificate tab shows what it read.'
-              : 'Its URLs are on its page.',
+              : isAdvanced.value
+                ? 'Its report URL and examples are on the Data tab; paste a sample there to set up rules.'
+                : 'Its URLs are on its page.',
     )
     for (const warning of sensor.udp?.warnings ?? []) {
       notify.info('Note', warning)
     }
-    await router.replace({ name: 'sensor', params: { id: sensor.id, tab: isMikrotik.value ? 'setup' : undefined } })
+    await router.replace({
+      name: 'sensor',
+      params: { id: sensor.id, tab: isMikrotik.value ? 'setup' : isAdvanced.value ? 'data' : undefined },
+    })
   } catch (e) {
     if (e instanceof ApiError && Object.keys(e.errors).length) {
       errors.value = {
@@ -307,6 +328,7 @@ async function submit() {
         'zabbix.zabbixHostId': e.field('zabbix.zabbixHostId'),
         'zabbix.minSeverity': e.field('zabbix.minSeverity'),
         ...Object.fromEntries(CERTIFICATE_FIELDS.map((f) => [f, e.field(f)])),
+        'advanced.namesPeople': e.field('advanced.namesPeople'),
       }
     } else {
       notify.error(e, 'Not created')
@@ -369,7 +391,7 @@ async function submit() {
         <small v-if="errors.parameters" class="field-error">{{ errors.parameters }}</small>
         <small v-else class="field-hint">{{ parameterHint }}</small>
       </div>
-      <div v-if="info?.usesInterval && !isCertificate" class="field">
+      <div v-if="info?.usesInterval && !isCertificate && !isAdvanced" class="field">
         <label for="sensor-interval">Interval (seconds)</label>
         <InputNumber
           v-model="interval"
@@ -389,7 +411,7 @@ async function submit() {
                 : 'How often a report must arrive: 86400 is daily.'
         }}</small>
       </div>
-      <div v-if="heartbeat" class="field">
+      <div v-if="heartbeat && !isAdvanced" class="field">
         <label for="sensor-grace">Grace period (seconds)</label>
         <InputNumber
           v-model="grace"
@@ -422,6 +444,13 @@ async function submit() {
         :interval="interval ?? undefined"
         :errors="errors"
         @update:interval="(v: number | undefined) => (interval = v ?? null)"
+      />
+      <AdvancedFields
+        v-if="isAdvanced"
+        v-model="advanced"
+        v-model:interval="interval"
+        v-model:grace="grace"
+        :errors="errors"
       />
       <div class="field">
         <label for="sensor-textid">Text id <span class="muted">(optional)</span></label>

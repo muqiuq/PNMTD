@@ -883,6 +883,56 @@ export const api = {
       `${typeof location !== 'undefined' ? location.origin : ''}/api/v1/sensors/${encodeURIComponent(id)}/certificate/versions/${encodeURIComponent(versionId)}/pem?chain=${chain}`,
   },
 
+  /**
+   * An Advanced sensor's own endpoints (docs/advanced-sensor-plan.md §8.3): its reports, their paths and charts, trying
+   * rules (Monitoring: View; Details too for a sensor whose data names people), and its rules and fields (Edit). A change of
+   * the rules answers with the sensor's detail once the evaluator re-judged the newest report (at most 5 s). Its setting
+   * goes through /sensors (SensorRequest.advanced).
+   */
+  advanced: {
+    get: (id: Id) => call(client.GET('/api/v1/sensors/{id}/advanced', { params: { path: { id } } })),
+    reports: (id: Id, query: ListQuery = {}) =>
+      call(client.GET('/api/v1/sensors/{id}/advanced/reports', { params: { path: { id }, query } })),
+    latest: (id: Id) => call(client.GET('/api/v1/sensors/{id}/advanced/reports/latest', { params: { path: { id } } })),
+    report: (id: Id, reportId: Id) =>
+      call(client.GET('/api/v1/sensors/{id}/advanced/reports/{reportId}', { params: { path: { id, reportId } } })),
+    deleteReport: (id: Id, reportId: Id) =>
+      call(client.DELETE('/api/v1/sensors/{id}/advanced/reports/{reportId}', { params: { path: { id, reportId } } })),
+    clearReports: (id: Id) =>
+      call(client.DELETE('/api/v1/sensors/{id}/advanced/reports', { params: { path: { id } } })),
+    paths: (id: Id) => call(client.GET('/api/v1/sensors/{id}/advanced/paths', { params: { path: { id } } })),
+    samples: (id: Id, fieldId: Id, range: '24h' | '7d' | '30d') =>
+      call(
+        client.GET('/api/v1/sensors/{id}/advanced/samples', { params: { path: { id }, query: { fieldId, range } } }),
+      ),
+    /** Rules against a report without storing anything (§6.6); 400 for a draft that isn't valid (rules[0].operand). */
+    test: (id: Id, body: S['AdvancedTestRequest']) =>
+      call(client.POST('/api/v1/sensors/{id}/advanced/test', { params: { path: { id } }, body })),
+    rules: {
+      create: (id: Id, body: S['AdvancedRuleRequest']) =>
+        call(client.POST('/api/v1/sensors/{id}/advanced/rules', { params: { path: { id } }, body })),
+      update: (id: Id, ruleId: Id, body: S['AdvancedRuleRequest']) =>
+        call(client.PUT('/api/v1/sensors/{id}/advanced/rules/{ruleId}', { params: { path: { id, ruleId } }, body })),
+      remove: (id: Id, ruleId: Id) =>
+        call(client.DELETE('/api/v1/sensors/{id}/advanced/rules/{ruleId}', { params: { path: { id, ruleId } } })),
+      order: (id: Id, ids: Id[]) =>
+        call(client.PUT('/api/v1/sensors/{id}/advanced/rules/order', { params: { path: { id } }, body: { ids } })),
+      /** Another Advanced sensor's rules and fields, appended or replacing these (§8.3). */
+      copy: (id: Id, body: S['AdvancedCopyRequest']) =>
+        call(client.POST('/api/v1/sensors/{id}/advanced/rules/copy', { params: { path: { id } }, body })),
+    },
+    fields: {
+      create: (id: Id, body: S['AdvancedFieldRequest']) =>
+        call(client.POST('/api/v1/sensors/{id}/advanced/fields', { params: { path: { id } }, body })),
+      update: (id: Id, fieldId: Id, body: S['AdvancedFieldRequest']) =>
+        call(client.PUT('/api/v1/sensors/{id}/advanced/fields/{fieldId}', { params: { path: { id, fieldId } }, body })),
+      remove: (id: Id, fieldId: Id) =>
+        call(client.DELETE('/api/v1/sensors/{id}/advanced/fields/{fieldId}', { params: { path: { id, fieldId } } })),
+      order: (id: Id, ids: Id[]) =>
+        call(client.PUT('/api/v1/sensors/{id}/advanced/fields/order', { params: { path: { id } }, body: { ids } })),
+    },
+  },
+
   /** The private CAs (docs/ssl-certificate-plan.md §4.5, §8.5): reading Certificates' View, changing its Manage. */
   certificateAuthorities: {
     list: () => call(client.GET('/api/v1/certificate-authorities')),
@@ -1033,6 +1083,8 @@ export const keys = {
   certificate: (id: Id) => ['sensor', id, 'certificate'] as const,
   /** The private CAs (docs/ssl-certificate-plan.md §8.5). */
   certificateAuthorities: ['certificate-authorities'] as const,
+  /** An Advanced sensor's reports, paths and charts (docs/advanced-sensor-plan.md §10): under the sensor's key, refreshed with it. */
+  advanced: (id: Id) => ['sensor', id, 'advanced'] as const,
   events: ['events'] as const,
   rules: ['rules'] as const,
   rule: (id: Id) => ['rule', id] as const,
@@ -1112,6 +1164,8 @@ export function sensorRequest(s: S['SensorDetail'], patch: Partial<S['SensorRequ
     // An SSL certificate sensor's settings as they are (docs/ssl-certificate-plan.md §8.1), for the same reason.
     certificate:
       (patch.type ?? s.type) === 'SSL_CERTIFICATE' && s.certificate ? certificateRequest(s.certificate) : undefined,
+    // An Advanced sensor's setting as it is (docs/advanced-sensor-plan.md §8.2); its rules and fields have endpoints of their own.
+    advanced: (patch.type ?? s.type) === 'ADVANCED' && s.advanced ? { namesPeople: s.advanced.namesPeople } : undefined,
     ...patch,
   }
 }

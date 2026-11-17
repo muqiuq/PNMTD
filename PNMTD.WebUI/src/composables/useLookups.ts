@@ -66,10 +66,13 @@ export const typeLabel = (type: string) =>
                 ? 'Zabbix host'
                 : type === 'SSL_CERTIFICATE'
                   ? 'SSL certificate'
-                  : humanize(type)
+                  : type === 'ADVANCED'
+                    ? 'Advanced (JSON)'
+                    : humanize(type)
 
 /**
- * Types that report themselves and turn 460 after Interval + GracePeriod without a report, and MikroTik
+ * Types that report themselves and turn 460 after Interval + GracePeriod without a report (Advanced sensors with an interval
+ * too: docs/advanced-sensor-plan.md §3), and MikroTik
  * routers, which turn 440 after failing polls for the GracePeriod (docs/mikrotik-plan.md §5.2).
  */
 export const usesGracePeriod = (type: string | null | undefined) =>
@@ -79,7 +82,8 @@ export const usesGracePeriod = (type: string | null | undefined) =>
   type === 'MIKROTIK' ||
   type === 'WINDOWS' ||
   type === 'LINUX' ||
-  type === 'DIAGNOSTICS'
+  type === 'DIAGNOSTICS' ||
+  type === 'ADVANCED'
 
 /** The PrimeIcon of a sensor type. */
 export function typeIcon(type: string): string {
@@ -110,6 +114,8 @@ export function typeIcon(type: string): string {
       return 'pi pi-chart-bar'
     case 'SSL_CERTIFICATE':
       return 'pi pi-lock'
+    case 'ADVANCED':
+      return 'pi pi-sliders-h'
     case 'ONE_WITHIN_TIMESPAN':
     case 'ALL_WITHIN_TIMESPAN':
       return 'pi pi-clock'

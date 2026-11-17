@@ -109,6 +109,15 @@ namespace PNMTD.Lib.Models
         public const int SSL_INVALID = 488;
         public const int SSL_UNREACHABLE = 489;
 
+        /// <summary>
+        /// Advanced sensors (docs/advanced-sensor-plan.md §3): every rule holds, only warning rules don't (a success), a rule fails,
+        /// the report can't be read. A missing report is HEARTBEAT_MISSING (460).
+        /// </summary>
+        public const int ADVANCED_OK = 295;
+        public const int ADVANCED_WARNING = 296;
+        public const int ADVANCED_FAILED = 495;
+        public const int ADVANCED_INVALID = 496;
+
         public static readonly int[] ONE_OR_ALL_WITHIN_CODES = new int[]{ ONE_WITHIN_TIMESPAN_FAILED, ONE_WITHIN_TIMESPAN_OK, ALL_WITHIN_TIMESPAN_OK, ALL_WITHIN_TIMESPAN_FAILED };
     }
 }

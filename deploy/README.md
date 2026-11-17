@@ -276,6 +276,26 @@ A sensor of the type *SSL certificate* reads the TLS certificate of `host:port` 
   | `Certificates__MaxConcurrent` | `8` | Checks at once. |
   | `Certificates__KeepVersions` | `50` | Certificates kept per sensor (the current and the accepted one always). |
 
+## Advanced sensors
+
+A sensor of the type *Advanced* takes a JSON object that an app POSTs to `/report` with the sensor's write token (docs/advanced-sensor-plan.md, docs/advanced-report.md). PNMT stores it, and one evaluator judges every report by the sensor's rules within a second; an event is written when the verdict changes.
+
+- **The path:** `/report` is on PNMT's address and port, next to `/event`. A reverse proxy that passes only `/event` and `/read` to PNMT needs `/report` too (POST, bodies up to `Advanced__MaxReportBytes`; gzip is accepted). Like `/event`, it needs no sign-in and sets no cookie.
+- **The token** travels in `Authorization: Bearer`, so it stays out of access logs; `/report/<token>` exists for tools that can't set a header, as on `/event`.
+- **Who:** Monitoring's rights. *View* sees the reports, *Details* also those of sensors marked *names people*, *Edit* changes rules and fields and deletes reports (audited).
+- **The reports are in the backups** (`pg_dump`). A report that carried a secret can be deleted on the sensor's *Data* tab, one or all.
+- **The settings,** all optional:
+
+  | Setting | Default | |
+  |---|---|---|
+  | `Advanced__MaxReportBytes` | `262144` | The largest report, decompressed; a larger one is refused (413) and fails the sensor (496). |
+  | `Advanced__MinSecondsBetweenReports` | `5` | One report per sensor in this many seconds; a sooner one gets 429. `0`: no limit. |
+  | `Advanced__KeepReports` | `500` | Reports kept per sensor (identical ones count once). |
+  | `Advanced__KeepDays` | `30` | Reports older than this go, hourly. |
+  | `Advanced__MaxBytesPerSensor` | `52428800` | At most this many bytes of reports per sensor. The newest two reports always stay. |
+  | `Advanced__SampleDays` | `30` | Days of charted values. |
+  | `Advanced__EvaluateSeconds` | `30` | The evaluator's timer: missing reports and age rules. Reports wake it at once. |
+
 ## AI (optional)
 
 PNMT can use AI models through [OpenRouter](https://openrouter.ai): to propose rules for mails no rule handles and to rate RouterOS releases (docs/ai-operations-plan.md). Cookie, the assistant, uses the same key (see *Cookie* below). It is off until `.env` has `Ai__Enabled=true` and `Ai__ApiKey`.
@@ -382,7 +402,7 @@ Images and attachments of locations and knowledge base pages (docs/locations-kno
 
 | Where | Holds | Backed up by |
 |---|---|---|
-| volume `pnmtd_pnmtd-pgdata` | the database, with the UDP nodes' keys, their command log and firmware images, and the MikroTik routers' configurations and (encrypted) tunnel keys | `./backup.sh` (`pg_dump`) |
+| volume `pnmtd_pnmtd-pgdata` | the database, with the UDP nodes' keys, their command log and firmware images, the MikroTik routers' configurations and (encrypted) tunnel keys, and the advanced sensors' reports | `./backup.sh` (`pg_dump`) |
 | volume `pnmtd_pnmtd-keys` | Data Protection keys (sessions, 2FA secrets, PNMTD's SSH key and the tunnel keys) | `./backup.sh` |
 | volume `pnmtd_pnmtd-downloads` | the agents' files PNMT serves, fetched from the GitHub release | not needed: fetched again |
 | folder `deploy/files/` (`PNMTD_FILES_DIR`) | the images and attachments of locations and pages | `./backup.sh` (`files.tar`), or your own tools with `--no-files` |

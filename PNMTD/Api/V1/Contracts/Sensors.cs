@@ -68,14 +68,17 @@ public sealed record SensorDetail(
     Importance? Importance = null,
     Importance EffectiveImportance = Importance.Normal,
     ZabbixSensorDetail? Zabbix = null,
-    CertificateSensorSummary? Certificate = null);
+    CertificateSensorSummary? Certificate = null,
+    AdvancedSensorDetail? Advanced = null);
 
 /// <summary>
 /// How an application reports: <c>{WriteUrl}/{code}/{message}</c> (GET) or a POST of the message to
 /// <c>{WriteUrl}/{code}</c>; <c>{ReadUrl}</c> returns the last state. The base is PublicBaseUrl,
-/// or the address of the request.
+/// or the address of the request. An ADVANCED sensor's app POSTs its JSON to <c>{ReportUrl}</c> with the write token in
+/// <c>Authorization: Bearer</c> (docs/advanced-sensor-plan.md §4.1).
 /// </summary>
-public sealed record SensorIntegration(string WriteToken, string? ReadToken, string WriteUrl, string? ReadUrl, UdpSecrets? Udp = null);
+public sealed record SensorIntegration(string WriteToken, string? ReadToken, string WriteUrl, string? ReadUrl, UdpSecrets? Udp = null,
+    string? ReportUrl = null);
 
 /// <summary>
 /// POST and PUT <c>/sensors</c>. The type cannot be DNS (DnsCheckTask creates those), and a DNS
@@ -121,6 +124,9 @@ public sealed class SensorRequest
 
     /// <summary>An SSL_CERTIFICATE sensor's trust and rules (docs/ssl-certificate-plan.md §6.2); its host:port is Parameters. Ignored for other types.</summary>
     public CertificateSensorRequest? Certificate { get; init; }
+
+    /// <summary>An ADVANCED sensor's setting (docs/advanced-sensor-plan.md §8.2); ignored for other types.</summary>
+    public AdvancedSensorRequest? Advanced { get; init; }
 }
 
 /// <summary><c>POST /sensors/{id}/tokens/rotate</c>: which tokens get new values. The old URLs stop working at once.</summary>

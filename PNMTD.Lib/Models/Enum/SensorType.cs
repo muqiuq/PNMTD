@@ -28,7 +28,9 @@ namespace PNMTD.Lib.Models.Enum
         /// <summary>A Zabbix host attached to a PNMT host (docs/audit-redmine-zabbix-plan.md §7.7): its open problems from a severity up fail it.</summary>
         ZABBIX = 110,
         /// <summary>The TLS certificate of host:port, read by PNMTD (docs/ssl-certificate-plan.md §3): expiry, trust and changes.</summary>
-        SSL_CERTIFICATE = 120
+        SSL_CERTIFICATE = 120,
+        /// <summary>An app POSTs a JSON object to /report (docs/advanced-sensor-plan.md §4); PNMTD's evaluator judges it by the sensor's rules.</summary>
+        ADVANCED = 130
     }
 }
 

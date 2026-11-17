@@ -48,6 +48,9 @@
         // The SSL certificate sensors' checks and evaluations (docs/ssl-certificate-plan.md §5.2).
         LAST_CERTIFICATE_CHECK = 310,
 
+        // The advanced sensors' evaluator (docs/advanced-sensor-plan.md §7.3).
+        LAST_ADVANCED_EVALUATION = 320,
+
         UNUSED = 999,
     }
 }

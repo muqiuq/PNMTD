@@ -104,6 +104,8 @@ public partial class Program
         builder.Services.AddZabbix(builder.Configuration);
         // SSL certificate sensors (docs/ssl-certificate-plan.md §5).
         PNMTD.Certificates.CertificateSetup.AddCertificates(builder.Services, builder.Configuration);
+        // Advanced sensors: an app's JSON report, judged by rules (docs/advanced-sensor-plan.md §7).
+        PNMTD.Advanced.AdvancedSetup.AddAdvanced(builder.Services, builder.Configuration);
         // Cookie, the assistant (docs/cookie-plan.md §19).
         PNMTD.Cookie.CookieSetup.AddCookie(builder.Services, builder.Configuration);
         PNMTD.Availability.AvailabilitySetup.AddAvailability(builder.Services);
@@ -153,6 +155,8 @@ public partial class Program
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Zabbix.ZabbixHostSync>());
             // The SSL certificate sensors' checks and evaluations (docs/ssl-certificate-plan.md §5.2).
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Certificates.CertificateChecker>());
+            // The advanced sensors' evaluator on its timer (docs/advanced-sensor-plan.md §7.3); nudges wake it in any case.
+            builder.Services.AddHostedService<PNMTD.Advanced.AdvancedEvaluatorTask>();
             // Cookie's case book (docs/cookie-plan.md §19.3), with Cookie:Enabled=true.
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CaseBookTask>());
             // The MCP tokens' expiry (docs/mcp-plan.md §4.3).
@@ -213,6 +217,7 @@ public partial class Program
         app.UseForwardedHeaders();
         app.UseAgentWebSockets();          // /agent/v1/ws only (docs/windows-sensor-plan.md §3.5)
         app.UseSecurityHeaders();          // /pnmt-admin and /api only
+        PNMTD.Advanced.AdvancedSetup.UseReportDecompression(app); // /report only (docs/advanced-sensor-plan.md §4.2)
         app.UseApiErrors();                // ProblemDetails, on /api only
         app.UseWebUiFiles();               // /pnmt-admin/** files, anonymous
         app.UseRouting();
@@ -220,12 +225,13 @@ public partial class Program
         app.UseRateLimiter();              // the login endpoints only
         // The sensor API is anonymous and must not see the session cookie (a sliding renewal would
         // add a Set-Cookie header v0.12 never sent).
-        // Nor do the agents' paths, which authenticate by token or key (docs/windows-sensor-plan.md §9.1).
+        // Nor do the agents' paths, which authenticate by token or key (docs/windows-sensor-plan.md §9.1), nor the
+        // advanced sensors' reports, which authenticate by the write token (docs/advanced-sensor-plan.md §4.1).
         // /mcp neither (docs/mcp-plan.md §5.2): a browser's cookie never authenticates an MCP call; its policy runs the token
         // scheme itself.
         app.UseMcpOriginCheck();
         app.UseWhen(c => !SensorPaths.IsSensorPath(c.Request.Path) && !PNMTD.Agents.AgentPaths.IsAgentPath(c.Request.Path)
-            && !PNMTD.Mcp.McpSetup.IsMcpPath(c.Request.Path), b => b.UseAuthentication());
+            && !PNMTD.Advanced.ReportPaths.IsReportPath(c.Request.Path) && !PNMTD.Mcp.McpSetup.IsMcpPath(c.Request.Path), b => b.UseAuthentication());
         app.UseAuthorization();            // deny by default (§3.6)
         app.UseSessionGates();   // a temporary password must be changed first
 
@@ -240,6 +246,7 @@ public partial class Program
 
         app.MapControllers();              // /api/v1/**, /event/**, /read/**
         app.MapAgentEndpoints();           // /agent/v1/join, /agent/v1/ws
+        PNMTD.Advanced.AdvancedSetup.MapReportEndpoints(app); // /report, /report/{token}
         app.MapPnmtdMcp();                 // /mcp, with Mcp__Enabled=true (docs/mcp-plan.md §5)
         app.MapWebUi();                    // SPA deep links, /api 404s
 

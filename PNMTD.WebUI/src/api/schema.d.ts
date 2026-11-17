@@ -526,6 +526,698 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sensors/{id}/advanced": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/plain": components["schemas"]["AdvancedSensorDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/advanced/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfAdvancedReportItem"];
+                        "text/json": components["schemas"]["PagedOfAdvancedReportItem"];
+                        "text/plain": components["schemas"]["PagedOfAdvancedReportItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/advanced/reports/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvancedReportDetail"];
+                        "text/json": components["schemas"]["AdvancedReportDetail"];
+                        "text/plain": components["schemas"]["AdvancedReportDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/advanced/reports/{reportId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    reportId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvancedReportDetail"];
+                        "text/json": components["schemas"]["AdvancedReportDetail"];
+                        "text/plain": components["schemas"]["AdvancedReportDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    reportId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/advanced/paths": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvancedPathItem"][];
+                        "text/json": components["schemas"]["AdvancedPathItem"][];
+                        "text/plain": components["schemas"]["AdvancedPathItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/advanced/samples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    fieldId?: string;
+                    range?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvancedSamples"];
+                        "text/json": components["schemas"]["AdvancedSamples"];
+                        "text/plain": components["schemas"]["AdvancedSamples"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/advanced/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdvancedTestRequest"];
+                    "text/json": components["schemas"]["AdvancedTestRequest"];
+                    "application/*+json": components["schemas"]["AdvancedTestRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvancedTestResult"];
+                        "text/json": components["schemas"]["AdvancedTestResult"];
+                        "text/plain": components["schemas"]["AdvancedTestResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/advanced/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdvancedRuleRequest"];
+                    "text/json": components["schemas"]["AdvancedRuleRequest"];
+                    "application/*+json": components["schemas"]["AdvancedRuleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/plain": components["schemas"]["AdvancedSensorDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/advanced/rules/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdvancedOrderRequest"];
+                    "text/json": components["schemas"]["AdvancedOrderRequest"];
+                    "application/*+json": components["schemas"]["AdvancedOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/plain": components["schemas"]["AdvancedSensorDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/advanced/rules/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdvancedCopyRequest"];
+                    "text/json": components["schemas"]["AdvancedCopyRequest"];
+                    "application/*+json": components["schemas"]["AdvancedCopyRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/plain": components["schemas"]["AdvancedSensorDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/advanced/rules/{ruleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    ruleId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdvancedRuleRequest"];
+                    "text/json": components["schemas"]["AdvancedRuleRequest"];
+                    "application/*+json": components["schemas"]["AdvancedRuleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/plain": components["schemas"]["AdvancedSensorDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    ruleId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/plain": components["schemas"]["AdvancedSensorDetail"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/advanced/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdvancedFieldRequest"];
+                    "text/json": components["schemas"]["AdvancedFieldRequest"];
+                    "application/*+json": components["schemas"]["AdvancedFieldRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/plain": components["schemas"]["AdvancedSensorDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/advanced/fields/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdvancedOrderRequest"];
+                    "text/json": components["schemas"]["AdvancedOrderRequest"];
+                    "application/*+json": components["schemas"]["AdvancedOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/plain": components["schemas"]["AdvancedSensorDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/advanced/fields/{fieldId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    fieldId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdvancedFieldRequest"];
+                    "text/json": components["schemas"]["AdvancedFieldRequest"];
+                    "application/*+json": components["schemas"]["AdvancedFieldRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/plain": components["schemas"]["AdvancedSensorDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    fieldId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/json": components["schemas"]["AdvancedSensorDetail"];
+                        "text/plain": components["schemas"]["AdvancedSensorDetail"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agents/servers": {
         parameters: {
             query?: never;
@@ -16547,6 +17239,269 @@ export interface components {
             profile: null | string;
             virtual: boolean;
         };
+        AdvancedActual: {
+            path: string;
+            value: string;
+        };
+        AdvancedCopyRequest: {
+            /** Format: uuid */
+            fromSensorId?: string;
+            replace?: boolean;
+        };
+        /** @enum {unknown} */
+        AdvancedFieldFormat: "Auto" | "Number" | "Percent" | "Bytes" | "Duration" | "DateTime" | "Text" | "Boolean" | "Status";
+        AdvancedFieldItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            order: number;
+            name: string;
+            path: string;
+            format: components["schemas"]["AdvancedFieldFormat"];
+            unit: null | string;
+            /** Format: int32 */
+            decimals: null | number;
+            pinned: boolean;
+            chart: boolean;
+            value: null | components["schemas"]["JsonElement"];
+            outcome: null | components["schemas"]["AdvancedOutcome"];
+        };
+        AdvancedFieldRequest: {
+            name?: null | string;
+            path?: null | string;
+            format?: components["schemas"]["AdvancedFieldFormat"];
+            unit?: null | string;
+            /** Format: int32 */
+            decimals?: null | number;
+            pinned?: boolean;
+            chart?: boolean;
+        };
+        AdvancedFieldValue: {
+            /** Format: uuid */
+            fieldId: string;
+            value: null | components["schemas"]["JsonElement"];
+        };
+        /** @enum {unknown} */
+        AdvancedOperator: "Eq" | "Ne" | "Lt" | "Le" | "Gt" | "Ge" | "Between" | "Outside" | "Contains" | "NotContains" | "StartsWith" | "EndsWith" | "Matches" | "NotMatches" | "OneOf" | "NotOneOf" | "IsTrue" | "IsFalse" | "Exists" | "Absent" | "IsNull" | "NotNull" | "Empty" | "NotEmpty" | "Healthy" | "OlderThan" | "NewerThan" | "CountGe" | "CountLe" | "CountEq" | "Changed" | "Unchanged" | "Increased" | "Decreased" | "NotDecreased";
+        AdvancedOrderRequest: {
+            ids?: string[];
+        };
+        /** @enum {unknown} */
+        AdvancedOutcome: "Pass" | "Warn" | "Fail" | "Off";
+        AdvancedPathItem: {
+            path: string;
+            kind: string;
+            preview: null | string;
+        };
+        /** @enum {unknown} */
+        AdvancedQuantifier: "All" | "Any" | "None";
+        /** @enum {unknown} */
+        AdvancedReason: "Missing" | "WrongKind" | "Timeout" | "TooManyMatches" | null;
+        AdvancedReportDetail: {
+            report: components["schemas"]["AdvancedReportItem"];
+            body: null | string;
+            results: components["schemas"]["AdvancedRuleResult"][];
+            fields: components["schemas"]["AdvancedFieldValue"][];
+            evaluationError: null | string;
+            /** Format: uuid */
+            previousId: null | string;
+        };
+        /** @enum {unknown} */
+        AdvancedReportError: "NotJson" | "NotObject" | "TooLarge" | "TooDeep" | "DuplicateKey" | "Internal" | null;
+        AdvancedReportItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            receivedAt: string;
+            /** Format: date-time */
+            lastReceivedAt: string;
+            /** Format: int32 */
+            repeats: number;
+            source: null | string;
+            /** Format: int32 */
+            bytes: number;
+            valid: boolean;
+            errorKind: null | components["schemas"]["AdvancedReportError"];
+            error: null | string;
+            status: null | string;
+            message: null | string;
+            /** Format: date-time */
+            measuredAt: null | string;
+            evaluated: boolean;
+            /** Format: int32 */
+            code: null | number;
+            /** Format: int32 */
+            failed: number;
+            /** Format: int32 */
+            warnings: number;
+        };
+        AdvancedReportSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            receivedAt: string;
+            /** Format: date-time */
+            lastReceivedAt: string;
+            /** Format: int32 */
+            repeats: number;
+            source: null | string;
+            /** Format: int32 */
+            bytes: number;
+            valid: boolean;
+            errorKind: null | components["schemas"]["AdvancedReportError"];
+            error: null | string;
+            status: null | string;
+            message: null | string;
+            /** Format: date-time */
+            measuredAt: null | string;
+            /** Format: int32 */
+            clockSkewSeconds: null | number;
+            evaluated: boolean;
+            /** Format: int32 */
+            code: null | number;
+        };
+        AdvancedRuleItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            order: number;
+            name: string;
+            enabled: boolean;
+            note: null | string;
+            path: string;
+            operator: components["schemas"]["AdvancedOperator"];
+            operand: null | string;
+            operand2: null | string;
+            ignoreCase: boolean;
+            quantifier: components["schemas"]["AdvancedQuantifier"];
+            whenMissing: components["schemas"]["AdvancedWhenMissing"];
+            severity: components["schemas"]["AdvancedSeverity"];
+            condition: string;
+            hasWildcard: boolean;
+            last: null | components["schemas"]["AdvancedRuleResult"];
+            /** Format: date-time */
+            failingSince: null | string;
+        };
+        AdvancedRuleRequest: {
+            /** Format: uuid */
+            id?: null | string;
+            name?: null | string;
+            enabled?: boolean;
+            note?: null | string;
+            path?: null | string;
+            operator?: components["schemas"]["AdvancedOperator"];
+            operand?: null | string;
+            operand2?: null | string;
+            ignoreCase?: boolean;
+            quantifier?: components["schemas"]["AdvancedQuantifier"];
+            whenMissing?: components["schemas"]["AdvancedWhenMissing"];
+            severity?: components["schemas"]["AdvancedSeverity"];
+        };
+        AdvancedRuleResult: {
+            /** Format: uuid */
+            ruleId: string;
+            name: string;
+            path: string;
+            condition: string;
+            severity: components["schemas"]["AdvancedSeverity"];
+            outcome: components["schemas"]["AdvancedOutcome"];
+            reason: null | components["schemas"]["AdvancedReason"];
+            detail: null | string;
+            actual: components["schemas"]["AdvancedActual"][];
+            matches: string[];
+            /** Format: int32 */
+            matchCount: number;
+            /** @default false */
+            assumedUtc: boolean;
+        };
+        AdvancedSamplePoint: {
+            /** Format: date-time */
+            at: string;
+            /** Format: double */
+            min: number;
+            /** Format: double */
+            max: number;
+            /** Format: double */
+            last: number;
+            /** Format: int32 */
+            count: number;
+        };
+        AdvancedSamples: {
+            /** Format: uuid */
+            fieldId: string;
+            range: string;
+            /** Format: date-time */
+            from: string;
+            /** Format: date-time */
+            to: string;
+            /** Format: int32 */
+            stepSeconds: number;
+            points: components["schemas"]["AdvancedSamplePoint"][];
+            thresholds: components["schemas"]["AdvancedThreshold"][];
+        };
+        AdvancedSensorDetail: {
+            namesPeople: boolean;
+            canSeeData: boolean;
+            /** Format: date-time */
+            lastReportAt: null | string;
+            /** Format: date-time */
+            lastValidReportAt: null | string;
+            lastSource: null | string;
+            stale: boolean;
+            /** Format: date-time */
+            staleAt: null | string;
+            verdict: null | components["schemas"]["AdvancedVerdictItem"];
+            rules: components["schemas"]["AdvancedRuleItem"][];
+            fields: components["schemas"]["AdvancedFieldItem"][];
+            latest: null | components["schemas"]["AdvancedReportSummary"];
+            /** Format: int32 */
+            pending: number;
+            /** Format: int32 */
+            reportCount: number;
+        };
+        AdvancedSensorRequest: {
+            namesPeople?: null | boolean;
+            addStatusRule?: boolean;
+        };
+        /** @enum {unknown} */
+        AdvancedSeverity: "Fail" | "Warn";
+        AdvancedTestRequest: {
+            /** Format: uuid */
+            reportId?: null | string;
+            report?: null | string;
+            rules?: null | components["schemas"]["AdvancedRuleRequest"][];
+        };
+        AdvancedTestResult: {
+            /** Format: int32 */
+            code: null | number;
+            state: null | string;
+            message: null | string;
+            results: components["schemas"]["AdvancedRuleResult"][];
+            fields: components["schemas"]["AdvancedFieldValue"][];
+            error: null | string;
+            /** Format: uuid */
+            reportId: null | string;
+        };
+        AdvancedThreshold: {
+            rule: string;
+            operator: components["schemas"]["AdvancedOperator"];
+            /** Format: double */
+            value: number;
+            severity: components["schemas"]["AdvancedSeverity"];
+        };
+        AdvancedVerdictItem: {
+            /** Format: int32 */
+            code: number;
+            message: null | string;
+            /** Format: int32 */
+            failed: number;
+            /** Format: int32 */
+            warnings: number;
+            /** Format: date-time */
+            evaluatedAt: null | string;
+        };
+        /** @enum {unknown} */
+        AdvancedWhenMissing: "Fail" | "Warn" | "Pass";
         AgentChangeItem: {
             /** Format: uuid */
             id: string;
@@ -21098,6 +22053,15 @@ export interface components {
         };
         /** @enum {unknown} */
         PacketType: "Heartbeat" | "Data" | "Event" | "CmdResult" | "Boot" | "Join" | "Ota" | "Ack" | "Command" | "JoinAccept" | "OtaOffer" | "OtaChunk";
+        PagedOfAdvancedReportItem: {
+            items: components["schemas"]["AdvancedReportItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfAgentChangeItem: {
             items: components["schemas"]["AgentChangeItem"][];
             /** Format: int32 */
@@ -22117,6 +23081,7 @@ export interface components {
             effectiveImportance?: components["schemas"]["Importance"];
             zabbix?: null | components["schemas"]["ZabbixSensorDetail"];
             certificate?: null | components["schemas"]["CertificateSensorSummary"];
+            advanced?: null | components["schemas"]["AdvancedSensorDetail"];
         };
         SensorIntegration: {
             writeToken: string;
@@ -22124,6 +23089,7 @@ export interface components {
             writeUrl: string;
             readUrl: null | string;
             udp?: null | components["schemas"]["UdpSecrets"];
+            reportUrl?: null | string;
         };
         SensorListItem: {
             /** Format: uuid */
@@ -22173,6 +23139,7 @@ export interface components {
             importance?: null | components["schemas"]["Importance"];
             zabbix?: null | components["schemas"]["ZabbixSensorRequest"];
             certificate?: null | components["schemas"]["CertificateSensorRequest"];
+            advanced?: null | components["schemas"]["AdvancedSensorRequest"];
         };
         /** @enum {unknown} */
         SensorState: "Ok" | "Failing" | "NoData" | "Ignored" | "Disabled";
@@ -22195,7 +23162,7 @@ export interface components {
             childCount: number;
         };
         /** @enum {unknown} */
-        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN" | "UDP_NODE" | "MIKROTIK" | "SYSTEM" | "WINDOWS" | "DIAGNOSTICS" | "LINUX" | "ZABBIX" | "SSL_CERTIFICATE";
+        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN" | "UDP_NODE" | "MIKROTIK" | "SYSTEM" | "WINDOWS" | "DIAGNOSTICS" | "LINUX" | "ZABBIX" | "SSL_CERTIFICATE" | "ADVANCED";
         SensorTypeInfo: {
             type: components["schemas"]["SensorType"];
             description: string;

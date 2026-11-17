@@ -43,6 +43,8 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new("MCP tokens", KeyValueKeyEnums.LAST_MCP_TOKEN_EXPIRY, 300, c => c.GetValue("Mcp:Enabled", false)),
         // docs/ssl-certificate-plan.md §5.2: the due checks every 15 seconds, every sensor's evaluation every minute.
         new("Certificate checks", KeyValueKeyEnums.LAST_CERTIFICATE_CHECK, 60, c => c.GetValue("Certificates:Enabled", true)),
+        // docs/advanced-sensor-plan.md §7.3: the evaluator's timer every 30 seconds, nudged by every report in between.
+        new("Advanced sensors", KeyValueKeyEnums.LAST_ADVANCED_EVALUATION, 60, _ => true),
     ];
 
     public static bool MailboxConfigured(IConfiguration c) =>
@@ -139,8 +141,10 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.DIAGNOSTICS_OK, "DIAGNOSTICS_OK", true, "Every check of a diagnostics set passed."),
         new(PNMTStatusCodes.SSL_OK, "SSL_OK", true, "An SSL certificate is valid under the sensor's trust and checks, with more than its warning days left."),
         new(PNMTStatusCodes.SSL_CHANGED, "SSL_CHANGED", true, "A new SSL certificate that the sensor's rules don't alarm on, usually a renewal; written once."),
+        new(PNMTStatusCodes.ADVANCED_OK, "ADVANCED_OK", true, "An Advanced sensor's latest report holds every rule, or the sensor has no rules."),
+        new(PNMTStatusCodes.ADVANCED_WARNING, "ADVANCED_WARNING", true, "Only rules marked warn don't hold for an Advanced sensor's latest report; the state stays OK."),
         new(PNMTStatusCodes.DNS_FAILED, "DNS_FAILED", false, "At least one record of the DNS zone differs from what the resolvers answer."),
-        new(PNMTStatusCodes.HEARTBEAT_MISSING, "HEARTBEAT_MISSING", false, "No report within the interval and the grace period."),
+        new(PNMTStatusCodes.HEARTBEAT_MISSING, "HEARTBEAT_MISSING", false, "No report within the interval and the grace period (an Advanced sensor without a report, too)."),
         new(PNMTStatusCodes.PING_FAILED, "PING_FAILED", false, "The ping target did not answer."),
         new(PNMTStatusCodes.VALUECHECK_FAILED, "VALUECHECK_FAILED", false, "The message did not match the sensor's regular expression."),
         new(PNMTStatusCodes.ONE_WITHIN_TIMESPAN_FAILED, "ONE_WITHIN_TIMESPAN_FAILED", false, "No successful report within the timespan."),
@@ -176,6 +180,8 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.SSL_CHANGED_UNEXPECTEDLY, "SSL_CHANGED_UNEXPECTEDLY", false, "An SSL certificate, its key or its issuer changed, and the sensor alarms on that; until a person accepts the new certificate, or the accepted one returns."),
         new(PNMTStatusCodes.SSL_INVALID, "SSL_INVALID", false, "An SSL certificate isn't trusted under the sensor's trust mode, doesn't match the name, isn't valid yet, or comes without its intermediate, as the sensor checks."),
         new(PNMTStatusCodes.SSL_UNREACHABLE, "SSL_UNREACHABLE", false, "Two checks of an SSL certificate in a row failed: no such name, refused, timeout, the handshake failed, or no certificate."),
+        new(PNMTStatusCodes.ADVANCED_FAILED, "ADVANCED_FAILED", false, "At least one rule marked fail doesn't hold for an Advanced sensor's latest report; the message names them with their values."),
+        new(PNMTStatusCodes.ADVANCED_INVALID, "ADVANCED_INVALID", false, "An Advanced sensor's latest report couldn't be read: not JSON, not an object, too large, too deep, or a key twice."),
         new(PNMTStatusCodes.ERROR, "ERROR", false, "The default failure code. Any code above 399 counts as a failure."),
     ];
 
@@ -197,6 +203,7 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(SensorType.DIAGNOSTICS, "A diagnostics set assigned to a server's agent, created by the assignment: 252 when every check passed, 452 when one failed; scheduled ones get 460 without a result within their interval and 2 minutes.", null, false, true),
         new(SensorType.ZABBIX, "A Zabbix host attached to this host, from Zabbix's open problems (each poll, Zabbix__PollSeconds): 290 without a problem from the sensor's severity up, 490 with one, 491 when the host is gone from Zabbix, 492 when an interface is unavailable and the sensor counts that. No events while Zabbix doesn't answer.", null, true, false),
         new(SensorType.SSL_CERTIFICATE, "PNMTD reads the TLS certificate of host:port every Interval seconds (daily by default) and evaluates it every minute, trusting public CAs, private CAs or a pinned certificate: 285 while valid, 286 for a new certificate it accepts, 485 within the sensor's warning days, 486 once expired, 487 for a change it alarms on until accepted, 488 when not trusted or the name doesn't match, 489 after two failed checks in a row.", "host[:port], or an https:// URL", true, true),
+        new(SensorType.ADVANCED, "An app POSTs a JSON object to /report with the write token (Authorization: Bearer); PNMT stores it, and its evaluator judges it by the sensor's rules within moments: 295 when every rule holds, 296 when only warning rules don't, 495 when a rule fails, 496 when the report can't be read; with an interval, 460 after Interval + GracePeriod without a report.", null, true, true),
         new(SensorType.LINUX, "A Linux server running the PNMT agent, added with a join token (Add server): 260 with each heartbeat, 261 after a restart, 263 for a notable change, 264 for an admin login; 461 for an agent problem, 462 for pending security updates, 463 for a new critical journal entry, 464 for failed-login bursts, 465 for an unregistered SSH key; 460 after Interval + GracePeriod without a heartbeat.", null, false, true),
     ];
 

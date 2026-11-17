@@ -189,6 +189,25 @@ test('an SSL certificate with a change waiting, its window, and the private CAs,
   await shot(page, 'page-certificates')
 })
 
+test("an Advanced sensor's Data and Rules tabs, as on the seed", async ({ page }) => {
+  // docs/advanced-sensor-plan.md §10.3: the seed's order service reports the IETF health format and warns (296).
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await signIn(page)
+  const found = await (await page.request.get('/api/v1/sensors?type=ADVANCED&pageSize=100')).json()
+  const orders = found.items.find((s: { name: string }) => s.name === 'Order service')
+  expect(orders, 'the seed has the sensor Order service').toBeTruthy()
+  await open(page, `/sensors/${orders.id}`)
+  await expect(page.getByRole('heading', { level: 1, name: 'Order service' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Report status' })).toContainText('warn')
+  await shot(page, 'page-advanced-overview')
+  await open(page, `/sensors/${orders.id}/data`)
+  await expect(page.getByRole('region', { name: "The report's values" })).toContainText('queue:length')
+  await shot(page, 'page-advanced-data')
+  await open(page, `/sensors/${orders.id}/rules`)
+  await expect(page.getByRole('row', { name: /Queue length/ })).toBeVisible()
+  await shot(page, 'page-advanced-rules')
+})
+
 test('the global search finds a host and a sensor by its token', async ({ page }) => {
   await signIn(page)
   await page.keyboard.press('Control+k')

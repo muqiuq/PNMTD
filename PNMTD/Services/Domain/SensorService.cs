@@ -11,7 +11,8 @@ using PNMTD.Models.Db;
 namespace PNMTD.Services.Domain;
 
 public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, PublicUrls urls, NotificationRuleService rules, UdpNodeService udp,
-    MikrotikRouterService mikrotik, Agents.AgentHub agents, Zabbix.ZabbixSensorService zabbix, Certificates.CertificateSensorService certificates)
+    MikrotikRouterService mikrotik, Agents.AgentHub agents, Zabbix.ZabbixSensorService zabbix, Certificates.CertificateSensorService certificates,
+    Advanced.AdvancedSensorService advanced)
 {
     private static readonly string[] SortFields = ["name", "host", "state", "type", "lastevent"];
 
@@ -65,7 +66,8 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         var isUdp = sensor.Type == SensorType.UDP_NODE;
         SensorIntegration? integration = withSecrets
             ? new SensorIntegration(sensor.SecretWriteToken, sensor.SecretReadToken, urls.WriteUrl(sensor.SecretWriteToken),
-                sensor.SecretReadToken is { } read ? urls.ReadUrl(read) : null, isUdp ? await udp.SecretsAsync(id, ct) : null)
+                sensor.SecretReadToken is { } read ? urls.ReadUrl(read) : null, isUdp ? await udp.SecretsAsync(id, ct) : null,
+                sensor.Type == SensorType.ADVANCED ? urls.ReportUrl : null)
             : null;
 
         return new SensorDetail(sensor.Id, new Ref(status.Info.HostId, status.Info.HostName), sensor.OlderSiblingId, sensor.Name,
@@ -78,7 +80,8 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             sensor.Type == SensorType.MIKROTIK ? await mikrotik.DetailAsync(id, ct) : null,
             sensor.Importance, status.Info.EffectiveImportance,
             sensor.Type == SensorType.ZABBIX ? await zabbix.DetailAsync(id, ct) : null,
-            sensor.Type == SensorType.SSL_CERTIFICATE ? await certificates.SummaryAsync(id, ct) : null);
+            sensor.Type == SensorType.SSL_CERTIFICATE ? await certificates.SummaryAsync(id, ct) : null,
+            sensor.Type == SensorType.ADVANCED ? await advanced.DetailAsync(id, ct) : null);
     }
 
     /// <summary>Many sensors' importance at once (docs/ai-operations-plan.md §11.1); null: their hosts'.</summary>
@@ -124,6 +127,11 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         {
             // Checked within 15 seconds (docs/ssl-certificate-plan.md §5.2).
             await certificates.ApplyAsync(sensor, request.Certificate, null, 0, ct);
+        }
+        if (sensor.Type == SensorType.ADVANCED)
+        {
+            // The side row and the starter rule (docs/advanced-sensor-plan.md §6.5); the first report starts the verdict.
+            await advanced.ApplyAsync(sensor, request.Advanced, null, ct);
         }
         await db.SaveChangesAsync(ct);
         udp.Changed();
@@ -177,7 +185,8 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             var wasMikrotik = sensor.Type == SensorType.MIKROTIK;
             var wasZabbix = sensor.Type == SensorType.ZABBIX;
             var wasCertificate = sensor.Type == SensorType.SSL_CERTIFICATE;
-            var (oldParameters, oldInterval) = (sensor.Parameters, sensor.Interval);
+            var wasAdvanced = sensor.Type == SensorType.ADVANCED;
+            var (oldParameters, oldInterval, oldGrace) = (sensor.Parameters, sensor.Interval, sensor.GracePeriod);
             await ValidateAsync(request, sensor, ct);
             Apply(sensor, request);
             if (sensor.Type == SensorType.UDP_NODE)
@@ -212,6 +221,15 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             {
                 await certificates.RemoveAsync(sensor.Id, ct);
             }
+            if (sensor.Type == SensorType.ADVANCED)
+            {
+                await advanced.ApplyAsync(sensor, request.Advanced, wasAdvanced ? (oldInterval, oldGrace) : null, ct);
+            }
+            else if (wasAdvanced)
+            {
+                // The rules, fields, reports and samples go (docs/advanced-sensor-plan.md §7.4).
+                await advanced.RemoveAsync(sensor.Id, ct);
+            }
         }
         await db.SaveChangesAsync(ct);
         udp.Changed();
@@ -224,6 +242,11 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         if (sensor.Type == SensorType.SSL_CERTIFICATE)
         {
             await certificates.EvaluateAsync(sensor.Id, ct);
+        }
+        if (sensor.Type == SensorType.ADVANCED)
+        {
+            // Another interval or grace: the evaluator re-judges the newest report, and the answer waits for it (§7.5).
+            await advanced.AfterSaveAsync(sensor.Id, ct);
         }
         return await GetAsync(id, withSecrets, ct);
     }
@@ -288,7 +311,7 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         }
         await db.SaveChangesAsync(ct);
         return new SensorIntegration(sensor.SecretWriteToken, sensor.SecretReadToken, urls.WriteUrl(sensor.SecretWriteToken),
-            sensor.SecretReadToken is { } read ? urls.ReadUrl(read) : null);
+            sensor.SecretReadToken is { } read ? urls.ReadUrl(read) : null, ReportUrl: sensor.Type == SensorType.ADVANCED ? urls.ReportUrl : null);
     }
 
     public async Task<TokenLookupResult> LookupAsync(TokenLookupRequest request, CancellationToken ct)
@@ -379,6 +402,10 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
                 ? null
                 : await db.CertificateSensors.AsNoTracking().SingleOrDefaultAsync(c => c.SensorId == existing.Id, ct);
             await certificates.ValidateAsync(request, row, v, ct);
+        }
+        if (request.Type == SensorType.ADVANCED)
+        {
+            Advanced.AdvancedSensorService.Validate(request, v);
         }
         if (request.Type is SensorType.HEARTBEAT or SensorType.HEARTBEAT_VALUECHECK or SensorType.PING or SensorType.UDP_NODE)
         {

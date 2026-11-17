@@ -48,6 +48,9 @@ public sealed class EndpointAuditTests
         // Was this you? (docs/cookie-access-plan.md §6.6, §9): a one-time token answers one question; rate-limited.
         "GET /api/v1/access/was-this-you/{token}",
         "POST /api/v1/access/was-this-you/{token}",
+        // The advanced sensors' reports (docs/advanced-sensor-plan.md §4.1): authenticated by the sensor's write token.
+        "POST /report",
+        "POST /report/{token}",
     ];
 
     /// <summary>
@@ -175,6 +178,25 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/zabbix/hosts/{hostId:long}"] = ("Zabbix:View", Roles.Viewer),
         ["GET /api/v1/zabbix/hosts/{hostId:long}/items"] = ("Zabbix:View", Roles.Viewer),
         ["POST /api/v1/zabbix/test"] = ("System:Manage", Roles.Admin),
+        // Advanced sensors (docs/advanced-sensor-plan.md §8.3): Monitoring's, with Details checked by the service for data that names people.
+        ["GET /api/v1/sensors/{id:guid}/advanced"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/sensors/{id:guid}/advanced/reports"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/sensors/{id:guid}/advanced/reports/latest"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/sensors/{id:guid}/advanced/reports/{reportId:guid}"] = ("Monitoring:View", Roles.Viewer),
+        ["DELETE /api/v1/sensors/{id:guid}/advanced/reports/{reportId:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["DELETE /api/v1/sensors/{id:guid}/advanced/reports"] = ("Monitoring:Edit", Roles.User),
+        ["GET /api/v1/sensors/{id:guid}/advanced/paths"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/sensors/{id:guid}/advanced/samples"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/sensors/{id:guid}/advanced/test"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/sensors/{id:guid}/advanced/rules"] = ("Monitoring:Edit", Roles.User),
+        ["PUT /api/v1/sensors/{id:guid}/advanced/rules/order"] = ("Monitoring:Edit", Roles.User),
+        ["POST /api/v1/sensors/{id:guid}/advanced/rules/copy"] = ("Monitoring:Edit", Roles.User),
+        ["PUT /api/v1/sensors/{id:guid}/advanced/rules/{ruleId:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["DELETE /api/v1/sensors/{id:guid}/advanced/rules/{ruleId:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["POST /api/v1/sensors/{id:guid}/advanced/fields"] = ("Monitoring:Edit", Roles.User),
+        ["PUT /api/v1/sensors/{id:guid}/advanced/fields/order"] = ("Monitoring:Edit", Roles.User),
+        ["PUT /api/v1/sensors/{id:guid}/advanced/fields/{fieldId:guid}"] = ("Monitoring:Edit", Roles.User),
+        ["DELETE /api/v1/sensors/{id:guid}/advanced/fields/{fieldId:guid}"] = ("Monitoring:Edit", Roles.User),
         // SSL certificates (docs/ssl-certificate-plan.md §6.3, §6.4): an area of their own, granted to no built-in group.
         ["GET /api/v1/sensors/{id:guid}/certificate"] = ("Certificates:View", Roles.Admin),
         ["POST /api/v1/sensors/{id:guid}/certificate/check"] = ("Certificates:Edit", Roles.Admin),

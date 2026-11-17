@@ -32,9 +32,9 @@ public static class RightsCatalog
     public static readonly IReadOnlyList<AreaInfo> Areas =
     [
         new(Area.Monitoring, "Monitoring", [
-            (Level.View, "The dashboard, hosts, sensors, events, notification rules and the manager, DNS zones, mail input rules, the uplink, the search, and the hosts' and sensors' history."),
-            (Level.Details, "View, plus what names people: servers' and routers' logins and the access cases and notices about them, a server's event log, journal and SSH keys."),
-            (Level.Edit, "Details, plus create, change and delete them; sensor tokens and URLs; importance; notification assignments and the Pushover priorities; UDP keys and counters; a router's WireGuard keys; an agent's settings; attaching Zabbix hosts.")]),
+            (Level.View, "The dashboard, hosts, sensors, events, notification rules and the manager, DNS zones, mail input rules, the uplink, the search, the hosts' and sensors' history, and advanced sensors' reports."),
+            (Level.Details, "View, plus what names people: servers' and routers' logins and the access cases and notices about them, a server's event log, journal and SSH keys, and the reports of advanced sensors whose data names people."),
+            (Level.Edit, "Details, plus create, change and delete them; sensor tokens and URLs; importance; notification assignments and the Pushover priorities; UDP keys and counters; a router's WireGuard keys; an agent's settings; attaching Zabbix hosts; advanced sensors' rules and fields, and deleting their reports.")]),
         new(Area.Commands, "Commands", [
             (Level.Run, "UDP commands, a MikroTik router's poll, backup now and commands, an agent's Collect now, a diagnostics run.")]),
         new(Area.Mail, "Mail", [(Level.Read, "The mail log and the mails' contents.")]),

@@ -21,7 +21,7 @@ import MarkdownDocs from './MarkdownDocs.vue'
 
 /**
  * The documentation (§5.6), from the API so it never drifts: the sensor API with examples for this
- * instance's address (§3.3), UDP nodes (docs/udp-iot-plan.md §6.7, with a link to the protocol
+ * instance's address (§3.3), JSON reports to Advanced sensors (docs/advanced-sensor-plan.md §10.4), UDP nodes (docs/udp-iot-plan.md §6.7, with a link to the protocol
  * reference), the status codes, the sensor types and the notification rule types. *Markdown in PNMT*
  * (docs/locations-knowledge-plan.md §10.7) has a section of its own, with an editor to try; Cookie and the availability plan
  * too (docs/cookie-plan.md).
@@ -58,6 +58,16 @@ const api = computed(() => [
     title: 'Several values at once (Encapsulated sensors)',
     code: `curl --data '[{"Name":"disk","Code":200,"Message":"42 % used"}]' "${base.value}/event/<write token>/200"`,
     text: 'A JSON array of { Name, Code, Message }, names case-sensitive. Each Name becomes a child sensor (at most 65); the code in the URL is ignored.',
+  },
+  {
+    title: 'Report JSON (Advanced sensors)',
+    code: `curl -H "Authorization: Bearer <write token>" --data '{"status":"ok","disk":{"free_gb":412.5}}' "${base.value}/report"`,
+    text: "Any JSON object up to 256 KiB, the token in the header (or POST to /report/<write token>); gzip is accepted. The sensor's rules judge it within a second: 295 OK, 296 a warning, 495 a rule fails, 496 the report can't be read, 460 none within the interval. status, message and time are read when present. ?dryRun=true tries without storing.",
+  },
+  {
+    title: 'Answers to a JSON report',
+    code: "202  stored, with a preview of the verdict\n200  ?dryRun=true: the preview, nothing stored\n422  not JSON, not an object, too deep, a key twice (stored; 496)\n413  too large (recorded; 496)\n429  less than 5 seconds since the sensor's last report\n409  not an Advanced sensor\n404  unknown token or disabled sensor",
+    text: 'Answers are JSON ({ ok, reportId, preview, error, message }). An event is written when the verdict changes, not with every report. The full reference: docs/advanced-report.md.',
   },
   {
     title: 'Read the state',

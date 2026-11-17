@@ -188,6 +188,13 @@ public static class AuditEvents
     public const string CertificateAuthorityRemoved = "CertificateAuthorityRemoved";
     public const string CertificateCheckRequested = "CertificateCheckRequested";
 
+    // Advanced sensors (docs/advanced-sensor-plan.md §8.3): their rules and fields (each change on the sensor's History), and
+    // deleting reports that carried what they shouldn't.
+    public const string AdvancedRulesChanged = "AdvancedRulesChanged";
+    public const string AdvancedFieldsChanged = "AdvancedFieldsChanged";
+    public const string AdvancedReportDeleted = "AdvancedReportDeleted";
+    public const string AdvancedReportsCleared = "AdvancedReportsCleared";
+
     // Every other operation (docs/audit-redmine-zabbix-plan.md §3.9, Appendix A).
     public const string HostsImportanceChanged = "HostsImportanceChanged";
     public const string HostsLocationChanged = "HostsLocationChanged";
@@ -416,6 +423,8 @@ public static class AuditCatalog
         Add(AuditCategory.Udp, AuditTargets.Firmware, AuditEvents.UdpFirmwareChanged);
         Add(AuditCategory.Mikrotik, AuditTargets.Sensor, AuditEvents.MikrotikPollRequested, AuditEvents.MikrotikBackupRequested);
         Add(AuditCategory.Certificates, AuditTargets.Sensor, AuditEvents.CertificateCheckRequested);
+        Add(AuditCategory.Sensors, AuditTargets.Sensor, AuditEvents.AdvancedRulesChanged, AuditEvents.AdvancedFieldsChanged,
+            AuditEvents.AdvancedReportDeleted, AuditEvents.AdvancedReportsCleared);
         Add(AuditCategory.Mikrotik, null, AuditEvents.MikrotikBackupSettingsChanged);
         Add(AuditCategory.Agents, AuditTargets.Sensor, AuditEvents.AgentCollectRequested, AuditEvents.AgentLogRequested);
         Add(AuditCategory.Agents, AuditTargets.ScriptRun, AuditEvents.AgentScriptRunRedacted);
@@ -461,6 +470,8 @@ public static class AuditCatalog
         System.Text.RegularExpressions.Regex.IsMatch(type, "Failed|LockedOut") ? AuditTone.Danger
         // Trust decisions (docs/ssl-certificate-plan.md §6.3): a changed certificate accepted, a private CA added.
         : type is AuditEvents.CertificateAccepted or AuditEvents.CertificateAuthorityAdded ? AuditTone.Warn
+        // An app's reports deleted (docs/advanced-sensor-plan.md §8.3).
+        : type is AuditEvents.AdvancedReportsCleared ? AuditTone.Warn
         : System.Text.RegularExpressions.Regex.IsMatch(type, "Deleted|Reset|Revoked|Disabled|Cancelled|Retired|Removed|Redacted|Detached") ? AuditTone.Warn
         : System.Text.RegularExpressions.Regex.IsMatch(type, "Succeeded|Enabled|Created|Joined|Registered|Attached|Uploaded") ? AuditTone.Success
         : AuditTone.Neutral;

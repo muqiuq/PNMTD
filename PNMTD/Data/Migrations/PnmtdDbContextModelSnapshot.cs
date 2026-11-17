@@ -253,6 +253,296 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("access_reviews");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.AdvancedFieldEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Chart")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("Decimals")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("Pinned")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SensorId", "Order");
+
+                    b.ToTable("advanced_fields");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AdvancedReportEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Bytes")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Code")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ErrorKind")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime?>("EvaluatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short>("EvaluationAttempts")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("Failed")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("LastReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("MeasuredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Repeats")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Results")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Source")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("Valid")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Warnings")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SensorId", "ReceivedAt")
+                        .IsDescending(false, true);
+
+                    b.HasIndex(new[] { "SensorId", "ReceivedAt" }, "IX_advanced_reports_queue")
+                        .HasFilter("\"EvaluatedAt\" IS NULL");
+
+                    b.ToTable("advanced_reports");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AdvancedRuleEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IgnoreCase")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Operand")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Operand2")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Operator")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Quantifier")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("WhenMissing")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SensorId", "Order");
+
+                    b.ToTable("advanced_rules");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AdvancedSampleEntity", b =>
+                {
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FieldId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Minute")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("Last")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Max")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Min")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("SensorId", "FieldId", "Minute");
+
+                    b.HasIndex("FieldId");
+
+                    b.HasIndex("Minute");
+
+                    b.ToTable("advanced_samples");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AdvancedSensorEntity", b =>
+                {
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("LastCode")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastEvaluatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("LastReportAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LastReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LastSource")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("LastValidReportAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastVerdictKey")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("NamesPeople")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ReevaluateRequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RuleStates")
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("SensorId");
+
+                    b.HasIndex("LastReportId");
+
+                    b.HasIndex("ReevaluateRequestedAt")
+                        .HasFilter("\"ReevaluateRequestedAt\" IS NOT NULL");
+
+                    b.ToTable("advanced_sensors");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.AgentChangeEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6209,6 +6499,64 @@ namespace PNMTD.Data.Migrations
                         .WithMany()
                         .HasForeignKey("SensorId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AdvancedFieldEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AdvancedReportEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AdvancedRuleEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AdvancedSampleEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.AdvancedFieldEntity", null)
+                        .WithMany()
+                        .HasForeignKey("FieldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.AdvancedSensorEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.AdvancedReportEntity", null)
+                        .WithMany()
+                        .HasForeignKey("LastReportId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", "Sensor")
+                        .WithOne()
+                        .HasForeignKey("PNMTD.Models.Db.AdvancedSensorEntity", "SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sensor");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.AgentChangeEntity", b =>

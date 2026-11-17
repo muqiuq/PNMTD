@@ -10,12 +10,54 @@ import CopyField from './CopyField.vue'
 
 /**
  * How a script reports to a sensor and reads it back (§3.3, §5.6): the URLs of the frozen sensor
- * API, with curl for each way in. Shown to User and Admin only: the URLs contain the tokens.
+ * API, with curl for each way in. Shown to User and Admin only: the URLs contain the tokens. An Advanced
+ * sensor (docs/advanced-sensor-plan.md §4.4) shows its report URL with the token in the header first, and examples
+ * in curl, PowerShell and Python instead of /event's.
  */
 const props = defineProps<{ integration: S['SensorIntegration']; type: string }>()
 
 const w = computed(() => props.integration.writeUrl)
+const isAdvanced = computed(() => props.type === 'ADVANCED' && !!props.integration.reportUrl)
+const reportExamples = computed(() => {
+  const url = props.integration.reportUrl ?? ''
+  const token = props.integration.writeToken
+  return [
+    {
+      key: 'curl',
+      label: 'curl',
+      code: `curl -H "Authorization: Bearer ${token}" --data @status.json ${url}`,
+      note: "A JSON object from a file, the token in the header: it stays out of proxies' access logs. Up to 256 KiB.",
+    },
+    {
+      key: 'inline',
+      label: 'Inline',
+      code: `curl --data '{"status":"ok","queue":{"length":12}}' ${url}/${token}`,
+      note: "The token in the path, for tools that can't set a header.",
+    },
+    {
+      key: 'forward',
+      label: 'Forward /health',
+      code: `curl -s http://localhost:8080/health | curl -H "Authorization: Bearer ${token}" --data-binary @- ${url}`,
+      note: "An app's own health endpoint, from cron: the IETF health format, Spring's and ASP.NET's work as they are.",
+    },
+    {
+      key: 'powershell',
+      label: 'PowerShell',
+      code: `Invoke-RestMethod -Method Post -Uri ${url} -Headers @{ Authorization = "Bearer ${token}" } \`\n  -ContentType 'application/json' -Body ($status | ConvertTo-Json -Depth 10)`,
+      note: 'ConvertTo-Json cuts at depth 2 unless told otherwise.',
+    },
+    {
+      key: 'python',
+      label: 'Python',
+      code: `requests.post("${url}", json=status, headers={"Authorization": "Bearer ${token}"}, timeout=10)`,
+      note: 'The answer is 202 with a preview of the verdict; add ?dryRun=true to try without storing.',
+    },
+  ]
+})
 const examples = computed(() => {
+  if (isAdvanced.value) {
+    return reportExamples.value
+  }
   const list = [
     {
       key: 'get',
@@ -59,7 +101,20 @@ const examples = computed(() => {
 
 <template>
   <div class="url-panel">
-    <div class="field">
+    <template v-if="isAdvanced">
+      <div class="field">
+        <label>Report URL</label>
+        <CopyField :value="integration.reportUrl!" label="Report URL" />
+        <small class="field-hint"
+          >POST a JSON object, with <code>Authorization: Bearer</code> and the token below.</small
+        >
+      </div>
+      <div class="field">
+        <label>Token</label>
+        <CopyField :value="integration.writeToken" label="Token" />
+      </div>
+    </template>
+    <div v-else class="field">
       <label>Write URL</label>
       <CopyField
         :value="`${integration.writeUrl}/200/message`"
@@ -67,11 +122,11 @@ const examples = computed(() => {
         label="Write URL"
       />
     </div>
-    <div v-if="integration.readUrl" class="field">
+    <div v-if="integration.readUrl && !isAdvanced" class="field">
       <label>Read URL</label>
       <CopyField :value="integration.readUrl" label="Read URL" />
     </div>
-    <Tabs value="get" class="examples">
+    <Tabs :value="isAdvanced ? 'curl' : 'get'" class="examples">
       <TabList>
         <Tab v-for="e in examples" :key="e.key" :value="e.key">{{ e.label }}</Tab>
       </TabList>

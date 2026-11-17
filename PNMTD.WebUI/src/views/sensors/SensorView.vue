@@ -45,6 +45,10 @@ import CertificateChangeBanner from './certificate/CertificateChangeBanner.vue'
 import CertificateConfigRows from './certificate/CertificateConfigRows.vue'
 import CertificateStatusStrip from './certificate/CertificateStatusStrip.vue'
 import CertificateTab from './certificate/CertificateTab.vue'
+import AdvancedDataTab from './advanced/AdvancedDataTab.vue'
+import AdvancedRulesTab from './advanced/AdvancedRulesTab.vue'
+import AdvancedStatusStrip from './advanced/AdvancedStatusStrip.vue'
+import FieldCards from './advanced/FieldCards.vue'
 import SensorNotesPanel from './SensorNotesPanel.vue'
 import CookieNotesPanel from '@/views/cookie/CookieNotesPanel.vue'
 import { useCookieNotes } from '@/views/cookie/cookieNotes'
@@ -93,7 +97,8 @@ import WindowsWmiTab from './windows/WindowsWmiTab.vue'
  * packets, Commands, Firmware, Protocol; its integration panel shows the endpoint, key and token.
  * A MikroTik router (docs/mikrotik-plan.md §11.1) adds its status strip, Setup, and in the SSH modes Backups.
  * An SSL certificate (docs/ssl-certificate-plan.md §8.3) adds its status strip, its rows, the change waiting
- * and the Certificate tab.
+ * and the Certificate tab. An Advanced sensor (docs/advanced-sensor-plan.md §10.3) adds its status strip, its pinned fields,
+ * and the Data and Rules tabs.
  */
 const route = useRoute()
 const router = useRouter()
@@ -148,11 +153,14 @@ const canCheck = computed(() => session.can('Certificates', 'Edit'))
 const canEditSensor = computed(
   () => canWrite.value && (!isCertificateType.value || session.can('Certificates', 'Edit')),
 )
+// An Advanced sensor (docs/advanced-sensor-plan.md §10.3): the app's JSON on the Data tab, its rules on the Rules tab.
+const isAdvancedType = computed(() => sensor.value?.type === 'ADVANCED')
+const isAdvanced = computed(() => isAdvancedType.value && !!sensor.value?.advanced)
 const agent = useAgentServer(id, isAgent)
 const tab = computed(
   () =>
     (route.params.tab === 'history' && 'history') ||
-    ((isUdp.value || isMikrotik.value || isAgent.value || isZabbix.value || isCertificate.value) &&
+    ((isUdp.value || isMikrotik.value || isAgent.value || isZabbix.value || isCertificate.value || isAdvanced.value) &&
       typeof route.params.tab === 'string' &&
       route.params.tab) ||
     (isAgent.value || isZabbix.value ? 'overview' : 'events'),
@@ -314,6 +322,25 @@ const certificateTabs = computed(() => [
     : []),
   plainTabs.value[1]!,
 ])
+// The overview keeps the plain page's key; Data carries a mark while the latest report can't be read, Rules the failing ones.
+const advancedTabs = computed(() => {
+  const a = sensor.value?.advanced
+  const failing =
+    a?.rules.filter((r) => r.enabled && (r.last?.outcome === 'Fail' || r.last?.outcome === 'Warn')).length ?? 0
+  const to = (t?: string) => ({ name: 'sensor', params: { id: id.value, tab: t } })
+  return [
+    plainTabs.value[0]!,
+    {
+      key: 'data',
+      label: 'Data',
+      icon: 'pi pi-database',
+      to: to('data'),
+      badge: sensor.value?.lastCode === 496 || (a?.latest && !a.latest.valid) ? '!' : null,
+    },
+    { key: 'rules', label: 'Rules', icon: 'pi pi-list-check', to: to('rules'), badge: failing || null },
+    plainTabs.value[1]!,
+  ]
+})
 const checking = ref(false)
 async function checkNow() {
   checking.value = true
@@ -338,13 +365,18 @@ function editSecrets(mode: 'manual' | 'regenerate') {
 const updating = ref(false)
 const nodeActions = useNodeActions()
 // The type can change between the types one may create (as in v0.12), not to or from DNS; to an SSL certificate with
-// Certificates: Edit, checked daily (its interval is 1 hour to 30 days).
+// Certificates: Edit, checked daily (its interval is 1 hour to 30 days); to an Advanced sensor without parameters.
 const typeOptions = computed(() =>
   types.list.value
     .filter((t) => t.canCreate && (t.type !== 'SSL_CERTIFICATE' || session.can('Certificates', 'Edit')))
     .map((t) => ({ label: typeLabel(t.type), value: t.type })),
 )
 function saveType(type: S['SensorType']) {
+  if (type === 'ADVANCED' && sensor.value?.type !== type) {
+    // An Advanced sensor takes no parameters, and expects a report every 30 s or more, or never (docs/advanced-sensor-plan.md §8.1).
+    const interval = sensor.value?.interval ?? 0
+    return save({ type, parameters: null, interval: interval >= 30 ? interval : 0 })
+  }
   return save(type === 'SSL_CERTIFICATE' && sensor.value?.type !== type ? { type, interval: 0 } : { type })
 }
 
@@ -538,6 +570,10 @@ const more = computed(() =>
         <TabNav :items="certificateTabs" :active="tab" label="Sensor pages" />
         <CertificateChangeBanner v-if="tab !== 'history'" :sensor="sensor" :can-accept="canCheck" />
       </template>
+      <template v-else-if="isAdvanced">
+        <AdvancedStatusStrip :sensor="sensor" />
+        <TabNav :items="advancedTabs" :active="tab" label="Sensor pages" />
+      </template>
       <TabNav v-else :items="plainTabs" :active="tab" label="Sensor pages" />
 
       <AuditHistory v-if="tab === 'history'" :subject-id="sensor.id" :name="sensor.name" />
@@ -547,6 +583,18 @@ const more = computed(() =>
         :sensor="sensor"
         :can-edit="canEditSensor"
         :can-manage="session.can('Certificates', 'Manage')"
+      />
+      <AdvancedDataTab
+        v-else-if="isAdvanced && tab === 'data'"
+        :key="`data-${sensor.id}`"
+        :sensor="sensor"
+        :can-write="canWrite"
+      />
+      <AdvancedRulesTab
+        v-else-if="isAdvanced && tab === 'rules'"
+        :key="`rules-${sensor.id}`"
+        :sensor="sensor"
+        :can-write="canWrite"
       />
       <ZabbixSensorTab
         v-else-if="isZabbix && (tab === 'overview' || tab === 'setup')"
@@ -718,6 +766,19 @@ const more = computed(() =>
                 <small class="field-hint">Ignored sensors do not count as problems.</small>
               </dd>
               <CertificateConfigRows v-if="isCertificate" :sensor="sensor" :readonly="!canEditSensor" :save="save" />
+              <template v-if="isAdvanced">
+                <dt>Names people</dt>
+                <dd>
+                  <InlineField
+                    :value="sensor.advanced!.namesPeople"
+                    type="bool"
+                    label="Names people"
+                    :readonly="!canEditSensor"
+                    :save="(v) => save({ advanced: { namesPeople: Boolean(v), addStatusRule: false } })"
+                  />
+                  <small class="field-hint">Its reports need Monitoring: Details.</small>
+                </dd>
+              </template>
               <template v-if="info?.usesInterval && !isCertificateType">
                 <dt>Interval</dt>
                 <dd>
@@ -729,10 +790,12 @@ const more = computed(() =>
                     :readonly="!canEditSensor"
                     :save="(v) => save({ interval: Number(v) })"
                   />
-                  <small class="field-hint">seconds</small>
+                  <small class="field-hint">{{
+                    isAdvanced ? 'seconds between reports; 0: no expectation' : 'seconds'
+                  }}</small>
                 </dd>
               </template>
-              <template v-if="heartbeat">
+              <template v-if="heartbeat && (!isAdvanced || sensor.interval > 0)">
                 <dt>Grace period</dt>
                 <dd>
                   <InlineField
@@ -910,6 +973,7 @@ const more = computed(() =>
         </div>
 
         <div class="column">
+          <FieldCards v-if="isAdvanced" :sensor="sensor" pinned-only :can-write="canWrite" />
           <section class="panel" aria-labelledby="status-title">
             <div id="status-title" class="panel-header">Status &amp; uptime</div>
             <div class="panel-body status">

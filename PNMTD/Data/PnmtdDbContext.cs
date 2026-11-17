@@ -55,6 +55,13 @@ namespace PNMTD.Data
         public DbSet<CertificateAuthorityEntity> CertificateAuthorities { get; set; }
         public DbSet<CertificateSensorAuthorityEntity> CertificateSensorAuthorities { get; set; }
 
+        // Advanced sensors (docs/advanced-sensor-plan.md §5): the setting and state, the rules, the fields, the reports, the samples.
+        public DbSet<AdvancedSensorEntity> AdvancedSensors { get; set; }
+        public DbSet<AdvancedRuleEntity> AdvancedRules { get; set; }
+        public DbSet<AdvancedFieldEntity> AdvancedFields { get; set; }
+        public DbSet<AdvancedReportEntity> AdvancedReports { get; set; }
+        public DbSet<AdvancedSampleEntity> AdvancedSamples { get; set; }
+
         // Groups and rights (docs/audit-redmine-zabbix-plan.md §5).
         public DbSet<GroupEntity> Groups { get; set; }
         public DbSet<GroupRightEntity> GroupRights { get; set; }
@@ -263,6 +270,45 @@ namespace PNMTD.Data
             {
                 e.HasKey(a => new { a.SensorId, a.AuthorityId });
                 e.HasOne(a => a.Authority).WithMany().HasForeignKey(a => a.AuthorityId).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Advanced sensors (docs/advanced-sensor-plan.md §5): everything goes with the sensor; the latest report's pointer falls
+            // back to null when a report is deleted; a field's samples go with the field.
+            modelBuilder.Entity<AdvancedSensorEntity>(e =>
+            {
+                e.HasOne(a => a.Sensor).WithOne().HasForeignKey<AdvancedSensorEntity>(a => a.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<AdvancedReportEntity>().WithMany().HasForeignKey(a => a.LastReportId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(a => a.ReevaluateRequestedAt).HasFilter("\"ReevaluateRequestedAt\" IS NOT NULL");
+            });
+            modelBuilder.Entity<AdvancedRuleEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(r => r.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.Property(r => r.Operator).HasConversion<string>().HasMaxLength(24);
+                e.Property(r => r.Quantifier).HasConversion<string>().HasMaxLength(8);
+                e.Property(r => r.WhenMissing).HasConversion<string>().HasMaxLength(8);
+                e.Property(r => r.Severity).HasConversion<string>().HasMaxLength(8);
+                e.HasIndex(r => new { r.SensorId, r.Order });
+            });
+            modelBuilder.Entity<AdvancedFieldEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(f => f.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.Property(f => f.Format).HasConversion<string>().HasMaxLength(16);
+                e.HasIndex(f => new { f.SensorId, f.Order });
+            });
+            modelBuilder.Entity<AdvancedReportEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(r => r.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.Property(r => r.ErrorKind).HasConversion<string>().HasMaxLength(16);
+                e.HasIndex(r => new { r.SensorId, r.ReceivedAt }).IsDescending(false, true);
+                // The evaluator's queue, found without reading the history (§5.4).
+                e.HasIndex(r => new { r.SensorId, r.ReceivedAt }, "IX_advanced_reports_queue").HasFilter("\"EvaluatedAt\" IS NULL");
+            });
+            modelBuilder.Entity<AdvancedSampleEntity>(e =>
+            {
+                e.HasKey(x => new { x.SensorId, x.FieldId, x.Minute });
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(x => x.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<AdvancedFieldEntity>().WithMany().HasForeignKey(x => x.FieldId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(x => x.Minute);
             });
 
             // Redmine's links (docs/audit-redmine-zabbix-plan.md §6.5): exactly one target, removed with it; a ticket once per target.
