@@ -386,7 +386,7 @@ WantedBy=multi-user.target
 
 ### 4.4 Installing with one line (R4, R12)
 
-1. **In PNMT, an Admin chooses an existing host** and opens *Add server* from the host's menu or *Admin → Servers*. They choose **Linux**, and optionally a name (default "Linux") and the token's validity (24 h, at most 7 days).
+1. **In PNMT, an Admin chooses a host**, an existing one or a new one made in the dialog, and opens *Add server* from the host's menu or *Admin → Servers*. They choose **Linux**, and optionally a name (default "Linux") and the token's validity (24 h, at most 7 days).
 2. **PNMT shows the token once, and the line**, filled in with:
    - PNMT's URL, its version and the architecture (x64 or arm64, a toggle);
    - the binary's SHA-256 and the token.
@@ -1207,7 +1207,7 @@ New:
 | **Scripts** | PowerShell and bash, with a language filter and a template per language |
 | **Run-as accounts** | Windows only, as today |
 
-- ***Add server*** asks **the platform first**, then the host (preselected from a host's page), a name and the validity. It shows:
+- ***Add server*** asks **the platform first**, then the host (preselected from a host's page; from *Admin → Servers*, an existing one or a new one made right there), a name and the validity. It shows:
   - the token, in large type;
   - for Windows, today's content, with PNMT's download link added;
   - for Linux, **the one line** with its toggles, GitHub's link, and what `join` will do.

@@ -1059,7 +1059,7 @@ The OpenAPI document and the generated UI types (`openapi.json`, `schema.d.ts`) 
 |---|---|---|
 | **Overview** | Whether the gateway is running, when it was last seen, its errors. The endpoint in effect, and where each part came from. Peers up out of all. Routers by state and version, and those behind on updates or with outdated scripts. Tunnels with flapping endpoints or near their expiry. The latest versions per channel. Warnings: no external host, the gateway never seen, the host requirements | – |
 | **Network** | – | The settings of §3.3. Values set by the environment are shown locked, with the variable's name. A change shows its effect first: which routers and tunnels need a new script or file |
-| **Routers** | The fleet table: name, host, mode, state, version, channel, latest, firmware, uptime, last backup, tunnel address and handshake, script up to date. Filters such as *behind on updates* | Multi-select → *Update…* (§7.4) or *Run command…* (§8.2) |
+| **Routers** | The fleet table: name, host, mode, state, version, channel, latest, firmware, uptime, last backup, tunnel address and handshake, script up to date. Filters such as *behind on updates*. ***Add router***: an existing host, or a new one made in the dialog, then the router form of §11.1 | Multi-select → *Update…* (§7.4) or *Run command…* (§8.2) |
 | **Custom tunnels** | Each tunnel: owner, address, handshake, endpoint, traffic, expiry, access | Create, edit, disable, delete, regenerate keys; *Download .conf* and *QR code* |
 | **Jobs** | Every update and command job and batch, with its log. A command batch's results are grouped by output (§8.3) | Cancel, *Run again*, *Redact* (Admin) |
 

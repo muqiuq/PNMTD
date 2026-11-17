@@ -1,6 +1,6 @@
 # PNMT 1.12: notification rules to a user, a group, or the responsible of the day
 
-Version 1.12.0.
+Version 1.12.1: 1.12.0 and the change of 1.12.1 below.
 
 ## What's new
 
@@ -11,9 +11,15 @@ Version 1.12.0.
 - **The address stays exactly as it was.** Same field, same validation, same providers, same masking for a Viewer, preselected in the form, and the API's default when the kind is left out. An address rule made in 1.12 is indistinguishable from one made in 1.11.
 - **Whoever edits rules can pick users and groups** without being an admin: the picker lists names and whether a person has an address or a key, never the values. MCP's and Cookie's read tools name the people a rule reaches as *a user*, *a group*, *the responsible*.
 
+## 1.12.1
+
+- ***Add router* on Admin → MikroTik & WireGuard → Routers:** the host the router goes on, an existing one or a new one made right there with a name and a location, then the router form of that host, whose Setup tab shows the join script. Before, a router could only be added from a host's page. The button needs *Monitoring: Edit*, as the router form does.
+- ***Add server* can make the host too:** *An existing host* or *A new host* in the dialog, for Windows and Linux alike; the token is for the new host, which is made once, when the token is. From a host's page the host stays preselected. Making a host needs *Monitoring: Edit*; without it the dialog is as before.
+- **Updating from 1.12.0:** `./update.sh --tag v1.12.1`. No migration, nothing to configure.
+
 ## Updating from 1.11
 
-In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.12.0`. It takes a backup first.
+In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.12.1`. It takes a backup first.
 
 - **One migration:** `NotificationRecipients` on `notificationrules`: the recipient kind, the user and the group (set to null when they are deleted), the channels, the hours, and the last delivery. Every new column has a default, so existing rules stay address rules reached as before; a v0.12 import needs nothing new. It runs at the start.
 - **The audit** records a rule to people with a summary naming the person or group; the field changes are recorded as before. No new event types.

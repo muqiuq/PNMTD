@@ -107,15 +107,20 @@ test('a viewer sees a router, but neither its commands nor its script', async ({
   await expect(page.getByRole('button', { name: 'Show join script' })).toHaveCount(0)
 })
 
-test('a new router through the form, with its join script', async ({ page }) => {
+test('a new router through Add router on a host made right there, with its join script', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
   await signIn(page)
-  await page.goto('/pnmt-admin/hosts')
-  await page.getByRole('link', { name: 'router-core', exact: true }).click()
-  await page.waitForURL(/\/hosts\/[0-9a-f-]{36}$/)
-  const hostUrl = page.url()
-  await page.goto(`${hostUrl}/sensors/new?type=MIKROTIK`)
+  // Admin → MikroTik → Routers: Add router makes the host and continues to the router form (§11.2).
+  await page.goto('/pnmt-admin/admin/mikrotik?tab=routers')
+  await page.getByRole('button', { name: 'Add router' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Add router' })
+  await expect(dialog.getByRole('button', { name: 'Continue' })).toBeDisabled()
+  await dialog.getByRole('button', { name: 'A new host' }).click()
+  await dialog.getByRole('textbox', { name: 'Name of the new host' }).fill('e2e-router-host')
+  await dialog.getByRole('button', { name: 'Continue' }).click()
+  await page.waitForURL(/\/hosts\/[0-9a-f-]{36}\/sensors\/new\?type=MIKROTIK$/)
   await expect(page.getByRole('heading', { name: 'New MikroTik router' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'e2e-router-host' })).toBeVisible()
   await page.locator('#sensor-name').fill('core router')
   await page.locator('#mikrotik-address').fill('192.0.2.99')
   await page.getByRole('button', { name: 'Add router' }).click()

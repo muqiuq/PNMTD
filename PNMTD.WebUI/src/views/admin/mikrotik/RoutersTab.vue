@@ -12,18 +12,23 @@ import ListTable from '@/components/ListTable.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useServerTable } from '@/composables/useServerTable'
+import { useSession } from '@/stores/session'
 import { modeLabel } from '@/views/sensors/mikrotik/mikrotikDraft'
 import UpdateDialog from '@/views/sensors/mikrotik/UpdateDialog.vue'
 import { scheduleLabel } from '@/views/sensors/mikrotik/backupSchedule'
 import { fixLabel, fixSeverity } from '@/views/sensors/mikrotik/security'
+import AddRouterDialog from './AddRouterDialog.vue'
 import CommandDialog from './CommandDialog.vue'
 import RouterBackupDialog from './RouterBackupDialog.vue'
 
 /**
  * Every router (§11.2): its state, version against the latest of its channel, and whether its script is up to
- * date. Routers chosen here, across pages and filters, get one batch: Run command… (§8.2) or Update… (§7.4),
- * or one backup schedule (Backup settings…, docs/mikrotik-backup-plan.md §2.2).
+ * date. Add router chooses or makes the host, then opens the router form. Routers chosen here, across pages and
+ * filters, get one batch: Run command… (§8.2) or Update… (§7.4), or one backup schedule (Backup settings…,
+ * docs/mikrotik-backup-plan.md §2.2).
  */
+const session = useSession()
+const adding = ref(false)
 const filter = ref<'' | 'update' | 'outdated' | 'failing'>('')
 const filters = computed(() => ({
   updateAvailable: filter.value === 'update' ? true : undefined,
@@ -90,6 +95,13 @@ const choices = [
         aria-label="Filter"
       />
       <span class="spacer" />
+      <Button
+        v-if="session.can('Monitoring', 'Edit')"
+        label="Add router"
+        icon="pi pi-plus"
+        size="small"
+        @click="adding = true"
+      />
       <template v-if="chosen.length">
         <span class="muted">{{ chosen.length }} chosen</span>
         <Button label="Clear" size="small" text severity="secondary" @click="selected = new Map()" />
@@ -118,7 +130,7 @@ const choices = [
         @click="backingUp = true"
       />
     </div>
-    <ListTable :table="table" what="routers" empty-text="No MikroTik router yet: add one as a sensor of a host.">
+    <ListTable :table="table" what="routers" empty-text="No MikroTik router yet: Add router puts one on a host.">
       <Column style="width: 2.5rem">
         <template #header>
           <Checkbox
@@ -201,6 +213,7 @@ const choices = [
         </div>
       </template>
     </ListTable>
+    <AddRouterDialog v-model:visible="adding" />
     <CommandDialog
       v-model:visible="commanding"
       :routers="chosen.map((r) => ({ id: r.sensorId, name: r.name }))"

@@ -21,7 +21,7 @@ The **PNMT sensor service** is one Windows executable, `pnmt-sensor.exe`, built 
 | The binary | **`pnmt-sensor-x64.exe` and `pnmt-sensor-arm64.exe`:** self-contained single-file .NET 10, with a WinForms window. **Three modes:**<ul><li>the window (double-click, elevated);</li><li>the service (started by Windows);</li><li>the command line (`join`, `status`, `uninstall`) for unattended installs.</li></ul>No other dependency (§3.1) |
 | Windows versions | **Supported and tested:** Windows Server 2016, **2019**, 2022 and 2025; Windows 11; **Windows 10 Pro**, Enterprise and LTSC. **A version check at start:** another version is logged, reported and flagged in PNMT, **and the service runs anyway** (§3.9) |
 | No new port | **The WebSocket is an upgraded HTTP request on PNMT's existing address and port**, served by the same listener as the web UI and the sensor API. Nothing to open, no compose change; only the reverse proxy must pass the upgrade (§3.5, §8.6) |
-| Adding a server | **On an existing host:** *Add server* (from the host's page, or *Admin → Windows servers*) creates a **join token**, `xxxx-xxxx` (lower-case letters and digits, single use, valid 24 hours). A name is optional. The server's details arrive when it joins (§3.3) |
+| Adding a server | **On an existing host:** *Add server* (from the host's page, or *Admin → Windows servers*) creates a **join token**, `xxxx-xxxx` (lower-case letters and digits, single use, valid 24 hours). A name is optional. The server's details arrive when it joins (§3.3). **The dialog can also make the host right there** (a name and a location; `HostChoice.vue`), with *Monitoring: Edit* |
 | Trust | **The service creates an ECDSA P-256 key pair in Windows' machine key store, non-exportable.** At the join, PNMTD records the public key and hands over its own signing key. **Every connection is authenticated by signing PNMTD's challenge.** Configuration and requests from PNMTD are signed by PNMTD. Normal TLS validation on top (§3.4) |
 | Connection | A heartbeat every 60 s, a change when it happens, everything every 6 hours. Reconnects with backoff, for ever. A WebSocket ping every 30 s keeps proxies from closing it (§3.5) |
 | Logging and resilience | **A log file per day, the last 10 kept**, in `%ProgramData%\PNMT Sensor\logs\`. **Every collector, check, message and loop is isolated:** a failure is logged, reported to PNMTD as a *problem*, and the rest carries on. A crash restarts the service through Windows' recovery settings (§3.8) |
@@ -157,7 +157,7 @@ The **PNMT sensor service** is one Windows executable, `pnmt-sensor.exe`, built 
 
 ### 3.3 Joining (R5, R6, R7, R8, R18)
 
-1. **In PNMT, an Admin chooses an existing host** and opens *Add server*: from the host's page (*Add sensor → Windows server*, with the host preselected), or from *Admin → Windows servers*, where the host must be chosen.
+1. **In PNMT, an Admin chooses an existing host** and opens *Add server*: from the host's page (*Add sensor → Windows server*, with the host preselected), or from *Admin → Windows servers*, where the host is chosen, or a new one is made right there with a name and a location.
    - Optional: a name (default "Windows") and how long the token is valid (24 hours by default, at most 7 days).
    - PNMT shows:
      - **the token**, for example `k7mq-3xtp`;

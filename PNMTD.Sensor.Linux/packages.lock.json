@@ -313,7 +313,7 @@
         "dependencies": {
           "DnsClient": "[1.8.0, )",
           "Microsoft.Extensions.Hosting.Abstractions": "[10.0.15, )",
-          "PNMTD.Lib": "[1.12.0, )"
+          "PNMTD.Lib": "[1.12.1, )"
         }
       },
       "System.Diagnostics.EventLog": {

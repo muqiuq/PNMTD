@@ -46,6 +46,18 @@ test('the admin page, Add server and every tab of a server', async ({ page }) =>
   await shot(page, 'servers-add-windows')
   await page.getByRole('button', { name: 'Done' }).click()
 
+  // A new host made in the dialog: the token is for it, and the host is there afterwards.
+  await page.getByRole('button', { name: 'Add server' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'A new host' }).click()
+  await expect(page.getByRole('button', { name: 'Create token' })).toBeDisabled()
+  await page.getByRole('dialog').getByRole('textbox', { name: 'Name of the new host' }).fill('e2e-new-host')
+  await page.getByRole('button', { name: 'Create token' }).click()
+  await expect(page.getByLabel('Join token').first()).toHaveText(/^[a-z2-9]{4}-[a-z2-9]{4}$/)
+  await page.getByRole('button', { name: 'Done' }).click()
+  await page.goto('/pnmt-admin/hosts')
+  await expect(page.getByRole('link', { name: 'e2e-new-host', exact: true })).toBeVisible()
+  await page.goto('/pnmt-admin/admin/servers')
+
   // The platform comes first; a Linux token's one line is in e2e/linux.spec.ts.
   await page.getByRole('button', { name: 'Add server' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Linux' }).click()
