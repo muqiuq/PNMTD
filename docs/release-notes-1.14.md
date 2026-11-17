@@ -1,4 +1,6 @@
-# PNMT 1.14: Advanced sensors
+# PNMT 1.14: Advanced sensors, and SSL certificate sensors
+
+**1.13 wasn't released on its own:** this release brings its SSL certificate sensors too. Their notes are [release-notes-1.13.md](release-notes-1.13.md); what they say about updating is folded in below.
 
 ## What's new
 
@@ -27,13 +29,18 @@
 - **Data that names people:** a sensor marked so shows its reports and values only to *Monitoring: Details*, and its events name the rules, not the values.
 - **MCP and Cookie:** `advanced_sensor_get` (the verdict, the rules and their outcomes, the fields, and the report unless it names people and you lack *Details*), and `sensor_create` for the new type. Rules are made in PNMT.
 
-## Updating from 1.13
+- **SSL certificate sensors,** described in [release-notes-1.13.md](release-notes-1.13.md): a sensor for the certificate of any `host:port`, failing before expiry, once expired, and on a change it alarms on until a person accepts it; public CAs, private CAs on *Admin → Certificates*, and pinned self-signed certificates.
+
+## Updating from 1.12
 
 In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.14.0`. It takes a backup first.
 
-- **One migration:** `AdvancedSensors`, five new tables: the sensors' setting and state, their rules, their fields, the reports, and the charted values. Nothing existing changes. It runs at the start.
+- **Two migrations,** which run at the start; nothing existing changes:
+  - `CertificateSensors`, four new tables: the certificate sensors' settings and state, the certificates they have seen, the private CAs, and which sensors trust them;
+  - `AdvancedSensors`, five new tables: the advanced sensors' setting and state, their rules, their fields, the reports, and the charted values.
+- **Nobody gets the new rights area *Certificates* by the update,** as with Cookie, Availability and MCP: admins have it; give *Certificates: Edit* to the group that sets up certificate sensors, and *View* to whoever should read the Certificate tab.
 - **A reverse proxy** that passes only `/event` and `/read` to PNMT needs `/report` too (POST, bodies up to 256 KiB).
-- **Nothing to configure.** The `Advanced__*` settings (deploy/README.md, *Advanced sensors*) are optional. The rights are Monitoring's: *View* sees the reports, *Details* those that name people, *Edit* changes rules and deletes reports.
+- **Nothing to configure.** The `Advanced__*` and `Certificates__*` settings (deploy/README.md, *Advanced sensors* and *SSL certificates*) are optional. The advanced sensors' rights are Monitoring's: *View* sees the reports, *Details* those that name people, *Edit* changes rules and deletes reports.
 
 ## Good to know
 
@@ -41,4 +48,4 @@ In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.14.0`. It takes 
 - **One report per sensor every 5 seconds;** a sooner one gets 429 with `Retry-After` and is neither stored nor judged.
 - **Retention:** 500 reports per sensor (identical ones count once), 30 days, 50 MiB; 30 days of charted values. The newest two reports always stay.
 - **The demo data** (`SEED=1`) has five: a nightly backup that is OK, an order service in the IETF format that warns, a disk report that fails, a payroll export that names people, and a label printer that fell silent.
-- **The plan:** docs/advanced-sensor-plan.md, with the decisions (§15) and what was built (§17).
+- **The plans:** docs/advanced-sensor-plan.md, with the decisions (§15) and what was built (§17); docs/ssl-certificate-plan.md (§12, §15).
