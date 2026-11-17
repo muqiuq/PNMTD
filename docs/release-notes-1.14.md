@@ -1,6 +1,6 @@
 # PNMT 1.14: Advanced sensors, and SSL certificate sensors
 
-Version 1.14.1: 1.14.0 and the change of 1.14.1 below.
+Version 1.14.2: 1.14.0 and the changes of 1.14.1 and 1.14.2 below.
 
 **1.13 wasn't released on its own:** this release brings its SSL certificate sensors too. Their notes are [release-notes-1.13.md](release-notes-1.13.md); what they say about updating is folded in below.
 
@@ -39,9 +39,14 @@ Version 1.14.1: 1.14.0 and the change of 1.14.1 below.
 - **The demo seed** (`SEED=1`) failed between 22:00 and 23:00 UTC: it counted the knowledge base's page views 90 days back in steps of 24 hours, and across October's change of time two of those steps landed on one date. It counts back in dates now.
 - **Updating from 1.14.0:** `./update.sh --tag v1.14.1`. No migration, nothing to configure.
 
+## 1.14.2
+
+- **The tests of the timespan sensors** (*one* or *all within a timespan*) failed in the last hour before midnight in the tests' time zone: they found "the next midnight" by rounding up to the next hour and adding the hours left to 24, which during the day's last hour gave the midnight after next. They take tomorrow's date now, place their events from that midnight rather than from the machine's clock, and evaluate the next day a minute after midnight, more than the day the interval needs. Nothing changes in the running app.
+- **Updating from 1.14.1:** `./update.sh --tag v1.14.2`. No migration, nothing to configure.
+
 ## Updating from 1.12
 
-In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.14.1`. It takes a backup first.
+In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.14.2`. It takes a backup first.
 
 - **Two migrations,** which run at the start; nothing existing changes:
   - `CertificateSensors`, four new tables: the certificate sensors' settings and state, the certificates they have seen, the private CAs, and which sensors trust them;
