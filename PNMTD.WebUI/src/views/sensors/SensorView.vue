@@ -41,6 +41,10 @@ import KbPanel from '@/views/kb/KbPanel.vue'
 import RedminePanel from '@/views/redmine/RedminePanel.vue'
 import SensorTicket from '@/views/redmine/SensorTicket.vue'
 import ZabbixSensorTab from './zabbix/ZabbixSensorTab.vue'
+import CertificateChangeBanner from './certificate/CertificateChangeBanner.vue'
+import CertificateConfigRows from './certificate/CertificateConfigRows.vue'
+import CertificateStatusStrip from './certificate/CertificateStatusStrip.vue'
+import CertificateTab from './certificate/CertificateTab.vue'
 import SensorNotesPanel from './SensorNotesPanel.vue'
 import CookieNotesPanel from '@/views/cookie/CookieNotesPanel.vue'
 import { useCookieNotes } from '@/views/cookie/cookieNotes'
@@ -88,6 +92,8 @@ import WindowsWmiTab from './windows/WindowsWmiTab.vue'
  * (docs/udp-iot-plan.md §6.2) adds a status strip and subpages with routes of their own: Last
  * packets, Commands, Firmware, Protocol; its integration panel shows the endpoint, key and token.
  * A MikroTik router (docs/mikrotik-plan.md §11.1) adds its status strip, Setup, and in the SSH modes Backups.
+ * An SSL certificate (docs/ssl-certificate-plan.md §8.3) adds its status strip, its rows, the change waiting
+ * and the Certificate tab.
  */
 const route = useRoute()
 const router = useRouter()
@@ -133,11 +139,20 @@ const isLinux = computed(() => sensor.value?.type === 'LINUX')
 const isAgent = computed(() => isWindows.value || isLinux.value)
 // A Zabbix host's sensor (docs/audit-redmine-zabbix-plan.md §7.7): its overview, PNMT's events, its rules.
 const isZabbix = computed(() => sensor.value?.type === 'ZABBIX' && !!sensor.value.zabbix)
+// An SSL certificate sensor (docs/ssl-certificate-plan.md §6.4, §8.3): the sensor is Monitoring's, its certificate the
+// Certificates area's; every change of the sensor needs Certificates: Edit besides Monitoring: Edit.
+const isCertificateType = computed(() => sensor.value?.type === 'SSL_CERTIFICATE')
+const isCertificate = computed(() => isCertificateType.value && !!sensor.value?.certificate)
+const canCertificates = computed(() => session.can('Certificates', 'View'))
+const canCheck = computed(() => session.can('Certificates', 'Edit'))
+const canEditSensor = computed(
+  () => canWrite.value && (!isCertificateType.value || session.can('Certificates', 'Edit')),
+)
 const agent = useAgentServer(id, isAgent)
 const tab = computed(
   () =>
     (route.params.tab === 'history' && 'history') ||
-    ((isUdp.value || isMikrotik.value || isAgent.value || isZabbix.value) &&
+    ((isUdp.value || isMikrotik.value || isAgent.value || isZabbix.value || isCertificate.value) &&
       typeof route.params.tab === 'string' &&
       route.params.tab) ||
     (isAgent.value || isZabbix.value ? 'overview' : 'events'),
@@ -283,6 +298,36 @@ const zabbixTabs = computed(() => {
     { key: 'history', label: 'History', icon: 'pi pi-history', to: to('history') },
   ]
 })
+// The overview keeps the plain page's key; the Certificate tab for Certificates: View, with a mark while 487 or 488.
+const certificateTabs = computed(() => [
+  plainTabs.value[0]!,
+  ...(canCertificates.value
+    ? [
+        {
+          key: 'certificate',
+          label: 'Certificate',
+          icon: 'pi pi-lock',
+          to: { name: 'sensor', params: { id: id.value, tab: 'certificate' } },
+          badge: sensor.value?.lastCode === 487 || sensor.value?.lastCode === 488 ? '!' : null,
+        },
+      ]
+    : []),
+  plainTabs.value[1]!,
+])
+const checking = ref(false)
+async function checkNow() {
+  checking.value = true
+  try {
+    const detail = await run(() => api.certificates.check(id.value), {
+      success: 'Certificate checked',
+      failure: 'Not checked',
+      invalidate: [keys.sensor(id.value), keys.events],
+    })
+    if (detail) queryClient.setQueryData(keys.certificate(id.value), detail)
+  } finally {
+    checking.value = false
+  }
+}
 const settingsOpen = ref(false)
 const secretsOpen = ref(false)
 const secretsMode = ref<'manual' | 'regenerate'>('manual')
@@ -292,15 +337,25 @@ function editSecrets(mode: 'manual' | 'regenerate') {
 }
 const updating = ref(false)
 const nodeActions = useNodeActions()
-// The type can change between the types one may create (as in v0.12), not to or from DNS.
+// The type can change between the types one may create (as in v0.12), not to or from DNS; to an SSL certificate with
+// Certificates: Edit, checked daily (its interval is 1 hour to 30 days).
 const typeOptions = computed(() =>
-  types.list.value.filter((t) => t.canCreate).map((t) => ({ label: typeLabel(t.type), value: t.type })),
+  types.list.value
+    .filter((t) => t.canCreate && (t.type !== 'SSL_CERTIFICATE' || session.can('Certificates', 'Edit')))
+    .map((t) => ({ label: typeLabel(t.type), value: t.type })),
 )
+function saveType(type: S['SensorType']) {
+  return save(type === 'SSL_CERTIFICATE' && sensor.value?.type !== type ? { type, interval: 0 } : { type })
+}
 
 async function save(patch: Partial<S['SensorRequest']>) {
   const updated = await api.sensors.update(id.value, sensorRequest(sensor.value!, patch))
   queryClient.setQueryData(keys.sensor(id.value), updated)
-  await invalidate([keys.host(updated.host.id), keys.hosts])
+  await invalidate([
+    keys.host(updated.host.id),
+    keys.hosts,
+    ...(updated.type === 'SSL_CERTIFICATE' ? [keys.certificate(id.value)] : []),
+  ])
 }
 const saveNotes = (notes: string | null) => save({ notes })
 
@@ -425,7 +480,7 @@ const more = computed(() =>
         ...(sensor.value?.integration && !isAgent.value
           ? [{ label: 'New tokens…', icon: 'pi pi-key', command: () => (rotating.value = true) }]
           : []),
-        { label: 'Delete sensor…', icon: 'pi pi-trash', command: remove },
+        ...(canEditSensor.value ? [{ label: 'Delete sensor…', icon: 'pi pi-trash', command: remove }] : []),
       ],
 )
 </script>
@@ -472,9 +527,27 @@ const more = computed(() =>
         <TabNav :items="agentTabs" :active="tab" label="Server pages" />
       </template>
       <TabNav v-else-if="isZabbix" :items="zabbixTabs" :active="tab" label="Zabbix sensor pages" />
+      <template v-else-if="isCertificate">
+        <CertificateStatusStrip
+          :sensor="sensor"
+          :can-check="canCheck"
+          :checking="checking"
+          :show-error="tab !== 'certificate'"
+          @check="checkNow"
+        />
+        <TabNav :items="certificateTabs" :active="tab" label="Sensor pages" />
+        <CertificateChangeBanner v-if="tab !== 'history'" :sensor="sensor" :can-accept="canCheck" />
+      </template>
       <TabNav v-else :items="plainTabs" :active="tab" label="Sensor pages" />
 
       <AuditHistory v-if="tab === 'history'" :subject-id="sensor.id" :name="sensor.name" />
+      <CertificateTab
+        v-else-if="isCertificate && tab === 'certificate' && canCertificates"
+        :key="sensor.id"
+        :sensor="sensor"
+        :can-edit="canEditSensor"
+        :can-manage="session.can('Certificates', 'Manage')"
+      />
       <ZabbixSensorTab
         v-else-if="isZabbix && (tab === 'overview' || tab === 'setup')"
         :sensor="sensor"
@@ -608,7 +681,7 @@ const more = computed(() =>
                   :value="sensor.name"
                   label="Name"
                   field="name"
-                  :readonly="!canWrite"
+                  :readonly="!canEditSensor"
                   :save="(v) => save({ name: String(v) })"
                 />
               </dd>
@@ -619,7 +692,7 @@ const more = computed(() =>
                   type="enum"
                   :options="sensorImportanceOptions(sensor.importance ? null : sensor.effectiveImportance)"
                   label="Importance"
-                  :readonly="!canWrite"
+                  :readonly="!canEditSensor"
                   :save="(v) => save({ importance: v === HOST ? null : (v as S['Importance']) })"
                 />
               </dd>
@@ -629,7 +702,7 @@ const more = computed(() =>
                   :value="sensor.enabled"
                   type="bool"
                   label="Enabled"
-                  :readonly="!canWrite"
+                  :readonly="!canEditSensor"
                   :save="(v) => save({ enabled: Boolean(v) })"
                 />
               </dd>
@@ -639,12 +712,13 @@ const more = computed(() =>
                   :value="sensor.ignore"
                   type="bool"
                   label="Ignore"
-                  :readonly="!canWrite"
+                  :readonly="!canEditSensor"
                   :save="(v) => save({ ignore: Boolean(v) })"
                 />
                 <small class="field-hint">Ignored sensors do not count as problems.</small>
               </dd>
-              <template v-if="info?.usesInterval">
+              <CertificateConfigRows v-if="isCertificate" :sensor="sensor" :readonly="!canEditSensor" :save="save" />
+              <template v-if="info?.usesInterval && !isCertificateType">
                 <dt>Interval</dt>
                 <dd>
                   <InlineField
@@ -652,7 +726,7 @@ const more = computed(() =>
                     type="number"
                     label="Interval"
                     field="interval"
-                    :readonly="!canWrite"
+                    :readonly="!canEditSensor"
                     :save="(v) => save({ interval: Number(v) })"
                   />
                   <small class="field-hint">seconds</small>
@@ -666,13 +740,13 @@ const more = computed(() =>
                     type="number"
                     label="Grace period"
                     field="gracePeriod"
-                    :readonly="!canWrite"
+                    :readonly="!canEditSensor"
                     :save="(v) => save({ gracePeriod: Number(v) })"
                   />
                   <small class="field-hint">seconds</small>
                 </dd>
               </template>
-              <template v-if="info?.parameters || sensor.parameters">
+              <template v-if="(info?.parameters || sensor.parameters) && !isCertificateType">
                 <dt>{{ sensor.type === 'PING' ? 'Target' : 'Parameters' }}</dt>
                 <dd>
                   <InlineField
@@ -680,7 +754,7 @@ const more = computed(() =>
                     label="Parameters"
                     field="parameters"
                     mono
-                    :readonly="!canWrite"
+                    :readonly="!canEditSensor"
                     :save="(v) => save({ parameters: v ? String(v) : null })"
                   />
                   <small v-if="info?.parameters" class="field-hint">{{ info.parameters }}</small>
@@ -699,8 +773,8 @@ const more = computed(() =>
                   type="enum"
                   :options="typeOptions"
                   label="Type"
-                  :readonly="!canWrite"
-                  :save="(v) => save({ type: v as S['SensorType'] })"
+                  :readonly="!canEditSensor"
+                  :save="(v) => saveType(v as S['SensorType'])"
                 />
                 <span v-else>DNS · <RouterLink :to="{ name: 'dns-zones' }">its zone</RouterLink></span>
               </dd>
@@ -712,7 +786,7 @@ const more = computed(() =>
                   field="textId"
                   mono
                   placeholder="none"
-                  :readonly="!canWrite"
+                  :readonly="!canEditSensor"
                   :save="(v) => save({ textId: v ? String(v) : null })"
                 />
               </dd>
@@ -724,7 +798,7 @@ const more = computed(() =>
                   label="Notes"
                   field="notes"
                   placeholder="No notes"
-                  :readonly="!canWrite"
+                  :readonly="!canEditSensor"
                   :save="(v) => save({ notes: v ? String(v) : null })"
                 />
               </dd>
@@ -760,7 +834,7 @@ const more = computed(() =>
             </div>
           </section>
           <section
-            v-else-if="sensor.integration && !isMikrotik && !isSystem && !isAgent"
+            v-else-if="sensor.integration && !isMikrotik && !isSystem && !isAgent && !isCertificateType"
             class="panel"
             aria-labelledby="integration-title"
           >

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { holds, type Level } from '@/api/rights'
 import { navigation, visibleNavigation } from './navigation'
 
 describe('visibleNavigation', () => {
@@ -91,6 +92,14 @@ describe('visibleNavigation', () => {
     expect(names(visibleNavigation(none, () => true, [], true))).toEqual(['dashboard', 'availability'])
     const view = names(visibleNavigation((r) => r !== 'admin' && r[0] === 'Availability'))
     expect(view).toEqual(['dashboard', 'availability'])
+  })
+
+  it('shows Admin → Certificates with Certificates: Manage only (docs/ssl-certificate-plan.md §8.5)', () => {
+    const as = (level: Level) =>
+      names(visibleNavigation((r) => r !== 'admin' && holds(false, { Certificates: level }, r[0], r[1])))
+    expect(as('View')).not.toContain('certificates')
+    expect(as('Edit')).not.toContain('certificates')
+    expect(as('Manage')).toEqual(['dashboard', 'certificates'])
   })
 
   it('drops the Mail group when Mail__HideMenu hides its entries', () => {

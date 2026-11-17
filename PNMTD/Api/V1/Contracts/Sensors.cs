@@ -67,7 +67,8 @@ public sealed record SensorDetail(
     MikrotikRouterDetail? Mikrotik = null,
     Importance? Importance = null,
     Importance EffectiveImportance = Importance.Normal,
-    ZabbixSensorDetail? Zabbix = null);
+    ZabbixSensorDetail? Zabbix = null,
+    CertificateSensorSummary? Certificate = null);
 
 /// <summary>
 /// How an application reports: <c>{WriteUrl}/{code}/{message}</c> (GET) or a POST of the message to
@@ -117,6 +118,9 @@ public sealed class SensorRequest
 
     /// <summary>A ZABBIX sensor's Zabbix host and rules (docs/audit-redmine-zabbix-plan.md §7.7); ignored for other types.</summary>
     public ZabbixSensorRequest? Zabbix { get; init; }
+
+    /// <summary>An SSL_CERTIFICATE sensor's trust and rules (docs/ssl-certificate-plan.md §6.2); its host:port is Parameters. Ignored for other types.</summary>
+    public CertificateSensorRequest? Certificate { get; init; }
 }
 
 /// <summary><c>POST /sensors/{id}/tokens/rotate</c>: which tokens get new values. The old URLs stop working at once.</summary>

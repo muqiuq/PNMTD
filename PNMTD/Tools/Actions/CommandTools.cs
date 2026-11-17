@@ -30,6 +30,11 @@ public static class CommandTools
         new("router_get", "A MikroTik router",
             "A MikroTik router: its state, RouterOS and firmware versions, resources, last poll and error, its latest backup, and whether an update is there.",
             Schema(Id("sensorId", "The MIKROTIK sensor")), Area.Monitoring, Level.View, ToolKind.Read, RouterAsync),
+        new("certificate_get", "An SSL certificate",
+            "An SSL certificate sensor (docs/ssl-certificate-plan.md §9): its endpoint, trust and rules, its state, the current certificate's main " +
+            "facts (subject, names, issuer, validity, key, fingerprint, validation), a change waiting to be accepted, and the last error. Accepting a " +
+            "change is a person's decision, on the sensor's page in PNMT.",
+            Schema(Id("sensorId", "The SSL_CERTIFICATE sensor")), Area.Certificates, Level.View, ToolKind.Read, CertificateAsync),
         new("mikrotik_command_get", "A MikroTik command's result",
             "A command run with mikrotik_command_run: one router's output and log (id), or a batch's results grouped by outcome (batchId).",
             Schema(Id("id", "One router's command", required: false), Id("batchId", "The batch", required: false)),
@@ -50,6 +55,9 @@ public static class CommandTools
             Schema(Id("sensorId", "The MIKROTIK sensor")), Area.Commands, Level.Run, ToolKind.Action, RouterPollAsync) { AuditEvents = [AuditEvents.MikrotikPollRequested], Idempotent = true },
         new("router_backup_now", "Back a MikroTik router up now", "Takes a backup of the router's configuration now; a new version is kept only if it changed.",
             Schema(Id("sensorId", "The MIKROTIK sensor")), Area.Commands, Level.Run, ToolKind.Action, RouterBackupAsync) { AuditEvents = [AuditEvents.MikrotikBackupRequested], Idempotent = true },
+        new("certificate_check_now", "Check an SSL certificate now", "Reads the sensor's certificate now, and returns it as certificate_get does.",
+            Schema(Id("sensorId", "The SSL_CERTIFICATE sensor")), Area.Certificates, Level.Edit, ToolKind.Action, CertificateCheckAsync)
+        { AuditEvents = [AuditEvents.CertificateCheckRequested], Idempotent = true },
         new("mikrotik_command_run", "Run a RouterOS command",
             $"Runs RouterOS commands on 1 to {MaxRouters} routers, as PNMT's own user on them (never as their admin), with an optional backup before and " +
             "after. The commands run as jobs: ask mikrotik_command_get with the batch id.",
@@ -119,6 +127,73 @@ public static class CommandTools
         var detail = await ctx.Services.GetRequiredService<MikrotikRouterService>().DetailAsync(id, ct) ?? throw ToolException.NotFound("MikroTik router");
         ctx.Target("Sensor", id, detail.Identity);
         return Router(ctx, id, detail);
+    }
+
+    private static async Task<object> CertificateAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
+    {
+        var id = IdOf(args, "sensorId");
+        var detail = await ctx.Services.GetRequiredService<Certificates.CertificateSensorService>().DetailAsync(id, ct);
+        ctx.Target("Sensor", id, $"{detail.Summary.Host}:{detail.Summary.Port}");
+        return Certificate(ctx, id, detail);
+    }
+
+    private static async Task<object> CertificateCheckAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
+    {
+        var id = IdOf(args, "sensorId");
+        var detail = await ctx.Services.GetRequiredService<Certificates.CertificateSensorService>().CheckNowAsync(id, ct);
+        ctx.Target("Sensor", id, $"{detail.Summary.Host}:{detail.Summary.Port}");
+        ctx.Summary = $"checked the certificate of {detail.Summary.Host}:{detail.Summary.Port}";
+        return Certificate(ctx, id, detail);
+    }
+
+    /// <summary>
+    /// What the tools say of a certificate (docs/ssl-certificate-plan.md §9): its texts came from the server, so they are
+    /// untrusted; an e-mail address in the subject is left out.
+    /// </summary>
+    private static object Certificate(ToolContext ctx, Guid id, CertificateSensorDetail d)
+    {
+        var s = d.Summary;
+        var f = d.Current?.Facts;
+        static string Dn(Lib.Certificates.CertificateName n) => string.Join(", ", new[]
+        {
+            n.CommonName is { } cn ? $"CN={cn}" : null, n.Organization is { } o ? $"O={o}" : null, n.OrganizationalUnit is { } ou ? $"OU={ou}" : null,
+            n.Locality is { } l ? $"L={l}" : null, n.State is { } st ? $"ST={st}" : null, n.Country is { } c ? $"C={c}" : null,
+        }.Where(p => p is not null));
+        return new
+        {
+            SensorId = id,
+            Endpoint = $"{s.Host}:{s.Port}",
+            s.ServerName,
+            s.ConnectTo,
+            Trust = s.Trust.ToString(),
+            PrivateCas = s.Authorities.Select(a => a.Name).ToList(),
+            Rules = new
+            {
+                s.WarnDays, s.CheckExpiry, s.CheckName, s.IncompleteChainFails, FailOnNewCertificate = s.AlertOnCertificateChange,
+                FailOnNewKey = s.AlertOnKeyChange, FailOnNewIssuer = s.AlertOnIssuerChange, IssuerMatch = s.IssuerMatch.ToString(),
+            },
+            s.LastCheckAt,
+            s.NextCheckAt,
+            s.ExpiresAt,
+            s.DaysLeft,
+            s.ConsecutiveFailures,
+            LastError = ctx.UntrustedOrNull("certificate check", s.LastError, 500),
+            Current = f is null ? null : new
+            {
+                Subject = ctx.UntrustedOrNull("certificate subject", Dn(f.Subject), 1000),
+                Names = ctx.UntrustedOrNull("certificate names", string.Join(", ", f.Names.Take(50)) + (f.Names.Count > 50 ? $" and {f.Names.Count - 50} more" : ""), 3000),
+                Issuer = ctx.UntrustedOrNull("certificate issuer", Dn(f.Issuer), 1000),
+                f.NotBefore, f.NotAfter, Key = f.Key.Label, f.SignatureAlgorithm, f.Sha256, f.SelfSigned, f.ValidationLevel,
+            },
+            Validation = d.Validation is { } v ? new
+            {
+                v.Trusted, TrustedBy = ctx.UntrustedOrNull("certificate issuer", v.TrustedBy, 300), v.NameMatches, v.Complete,
+                Problems = ctx.UntrustedOrNull("certificate validation", string.Join("; ", v.Problems), 1000),
+            } : null,
+            Change = d.Change is { } c ? new { c.Alarm, c.Since, Kinds = ctx.UntrustedOrNull("certificate change", string.Join(", ", c.Kinds), 1000) } : null,
+            Note = "Accepting a changed certificate is a person's decision, on the sensor's page in PNMT.",
+            Url = ctx.Link($"sensors/{id}/certificate"),
+        };
     }
 
     private static async Task<object> MikrotikCommandAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)

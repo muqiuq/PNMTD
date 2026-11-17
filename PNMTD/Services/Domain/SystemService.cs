@@ -41,6 +41,8 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new("Cookie's case book", KeyValueKeyEnums.LAST_COOKIE_CASEBOOK, 30, c => c.GetValue("Cookie:Enabled", false)),
         // docs/mcp-plan.md §4.3: the tokens' expiry every 5 minutes, with Mcp__Enabled=true.
         new("MCP tokens", KeyValueKeyEnums.LAST_MCP_TOKEN_EXPIRY, 300, c => c.GetValue("Mcp:Enabled", false)),
+        // docs/ssl-certificate-plan.md §5.2: the due checks every 15 seconds, every sensor's evaluation every minute.
+        new("Certificate checks", KeyValueKeyEnums.LAST_CERTIFICATE_CHECK, 60, c => c.GetValue("Certificates:Enabled", true)),
     ];
 
     public static bool MailboxConfigured(IConfiguration c) =>
@@ -135,6 +137,8 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.LINUX_CHANGED, "LINUX_CHANGED", true, "Something notable changed on a Linux server: services, remote access, administrators, addresses, the kernel, disks, SSH keys."),
         new(PNMTStatusCodes.LINUX_ADMIN_LOGIN, "LINUX_ADMIN_LOGIN", true, "An admin (root included) logged in to a Linux server over SSH or at the console (optional, on by default)."),
         new(PNMTStatusCodes.DIAGNOSTICS_OK, "DIAGNOSTICS_OK", true, "Every check of a diagnostics set passed."),
+        new(PNMTStatusCodes.SSL_OK, "SSL_OK", true, "An SSL certificate is valid under the sensor's trust and checks, with more than its warning days left."),
+        new(PNMTStatusCodes.SSL_CHANGED, "SSL_CHANGED", true, "A new SSL certificate that the sensor's rules don't alarm on, usually a renewal; written once."),
         new(PNMTStatusCodes.DNS_FAILED, "DNS_FAILED", false, "At least one record of the DNS zone differs from what the resolvers answer."),
         new(PNMTStatusCodes.HEARTBEAT_MISSING, "HEARTBEAT_MISSING", false, "No report within the interval and the grace period."),
         new(PNMTStatusCodes.PING_FAILED, "PING_FAILED", false, "The ping target did not answer."),
@@ -167,6 +171,11 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.LINUX_LOGIN_FAILURES, "LINUX_LOGIN_FAILURES", false, "A burst of failed logins against existing accounts on a Linux server from one source or for one user, or a lockout; invalid users never (optional, on by default)."),
         new(PNMTStatusCodes.LINUX_KEY_ADDED, "LINUX_KEY_ADDED", false, "An SSH key that isn't registered as active appeared in an authorized_keys file on a Linux server (optional, on by default)."),
         new(PNMTStatusCodes.DIAGNOSTICS_FAILED, "DIAGNOSTICS_FAILED", false, "At least one check of a diagnostics set failed; the message names them."),
+        new(PNMTStatusCodes.SSL_ABOUT_TO_EXPIRE, "SSL_ABOUT_TO_EXPIRE", false, "An SSL certificate, or an intermediate of its chain, expires within the sensor's warning days."),
+        new(PNMTStatusCodes.SSL_EXPIRED, "SSL_EXPIRED", false, "An SSL certificate, or an intermediate of its chain, has expired."),
+        new(PNMTStatusCodes.SSL_CHANGED_UNEXPECTEDLY, "SSL_CHANGED_UNEXPECTEDLY", false, "An SSL certificate, its key or its issuer changed, and the sensor alarms on that; until a person accepts the new certificate, or the accepted one returns."),
+        new(PNMTStatusCodes.SSL_INVALID, "SSL_INVALID", false, "An SSL certificate isn't trusted under the sensor's trust mode, doesn't match the name, isn't valid yet, or comes without its intermediate, as the sensor checks."),
+        new(PNMTStatusCodes.SSL_UNREACHABLE, "SSL_UNREACHABLE", false, "Two checks of an SSL certificate in a row failed: no such name, refused, timeout, the handshake failed, or no certificate."),
         new(PNMTStatusCodes.ERROR, "ERROR", false, "The default failure code. Any code above 399 counts as a failure."),
     ];
 
@@ -187,6 +196,7 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(SensorType.WINDOWS, "A Windows server or PC running the PNMT sensor service, added with a join token (Add server): 250 with each heartbeat, 251 after a restart, 253 for a notable change, 254 for an admin login; 451 for an agent problem, 453 for a new Critical entry, 454 for failed-login bursts; 460 after Interval + GracePeriod without a heartbeat.", null, false, true),
         new(SensorType.DIAGNOSTICS, "A diagnostics set assigned to a server's agent, created by the assignment: 252 when every check passed, 452 when one failed; scheduled ones get 460 without a result within their interval and 2 minutes.", null, false, true),
         new(SensorType.ZABBIX, "A Zabbix host attached to this host, from Zabbix's open problems (each poll, Zabbix__PollSeconds): 290 without a problem from the sensor's severity up, 490 with one, 491 when the host is gone from Zabbix, 492 when an interface is unavailable and the sensor counts that. No events while Zabbix doesn't answer.", null, true, false),
+        new(SensorType.SSL_CERTIFICATE, "PNMTD reads the TLS certificate of host:port every Interval seconds (daily by default) and evaluates it every minute, trusting public CAs, private CAs or a pinned certificate: 285 while valid, 286 for a new certificate it accepts, 485 within the sensor's warning days, 486 once expired, 487 for a change it alarms on until accepted, 488 when not trusted or the name doesn't match, 489 after two failed checks in a row.", "host[:port], or an https:// URL", true, true),
         new(SensorType.LINUX, "A Linux server running the PNMT agent, added with a join token (Add server): 260 with each heartbeat, 261 after a restart, 263 for a notable change, 264 for an admin login; 461 for an agent problem, 462 for pending security updates, 463 for a new critical journal entry, 464 for failed-login bursts, 465 for an unregistered SSH key; 460 after Interval + GracePeriod without a heartbeat.", null, false, true),
     ];
 

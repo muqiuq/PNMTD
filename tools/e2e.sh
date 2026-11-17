@@ -78,7 +78,7 @@ echo "Starting ${NAME} on port ${PORT}…"
 if [[ "$FAKES" == "1" ]]; then
   "$ENGINE" rm -f "$FAKES_NAME" >/dev/null 2>&1 || true
   "$ENGINE" run -d --name "$FAKES_NAME" --network "$NETWORK" --entrypoint pnmtd "${IMAGE:-pnmtd:dev}" \
-    dev fake-integrations --port 7390 >"$log" 2>&1 || { cat "$log" >&2; exit 1; }
+    dev fake-integrations --port 7390 --tls-port 7391 >"$log" 2>&1 || { cat "$log" >&2; exit 1; }
 fi
 
 user="e2e-$(od -An -N4 -tx1 /dev/urandom | tr -d ' \n')"
@@ -98,6 +98,12 @@ echo "$viewer_password" | "$ENGINE" exec -i "$NAME" pnmtd users add e2e-viewer -
 # node_modules (with @playwright/test) are those of tools/npm.sh: installed if the lock changed.
 tools/npm.sh exec -- playwright --version >/dev/null
 
+# The fakes' TLS endpoints for the SSL certificate sensors (docs/ssl-certificate-plan.md §9), when they run.
+fakes_env=()
+if [[ "$FAKES" == "1" ]]; then
+  fakes_env=(-e "E2E_FAKES_URL=http://${FAKES_NAME}:7390" -e "E2E_TLS_HOST=${FAKES_NAME}" -e E2E_TLS_PORT=7391)
+fi
+
 rm -rf PNMTD.WebUI/test-results
 # In the app container's network: PNMT is http://localhost:8080 for the browser, a secure context as HTTPS is in
 # production, which WebCrypto (the backups' decryption, docs/mikrotik-backup-plan.md §3.6) needs. UDP goes to the
@@ -105,5 +111,5 @@ rm -rf PNMTD.WebUI/test-results
 "$ENGINE" run --rm --network "container:${NAME}" --ipc=host \
   -v "$PWD/PNMTD.WebUI:/web" -v "${WEB_MODULES_VOLUME}:/web/node_modules" -w /web \
   -e "E2E_BASE_URL=http://localhost:8080" -e E2E_UDP_PORT=5028 -e "E2E_USER=${user}" -e "E2E_PASSWORD=${password}" \
-  -e "E2E_ADMIN_PASSWORD=${admin_password}" -e "E2E_VIEWER_PASSWORD=${viewer_password}" -e CI=1 \
+  -e "E2E_ADMIN_PASSWORD=${admin_password}" -e "E2E_VIEWER_PASSWORD=${viewer_password}" -e CI=1 ${fakes_env[@]+"${fakes_env[@]}"} \
   "$PLAYWRIGHT_IMAGE" node_modules/.bin/playwright test "$@"

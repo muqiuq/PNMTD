@@ -849,6 +849,53 @@ export const api = {
     ai: () => call(client.POST('/api/v1/debug/ai')),
   },
 
+  /**
+   * An SSL certificate sensor's certificate (docs/ssl-certificate-plan.md §6.3): reading Certificates' View, Check now and
+   * accepting a change its Edit. Its settings go through /sensors (SensorRequest.certificate).
+   */
+  certificates: {
+    get: (id: Id) => call(client.GET('/api/v1/sensors/{id}/certificate', { params: { path: { id } } })),
+    /** Checks now and answers once the check is done (at most 30 s). */
+    check: (id: Id) => call(client.POST('/api/v1/sensors/{id}/certificate/check', { params: { path: { id } } })),
+    /**
+     * §8.4: the SHA-256 the person saw and confirmed: true. 400 confirmation_required without it; 409
+     * certificate_changed_again when that is no longer the current certificate, 409 no_change without a change.
+     */
+    accept: (id: Id, body: S['CertificateAcceptRequest']) =>
+      call(client.POST('/api/v1/sensors/{id}/certificate/accept', { params: { path: { id } }, body })),
+    /** The certificates seen, newest first. */
+    versions: (id: Id, query: ListQuery = {}) =>
+      call(client.GET('/api/v1/sensors/{id}/certificate/versions', { params: { path: { id }, query } })),
+    version: (id: Id, versionId: Id) =>
+      call(
+        client.GET('/api/v1/sensors/{id}/certificate/versions/{versionId}', { params: { path: { id, versionId } } }),
+      ),
+    /** The leaf's PEM, or with chain the chain as the server sent it, as text (Copy PEM, a root to trust). */
+    pem: (id: Id, versionId: Id, chain = false) =>
+      call(
+        client.GET('/api/v1/sensors/{id}/certificate/versions/{versionId}/pem', {
+          params: { path: { id, versionId }, query: { chain } },
+          parseAs: 'text',
+        }),
+      ) as Promise<string>,
+    /** A plain link: the browser downloads the file with the session cookie. */
+    pemUrl: (id: Id, versionId: Id, chain = false) =>
+      `${typeof location !== 'undefined' ? location.origin : ''}/api/v1/sensors/${encodeURIComponent(id)}/certificate/versions/${encodeURIComponent(versionId)}/pem?chain=${chain}`,
+  },
+
+  /** The private CAs (docs/ssl-certificate-plan.md §4.5, §8.5): reading Certificates' View, changing its Manage. */
+  certificateAuthorities: {
+    list: () => call(client.GET('/api/v1/certificate-authorities')),
+    /** What §4.5's rules make of a PEM, or why it is refused; stores nothing. */
+    preview: (body: S['CertificateAuthorityRequest']) =>
+      call(client.POST('/api/v1/certificate-authorities/preview', { body })),
+    create: (body: S['CertificateAuthorityRequest']) => call(client.POST('/api/v1/certificate-authorities', { body })),
+    /** 409 authority_in_use, naming the sensors that trust it. */
+    remove: (id: Id) => call(client.DELETE('/api/v1/certificate-authorities/{id}', { params: { path: { id } } })),
+    pemUrl: (id: Id) =>
+      `${typeof location !== 'undefined' ? location.origin : ''}/api/v1/certificate-authorities/${encodeURIComponent(id)}/pem`,
+  },
+
   udp: {
     // --- a node (docs/udp-iot-plan.md §5): CanRead, the writes CanWrite --------------------
     setSecrets: (id: Id, body: S['UdpKeyRequest']) =>
@@ -982,6 +1029,10 @@ export const keys = {
   locationFields: ['location-fields'] as const,
   sensors: ['sensors'] as const,
   sensor: (id: Id) => ['sensor', id] as const,
+  /** An SSL certificate sensor's certificate and the certificates seen: under the sensor's key, refreshed with it. */
+  certificate: (id: Id) => ['sensor', id, 'certificate'] as const,
+  /** The private CAs (docs/ssl-certificate-plan.md §8.5). */
+  certificateAuthorities: ['certificate-authorities'] as const,
   events: ['events'] as const,
   rules: ['rules'] as const,
   rule: (id: Id) => ['rule', id] as const,
@@ -1058,6 +1109,31 @@ export function sensorRequest(s: S['SensorDetail'], patch: Partial<S['SensorRequ
     mikrotik: (patch.type ?? s.type) === 'MIKROTIK' && s.mikrotik ? mikrotikRequest(s.mikrotik) : undefined,
     // A Zabbix sensor's rules as they are (docs/audit-redmine-zabbix-plan.md §7.7).
     zabbix: (patch.type ?? s.type) === 'ZABBIX' && s.zabbix ? zabbixRequest(s.zabbix) : undefined,
+    // An SSL certificate sensor's settings as they are (docs/ssl-certificate-plan.md §8.1), for the same reason.
+    certificate:
+      (patch.type ?? s.type) === 'SSL_CERTIFICATE' && s.certificate ? certificateRequest(s.certificate) : undefined,
+    ...patch,
+  }
+}
+
+/** An SSL certificate sensor's settings for SensorRequest.certificate, from its summary, with some changed. */
+export function certificateRequest(
+  c: S['CertificateSensorSummary'],
+  patch: Partial<S['CertificateSensorRequest']> = {},
+): S['CertificateSensorRequest'] {
+  return {
+    trust: c.trust,
+    authorityIds: c.authorities.map((a) => a.id),
+    checkName: c.checkName,
+    checkExpiry: c.checkExpiry,
+    incompleteChainFails: c.incompleteChainFails,
+    serverName: c.serverName,
+    connectTo: c.connectTo,
+    warnDays: c.warnDays,
+    alertOnCertificateChange: c.alertOnCertificateChange,
+    alertOnKeyChange: c.alertOnKeyChange,
+    alertOnIssuerChange: c.alertOnIssuerChange,
+    issuerMatch: c.issuerMatch,
     ...patch,
   }
 }

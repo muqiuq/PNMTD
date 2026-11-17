@@ -97,6 +97,18 @@ namespace PNMTD.Lib.Models
         public const int DIAGNOSTICS_OK = 252;
         public const int DIAGNOSTICS_FAILED = 452;
 
+        /// <summary>
+        /// SSL certificates (docs/ssl-certificate-plan.md §3): valid, a new certificate the rules accept; about to expire,
+        /// expired, changed unexpectedly (until accepted), invalid under the sensor's trust and checks, unreachable twice in a row.
+        /// </summary>
+        public const int SSL_OK = 285;
+        public const int SSL_CHANGED = 286;
+        public const int SSL_ABOUT_TO_EXPIRE = 485;
+        public const int SSL_EXPIRED = 486;
+        public const int SSL_CHANGED_UNEXPECTEDLY = 487;
+        public const int SSL_INVALID = 488;
+        public const int SSL_UNREACHABLE = 489;
+
         public static readonly int[] ONE_OR_ALL_WITHIN_CODES = new int[]{ ONE_WITHIN_TIMESPAN_FAILED, ONE_WITHIN_TIMESPAN_OK, ALL_WITHIN_TIMESPAN_OK, ALL_WITHIN_TIMESPAN_FAILED };
     }
 }

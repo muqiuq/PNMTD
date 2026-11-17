@@ -49,6 +49,12 @@ namespace PNMTD.Data
         public DbSet<ZabbixHostEntity> ZabbixHosts { get; set; }
         public DbSet<ZabbixSensorEntity> ZabbixSensors { get; set; }
 
+        // SSL certificate sensors (docs/ssl-certificate-plan.md §4): their settings and state, the certificates seen, the private CAs.
+        public DbSet<CertificateSensorEntity> CertificateSensors { get; set; }
+        public DbSet<CertificateVersionEntity> CertificateVersions { get; set; }
+        public DbSet<CertificateAuthorityEntity> CertificateAuthorities { get; set; }
+        public DbSet<CertificateSensorAuthorityEntity> CertificateSensorAuthorities { get; set; }
+
         // Groups and rights (docs/audit-redmine-zabbix-plan.md §5).
         public DbSet<GroupEntity> Groups { get; set; }
         public DbSet<GroupRightEntity> GroupRights { get; set; }
@@ -228,6 +234,35 @@ namespace PNMTD.Data
                 e.HasOne(z => z.Sensor).WithOne().HasForeignKey<ZabbixSensorEntity>(z => z.SensorId).OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(z => z.ZabbixHostId).IsUnique();
                 e.Property(z => z.MinSeverity).HasConversion<string>().HasMaxLength(16);
+            });
+
+            // SSL certificate sensors (docs/ssl-certificate-plan.md §4): the row and the versions go with the sensor; a private CA
+            // in use can't be deleted; the version pointers fall back to null when retention takes a version (it never takes those).
+            modelBuilder.Entity<CertificateSensorEntity>(e =>
+            {
+                e.HasOne(c => c.Sensor).WithOne().HasForeignKey<CertificateSensorEntity>(c => c.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.Property(c => c.Trust).HasConversion<string>().HasMaxLength(16);
+                e.Property(c => c.IssuerMatch).HasConversion<string>().HasMaxLength(16);
+                e.HasOne<CertificateVersionEntity>().WithMany().HasForeignKey(c => c.CurrentVersionId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<CertificateVersionEntity>().WithMany().HasForeignKey(c => c.AcceptedVersionId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<CertificateVersionEntity>().WithMany().HasForeignKey(c => c.AnnouncedVersionId).OnDelete(DeleteBehavior.SetNull);
+                e.HasMany(c => c.Authorities).WithOne().HasForeignKey(a => a.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(c => c.NextCheckAt);
+            });
+            modelBuilder.Entity<CertificateVersionEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(v => v.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(v => new { v.SensorId, v.Sha256 }).IsUnique();
+                e.HasIndex(v => new { v.SensorId, v.LastSeenAt });
+            });
+            modelBuilder.Entity<CertificateAuthorityEntity>(e =>
+            {
+                e.HasIndex(a => a.Name).IsUnique();
+            });
+            modelBuilder.Entity<CertificateSensorAuthorityEntity>(e =>
+            {
+                e.HasKey(a => new { a.SensorId, a.AuthorityId });
+                e.HasOne(a => a.Authority).WithMany().HasForeignKey(a => a.AuthorityId).OnDelete(DeleteBehavior.Restrict);
             });
 
             // Redmine's links (docs/audit-redmine-zabbix-plan.md §6.5): exactly one target, removed with it; a ticket once per target.

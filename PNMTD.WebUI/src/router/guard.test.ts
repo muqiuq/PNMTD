@@ -39,6 +39,21 @@ describe('the route guard', () => {
     expect(holds(false, { Monitoring: 'View' }, 'Monitoring', 'Details')).toBe(false)
   })
 
+  it('ranks Certificates: View, Edit and Manage (docs/ssl-certificate-plan.md §6.4)', () => {
+    expect(holds(false, { Certificates: 'Manage' }, 'Certificates', 'View')).toBe(true)
+    expect(holds(false, { Certificates: 'Edit' }, 'Certificates', 'View')).toBe(true)
+    expect(holds(false, { Certificates: 'Edit' }, 'Certificates', 'Manage')).toBe(false)
+    expect(holds(false, { Certificates: 'View' }, 'Certificates', 'Edit')).toBe(false)
+    // Monitoring: Edit alone holds nothing of it: a certificate sensor's changes need both (§6.1).
+    expect(holds(false, { Monitoring: 'Edit' }, 'Certificates', 'View')).toBe(false)
+  })
+
+  it('opens Admin → Certificates with its View, which the page reads with (§8.5)', () => {
+    const page = to('certificates', '/admin/certificates', { right: ['Certificates', 'View'] })
+    expect(decide(page, as({ Certificates: 'View' }))).toBe(true)
+    expect(decide(page, as(operators))).toEqual({ name: 'dashboard' })
+  })
+
   it('sends a signed-out user to the login, with the page as returnUrl', () => {
     expect(decide(to('host', '/hosts/1'), as(null))).toEqual({ name: 'login', query: { returnUrl: '/hosts/1' } })
     expect(decide(to('login', '/login', { public: true }), as(null))).toBe(true)

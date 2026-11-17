@@ -10,7 +10,7 @@ namespace PNMTD.Auth.Rights;
 public enum Area
 {
     Monitoring, Commands, Mail, Decisions, Locations, KnowledgeBase, Redmine, Zabbix, UdpNodes, Mikrotik, Servers, SshKeys,
-    Diagnostics, Ai, System, AuditLog, Cookie, Availability, Mcp,
+    Diagnostics, Ai, System, AuditLog, Cookie, Availability, Mcp, Certificates,
 }
 
 /// <summary>
@@ -75,6 +75,11 @@ public static class RightsCatalog
         new(Area.Mcp, "MCP", [
             (Level.View, "Admin → MCP: the MCP log of everyone, and every user's tokens and their state."),
             (Level.Manage, "View, plus turning anyone's token off.")]),
+        // docs/ssl-certificate-plan.md §6.4: the sensors themselves, their state and events stay Monitoring's.
+        new(Area.Certificates, "Certificates", [
+            (Level.View, "The SSL certificate sensors' Certificate tab: the certificate, its chain, the connection, the certificates seen and their PEM; the list of private CAs."),
+            (Level.Edit, "View, plus creating, changing and deleting SSL certificate sensors (with Monitoring: Edit), Check now, and accepting a changed certificate."),
+            (Level.Manage, "Edit, plus Admin → Certificates: adding and removing private CAs.")]),
     ];
 
     private static readonly Dictionary<Area, AreaInfo> ByArea = Areas.ToDictionary(a => a.Area);

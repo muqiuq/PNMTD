@@ -135,8 +135,9 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     // A UDP node's subpages are tabs of the same page, each with its route (docs/udp-iot-plan.md §6.2).
-    // A MikroTik router's too (docs/mikrotik-plan.md §11.1), and a server's (docs/windows-sensor-plan.md §10.2).
-    path: '/sensors/:id/:tab(history|last-packets|commands|firmware|protocol|setup|backups|updates|events|overview|hardware|network|services|remote-access|access|event-log|journal|ssh-keys|diagnostics|changes|agent|scripts|wmi)?',
+    // A MikroTik router's too (docs/mikrotik-plan.md §11.1), and a server's (docs/windows-sensor-plan.md §10.2), and an SSL
+    // certificate's (docs/ssl-certificate-plan.md §8.3).
+    path: '/sensors/:id/:tab(history|last-packets|commands|firmware|protocol|setup|backups|updates|events|overview|hardware|network|services|remote-access|access|event-log|journal|ssh-keys|diagnostics|changes|agent|scripts|wmi|certificate)?',
     name: 'sensor',
     component: () => import('@/views/sensors/SensorView.vue'),
     meta: { title: 'Sensor', right: ['Monitoring', 'View'] },
@@ -338,6 +339,13 @@ export const routes: RouteRecordRaw[] = [
     name: 'ssh-keys',
     component: () => import('@/views/admin/sshkeys/SshKeysView.vue'),
     meta: { title: 'SSH keys', right: ['SshKeys', 'Manage'] },
+  },
+  {
+    // The private CAs (docs/ssl-certificate-plan.md §8.5): the page reads with Certificates' View, its buttons need Manage.
+    path: '/admin/certificates',
+    name: 'certificates',
+    component: () => import('@/views/admin/CertificatesView.vue'),
+    meta: { title: 'Certificates', right: ['Certificates', 'View'] },
   },
   {
     // docs/mikrotik-plan.md §11.2: the routers and the tunnel network, ?tab=network|routers.

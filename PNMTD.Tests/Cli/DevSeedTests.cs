@@ -33,8 +33,15 @@ public sealed class DevSeedTests
         Assert.AreEqual(51, await db.Hosts.CountAsync());
         // 300; two Windows servers with their diagnostics sensors (docs/windows-sensor-plan.md §11); two Linux servers, and web-01's
         // diagnostics sensor (docs/linux-sensor-plan.md §12).
-        Assert.AreEqual(308, await db.Sensors.CountAsync(), "and nas-01's Zabbix sensor");
+        Assert.AreEqual(315, await db.Sensors.CountAsync(), "and nas-01's Zabbix sensor, and seven SSL certificate sensors");
         Assert.AreEqual(long.Parse(new PNMTD.Dev.FakeZabbix().HostId("nas01")), (await db.ZabbixSensors.SingleAsync()).ZabbixHostId);
+        // SSL certificates (docs/ssl-certificate-plan.md §9): every state, the failing ones ignored, a private CA, a change waiting.
+        Assert.AreEqual(7, await db.CertificateSensors.CountAsync());
+        Assert.AreEqual("PNMT demo root", (await db.CertificateAuthorities.SingleAsync()).Name);
+        CollectionAssert.AreEquivalent(new[] { 285, 285, 285, 485, 486, 487, 489 },
+            await db.CertificateSensors.Select(c => c.LastCode!.Value).ToListAsync());
+        Assert.IsTrue(await db.Sensors.Where(s => s.Type == Lib.Models.Enum.SensorType.SSL_CERTIFICATE && s.Ignore).CountAsync() == 4, "the four failing ones");
+        Assert.IsTrue(await db.CertificateSensors.AnyAsync(c => c.CurrentVersionId != c.AcceptedVersionId), "vpn's change waits");
         Assert.AreEqual(5, await db.RedmineLinks.CountAsync(), "a sensor, three hosts and a page");
         Assert.AreEqual(5, await db.RedmineIssues.CountAsync(), "with PNMT's copy");
         Assert.IsTrue(await db.RedmineLinks.AnyAsync(l => l.IssueId == 9 && db.Sensors.Any(x => x.Id == l.SensorId && x.Name == "disk /")),

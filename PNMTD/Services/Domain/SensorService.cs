@@ -11,7 +11,7 @@ using PNMTD.Models.Db;
 namespace PNMTD.Services.Domain;
 
 public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, PublicUrls urls, NotificationRuleService rules, UdpNodeService udp,
-    MikrotikRouterService mikrotik, Agents.AgentHub agents, Zabbix.ZabbixSensorService zabbix)
+    MikrotikRouterService mikrotik, Agents.AgentHub agents, Zabbix.ZabbixSensorService zabbix, Certificates.CertificateSensorService certificates)
 {
     private static readonly string[] SortFields = ["name", "host", "state", "type", "lastevent"];
 
@@ -77,7 +77,8 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             integration, sensor.Notes, isUdp ? await udp.DetailAsync(id, ct) : null,
             sensor.Type == SensorType.MIKROTIK ? await mikrotik.DetailAsync(id, ct) : null,
             sensor.Importance, status.Info.EffectiveImportance,
-            sensor.Type == SensorType.ZABBIX ? await zabbix.DetailAsync(id, ct) : null);
+            sensor.Type == SensorType.ZABBIX ? await zabbix.DetailAsync(id, ct) : null,
+            sensor.Type == SensorType.SSL_CERTIFICATE ? await certificates.SummaryAsync(id, ct) : null);
     }
 
     /// <summary>Many sensors' importance at once (docs/ai-operations-plan.md §11.1); null: their hosts'.</summary>
@@ -118,6 +119,11 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         if (sensor.Type == SensorType.ZABBIX)
         {
             await zabbix.ApplyAsync(sensor, request.Zabbix, ct);
+        }
+        if (sensor.Type == SensorType.SSL_CERTIFICATE)
+        {
+            // Checked within 15 seconds (docs/ssl-certificate-plan.md §5.2).
+            await certificates.ApplyAsync(sensor, request.Certificate, null, 0, ct);
         }
         await db.SaveChangesAsync(ct);
         udp.Changed();
@@ -170,6 +176,8 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             var wasUdp = sensor.Type == SensorType.UDP_NODE;
             var wasMikrotik = sensor.Type == SensorType.MIKROTIK;
             var wasZabbix = sensor.Type == SensorType.ZABBIX;
+            var wasCertificate = sensor.Type == SensorType.SSL_CERTIFICATE;
+            var (oldParameters, oldInterval) = (sensor.Parameters, sensor.Interval);
             await ValidateAsync(request, sensor, ct);
             Apply(sensor, request);
             if (sensor.Type == SensorType.UDP_NODE)
@@ -196,6 +204,14 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             {
                 await zabbix.RemoveAsync(sensor.Id, ct);
             }
+            if (sensor.Type == SensorType.SSL_CERTIFICATE)
+            {
+                await certificates.ApplyAsync(sensor, request.Certificate, wasCertificate ? oldParameters : null, wasCertificate ? oldInterval : 0, ct);
+            }
+            else if (wasCertificate)
+            {
+                await certificates.RemoveAsync(sensor.Id, ct);
+            }
         }
         await db.SaveChangesAsync(ct);
         udp.Changed();
@@ -204,6 +220,10 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         if (sensor.Type == SensorType.ZABBIX)
         {
             await zabbix.EvaluateAsync(sensor.Id, ct);
+        }
+        if (sensor.Type == SensorType.SSL_CERTIFICATE)
+        {
+            await certificates.EvaluateAsync(sensor.Id, ct);
         }
         return await GetAsync(id, withSecrets, ct);
     }
@@ -215,6 +235,10 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             .Select(s => new { s.Type, s.Name, s.ParentId, Host = s.Parent.Name, s.Parent.LocationId }).SingleOrDefaultAsync(ct)
             ?? throw ApiException.NotFound("Sensor");
         var type = sensor.Type;
+        if (type == SensorType.SSL_CERTIFICATE)
+        {
+            certificates.EnsureMayEdit();
+        }
         // Deleted by ExecuteDelete below: the audit learns the sensor here (docs/audit-redmine-zabbix-plan.md §3.3).
         AuditLog.Target(AuditTarget.Sensor(id, $"{sensor.Host} / {sensor.Name}", sensor.ParentId, sensor.LocationId));
         AuditLog.Summary($"{sensor.Host} / {sensor.Name} deleted ({sensor.Type})");
@@ -309,6 +333,11 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
 
     private async Task ValidateAsync(SensorRequest request, SensorEntity? existing, CancellationToken ct)
     {
+        if (request.Type == SensorType.SSL_CERTIFICATE || existing?.Type == SensorType.SSL_CERTIFICATE)
+        {
+            // Certificates: Edit besides the endpoint's Monitoring: Edit (docs/ssl-certificate-plan.md §6.1).
+            certificates.EnsureMayEdit();
+        }
         var v = new ApiValidator();
         var name = request.Name?.Trim();
         v.Check(name is { Length: >= 1 and <= 200 }, "name", "The name must have 1 to 200 characters.");
@@ -343,6 +372,13 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
                 ? null
                 : await db.ZabbixSensors.AsNoTracking().SingleOrDefaultAsync(z => z.SensorId == existing.Id, ct);
             await zabbix.ValidateAsync(request.Zabbix, row, v, ct);
+        }
+        if (request.Type == SensorType.SSL_CERTIFICATE)
+        {
+            var row = existing is null || existing.Type != SensorType.SSL_CERTIFICATE
+                ? null
+                : await db.CertificateSensors.AsNoTracking().SingleOrDefaultAsync(c => c.SensorId == existing.Id, ct);
+            await certificates.ValidateAsync(request, row, v, ct);
         }
         if (request.Type is SensorType.HEARTBEAT or SensorType.HEARTBEAT_VALUECHECK or SensorType.PING or SensorType.UDP_NODE)
         {

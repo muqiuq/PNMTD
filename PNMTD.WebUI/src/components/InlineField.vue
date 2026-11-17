@@ -15,13 +15,15 @@ type Value = string | number | boolean | null
  * it (or its pencil) opens an editor with Save and Discard, and only Save stores the value: neither
  * a change nor leaving the field does. Enter saves (Ctrl/⌘+Enter in a multi-line field), Esc
  * discards. If the server rejects the value, the editor stays open with it and the reason
- * underneath (or in a toast, when it is not about a field).
+ * underneath (or in a toast, when it is not about a field). A `custom` field shows its value as
+ * text and edits a draft of the parent's in the #editor slot: `edit` asks the parent to start it,
+ * and Save calls save, which stores that draft (docs/ssl-certificate-plan.md §8.3).
  */
 const props = withDefaults(
   defineProps<{
     value: Value
     save: (value: Value) => Promise<unknown>
-    type?: 'text' | 'textarea' | 'number' | 'bool' | 'enum'
+    type?: 'text' | 'textarea' | 'number' | 'bool' | 'enum' | 'custom'
     options?: { label: string; value: string | number }[]
     /** The JSON name of the field in validation errors. */
     field?: string
@@ -34,6 +36,7 @@ const props = withDefaults(
   { type: 'text', options: () => [], field: undefined, placeholder: '–', readonly: false, mono: false },
 )
 
+const emit = defineEmits<{ edit: [] }>()
 const notify = useNotify()
 const shown = ref<Value>(props.value)
 const editing = ref(false)
@@ -78,10 +81,17 @@ async function begin() {
   picked.value = typeof shown.value === 'string' || typeof shown.value === 'number' ? shown.value : null
   flag.value = Boolean(shown.value)
   error.value = null
+  if (props.type === 'custom') {
+    emit('edit')
+  }
   editing.value = true
   await nextTick()
   if (props.type === 'enum') {
     choice.value?.show(true)
+    return
+  }
+  if (props.type === 'custom') {
+    root.value?.querySelector<HTMLElement>('.custom input, .custom [tabindex="0"]')?.focus()
     return
   }
   const el = input.value?.$el
@@ -112,6 +122,8 @@ function draftValue(): Value {
       return flag.value
     case 'enum':
       return picked.value
+    case 'custom':
+      return shown.value
     case 'number': {
       const trimmed = text.value.trim()
       return trimmed === '' ? null : Number(trimmed)
@@ -130,7 +142,7 @@ async function saveDraft() {
     error.value = 'A number.'
     return
   }
-  if (next === shown.value) {
+  if (next === shown.value && props.type !== 'custom') {
     await close()
     return
   }
@@ -138,7 +150,8 @@ async function saveDraft() {
   error.value = null
   try {
     await props.save(next)
-    shown.value = next
+    // A custom field's text is the parent's: what it shows after the save.
+    shown.value = props.type === 'custom' ? props.value : next
     await close()
   } catch (e) {
     // About this field, or about another one this value needs (a type that needs an interval).
@@ -168,6 +181,10 @@ function onKey(event: KeyboardEvent) {
   if (props.type === 'enum' && choice.value?.overlayVisible) {
     return
   }
+  // A custom editor's selects open and pick with Enter and close with Esc themselves.
+  if (props.type === 'custom' && (event.target as HTMLElement | null)?.closest('[role="combobox"]')) {
+    return
+  }
   if (event.key === 'Enter' && props.type === 'textarea' && !event.ctrlKey && !event.metaKey) {
     return
   }
@@ -192,6 +209,7 @@ function onKey(event: KeyboardEvent) {
         :disabled="saving"
         :aria-label="label"
       />
+      <div v-else-if="type === 'custom'" class="editor custom"><slot name="editor" /></div>
       <ToggleSwitch v-else-if="type === 'bool'" ref="input" v-model="flag" :disabled="saving" :aria-label="label" />
       <Textarea
         v-else-if="type === 'textarea'"
@@ -332,6 +350,13 @@ function onKey(event: KeyboardEvent) {
 .editor {
   flex: 1;
   min-width: 0;
+}
+
+.custom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pnmt-space-1);
 }
 
 .actions {

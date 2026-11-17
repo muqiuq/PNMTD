@@ -28,6 +28,8 @@ export const levelOrder: Record<Area, readonly Level[]> = {
   Cookie: ['Use', 'Instruct', 'Manage'],
   Availability: ['View', 'Edit', 'Manage'],
   Mcp: ['View', 'Manage'],
+  // docs/ssl-certificate-plan.md §6.4: the Certificate tab, certificate sensors with Monitoring: Edit, the private CAs.
+  Certificates: ['View', 'Edit', 'Manage'],
 }
 
 /** Whether these rights (the admin flag, or the levels per area) include the level asked for. */

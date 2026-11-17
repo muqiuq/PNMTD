@@ -18,7 +18,7 @@ namespace PNMTD.Cli;
 /// </summary>
 internal static class DevSeedIntegrations
 {
-    public static (int Links, int ZabbixSensors, int AuditEntries) Seed(PnmtdDbContext db, IConfiguration configuration, DateTime now)
+    public static (int Links, int ZabbixSensors, int AuditEntries, int CertificateSensors) Seed(PnmtdDbContext db, IConfiguration configuration, DateTime now)
     {
         var hosts = db.Hosts.AsNoTracking().ToDictionary(h => h.Name, h => h.Id);
         var admin = db.Users.AsNoTracking().Where(u => u.IsAdmin).OrderBy(u => u.Username).FirstOrDefault();
@@ -46,7 +46,8 @@ internal static class DevSeedIntegrations
         }
         var audit = SeedAudit(db, hosts, admin, now);
         db.SaveChanges();
-        return (links, zabbixSensors, audit);
+        var certificates = DevSeedCertificates.Seed(db, hosts, now);
+        return (links, zabbixSensors, audit, certificates);
     }
 
     private static int SeedRedmine(PnmtdDbContext db, Dictionary<string, Guid> hosts, UserEntity? admin, DateTime now)

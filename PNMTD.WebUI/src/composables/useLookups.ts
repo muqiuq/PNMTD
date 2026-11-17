@@ -2,12 +2,13 @@ import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { api, keys } from '@/api/resources'
 
-/** "HEARTBEAT_MISSING" → "Heartbeat missing". */
+/** "HEARTBEAT_MISSING" → "Heartbeat missing", "SSL_ABOUT_TO_EXPIRE" → "SSL about to expire". */
 export function humanize(name: string): string {
   const words = name
     .toLowerCase()
     .replace(/_/g, ' ')
     .replace(/\bsuccessfull\b/, 'successful')
+    .replace(/\bssl\b/g, 'SSL')
   return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
@@ -63,7 +64,9 @@ export const typeLabel = (type: string) =>
               ? 'Linux server'
               : type === 'ZABBIX'
                 ? 'Zabbix host'
-                : humanize(type)
+                : type === 'SSL_CERTIFICATE'
+                  ? 'SSL certificate'
+                  : humanize(type)
 
 /**
  * Types that report themselves and turn 460 after Interval + GracePeriod without a report, and MikroTik
@@ -105,6 +108,8 @@ export function typeIcon(type: string): string {
       return 'pi pi-check-circle'
     case 'ZABBIX':
       return 'pi pi-chart-bar'
+    case 'SSL_CERTIFICATE':
+      return 'pi pi-lock'
     case 'ONE_WITHIN_TIMESPAN':
     case 'ALL_WITHIN_TIMESPAN':
       return 'pi pi-clock'

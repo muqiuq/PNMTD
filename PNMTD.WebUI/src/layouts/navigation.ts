@@ -142,6 +142,14 @@ export const navigation: NavGroup[] = [
       },
       { label: 'SSH keys', icon: 'pi pi-key', to: '/admin/ssh-keys', name: 'ssh-keys', right: ['SshKeys', 'Manage'] },
       {
+        // The private CAs (docs/ssl-certificate-plan.md §8.5): in the drawer for their Manage; the page reads with View.
+        label: 'Certificates',
+        icon: 'pi pi-verified',
+        to: '/admin/certificates',
+        name: 'certificates',
+        right: ['Certificates', 'Manage'],
+      },
+      {
         label: 'Diagnostics',
         icon: 'pi pi-check-circle',
         to: '/admin/diagnostics',

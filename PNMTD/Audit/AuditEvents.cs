@@ -182,6 +182,12 @@ public static class AuditEvents
     public const string ZabbixTested = "ZabbixTested";
     public const string ZabbixHostsAttached = "ZabbixHostsAttached";
 
+    // SSL certificates (docs/ssl-certificate-plan.md §6.3): accepting a changed certificate, the private CAs, Check now.
+    public const string CertificateAccepted = "CertificateAccepted";
+    public const string CertificateAuthorityAdded = "CertificateAuthorityAdded";
+    public const string CertificateAuthorityRemoved = "CertificateAuthorityRemoved";
+    public const string CertificateCheckRequested = "CertificateCheckRequested";
+
     // Every other operation (docs/audit-redmine-zabbix-plan.md §3.9, Appendix A).
     public const string HostsImportanceChanged = "HostsImportanceChanged";
     public const string HostsLocationChanged = "HostsLocationChanged";
@@ -263,7 +269,7 @@ public static class AuditEvents
 public enum AuditCategory
 {
     Auth, Users, Hosts, Sensors, Notifications, Locations, Knowledge, Files, Udp, Mikrotik, WireGuard, Agents, SshKeys,
-    Diagnostics, Dns, Mail, Ai, Decisions, System, Redmine, Zabbix, Cookie, Availability, Mcp,
+    Diagnostics, Dns, Mail, Ai, Decisions, System, Redmine, Zabbix, Cookie, Availability, Mcp, Certificates,
 }
 
 /// <summary>The colour of an event's tag.</summary>
@@ -304,6 +310,7 @@ public static class AuditTargets
     public const string ZabbixHost = "ZabbixHost";
     public const string CookieCase = "CookieCase";
     public const string McpToken = "McpToken";
+    public const string CertificateAuthority = "CertificateAuthority";
 }
 
 /// <summary>An event type of the catalog: its category, a label for people, the tone of its tag, what it is about.</summary>
@@ -382,6 +389,8 @@ public static class AuditCatalog
         Add(AuditCategory.Redmine, AuditTargets.RedmineTicket, AuditEvents.RedmineLinkAdded, AuditEvents.RedmineLinkChanged, AuditEvents.RedmineLinkRemoved);
         Add(AuditCategory.Redmine, null, AuditEvents.RedmineTested);
         Add(AuditCategory.Zabbix, AuditTargets.ZabbixHost, AuditEvents.ZabbixHostsAttached);
+        Add(AuditCategory.Certificates, AuditTargets.Sensor, AuditEvents.CertificateAccepted);
+        Add(AuditCategory.Certificates, AuditTargets.CertificateAuthority, AuditEvents.CertificateAuthorityAdded, AuditEvents.CertificateAuthorityRemoved);
         Add(AuditCategory.Zabbix, null, AuditEvents.ZabbixTested);
         Add(AuditCategory.Cookie, null, AuditEvents.CookieSettingsChanged, AuditEvents.CookieSettingsRolledBack, AuditEvents.CookieStarted,
             AuditEvents.CookieStopped, AuditEvents.CookieRunRequested, AuditEvents.CookiePowersUsed);
@@ -406,6 +415,7 @@ public static class AuditCatalog
         Add(AuditCategory.Udp, AuditTargets.UdpCommand, AuditEvents.UdpCommandQueued, AuditEvents.UdpCommandCancelled);
         Add(AuditCategory.Udp, AuditTargets.Firmware, AuditEvents.UdpFirmwareChanged);
         Add(AuditCategory.Mikrotik, AuditTargets.Sensor, AuditEvents.MikrotikPollRequested, AuditEvents.MikrotikBackupRequested);
+        Add(AuditCategory.Certificates, AuditTargets.Sensor, AuditEvents.CertificateCheckRequested);
         Add(AuditCategory.Mikrotik, null, AuditEvents.MikrotikBackupSettingsChanged);
         Add(AuditCategory.Agents, AuditTargets.Sensor, AuditEvents.AgentCollectRequested, AuditEvents.AgentLogRequested);
         Add(AuditCategory.Agents, AuditTargets.ScriptRun, AuditEvents.AgentScriptRunRedacted);
@@ -449,6 +459,8 @@ public static class AuditCatalog
 
     private static AuditTone Tone(string type) =>
         System.Text.RegularExpressions.Regex.IsMatch(type, "Failed|LockedOut") ? AuditTone.Danger
+        // Trust decisions (docs/ssl-certificate-plan.md §6.3): a changed certificate accepted, a private CA added.
+        : type is AuditEvents.CertificateAccepted or AuditEvents.CertificateAuthorityAdded ? AuditTone.Warn
         : System.Text.RegularExpressions.Regex.IsMatch(type, "Deleted|Reset|Revoked|Disabled|Cancelled|Retired|Removed|Redacted|Detached") ? AuditTone.Warn
         : System.Text.RegularExpressions.Regex.IsMatch(type, "Succeeded|Enabled|Created|Joined|Registered|Attached|Uploaded") ? AuditTone.Success
         : AuditTone.Neutral;

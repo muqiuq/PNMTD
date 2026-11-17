@@ -30,7 +30,8 @@ internal static class DevSeedCookie
                 Description = "What Cookie, the assistant, reads with (Admin → Cookie → Rights).",
             };
             foreach (var (area, level) in new[] { (Area.Monitoring, Level.Details), (Area.Zabbix, Level.View), (Area.Redmine, Level.View),
-                (Area.KnowledgeBase, Level.View), (Area.Locations, Level.View), (Area.Availability, Level.View), (Area.Mail, Level.Read) })
+                (Area.KnowledgeBase, Level.View), (Area.Locations, Level.View), (Area.Availability, Level.View), (Area.Mail, Level.Read),
+                (Area.Certificates, Level.View) })
             {
                 group.Rights.Add(new GroupRightEntity { GroupId = group.Id, Area = area, Level = level });
             }

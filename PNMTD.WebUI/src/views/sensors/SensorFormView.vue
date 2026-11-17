@@ -18,6 +18,16 @@ import { formatDuration } from '@/format'
 import { useSession } from '@/stores/session'
 import MikrotikFields from './mikrotik/MikrotikFields.vue'
 import ZabbixFields, { type ZabbixDraft } from './zabbix/ZabbixFields.vue'
+import CertificateFields from './certificate/CertificateFields.vue'
+import {
+  CERTIFICATE_FIELDS,
+  certificateRequestFromDraft,
+  DEFAULT_INTERVAL,
+  draftErrors as certificateErrors,
+  intervalError,
+  newCertificateDraft,
+  parseAddress,
+} from './certificate/certificate'
 import { draftErrors, MIKROTIK_FIELDS, mikrotikRequestFromDraft, newMikrotikDraft } from './mikrotik/mikrotikDraft'
 import UdpNodeFields from './udp/UdpNodeFields.vue'
 import { KEY_BYTES, newUdpDraft, secretError, TOKEN_BYTES, udpRequest } from './udp/udpDraft'
@@ -28,7 +38,8 @@ import { KEY_BYTES, newUdpDraft, secretError, TOKEN_BYTES, udpRequest } from './
  * creation the sensor's page shows its URLs. A UDP node (docs/udp-iot-plan.md §6.1) has a section
  * of its own; ?type=UDP_NODE&deviceId=42 preset it (the admin page's "Add UDP node", unknown senders).
  * So does a MikroTik router (docs/mikrotik-plan.md §11.1): after the creation its Setup tab shows the
- * join script.
+ * join script. An SSL certificate (docs/ssl-certificate-plan.md §8.2) has its address, trust, schedule and
+ * rules, for Certificates: Edit only.
  */
 const route = useRoute()
 const router = useRouter()
@@ -51,8 +62,11 @@ const presets: SensorType[] = [
   'UDP_NODE',
   'MIKROTIK',
   'ZABBIX',
+  'SSL_CERTIFICATE',
 ]
-const presetType = presets.find((t) => t === route.query.type) ?? 'SIMPLE'
+const presetType =
+  presets.find((t) => t === route.query.type && (t !== 'SSL_CERTIFICATE' || session.can('Certificates', 'Edit'))) ??
+  'SIMPLE'
 const presetDevice = Number(route.query.deviceId)
 const type = ref<SensorType>(presetType)
 const name = ref('')
@@ -101,24 +115,53 @@ watch(
     if (host && (!name.value.trim() || name.value === before?.name)) name.value = host.name
   },
 )
+// An SSL certificate (docs/ssl-certificate-plan.md §8.2): the name follows the address (host:port) until someone types one.
+const certificate = ref(newCertificateDraft())
+let suggestedName = ''
+watch(parameters, (value) => {
+  if (type.value !== 'SSL_CERTIFICATE') return
+  const parsed = parseAddress(value)
+  const next = 'error' in parsed ? '' : parsed.normalized
+  if (!name.value.trim() || name.value === suggestedName) {
+    name.value = next
+    suggestedName = next
+  }
+})
 const busy = ref(false)
 
-// Zabbix sensors only while Zabbix is configured.
+// Zabbix sensors only while Zabbix is configured; SSL certificates only for Certificates: Edit (§6.4).
 const creatable = computed(() =>
-  types.list.value.filter((t) => t.canCreate && (t.type !== 'ZABBIX' || !!session.info?.zabbix)),
+  types.list.value.filter(
+    (t) =>
+      t.canCreate &&
+      (t.type !== 'ZABBIX' || !!session.info?.zabbix) &&
+      (t.type !== 'SSL_CERTIFICATE' || session.can('Certificates', 'Edit')),
+  ),
 )
 const info = computed(() => types.info(type.value))
 const heartbeat = computed(() => usesGracePeriod(type.value))
 const isUdp = computed(() => type.value === 'UDP_NODE')
 const isMikrotik = computed(() => type.value === 'MIKROTIK')
 const isZabbix = computed(() => type.value === 'ZABBIX')
+const isCertificate = computed(() => type.value === 'SSL_CERTIFICATE')
 const timespan = computed(() => type.value === 'ONE_WITHIN_TIMESPAN' || type.value === 'ALL_WITHIN_TIMESPAN')
 
 // Sensible defaults per type: a ping every minute, a daily heartbeat with an hour of grace, a UDP
-// node every 10 minutes with 5 minutes of grace, a router polled every 5 minutes with 10 of grace.
+// node every 10 minutes with 5 minutes of grace, a router polled every 5 minutes with 10 of grace, a
+// certificate read daily.
 function defaults(t: SensorType) {
   interval.value =
-    t === 'PING' ? 60 : t === 'UDP_NODE' ? 600 : t === 'MIKROTIK' ? 300 : usesGracePeriod(t) ? 86_400 : null
+    t === 'PING'
+      ? 60
+      : t === 'UDP_NODE'
+        ? 600
+        : t === 'MIKROTIK'
+          ? 300
+          : t === 'SSL_CERTIFICATE'
+            ? DEFAULT_INTERVAL
+            : usesGracePeriod(t)
+              ? 86_400
+              : null
   grace.value = t === 'UDP_NODE' ? 300 : t === 'MIKROTIK' ? 600 : usesGracePeriod(t) ? 3_600 : null
 }
 defaults(type.value)
@@ -174,16 +217,27 @@ const udpFields = [
 ]
 
 async function submit() {
+  const address = isCertificate.value ? parseAddress(parameters.value) : null
   errors.value = {
     name: name.value.trim() ? undefined : 'A sensor needs a name.',
-    parameters: info.value?.parameters && !parameters.value.trim() ? 'This type needs it.' : undefined,
-    interval: info.value?.usesInterval && !interval.value ? 'In seconds, more than 0.' : undefined,
+    parameters:
+      address && 'error' in address
+        ? address.error
+        : info.value?.parameters && !parameters.value.trim()
+          ? 'This type needs it.'
+          : undefined,
+    interval: isCertificate.value
+      ? intervalError(interval.value)
+      : info.value?.usesInterval && !interval.value
+        ? 'In seconds, more than 0.'
+        : undefined,
     notes: notes.value.length > 4000 ? `At most 4000 characters (${notes.value.length}).` : undefined,
     'udp.allowedSuites': isUdp.value && !udp.value.allowedSuites.length ? 'Allow at least one suite.' : undefined,
     'udp.key': isUdp.value && udp.value.manual ? (secretError(udp.value.key, KEY_BYTES) ?? undefined) : undefined,
     'udp.token': isUdp.value && udp.value.manual ? (secretError(udp.value.token, TOKEN_BYTES) ?? undefined) : undefined,
     ...(isMikrotik.value ? draftErrors(mikrotik.value) : {}),
     'zabbix.zabbixHostId': isZabbix.value && !zabbix.value.host ? 'Pick the Zabbix host.' : undefined,
+    ...(isCertificate.value ? certificateErrors(certificate.value) : {}),
   }
   if (Object.values(errors.value).some((e) => e)) {
     return
@@ -217,6 +271,9 @@ async function submit() {
         unavailableFails: zabbix.value.unavailableFails,
       }
     }
+    if (isCertificate.value) {
+      request.certificate = certificateRequestFromDraft(certificate.value)
+    }
     const sensor = await api.sensors.create(request)
     await invalidate([keys.host(hostId.value), keys.hosts, keys.udp])
     notify.success(
@@ -227,7 +284,9 @@ async function submit() {
           ? 'Its join script is on the Setup tab: paste it on the router.'
           : isZabbix.value
             ? "Its Zabbix host's problems are on its page."
-            : 'Its URLs are on its page.',
+            : isCertificate.value
+              ? 'Its first check runs within 15 seconds; the Certificate tab shows what it read.'
+              : 'Its URLs are on its page.',
     )
     for (const warning of sensor.udp?.warnings ?? []) {
       notify.info('Note', warning)
@@ -247,6 +306,7 @@ async function submit() {
         ...Object.fromEntries(MIKROTIK_FIELDS.map((f) => [f, e.field(f)])),
         'zabbix.zabbixHostId': e.field('zabbix.zabbixHostId'),
         'zabbix.minSeverity': e.field('zabbix.minSeverity'),
+        ...Object.fromEntries(CERTIFICATE_FIELDS.map((f) => [f, e.field(f)])),
       }
     } else {
       notify.error(e, 'Not created')
@@ -301,7 +361,7 @@ async function submit() {
         />
         <small v-if="errors.name" class="field-error">{{ errors.name }}</small>
       </div>
-      <div v-if="info?.parameters || type === 'PING'" class="field wide">
+      <div v-if="(info?.parameters || type === 'PING') && !isCertificate" class="field wide">
         <label for="sensor-parameters">{{
           type === 'PING' ? 'Target' : timespan ? 'Timespan' : 'Regular expression'
         }}</label>
@@ -309,7 +369,7 @@ async function submit() {
         <small v-if="errors.parameters" class="field-error">{{ errors.parameters }}</small>
         <small v-else class="field-hint">{{ parameterHint }}</small>
       </div>
-      <div v-if="info?.usesInterval" class="field">
+      <div v-if="info?.usesInterval && !isCertificate" class="field">
         <label for="sensor-interval">Interval (seconds)</label>
         <InputNumber
           v-model="interval"
@@ -355,6 +415,14 @@ async function submit() {
         :wire-guard="!!session.info?.wireGuard"
       />
       <ZabbixFields v-if="isZabbix" v-model="zabbix" :errors="errors" />
+      <CertificateFields
+        v-if="isCertificate"
+        v-model="certificate"
+        v-model:address="parameters"
+        :interval="interval ?? undefined"
+        :errors="errors"
+        @update:interval="(v: number | undefined) => (interval = v ?? null)"
+      />
       <div class="field">
         <label for="sensor-textid">Text id <span class="muted">(optional)</span></label>
         <InputText id="sensor-textid" v-model="textId" class="mono" :invalid="!!errors.textId" />

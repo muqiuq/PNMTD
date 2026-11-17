@@ -45,6 +45,9 @@
         // The MCP tokens' expiry (docs/mcp-plan.md §4.3).
         LAST_MCP_TOKEN_EXPIRY = 300,
 
+        // The SSL certificate sensors' checks and evaluations (docs/ssl-certificate-plan.md §5.2).
+        LAST_CERTIFICATE_CHECK = 310,
+
         UNUSED = 999,
     }
 }

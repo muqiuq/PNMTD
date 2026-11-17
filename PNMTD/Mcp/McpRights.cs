@@ -24,6 +24,8 @@ public static class McpRights
         [Area.Zabbix] = Level.Details,
         [Area.Cookie] = Level.Instruct,
         [Area.Availability] = Level.View,
+        // docs/ssl-certificate-plan.md §6.4: the sensors and Check now; accepting a change and the private CAs are no tools.
+        [Area.Certificates] = Level.Edit,
     };
 
     /// <summary>
@@ -40,6 +42,7 @@ public static class McpRights
         [Area.Zabbix] = Level.Details,
         [Area.Cookie] = Level.Use,
         [Area.Availability] = Level.View,
+        [Area.Certificates] = Level.View,
     };
 
     public static UserRights For(UserRights user, McpTokenKind kind)

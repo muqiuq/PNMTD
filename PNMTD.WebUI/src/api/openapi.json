@@ -4681,6 +4681,490 @@
         }
       }
     },
+    "/api/v1/sensors/{id}/certificate": {
+      "get": {
+        "tags": [
+          "SensorCertificate"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateSensorDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateSensorDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateSensorDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/certificate/check": {
+      "post": {
+        "tags": [
+          "SensorCertificate"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateSensorDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateSensorDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateSensorDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/certificate/accept": {
+      "post": {
+        "tags": [
+          "SensorCertificate"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificateAcceptRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificateAcceptRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificateAcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateSensorDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateSensorDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateSensorDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/certificate/versions": {
+      "get": {
+        "tags": [
+          "SensorCertificate"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfCertificateVersionItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfCertificateVersionItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfCertificateVersionItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/certificate/versions/{versionId}": {
+      "get": {
+        "tags": [
+          "SensorCertificate"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/certificate/versions/{versionId}/pem": {
+      "get": {
+        "tags": [
+          "SensorCertificate"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "chain",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/x-pem-file": { }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/certificate-authorities": {
+      "get": {
+        "tags": [
+          "CertificateAuthorities"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CertificateAuthorityItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CertificateAuthorityItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CertificateAuthorityItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "CertificateAuthorities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificateAuthorityRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificateAuthorityRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificateAuthorityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateAuthorityItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateAuthorityItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateAuthorityItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/certificate-authorities/preview": {
+      "post": {
+        "tags": [
+          "CertificateAuthorities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificateAuthorityRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificateAuthorityRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificateAuthorityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateAuthorityPreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateAuthorityPreview"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateAuthorityPreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/certificate-authorities/{id}": {
+      "delete": {
+        "tags": [
+          "CertificateAuthorities"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/certificate-authorities/{id}/pem": {
+      "get": {
+        "tags": [
+          "CertificateAuthorities"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/x-pem-file": { }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cookie/status": {
       "get": {
         "tags": [
@@ -24205,7 +24689,8 @@
           "AuditLog",
           "Cookie",
           "Availability",
-          "Mcp"
+          "Mcp",
+          "Certificates"
         ]
       },
       "AssignMode": {
@@ -24249,7 +24734,8 @@
           "Zabbix",
           "Cookie",
           "Availability",
-          "Mcp"
+          "Mcp",
+          "Certificates"
         ]
       },
       "AuditChange": {
@@ -25514,6 +26000,1158 @@
             "items": {
               "$ref": "#/components/schemas/ScopedInstruction"
             }
+          }
+        }
+      },
+      "CertificateAcceptRequest": {
+        "type": "object",
+        "properties": {
+          "sha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "confirmed": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CertificateAuthorityCertificate": {
+        "required": [
+          "subject",
+          "issuer",
+          "sha256",
+          "notBefore",
+          "notAfter",
+          "root"
+        ],
+        "type": "object",
+        "properties": {
+          "subject": {
+            "$ref": "#/components/schemas/CertificateName"
+          },
+          "issuer": {
+            "$ref": "#/components/schemas/CertificateName"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "notBefore": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notAfter": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "root": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CertificateAuthorityItem": {
+        "required": [
+          "id",
+          "name",
+          "rootSubject",
+          "rootSha256",
+          "rootNotBefore",
+          "rootNotAfter",
+          "intermediateCount",
+          "usedBy",
+          "createdAt",
+          "createdBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "rootSubject": {
+            "type": "string"
+          },
+          "rootSha256": {
+            "type": "string"
+          },
+          "rootNotBefore": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rootNotAfter": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "intermediateCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "usedBy": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CertificateAuthorityPreview": {
+        "required": [
+          "valid",
+          "error",
+          "certificates",
+          "privateKeyLeftOut"
+        ],
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "certificates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CertificateAuthorityCertificate"
+            }
+          },
+          "privateKeyLeftOut": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CertificateAuthorityRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CertificateChainEntry": {
+        "required": [
+          "depth",
+          "subject",
+          "issuer",
+          "notBefore",
+          "notAfter",
+          "sha256",
+          "key",
+          "source",
+          "sourceName",
+          "trustAnchor",
+          "selfSigned"
+        ],
+        "type": "object",
+        "properties": {
+          "depth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/CertificateName"
+          },
+          "issuer": {
+            "$ref": "#/components/schemas/CertificateName"
+          },
+          "notBefore": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notAfter": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/CertificateSource"
+          },
+          "sourceName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "trustAnchor": {
+            "type": "boolean"
+          },
+          "selfSigned": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CertificateChange": {
+        "required": [
+          "certificate",
+          "key",
+          "issuer",
+          "alarm",
+          "kinds",
+          "since",
+          "fields"
+        ],
+        "type": "object",
+        "properties": {
+          "certificate": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "boolean"
+          },
+          "issuer": {
+            "type": "boolean"
+          },
+          "alarm": {
+            "type": "boolean"
+          },
+          "kinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CertificateFieldChange"
+            }
+          }
+        }
+      },
+      "CertificateConnection": {
+        "required": [
+          "address",
+          "port",
+          "serverName",
+          "protocol",
+          "cipherSuite",
+          "handshakeMs"
+        ],
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "serverName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "cipherSuite": {
+            "type": "string"
+          },
+          "handshakeMs": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CertificateExtension": {
+        "required": [
+          "oid",
+          "name",
+          "critical",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "oid": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "critical": {
+            "type": "boolean"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "CertificateFacts": {
+        "required": [
+          "sha256",
+          "sha1",
+          "spkiSha256",
+          "serial",
+          "version",
+          "subject",
+          "issuer",
+          "names",
+          "notBefore",
+          "notAfter",
+          "lifetimeDays",
+          "key",
+          "signatureAlgorithm",
+          "selfSigned",
+          "isCa",
+          "validationLevel",
+          "keyUsage",
+          "extendedKeyUsage",
+          "subjectKeyId",
+          "authorityKeyId",
+          "ocspUrls",
+          "caIssuerUrls",
+          "crlUrls",
+          "policies",
+          "scts",
+          "mustStaple",
+          "extensions",
+          "truncated"
+        ],
+        "type": "object",
+        "properties": {
+          "sha256": {
+            "type": "string"
+          },
+          "sha1": {
+            "type": "string"
+          },
+          "spkiSha256": {
+            "type": "string"
+          },
+          "serial": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/CertificateName"
+          },
+          "issuer": {
+            "$ref": "#/components/schemas/CertificateName"
+          },
+          "names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notBefore": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notAfter": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lifetimeDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "key": {
+            "$ref": "#/components/schemas/CertificateKey"
+          },
+          "signatureAlgorithm": {
+            "type": "string"
+          },
+          "selfSigned": {
+            "type": "boolean"
+          },
+          "isCa": {
+            "type": "boolean"
+          },
+          "validationLevel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "keyUsage": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "extendedKeyUsage": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subjectKeyId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "authorityKeyId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ocspUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "caIssuerUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "crlUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "policies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scts": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "mustStaple": {
+            "type": "boolean"
+          },
+          "extensions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CertificateExtension"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CertificateFieldChange": {
+        "required": [
+          "field",
+          "accepted",
+          "current",
+          "changed"
+        ],
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "accepted": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "current": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "changed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CertificateIssuerMatch": {
+        "enum": [
+          "Organization",
+          "Exact"
+        ]
+      },
+      "CertificateItem": {
+        "required": [
+          "id",
+          "facts",
+          "chain",
+          "firstSeenAt",
+          "lastSeenAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "facts": {
+            "$ref": "#/components/schemas/CertificateFacts"
+          },
+          "chain": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CertificateChainEntry"
+            }
+          },
+          "firstSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CertificateKey": {
+        "required": [
+          "algorithm",
+          "size",
+          "curve"
+        ],
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "string"
+          },
+          "size": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "curve": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CertificateName": {
+        "required": [
+          "dn",
+          "commonName",
+          "organization",
+          "organizationalUnit",
+          "locality",
+          "state",
+          "country",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "dn": {
+            "type": "string"
+          },
+          "commonName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "organization": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "organizationalUnit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "locality": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "state": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "country": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "short": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CertificatePendingChange": {
+        "required": [
+          "kinds",
+          "since",
+          "certificate",
+          "key",
+          "issuer"
+        ],
+        "type": "object",
+        "properties": {
+          "kinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "certificate": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "boolean"
+          },
+          "issuer": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CertificateSensorDetail": {
+        "required": [
+          "summary",
+          "current",
+          "accepted",
+          "acceptedNote",
+          "change",
+          "connection",
+          "validation",
+          "versionCount"
+        ],
+        "type": "object",
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/CertificateSensorSummary"
+          },
+          "current": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CertificateItem"
+              }
+            ]
+          },
+          "accepted": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CertificateItem"
+              }
+            ]
+          },
+          "acceptedNote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "change": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CertificateChange"
+              }
+            ]
+          },
+          "connection": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CertificateConnection"
+              }
+            ]
+          },
+          "validation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CertificateValidation"
+              }
+            ]
+          },
+          "versionCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CertificateSensorRequest": {
+        "type": "object",
+        "properties": {
+          "trust": {
+            "$ref": "#/components/schemas/CertificateTrust"
+          },
+          "authorityIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "checkName": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "checkExpiry": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "incompleteChainFails": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "serverName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "connectTo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "warnDays": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "alertOnCertificateChange": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "alertOnKeyChange": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "alertOnIssuerChange": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "issuerMatch": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CertificateIssuerMatch"
+              }
+            ]
+          }
+        }
+      },
+      "CertificateSensorSummary": {
+        "required": [
+          "host",
+          "port",
+          "serverName",
+          "connectTo",
+          "trust",
+          "authorities",
+          "checkName",
+          "checkExpiry",
+          "incompleteChainFails",
+          "warnDays",
+          "alertOnCertificateChange",
+          "alertOnKeyChange",
+          "alertOnIssuerChange",
+          "issuerMatch",
+          "lastCheckAt",
+          "nextCheckAt",
+          "lastSuccessAt",
+          "checking",
+          "consecutiveFailures",
+          "firstFailureAt",
+          "lastError",
+          "expiresAt",
+          "daysLeft",
+          "issuer",
+          "issuerOrganization",
+          "subjectCommonName",
+          "selfSigned",
+          "acceptedAt",
+          "acceptedBy",
+          "changePending"
+        ],
+        "type": "object",
+        "properties": {
+          "host": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "serverName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "connectTo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "trust": {
+            "$ref": "#/components/schemas/CertificateTrust"
+          },
+          "authorities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ref"
+            }
+          },
+          "checkName": {
+            "type": "boolean"
+          },
+          "checkExpiry": {
+            "type": "boolean"
+          },
+          "incompleteChainFails": {
+            "type": "boolean"
+          },
+          "warnDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "alertOnCertificateChange": {
+            "type": "boolean"
+          },
+          "alertOnKeyChange": {
+            "type": "boolean"
+          },
+          "alertOnIssuerChange": {
+            "type": "boolean"
+          },
+          "issuerMatch": {
+            "$ref": "#/components/schemas/CertificateIssuerMatch"
+          },
+          "lastCheckAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "nextCheckAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastSuccessAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "checking": {
+            "type": "boolean"
+          },
+          "consecutiveFailures": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstFailureAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "daysLeft": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "issuer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "issuerOrganization": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "subjectCommonName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "selfSigned": {
+            "type": "boolean"
+          },
+          "acceptedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "acceptedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "changePending": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CertificatePendingChange"
+              }
+            ]
+          }
+        }
+      },
+      "CertificateSource": {
+        "enum": [
+          "Server",
+          "PublicRoot",
+          "PrivateCa",
+          "Store"
+        ]
+      },
+      "CertificateTrust": {
+        "enum": [
+          "Public",
+          "Private",
+          "Pinned"
+        ]
+      },
+      "CertificateValidation": {
+        "required": [
+          "trusted",
+          "trustedBy",
+          "publiclyTrusted",
+          "nameMatches",
+          "complete",
+          "sendsRoot",
+          "selfSigned",
+          "chainExpiresAt",
+          "chainExpiresSubject",
+          "chainExpiresIsLeaf",
+          "problems"
+        ],
+        "type": "object",
+        "properties": {
+          "trusted": {
+            "type": "boolean"
+          },
+          "trustedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "publiclyTrusted": {
+            "type": "boolean"
+          },
+          "nameMatches": {
+            "type": "boolean"
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "sendsRoot": {
+            "type": "boolean"
+          },
+          "selfSigned": {
+            "type": "boolean"
+          },
+          "chainExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "chainExpiresSubject": {
+            "type": "string"
+          },
+          "chainExpiresIsLeaf": {
+            "type": "boolean"
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CertificateVersionItem": {
+        "required": [
+          "id",
+          "sha256",
+          "serial",
+          "issuer",
+          "subjectCommonName",
+          "notBefore",
+          "notAfter",
+          "firstSeenAt",
+          "lastSeenAt",
+          "current",
+          "accepted"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "serial": {
+            "type": "string"
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "subjectCommonName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "notBefore": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notAfter": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "firstSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "current": {
+            "type": "boolean"
+          },
+          "accepted": {
+            "type": "boolean"
           }
         }
       },
@@ -39209,6 +40847,35 @@
           }
         }
       },
+      "PagedOfCertificateVersionItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CertificateVersionItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "PagedOfCookieCaseItem": {
         "required": [
           "items",
@@ -42714,6 +44381,16 @@
                 "$ref": "#/components/schemas/ZabbixSensorDetail"
               }
             ]
+          },
+          "certificate": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CertificateSensorSummary"
+              }
+            ]
           }
         }
       },
@@ -42956,6 +44633,16 @@
                 "$ref": "#/components/schemas/ZabbixSensorRequest"
               }
             ]
+          },
+          "certificate": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CertificateSensorRequest"
+              }
+            ]
           }
         }
       },
@@ -43053,7 +44740,8 @@
           "WINDOWS",
           "DIAGNOSTICS",
           "LINUX",
-          "ZABBIX"
+          "ZABBIX",
+          "SSL_CERTIFICATE"
         ]
       },
       "SensorTypeInfo": {
@@ -50736,6 +52424,12 @@
     },
     {
       "name": "Availability"
+    },
+    {
+      "name": "SensorCertificate"
+    },
+    {
+      "name": "CertificateAuthorities"
     },
     {
       "name": "Cookie"

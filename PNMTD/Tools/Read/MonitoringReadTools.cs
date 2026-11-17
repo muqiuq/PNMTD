@@ -36,7 +36,7 @@ public static class MonitoringReadTools
             "Sensors, filtered: of one host, of a type, in a state (Ok, Failing, NoData, Ignored, Disabled), at an importance, or by name. Paged.",
             Schema([
                 Id("hostId", "Only this host's sensors", required: false),
-                Text("type", "A sensor type, as PING, HTTP, UDP, MIKROTIK, WINDOWS, LINUX, ZABBIX"),
+                Text("type", "A sensor type, as PING, HTTP, UDP, MIKROTIK, WINDOWS, LINUX, ZABBIX, SSL_CERTIFICATE"),
                 Choice("state", "Only sensors in this state", Enum.GetNames<SensorState>()),
                 Choice("importance", "Only sensors of this importance or higher", Enum.GetNames<Importance>()),
                 Text("query", "Part of the sensor's or its host's name"),

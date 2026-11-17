@@ -72,8 +72,8 @@ internal static class DevSeedCommand
         // Redmine's links, a Zabbix sensor and the audit log (docs/audit-redmine-zabbix-plan.md §11, F).
         using (var integrationsDb = database())
         {
-            var (links, zabbix, audit) = DevSeedIntegrations.Seed(integrationsDb, settings, Clock.UtcNow);
-            Console.WriteLine($"Seeded {links} Redmine links, {zabbix} Zabbix sensor(s), {audit} audit entries.");
+            var (links, zabbix, audit, certificates) = DevSeedIntegrations.Seed(integrationsDb, settings, Clock.UtcNow);
+            Console.WriteLine($"Seeded {links} Redmine links, {zabbix} Zabbix sensor(s), {audit} audit entries, {certificates} SSL certificate sensors.");
         }
         // Cookie's group and settings (docs/cookie-plan.md §19.6).
         using (var cookieDb = database())

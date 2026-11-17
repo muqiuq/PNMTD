@@ -175,6 +175,18 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/zabbix/hosts/{hostId:long}"] = ("Zabbix:View", Roles.Viewer),
         ["GET /api/v1/zabbix/hosts/{hostId:long}/items"] = ("Zabbix:View", Roles.Viewer),
         ["POST /api/v1/zabbix/test"] = ("System:Manage", Roles.Admin),
+        // SSL certificates (docs/ssl-certificate-plan.md §6.3, §6.4): an area of their own, granted to no built-in group.
+        ["GET /api/v1/sensors/{id:guid}/certificate"] = ("Certificates:View", Roles.Admin),
+        ["POST /api/v1/sensors/{id:guid}/certificate/check"] = ("Certificates:Edit", Roles.Admin),
+        ["POST /api/v1/sensors/{id:guid}/certificate/accept"] = ("Certificates:Edit", Roles.Admin),
+        ["GET /api/v1/sensors/{id:guid}/certificate/versions"] = ("Certificates:View", Roles.Admin),
+        ["GET /api/v1/sensors/{id:guid}/certificate/versions/{versionId:guid}"] = ("Certificates:View", Roles.Admin),
+        ["GET /api/v1/sensors/{id:guid}/certificate/versions/{versionId:guid}/pem"] = ("Certificates:View", Roles.Admin),
+        ["GET /api/v1/certificate-authorities"] = ("Certificates:View", Roles.Admin),
+        ["POST /api/v1/certificate-authorities/preview"] = ("Certificates:Manage", Roles.Admin),
+        ["POST /api/v1/certificate-authorities"] = ("Certificates:Manage", Roles.Admin),
+        ["DELETE /api/v1/certificate-authorities/{id:guid}"] = ("Certificates:Manage", Roles.Admin),
+        ["GET /api/v1/certificate-authorities/{id:guid}/pem"] = ("Certificates:View", Roles.Admin),
         ["GET /api/v1/zabbix/suggestions"] = ("Monitoring:Edit&Zabbix:View", Roles.User),
         ["POST /api/v1/zabbix/attach"] = ("Monitoring:Edit&Zabbix:View", Roles.User),
         // Cookie (docs/cookie-plan.md §19.4): the status for everyone, the cases for Use, Admin → Cookie for Manage. Only admins had it before.

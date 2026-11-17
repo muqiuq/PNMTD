@@ -102,6 +102,8 @@ public partial class Program
         builder.Services.AddAudit(builder.Configuration);
         builder.Services.AddRedmine(builder.Configuration);
         builder.Services.AddZabbix(builder.Configuration);
+        // SSL certificate sensors (docs/ssl-certificate-plan.md §5).
+        PNMTD.Certificates.CertificateSetup.AddCertificates(builder.Services, builder.Configuration);
         // Cookie, the assistant (docs/cookie-plan.md §19).
         PNMTD.Cookie.CookieSetup.AddCookie(builder.Services, builder.Configuration);
         PNMTD.Availability.AvailabilitySetup.AddAvailability(builder.Services);
@@ -149,6 +151,8 @@ public partial class Program
             // Zabbix's open problems and its hosts' mirror (docs/audit-redmine-zabbix-plan.md §7.3).
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Zabbix.ZabbixPoller>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Zabbix.ZabbixHostSync>());
+            // The SSL certificate sensors' checks and evaluations (docs/ssl-certificate-plan.md §5.2).
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Certificates.CertificateChecker>());
             // Cookie's case book (docs/cookie-plan.md §19.3), with Cookie:Enabled=true.
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CaseBookTask>());
             // The MCP tokens' expiry (docs/mcp-plan.md §4.3).

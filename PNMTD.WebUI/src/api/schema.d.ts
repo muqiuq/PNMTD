@@ -3689,6 +3689,432 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sensors/{id}/certificate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CertificateSensorDetail"];
+                        "text/json": components["schemas"]["CertificateSensorDetail"];
+                        "text/plain": components["schemas"]["CertificateSensorDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/certificate/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CertificateSensorDetail"];
+                        "text/json": components["schemas"]["CertificateSensorDetail"];
+                        "text/plain": components["schemas"]["CertificateSensorDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/certificate/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CertificateAcceptRequest"];
+                    "text/json": components["schemas"]["CertificateAcceptRequest"];
+                    "application/*+json": components["schemas"]["CertificateAcceptRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CertificateSensorDetail"];
+                        "text/json": components["schemas"]["CertificateSensorDetail"];
+                        "text/plain": components["schemas"]["CertificateSensorDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/certificate/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfCertificateVersionItem"];
+                        "text/json": components["schemas"]["PagedOfCertificateVersionItem"];
+                        "text/plain": components["schemas"]["PagedOfCertificateVersionItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/certificate/versions/{versionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    versionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CertificateItem"];
+                        "text/json": components["schemas"]["CertificateItem"];
+                        "text/plain": components["schemas"]["CertificateItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/certificate/versions/{versionId}/pem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    chain?: boolean;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                    versionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/x-pem-file": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/certificate-authorities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CertificateAuthorityItem"][];
+                        "text/json": components["schemas"]["CertificateAuthorityItem"][];
+                        "text/plain": components["schemas"]["CertificateAuthorityItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CertificateAuthorityRequest"];
+                    "text/json": components["schemas"]["CertificateAuthorityRequest"];
+                    "application/*+json": components["schemas"]["CertificateAuthorityRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CertificateAuthorityItem"];
+                        "text/json": components["schemas"]["CertificateAuthorityItem"];
+                        "text/plain": components["schemas"]["CertificateAuthorityItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/certificate-authorities/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CertificateAuthorityRequest"];
+                    "text/json": components["schemas"]["CertificateAuthorityRequest"];
+                    "application/*+json": components["schemas"]["CertificateAuthorityRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CertificateAuthorityPreview"];
+                        "text/json": components["schemas"]["CertificateAuthorityPreview"];
+                        "text/plain": components["schemas"]["CertificateAuthorityPreview"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/certificate-authorities/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/certificate-authorities/{id}/pem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/x-pem-file": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cookie/status": {
         parameters: {
             query?: never;
@@ -16742,13 +17168,13 @@ export interface components {
             complaining: number;
         };
         /** @enum {unknown} */
-        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability" | "Mcp";
+        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability" | "Mcp" | "Certificates";
         /** @enum {unknown} */
         AssignMode: "Add" | "Remove";
         /** @enum {unknown} */
         AuditActor: "User" | "Cli" | "Agent" | "System" | "Cookie" | "Mcp";
         /** @enum {unknown} */
-        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix" | "Cookie" | "Availability" | "Mcp";
+        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix" | "Cookie" | "Availability" | "Mcp" | "Certificates";
         AuditChange: {
             object: null | string;
             field: string;
@@ -17040,6 +17466,274 @@ export interface components {
                 [key: string]: string;
             };
             scoped?: components["schemas"]["ScopedInstruction"][];
+        };
+        CertificateAcceptRequest: {
+            sha256?: null | string;
+            confirmed?: boolean;
+            note?: null | string;
+        };
+        CertificateAuthorityCertificate: {
+            subject: components["schemas"]["CertificateName"];
+            issuer: components["schemas"]["CertificateName"];
+            sha256: string;
+            /** Format: date-time */
+            notBefore: string;
+            /** Format: date-time */
+            notAfter: string;
+            root: boolean;
+        };
+        CertificateAuthorityItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            rootSubject: string;
+            rootSha256: string;
+            /** Format: date-time */
+            rootNotBefore: string;
+            /** Format: date-time */
+            rootNotAfter: string;
+            /** Format: int32 */
+            intermediateCount: number;
+            /** Format: int32 */
+            usedBy: number;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: null | string;
+        };
+        CertificateAuthorityPreview: {
+            valid: boolean;
+            error: null | string;
+            certificates: components["schemas"]["CertificateAuthorityCertificate"][];
+            privateKeyLeftOut: boolean;
+        };
+        CertificateAuthorityRequest: {
+            name?: null | string;
+            pem?: null | string;
+        };
+        CertificateChainEntry: {
+            /** Format: int32 */
+            depth: number;
+            subject: components["schemas"]["CertificateName"];
+            issuer: components["schemas"]["CertificateName"];
+            /** Format: date-time */
+            notBefore: string;
+            /** Format: date-time */
+            notAfter: string;
+            sha256: string;
+            key: string;
+            source: components["schemas"]["CertificateSource"];
+            sourceName: null | string;
+            trustAnchor: boolean;
+            selfSigned: boolean;
+        };
+        CertificateChange: {
+            certificate: boolean;
+            key: boolean;
+            issuer: boolean;
+            alarm: boolean;
+            kinds: string[];
+            /** Format: date-time */
+            since: string;
+            fields: components["schemas"]["CertificateFieldChange"][];
+        };
+        CertificateConnection: {
+            address: string;
+            /** Format: int32 */
+            port: number;
+            serverName: null | string;
+            protocol: string;
+            cipherSuite: string;
+            /** Format: int32 */
+            handshakeMs: number;
+        };
+        CertificateExtension: {
+            oid: string;
+            name: string;
+            critical: boolean;
+            value: string;
+        };
+        CertificateFacts: {
+            sha256: string;
+            sha1: string;
+            spkiSha256: string;
+            serial: string;
+            /** Format: int32 */
+            version: number;
+            subject: components["schemas"]["CertificateName"];
+            issuer: components["schemas"]["CertificateName"];
+            names: string[];
+            /** Format: date-time */
+            notBefore: string;
+            /** Format: date-time */
+            notAfter: string;
+            /** Format: int32 */
+            lifetimeDays: number;
+            key: components["schemas"]["CertificateKey"];
+            signatureAlgorithm: string;
+            selfSigned: boolean;
+            isCa: boolean;
+            validationLevel: null | string;
+            keyUsage: string[];
+            extendedKeyUsage: string[];
+            subjectKeyId: null | string;
+            authorityKeyId: null | string;
+            ocspUrls: string[];
+            caIssuerUrls: string[];
+            crlUrls: string[];
+            policies: string[];
+            /** Format: int32 */
+            scts: null | number;
+            mustStaple: boolean;
+            extensions: components["schemas"]["CertificateExtension"][];
+            truncated: boolean;
+        };
+        CertificateFieldChange: {
+            field: string;
+            accepted: null | string;
+            current: null | string;
+            changed: boolean;
+        };
+        /** @enum {unknown} */
+        CertificateIssuerMatch: "Organization" | "Exact";
+        CertificateItem: {
+            /** Format: uuid */
+            id: string;
+            facts: components["schemas"]["CertificateFacts"];
+            chain: components["schemas"]["CertificateChainEntry"][];
+            /** Format: date-time */
+            firstSeenAt: string;
+            /** Format: date-time */
+            lastSeenAt: string;
+        };
+        CertificateKey: {
+            algorithm: string;
+            /** Format: int32 */
+            size: null | number;
+            curve: null | string;
+            label?: null | string;
+        };
+        CertificateName: {
+            dn: string;
+            commonName: null | string;
+            organization: null | string;
+            organizationalUnit: null | string;
+            locality: null | string;
+            state: null | string;
+            country: null | string;
+            email: null | string;
+            short?: null | string;
+        };
+        CertificatePendingChange: {
+            kinds: string[];
+            /** Format: date-time */
+            since: string;
+            certificate: boolean;
+            key: boolean;
+            issuer: boolean;
+        };
+        CertificateSensorDetail: {
+            summary: components["schemas"]["CertificateSensorSummary"];
+            current: null | components["schemas"]["CertificateItem"];
+            accepted: null | components["schemas"]["CertificateItem"];
+            acceptedNote: null | string;
+            change: null | components["schemas"]["CertificateChange"];
+            connection: null | components["schemas"]["CertificateConnection"];
+            validation: null | components["schemas"]["CertificateValidation"];
+            /** Format: int32 */
+            versionCount: number;
+        };
+        CertificateSensorRequest: {
+            trust?: components["schemas"]["CertificateTrust"];
+            authorityIds?: null | string[];
+            checkName?: null | boolean;
+            checkExpiry?: null | boolean;
+            incompleteChainFails?: null | boolean;
+            serverName?: null | string;
+            connectTo?: null | string;
+            /** Format: int32 */
+            warnDays?: null | number;
+            alertOnCertificateChange?: null | boolean;
+            alertOnKeyChange?: null | boolean;
+            alertOnIssuerChange?: null | boolean;
+            issuerMatch?: null | components["schemas"]["CertificateIssuerMatch"];
+        };
+        CertificateSensorSummary: {
+            host: string;
+            /** Format: int32 */
+            port: number;
+            serverName: null | string;
+            connectTo: null | string;
+            trust: components["schemas"]["CertificateTrust"];
+            authorities: components["schemas"]["Ref"][];
+            checkName: boolean;
+            checkExpiry: boolean;
+            incompleteChainFails: boolean;
+            /** Format: int32 */
+            warnDays: number;
+            alertOnCertificateChange: boolean;
+            alertOnKeyChange: boolean;
+            alertOnIssuerChange: boolean;
+            issuerMatch: components["schemas"]["CertificateIssuerMatch"];
+            /** Format: date-time */
+            lastCheckAt: null | string;
+            /** Format: date-time */
+            nextCheckAt: null | string;
+            /** Format: date-time */
+            lastSuccessAt: null | string;
+            checking: boolean;
+            /** Format: int32 */
+            consecutiveFailures: number;
+            /** Format: date-time */
+            firstFailureAt: null | string;
+            lastError: null | string;
+            /** Format: date-time */
+            expiresAt: null | string;
+            /** Format: int32 */
+            daysLeft: null | number;
+            issuer: null | string;
+            issuerOrganization: null | string;
+            subjectCommonName: null | string;
+            selfSigned: boolean;
+            /** Format: date-time */
+            acceptedAt: null | string;
+            acceptedBy: null | string;
+            changePending: null | components["schemas"]["CertificatePendingChange"];
+        };
+        /** @enum {unknown} */
+        CertificateSource: "Server" | "PublicRoot" | "PrivateCa" | "Store";
+        /** @enum {unknown} */
+        CertificateTrust: "Public" | "Private" | "Pinned";
+        CertificateValidation: {
+            trusted: boolean;
+            trustedBy: null | string;
+            publiclyTrusted: boolean;
+            nameMatches: boolean;
+            complete: boolean;
+            sendsRoot: boolean;
+            selfSigned: boolean;
+            /** Format: date-time */
+            chainExpiresAt: string;
+            chainExpiresSubject: string;
+            chainExpiresIsLeaf: boolean;
+            problems: string[];
+        };
+        CertificateVersionItem: {
+            /** Format: uuid */
+            id: string;
+            sha256: string;
+            serial: string;
+            issuer: string;
+            subjectCommonName: null | string;
+            /** Format: date-time */
+            notBefore: string;
+            /** Format: date-time */
+            notAfter: string;
+            /** Format: date-time */
+            firstSeenAt: string;
+            /** Format: date-time */
+            lastSeenAt: string;
+            current: boolean;
+            accepted: boolean;
         };
         ChangePasswordRequest: {
             currentPassword?: null | string;
@@ -20494,6 +21188,15 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
+        PagedOfCertificateVersionItem: {
+            items: components["schemas"]["CertificateVersionItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfCookieCaseItem: {
             items: components["schemas"]["CookieCaseItem"][];
             /** Format: int32 */
@@ -21413,6 +22116,7 @@ export interface components {
             importance?: null | components["schemas"]["Importance"];
             effectiveImportance?: components["schemas"]["Importance"];
             zabbix?: null | components["schemas"]["ZabbixSensorDetail"];
+            certificate?: null | components["schemas"]["CertificateSensorSummary"];
         };
         SensorIntegration: {
             writeToken: string;
@@ -21468,6 +22172,7 @@ export interface components {
             mikrotik?: null | components["schemas"]["MikrotikRouterRequest"];
             importance?: null | components["schemas"]["Importance"];
             zabbix?: null | components["schemas"]["ZabbixSensorRequest"];
+            certificate?: null | components["schemas"]["CertificateSensorRequest"];
         };
         /** @enum {unknown} */
         SensorState: "Ok" | "Failing" | "NoData" | "Ignored" | "Disabled";
@@ -21490,7 +22195,7 @@ export interface components {
             childCount: number;
         };
         /** @enum {unknown} */
-        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN" | "UDP_NODE" | "MIKROTIK" | "SYSTEM" | "WINDOWS" | "DIAGNOSTICS" | "LINUX" | "ZABBIX";
+        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN" | "UDP_NODE" | "MIKROTIK" | "SYSTEM" | "WINDOWS" | "DIAGNOSTICS" | "LINUX" | "ZABBIX" | "SSL_CERTIFICATE";
         SensorTypeInfo: {
             type: components["schemas"]["SensorType"];
             description: string;

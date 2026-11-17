@@ -255,6 +255,27 @@ One binary, `pnmt-agent`, with .NET included, a systemd service and a command li
 - **Uninstalling:** `pnmt-agent uninstall` (`config.yaml` and the logs stay; `--purge` deletes them too). PNMT keeps the server and its history, marked uninstalled.
 - **Scripts need D-Bus** on the server (`systemd-run` starts them in a unit of their own): Debian's and Ubuntu's standard installations have it; a minimal one may need `apt install dbus`.
 
+## SSL certificates
+
+A sensor of the type *SSL certificate* reads the TLS certificate of `host:port` (docs/ssl-certificate-plan.md): it fails a set number of days before expiry and once expired, and, as each sensor says, when the certificate, its key or its issuer changes, until a person accepts the change. Certificates of public CAs, of private CAs added on *Admin → Certificates*, and self-signed ones (*pinned*) are checked alike.
+
+- **Who:** the rights area *Certificates*. *View* sees a sensor's *Certificate* tab and the private CAs, *Edit* creates and changes certificate sensors (with Monitoring *Edit*), checks now and accepts a change, *Manage* adds and removes private CAs. **The update grants it to no group:** admins have it, and give *Edit* to whoever sets up certificate sensors.
+- **What leaves PNMT:** a TCP connection to the sensor's endpoint and a TLS handshake, nothing else. PNMT never fetches a URL a certificate names (no AIA, OCSP or CRL downloads), so a server can't make it call an internal address.
+- **The trust store** is the image's (Debian's `ca-certificates`): a new public root arrives with an image update. An internal CA needs no update: add its root on *Admin → Certificates*.
+- **Old devices:** endpoints that speak only TLS 1.0 or 1.1, or present keys weaker than OpenSSL's security level, fail the handshake and turn *unreachable*; the message says so.
+- **The settings,** all optional:
+
+  | Setting | Default | |
+  |---|---|---|
+  | `Certificates__Enabled` | `true` | `false`: no checks and no evaluations; the sensors keep their states. |
+  | `Certificates__WarnDays` | `14` | The warning's default for new sensors. |
+  | `Certificates__TimeoutSeconds` | `15` | The connection and the handshake together. |
+  | `Certificates__RetryMinutes` | `15` | The next check after a failed one. |
+  | `Certificates__FailuresBeforeUnreachable` | `2` | Failed checks in a row before *unreachable* (489). |
+  | `Certificates__FailingCheckMinutes` | `60` | The check's rhythm while a certificate's verdict fails. |
+  | `Certificates__MaxConcurrent` | `8` | Checks at once. |
+  | `Certificates__KeepVersions` | `50` | Certificates kept per sensor (the current and the accepted one always). |
+
 ## AI (optional)
 
 PNMT can use AI models through [OpenRouter](https://openrouter.ai): to propose rules for mails no rule handles and to rate RouterOS releases (docs/ai-operations-plan.md). Cookie, the assistant, uses the same key (see *Cookie* below). It is off until `.env` has `Ai__Enabled=true` and `Ai__ApiKey`.

@@ -10,9 +10,10 @@ namespace PNMTD.Cli;
 internal static class FakeIntegrationsCommand
 {
     public const string Usage = """
-          dev fake-integrations [--port 7390] [--zabbix 60|70|80]
+          dev fake-integrations [--port 7390] [--zabbix 60|70|80] [--tls-port 7391]
                                                 Development only: a Redmine and a Zabbix (6.0, 7.0 or 8.0)
-                                                answering with recorded tickets, hosts and problems
+                                                answering with recorded tickets, hosts and problems; with
+                                                --tls-port, TLS endpoints for SSL certificate sensors
         """;
 
     public static int Run(string[] args)
@@ -21,6 +22,9 @@ internal static class FakeIntegrationsCommand
         var port = int.TryParse(options.Optional("--port") ?? "7390", out var p) && p is > 0 and < 65536
             ? p : throw new CommandLineException("--port: a port number.");
         var version = options.Optional("--zabbix") ?? "70";
+        int? tlsPort = options.Optional("--tls-port") is { } t
+            ? int.TryParse(t, out var tp) && tp is > 0 and < 65536 ? tp : throw new CommandLineException("--tls-port: a port number.")
+            : null;
         if (version is not ("60" or "70" or "80"))
         {
             throw new CommandLineException("--zabbix: 60, 70 or 80.");
@@ -37,6 +41,15 @@ internal static class FakeIntegrationsCommand
         app.Map("/redmine/{**path}", context => ForwardAsync(context, "/redmine", redmine.HandleAsync));
         app.Map("/zabbix/{**path}", context => ForwardAsync(context, "/zabbix", zabbix.HandleAsync));
         app.MapGet("/", () => "PNMT's fake integrations: Redmine at /redmine, Zabbix at /zabbix.");
+        Dev.FakeTlsSites? tls = null;
+        if (tlsPort is { } port2)
+        {
+            // SSL certificate sensors (docs/ssl-certificate-plan.md §9): names by SNI on one port, the private CA's root, rotations.
+            tls = new Dev.FakeTlsSites(port2);
+            app.MapGet("/tls/private-ca.pem", () => Results.Text(tls.PrivateCaPem, "application/x-pem-file"));
+            app.MapPost("/tls/rotate", (string name, string? key, string? issuer) =>
+                tls.Rotate(name, keepKey: key == "keep", otherIssuer: issuer == "other") ? Results.NoContent() : Results.NotFound());
+        }
         Console.WriteLine($"""
             A fake Redmine and Zabbix {zabbix.VersionText} on port {port}. For PNMT's .env (the host as PNMT reaches this one):
               Redmine__Url=http://<host>:{port}/redmine
@@ -45,6 +58,10 @@ internal static class FakeIntegrationsCommand
               Zabbix__Url=http://<host>:{port}/zabbix
               Zabbix__ApiToken={FakeZabbix.Token}
             """);
+        if (tls is not null)
+        {
+            Console.WriteLine($"TLS on port {tlsPort}: {string.Join(", ", Dev.FakeTlsSites.Names)}; the private CA at /tls/private-ca.pem.");
+        }
         app.Run();
         return 0;
     }

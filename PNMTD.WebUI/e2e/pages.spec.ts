@@ -162,6 +162,33 @@ test('a host page, a sensor page and a zone, as on the seed', async ({ page }) =
   await shot(page, 'page-mail-input')
 })
 
+test('an SSL certificate with a change waiting, its window, and the private CAs, as on the seed', async ({ page }) => {
+  // docs/ssl-certificate-plan.md §8.3 to §8.5: the seed's vpn.pnmt.test has an older accepted certificate.
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await signIn(page)
+  const found = await (await page.request.get('/api/v1/sensors?type=SSL_CERTIFICATE&pageSize=100')).json()
+  const vpn = found.items.find((s: { name: string }) => s.name === 'vpn.pnmt.test:443')
+  expect(vpn, 'the seed has the sensor vpn.pnmt.test:443').toBeTruthy()
+  await open(page, `/sensors/${vpn.id}/certificate`)
+  await expect(page.getByRole('heading', { level: 1, name: 'vpn.pnmt.test:443' })).toBeVisible()
+  await expect(page.getByText(/The certificate changed unexpectedly on/)).toBeVisible()
+  await expect(page.getByText('Certificates seen')).toBeVisible()
+  await shot(page, 'page-certificate')
+
+  await page.getByRole('button', { name: 'Review and accept…' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Accept the new certificate?' })
+  await expect(dialog.getByRole('table', { name: 'What changed' })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Accept the new certificate' })).toBeDisabled()
+  await shot(page, 'page-certificate-accept')
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(dialog).toBeHidden()
+
+  await open(page, '/admin/certificates')
+  await expect(page.getByRole('heading', { level: 1, name: 'Certificates' })).toBeVisible()
+  await expect(page.getByRole('table', { name: 'Private CAs' })).toContainText('PNMT demo root')
+  await shot(page, 'page-certificates')
+})
+
 test('the global search finds a host and a sensor by its token', async ({ page }) => {
   await signIn(page)
   await page.keyboard.press('Control+k')

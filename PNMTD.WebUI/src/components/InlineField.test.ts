@@ -4,6 +4,7 @@ import { ApiError } from '@/api/client'
 import { mountWithUi } from '@/test/mount'
 import Select from 'primevue/select'
 import ToggleSwitch from 'primevue/toggleswitch'
+import { defineComponent, ref } from 'vue'
 import InlineField from './InlineField.vue'
 
 // jsdom has neither matchMedia, which PrimeVue's Select uses when it mounts, nor ResizeObserver,
@@ -228,6 +229,35 @@ describe('InlineField', () => {
     expect(save).not.toHaveBeenCalled()
     expect(field.findComponent(ToggleSwitch).exists()).toBe(false)
     expect(field.find('.shown').text()).toBe('No')
+    field.unmount()
+  })
+
+  it("edits a custom field's draft in its slot, and shows the parent's text after Save (docs/ssl-certificate-plan.md §8.3)", async () => {
+    const shown = ref('Daily')
+    const draft = ref('')
+    const save = vi.fn(async () => {
+      shown.value = draft.value
+    })
+    const field = mountWithUi(
+      defineComponent({
+        components: { InlineField },
+        setup: () => ({ shown, draft, save, begin: () => (draft.value = shown.value) }),
+        template: `<InlineField :value="shown" type="custom" label="Check every" :save="save" @edit="begin">
+          <template #editor><input v-model="draft" class="draft" /></template>
+        </InlineField>`,
+      }),
+      { attachTo: document.body },
+    )
+
+    await field.find('.shown').trigger('click')
+    expect((field.find('.draft').element as HTMLInputElement).value).toBe('Daily')
+    await field.find('.draft').setValue('Weekly')
+    await field.find('.draft').trigger('keydown', { key: 'Enter' })
+    await flushPromises()
+
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(field.find('.draft').exists()).toBe(false)
+    expect(field.find('.shown').text()).toBe('Weekly')
     field.unmount()
   })
 

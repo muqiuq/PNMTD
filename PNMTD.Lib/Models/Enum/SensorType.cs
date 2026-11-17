@@ -26,7 +26,9 @@ namespace PNMTD.Lib.Models.Enum
         /// <summary>A Linux server running the PNMT agent for Linux (docs/linux-sensor-plan.md §9.1); created by its join, with heartbeat semantics.</summary>
         LINUX = 102,
         /// <summary>A Zabbix host attached to a PNMT host (docs/audit-redmine-zabbix-plan.md §7.7): its open problems from a severity up fail it.</summary>
-        ZABBIX = 110
+        ZABBIX = 110,
+        /// <summary>The TLS certificate of host:port, read by PNMTD (docs/ssl-certificate-plan.md §3): expiry, trust and changes.</summary>
+        SSL_CERTIFICATE = 120
     }
 }
 

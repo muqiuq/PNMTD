@@ -1374,6 +1374,269 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("availability_types");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.CertificateAuthorityEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("IntermediateCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Pem")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("RootNotAfter")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("RootNotBefore")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RootSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("RootSubject")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("certificate_authorities");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.CertificateSensorAuthorityEntity", b =>
+                {
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AuthorityId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("SensorId", "AuthorityId");
+
+                    b.HasIndex("AuthorityId");
+
+                    b.ToTable("certificate_sensor_authorities");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.CertificateSensorEntity", b =>
+                {
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AcceptedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("AcceptedNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("AcceptedVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("AlertOnCertificateChange")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("AlertOnIssuerChange")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("AlertOnKeyChange")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("AnnouncedVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("CheckExpiry")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CheckName")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ConnectTo")
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)");
+
+                    b.Property<string>("Connection")
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("ConsecutiveFailures")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CurrentVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("FirstFailureAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IncompleteChainFails")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("IssuerMatch")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime?>("LastCheckAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("LastCode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("LastSuccessAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastVerdictKey")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime?>("NextCheckAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ServerName")
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)");
+
+                    b.Property<string>("Trust")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Validation")
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("WarnDays")
+                        .HasColumnType("integer");
+
+                    b.HasKey("SensorId");
+
+                    b.HasIndex("AcceptedVersionId");
+
+                    b.HasIndex("AnnouncedVersionId");
+
+                    b.HasIndex("CurrentVersionId");
+
+                    b.HasIndex("NextCheckAt");
+
+                    b.ToTable("certificate_sensors");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.CertificateVersionEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Chain")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ChainPem")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Facts")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Issuer")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("IssuerCommonName")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("IssuerOrganization")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.PrimitiveCollection<List<string>>("Names")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<DateTime>("NotAfter")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("NotBefore")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("SelfSigned")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Serial")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("SpkiSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("SubjectCommonName")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SensorId", "LastSeenAt");
+
+                    b.HasIndex("SensorId", "Sha256")
+                        .IsUnique();
+
+                    b.ToTable("certificate_versions");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.CookieCaseEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6066,6 +6329,58 @@ namespace PNMTD.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.CertificateSensorAuthorityEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.CertificateAuthorityEntity", "Authority")
+                        .WithMany()
+                        .HasForeignKey("AuthorityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PNMTD.Models.Db.CertificateSensorEntity", null)
+                        .WithMany("Authorities")
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Authority");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.CertificateSensorEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.CertificateVersionEntity", null)
+                        .WithMany()
+                        .HasForeignKey("AcceptedVersionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.CertificateVersionEntity", null)
+                        .WithMany()
+                        .HasForeignKey("AnnouncedVersionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.CertificateVersionEntity", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentVersionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", "Sensor")
+                        .WithOne()
+                        .HasForeignKey("PNMTD.Models.Db.CertificateSensorEntity", "SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sensor");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.CertificateVersionEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.CookieCaseEntryEntity", b =>
                 {
                     b.HasOne("PNMTD.Models.Db.CookieCaseEntity", null)
@@ -6715,6 +7030,11 @@ namespace PNMTD.Data.Migrations
             modelBuilder.Entity("PNMTD.Models.Db.AgentScriptEntity", b =>
                 {
                     b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.CertificateSensorEntity", b =>
+                {
+                    b.Navigation("Authorities");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.DiagnosticSetEntity", b =>

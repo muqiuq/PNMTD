@@ -25,6 +25,8 @@ public static class MonitoringWriteTools
     [
         SensorType.SIMPLE, SensorType.HEARTBEAT, SensorType.HEARTBEAT_VALUECHECK, SensorType.PING, SensorType.VALUECHECK, SensorType.ENCAPSULADED,
         SensorType.ONE_WITHIN_TIMESPAN, SensorType.ALL_WITHIN_TIMESPAN, SensorType.UDP_NODE,
+        // docs/ssl-certificate-plan.md §9: the address as parameters, the public mode's defaults; Certificates: Edit besides.
+        SensorType.SSL_CERTIFICATE,
     ];
 
     public static readonly IReadOnlyList<ToolSpec> All =
@@ -176,6 +178,11 @@ public static class MonitoringWriteTools
         if (!CreatableTypes.Contains(type))
         {
             throw ToolException.Invalid($"A {type} sensor is added in PNMT, not over MCP.");
+        }
+        if (type == SensorType.SSL_CERTIFICATE && !ctx.Rights.Has(Area.Certificates, Level.Edit))
+        {
+            // Cookie calls without a request, so SensorService can't ask its caller (docs/ssl-certificate-plan.md §6.1).
+            throw new ToolException("missing_right", "An SSL certificate sensor needs Certificates: Edit besides Monitoring: Edit.");
         }
         var created = await ctx.Services.GetRequiredService<SensorService>().CreateAsync(new SensorRequest
         {

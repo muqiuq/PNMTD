@@ -34,6 +34,14 @@ public sealed class ApiException(int status, string code, string detail, IDictio
     /// <summary>403 <c>forbidden_role</c>: a right the caller lacks, where an attribute can't say it (one's own column, say).</summary>
     public static ApiException Forbidden(string detail) => new(StatusCodes.Status403Forbidden, ApiErrorCodes.ForbiddenRole, detail);
 
+    /// <summary>
+    /// 403 <c>missing_right</c> with the area and level, as the authorization handler writes it, for a right only a service can
+    /// tell: a certificate sensor's writes need Certificates: Edit besides the endpoint's Monitoring: Edit.
+    /// </summary>
+    public static ApiException MissingRight(Auth.Rights.Area area, Auth.Rights.Level level) =>
+        new(StatusCodes.Status403Forbidden, "missing_right", $"You need {Auth.Rights.RightsCatalog.Of(area).Label}: {level}.",
+            extensions: new Dictionary<string, object?> { ["area"] = area.ToString(), ["level"] = level.ToString() });
+
     /// <summary>400 <c>validation_failed</c> without a field.</summary>
     public static ApiException BadRequest(string detail) => new(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationFailed, detail);
 
