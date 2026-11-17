@@ -25,7 +25,14 @@ public sealed class AdvancedEvaluatorTests
     private static HttpClient admin = null!;
     private static Guid hostId;
     private static FakeTimeProvider time = null!;
-    private static DateTimeOffset next = new(DateTime.UtcNow.Ticks - DateTime.UtcNow.Ticks % TimeSpan.TicksPerSecond, TimeSpan.Zero);
+    /// <summary>
+    /// The first test's start, in whole seconds from one reading of the clock: PostgreSQL keeps microseconds, and Linux's clock
+    /// has 100-ns ticks, so a start between two microseconds made a report stored at it look a fraction late at exactly
+    /// interval plus grace (CI, 1.14.0).
+    /// </summary>
+    private static DateTimeOffset next = WholeSeconds(DateTimeOffset.UtcNow);
+
+    private static DateTimeOffset WholeSeconds(DateTimeOffset t) => new(t.UtcTicks - t.UtcTicks % TimeSpan.TicksPerSecond, TimeSpan.Zero);
 
     [ClassInitialize]
     public static async Task Start(TestContext _)

@@ -440,7 +440,9 @@ internal static class DevSeedKnowledge
                         continue;
                     }
                     var views = 1 + random.Next(0, spec.Popularity + 1);
-                    var date = DateOnly.FromDateTime(Clock.ToLocal(now.AddDays(-day)));
+                    // Days back from today's date, not 24 hours back from now: across a DST change two of those land on one date
+                    // when it is late in the evening.
+                    var date = DateOnly.FromDateTime(Clock.ToLocal(now)).AddDays(-day);
                     db.KbPageViews.Add(new KbPageViewEntity { PageId = page.Id, Day = date, Views = views });
                     total += views;
                 }

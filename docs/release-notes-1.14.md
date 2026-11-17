@@ -1,5 +1,7 @@
 # PNMT 1.14: Advanced sensors, and SSL certificate sensors
 
+Version 1.14.1: 1.14.0 and the change of 1.14.1 below.
+
 **1.13 wasn't released on its own:** this release brings its SSL certificate sensors too. Their notes are [release-notes-1.13.md](release-notes-1.13.md); what they say about updating is folded in below.
 
 ## What's new
@@ -31,9 +33,15 @@
 
 - **SSL certificate sensors,** described in [release-notes-1.13.md](release-notes-1.13.md): a sensor for the certificate of any `host:port`, failing before expiry, once expired, and on a change it alarms on until a person accepts it; public CAs, private CAs on *Admin → Certificates*, and pinned self-signed certificates.
 
+## 1.14.1
+
+- **A test of the advanced sensors' evaluator** failed on Linux, at exactly a sensor's interval plus its grace: its fake clock started between two microseconds, which PostgreSQL doesn't keep, so the stored report looked a fraction of a microsecond late. Its clock starts on a whole second now. Nothing changes in the running app.
+- **The demo seed** (`SEED=1`) failed between 22:00 and 23:00 UTC: it counted the knowledge base's page views 90 days back in steps of 24 hours, and across October's change of time two of those steps landed on one date. It counts back in dates now.
+- **Updating from 1.14.0:** `./update.sh --tag v1.14.1`. No migration, nothing to configure.
+
 ## Updating from 1.12
 
-In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.14.0`. It takes a backup first.
+In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.14.1`. It takes a backup first.
 
 - **Two migrations,** which run at the start; nothing existing changes:
   - `CertificateSensors`, four new tables: the certificate sensors' settings and state, the certificates they have seen, the private CAs, and which sensors trust them;
