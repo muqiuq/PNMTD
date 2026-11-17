@@ -7,14 +7,17 @@
 # --- 1. the web UI (PNMTD.WebUI → dist/, served under /pnmt-admin) -------------------------------
 # Node runs here, or in the containers of start.sh, run-tests.sh and tools/npm.sh: never on a host.
 # Node 24 (LTS) on Debian rather than Alpine: musl's resolver fails a whole lookup when Podman's DNS
-# answers AAAA with SERVFAIL. npm ci installs exactly the lock file, without install scripts.
+# answers AAAA with SERVFAIL. npm ci installs exactly the lock file, without install scripts. The
+# build itself runs without a network (§7.1, supply chain): the build tools, code from the lock file
+# too, can neither fetch anything nor send anything from there. Nothing in the build needs a network;
+# a step that comes to need one fails with a lookup error, and adding it back is a decision.
 FROM --platform=$BUILDPLATFORM docker.io/library/node:24-slim AS web
 WORKDIR /web
 ENV NPM_CONFIG_UPDATE_NOTIFIER=false NPM_CONFIG_FUND=false NPM_CONFIG_AUDIT=false
 COPY PNMTD.WebUI/package.json PNMTD.WebUI/package-lock.json ./
 RUN npm ci --ignore-scripts --loglevel=error
 COPY PNMTD.WebUI/ ./
-RUN npm run build
+RUN --network=none npm run build
 
 # --- 2. the .NET app ---------------------------------------------------------------------------
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
@@ -28,7 +31,9 @@ RUN dotnet restore PNMTD/PNMTD.csproj --locked-mode
 COPY PNMTD/ PNMTD/
 COPY PNMTD.Lib/ PNMTD.Lib/
 COPY --from=web /web/dist PNMTD/wwwroot/pnmt-admin/
-RUN dotnet publish PNMTD/PNMTD.csproj -c Release -o /app --no-restore -p:UseAppHost=false \
+# The restore brought everything the publish needs; the publish, where the analyzers and source
+# generators run, gets no network either (§7.1).
+RUN --network=none dotnet publish PNMTD/PNMTD.csproj -c Release -o /app --no-restore -p:UseAppHost=false \
  && rm -f /app/*.pdb
 
 # --- 3. the runtime ------------------------------------------------------------------------------

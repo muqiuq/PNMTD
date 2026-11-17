@@ -6,8 +6,9 @@
 #   ./run-tests.sh --list           what it would run
 #
 # Groups:
-#   web       the UI in a node container: the npm package check, npm ci, the API types against
-#             openapi.json, vue-tsc, ESLint, Prettier, Vitest, the build
+#   web       the UI in a node container: the npm package check (with the registry's publish dates),
+#             npm ci, the registry's signatures, the API types against openapi.json, vue-tsc, ESLint,
+#             Prettier, Vitest, the build
 #   dotnet    restore (locked), build, PNMTD.Tests on a throwaway PostgreSQL (tools/test-db.sh),
 #             in a zone east and one west of UTC
 #   contract  the image from the working tree against the golden sensor contract (tools/contract.sh)
@@ -96,6 +97,7 @@ group_web() {
   echo "web"
   step "npm packages: pinned, npmjs.org, open-source licences" in_node node tools/check-npm-packages.mjs
   step "npm ci (locked, no install scripts)" in_web npm ci --ignore-scripts --loglevel=error
+  step "npm registry signatures and provenance" in_web npm audit signatures
   step "API types generated from openapi.json" in_web npm run --silent check:api
   step "typecheck (vue-tsc)" in_web npm run --silent typecheck
   step "lint (ESLint)" in_web npm run --silent lint

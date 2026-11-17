@@ -1,0 +1,39 @@
+# The web UI's packages against GuardDog, DataDog's static rules for malicious npm packages
+# (tools/check-npm-guarddog.py, docs/webui-migration-plan.md §7.1), whenever the lock file changes.
+# The quick checks run with every web check in dotnet.yml: the package check with the registry's
+# publish dates, and the registry's signatures. This one takes minutes, so it runs on a change of
+# the packages, in four quarters in parallel, and by hand.
+name: Supply chain
+
+on:
+  push:
+    branches: [ "master" ]
+    paths:
+      - PNMTD.WebUI/package.json
+      - PNMTD.WebUI/package-lock.json
+      - tools/check-npm-guarddog.py
+      - tools/guarddog-accepted.json
+      - tools/guarddog.sh
+      - .github/workflows/supply-chain.yml
+  pull_request:
+    branches: [ "master" ]
+    paths:
+      - PNMTD.WebUI/package.json
+      - PNMTD.WebUI/package-lock.json
+      - tools/check-npm-guarddog.py
+      - tools/guarddog-accepted.json
+      - tools/guarddog.sh
+      - .github/workflows/supply-chain.yml
+  workflow_dispatch:
+
+jobs:
+  guarddog:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        batch: [1, 2, 3, 4]
+    steps:
+    - uses: actions/checkout@v7
+    - name: GuardDog over quarter ${{ matrix.batch }} of the lock file's packages
+      run: ENGINE=docker tools/guarddog.sh --batch ${{ matrix.batch }}/4

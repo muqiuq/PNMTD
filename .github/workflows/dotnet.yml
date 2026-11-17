@@ -48,8 +48,9 @@ jobs:
     - name: Test (time zone west of UTC)
       run: PNMTD_TEST_TZ=America/New_York dotnet test --project PNMTD.Tests/PNMTD.Tests.csproj --no-build
 
-  # The web UI, in node containers as everywhere (§6.1): the package check, types against
-  # openapi.json, vue-tsc, ESLint, Prettier, Vitest, the build; and the shell scripts.
+  # The web UI, in node containers as everywhere (§6.1): the package check, the registry's
+  # signatures, types against openapi.json, vue-tsc, ESLint, Prettier, Vitest, the build; and the
+  # shell scripts. GuardDog over the packages runs in supply-chain.yml when the lock file changes.
   web:
     runs-on: ubuntu-latest
     steps:

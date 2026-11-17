@@ -61,7 +61,8 @@ test('the overview, problems, hosts, a host page, and a host attached as a senso
   await page.getByRole('link', { name: 'its Zabbix sensor' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Web 01' })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Problems' })).toContainText('/var is 95 % full')
-  await expect(page.getByText('490')).toBeVisible()
+  // Exact: the new host's name holds a timestamp, which contains any three digits now and then.
+  await expect(page.getByText('490', { exact: true })).toBeVisible()
   await shot(page, 'zabbix-sensor')
 
   // Detached again: the sensor goes, the host stays in Zabbix.

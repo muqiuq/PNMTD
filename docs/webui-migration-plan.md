@@ -738,7 +738,7 @@ All paths are relative to `/api/v1`.
 | Zone file editor | CodeMirror 6 (*should*) | Line numbers and highlighting, instead of a plain textarea |
 | Tests | Vitest + Vue Test Utils. Playwright for e2e and layout checks | |
 | Lint | ESLint + Prettier | |
-| Dependencies | Exact versions, `package-lock.json`, `npm ci`. An npm allowlist check as in exam-trainer (*could*) | |
+| Dependencies | Exact versions, `package-lock.json`, `npm ci`. `tools/check-npm-packages.mjs` holds them to the rules of §7.1 (supply chain) | |
 
 **Why PrimeVue 4:**
 
@@ -1212,6 +1212,7 @@ So that heartbeat sensors do not all fail at once and trigger a burst of notific
   - **sensor contract replay** against the built image in Production mode;
   - Playwright smoke and layout tests (§5.5) against the built image with PostgreSQL.
 - **`push.yml`** builds a multi-arch image (amd64 + arm64) on release and pushes `uisach/pnmtd:v1.0.0` and `latest`.
+- **`supply-chain.yml`** runs GuardDog over the lock file's packages whenever they change, four quarters in parallel (§7.1, supply chain).
 
 ### 6.7 Retirement
 
@@ -1458,6 +1459,15 @@ Phase 7:
 
 - Phase 5 can start once the auth endpoints of phase 3 exist.
 - Phase 6 pages can start one at a time, as soon as each v1 resource exists.
+
+Supply chain (2026-11-17), after the Optimizely incident of 16 November 2026, in which a trusted vendor's script turned on 178 of its customers: the UI loads nothing from a third party at run time and its CSP is `default-src 'self'` (§3.6), so that attack has no way in here. What a compromised *package* could do is held down in four places:
+
+- **The image builds without a network past the installs:** `RUN --network=none` for `npm run build` and for `dotnet publish`. Build tools and analyzers run code from the lock files with full privileges at that point; from there they can now neither fetch a second stage nor send anything. A step that comes to need the network fails with a lookup error, so adding it back is a decision, not an accident.
+- **`tools/check-npm-packages.mjs` asks the registry** (12 fetches at a time, a minute for 700 packages; `--offline` skips it): every version in the lock file was published at least seven days ago by the registry's own record, is still on the registry, and carries the lock file's integrity there. The compromised versions of 2025 (chalk and debug, the Shai-Hulud worm) were pulled within hours or days; a version that young waits, or is listed in the script with the reason it couldn't. A version the registry no longer has, or whose integrity the registry doesn't know, fails.
+- **`npm audit signatures`** in the web group of `run-tests.sh`: every installed package has a valid registry signature, and the build provenance of those that publish one (229 of 682 at the time) is verified.
+- **GuardDog**, DataDog's static rules for malicious npm packages (obfuscation, base64-to-exec, install hooks, environment exfiltration, typosquats, manifest confusion, disposable author e-mails), over every version in the lock file: `tools/check-npm-guarddog.py`, in a container through `tools/guarddog.sh`, and in `.github/workflows/supply-chain.yml` on a change of the packages, four quarters in parallel (some minutes each). GuardDog reads a package.json, so the script writes the lock file's packages out as package.json files of exact versions. Its findings are heuristics: the first run gave 83 over 701 packages, every one read and explained in `tools/guarddog-accepted.json` (rule, package or pattern, exact version or `*`, reason). A finding not in that file fails the run and prints the line to add once a person has looked at it.
+
+What this does not cover: a package that alters the *built output* instead of phoning home. The CSP confines such code to PNMTD's own origin at run time, and the three checks above are what stands between it and the lock file.
 
 ---
 

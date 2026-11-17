@@ -1,0 +1,341 @@
+{
+  "about": "GuardDog's findings over the web UI's packages, read and accepted (tools/check-npm-guarddog.py, docs/webui-migration-plan.md §7.1). rule: GuardDog's rule; package: the name, or a pattern like @rolldown/binding-*; version: the exact version the finding was read for, or * when the finding is in the package's nature and its next version would show it again; reason: what was seen and why it is fine. A finding not here fails the check, which prints the line to add.",
+  "accepted": [
+    {
+      "rule": "bundled_binary",
+      "package": "@rolldown/binding-*",
+      "version": "*",
+      "reason": "rolldown (vite's bundler) compiled for one platform each; optional, only this platform's is installed; dev only"
+    },
+    {
+      "rule": "bundled_binary",
+      "package": "lightningcss-*",
+      "version": "*",
+      "reason": "lightningcss (vite's CSS tooling) compiled for one platform each; optional, only this platform's is installed; dev only"
+    },
+    {
+      "rule": "deceptive_author",
+      "package": "layout-base",
+      "version": "*",
+      "reason": "the maintainer's masked (opayq.com) e-mail in the package metadata; the layout maths under cose-base and cytoscape-fcose (mermaid's graphs); read, unchanged since 2021"
+    },
+    {
+      "rule": "metadata_mismatch",
+      "package": "dayjs",
+      "version": "1.11.23",
+      "reason": "the registry's manifest has the lint script without ./node_modules/.bin/; nothing that runs here"
+    },
+    {
+      "rule": "metadata_mismatch",
+      "package": "dompurify",
+      "version": "3.4.17",
+      "reason": "the registry's manifest lists @types/trusted-types as a dependency, the tarball's package.json as optional; types only"
+    },
+    {
+      "rule": "metadata_mismatch",
+      "package": "es-toolkit",
+      "version": "1.53.2",
+      "reason": "the registry's manifest has a start script (node server.js) the tarball lacks; scripts never run (npm ci --ignore-scripts)"
+    },
+    {
+      "rule": "metadata_mismatch",
+      "package": "fsevents",
+      "version": "2.3.3",
+      "reason": "the registry's manifest has the node-gyp install script the tarball's package.json lacks; macOS only, never installed in the containers"
+    },
+    {
+      "rule": "threat-filesystem-autostart",
+      "package": "playwright-core",
+      "version": "*",
+      "reason": "writes the CPU profile of a test run into its own profile folder; the browser test runner, dev only"
+    },
+    {
+      "rule": "threat-filesystem-read",
+      "package": "@tybys/wasm-util",
+      "version": "*",
+      "reason": "hands the options.env it is given to a WASI instance; the WASM glue under vite's tooling, dev only"
+    },
+    {
+      "rule": "threat-filesystem-read",
+      "package": "monaco-editor",
+      "version": "*",
+      "reason": "a language mode's list of file names it colours (.gitconfig, .editorconfig); a string table in the dev build"
+    },
+    {
+      "rule": "threat-filesystem-read",
+      "package": "pkg-types",
+      "version": "*",
+      "reason": "finds the nearest .git/config to locate the workspace root; build tooling under vite, dev only"
+    },
+    {
+      "rule": "threat-filesystem-read",
+      "package": "playwright-core",
+      "version": "*",
+      "reason": "loads playwright.env with dotenv for a test run; dev only"
+    },
+    {
+      "rule": "threat-filesystem-read",
+      "package": "vite",
+      "version": "*",
+      "reason": "the error message for a dynamic import.meta.env access in its module runner"
+    },
+    {
+      "rule": "threat-filesystem-read",
+      "package": "vitest",
+      "version": "*",
+      "reason": "the .env files a test run loads, as vite does; dev only"
+    },
+    {
+      "rule": "threat-network-exfiltration",
+      "package": "@redocly/openapi-core",
+      "version": "*",
+      "reason": "a test fixture inside the tarball with https://1.1.1.1 as an example externalValue; dev only, under openapi-typescript"
+    },
+    {
+      "rule": "threat-npm-http-dependency",
+      "package": "dayjs",
+      "version": "*",
+      "reason": "jest's testURL http://localhost in package.json; not a dependency"
+    },
+    {
+      "rule": "threat-npm-http-dependency",
+      "package": "katex",
+      "version": "*",
+      "reason": "jest's testEnvironmentOptions url http://localhost/ in package.json; not a dependency"
+    },
+    {
+      "rule": "threat-npm-http-dependency",
+      "package": "postcss-selector-parser",
+      "version": "*",
+      "reason": "a contributor's homepage http://beneb.info in package.json; not a dependency"
+    },
+    {
+      "rule": "threat-process-download-exec",
+      "package": "playwright-core",
+      "version": "*",
+      "reason": "eval(expression) in the script it injects into the browser it drives; dev only"
+    },
+    {
+      "rule": "threat-process-hooks",
+      "package": "vue-demi",
+      "version": "*",
+      "reason": "its postinstall picks the Vue 3 files (allowed in check-npm-packages.mjs; npm ci runs with --ignore-scripts)"
+    },
+    {
+      "rule": "threat-process-memory",
+      "package": "playwright",
+      "version": "*",
+      "reason": "babel's decorators transform in its bundled compiler; dev only"
+    },
+    {
+      "rule": "threat-process-memory",
+      "package": "tldts",
+      "version": "*",
+      "reason": "the public suffix list as one string in the minified build"
+    },
+    {
+      "rule": "threat-process-spawn-silent",
+      "package": "playwright-core",
+      "version": "*",
+      "reason": "starts its own browser-server daemon detached; dev only"
+    },
+    {
+      "rule": "threat-runtime-enumeration",
+      "package": "playwright-core",
+      "version": "*",
+      "reason": "reads /proc/self/cgroup to tell whether it runs in Docker; dev only"
+    },
+    {
+      "rule": "threat-runtime-enumeration",
+      "package": "vite",
+      "version": "*",
+      "reason": "reads /proc/self/cgroup to tell whether it runs in Docker"
+    },
+    {
+      "rule": "threat-runtime-environment-read",
+      "package": "@redocly/openapi-core",
+      "version": "*",
+      "reason": "its tests set and read REDOCLY_AUTHORIZATION; test files in the tarball, dev only"
+    },
+    {
+      "rule": "threat-runtime-environment-read",
+      "package": "playwright-core",
+      "version": "*",
+      "reason": "its PWTEST_* and PLAYWRIGHT_MCP_EXTENSION_TOKEN settings; dev only"
+    },
+    {
+      "rule": "threat-runtime-obfuscation",
+      "package": "@babel/parser",
+      "version": "*",
+      "reason": "Unicode identifier tables in the parser"
+    },
+    {
+      "rule": "threat-runtime-obfuscation",
+      "package": "@codemirror/view",
+      "version": "*",
+      "reason": "a character class table encoded as a digit string (bidi)"
+    },
+    {
+      "rule": "threat-runtime-obfuscation",
+      "package": "@mermaid-js/parser",
+      "version": "*",
+      "reason": "the whitespace characters of its lexer as escapes"
+    },
+    {
+      "rule": "threat-runtime-obfuscation",
+      "package": "d3",
+      "version": "*",
+      "reason": "colour schemes as hex strings (d3-scale-chromatic bundled)"
+    },
+    {
+      "rule": "threat-runtime-obfuscation",
+      "package": "d3-scale-chromatic",
+      "version": "*",
+      "reason": "colour schemes as hex strings"
+    },
+    {
+      "rule": "threat-runtime-obfuscation",
+      "package": "elkjs",
+      "version": "*",
+      "reason": "Java compiled to JavaScript (GWT): Unicode digit ranges of its tokenizer"
+    },
+    {
+      "rule": "threat-runtime-obfuscation",
+      "package": "katex",
+      "version": "*",
+      "reason": "a regex of Unicode sub- and superscript characters in the minified build"
+    },
+    {
+      "rule": "threat-runtime-obfuscation",
+      "package": "mermaid",
+      "version": "*",
+      "reason": "Unicode tables of a bundled parser in the minified build"
+    },
+    {
+      "rule": "threat-runtime-obfuscation",
+      "package": "playwright",
+      "version": "*",
+      "reason": "Unicode identifier tables in its bundled babel; dev only"
+    },
+    {
+      "rule": "threat-runtime-obfuscation",
+      "package": "playwright-core",
+      "version": "*",
+      "reason": "Unicode identifier tables in its bundled utilities; dev only"
+    },
+    {
+      "rule": "threat-runtime-obfuscation",
+      "package": "prettier",
+      "version": "*",
+      "reason": "Unicode identifier tables in its bundled parsers; dev only"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-base64exec",
+      "package": "@emnapi/core",
+      "version": "*",
+      "reason": "decodes base64 text when asked to (encoding 2) in its WASM glue; dev only, under vite's tooling"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-base64exec",
+      "package": "@vue/compiler-sfc",
+      "version": "*",
+      "reason": "atob for inline source maps; the compiler of .vue files, used by the build only"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-base64exec",
+      "package": "monaco-editor",
+      "version": "*",
+      "reason": "the text of TypeScript's lib.d.ts (RegExp.exec's documentation) inside the TypeScript worker"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-base64exec",
+      "package": "playwright-core",
+      "version": "*",
+      "reason": "eval(expression) in the script it injects into the browser; dev only"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-base64exec",
+      "package": "vite",
+      "version": "*",
+      "reason": "runs `net use` on Windows to learn the network drives for realpath"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-dynamic-eval",
+      "package": "js-beautify",
+      "version": "*",
+      "reason": "its unpacker for Dean Edwards' packer holds the packer's eval signature as a string; dev only, under @vue/test-utils"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-general",
+      "package": "js-beautify",
+      "version": "*",
+      "reason": "the same unpacker string; dev only"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-steganography",
+      "package": "playwright",
+      "version": "*",
+      "reason": "a stack trace's getEvalOrigin in its matchers; dev only"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-steganography",
+      "package": "playwright-core",
+      "version": "*",
+      "reason": "eval(expression) in the injected browser script; dev only"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-steganography",
+      "package": "vite",
+      "version": "*",
+      "reason": "the `net use` call for Windows network drives"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-unicode",
+      "package": "dayjs",
+      "version": "*",
+      "reason": "the Macedonian locale's month and weekday names"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-unicode",
+      "package": "highlight.js",
+      "version": "*",
+      "reason": "the 1C language's Cyrillic identifier pattern"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-unicode",
+      "package": "monaco-editor",
+      "version": "*",
+      "reason": "a keyword of the Structured Text language mode with a Cyrillic letter (upstream typo) in the dev build"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-unicode",
+      "package": "remove-accents",
+      "version": "*",
+      "reason": "its test.js: the accented alphabet it maps"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-unicode",
+      "package": "tldts",
+      "version": "*",
+      "reason": "internationalised suffixes of the public suffix list in the minified build"
+    },
+    {
+      "rule": "threat-runtime-obfuscation-unicode",
+      "package": "vite",
+      "version": "*",
+      "reason": "an HTML entity table in its bundled code"
+    },
+    {
+      "rule": "threat-runtime-system-info",
+      "package": "vite",
+      "version": "*",
+      "reason": "os.release() to recognise WSL"
+    },
+    {
+      "rule": "typosquatting",
+      "package": "obug",
+      "version": "*",
+      "reason": "resembles obuf; vitest's own debug replacement, declared by vitest; dev only"
+    }
+  ]
+}

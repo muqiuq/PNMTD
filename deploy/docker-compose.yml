@@ -28,7 +28,7 @@ services:
       options: { max-size: "10m", max-file: "3" }
 
   pnmtd:
-    image: ${PNMTD_IMAGE:-uisach/pnmtd}:${PNMTD_IMAGE_TAG:-v1.12.1}
+    image: ${PNMTD_IMAGE:-uisach/pnmtd}:${PNMTD_IMAGE_TAG:-v1.12.2}
     restart: unless-stopped
     depends_on:
       db:
@@ -87,7 +87,7 @@ services:
   # database, and passes the app's SSH connections into the tunnel over SOCKS5 on this network. The
   # app stays non-root, read-only and without capabilities. Needs the WireGuard kernel module (Linux 5.6+).
   pnmtd-wg:
-    image: ${PNMTD_IMAGE:-uisach/pnmtd}:${PNMTD_IMAGE_TAG:-v1.12.1}
+    image: ${PNMTD_IMAGE:-uisach/pnmtd}:${PNMTD_IMAGE_TAG:-v1.12.2}
     profiles: [wireguard]
     command: ["wireguard", "gateway"]
     user: "0:0"
@@ -116,6 +116,16 @@ services:
       net.ipv4.ip_forward: "1"                     # custom tunnels only; nftables drops everything else
     volumes:
       - pnmtd-keys:/var/lib/pnmtd/keys:ro          # decrypts the tunnel keys; never writes the key ring
+    # Its own check: the image's HEALTHCHECK asks /healthz, which the gateway doesn't serve, so without
+    # this Docker calls the container unhealthy and `compose up --wait` (update.sh) fails on it. Healthy
+    # here: wg0 is up (the kernel module works, the gateway made it) and the SOCKS port answers (the
+    # gateway runs, past its first sync). $$: the container's own settings, with the gateway's defaults.
+    healthcheck:
+      test: ["CMD-SHELL", "wg show $${WireGuard__Interface:-wg0} >/dev/null 2>&1 && bash -c 'exec 3<>/dev/tcp/127.0.0.1/$${WireGuard__SocksPort:-1080}'"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s                            # it waits for the app's migrations first
+      retries: 3
     logging:
       driver: json-file
       options: { max-size: "10m", max-file: "3" }

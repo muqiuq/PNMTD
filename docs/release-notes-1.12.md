@@ -1,6 +1,6 @@
 # PNMT 1.12: notification rules to a user, a group, or the responsible of the day
 
-Version 1.12.1: 1.12.0 and the change of 1.12.1 below.
+Version 1.12.2: 1.12.0 and the changes of 1.12.1 and 1.12.2 below.
 
 ## What's new
 
@@ -17,9 +17,16 @@ Version 1.12.1: 1.12.0 and the change of 1.12.1 below.
 - ***Add server* can make the host too:** *An existing host* or *A new host* in the dialog, for Windows and Linux alike; the token is for the new host, which is made once, when the token is. From a host's page the host stays preselected. Making a host needs *Monitoring: Edit*; without it the dialog is as before.
 - **Updating from 1.12.0:** `./update.sh --tag v1.12.1`. No migration, nothing to configure.
 
+## 1.12.2
+
+- **The WireGuard gateway's container has a health check of its own:** `wg0` up and its SOCKS port answering. Before, Docker applied the image's check, which asks the app's `/healthz`, called the working gateway unhealthy, and `./update.sh` stopped at *container pnmtd-pnmtd-wg-1 is unhealthy* although the gateway ran fine. The check comes with `git pull`, before the image does.
+- **The web UI's packages are checked for a compromise, not only for known vulnerabilities** (docs/webui-migration-plan.md §7.1): the image builds without a network once the packages are installed; every package version must be a week old by the registry's record, still on the registry, and carry the lock file's integrity there; the registry's signatures and build provenance are verified; and GuardDog's rules for malicious packages run over every package whenever they change. Nothing changes in the running app.
+- **A browser test** matched a number by substring and failed whenever the clock contained it; it matches exactly now.
+- **Updating from 1.12.1:** `./update.sh --tag v1.12.2`. No migration, nothing to configure.
+
 ## Updating from 1.11
 
-In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.12.1`. It takes a backup first.
+In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.12.2`. It takes a backup first.
 
 - **One migration:** `NotificationRecipients` on `notificationrules`: the recipient kind, the user and the group (set to null when they are deleted), the channels, the hours, and the last delivery. Every new column has a default, so existing rules stay address rules reached as before; a v0.12 import needs nothing new. It runs at the start.
 - **The audit** records a rule to people with a summary naming the person or group; the field changes are recorded as before. No new event types.

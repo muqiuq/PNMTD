@@ -42,6 +42,7 @@ docker compose up -d
 Startup and migrations:
 
 - `pnmtd` starts once `db` is healthy.
+- `pnmtd-wg` is healthy once `wg0` is up and its SOCKS port answers; it waits for the app's migrations first.
 - A new release applies its own database migrations as it starts.
 - It refuses to start on a database that a newer release has migrated.
 
