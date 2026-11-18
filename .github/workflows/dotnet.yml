@@ -43,10 +43,11 @@ jobs:
         fi
     - name: No model change without its migration
       run: dotnet tool restore && dotnet ef migrations has-pending-model-changes --project PNMTD/PNMTD.csproj --no-build
+    # tools/dotnet-test.sh: dotnet test, and each failed test as an annotation on the run's page.
     - name: Test (time zone east of UTC)
-      run: dotnet test --solution PNMTD.slnx --no-build
+      run: tools/dotnet-test.sh --solution PNMTD.slnx --no-build
     - name: Test (time zone west of UTC)
-      run: PNMTD_TEST_TZ=America/New_York dotnet test --project PNMTD.Tests/PNMTD.Tests.csproj --no-build
+      run: PNMTD_TEST_TZ=America/New_York tools/dotnet-test.sh --project PNMTD.Tests/PNMTD.Tests.csproj --no-build
 
   # The web UI, in node containers as everywhere (§6.1): the package check, the registry's
   # signatures, types against openapi.json, vue-tsc, ESLint, Prettier, Vitest, the build; and the
