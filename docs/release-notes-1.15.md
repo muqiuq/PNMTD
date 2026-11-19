@@ -1,5 +1,7 @@
 # PNMT 1.15: 3rd Party Connectors
 
+Version 1.15.1: 1.15.0 and the change of 1.15.1 below.
+
 ## What's new
 
 - **A new area, *Integrations → 3rd Party Connectors*** (docs/connectors-plan.md). A connector lets an outside system run one thing on one server through PNMT, and nothing else. Typical callers are a shop's back office, a ticketing system or a scheduler.
@@ -34,9 +36,14 @@
 
 - **Behind a reverse proxy in Docker, PNMT saw the proxy's address for every request.** This affected the audit log, the sign-in lockout, the agents' join limit, MCP's *last used from* and the access watch. `Proxy=docker` trusted a range that contained no Docker address (`::ffff:172.16.0.0/12` became `::/12`). It now trusts 172.16.0.0/12, as the README says.
 
+## 1.15.1
+
+- **A server busy with scripts could lose a run's result.** An agent's acks, script results and parse results counted against `Agents__MessagesPerMinute` (60), as heartbeats do. A server running many scripts in a minute, such as a connector's calls, had the rest dropped. A dropped result left its run *sent* until it was closed as lost; a dropped ack failed the run after 30 s. They now count with the reports (`Agents__ReportsPerMinute`, 300), as the sections and the diagnostics' results do. This was found by a connectors test that failed now and then.
+- **Updating from 1.15.0:** `./update.sh --tag v1.15.1`. No migration, nothing to configure, and the agents stay as they are.
+
 ## Updating from 1.14
 
-In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.15.0`. It takes a backup first.
+In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.15.1`. It takes a backup first.
 
 - **One migration, `Connectors`,** runs at the start:
   - six new tables: the connectors, their callers, the grants between them, a script connector's target and arguments, and the calls;

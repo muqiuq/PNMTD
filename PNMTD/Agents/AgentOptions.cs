@@ -28,10 +28,13 @@ public sealed class AgentOptions
     /// <summary>Joins per minute and address. 50 failures in an hour close the join for 15 minutes (§8.7).</summary>
     public int JoinRateLimitPerMinute { get; set; } = 10;
 
-    /// <summary>Messages per minute and agent besides sections, logins and results (§8.7).</summary>
+    /// <summary>Messages per minute and agent besides sections, logins, results and answers (§8.7): heartbeats, problems, a bye.</summary>
     public int MessagesPerMinute { get; set; } = 60;
 
-    /// <summary>Sections, login batches and diagnostics results per minute and agent.</summary>
+    /// <summary>
+    /// Sections, login batches, diagnostics and script results, parse results, and the answers to PNMTD's requests (acks, log lines,
+    /// key removals) per minute and agent.
+    /// </summary>
     public int ReportsPerMinute { get; set; } = 300;
 
     /// <summary>

@@ -29,6 +29,8 @@ public sealed class ConnectorWorkerTests
     /// <summary>The held runs, by id: a run's result waits until its gate opens.</summary>
     private static readonly ConcurrentDictionary<Guid, TaskCompletionSource> Gates = new();
 
+    private static readonly StringWriter Log = new();
+
     [ClassInitialize]
     public static async Task Start(TestContext _)
     {
@@ -39,7 +41,8 @@ public sealed class ConnectorWorkerTests
         }), services: Install);
         admin = app.Client(Roles.Admin);
         server = await ServerAsync(app, admin, "cx-worker",
-            configure: s => s.HoldRuns = run => Gates.GetOrAdd(run.RunId, _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)).Task);
+            configure: s => s.HoldRuns = run => Gates.GetOrAdd(run.RunId, _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)).Task,
+            output: TextWriter.Synchronized(Log));
         worker = app.Services.GetRequiredService<ConnectorWorker>();
     }
 
@@ -78,7 +81,12 @@ public sealed class ConnectorWorkerTests
             }
             await Task.Delay(100);
         }
-        Assert.Fail($"Still running after the cleanup: {string.Join("; ", running.Select(c => $"{c.ConnectorName} {c.Id}, run {c.RunId}"))}");
+        await using var check = app.NewDb();
+        var runIds = running.Select(c => c.RunId).ToList();
+        var runs = await check.AgentScriptRuns.AsNoTracking().Where(r => runIds.Contains(r.Id)).ToListAsync();
+        Assert.Fail($"Still running after the cleanup: {string.Join("; ", running.Select(c => $"{c.ConnectorName} {c.Id}, run {c.RunId}"))}; runs: "
+            + string.Join("; ", runs.Select(r => $"{r.Id} {r.State} {r.Message} gate={(Gates.TryGetValue(r.Id, out var g) ? g.Task.Status.ToString() : "none")}"))
+            + $"; simulator: {Log}");
     }
 
     private static void ReleaseAll()

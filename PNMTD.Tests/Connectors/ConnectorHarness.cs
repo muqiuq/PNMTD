@@ -94,10 +94,10 @@ internal static class ConnectorHarness
     }
 
     public static async Task<Server> ServerAsync(TestApp app, HttpClient admin, string prefix, AgentPlatform platform = AgentPlatform.Linux,
-        Action<AgentSimulator>? configure = null)
+        Action<AgentSimulator>? configure = null, TextWriter? output = null)
     {
         var hostId = await AgentHarness.CreateHostAsync(admin, prefix);
-        var simulator = new AgentSimulator(new Uri("http://localhost/"), app.Client(), ct => AgentHarness.ConnectAsync(app, ct), TextWriter.Null, platform)
+        var simulator = new AgentSimulator(new Uri("http://localhost/"), app.Client(), ct => AgentHarness.ConnectAsync(app, ct), output ?? TextWriter.Null, platform)
         {
             AllowScripts = true,
         };

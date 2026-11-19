@@ -421,7 +421,11 @@ public sealed class AgentHub(
             {
                 return;
             }
-            var report = envelope.T is AgentMessageTypes.Section or AgentMessageTypes.Access or AgentMessageTypes.DiagResult;
+            // Results and the answers to PNMTD's own requests count with the reports: a server busy with scripts (a connector's calls,
+            // docs/connectors-plan.md §9) sends an ack and a result per run, and a dropped result left its run "sent" until it was lost.
+            var report = envelope.T is AgentMessageTypes.Section or AgentMessageTypes.Access or AgentMessageTypes.DiagResult
+                or AgentMessageTypes.ScriptResult or AgentMessageTypes.ParseResult or AgentMessageTypes.Ack or AgentMessageTypes.Log
+                or AgentMessageTypes.KeyRemoval;
             if (!connection.Allow(report, report ? settings.ReportsPerMinute : settings.MessagesPerMinute))
             {
                 if (Clock.UtcNow - droppedAt > TimeSpan.FromMinutes(1))
