@@ -25,6 +25,9 @@ public static class SystemSensorKeys
 
     /// <summary>Zabbix (docs/audit-redmine-zabbix-plan.md §8.5).</summary>
     public const string Zabbix = "zabbix";
+
+    /// <summary>3rd Party Connectors (docs/connectors-plan.md §12.3): created with the first connector.</summary>
+    public const string Connectors = "connectors";
 }
 
 /// <summary>A system sensor: its key, its name, its importance, and when it exists.</summary>
@@ -51,6 +54,8 @@ public sealed class SystemSensors(IDbContextFactory<PnmtdDbContext> dbs, IConfig
         new(SystemSensorKeys.Files, "File storage", Importance.High, _ => true),
         new(SystemSensorKeys.Redmine, "Redmine", Importance.Normal, PNMTD.Redmine.RedmineSetup.Configured),
         new(SystemSensorKeys.Zabbix, "Zabbix", Importance.High, PNMTD.Zabbix.ZabbixSetup.Configured),
+        // Not at start: the first connector creates it, so installations without connectors don't get it.
+        new(SystemSensorKeys.Connectors, "3rd Party Connectors", Importance.High, _ => false),
     ];
 
     private readonly ConcurrentDictionary<string, Guid> ids = new();

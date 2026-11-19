@@ -2,13 +2,13 @@
 
 | | |
 |---|---|
-| Status | **Draft, not built. Reviewed once (2026-11-18):** a right of its own (D2); at least one network (D3); per connector, whether a call runs when the review can't (D4); plain HTTP works (D5); the target as text, filled by selectors, with no links into the library, the accounts or the agents (D6); and *Calls*, every active and processed call with the newest 100 000 kept, as the area's main view (D16, D19). **Reviewed twice (2026-11-18):** calls are queued, and **the calls table is the queue**: the endpoint checks and stores, and a background worker does the rest (D7, D20); line breaks in values when an argument allows them (D8); the output goes back only when a connector says so (D10); the pattern is in the error message (D11); one run per script and server at a time (D15). **Reviewed a third time (2026-11-18): one key per caller** (D9). A caller is an entry of its own, with its key, its networks and the connectors granted to it (§6.1, D21). |
+| Status | **Built (2026-11-19): C0 to C6, with the deviations of §21. Released in 1.15.0.** **Reviewed once (2026-11-18):** a right of its own (D2); at least one network (D3); per connector, whether a call runs when the review can't (D4); plain HTTP works (D5); the target as text, filled by selectors, with no links into the library, the accounts or the agents (D6); and *Calls*, every active and processed call with the newest 100 000 kept, as the area's main view (D16, D19). **Reviewed twice (2026-11-18):** calls are queued, and **the calls table is the queue**: the endpoint checks and stores, and a background worker does the rest (D7, D20); line breaks in values when an argument allows them (D8); the output goes back only when a connector says so (D10); the pattern is in the error message (D11); one run per script and server at a time (D15). **Reviewed a third time (2026-11-18): one key per caller** (D9). **Since:** at most `Connectors__MaxRunningCalls` (10) connector runs at once over all connectors (D22). A caller is an entry of its own, with its key, its networks and the connectors granted to it (§6.1, D21). |
 | Date | 2026-11-18 |
 | Scope | A new area, ***3rd Party Connectors***. **A connector is a narrow door into PNMT for one outside system and one purpose.** An admin adds a connector and picks its type. The first two types are ***Windows Server Script*** and ***Linux Server Script***. For those, the admin fills in **the target as text**: the server's name, the connector's own copy of the script, optionally ***a function in the script***, and the account. **Selectors fill the fields** from what PNMT knows (servers, library scripts, scripts registered on a server, functions, accounts), but nothing is linked: changing the library or joining the agent again doesn't change or break a connector. The admin then decides each parameter: the caller passes it (*exposed*, with an optional regular expression), PNMT sets it (*fixed*), or it is left out. **The endpoint only checks a call and stores it. A background worker takes it from the table:** it reviews the call, finds the server, waits while the same script runs there already, starts the run and records the outcome. The caller either **waits for the outcome** or gets **a ticket** and asks for the outcome later. A call can be **reviewed by the typesafe model** (TypeSafe's Jev) against checks the admin writes. **The outside systems are *callers*,** each with **one API key that can be shown again**, **the networks it calls from** (a single address is a /32 or /128), and **the connectors granted to it**. One key opens all of a caller's connectors, and no other. The calls run through the existing script pipeline: the agents' local rights stay final, the arguments are never pasted into a command line, and secrets are encrypted to the agent. **The area opens on *Calls*:** every active and processed call of every connector, with the newest 100 000 kept. |
 | Goals | <ol><li>**An outside system can do one thing on a server, and nothing else:** one server, one script text, one function, with the arguments the admin allows (R1–R6, R10).</li><li>**Every argument is checked before anything runs.** One bad argument refuses the whole call (R5).</li><li>**The caller chooses how to get the outcome:** wait for it, or take a ticket (R4).</li><li>**A stolen key is not enough:** the caller's networks, its grants, the limits and, optionally, the review stand behind it, and a key used from elsewhere is reported (R7, R9, R14).</li><li>**Nothing new on the agents' side of trust:** a connector can't run what the server's own policy refuses (R15).</li><li>**Everything is on record:** each call, its review, its run and its output (R12).</li><li>**Room for more types:** callers, review, limits, tickets and history are shared, and only the target is per type (§3.2, §19).</li></ol> |
 | Not in scope | Types other than the two script types (§19). Several servers per connector, or a server chosen by the caller (D7). Calling PNMT's own `/api/v1` with a key. Webhooks when a ticket finishes (§19). An approval step by a person before a call runs (§19). Keys per connector, or networks per connector on top of the caller's (D9, D21). A review by the main LLM or by Seraph: the request names the typesafe model (§7.5). Arrays and objects as arguments. Secrets stored in PNMT as fixed arguments (§5.4). MCP tools for connectors (§15). |
 | Depends on | The scripts (docs/windows-sensor-plan.md §7; docs/linux-sensor-plan.md §8; `AgentScriptService`, `ScriptArguments`, `BashScriptHeader`). The agents' local rights (`ScriptPolicy` on Windows, `config.yaml` on Linux). The guard (docs/ai-operations-plan.md §3.2, §3.4; `DecisionClient`, `McpGuard`). The anonymous paths outside `/api` (docs/advanced-sensor-plan.md §4.1; `ReportEndpoint`, `AgentJoinEndpoint`). Data Protection for secrets that are shown again (`WireGuardNetwork.Protect`). The audit (docs/audit-redmine-zabbix-plan.md §4). The system sensors (docs/ai-operations-plan.md §4). docs/agent-feature-level-plan.md, if it is built first (§8.3). |
-| Target | **C0 (§6.4) as 1.14.3, on its own and first.** The rest as **1.15.0**, because it has a migration. The functions (C5) need a new agent release. |
+| Target | **1.15.0**, all of it: 1.14.3 shipped before C0 was built, so the `Proxy` fix comes with the rest (§21). The functions (C5) need the agents of 1.15. |
 
 **Words.**
 
@@ -141,6 +141,7 @@ Added by this plan, because R1 to R9 need them (each can be dropped in the revie
 - **R23.** **One run per script and server at a time**, whoever started it: a connector's calls wait their turn, and a run from the UI is refused while the script runs there (D15).
 - **R24.** Line breaks in a value only where the argument allows them (D8).
 - **R25.** **One key per caller** (D9). A caller has its networks and the connectors granted to it, and its key opens those connectors and no others.
+- **R26.** **At most `Connectors__MaxRunningCalls` connector runs at once**, over all connectors and servers. Calls beyond it wait in the queue, oldest first (D22).
 
 ## 3. A connector
 
@@ -287,7 +288,7 @@ Idempotency-Key: import-2026-11-18-0815
 | W1 | **The review** (§7), if on, once per call | *refused* by `review` with the check's label, and **433**. When the review can't run: *refused* by `review_unavailable`, or on, unreviewed (§7.4) |
 | W2 | **The target now** (§3.3): the name finds exactly one server; the text is parsed without errors; the arguments still pass the connector as it is now (§5.5); the function is in the parse, and the agent can call functions (§8.3) | *refused* by `server_not_found`, `server_ambiguous`, `arguments_invalid`, `arguments_need_review` or `agent_too_old`. **An offline server and a pending parse wait** |
 | W3 | A dry run ends here | *checked*, with what W1 and W2 said |
-| W4 | **The script's turn** (D15): no run of the same script on the same server, whoever started it, and no older call for it in the queue (§9.5) | the call waits |
+| W4 | **The script's turn** (D15): no run of the same script on the same server, whoever started it, and no older call for it in the queue. **And a free place:** fewer than `Connectors__MaxRunningCalls` connector calls running (D22, §9.5) | the call waits (`turn`, or `capacity`) |
 | W5 | **The run starts** (§9.2). Refusals by the agent (its policy, its own parse) come with the ack and are the run's state | *running*, then the run's final state |
 | – | **The waiting time:** a call still queued after its connector's `MaxQueueSeconds` | *expired*, with what it waited for |
 
@@ -330,7 +331,7 @@ Idempotency-Key: import-2026-11-18-0815
 
   | State | Means | Final |
   |---|---|---|
-  | `queued` | in the queue; `waitingFor` says for what: `worker`, `review`, `turn` (the script runs on the server already), `server_offline`, `parameters_pending` | no |
+  | `queued` | in the queue; `waitingFor` says for what: `worker`, `review`, `turn` (the script runs on the server already), `capacity` (PNMT runs its most connector calls already), `server_offline`, `parameters_pending` | no |
   | `running` | the run was sent (`Sent`, `Running`) | no |
   | `done` | `Done` | yes |
   | `failed` | `Failed`: the script failed, or the agent didn't ack within 30 s | yes |
@@ -758,7 +759,7 @@ public sealed record ScriptFunction(string Name, int Line, IReadOnlyList<ScriptP
 
   Otherwise it wakes every 5 s. The queue is in the database (`State`, with a partial index on the active states, §10.5), so nothing is lost on a restart.
 - **A pass:**
-  1. **Queued calls, oldest first** (`ReceivedAt`): W1 to W5 of §4.3. At most `Connectors__WorkerParallelism` (4) reviews run at once, and everything else is quick. A call that has to wait stays queued, with its `WaitingFor` updated;
+  1. **Queued calls, oldest first** (`ReceivedAt`): W1 to W5 of §4.3. At most `Connectors__WorkerParallelism` (4) reviews run at once, and everything else is quick. At most `Connectors__MaxRunningCalls` (10) calls are running at any time (§9.5). A call that has to wait stays queued, with its `WaitingFor` updated;
   2. **running calls:** a call whose run became final takes the run's state and `FinishedAt`, and its signal fires (§9.3);
   3. **expiry:** a queued call past `ExpiresAt` (`ReceivedAt + MaxQueueSeconds`) becomes *expired*, with what it waited for;
   4. **once a minute, the maintenance:** lost runs (§9.4), the retention (§10.4, once an hour), old idempotency keys, and 233 after the quiet time (§12.3).
@@ -810,6 +811,12 @@ public sealed record ScriptFunction(string Name, int Line, IReadOnlyList<ScriptP
 ### 9.5 The queue and the limits
 
 - **First come, first served, per script and server:** the oldest queued call for a script on a server starts first. Calls for other scripts or other servers don't wait behind it.
+- **At most `Connectors__MaxRunningCalls` (default 10, 1 to 100) connector calls run at once,** over all connectors, callers and servers (D22).
+  - **What counts:** the calls in the state *running*, which is the calls whose run was started and isn't final. A run that never reports is closed by §9.4 and frees its place.
+  - **When the places are taken,** a call whose turn has come waits with `waitingFor: capacity`. The places go to the waiting calls oldest first, whatever their connector, so a busy connector can't keep a quiet one waiting for ever. Its connector's `MaxQueueSeconds` still applies.
+  - **Runs from the UI don't count, and aren't held back.** A person starting a script decides that themselves, and one run per script and server still applies to them (§9.2).
+  - **Counted in the database** under one advisory lock for the whole limit, so two passes, or a restart in between, can't start more than the limit. The worker reads the count once per pass and counts its own starts in it.
+  - **Why:** the agents run what they are sent at once. Without a limit, a burst of calls to many connectors would start as many scripts at the same time, and PNMT would wait on as many results.
 - **Calls waiting** (`MaxQueued`, 1 to 100, default 20): the connector's queued calls. One more is 429 `queue_full`, with `Retry-After: 10`.
 - **The waiting time** (`MaxQueueSeconds`, 10 to 3600, default 600): a call queued for longer *expires* (§4.3).
 - **Calls per hour** (`MaxCallsPerHour`, 1 to 3600, default 60): the calls stored as queued in the last 60 minutes, dry runs included, counted in the database. One more is 429 `rate_limited`, with `Retry-After` set to when the oldest leaves the hour.
@@ -915,7 +922,7 @@ Parameters not in the table are omitted. A row is written for every parameter an
 | `From` | text(64) | the address the call came from |
 | `State` | text(16) | `Queued`, `Running`, `Done`, `Failed`, `TimedOut`, `Offline`, `Lost`, `Refused`, `Expired`, `Cancelled`, `Checked` (§4.4) |
 | `RefusedBy` | text(32), nullable | for `Refused`: at the endpoint `address_refused`, `connector_disabled`, `invalid_body`, `too_large`, `arguments_invalid`, `rate_limited`, `queue_full`; in the queue `review`, `review_unavailable`, `server_not_found`, `server_ambiguous`, `arguments_invalid`, `arguments_need_review`, `agent_too_old`; and `agent` |
-| `WaitingFor` | text(32), nullable | while queued: `worker`, `review`, `turn`, `server_offline`, `parameters_pending` |
+| `WaitingFor` | text(32), nullable | while queued: `worker`, `review`, `turn`, `capacity`, `server_offline`, `parameters_pending` |
 | `ExpiresAt` | timestamp, nullable | `ReceivedAt + MaxQueueSeconds` |
 | `StartedAt`, `FinishedAt` | timestamp, nullable | when the run started, and when the call became final |
 | `ServerSensorId`, `ServerName` | uuid and text(500), nullable | the server the name found, at the time (no foreign key) |
@@ -1050,7 +1057,7 @@ Parameters not in the table are omitted. A row is written for every parameter an
 - **Every call of every connector,** from `GET /connector-calls`, refetched every 5 s while the tab is open (`useServerTable` with `refetchInterval`).
 - **Active calls first,** under *Active (3)*, as the worker sees them:
   - **running:** the connector, the caller, from, reference, the server the name found, started, and *running for* as a live counter;
-  - **queued:** the same, with *waiting* and what for (*its turn behind Shop: flush cache's run*, *WEB01 offline*, *the review*, *the parse*), its place in the line for its script and server, and when it expires;
+  - **queued:** the same, with *waiting* and what for (*its turn behind Shop: flush cache's run*, *a free place: 10 of 10 running*, *WEB01 offline*, *the review*, *the parse*), its place in the line for its script and server, and when it expires;
   - *wait* or *ticket*;
   - ***Cancel…*** on a queued call, for Connectors: Manage (§9.1).
 
@@ -1062,7 +1069,7 @@ Parameters not in the table are omitted. A row is written for every parameter an
   - *unreviewed* and *collected* as small tags.
 - **Filters,** kept in the URL: connector, caller, active or processed, state, refused by, from (an address or a network), reference, the time. A connector's own *Calls* tab is this view with the connector set, and a caller's page links to it with the caller set.
 - **On top:**
-  - the last 24 h in figures: calls, refused, failed runs, expired, and the longest wait in the queue;
+  - running now against the limit (*4 of 10 running*), and the last 24 h in figures: calls, refused, failed runs, expired, and the longest wait in the queue;
   - the system sensor's state, with its last 433 while it is failed (§12.3).
 - **A row opens `ConnectorCallDialog`:**
   - the arguments (secure ones by name), the reference and the note;
@@ -1170,6 +1177,7 @@ Parameters not in the table are omitted. A row is written for every parameter an
 | `Connectors__PatternTimeoutMs` | `100` | for patterns that need backtracking |
 | `Connectors__ReviewTimeoutSeconds` | `15` | |
 | `Connectors__WorkerParallelism` | `4` | reviews the worker runs at once (§9.1) |
+| `Connectors__MaxRunningCalls` | `10` | connector calls running at once over all connectors, 1 to 100 (§9.5, D22) |
 | `Connectors__FailedKeysPerAddress` | `20` | within 10 minutes |
 | `Connectors__BlockMinutes` | `15` | |
 | `Connectors__IdempotencyHours` | `24` | |
@@ -1249,6 +1257,7 @@ Few, at the risky places (`PNMTD.Tests/Connectors/`):
   - a run from the UI of a script that a connector's call runs is refused for that server with `script_running`, and a call queued behind a UI run waits for it;
   - a review refusal makes the call *refused* by `review`, and a caller in wait mode gets it in a 200 answer;
   - an offline server keeps the call queued with `server_offline`, and it starts when the agent connects (the hub's nudge);
+  - with `MaxRunningCalls` at 2, a third call for another script on another server waits with `capacity`, starts when one of the two ends, and the places go oldest first over two connectors; a run from the UI neither counts nor waits;
   - a call past `MaxQueueSeconds` expires with what it waited for;
   - cancelling a queued call works, and cancelling a running one is 409; disabling a connector cancels its queued calls;
   - a restart (a new worker over the same table) continues queued calls, and expires one whose secret arguments are gone;
@@ -1318,7 +1327,7 @@ Few, at the risky places (`PNMTD.Tests/Connectors/`):
 
 ## 18. Decisions and open questions
 
-Referred to elsewhere as D1 to D21. **Decided** marks the answers of the three reviews of 2026-11-18.
+Referred to elsewhere as D1 to D22. **Decided** marks the answers of the reviews of 2026-11-18 and after.
 
 1. **The area is *3rd Party Connectors* in the UI, `Connector` in code, `/connector/v1` on the wire.** A connector is per purpose, not per caller.
 2. **Decided: a right of its own.** The area *Connectors* (View, Manage) decides alone. *Servers: Manage* isn't needed as well, and the selectors read through lookups of their own (§11, §12.1).
@@ -1341,6 +1350,7 @@ Referred to elsewhere as D1 to D21. **Decided** marks the answers of the three r
 19. **Decided: the area has tabs, and opens on *Calls*,** every active and processed call of every connector. *Connectors*, *Callers* and *Documentation* are the other three (§13.1, §13.2).
 20. **Decided: a background task handles the calls.** The endpoint checks a call and stores it, and the worker does everything after that: review, target, turn, start, outcome. The calls table is its work list (§9.1).
 21. **Open: the networks belong to the caller,** with its key (§6.1). Proposed: only there. A connector that should be reached from fewer places than its callers' networks is granted to a caller with fewer networks. Networks per connector, on top of the caller's, are in §19 if that proves too coarse.
+22. **Decided: a limit over all connectors,** `Connectors__MaxRunningCalls`, 10 by default: at most that many connector calls run at once. Beyond it, calls wait in the queue, oldest first, with `waitingFor: capacity`. Runs from the UI don't count (§9.5).
 
 ## 19. Later
 
@@ -1367,7 +1377,7 @@ Referred to elsewhere as D1 to D21. **Decided** marks the answers of the three r
 |---|---|---|
 | **C0** | `Proxy=docker` trusts `172.16.0.0/12`; `Proxy` as a validated list; `ForwardedHeadersTests`; deploy/README.md; **release 1.14.3** (§6.4) | small |
 | **C1** | The model: `ConnectorType`, the entities and the migration `Connectors`, `agent_script_runs.ConnectorId` and `Function`; `ConnectorOptions`; `Area.Connectors`; `AuditActor.Connector` and the events; the system sensor and its codes; `LAST_CONNECTOR_WORK`. **Callers and grants** (§6.1), their keys (§6.2) and networks (§6.3), the keys and networks pure first. The admin API without `check` (§11), callers included, with `EndpointAuditTests`, `AuditModelTests`, `GroupsTests` and `ConnectorCallerTests` | medium |
-| **C2** | The call: `AgentScriptService.StartAsync` taken out of `RunAsync` and `RunLocalAsync` (§9.2); the target as text, resolved at each call, and the connector's text in the parse pipeline with the arguments' reconciling (§3.3, §5.5, §10.6); `ConnectorPaths`, `ConnectorEndpoint` and its checks, storing calls as queued (§4.3); the arguments (§5); **`ConnectorWorker`**: the queue, the target, one run per script and server, expiry, cancelling, lost runs and the retention (§9.1, §9.4, §9.5); `ConnectorSecretVault`; wait and ticket mode with `ConnectorCallSignals` (§9.3); idempotency and dry runs; the limits and `ConnectorGuard`; the description; `POST …/check`, `…/parse` and the lookups; the seed. `ConnectorArgumentsTests`, `ConnectorTextTests`, `ConnectorEndpointTests`, `ConnectorWorkerTests` and `ScriptRunsLostTests`. **Whole scripts only**: functions wait for C5 | large |
+| **C2** | The call: `AgentScriptService.StartAsync` taken out of `RunAsync` and `RunLocalAsync` (§9.2); the target as text, resolved at each call, and the connector's text in the parse pipeline with the arguments' reconciling (§3.3, §5.5, §10.6); `ConnectorPaths`, `ConnectorEndpoint` and its checks, storing calls as queued (§4.3); the arguments (§5); **`ConnectorWorker`**: the queue, the target, one run per script and server, the limit over all connectors, expiry, cancelling, lost runs and the retention (§9.1, §9.4, §9.5); `ConnectorSecretVault`; wait and ticket mode with `ConnectorCallSignals` (§9.3); idempotency and dry runs; the limits and `ConnectorGuard`; the description; `POST …/check`, `…/parse` and the lookups; the seed. `ConnectorArgumentsTests`, `ConnectorTextTests`, `ConnectorEndpointTests`, `ConnectorWorkerTests` and `ScriptRunsLostTests`. **Whole scripts only**: functions wait for C5 | large |
 | **C3** | The review (§7): the state, the questions, the threshold, the fallback per connector, the budget's check, the stored answers, 433, *Try the review*. `ConnectorReviewTests` | small |
 | **C4** | The web UI (§13): the area's tabs with *Calls* as the main view, *Connectors*, *Callers* and *Documentation*; *Add connector…* with the selectors; *Add caller…*, the caller's page and `NetworksEditor`; a connector's six tabs; `ScriptArgumentInput` and `CodeExamples` taken out; the runs' history and the library's hint; the audit's actor; `schema.d.ts`; the unit tests | large |
 | **C5** | Functions (§8): `ScriptFunction`, `ParsedScript.Functions` and `RunScriptRequest.Function`; `BashScriptHeader`'s `functions` and findings; the PowerShell parser and wrapper; the Linux runner; both capabilities; the parse again for versions without functions; the run dialog's *Function*; the simulator. `ScriptFunctionTests`; the agents' checklists on real machines; **a new agent release** | medium |
@@ -1375,3 +1385,36 @@ Referred to elsewhere as D1 to D21. **Decided** marks the answers of the three r
 
 - **C1 to C4 make a working feature** for whole scripts, registered scripts included, with fixed arguments for dispatcher scripts. C5 can follow in the same release, or in the next one if the agents' release isn't ready.
 - **A migration means a minor version,** per the release recipe: 1.15.0.
+
+## 21. What was built
+
+Built on 2026-11-19 in one go, C0 to C6, as the plan says, except for the points below. The tests are in `PNMTD.Tests/Connectors/` (pure, endpoint, worker, review, text, functions), `ForwardedHeadersTests`, `DevSeedTests`, and the web's `connectorFormat.test.ts`, `ScriptArgumentInput.test.ts`, `TakeScriptDialog.test.ts` and `e2e/connectors.spec.ts`.
+
+- **C0 is in 1.15.0,** not in 1.14.3, which had shipped already. `ProxySetting` parses the list, `docker` is 172.16.0.0/12, and a bad entry stops the start.
+- **`connector_arguments.Parameter`** (jsonb, not in §10.3) holds each parameter as the parse found it at the last reconcile. The endpoint checks types, sets, ranges and which arguments are secret from it. A call is therefore checked fully even while a new PowerShell text waits for its parse, and a secret can never land in the table by being mistaken for a plain argument.
+- **Two refusals were added to §4.3:**
+  - `script_invalid` (in the queue): the text has errors, no agent could parse it, or it lacks the connector's function;
+  - `arguments_need_review` is also answered **at the endpoint**, as 409, while the arguments wait for an admin (§5.5). The worker's W2 still refuses calls queued before the change.
+- **A dry run always ends as `checked`.** `refusedBy` and `message` say what would have refused it, the review included, so its caller reads one state.
+- **A blocked address is answered before the key is read** (§6.5's order), so check 3 comes before check 2.
+- **Two endpoints were added to §11:** `GET /connector-calls/figures`, the top of *Calls*, and `GET /connectors/docs`, docs/connectors-api.md, embedded at the build (the Dockerfile copies that one file of `docs/`).
+- **`AgentScriptService.StartAsync(spec, busyMode, gate, withRow, audit)`:**
+  - `busyMode` is `Conflict` for one server (409 `script_running`), `Refuse` for a batch (a refused row per busy server), and `Wait` for a connector's call;
+  - `gate` takes the limit's advisory lock and counts the running calls;
+  - `withRow` makes the call running in the run's transaction, after the run's row is written;
+  - one script's lock is the first 8 bytes of a SHA-256 of the server and the script's lower-case name.
+- **Two test settings:** `Connectors__PassSeconds` (the timer, 5) and `Connectors__Nudge` (true) let the tests drive the worker by hand. The simulator got `HoldRuns`, which acks a run and holds its result, and `--no-functions`.
+- **The UI:**
+  - the function is a text field with a selector beside it, like the other fields of the target;
+  - `CodeExamples.vue` wasn't taken out of `SensorUrlPanel.vue`: the *Usage* tab builds its own three examples (`connectorFormat.examples`);
+  - `ScriptArgumentInput.vue` was taken out of the run dialog, as planned.
+- **The e2e test** calls a connector on the seeded web-01, whose agent isn't connected in the e2e stack: the right call is answered 202, queued for the server, instead of 200.
+- **Bash's parse always lists its functions,** an empty list when there are none: only a PowerShell parse by an older agent has none. The one-time re-read of §8.3 is the custom migration `CustomMigration_ReparseBashHeaders`.
+- **Functions on the agents:**
+  - the Windows agent announces `parse.functions.v1` always, and `scripts.functions.v1` with scripts;
+  - its parser lists top-level functions (`FindAll(…, $false)`) with the two findings;
+  - its wrapper dot-sources the script and resolves the name with `Get-Command -CommandType Function`;
+  - the Linux agent announces `scripts.functions.v1` with scripts, checks the function against its own header, and runs `run.sh` (0400) with `PNMT__FUNCTION` in the environment file.
+
+  Both need the checklists of docs/windows-sensor-plan.md §16 and docs/linux-sensor-plan.md §17 on real machines before the agents' release.
+

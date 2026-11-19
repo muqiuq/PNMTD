@@ -162,6 +162,15 @@ public static class AgentCapabilities
     /// <summary>W6: parsing scripts, which never runs them (§7.1).</summary>
     public const string Parse = "parse.v1";
 
+    /// <summary>Windows: the parse lists the functions defined at a script's top level (docs/connectors-plan.md §8.3); always with <see cref="Parse"/>.</summary>
+    public const string ParseFunctions = "parse.functions.v1";
+
+    /// <summary>
+    /// Windows and Linux: the agent calls a function when a run names one (docs/connectors-plan.md §8.3), only with <see cref="Scripts"/>.
+    /// PNMTD never sends a function to an agent without it: an older agent would ignore the field and run the whole script.
+    /// </summary>
+    public const string ScriptFunctions = "scripts.functions.v1";
+
     /// <summary>Linux: the <c>ssh-keys</c> section (docs/linux-sensor-plan.md §6).</summary>
     public const string Keys = "keys.v1";
 

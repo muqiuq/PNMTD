@@ -62,6 +62,13 @@ namespace PNMTD.Lib.Models
         public const int ZABBIX_FAILING = 430;
 
         /// <summary>
+        /// 3rd Party Connectors (docs/connectors-plan.md §12.3): no refusal of the kinds below for Connectors__QuietMinutes after a 433;
+        /// a valid key from outside its caller's networks, a refusal by the review, or an address blocked for failed keys.
+        /// </summary>
+        public const int CONNECTORS_OK = 233;
+        public const int CONNECTORS_REFUSED = 433;
+
+        /// <summary>
         /// A Zabbix host attached as a sensor (docs/audit-redmine-zabbix-plan.md §7.7): no problem from its severity up, a problem,
         /// the host gone from Zabbix (deleted, disabled, out of the token's groups), an interface unavailable (when that fails it).
         /// </summary>

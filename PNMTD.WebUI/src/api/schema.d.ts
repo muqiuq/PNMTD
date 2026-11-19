@@ -2526,6 +2526,8 @@ export interface paths {
                     sensorId?: string;
                     batchId?: string;
                     state?: components["schemas"]["ScriptRunState"];
+                    connectorId?: string;
+                    viaConnectors?: boolean;
                     page?: number;
                     pageSize?: number;
                     sort?: string;
@@ -4801,6 +4803,1007 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connector-calls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    connectorId?: string;
+                    callerId?: string;
+                    active?: boolean;
+                    state?: components["schemas"]["ConnectorCallState"];
+                    refusedBy?: string;
+                    from?: string;
+                    reference?: string;
+                    since?: string;
+                    until?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfConnectorCallItem"];
+                        "text/json": components["schemas"]["PagedOfConnectorCallItem"];
+                        "text/plain": components["schemas"]["PagedOfConnectorCallItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connector-calls/figures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorCallFigures"];
+                        "text/json": components["schemas"]["ConnectorCallFigures"];
+                        "text/plain": components["schemas"]["ConnectorCallFigures"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connector-calls/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorCallDetail"];
+                        "text/json": components["schemas"]["ConnectorCallDetail"];
+                        "text/plain": components["schemas"]["ConnectorCallDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connector-calls/{id}/redact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorCallDetail"];
+                        "text/json": components["schemas"]["ConnectorCallDetail"];
+                        "text/plain": components["schemas"]["ConnectorCallDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connector-calls/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorCallDetail"];
+                        "text/json": components["schemas"]["ConnectorCallDetail"];
+                        "text/plain": components["schemas"]["ConnectorCallDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connectors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    type?: components["schemas"]["ConnectorType"];
+                    enabled?: boolean;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfConnectorItem"];
+                        "text/json": components["schemas"]["PagedOfConnectorItem"];
+                        "text/plain": components["schemas"]["PagedOfConnectorItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConnectorRequest"];
+                    "text/json": components["schemas"]["ConnectorRequest"];
+                    "application/*+json": components["schemas"]["ConnectorRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorDetail"];
+                        "text/json": components["schemas"]["ConnectorDetail"];
+                        "text/plain": components["schemas"]["ConnectorDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connectors/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorDetail"];
+                        "text/json": components["schemas"]["ConnectorDetail"];
+                        "text/plain": components["schemas"]["ConnectorDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConnectorRequest"];
+                    "text/json": components["schemas"]["ConnectorRequest"];
+                    "application/*+json": components["schemas"]["ConnectorRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorDetail"];
+                        "text/json": components["schemas"]["ConnectorDetail"];
+                        "text/plain": components["schemas"]["ConnectorDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connectors/docs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorDocs"];
+                        "text/json": components["schemas"]["ConnectorDocs"];
+                        "text/plain": components["schemas"]["ConnectorDocs"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connectors/{id}/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorCompare"];
+                        "text/json": components["schemas"]["ConnectorCompare"];
+                        "text/plain": components["schemas"]["ConnectorCompare"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connectors/{id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConnectorCheckRequest"];
+                    "text/json": components["schemas"]["ConnectorCheckRequest"];
+                    "application/*+json": components["schemas"]["ConnectorCheckRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorCheckResult"];
+                        "text/json": components["schemas"]["ConnectorCheckResult"];
+                        "text/plain": components["schemas"]["ConnectorCheckResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connectors/parse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConnectorParseRequest"];
+                    "text/json": components["schemas"]["ConnectorParseRequest"];
+                    "application/*+json": components["schemas"]["ConnectorParseRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorParseResult"];
+                        "text/json": components["schemas"]["ConnectorParseResult"];
+                        "text/plain": components["schemas"]["ConnectorParseResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connectors/patterns/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConnectorPatternRequest"];
+                    "text/json": components["schemas"]["ConnectorPatternRequest"];
+                    "application/*+json": components["schemas"]["ConnectorPatternRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorPatternResult"];
+                        "text/json": components["schemas"]["ConnectorPatternResult"];
+                        "text/plain": components["schemas"]["ConnectorPatternResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connectors/lookups/servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    type?: components["schemas"]["ConnectorType"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorServerOption"][];
+                        "text/json": components["schemas"]["ConnectorServerOption"][];
+                        "text/plain": components["schemas"]["ConnectorServerOption"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connectors/lookups/library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    type?: components["schemas"]["ConnectorType"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorLibraryScript"][];
+                        "text/json": components["schemas"]["ConnectorLibraryScript"][];
+                        "text/plain": components["schemas"]["ConnectorLibraryScript"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connectors/lookups/library/{scriptId}/versions/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    scriptId: string;
+                    number: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorLibraryVersion"];
+                        "text/json": components["schemas"]["ConnectorLibraryVersion"];
+                        "text/plain": components["schemas"]["ConnectorLibraryVersion"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connectors/lookups/registered": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    server?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorRegisteredScript"][];
+                        "text/json": components["schemas"]["ConnectorRegisteredScript"][];
+                        "text/plain": components["schemas"]["ConnectorRegisteredScript"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connectors/lookups/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    type?: components["schemas"]["ConnectorType"];
+                    server?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorAccountOption"][];
+                        "text/json": components["schemas"]["ConnectorAccountOption"][];
+                        "text/plain": components["schemas"]["ConnectorAccountOption"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connector-callers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfConnectorCallerItem"];
+                        "text/json": components["schemas"]["PagedOfConnectorCallerItem"];
+                        "text/plain": components["schemas"]["PagedOfConnectorCallerItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConnectorCallerRequest"];
+                    "text/json": components["schemas"]["ConnectorCallerRequest"];
+                    "application/*+json": components["schemas"]["ConnectorCallerRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorCallerCreated"];
+                        "text/json": components["schemas"]["ConnectorCallerCreated"];
+                        "text/plain": components["schemas"]["ConnectorCallerCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connector-callers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorCallerDetail"];
+                        "text/json": components["schemas"]["ConnectorCallerDetail"];
+                        "text/plain": components["schemas"]["ConnectorCallerDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConnectorCallerRequest"];
+                    "text/json": components["schemas"]["ConnectorCallerRequest"];
+                    "application/*+json": components["schemas"]["ConnectorCallerRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorCallerDetail"];
+                        "text/json": components["schemas"]["ConnectorCallerDetail"];
+                        "text/plain": components["schemas"]["ConnectorCallerDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connector-callers/{id}/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorCallerKey"];
+                        "text/json": components["schemas"]["ConnectorCallerKey"];
+                        "text/plain": components["schemas"]["ConnectorCallerKey"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connector-callers/{id}/key/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectorCallerKey"];
+                        "text/json": components["schemas"]["ConnectorCallerKey"];
+                        "text/plain": components["schemas"]["ConnectorCallerKey"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -17780,6 +18783,8 @@ export interface components {
             /** Format: double */
             durationMs: null | number;
             redacted: boolean;
+            function?: null | string;
+            connector?: null | components["schemas"]["Ref"];
         };
         AgentScriptRunRequest: {
             sensorIds: string[];
@@ -17795,6 +18800,7 @@ export interface components {
             shell: null | string;
             runAs?: null | components["schemas"]["RunAsKind"];
             account?: null | string;
+            function?: null | string;
         };
         AgentScriptTemplate: {
             language: components["schemas"]["ScriptLanguage"];
@@ -18124,13 +19130,13 @@ export interface components {
             complaining: number;
         };
         /** @enum {unknown} */
-        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability" | "Mcp" | "Certificates";
+        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors";
         /** @enum {unknown} */
         AssignMode: "Add" | "Remove";
         /** @enum {unknown} */
-        AuditActor: "User" | "Cli" | "Agent" | "System" | "Cookie" | "Mcp";
+        AuditActor: "User" | "Cli" | "Agent" | "System" | "Cookie" | "Mcp" | "Connector";
         /** @enum {unknown} */
-        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix" | "Cookie" | "Availability" | "Mcp" | "Certificates";
+        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors";
         AuditChange: {
             object: null | string;
             field: string;
@@ -18694,6 +19700,518 @@ export interface components {
         ChangePasswordRequest: {
             currentPassword?: null | string;
             newPassword?: null | string;
+        };
+        ConnectorAccountOption: {
+            kind: components["schemas"]["RunAsKind"];
+            account: null | string;
+            label: string;
+            allowed: null | boolean;
+            note: null | string;
+        };
+        ConnectorArgumentDetail: {
+            name: string;
+            mode: components["schemas"]["ConnectorArgumentMode"];
+            required: boolean;
+            pattern: null | string;
+            fixedValue: null | components["schemas"]["JsonElement"];
+            description: null | string;
+            multiline: boolean;
+            /** Format: int32 */
+            order: number;
+            parameter: components["schemas"]["ScriptParameter"];
+            kind: components["schemas"]["ConnectorValueKind"];
+            misfit: null | string;
+        };
+        /** @enum {unknown} */
+        ConnectorArgumentMode: "Exposed" | "Fixed" | "Omitted";
+        ConnectorArgumentRequest: {
+            name: string;
+            mode: components["schemas"]["ConnectorArgumentMode"];
+            required?: boolean;
+            pattern?: null | string;
+            fixedValue?: null | components["schemas"]["JsonElement"];
+            description?: null | string;
+            multiline?: boolean;
+        };
+        ConnectorCallDetail: {
+            call: components["schemas"]["ConnectorCallItem"];
+            arguments: null | string;
+            secureNames: string[];
+            note: null | string;
+            redacted: boolean;
+            idempotencyKey: null | string;
+            steps: components["schemas"]["ConnectorCallStep"][];
+            review: null | components["schemas"]["ConnectorCallReview"];
+            run: null | components["schemas"]["AgentScriptRunDetail"];
+        };
+        ConnectorCallerConnector: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            slug: string;
+            enabled: boolean;
+            type: components["schemas"]["ConnectorType"];
+        };
+        ConnectorCallerCreated: {
+            caller: components["schemas"]["ConnectorCallerDetail"];
+            key: string;
+        };
+        ConnectorCallerDetail: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            enabled: boolean;
+            keyHint: string;
+            /** Format: date-time */
+            keyIssuedAt: string;
+            networks: components["schemas"]["ConnectorNetworkItem"][];
+            anyAddress: boolean;
+            connectors: components["schemas"]["ConnectorCallerConnector"][];
+            /** Format: date-time */
+            lastCallAt: null | string;
+            lastCallFrom: null | string;
+            /** Format: int32 */
+            calls24h: number;
+            /** Format: int32 */
+            refused24h: number;
+            yourAddress: null | string;
+            addressHint: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: null | string;
+        };
+        ConnectorCallerItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            enabled: boolean;
+            keyHint: string;
+            /** Format: int32 */
+            networks: number;
+            anyAddress: boolean;
+            connectors: components["schemas"]["Ref"][];
+            /** Format: date-time */
+            lastCallAt: null | string;
+            lastCallFrom: null | string;
+            /** Format: int32 */
+            calls24h: number;
+            /** Format: int32 */
+            refused24h: number;
+        };
+        ConnectorCallerKey: {
+            key: string;
+            hint: string;
+            /** Format: date-time */
+            issuedAt: string;
+        };
+        ConnectorCallerRef: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            enabled: boolean;
+            anyAddress: boolean;
+            /** Format: int32 */
+            networks: number;
+            /** Format: date-time */
+            lastCallAt: null | string;
+        };
+        ConnectorCallerRequest: {
+            name: string;
+            description?: null | string;
+            enabled?: null | boolean;
+            networks?: components["schemas"]["ConnectorNetworkRequest"][];
+            connectorIds?: null | string[];
+        };
+        ConnectorCallFigures: {
+            enabled: boolean;
+            /** Format: int32 */
+            running: number;
+            /** Format: int32 */
+            maxRunning: number;
+            /** Format: int32 */
+            queued: number;
+            /** Format: int32 */
+            calls24h: number;
+            /** Format: int32 */
+            refused24h: number;
+            /** Format: int32 */
+            failed24h: number;
+            /** Format: int32 */
+            expired24h: number;
+            /** Format: double */
+            longestWaitSeconds24h: null | number;
+            /** Format: int32 */
+            keepCalls: number;
+            sensor: null | components["schemas"]["Ref"];
+            sensorState: null | components["schemas"]["SensorState"];
+            sensorMessage: null | string;
+        };
+        ConnectorCallItem: {
+            /** Format: uuid */
+            id: string;
+            connector: null | components["schemas"]["Ref"];
+            connectorName: string;
+            caller: null | components["schemas"]["Ref"];
+            callerName: string;
+            /** Format: date-time */
+            receivedAt: string;
+            from: null | string;
+            state: components["schemas"]["ConnectorCallState"];
+            mode: components["schemas"]["ConnectorMode"];
+            dryRun: boolean;
+            refusedBy: null | string;
+            waitingFor: null | string;
+            waitingText: null | string;
+            /** Format: date-time */
+            expiresAt: null | string;
+            /** Format: date-time */
+            startedAt: null | string;
+            /** Format: date-time */
+            finishedAt: null | string;
+            server: null | components["schemas"]["Ref"];
+            serverName: null | string;
+            scriptName: null | string;
+            /** Format: int32 */
+            scriptRevision: null | number;
+            function: null | string;
+            reference: null | string;
+            reviewState: null | string;
+            collected: boolean;
+            /** Format: int32 */
+            exitCode: null | number;
+            /** Format: double */
+            durationMs: null | number;
+            /** Format: double */
+            queuedSeconds: null | number;
+            message: null | string;
+            /** Format: int32 */
+            place: null | number;
+            /** Format: uuid */
+            runId: null | string;
+        };
+        ConnectorCallReview: {
+            state: string;
+            /** Format: double */
+            threshold: number;
+            answers: components["schemas"]["ConnectorReviewAnswer"][];
+            refusedBy: null | string;
+            reason: null | string;
+            /** Format: int64 */
+            aiRequestId: null | number;
+        };
+        /** @enum {unknown} */
+        ConnectorCallState: "Queued" | "Running" | "Done" | "Failed" | "TimedOut" | "Offline" | "Lost" | "Refused" | "Expired" | "Cancelled" | "Checked";
+        ConnectorCallStep: {
+            step: string;
+            /** Format: date-time */
+            at: null | string;
+            detail: null | string;
+        };
+        ConnectorCheckRequest: {
+            arguments?: null | Record<string, never>;
+            note?: null | string;
+            review?: boolean;
+        };
+        ConnectorCheckResult: {
+            ok: boolean;
+            message: null | string;
+            fields: {
+                [key: string]: string;
+            };
+            server: null | components["schemas"]["Ref"];
+            warnings: components["schemas"]["ConnectorWarning"][];
+            review: null | components["schemas"]["ConnectorCallReview"];
+        };
+        ConnectorCompare: {
+            /** Format: uuid */
+            scriptId: string;
+            name: string;
+            /** Format: int32 */
+            version: number;
+            libraryText: string;
+            libraryHash: string;
+            connectorText: string;
+            connectorHash: string;
+        };
+        ConnectorDescribedArgument: {
+            name: string;
+            type: string;
+            required: boolean;
+            pattern: null | string;
+            help: null | string;
+            default: null | string;
+            oneOf: null | string[];
+            /** Format: double */
+            min: null | number;
+            /** Format: double */
+            max: null | number;
+            multiline: boolean;
+        };
+        ConnectorDescription: {
+            name: string;
+            slug: string;
+            purpose: string;
+            mode: string;
+            /** Format: int32 */
+            waitSeconds: null | number;
+            returnsOutput: boolean;
+            review: boolean;
+            /** Format: int32 */
+            callsPerHour: number;
+            url: string;
+            arguments: components["schemas"]["ConnectorDescribedArgument"][];
+        };
+        ConnectorDetail: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            slug: string;
+            purpose: string;
+            type: components["schemas"]["ConnectorType"];
+            enabled: boolean;
+            mode: components["schemas"]["ConnectorMode"];
+            /** Format: int32 */
+            waitSeconds: number;
+            /** Format: int32 */
+            maxWaitSeconds: number;
+            returnOutput: boolean;
+            /** Format: int32 */
+            maxCallsPerHour: number;
+            /** Format: int32 */
+            maxQueued: number;
+            /** Format: int32 */
+            maxQueueSeconds: number;
+            review: components["schemas"]["ConnectorReviewSettings"];
+            target: components["schemas"]["ConnectorTargetDetail"];
+            arguments: components["schemas"]["ConnectorArgumentDetail"][];
+            callers: components["schemas"]["ConnectorCallerRef"][];
+            warnings: components["schemas"]["ConnectorWarning"][];
+            description: components["schemas"]["ConnectorDescription"];
+            library: null | components["schemas"]["ConnectorLibraryHint"];
+            figures: components["schemas"]["ConnectorFigures"];
+            url: string;
+            plainHttp: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: null | string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            lastCallAt: null | string;
+        };
+        ConnectorDocs: {
+            markdown: string;
+        };
+        ConnectorFigures: {
+            /** Format: int32 */
+            calls24h: number;
+            byState24h: {
+                [key: string]: number;
+            };
+            /** Format: int32 */
+            queued: number;
+            /** Format: int32 */
+            running: number;
+        };
+        ConnectorItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            slug: string;
+            type: components["schemas"]["ConnectorType"];
+            enabled: boolean;
+            server: string;
+            scriptName: string;
+            function: null | string;
+            mode: components["schemas"]["ConnectorMode"];
+            callers: components["schemas"]["ConnectorCallerRef"][];
+            review: boolean;
+            warnings: components["schemas"]["ConnectorWarning"][];
+            /** Format: date-time */
+            lastCallAt: null | string;
+            /** Format: int32 */
+            calls24h: number;
+            /** Format: int32 */
+            refused24h: number;
+        };
+        ConnectorLibraryHint: {
+            /** Format: uuid */
+            scriptId: string;
+            name: string;
+            /** Format: int32 */
+            version: number;
+            differs: boolean;
+        };
+        ConnectorLibraryScript: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            /** Format: int32 */
+            currentVersion: number;
+            versions: number[];
+        };
+        ConnectorLibraryVersion: {
+            /** Format: uuid */
+            scriptId: string;
+            name: string;
+            /** Format: int32 */
+            number: number;
+            text: string;
+            hash: string;
+            parseState: components["schemas"]["ScriptParseState"];
+            parsed: null | components["schemas"]["ParsedScript"];
+            takenFrom: string;
+        };
+        /** @enum {unknown} */
+        ConnectorMode: "Wait" | "Ticket";
+        ConnectorNetworkItem: {
+            cidr: string;
+            label: null | string;
+            inside: null | string;
+        };
+        ConnectorNetworkRequest: {
+            cidr: string;
+            label?: null | string;
+        };
+        ConnectorParseRequest: {
+            type: components["schemas"]["ConnectorType"];
+            text: string;
+            function?: null | string;
+        };
+        ConnectorParseResult: {
+            state: components["schemas"]["ScriptParseState"];
+            parsed: null | components["schemas"]["ParsedScript"];
+            hash: string;
+            parserAvailable: boolean;
+        };
+        ConnectorPatternMatch: {
+            value: string;
+            matches: null | boolean;
+        };
+        ConnectorPatternRequest: {
+            pattern: string;
+            values: string[];
+        };
+        ConnectorPatternResult: {
+            valid: boolean;
+            error: null | string;
+            backtracking: boolean;
+            results: components["schemas"]["ConnectorPatternMatch"][];
+        };
+        ConnectorRegisteredScript: {
+            name: string;
+            hash: string;
+            matches: boolean;
+            runAs: components["schemas"]["RunAsKind"];
+            account: null | string;
+            runAsName: string;
+            text: null | string;
+            parsed: null | components["schemas"]["ParsedScript"];
+            takenFrom: string;
+        };
+        ConnectorRequest: {
+            type?: null | components["schemas"]["ConnectorType"];
+            name: string;
+            slug: string;
+            purpose: string;
+            enabled?: null | boolean;
+            target: components["schemas"]["ConnectorTargetRequest"];
+            arguments?: null | components["schemas"]["ConnectorArgumentRequest"][];
+            mode?: null | components["schemas"]["ConnectorMode"];
+            /** Format: int32 */
+            waitSeconds?: null | number;
+            returnOutput?: null | boolean;
+            /** Format: int32 */
+            maxCallsPerHour?: null | number;
+            /** Format: int32 */
+            maxQueued?: null | number;
+            /** Format: int32 */
+            maxQueueSeconds?: null | number;
+            reviewEnabled?: null | boolean;
+            reviewPurpose?: null | boolean;
+            /** Format: double */
+            reviewThreshold?: null | number;
+            reviewChecks?: null | components["schemas"]["ConnectorReviewCheck"][];
+            reviewFallback?: null | components["schemas"]["ConnectorReviewFallback"];
+            callerIds?: null | string[];
+        };
+        ConnectorReviewAnswer: {
+            key: string;
+            label: string;
+            /** Format: double */
+            probability: number;
+            refuses: boolean;
+        };
+        ConnectorReviewCheck: {
+            label: string;
+            question: string;
+        };
+        /** @enum {unknown} */
+        ConnectorReviewFallback: "Refuse" | "RunUnreviewed";
+        ConnectorReviewSettings: {
+            enabled: boolean;
+            purpose: boolean;
+            /** Format: double */
+            threshold: null | number;
+            /** Format: double */
+            defaultThreshold: number;
+            checks: components["schemas"]["ConnectorReviewCheck"][];
+            fallback: components["schemas"]["ConnectorReviewFallback"];
+            unusable: null | string;
+        };
+        ConnectorServerOption: {
+            /** Format: uuid */
+            sensorId: string;
+            name: string;
+            online: boolean;
+            scripts: boolean;
+            functions: boolean;
+            note: null | string;
+        };
+        ConnectorTargetDetail: {
+            server: string;
+            scriptName: string;
+            scriptText: string;
+            hash: string;
+            /** Format: int32 */
+            scriptRevision: number;
+            takenFrom: null | string;
+            parseState: components["schemas"]["ScriptParseState"];
+            parsed: null | components["schemas"]["ParsedScript"];
+            parseError: null | string;
+            function: null | string;
+            runAsKind: components["schemas"]["RunAsKind"];
+            account: null | string;
+            shell: string;
+            /** Format: int32 */
+            timeoutSeconds: number;
+            needsReview: boolean;
+            sentence: string;
+            serverNow: null | components["schemas"]["Ref"];
+            serversFound: string[];
+        };
+        ConnectorTargetRequest: {
+            server: string;
+            scriptName: string;
+            scriptText: string;
+            takenFrom?: null | string;
+            function?: null | string;
+            runAsKind: components["schemas"]["RunAsKind"];
+            account?: null | string;
+            shell?: null | string;
+            /** Format: int32 */
+            timeoutSeconds?: null | number;
+        };
+        /** @enum {unknown} */
+        ConnectorType: "WindowsScript" | "LinuxScript";
+        /** @enum {unknown} */
+        ConnectorValueKind: "Text" | "Number" | "Bool" | "Secure";
+        ConnectorWarning: {
+            code: string;
+            message: string;
         };
         ContactTestRequest: {
             channel: string;
@@ -22162,6 +23680,33 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
+        PagedOfConnectorCallerItem: {
+            items: components["schemas"]["ConnectorCallerItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfConnectorCallItem: {
+            items: components["schemas"]["ConnectorCallItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfConnectorItem: {
+            items: components["schemas"]["ConnectorItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfCookieCaseItem: {
             items: components["schemas"]["CookieCaseItem"][];
             /** Format: int32 */
@@ -22491,6 +24036,7 @@ export interface components {
             help: null | components["schemas"]["ScriptHelp"];
             errors: components["schemas"]["ScriptSyntaxError"][];
             findings: components["schemas"]["ScriptFinding"][];
+            functions?: null | components["schemas"]["ScriptFunction"][];
         };
         PersonProfile: {
             email: null | string;
@@ -22918,6 +24464,13 @@ export interface components {
             message: string;
             /** Format: int32 */
             line?: null | number;
+        };
+        ScriptFunction: {
+            name: string;
+            /** Format: int32 */
+            line: number;
+            parameters: components["schemas"]["ScriptParameter"][];
+            help: null | components["schemas"]["ScriptHelp"];
         };
         ScriptHelp: {
             synopsis: null | string;
@@ -24540,6 +26093,7 @@ export interface components {
             /** Format: int32 */
             timeoutSeconds: null | number;
             shell: null | string;
+            function?: null | string;
         };
         WindowsLocalScripts: {
             /** Format: date-time */

@@ -305,6 +305,25 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/mcp/McpView.vue'),
     meta: { title: 'MCP' },
   },
+  {
+    // 3rd Party Connectors (docs/connectors-plan.md §13.1): the area opens on Calls; a connector's page and a caller's page.
+    path: '/connectors/:tab(calls|connectors|callers|docs)?',
+    name: 'connectors',
+    component: () => import('@/views/connectors/ConnectorsView.vue'),
+    meta: { title: '3rd Party Connectors', right: ['Connectors', 'View'] },
+  },
+  {
+    path: '/connectors/connector/:id/:tab(overview|target|arguments|security|calls|usage)?',
+    name: 'connector',
+    component: () => import('@/views/connectors/ConnectorView.vue'),
+    meta: { title: 'Connector', right: ['Connectors', 'View'] },
+  },
+  {
+    path: '/connectors/caller/:id',
+    name: 'connector-caller',
+    component: () => import('@/views/connectors/CallerView.vue'),
+    meta: { title: 'Caller', right: ['Connectors', 'View'] },
+  },
   // It was the auth log until 1.4 (docs/audit-redmine-zabbix-plan.md §4.2): old links keep working, with their filters.
   { path: '/admin/auth-log', redirect: (to) => ({ name: 'audit-log', query: to.query }) },
   {

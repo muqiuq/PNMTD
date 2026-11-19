@@ -1035,6 +1035,18 @@ echo "Rotating ${PNMT_SITE}, keeping ${PNMT_KEEP_DAYS} days"
   - **a local account by name**: `RunAsKind.User`. The dialog offers the server's accounts (§5.2).
   - **No passwords on Linux:** root starts anything as anyone. Windows' stored accounts, passwords typed per run and gMSAs (W§7.4) don't exist here. Secret arguments are still encrypted end to end.
 
+### 8.4a Functions in scripts (docs/connectors-plan.md §8.2)
+
+- **The header declares the functions** under `functions:`, each with `synopsis`, `description` and `parameters` as the script has them (names `^[a-z_][a-z0-9_]{0,39}$`, at most 50). PNMTD reads them, so bash's parse always lists its functions. Two findings come with them:
+  - `function-not-defined`: a declared function has no `name()` or `function name` in the text;
+  - `function-no-guard`: no `${BASH_SOURCE[0]}` guard, so sourcing the script runs its whole top level.
+- **A run that names a function:**
+  - the agent checks the name against its own header and the arguments against the function's parameters;
+  - it writes the fixed runner `run.sh` (0400: `source "$1"`, then `"$PNMT__FUNCTION"`) and puts the function's name in the environment file as `PNMT__FUNCTION`;
+  - it starts `systemd-run … /bin/bash run.sh script.sh`, with file names only on the command line.
+
+  It announces `scripts.functions.v1` with `scripts.v1`, and PNMTD sends a function only to an agent that announces it.
+
 ### 8.5 Allowed only on the server (R10)
 
 - **`scripts.enabled`, `scripts.run_as`, `scripts.allowed_hashes` and `scripts.max_timeout_minutes`** in `config.yaml` (§4.6) are Linux's counterpart of the Windows window's *Scripts from PNMT* (W§7.2).
@@ -2006,6 +2018,11 @@ On a real Debian 12 and a real Debian 13 machine or VM (x64, and arm64 where ava
 14. **On the real Debian machine:** `ProtectSystem=full` doesn't block a collector; a key file under `/etc` is refused for removal unless in `writable_paths`; nftables and ufw verdicts on a real rule set.
 15. **On Proxmox VE:** root's key file shows as *cluster-wide*; a cluster node's key is protected; a removal from the cluster file is applied on pmxcfs and seen on the other node; the web UI (8006) and SPICE proxy (3128) are in *Remote access*.
 16. **On Ubuntu 26.04:** sudo-rs's elevations and failures; on 24.04 or later, sshd through `ssh.socket` is listed with its ports.
+17. **Functions** (docs/connectors-plan.md §8.2):
+    - a script whose header declares `start_job` and `job_status`, run with *Function* `start_job` as `deploy`: only that function runs, with `PNMT_JOB` set;
+    - a value with a line break, through a multi-line argument of a connector, arrives intact;
+    - `run.sh` is gone with the run's folder afterwards;
+    - the previous release's agent is never sent a function.
 
 ---
 

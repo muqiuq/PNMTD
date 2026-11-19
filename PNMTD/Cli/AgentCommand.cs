@@ -17,12 +17,13 @@ internal static class AgentCommand
           agent tokens revoke <prefix|id>       revokes a pending token
           agent simulate --url <PNMT URL> [--platform windows|linux] [--token <xxxx-xxxx>] [--name <name>]
                          [--hostname <name>] [--state <file>] [--interval <seconds>] [--count <n>]
-                         [--allow-scripts] [--allow-key-removal]
+                         [--allow-scripts] [--allow-key-removal] [--no-functions]
                                                 a fake agent: joins with the token (or uses --state, default
                                                 pnmt-sensor-sim.json, or pnmt-agent-sim.json for Linux), connects,
                                                 sends heartbeats, sections and logins, answers collect, diagnostics
                                                 and send-log. Linux: a Debian 12 server with SSH key logins, sudo
-                                                and scanners; --allow-* go into its hello as config.yaml's rights
+                                                and scanners; --allow-* go into its hello as config.yaml's rights;
+                                                --no-functions: an agent from before functions in scripts
         """;
 
     public static int Run(string[] args, Func<PnmtdDbContext> database) => args switch
@@ -96,6 +97,8 @@ internal static class AgentCommand
         // docs/linux-sensor-plan.md §4.6, §9.4: what config.yaml (Linux) or the agent's window (Windows) would allow.
         var allowScripts = o.Flag("--allow-scripts");
         var allowKeyRemoval = o.Flag("--allow-key-removal");
+        // docs/connectors-plan.md §15: an agent without parse.functions.v1 and scripts.functions.v1.
+        var noFunctions = o.Flag("--no-functions");
         o.EnsureAllUsed();
         if (allowKeyRemoval && !linux)
         {
@@ -120,6 +123,7 @@ internal static class AgentCommand
         {
             AllowScripts = allowScripts,
             AllowKeyRemoval = allowKeyRemoval,
+            NoFunctions = noFunctions,
         };
 
         SimulatedAgentState state;

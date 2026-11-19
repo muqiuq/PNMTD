@@ -20,7 +20,8 @@ internal sealed class ScriptsFeature(ProblemReporter problems, IEnumerable<IAgen
     public string Name => "scripts";
 
     public IReadOnlyList<string> Capabilities =>
-        rights?.Current.Scripts.Enabled == true ? [AgentCapabilities.Parse, AgentCapabilities.Scripts] : [AgentCapabilities.Parse];
+        // docs/connectors-plan.md §8.3: calling a function of a script, with scripts only.
+        rights?.Current.Scripts.Enabled == true ? [AgentCapabilities.Parse, AgentCapabilities.Scripts, AgentCapabilities.ScriptFunctions] : [AgentCapabilities.Parse];
 
     public void Configure(AgentConfig config)
     {

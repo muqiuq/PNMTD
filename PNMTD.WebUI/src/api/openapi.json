@@ -3462,6 +3462,21 @@
             }
           },
           {
+            "name": "connectorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "viaConnectors",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "schema": {
@@ -6106,6 +6121,1304 @@
             "description": "OK",
             "content": {
               "application/x-pem-file": { }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connector-calls": {
+      "get": {
+        "tags": [
+          "ConnectorCalls"
+        ],
+        "parameters": [
+          {
+            "name": "connectorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "callerId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "active",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectorCallState"
+            }
+          },
+          {
+            "name": "refusedBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reference",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfConnectorCallItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfConnectorCallItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfConnectorCallItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connector-calls/figures": {
+      "get": {
+        "tags": [
+          "ConnectorCalls"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallFigures"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallFigures"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallFigures"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connector-calls/{id}": {
+      "get": {
+        "tags": [
+          "ConnectorCalls"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connector-calls/{id}/redact": {
+      "post": {
+        "tags": [
+          "ConnectorCalls"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connector-calls/{id}/cancel": {
+      "post": {
+        "tags": [
+          "ConnectorCalls"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connectors": {
+      "get": {
+        "tags": [
+          "Connectors"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectorType"
+            }
+          },
+          {
+            "name": "enabled",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfConnectorItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfConnectorItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfConnectorItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Connectors"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connectors/{id}": {
+      "get": {
+        "tags": [
+          "Connectors"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Connectors"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Connectors"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/connectors/docs": {
+      "get": {
+        "tags": [
+          "Connectors"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorDocs"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorDocs"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorDocs"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connectors/{id}/compare": {
+      "get": {
+        "tags": [
+          "Connectors"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCompare"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCompare"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCompare"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connectors/{id}/check": {
+      "post": {
+        "tags": [
+          "Connectors"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorCheckRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorCheckRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCheckResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCheckResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCheckResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connectors/parse": {
+      "post": {
+        "tags": [
+          "Connectors"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorParseRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorParseRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorParseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorParseResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorParseResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorParseResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connectors/patterns/test": {
+      "post": {
+        "tags": [
+          "Connectors"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorPatternRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorPatternRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorPatternRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorPatternResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorPatternResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorPatternResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connectors/lookups/servers": {
+      "get": {
+        "tags": [
+          "Connectors"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectorType"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorServerOption"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorServerOption"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorServerOption"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connectors/lookups/library": {
+      "get": {
+        "tags": [
+          "Connectors"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectorType"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorLibraryScript"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorLibraryScript"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorLibraryScript"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connectors/lookups/library/{scriptId}/versions/{number}": {
+      "get": {
+        "tags": [
+          "Connectors"
+        ],
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorLibraryVersion"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorLibraryVersion"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorLibraryVersion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connectors/lookups/registered": {
+      "get": {
+        "tags": [
+          "Connectors"
+        ],
+        "parameters": [
+          {
+            "name": "server",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorRegisteredScript"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorRegisteredScript"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorRegisteredScript"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connectors/lookups/accounts": {
+      "get": {
+        "tags": [
+          "Connectors"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectorType"
+            }
+          },
+          {
+            "name": "server",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorAccountOption"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorAccountOption"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorAccountOption"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connector-callers": {
+      "get": {
+        "tags": [
+          "ConnectorCallers"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfConnectorCallerItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfConnectorCallerItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfConnectorCallerItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ConnectorCallers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorCallerRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorCallerRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorCallerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallerCreated"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallerCreated"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallerCreated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connector-callers/{id}": {
+      "get": {
+        "tags": [
+          "ConnectorCallers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallerDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallerDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallerDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ConnectorCallers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorCallerRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorCallerRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorCallerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallerDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallerDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallerDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ConnectorCallers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/connector-callers/{id}/key": {
+      "get": {
+        "tags": [
+          "ConnectorCallers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallerKey"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallerKey"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallerKey"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connector-callers/{id}/key/rotate": {
+      "post": {
+        "tags": [
+          "ConnectorCallers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallerKey"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallerKey"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorCallerKey"
+                }
+              }
             }
           }
         }
@@ -25350,6 +26663,22 @@
           },
           "redacted": {
             "type": "boolean"
+          },
+          "function": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "connector": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
           }
         }
       },
@@ -25424,6 +26753,12 @@
             ]
           },
           "account": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "function": {
             "type": [
               "null",
               "string"
@@ -26758,7 +28093,8 @@
           "Cookie",
           "Availability",
           "Mcp",
-          "Certificates"
+          "Certificates",
+          "Connectors"
         ]
       },
       "AssignMode": {
@@ -26774,7 +28110,8 @@
           "Agent",
           "System",
           "Cookie",
-          "Mcp"
+          "Mcp",
+          "Connector"
         ]
       },
       "AuditCategory": {
@@ -26803,7 +28140,8 @@
           "Cookie",
           "Availability",
           "Mcp",
-          "Certificates"
+          "Certificates",
+          "Connectors"
         ]
       },
       "AuditChange": {
@@ -29237,6 +30575,2232 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ConnectorAccountOption": {
+        "required": [
+          "kind",
+          "account",
+          "label",
+          "allowed",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/RunAsKind"
+          },
+          "account": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "allowed": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConnectorArgumentDetail": {
+        "required": [
+          "name",
+          "mode",
+          "required",
+          "pattern",
+          "fixedValue",
+          "description",
+          "multiline",
+          "order",
+          "parameter",
+          "kind",
+          "misfit"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/ConnectorArgumentMode"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "pattern": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fixedValue": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "multiline": {
+            "type": "boolean"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parameter": {
+            "$ref": "#/components/schemas/ScriptParameter"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ConnectorValueKind"
+          },
+          "misfit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConnectorArgumentMode": {
+        "enum": [
+          "Exposed",
+          "Fixed",
+          "Omitted"
+        ]
+      },
+      "ConnectorArgumentRequest": {
+        "required": [
+          "name",
+          "mode"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/ConnectorArgumentMode"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "pattern": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fixedValue": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "multiline": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ConnectorCallDetail": {
+        "required": [
+          "call",
+          "arguments",
+          "secureNames",
+          "note",
+          "redacted",
+          "idempotencyKey",
+          "steps",
+          "review",
+          "run"
+        ],
+        "type": "object",
+        "properties": {
+          "call": {
+            "$ref": "#/components/schemas/ConnectorCallItem"
+          },
+          "arguments": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secureNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "redacted": {
+            "type": "boolean"
+          },
+          "idempotencyKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorCallStep"
+            }
+          },
+          "review": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ConnectorCallReview"
+              }
+            ]
+          },
+          "run": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AgentScriptRunDetail"
+              }
+            ]
+          }
+        }
+      },
+      "ConnectorCallerConnector": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "enabled",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ConnectorType"
+          }
+        }
+      },
+      "ConnectorCallerCreated": {
+        "required": [
+          "caller",
+          "key"
+        ],
+        "type": "object",
+        "properties": {
+          "caller": {
+            "$ref": "#/components/schemas/ConnectorCallerDetail"
+          },
+          "key": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectorCallerDetail": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "enabled",
+          "keyHint",
+          "keyIssuedAt",
+          "networks",
+          "anyAddress",
+          "connectors",
+          "lastCallAt",
+          "lastCallFrom",
+          "calls24h",
+          "refused24h",
+          "yourAddress",
+          "addressHint",
+          "createdAt",
+          "createdBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "keyHint": {
+            "type": "string"
+          },
+          "keyIssuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "networks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorNetworkItem"
+            }
+          },
+          "anyAddress": {
+            "type": "boolean"
+          },
+          "connectors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorCallerConnector"
+            }
+          },
+          "lastCallAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastCallFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "calls24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refused24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "yourAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "addressHint": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConnectorCallerItem": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "enabled",
+          "keyHint",
+          "networks",
+          "anyAddress",
+          "connectors",
+          "lastCallAt",
+          "lastCallFrom",
+          "calls24h",
+          "refused24h"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "keyHint": {
+            "type": "string"
+          },
+          "networks": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "anyAddress": {
+            "type": "boolean"
+          },
+          "connectors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ref"
+            }
+          },
+          "lastCallAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastCallFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "calls24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refused24h": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ConnectorCallerKey": {
+        "required": [
+          "key",
+          "hint",
+          "issuedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ConnectorCallerRef": {
+        "required": [
+          "id",
+          "name",
+          "enabled",
+          "anyAddress",
+          "networks",
+          "lastCallAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "anyAddress": {
+            "type": "boolean"
+          },
+          "networks": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastCallAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ConnectorCallerRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "enabled": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "networks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorNetworkRequest"
+            }
+          },
+          "connectorIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "ConnectorCallFigures": {
+        "required": [
+          "enabled",
+          "running",
+          "maxRunning",
+          "queued",
+          "calls24h",
+          "refused24h",
+          "failed24h",
+          "expired24h",
+          "longestWaitSeconds24h",
+          "keepCalls",
+          "sensor",
+          "sensorState",
+          "sensorMessage"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "running": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxRunning": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "queued": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "calls24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refused24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failed24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expired24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "longestWaitSeconds24h": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "keepCalls": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sensor": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "sensorState": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SensorState"
+              }
+            ]
+          },
+          "sensorMessage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConnectorCallItem": {
+        "required": [
+          "id",
+          "connector",
+          "connectorName",
+          "caller",
+          "callerName",
+          "receivedAt",
+          "from",
+          "state",
+          "mode",
+          "dryRun",
+          "refusedBy",
+          "waitingFor",
+          "waitingText",
+          "expiresAt",
+          "startedAt",
+          "finishedAt",
+          "server",
+          "serverName",
+          "scriptName",
+          "scriptRevision",
+          "function",
+          "reference",
+          "reviewState",
+          "collected",
+          "exitCode",
+          "durationMs",
+          "queuedSeconds",
+          "message",
+          "place",
+          "runId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "connector": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "connectorName": {
+            "type": "string"
+          },
+          "caller": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "callerName": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/ConnectorCallState"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/ConnectorMode"
+          },
+          "dryRun": {
+            "type": "boolean"
+          },
+          "refusedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "waitingFor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "waitingText": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "server": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "serverName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scriptName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scriptRevision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "function": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reviewState": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "collected": {
+            "type": "boolean"
+          },
+          "exitCode": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "durationMs": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "queuedSeconds": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "place": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "runId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "ConnectorCallReview": {
+        "required": [
+          "state",
+          "threshold",
+          "answers",
+          "refusedBy",
+          "reason",
+          "aiRequestId"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "threshold": {
+            "type": "number",
+            "format": "double"
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorReviewAnswer"
+            }
+          },
+          "refusedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "aiRequestId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "ConnectorCallState": {
+        "enum": [
+          "Queued",
+          "Running",
+          "Done",
+          "Failed",
+          "TimedOut",
+          "Offline",
+          "Lost",
+          "Refused",
+          "Expired",
+          "Cancelled",
+          "Checked"
+        ]
+      },
+      "ConnectorCallStep": {
+        "required": [
+          "step",
+          "at",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "step": {
+            "type": "string"
+          },
+          "at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConnectorCheckRequest": {
+        "type": "object",
+        "properties": {
+          "arguments": {
+            "type": [
+              "null",
+              "object"
+            ]
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "review": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ConnectorCheckResult": {
+        "required": [
+          "ok",
+          "message",
+          "fields",
+          "server",
+          "warnings",
+          "review"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "server": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorWarning"
+            }
+          },
+          "review": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ConnectorCallReview"
+              }
+            ]
+          }
+        }
+      },
+      "ConnectorCompare": {
+        "required": [
+          "scriptId",
+          "name",
+          "version",
+          "libraryText",
+          "libraryHash",
+          "connectorText",
+          "connectorHash"
+        ],
+        "type": "object",
+        "properties": {
+          "scriptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "libraryText": {
+            "type": "string"
+          },
+          "libraryHash": {
+            "type": "string"
+          },
+          "connectorText": {
+            "type": "string"
+          },
+          "connectorHash": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectorDescribedArgument": {
+        "required": [
+          "name",
+          "type",
+          "required",
+          "pattern",
+          "help",
+          "default",
+          "oneOf",
+          "min",
+          "max",
+          "multiline"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "pattern": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "help": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "default": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "oneOf": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "min": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "max": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "multiline": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ConnectorDescription": {
+        "required": [
+          "name",
+          "slug",
+          "purpose",
+          "mode",
+          "waitSeconds",
+          "returnsOutput",
+          "review",
+          "callsPerHour",
+          "url",
+          "arguments"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "waitSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "returnsOutput": {
+            "type": "boolean"
+          },
+          "review": {
+            "type": "boolean"
+          },
+          "callsPerHour": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "url": {
+            "type": "string"
+          },
+          "arguments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorDescribedArgument"
+            }
+          }
+        }
+      },
+      "ConnectorDetail": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "purpose",
+          "type",
+          "enabled",
+          "mode",
+          "waitSeconds",
+          "maxWaitSeconds",
+          "returnOutput",
+          "maxCallsPerHour",
+          "maxQueued",
+          "maxQueueSeconds",
+          "review",
+          "target",
+          "arguments",
+          "callers",
+          "warnings",
+          "description",
+          "library",
+          "figures",
+          "url",
+          "plainHttp",
+          "createdAt",
+          "createdBy",
+          "updatedAt",
+          "lastCallAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ConnectorType"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/ConnectorMode"
+          },
+          "waitSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxWaitSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "returnOutput": {
+            "type": "boolean"
+          },
+          "maxCallsPerHour": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxQueued": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxQueueSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "review": {
+            "$ref": "#/components/schemas/ConnectorReviewSettings"
+          },
+          "target": {
+            "$ref": "#/components/schemas/ConnectorTargetDetail"
+          },
+          "arguments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorArgumentDetail"
+            }
+          },
+          "callers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorCallerRef"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorWarning"
+            }
+          },
+          "description": {
+            "$ref": "#/components/schemas/ConnectorDescription"
+          },
+          "library": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ConnectorLibraryHint"
+              }
+            ]
+          },
+          "figures": {
+            "$ref": "#/components/schemas/ConnectorFigures"
+          },
+          "url": {
+            "type": "string"
+          },
+          "plainHttp": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastCallAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ConnectorDocs": {
+        "required": [
+          "markdown"
+        ],
+        "type": "object",
+        "properties": {
+          "markdown": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectorFigures": {
+        "required": [
+          "calls24h",
+          "byState24h",
+          "queued",
+          "running"
+        ],
+        "type": "object",
+        "properties": {
+          "calls24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "byState24h": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "queued": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "running": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ConnectorItem": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "type",
+          "enabled",
+          "server",
+          "scriptName",
+          "function",
+          "mode",
+          "callers",
+          "review",
+          "warnings",
+          "lastCallAt",
+          "calls24h",
+          "refused24h"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ConnectorType"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "server": {
+            "type": "string"
+          },
+          "scriptName": {
+            "type": "string"
+          },
+          "function": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mode": {
+            "$ref": "#/components/schemas/ConnectorMode"
+          },
+          "callers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorCallerRef"
+            }
+          },
+          "review": {
+            "type": "boolean"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorWarning"
+            }
+          },
+          "lastCallAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "calls24h": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refused24h": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ConnectorLibraryHint": {
+        "required": [
+          "scriptId",
+          "name",
+          "version",
+          "differs"
+        ],
+        "type": "object",
+        "properties": {
+          "scriptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "differs": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ConnectorLibraryScript": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "currentVersion",
+          "versions"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "currentVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "ConnectorLibraryVersion": {
+        "required": [
+          "scriptId",
+          "name",
+          "number",
+          "text",
+          "hash",
+          "parseState",
+          "parsed",
+          "takenFrom"
+        ],
+        "type": "object",
+        "properties": {
+          "scriptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "text": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "parseState": {
+            "$ref": "#/components/schemas/ScriptParseState"
+          },
+          "parsed": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ParsedScript"
+              }
+            ]
+          },
+          "takenFrom": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectorMode": {
+        "enum": [
+          "Wait",
+          "Ticket"
+        ]
+      },
+      "ConnectorNetworkItem": {
+        "required": [
+          "cidr",
+          "label",
+          "inside"
+        ],
+        "type": "object",
+        "properties": {
+          "cidr": {
+            "type": "string"
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inside": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConnectorNetworkRequest": {
+        "required": [
+          "cidr"
+        ],
+        "type": "object",
+        "properties": {
+          "cidr": {
+            "type": "string"
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConnectorParseRequest": {
+        "required": [
+          "type",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/ConnectorType"
+          },
+          "text": {
+            "type": "string"
+          },
+          "function": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConnectorParseResult": {
+        "required": [
+          "state",
+          "parsed",
+          "hash",
+          "parserAvailable"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/ScriptParseState"
+          },
+          "parsed": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ParsedScript"
+              }
+            ]
+          },
+          "hash": {
+            "type": "string"
+          },
+          "parserAvailable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ConnectorPatternMatch": {
+        "required": [
+          "value",
+          "matches"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "matches": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "ConnectorPatternRequest": {
+        "required": [
+          "pattern",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ConnectorPatternResult": {
+        "required": [
+          "valid",
+          "error",
+          "backtracking",
+          "results"
+        ],
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "backtracking": {
+            "type": "boolean"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorPatternMatch"
+            }
+          }
+        }
+      },
+      "ConnectorRegisteredScript": {
+        "required": [
+          "name",
+          "hash",
+          "matches",
+          "runAs",
+          "account",
+          "runAsName",
+          "text",
+          "parsed",
+          "takenFrom"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "matches": {
+            "type": "boolean"
+          },
+          "runAs": {
+            "$ref": "#/components/schemas/RunAsKind"
+          },
+          "account": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "runAsName": {
+            "type": "string"
+          },
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "parsed": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ParsedScript"
+              }
+            ]
+          },
+          "takenFrom": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectorRequest": {
+        "required": [
+          "name",
+          "slug",
+          "purpose",
+          "target"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ConnectorType"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "target": {
+            "$ref": "#/components/schemas/ConnectorTargetRequest"
+          },
+          "arguments": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ConnectorArgumentRequest"
+            }
+          },
+          "mode": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ConnectorMode"
+              }
+            ]
+          },
+          "waitSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "returnOutput": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "maxCallsPerHour": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "maxQueued": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "maxQueueSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "reviewEnabled": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "reviewPurpose": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "reviewThreshold": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "reviewChecks": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ConnectorReviewCheck"
+            }
+          },
+          "reviewFallback": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ConnectorReviewFallback"
+              }
+            ]
+          },
+          "callerIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "ConnectorReviewAnswer": {
+        "required": [
+          "key",
+          "label",
+          "probability",
+          "refuses"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "probability": {
+            "type": "number",
+            "format": "double"
+          },
+          "refuses": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ConnectorReviewCheck": {
+        "required": [
+          "label",
+          "question"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectorReviewFallback": {
+        "enum": [
+          "Refuse",
+          "RunUnreviewed"
+        ]
+      },
+      "ConnectorReviewSettings": {
+        "required": [
+          "enabled",
+          "purpose",
+          "threshold",
+          "defaultThreshold",
+          "checks",
+          "fallback",
+          "unusable"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "purpose": {
+            "type": "boolean"
+          },
+          "threshold": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "defaultThreshold": {
+            "type": "number",
+            "format": "double"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorReviewCheck"
+            }
+          },
+          "fallback": {
+            "$ref": "#/components/schemas/ConnectorReviewFallback"
+          },
+          "unusable": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConnectorServerOption": {
+        "required": [
+          "sensorId",
+          "name",
+          "online",
+          "scripts",
+          "functions",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "sensorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "online": {
+            "type": "boolean"
+          },
+          "scripts": {
+            "type": "boolean"
+          },
+          "functions": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConnectorTargetDetail": {
+        "required": [
+          "server",
+          "scriptName",
+          "scriptText",
+          "hash",
+          "scriptRevision",
+          "takenFrom",
+          "parseState",
+          "parsed",
+          "parseError",
+          "function",
+          "runAsKind",
+          "account",
+          "shell",
+          "timeoutSeconds",
+          "needsReview",
+          "sentence",
+          "serverNow",
+          "serversFound"
+        ],
+        "type": "object",
+        "properties": {
+          "server": {
+            "type": "string"
+          },
+          "scriptName": {
+            "type": "string"
+          },
+          "scriptText": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "scriptRevision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "takenFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "parseState": {
+            "$ref": "#/components/schemas/ScriptParseState"
+          },
+          "parsed": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ParsedScript"
+              }
+            ]
+          },
+          "parseError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "function": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "runAsKind": {
+            "$ref": "#/components/schemas/RunAsKind"
+          },
+          "account": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shell": {
+            "type": "string"
+          },
+          "timeoutSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "needsReview": {
+            "type": "boolean"
+          },
+          "sentence": {
+            "type": "string"
+          },
+          "serverNow": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "serversFound": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ConnectorTargetRequest": {
+        "required": [
+          "server",
+          "scriptName",
+          "scriptText",
+          "runAsKind"
+        ],
+        "type": "object",
+        "properties": {
+          "server": {
+            "type": "string"
+          },
+          "scriptName": {
+            "type": "string"
+          },
+          "scriptText": {
+            "type": "string"
+          },
+          "takenFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "function": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "runAsKind": {
+            "$ref": "#/components/schemas/RunAsKind"
+          },
+          "account": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shell": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "timeoutSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ConnectorType": {
+        "enum": [
+          "WindowsScript",
+          "LinuxScript"
+        ]
+      },
+      "ConnectorValueKind": {
+        "enum": [
+          "Text",
+          "Number",
+          "Bool",
+          "Secure"
+        ]
+      },
+      "ConnectorWarning": {
+        "required": [
+          "code",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
           }
         }
       },
@@ -42973,6 +46537,93 @@
           }
         }
       },
+      "PagedOfConnectorCallerItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorCallerItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfConnectorCallItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorCallItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfConnectorItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "PagedOfCookieCaseItem": {
         "required": [
           "items",
@@ -44052,6 +47703,15 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ScriptFinding"
+            }
+          },
+          "functions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ScriptFunction"
             }
           }
         }
@@ -45787,6 +49447,40 @@
               "integer"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "ScriptFunction": {
+        "required": [
+          "name",
+          "line",
+          "parameters",
+          "help"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScriptParameter"
+            }
+          },
+          "help": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ScriptHelp"
+              }
+            ]
           }
         }
       },
@@ -52587,6 +56281,12 @@
               "null",
               "string"
             ]
+          },
+          "function": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -54557,6 +58257,15 @@
     },
     {
       "name": "CertificateAuthorities"
+    },
+    {
+      "name": "ConnectorCalls"
+    },
+    {
+      "name": "Connectors"
+    },
+    {
+      "name": "ConnectorCallers"
     },
     {
       "name": "Cookie"

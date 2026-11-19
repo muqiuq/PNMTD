@@ -70,7 +70,8 @@ public sealed record AgentScriptRunRequest(
     int? TimeoutSeconds,
     string? Shell,
     RunAsKind? RunAs = null,
-    string? Account = null);
+    string? Account = null,
+    string? Function = null);
 
 /// <summary>
 /// A Linux server's account for the run dialog (docs/linux-sensor-plan.md §8.4): root as the service, or a local account from the
@@ -101,7 +102,8 @@ public sealed record WindowsLocalScriptRunRequest(
     IReadOnlyDictionary<string, JsonElement>? Arguments,
     IReadOnlyDictionary<string, string>? SecureArguments,
     int? TimeoutSeconds,
-    string? Shell);
+    string? Shell,
+    string? Function = null);
 
 public sealed record AgentScriptRunItem(
     Guid Id,
@@ -121,7 +123,9 @@ public sealed record AgentScriptRunItem(
     int? ExitCode,
     string? Message,
     double? DurationMs,
-    bool Redacted);
+    bool Redacted,
+    string? Function = null,
+    Ref? Connector = null);
 
 public sealed record AgentScriptRunDetail(AgentScriptRunItem Run, string? Arguments, string? Output, string Hash, int TimeoutSeconds);
 
@@ -134,4 +138,10 @@ public sealed class AgentScriptRunQuery : PageQuery
     public Guid? BatchId { get; set; }
 
     public ScriptRunState? State { get; set; }
+
+    /// <summary>A connector's runs (docs/connectors-plan.md §13.6).</summary>
+    public Guid? ConnectorId { get; set; }
+
+    /// <summary>true: only runs started by connectors; false: only runs started by people.</summary>
+    public bool? ViaConnectors { get; set; }
 }

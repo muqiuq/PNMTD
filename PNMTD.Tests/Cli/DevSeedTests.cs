@@ -56,6 +56,12 @@ public sealed class DevSeedTests
             "an audit entry of every category");
         Assert.IsTrue(await db.AuditLog.AnyAsync(e => e.Outcome == global::PNMTD.Audit.AuditOutcome.Denied));
         Assert.AreEqual(4, await db.Agents.CountAsync());
+        // docs/connectors-plan.md §15: two connectors, two callers (one from anywhere), calls of each kind, one queued behind a running one.
+        Assert.AreEqual(2, await db.Connectors.CountAsync());
+        Assert.AreEqual(2, await db.ConnectorCallers.CountAsync());
+        Assert.IsTrue(await db.ConnectorCalls.AnyAsync(c => c.State == Models.Db.ConnectorCallState.Queued && c.WaitingFor == "turn"));
+        Assert.IsTrue(await db.ConnectorCalls.AnyAsync(c => c.State == Models.Db.ConnectorCallState.Running && c.RunId != null));
+        Assert.IsTrue(await db.AgentScriptRuns.AnyAsync(r => r.ConnectorId != null && r.Function == "Clear-ShopCache"));
         Assert.AreEqual(2, await db.Agents.CountAsync(a => a.Platform == Lib.Agent.AgentPlatform.Linux));
         Assert.AreEqual(2 * Lib.Agent.SectionNames.Windows.Count + 2 * Lib.Agent.SectionNames.Linux.Count, await db.AgentSections.CountAsync());
         Assert.IsTrue(await db.AgentLogins.AnyAsync(l => l.KeyFingerprint != null && l.Kind == Lib.Agent.LogonKind.Ssh), "SSH logins with keys");

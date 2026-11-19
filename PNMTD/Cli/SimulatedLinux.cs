@@ -30,11 +30,13 @@ public static class SimulatedLinux
     /// What a Linux agent announces: the ssh-keys section, parsing (always: it runs nothing, §8.5), and removal and scripts only where
     /// config.yaml allows them.
     /// </summary>
-    public static IReadOnlyList<string> Capabilities(bool keyRemoval, bool scripts) =>
+    public static IReadOnlyList<string> Capabilities(bool keyRemoval, bool scripts, bool functions = true) =>
     [
         AgentCapabilities.Collect, AgentCapabilities.Access, AgentCapabilities.DiagPing, AgentCapabilities.DiagDns, AgentCapabilities.Keys, AgentCapabilities.Parse,
         .. keyRemoval ? [AgentCapabilities.KeysRemove] : Array.Empty<string>(),
         .. scripts ? [AgentCapabilities.Scripts] : Array.Empty<string>(),
+        // docs/connectors-plan.md §8.3: calling a function of a bash script, with scripts only.
+        .. scripts && functions ? [AgentCapabilities.ScriptFunctions] : Array.Empty<string>(),
     ];
 
     /// <summary>

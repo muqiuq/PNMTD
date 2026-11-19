@@ -218,6 +218,9 @@ internal static class DevSeedCommand
         SeedUdp(db, sensors.Select(s => s.Sensor).ToList(), hosts, now);
         counter += DevSeedMikrotik.Seed(db, hosts, now);
         counter += DevSeedAgents.Seed(db, hosts, now);
+        // 3rd Party Connectors (docs/connectors-plan.md §15), on the agents' servers.
+        DevSeedConnectors.Seed(db, hosts, configuration, now);
+        db.SaveChanges();
         foreach (var key in new[]
         {
             KeyValueKeyEnums.LAST_HEARTBEAT_TASK_RUN, KeyValueKeyEnums.LAST_NOTIFICATION_TASK_RUN, KeyValueKeyEnums.LAST_PING_TASK_RUN,

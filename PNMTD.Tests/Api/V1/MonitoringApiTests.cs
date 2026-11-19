@@ -181,8 +181,9 @@ public sealed class MonitoringApiTests
         // 8 monitoring tasks, the MikroTik poller and version check (docs/mikrotik-plan.md §5.2, §5.4), the audit log's
         // retention (docs/audit-redmine-zabbix-plan.md §3.8), Redmine's sync (§6.7), Zabbix's problems and hosts (§7.3), Cookie's
         // case book (docs/cookie-plan.md §19.3), the MCP tokens' expiry (docs/mcp-plan.md §4.3), the certificate checks
-        // (docs/ssl-certificate-plan.md §5.2), and the advanced sensors' evaluator (docs/advanced-sensor-plan.md §7.3).
-        Assert.AreEqual(18, tasks.Count);
+        // (docs/ssl-certificate-plan.md §5.2), the advanced sensors' evaluator (docs/advanced-sensor-plan.md §7.3), and the
+        // connectors' worker (docs/connectors-plan.md §9.1).
+        Assert.AreEqual(19, tasks.Count);
         Assert.IsTrue(tasks.All(t => t.State == "off"), string.Join(",", tasks.Select(t => t.State)));
         Assert.IsTrue(tasks.Any(t => t.Key == "last_heartbeat_task_run" && t.IntervalSeconds == 10));
     }

@@ -10,7 +10,7 @@ namespace PNMTD.Auth.Rights;
 public enum Area
 {
     Monitoring, Commands, Mail, Decisions, Locations, KnowledgeBase, Redmine, Zabbix, UdpNodes, Mikrotik, Servers, SshKeys,
-    Diagnostics, Ai, System, AuditLog, Cookie, Availability, Mcp, Certificates,
+    Diagnostics, Ai, System, AuditLog, Cookie, Availability, Mcp, Certificates, Connectors,
 }
 
 /// <summary>
@@ -80,6 +80,10 @@ public static class RightsCatalog
             (Level.View, "The SSL certificate sensors' Certificate tab: the certificate, its chain, the connection, the certificates seen and their PEM; the list of private CAs."),
             (Level.Edit, "View, plus creating, changing and deleting SSL certificate sensors (with Monitoring: Edit), Check now, and accepting a changed certificate."),
             (Level.Manage, "Edit, plus Admin → Certificates: adding and removing private CAs.")]),
+        // docs/connectors-plan.md §12.1: as strong as running scripts on servers, for the callers it lets in.
+        new(Area.Connectors, "3rd Party Connectors", [
+            (Level.View, "3rd Party Connectors: every call, the connectors and their callers, and the output of their runs."),
+            (Level.Manage, "View, plus adding, changing and deleting connectors, including the script a connector runs on a server and the account it runs as; adding and changing callers, their networks and grants, showing and rotating their keys; redacting and cancelling calls. As strong as running scripts on servers, for the callers it lets in.")]),
     ];
 
     private static readonly Dictionary<Area, AreaInfo> ByArea = Areas.ToDictionary(a => a.Area);

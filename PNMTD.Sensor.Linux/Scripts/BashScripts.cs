@@ -13,6 +13,8 @@ namespace PNMTD.Sensor.Linux.Scripts;
 /// <summary>A run that passed every check: who it runs as, the parse it was checked against, and how long it may take.</summary>
 internal sealed record CheckedRun(RunScriptRequest Run, PasswdEntry Account, ParsedScript Parsed, TimeSpan Timeout);
 
+
+
 /// <summary>
 /// Bash scripts on the agent (docs/linux-sensor-plan.md §8.3–§8.5). <b>Parsing</b> runs nothing: the header (<see cref="BashScriptHeader.Parse"/>),
 /// <c>bash -n</c> for syntax errors with their lines, and <c>shellcheck -f json</c> when installed (the first 50 findings), on the text in a
@@ -24,6 +26,15 @@ internal sealed record CheckedRun(RunScriptRequest Run, PasswdEntry Account, Par
 /// </summary>
 internal static partial class BashScripts
 {
+    /// <summary>
+    /// The runner for a function (docs/connectors-plan.md §8.2), 0400: sources the script, then calls the function named in the environment
+    /// file. Sourcing runs the script's top level, which the header's guard (<c>BASH_SOURCE</c>) keeps from its main part.
+    /// </summary>
+    public const string FunctionRunner = "set -euo pipefail\nsource \"$1\"\n\"$PNMT__FUNCTION\"\n";
+
+    [System.Text.RegularExpressions.GeneratedRegex("^[a-z_][a-z0-9_]{0,39}$")]
+    private static partial System.Text.RegularExpressions.Regex FunctionName();
+
     public const int MaxOutputChars = 1024 * 1024;
     public const int MaxFindings = 50;
 
@@ -160,10 +171,18 @@ internal static partial class BashScripts
         {
             return (null, $"The script's # pnmt: header has errors: line {parsed.Errors[0].Line}: {parsed.Errors[0].Message}");
         }
-        var problems = ScriptArguments.Check(parsed, run.Arguments, run.SecureArguments.Keys.ToList()).ToList();
+        // docs/connectors-plan.md §8.2: a function the header declares, by its name, checked against this agent's own parse.
+        if (run.Function is { } function)
+        {
+            if (!FunctionName().IsMatch(function) || parsed.Function(function) is not { } declared || declared.Name != function)
+            {
+                return (null, $"The script's # pnmt: header declares no function {function}.");
+            }
+        }
+        var problems = ScriptArguments.Check(parsed, run.Function, run.Arguments, run.SecureArguments.Keys.ToList()).ToList();
         if (problems.Count > 0)
         {
-            return (null, $"The arguments don't match the script: {string.Join("; ", problems.Select(p => p.Message))}");
+            return (null, $"The arguments don't match the {(run.Function is null ? "script" : "function")}: {string.Join("; ", problems.Select(p => p.Message))}");
         }
         var folder = Folder($"check-{Guid.NewGuid():N}", null);
         try
@@ -204,7 +223,7 @@ internal static partial class BashScripts
     public static Dictionary<string, string> Values(CheckedRun run, Func<EncryptedSecret, string> decrypt)
     {
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var parameter in run.Parsed.Parameters)
+        foreach (var parameter in run.Parsed.ParametersOf(run.Run.Function) ?? [])
         {
             var given = run.Run.Arguments.FirstOrDefault(a => a.Key.Equals(parameter.Name, StringComparison.OrdinalIgnoreCase));
             var secret = run.Run.SecureArguments.FirstOrDefault(a => a.Key.Equals(parameter.Name, StringComparison.OrdinalIgnoreCase));
@@ -255,7 +274,23 @@ internal static partial class BashScripts
                 Chown(script, account);
                 Chown(folder, account);
             }
-            WriteFile(environmentFile, BashScriptHeader.EnvironmentFile(Values(run, decrypt)), UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            var values = Values(run, decrypt);
+            var program = script;
+            var programArguments = new List<string>();
+            if (run.Run.Function is { } function)
+            {
+                // docs/connectors-plan.md §8.2: a fixed runner sources the script and calls the function, whose name travels in the
+                // environment file (PNMT__FUNCTION: parameters start with a letter, so it can't collide); file names only on the command line.
+                values["_function"] = function;
+                program = Path.Combine(folder, "run.sh");
+                WriteFile(program, FunctionRunner, UnixFileMode.UserRead);
+                if (account.Uid != 0)
+                {
+                    Chown(program, account);
+                }
+                programArguments.Add(script);
+            }
+            WriteFile(environmentFile, BashScriptHeader.EnvironmentFile(values), UnixFileMode.UserRead | UnixFileMode.UserWrite);
             var home = account.Home.Length > 0 && Directory.Exists(account.Home) ? account.Home : "/";
             var arguments = new List<string>
             {
@@ -268,7 +303,7 @@ internal static partial class BashScripts
             }
             arguments.AddRange([
                 "-p", $"EnvironmentFile={environmentFile}", "-p", $"WorkingDirectory={home}", "-p", $"RuntimeMaxSec={(int)run.Timeout.TotalSeconds}",
-                "-p", "TimeoutStopSec=10", "-p", "PrivateTmp=yes", "/bin/bash", script,
+                "-p", "TimeoutStopSec=10", "-p", "PrivateTmp=yes", "/bin/bash", program, .. programArguments,
             ]);
             ToolResult result;
             try

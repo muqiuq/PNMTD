@@ -62,6 +62,14 @@ namespace PNMTD.Data
         public DbSet<AdvancedReportEntity> AdvancedReports { get; set; }
         public DbSet<AdvancedSampleEntity> AdvancedSamples { get; set; }
 
+        // 3rd Party Connectors (docs/connectors-plan.md §10): connectors, callers, grants, a script connector's target and arguments, calls.
+        public DbSet<ConnectorEntity> Connectors { get; set; }
+        public DbSet<ConnectorCallerEntity> ConnectorCallers { get; set; }
+        public DbSet<ConnectorGrantEntity> ConnectorGrants { get; set; }
+        public DbSet<ConnectorScriptEntity> ConnectorScripts { get; set; }
+        public DbSet<ConnectorArgumentEntity> ConnectorArguments { get; set; }
+        public DbSet<ConnectorCallEntity> ConnectorCalls { get; set; }
+
         // Groups and rights (docs/audit-redmine-zabbix-plan.md §5).
         public DbSet<GroupEntity> Groups { get; set; }
         public DbSet<GroupRightEntity> GroupRights { get; set; }
@@ -309,6 +317,57 @@ namespace PNMTD.Data
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(x => x.SensorId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne<AdvancedFieldEntity>().WithMany().HasForeignKey(x => x.FieldId).OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(x => x.Minute);
+            });
+
+            // 3rd Party Connectors (docs/connectors-plan.md §10): the enums as text; the target and the arguments go with their
+            // connector, the grants with either side; the calls outlive their connector and caller, and their run.
+            modelBuilder.Entity<ConnectorEntity>(e =>
+            {
+                e.Property(c => c.Type).HasConversion<string>().HasMaxLength(32);
+                e.Property(c => c.Mode).HasConversion<string>().HasMaxLength(16);
+                e.Property(c => c.ReviewFallback).HasConversion<string>().HasMaxLength(16);
+                e.HasIndex(c => c.Name).IsUnique();
+                e.HasIndex(c => c.Slug).IsUnique();
+                e.HasOne(c => c.Script).WithOne().HasForeignKey<ConnectorScriptEntity>(s => s.ConnectorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasMany(c => c.Arguments).WithOne().HasForeignKey(a => a.ConnectorId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<ConnectorCallerEntity>(e =>
+            {
+                e.HasIndex(c => c.Name).IsUnique();
+                e.HasIndex(c => c.KeyHash).IsUnique();
+            });
+            modelBuilder.Entity<ConnectorGrantEntity>(e =>
+            {
+                e.HasKey(g => new { g.CallerId, g.ConnectorId });
+                e.HasOne(g => g.Caller).WithMany(c => c.Grants).HasForeignKey(g => g.CallerId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(g => g.Connector).WithMany(c => c.Grants).HasForeignKey(g => g.ConnectorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(g => g.ConnectorId);
+            });
+            modelBuilder.Entity<ConnectorScriptEntity>(e =>
+            {
+                e.Property(s => s.RunAsKind).HasConversion<string>().HasMaxLength(16);
+                e.Property(s => s.ParseState).HasConversion<string>().HasMaxLength(16);
+                e.HasIndex(s => s.Hash);
+            });
+            modelBuilder.Entity<ConnectorArgumentEntity>(e =>
+            {
+                e.Property(a => a.Mode).HasConversion<string>().HasMaxLength(16);
+                e.HasIndex(a => new { a.ConnectorId, a.Name }).IsUnique();
+            });
+            modelBuilder.Entity<ConnectorCallEntity>(e =>
+            {
+                e.Property(c => c.State).HasConversion<string>().HasMaxLength(16);
+                e.Property(c => c.Mode).HasConversion<string>().HasMaxLength(16);
+                e.HasOne<ConnectorEntity>().WithMany().HasForeignKey(c => c.ConnectorId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<ConnectorCallerEntity>().WithMany().HasForeignKey(c => c.CallerId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<AgentScriptRunEntity>().WithMany().HasForeignKey(c => c.RunId).OnDelete(DeleteBehavior.SetNull);
+                // The worker's queue (§10.5): small however long the history is.
+                e.HasIndex(c => c.ReceivedAt, "IX_connector_calls_active").HasFilter("\"State\" IN ('Queued', 'Running')");
+                e.HasIndex(c => new { c.ConnectorId, c.ReceivedAt }).IsDescending(false, true);
+                e.HasIndex(c => new { c.CallerId, c.ReceivedAt }).IsDescending(false, true);
+                e.HasIndex(c => new { c.CallerId, c.ConnectorId, c.IdempotencyKey }).IsUnique().HasFilter("\"IdempotencyKey\" IS NOT NULL");
+                e.HasIndex(c => c.ReceivedAt);
+                e.HasIndex(c => c.RunId);
             });
 
             // Redmine's links (docs/audit-redmine-zabbix-plan.md §6.5): exactly one target, removed with it; a ticket once per target.
@@ -580,6 +639,9 @@ namespace PNMTD.Data
                 e.HasIndex(r => r.StartedAt);
                 e.HasIndex(r => new { r.SensorId, r.StartedAt });
                 e.HasIndex(r => r.BatchId);
+                // docs/connectors-plan.md §9.2, §10.5: one run per script and server; the runs of a connector.
+                e.HasIndex(r => new { r.SensorId, r.ScriptName }, "IX_agent_script_runs_unfinished").HasFilter("\"State\" IN (0, 1)");
+                e.HasIndex(r => r.ConnectorId);
             });
             modelBuilder.Entity<AgentLogEntity>(e =>
             {

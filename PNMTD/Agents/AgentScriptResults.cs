@@ -13,10 +13,31 @@ namespace PNMTD.Agents;
 /// (<c>bash -n</c>, shellcheck) on a Linux agent, merged into the header PNMTD read at the save; storing what the parser found, and
 /// the runs' results.
 /// </summary>
-public sealed class AgentScriptResults(IDbContextFactory<PnmtdDbContext> dbs, AgentKeyStore keys, AgentHub hub, ILogger<AgentScriptResults> logger)
+public sealed class AgentScriptResults(IDbContextFactory<PnmtdDbContext> dbs, AgentKeyStore keys, AgentHub hub, Connectors.ConnectorQueue connectorQueue,
+    ILogger<AgentScriptResults> logger)
 {
     /// <summary>A run's output is cut here.</summary>
     public const int MaxOutputChars = 1024 * 1024;
+
+    /// <summary>The newest parses by hash and platform, for a text that isn't stored yet (a connector's form, docs/connectors-plan.md §11).</summary>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(string Hash, AgentPlatform Platform), ParsedScript> recent = new();
+
+    /// <summary>A recent parse of a text by an agent of the platform, or null.</summary>
+    public ParsedScript? Recent(string hash, AgentPlatform platform) => recent.TryGetValue((hash, platform), out var parsed) ? parsed : null;
+
+    /// <summary>Asks a connected agent that can to parse one text that isn't stored (its result lands in <see cref="Recent"/>); false without one.</summary>
+    public async Task<bool> ParseTextAsync(ScriptLanguage language, string text, CancellationToken ct)
+    {
+        var parser = hub.Connections.FirstOrDefault(c => CanParse(c, language));
+        if (parser is null)
+        {
+            return false;
+        }
+        var signed = await keys.SignAsync(AgentMessageTypes.ParseScript, parser.AgentId, new ParseScriptRequest(ScriptHashes.Of(text), text), ct,
+            AgentProtocol.RequestLifetime, session: parser.Session);
+        await parser.SendAsync(AgentMessageTypes.ParseScript, signed, ct, AgentSigning.NewRequestId());
+        return true;
+    }
 
     /// <summary>
     /// Sends pending versions (at most 20 per language) to a connected agent that can parse them: the one given (its platform's
@@ -39,6 +60,24 @@ public sealed class AgentScriptResults(IDbContextFactory<PnmtdDbContext> dbs, Ag
             var pending = await db.AgentScriptVersions.AsNoTracking().Where(v => v.ParseState == ScriptParseState.Pending)
                 .Join(db.AgentScripts.Where(s => s.Language == language), v => v.ScriptId, s => s.Id, (v, _) => v)
                 .OrderBy(v => v.CreatedAt).Take(20).Select(v => new { v.Hash, v.Text }).ToListAsync(ct);
+            // docs/connectors-plan.md §3.3: a connector's own copy of a text is parsed like a library version.
+            var type = Connectors.ConnectorTargets.TypeOf(language);
+            var functions = parser.Capabilities.Contains(AgentCapabilities.ParseFunctions);
+            pending.AddRange(await db.ConnectorScripts.AsNoTracking().Where(s => s.ParseState == ScriptParseState.Pending)
+                .Join(db.Connectors.Where(c => c.Type == type), s => s.ConnectorId, c => c.Id, (s, _) => s)
+                .OrderBy(s => s.ParsedAt).Take(20).Select(s => new { s.Hash, Text = s.ScriptText }).ToListAsync(ct));
+            // §8.3: PowerShell versions parsed without functions, again by an agent that lists them.
+            if (functions && language == ScriptLanguage.PowerShell)
+            {
+                pending.AddRange(await db.AgentScriptVersions.AsNoTracking()
+                    .Where(v => v.ParseState == ScriptParseState.Parsed && v.Parsed != null && !EF.Functions.JsonExists(v.Parsed, "functions"))
+                    .Join(db.AgentScripts.Where(s => s.Language == language), v => new { v.ScriptId, v.Number }, s => new { ScriptId = s.Id, Number = s.CurrentVersion }, (v, _) => v)
+                    .Take(20).Select(v => new { v.Hash, v.Text }).ToListAsync(ct));
+                pending.AddRange(await db.ConnectorScripts.AsNoTracking()
+                    .Where(s => s.ParseState == ScriptParseState.Parsed && s.Parsed != null && !EF.Functions.JsonExists(s.Parsed, "functions"))
+                    .Join(db.Connectors.Where(c => c.Type == type), s => s.ConnectorId, c => c.Id, (s, _) => s)
+                    .Take(20).Select(s => new { s.Hash, Text = s.ScriptText }).ToListAsync(ct));
+            }
             foreach (var version in pending.DistinctBy(v => v.Hash))
             {
                 try
@@ -72,9 +111,20 @@ public sealed class AgentScriptResults(IDbContextFactory<PnmtdDbContext> dbs, Ag
         if (type == AgentMessageTypes.ParseResult)
         {
             var result = AgentJson.Deserialize<ParseResultMessage>(body) ?? throw new JsonException("An empty parse result.");
+            if (result.Parsed is not null)
+            {
+                if (recent.Count > 200)
+                {
+                    recent.Clear();
+                }
+                recent[(result.Hash, connection.Platform)] = Capped(result.Parsed);
+            }
             // Only versions of the language this agent's platform parses: a Linux agent's parse never replaces a PowerShell one's.
             var language = connection.Platform == AgentPlatform.Linux ? ScriptLanguage.Bash : ScriptLanguage.PowerShell;
-            var versions = await db.AgentScriptVersions.Where(v => v.Hash == result.Hash && v.ParseState != ScriptParseState.Parsed)
+            // A result with functions replaces a parse without them (docs/connectors-plan.md §8.3).
+            var withFunctions = result.Parsed?.Functions is not null;
+            var versions = await db.AgentScriptVersions
+                .Where(v => v.Hash == result.Hash && (v.ParseState != ScriptParseState.Parsed || (withFunctions && !EF.Functions.JsonExists(v.Parsed!, "functions"))))
                 .Join(db.AgentScripts.Where(s => s.Language == language), v => v.ScriptId, s => s.Id, (v, _) => v).ToListAsync(ct);
             foreach (var version in versions)
             {
@@ -86,6 +136,12 @@ public sealed class AgentScriptResults(IDbContextFactory<PnmtdDbContext> dbs, Ag
                 version.ParseError = Cuts.CutOrNull(result.Error, 1000);
                 version.ParsedAt = Clock.UtcNow;
                 version.ParsedOn = Cuts.Cut(connection.AgentName, 500);
+            }
+            if (await Connectors.ConnectorParses.ApplyAsync(db, language, result, connection.AgentName, ct) > 0)
+            {
+                await db.SaveChangesAsync(ct);
+                connectorQueue.Nudge();
+                return;
             }
             await db.SaveChangesAsync(ct);
             return;
@@ -110,6 +166,8 @@ public sealed class AgentScriptResults(IDbContextFactory<PnmtdDbContext> dbs, Ag
             $"Script {row.ScriptName} v{row.VersionNumber} as {row.RunAsName}: {run.State.ToString().ToLowerInvariant()}{(run.ExitCode is { } code ? $", exit code {code}" : "")}{(run.Message is { } m ? $": {Cuts.Cut(m, 300)}" : "")}",
             address: connection.Address);
         await db.SaveChangesAsync(ct);
+        // docs/connectors-plan.md §9.3: a connector's call may be final now, and a script's turn free.
+        connectorQueue.Nudge();
     }
 
     /// <summary>
@@ -127,5 +185,6 @@ public sealed class AgentScriptResults(IDbContextFactory<PnmtdDbContext> dbs, Ag
         Parameters = parsed.Parameters.Take(100).ToList(),
         Errors = parsed.Errors.Take(50).ToList(),
         Findings = parsed.Findings.Take(50).ToList(),
+        Functions = parsed.Functions?.Take(50).Select(f => f with { Parameters = f.Parameters.Take(100).ToList() }).ToList(),
     };
 }

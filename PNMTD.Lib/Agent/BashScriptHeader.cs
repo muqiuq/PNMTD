@@ -63,6 +63,7 @@ public static partial class BashScriptHeader
         var findings = new List<ScriptFinding>();
         var lines = text.TrimStart('\uFEFF').Replace("\r\n", "\n").Split('\n');
         var parameters = new List<ScriptParameter>();
+        var functions = new List<ScriptFunction>();
         ScriptHelp? help = null;
 
         var start = Array.FindIndex(lines, 0, Math.Min(lines.Length, HeaderWithinLines), l => l.Trim() is "# pnmt:" or "#pnmt:");
@@ -81,19 +82,25 @@ public static partial class BashScriptHeader
             }
             else
             {
-                (parameters, help) = ReadHeader(yaml, start + 2, errors);
+                (parameters, help, functions) = ReadHeader(yaml, start + 2, errors);
             }
         }
-        Check(lines, parameters, start, findings);
-        return new ParsedScript(parameters, help, errors, findings);
+        Check(lines, parameters.Concat(functions.SelectMany(f => f.Parameters)).DistinctBy(p => p.Name).ToList(), start, findings);
+        CheckFunctions(lines, functions, findings);
+        // Always a list for bash, read by PNMTD itself: null only means "parsed without functions" for an older Windows agent.
+        return new ParsedScript(parameters, help, errors, findings, functions);
     }
 
-    private static (List<ScriptParameter>, ScriptHelp?) ReadHeader(string yaml, int firstLine, List<ScriptSyntaxError> errors)
+    /// <summary>At most this many functions in a header (docs/connectors-plan.md §8.2).</summary>
+    public const int MaxFunctions = 50;
+
+    private static (List<ScriptParameter>, ScriptHelp?, List<ScriptFunction>) ReadHeader(string yaml, int firstLine, List<ScriptSyntaxError> errors)
     {
         var parameters = new List<ScriptParameter>();
+        var functions = new List<ScriptFunction>();
         if (yaml.Trim().Length == 0)
         {
-            return (parameters, null);
+            return (parameters, null, functions);
         }
         YamlMappingNode root;
         try
@@ -105,24 +112,33 @@ public static partial class BashScriptHeader
                 if (parser.Current is AnchorAlias || parser.Current is NodeEvent { Anchor.IsEmpty: false })
                 {
                     errors.Add(new ScriptSyntaxError("The header uses YAML anchors or aliases, which are not allowed.", firstLine + (int)parser.Current.Start.Line - 1, 1));
-                    return (parameters, null);
+                    return (parameters, null, functions);
                 }
             }
             var stream = new YamlStream();
             stream.Load(new StringReader(yaml));
             if (stream.Documents.Count == 0 || stream.Documents[0].RootNode is not YamlMappingNode mapping)
             {
-                errors.Add(new ScriptSyntaxError("The # pnmt: header is not a map of synopsis, description and parameters.", firstLine, 1));
-                return (parameters, null);
+                errors.Add(new ScriptSyntaxError("The # pnmt: header is not a map of synopsis, description, parameters and functions.", firstLine, 1));
+                return (parameters, null, functions);
             }
             root = mapping;
         }
         catch (YamlException e)
         {
             errors.Add(new ScriptSyntaxError($"The header is not valid YAML: {e.Message}", firstLine + Math.Max(0, (int)e.Start.Line - 1), (int)Math.Max(1, e.Start.Column)));
-            return (parameters, null);
+            return (parameters, null, functions);
         }
 
+        var (parsedParameters, help) = ReadBlock(root, firstLine, errors, allowFunctions: true, functions);
+        return (parsedParameters, help, functions);
+    }
+
+    /// <summary>The script's header, or one function's block in it: synopsis, description, parameters (and the script's functions).</summary>
+    private static (List<ScriptParameter>, ScriptHelp?) ReadBlock(YamlMappingNode root, int firstLine, List<ScriptSyntaxError> errors, bool allowFunctions,
+        List<ScriptFunction> functions)
+    {
+        var parameters = new List<ScriptParameter>();
         string? synopsis = null, description = null;
         var parameterHelp = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var (keyNode, value) in root.Children)
@@ -131,6 +147,48 @@ public static partial class BashScriptHeader
             var line = firstLine + (int)keyNode.Start.Line - 1;
             switch (key)
             {
+                case "functions" when allowFunctions:
+                    if (value is YamlMappingNode functionMap)
+                    {
+                        foreach (var (nameNode, spec) in functionMap.Children)
+                        {
+                            var name = (nameNode as YamlScalarNode)?.Value ?? "";
+                            var at = firstLine + (int)nameNode.Start.Line - 1;
+                            if (!FunctionPattern().IsMatch(name))
+                            {
+                                errors.Add(new ScriptSyntaxError($"\"{name}\" is not a function name: lower-case letters, digits and _, starting with a letter or _, at most 40.", at, 1));
+                                continue;
+                            }
+                            if (functions.Count >= MaxFunctions)
+                            {
+                                errors.Add(new ScriptSyntaxError($"At most {MaxFunctions} functions in a header.", at, 1));
+                                break;
+                            }
+                            if (functions.Any(f => f.Name == name))
+                            {
+                                errors.Add(new ScriptSyntaxError($"The function {name} is declared twice.", at, 1));
+                                continue;
+                            }
+                            if (spec is YamlMappingNode block)
+                            {
+                                var (own, ownHelp) = ReadBlock(block, firstLine, errors, allowFunctions: false, functions);
+                                functions.Add(new ScriptFunction(name, at, own, ownHelp));
+                            }
+                            else if (spec is YamlScalarNode { Value: null or "" })
+                            {
+                                functions.Add(new ScriptFunction(name, at, [], null));
+                            }
+                            else
+                            {
+                                errors.Add(new ScriptSyntaxError($"{name}: a function is a map of synopsis, description and parameters.", at, 1));
+                            }
+                        }
+                    }
+                    else if (value is not YamlScalarNode { Value: null or "" })
+                    {
+                        errors.Add(new ScriptSyntaxError("functions: a map from each function's name to its synopsis, description and parameters.", line, 1));
+                    }
+                    break;
                 case "synopsis":
                     synopsis = Scalar(value);
                     break;
@@ -163,7 +221,9 @@ public static partial class BashScriptHeader
                     }
                     break;
                 default:
-                    errors.Add(new ScriptSyntaxError($"The header has no key \"{key}\" (synopsis, description, parameters).", line, 1));
+                    errors.Add(new ScriptSyntaxError(allowFunctions
+                        ? $"The header has no key \"{key}\" (synopsis, description, parameters, functions)."
+                        : $"A function has no key \"{key}\" (synopsis, description, parameters).", line, 1));
                     break;
             }
         }
@@ -322,6 +382,35 @@ public static partial class BashScriptHeader
                 headerStart >= 0 ? headerStart + 1 : null));
         }
     }
+
+    /// <summary>
+    /// The functions' findings (docs/connectors-plan.md §8.2): a declared function the text doesn't define, and functions without the
+    /// <c>BASH_SOURCE</c> guard, so sourcing the script would run its whole top level.
+    /// </summary>
+    private static void CheckFunctions(string[] lines, IReadOnlyList<ScriptFunction> functions, List<ScriptFinding> findings)
+    {
+        if (functions.Count == 0)
+        {
+            return;
+        }
+        var code = lines.Where(l => !l.TrimStart().StartsWith('#')).ToList();
+        foreach (var function in functions)
+        {
+            var defined = new Regex($@"^\s*(function\s+{Regex.Escape(function.Name)}\b|{Regex.Escape(function.Name)}\s*\(\s*\))", RegexOptions.CultureInvariant);
+            if (!code.Any(l => defined.IsMatch(l)))
+            {
+                findings.Add(new ScriptFinding("function-not-defined", $"The function {function.Name} is declared in the header but not defined in the text.", function.Line));
+            }
+        }
+        if (!code.Any(l => l.Contains("BASH_SOURCE", StringComparison.Ordinal)))
+        {
+            findings.Add(new ScriptFinding("function-no-guard",
+                "Sourcing the script runs all of its top level: guard the main part with if [[ \"${BASH_SOURCE[0]}\" == \"$0\" ]]."));
+        }
+    }
+
+    [GeneratedRegex("^[a-z_][a-z0-9_]{0,39}$")]
+    private static partial Regex FunctionPattern();
 
     /// <summary>A <c>set</c> line that turns on errexit and nounset: <c>set -euo pipefail</c>, <c>set -e -u</c>, <c>set -o errexit -o nounset</c>.</summary>
     private static bool StrictMode(string line)

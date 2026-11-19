@@ -43,7 +43,24 @@ public sealed record ScriptSyntaxError(string Message, int Line, int Column);
 /// <summary>A best-practice warning (§7.1): no [CmdletBinding()], an untyped parameter, Invoke-Expression, …</summary>
 public sealed record ScriptFinding(string Rule, string Message, int? Line = null);
 
-public sealed record ParsedScript(IReadOnlyList<ScriptParameter> Parameters, ScriptHelp? Help, IReadOnlyList<ScriptSyntaxError> Errors, IReadOnlyList<ScriptFinding> Findings);
+/// <summary>
+/// What a parser found in a script. <see cref="Functions"/> (docs/connectors-plan.md §8): the functions defined at its top level, each
+/// with its own parameters and help; null from a parser that doesn't list functions (an agent without <c>parse.functions.v1</c>).
+/// </summary>
+public sealed record ParsedScript(IReadOnlyList<ScriptParameter> Parameters, ScriptHelp? Help, IReadOnlyList<ScriptSyntaxError> Errors, IReadOnlyList<ScriptFinding> Findings,
+    IReadOnlyList<ScriptFunction>? Functions = null)
+{
+    /// <summary>The parameters of the whole script, or of the function named; null when the parse has no such function.</summary>
+    public IReadOnlyList<ScriptParameter>? ParametersOf(string? function) => function is null
+        ? Parameters
+        : Functions?.FirstOrDefault(f => string.Equals(f.Name, function, StringComparison.OrdinalIgnoreCase))?.Parameters;
+
+    /// <summary>The function by its name as written in the script, ignoring case; null when there is none.</summary>
+    public ScriptFunction? Function(string name) => Functions?.FirstOrDefault(f => string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase));
+}
+
+/// <summary>A function defined at a script's top level, with its own parameters and help (docs/connectors-plan.md §8).</summary>
+public sealed record ScriptFunction(string Name, int Line, IReadOnlyList<ScriptParameter> Parameters, ScriptHelp? Help);
 
 /// <summary>PNMTD → agent (signed): parse this text; nothing is run.</summary>
 public sealed record ParseScriptRequest(string Hash, string Text);
@@ -63,6 +80,8 @@ public sealed record RunAsSpec(RunAsKind Kind, string? Account, EncryptedSecret?
 /// <summary>
 /// PNMTD → agent (signed): run this script. The agent checks the local allowlists and the hash, parses the script again and
 /// refuses arguments that don't match it, and splats them (never a command line). Secure arguments travel encrypted.
+/// <see cref="Function"/> (docs/connectors-plan.md §8): a function defined at the script's top level to call instead of the whole
+/// script; sent only to an agent that announces <c>scripts.functions.v1</c>, which checks it against its own parse.
 /// </summary>
 public sealed record RunScriptRequest(
     Guid RunId,
@@ -73,7 +92,8 @@ public sealed record RunScriptRequest(
     IReadOnlyDictionary<string, EncryptedSecret> SecureArguments,
     RunAsSpec RunAs,
     int TimeoutSeconds,
-    string Shell);
+    string Shell,
+    string? Function = null);
 
 /// <summary>Agent → PNMTD: a run's end (or its refusal), with the output (at most 1 MiB), the exit code and the time.</summary>
 public sealed record ScriptResultMessage(
@@ -94,12 +114,32 @@ public static class ScriptArguments
     /// numbers. The agent checks them again against its own parse before it runs anything.
     /// </summary>
     public static IEnumerable<(string Field, string Message)> Check(ParsedScript parsed, IReadOnlyDictionary<string, JsonElement> arguments,
+        IReadOnlyCollection<string> secure) => Check(parsed.Parameters, arguments, secure, "script");
+
+    /// <summary>
+    /// Against a function's parameters when <paramref name="function"/> names one (docs/connectors-plan.md §8.3), else the script's. A
+    /// function the parse doesn't list is a problem of its own.
+    /// </summary>
+    public static IEnumerable<(string Field, string Message)> Check(ParsedScript parsed, string? function, IReadOnlyDictionary<string, JsonElement> arguments,
         IReadOnlyCollection<string> secure)
     {
-        var parameters = parsed.Parameters.ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
+        if (function is null)
+        {
+            return Check(parsed, arguments, secure);
+        }
+        return parsed.Function(function) is { } f
+            ? Check(f.Parameters, arguments, secure, "function")
+            : [("function", $"The script defines no function {function} at its top level.")];
+    }
+
+    /// <summary>The arguments against a list of parameters: the script's, or a function's.</summary>
+    public static IEnumerable<(string Field, string Message)> Check(IReadOnlyList<ScriptParameter> declared, IReadOnlyDictionary<string, JsonElement> arguments,
+        IReadOnlyCollection<string> secure, string owner = "script")
+    {
+        var parameters = declared.ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
         foreach (var name in arguments.Keys.Concat(secure).Where(n => !parameters.ContainsKey(n)))
         {
-            yield return ($"arguments.{name}", $"The script has no parameter {name}.");
+            yield return ($"arguments.{name}", $"The {owner} has no parameter {name}.");
         }
         foreach (var name in secure.Where(n => parameters.TryGetValue(n, out var p) && !p.IsSecure))
         {
@@ -109,7 +149,7 @@ public static class ScriptArguments
         {
             yield return ($"arguments.{name}", $"{name} is a [securestring]: send it as a secure argument.");
         }
-        foreach (var parameter in parsed.Parameters)
+        foreach (var parameter in declared)
         {
             var given = arguments.TryGetValue(parameter.Name, out var value) || secure.Contains(parameter.Name, StringComparer.OrdinalIgnoreCase);
             if (!given)

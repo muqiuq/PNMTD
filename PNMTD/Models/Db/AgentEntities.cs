@@ -580,4 +580,11 @@ public class AgentScriptRunEntity
     public double? DurationMs { get; set; }
 
     public int TimeoutSeconds { get; set; }
+
+    /// <summary>The connector whose call started the run (docs/connectors-plan.md §9.2); no foreign key, like <see cref="ScriptId"/>.</summary>
+    public Guid? ConnectorId { get; set; }
+
+    /// <summary>The function called instead of the whole script (docs/connectors-plan.md §8); null: the whole script.</summary>
+    [MaxLength(100)]
+    public string? Function { get; set; }
 }

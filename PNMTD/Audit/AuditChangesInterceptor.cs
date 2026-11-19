@@ -248,7 +248,8 @@ public sealed class AuditChangesInterceptor : SaveChangesInterceptor
 
         private static readonly string[] NameCandidates = ["Name", "Title", "Username", "DisplayName", "Key"];
 
-        private static readonly string[] SubjectCandidates = ["Id", "SensorId", "ParentId", "HostId", "LocationId"];
+        // ConnectorId and CallerId: a connector's target, arguments and grants under the connector, a grant under its caller too.
+        private static readonly string[] SubjectCandidates = ["Id", "SensorId", "ParentId", "HostId", "LocationId", "ConnectorId", "CallerId"];
 
         public static Policy Of(Type type) => Cache.GetOrAdd(type, Read);
 

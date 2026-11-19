@@ -37,6 +37,8 @@
     <!-- Redmine's and Zabbix's answers as R0 and Z0 recorded them: the fakes of the tests and of `pnmtd dev fake-integrations`. -->
     <Content Remove="Dev/Fixtures/**" />
     <EmbeddedResource Include="Dev/Fixtures/**/*.json" LogicalName="fixtures/%(RecursiveDir)%(Filename)%(Extension)" />
+    <!-- 3rd Party Connectors' API reference (docs/connectors-plan.md §15), served to the Documentation tab. -->
+    <EmbeddedResource Include="../docs/connectors-api.md" LogicalName="docs/connectors-api.md" />
   </ItemGroup>
   <ItemGroup>
     <Content Update="appsettings.Production.json">

@@ -57,7 +57,10 @@ async function redact() {
       </Column>
       <Column header="Script">
         <template #body="{ data }">
-          {{ data.scriptName }} <span class="muted small">{{ versionLabel(data.versionNumber) }}</span>
+          <template v-if="data.function">{{ data.function }} in </template>{{ data.scriptName }}
+          <span class="muted small">{{
+            data.connector ? `revision ${data.versionNumber}` : versionLabel(data.versionNumber)
+          }}</span>
           <div v-if="!sensorId" class="small muted">{{ data.serverName }}</div>
         </template>
       </Column>
@@ -67,9 +70,17 @@ async function redact() {
         >
       </Column>
       <Column header="By" style="width: 9rem">
-        <template #body="{ data }"
-          ><span class="small">{{ data.requestedBy }}</span></template
-        >
+        <template #body="{ data }">
+          <!-- docs/connectors-plan.md §13.6: a connector's call, with a link to the connector. -->
+          <RouterLink
+            v-if="data.connector"
+            class="small"
+            :to="{ name: 'connector', params: { id: data.connector.id } }"
+            @click.stop
+            >connector {{ data.connector.name }}</RouterLink
+          >
+          <span v-else class="small">{{ data.requestedBy }}</span>
+        </template>
       </Column>
       <template #mobile="{ item }">
         <div class="small">

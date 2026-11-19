@@ -34,6 +34,11 @@ const pages: [string, string, string][] = [
   ['/admin/knowledge-base', 'Knowledge base', 'admin-kb'],
   ['/admin/system', 'System health', 'system'],
   ['/admin/availability', 'Availability plan', 'availability'],
+  // docs/connectors-plan.md §13.1: the area opens on Calls; its other tabs.
+  ['/connectors', '3rd Party Connectors', 'connectors-calls'],
+  ['/connectors/connectors', '3rd Party Connectors', 'connectors-list'],
+  ['/connectors/callers', '3rd Party Connectors', 'connectors-callers'],
+  ['/connectors/docs', '3rd Party Connectors', 'connectors-docs'],
   ['/docs', 'Documentation', 'docs'],
 ]
 

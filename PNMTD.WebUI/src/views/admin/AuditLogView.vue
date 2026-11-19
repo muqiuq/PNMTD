@@ -77,6 +77,9 @@ const actors = [
   { value: 'Cli', label: 'The CLI' },
   { value: 'Agent', label: 'An agent' },
   { value: 'System', label: 'PNMT itself' },
+  { value: 'Mcp', label: 'An MCP token' },
+  // docs/connectors-plan.md §12.2: an outside system's call to a connector.
+  { value: 'Connector', label: 'A connector’s caller' },
 ]
 
 const timeFilter = computed(() => {
@@ -138,7 +141,15 @@ const expanded = ref<Record<string, boolean>>({})
 const exportUrl = computed(() => api.audit.exportUrl({ ...filters.value, search: table.search.value || undefined }))
 
 const who = (e: S['AuditLogItem']) =>
-  e.actor === 'User' ? e.username || '–' : e.actor === 'Cli' ? 'CLI' : e.actor === 'System' ? 'PNMT' : e.actor
+  e.actor === 'User'
+    ? e.username || '–'
+    : e.actor === 'Cli'
+      ? 'CLI'
+      : e.actor === 'System'
+        ? 'PNMT'
+        : e.actor === 'Connector'
+          ? `${e.username || 'a caller'} (connector)`
+          : e.actor
 const targetLink = (e: S['AuditLogItem']) => {
   if (!e.targetId) return null
   switch (e.targetType) {

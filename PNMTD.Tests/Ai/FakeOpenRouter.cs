@@ -22,6 +22,9 @@ public sealed class FakeOpenRouter
 
     public double Injection { get; set; } = 0.01;
 
+    /// <summary>How long Jev takes to answer (a connector's review timeout, docs/connectors-plan.md §7.4).</summary>
+    public TimeSpan GuardDelay { get; set; }
+
     /// <summary>Other noul questions' answers by name (the knowledge base's credentials and personalData); <see cref="Injection"/> otherwise.</summary>
     public ConcurrentDictionary<string, double> Nouls { get; } = new();
 
@@ -54,6 +57,10 @@ public sealed class FakeOpenRouter
             var json = JsonNode.Parse(body)!;
             if (url.Contains("/decisions", StringComparison.Ordinal))
             {
+                if (owner.GuardDelay > TimeSpan.Zero)
+                {
+                    await Task.Delay(owner.GuardDelay, ct);
+                }
                 var answers = new JsonObject();
                 foreach (var (name, q) in json["questions"]!.AsObject())
                 {

@@ -312,46 +312,129 @@ public sealed partial class AgentScriptService(
             account = runAs?.Account;
             runAsName = runAs?.Name ?? "";
         }
-        foreach (var problem in ScriptArguments.Check(parsed, arguments, secure.Keys.ToList()))
+        // docs/connectors-plan.md §8.4: a function of the script instead of the whole script, its own parameters checked.
+        var function = Text.Trimmed(request.Function);
+        if (function is not null && parsed.Function(function) is null)
         {
-            v.Check(false, problem.Field, problem.Message);
+            v.Add("function", parsed.Functions is null
+                ? $"{script.Name}'s parse lists no functions yet: an agent that lists functions parses it again."
+                : $"{script.Name} defines no function {function} at its top level.");
+        }
+        else
+        {
+            foreach (var problem in ScriptArguments.Check(parsed, function, arguments, secure.Keys.ToList()))
+            {
+                v.Check(false, problem.Field, problem.Message);
+            }
         }
         v.ThrowIfInvalid();
 
         var (_, user) = UdpViews.User(accessor);
         var batch = Guid.NewGuid();
-        var plain = JsonSerializer.Serialize(arguments, AgentJson.Options);
-        var rows = new List<(AgentScriptRunEntity Row, string? Refused)>();
+        var rows = new List<AgentScriptRunEntity>();
         foreach (var server in servers)
         {
-            var row = new AgentScriptRunEntity
+            var spec = new ScriptRunSpec(server.SensorId, server.Name, platform, server.EncryptionKey, server.Capabilities, server.Rights, script.Name,
+                version.Text, version.Hash, script.Id, version.Number, function is null ? null : parsed.Function(function)!.Name, kind, account, runAsName,
+                runAs?.Kind == RunAsKind.TypedPerRun ? request.Password : null, shell, timeout, arguments, secure, user, batch);
+            // §9.2: one run per script and server; a single server's run is a 409, a batch's busy servers get a refused row.
+            var start = await StartAsync(spec, servers.Count == 1 ? BusyMode.Conflict : BusyMode.Refuse, null, null, null, ct);
+            rows.Add(start.Row!);
+        }
+        var refusedOn = rows.Where(r => r.State == ScriptRunState.Refused).Select(r => r.ServerName).ToList();
+        UdpViews.Audit(db, accessor, AuditEvents.AgentScriptRun,
+            $"script {script.Name} v{version.Number}{(function is null ? "" : $", function {function},")} ({script.Language}) on {string.Join(", ", servers.Select(s => s.Name))} as {runAsName} ({kind}), batch {batch}"
+            + (refusedOn.Count > 0 ? $"; refused on {string.Join(", ", refusedOn)}" : ""));
+        await db.SaveChangesAsync(ct);
+        return rows.Select(Item).ToList();
+    }
+
+    /// <summary>What a busy script means for a start (§9.2): a 409, a refused row, or (a connector's call) waiting its turn.</summary>
+    public enum BusyMode { Conflict, Refuse, Wait }
+
+    /// <summary>A start: the run's row, or for <see cref="BusyMode.Wait"/> what the call waits for (<c>turn</c>, or the gate's answer).</summary>
+    public sealed record ScriptRunStart(AgentScriptRunEntity? Row, string? WaitingFor, string? Message);
+
+    /// <summary>
+    /// The one start of a run (docs/connectors-plan.md §9.2), for the run dialog, a registered script and a connector's call alike, so
+    /// their checks can't differ: one run per script (by name) and server at a time, under an advisory lock; the platform's refusal
+    /// (config.yaml on Linux); the row; the secrets encrypted to the agent and the signed send. <paramref name="gate"/> runs first in the
+    /// transaction and may answer what to wait for (the connectors' limit); <paramref name="withRow"/> runs before the commit, so a
+    /// connector's call becomes running in the same transaction as its run's row; <paramref name="who"/> with a detail audits the start.
+    /// </summary>
+    public async Task<ScriptRunStart> StartAsync(ScriptRunSpec spec, BusyMode busyMode, Func<PnmtdDbContext, CancellationToken, Task<string?>>? gate,
+        Func<PnmtdDbContext, AgentScriptRunEntity, CancellationToken, Task>? withRow, (AuditWho Who, string Detail)? audit, CancellationToken ct)
+    {
+        AgentScriptRunEntity row;
+        string? refused;
+        await using (var transaction = await db.Database.BeginTransactionAsync(ct))
+        {
+            if (gate is not null && await gate(db, ct) is { } wait)
             {
-                Id = Guid.NewGuid(), BatchId = batch, ScriptId = script.Id, ScriptName = script.Name, VersionNumber = version.Number, Hash = version.Hash,
-                SensorId = server.SensorId, ServerName = server.Name, RunAsName = runAsName, RunAsKind = kind, Account = account,
-                Arguments = arguments.Count == 0 && secure.Count == 0 ? null : plain, RequestedBy = user, StartedAt = Clock.UtcNow, State = ScriptRunState.Sent,
-                TimeoutSeconds = timeout,
+                return new ScriptRunStart(null, wait, null);
+            }
+            await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({ScriptLock(spec.SensorId, spec.ScriptName)})", ct);
+            var lowered = spec.ScriptName.ToLower();
+            var busy = await db.AgentScriptRuns.AsNoTracking()
+                .Where(r => r.SensorId == spec.SensorId && (r.State == ScriptRunState.Sent || r.State == ScriptRunState.Running) && r.ScriptName.ToLower() == lowered)
+                .OrderBy(r => r.StartedAt).Select(r => new { r.StartedAt, r.RequestedBy, r.ScriptName }).FirstOrDefaultAsync(ct);
+            refused = null;
+            if (busy is not null)
+            {
+                var message = $"{busy.ScriptName} is running on {spec.ServerName} since {Clock.ToLocal(busy.StartedAt):HH:mm}{(busy.RequestedBy is { } by ? $" ({by})" : "")}: run it when that's done.";
+                switch (busyMode)
+                {
+                    case BusyMode.Wait:
+                        return new ScriptRunStart(null, "turn", message);
+                    case BusyMode.Conflict:
+                        throw ApiException.Conflict("script_running", message);
+                    default:
+                        refused = message;
+                        break;
+                }
+            }
+            row = new AgentScriptRunEntity
+            {
+                Id = Guid.NewGuid(), BatchId = spec.BatchId, ScriptId = spec.ScriptId, ScriptName = spec.ScriptName, VersionNumber = spec.VersionNumber, Hash = spec.Hash,
+                SensorId = spec.SensorId, ServerName = spec.ServerName, RunAsName = spec.RunAsName, RunAsKind = spec.Kind, Account = spec.Account,
+                Arguments = spec.Arguments.Count == 0 && spec.Secure.Count == 0 ? null : JsonSerializer.Serialize(spec.Arguments, AgentJson.Options),
+                RequestedBy = Cuts.CutOrNull(spec.RequestedBy, 200), StartedAt = Clock.UtcNow, State = ScriptRunState.Sent, TimeoutSeconds = spec.TimeoutSeconds,
+                ConnectorId = spec.ConnectorId, Function = spec.Function,
             };
-            var refused = bash ? LinuxRefusal(ServerRights.Read(server.Rights), server.Capabilities, server.Name, account ?? "root", timeout) : null;
+            if (refused is null && spec.Platform == AgentPlatform.Linux)
+            {
+                refused = LinuxRefusal(ServerRights.Read(spec.Rights), spec.Capabilities, spec.ServerName, spec.Kind == RunAsKind.Service ? "root" : spec.Account,
+                    spec.TimeoutSeconds);
+            }
             if (refused is not null)
             {
                 Finish(row, ScriptRunState.Refused, refused);
             }
             db.AgentScriptRuns.Add(row);
-            rows.Add((row, refused));
+            if (audit is { } a)
+            {
+                AuditLog.Record(db, AuditEvents.AgentScriptRun, a.Detail, a.Who, AuditTarget.Of(AuditTargets.Script, spec.ScriptId ?? row.Id, spec.ScriptName,
+                    spec.SensorId, spec.ConnectorId));
+            }
+            await db.SaveChangesAsync(ct);
+            if (withRow is not null)
+            {
+                // After the row is written, in the same transaction: a connector's call points at its run.
+                await withRow(db, row, ct);
+            }
+            await transaction.CommitAsync(ct);
         }
-        UdpViews.Audit(db, accessor, AuditEvents.AgentScriptRun,
-            $"script {script.Name} v{version.Number} ({script.Language}) on {string.Join(", ", servers.Select(s => s.Name))} as {runAsName} ({kind}), batch {batch}"
-            + (rows.Any(r => r.Refused is not null) ? $"; refused on {string.Join(", ", rows.Where(r => r.Refused is not null).Select(r => r.Row.ServerName))}" : ""));
-        await db.SaveChangesAsync(ct);
-
-        foreach (var (row, refused) in rows.Where(r => r.Refused is null))
+        if (refused is null)
         {
-            var server = servers.Single(s => s.SensorId == row.SensorId);
-            await SendAsync(row, server.EncryptionKey, version.Text, arguments, secure, runAs?.Kind == RunAsKind.TypedPerRun ? request.Password : null, shell, platform, ct);
+            await SendAsync(row, spec.EncryptionKey, spec.Text, spec.Arguments, spec.Secure, spec.Password, spec.Shell, spec.Platform, spec.Function, ct);
+            await db.SaveChangesAsync(ct);
         }
-        await db.SaveChangesAsync(ct);
-        return rows.Select(r => Item(r.Row)).ToList();
+        return new ScriptRunStart(row, null, null);
     }
+
+    /// <summary>The advisory lock of a script (by name, ignoring case) on a server: the first 8 bytes of a SHA-256.</summary>
+    public static long ScriptLock(Guid sensorId, string scriptName) =>
+        BitConverter.ToInt64(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"script-run:{sensorId}:{scriptName.ToLowerInvariant()}")), 0);
 
     [System.Text.RegularExpressions.GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_.-]{0,31}\$?$")]
     private static partial System.Text.RegularExpressions.Regex LinuxAccountName();
@@ -429,7 +512,7 @@ public sealed partial class AgentScriptService(
 
     /// <summary>Sends a run to its server's agent, signed, with the secrets encrypted to it; a refusal or no answer finishes the row.</summary>
     private async Task SendAsync(AgentScriptRunEntity row, string? encryptionKey, string text, IReadOnlyDictionary<string, JsonElement> arguments,
-        IReadOnlyDictionary<string, string> secure, string? password, string shell, AgentPlatform platform, CancellationToken ct)
+        IReadOnlyDictionary<string, string> secure, string? password, string shell, AgentPlatform platform, string? function, CancellationToken ct)
     {
         var connection = row.SensorId is { } sensorId ? hub.Connection(sensorId) : null;
         if (connection is null)
@@ -444,6 +527,12 @@ public sealed partial class AgentScriptService(
                 : "Scripts are not allowed on this server: an administrator turns them on in the agent's window there.");
             return;
         }
+        if (function is not null && !connection.Capabilities.Contains(AgentCapabilities.ScriptFunctions))
+        {
+            // docs/connectors-plan.md §8.3: an older agent would ignore the function and run the whole script.
+            Finish(row, ScriptRunState.Refused, $"The agent on {row.ServerName} can't call functions: update it.");
+            return;
+        }
         if (encryptionKey is null && (secure.Count > 0 || password is not null))
         {
             Finish(row, ScriptRunState.Refused, "The agent has no encryption key for secrets: update it.");
@@ -451,7 +540,7 @@ public sealed partial class AgentScriptService(
         }
         var spec = new RunAsSpec(row.RunAsKind, row.Account, password is null ? null : AgentSecrets.Encrypt(encryptionKey!, password, row.Id));
         var encrypted = secure.ToDictionary(p => p.Key, p => AgentSecrets.Encrypt(encryptionKey!, p.Value, row.Id));
-        var message = new RunScriptRequest(row.Id, row.ScriptName, row.Hash, text, arguments, encrypted, spec, row.TimeoutSeconds, shell);
+        var message = new RunScriptRequest(row.Id, row.ScriptName, row.Hash, text, arguments, encrypted, spec, row.TimeoutSeconds, shell, function);
         try
         {
             var answer = await connection.RequestAsync(keys, AgentMessageTypes.RunScript, message, TimeSpan.FromSeconds(30), ct);
@@ -494,7 +583,7 @@ public sealed partial class AgentScriptService(
     public async Task<AgentScriptRunItem> RunLocalAsync(Guid sensorId, WindowsLocalScriptRunRequest request, CancellationToken ct)
     {
         var server = await db.Agents.AsNoTracking().Where(a => a.SensorId == sensorId && a.Platform == AgentPlatform.Windows)
-            .Select(a => new { a.SensorId, a.EncryptionKey, Name = a.Sensor.Parent.Name + " / " + a.Sensor.Name }).SingleOrDefaultAsync(ct)
+            .Select(a => new { a.SensorId, a.EncryptionKey, a.Capabilities, Name = a.Sensor.Parent.Name + " / " + a.Sensor.Name }).SingleOrDefaultAsync(ct)
             ?? throw ApiException.NotFound("Windows server");
         var (_, section) = await LocalSectionAsync(sensorId, ct);
         var script = section?.Scripts.FirstOrDefault(s => string.Equals(s.Name, request.Name, StringComparison.OrdinalIgnoreCase))
@@ -518,25 +607,27 @@ public sealed partial class AgentScriptService(
         var v = new ApiValidator()
             .Check(timeout is >= 10 and <= MaxTimeoutSeconds, "timeoutSeconds", $"Between 10 and {MaxTimeoutSeconds} seconds.")
             .Check(shell is "powershell" or "pwsh", "shell", "powershell (Windows PowerShell 5.1) or pwsh.");
-        foreach (var problem in ScriptArguments.Check(script.Parsed, arguments, secure.Keys.ToList()))
+        var function = Text.Trimmed(request.Function);
+        if (function is not null && script.Parsed.Function(function) is null)
         {
-            v.Check(false, problem.Field, problem.Message);
+            v.Add("function", $"{script.Name} defines no function {function} at its top level{(script.Parsed.Functions is null ? ", as far as the agent's parse lists functions" : "")}.");
+        }
+        else
+        {
+            foreach (var problem in ScriptArguments.Check(script.Parsed, function, arguments, secure.Keys.ToList()))
+            {
+                v.Check(false, problem.Field, problem.Message);
+            }
         }
         v.ThrowIfInvalid();
 
         var (_, user) = UdpViews.User(accessor);
-        var row = new AgentScriptRunEntity
-        {
-            Id = Guid.NewGuid(), BatchId = Guid.NewGuid(), ScriptId = null, ScriptName = script.Name, VersionNumber = 0, Hash = script.Sha256,
-            SensorId = sensorId, ServerName = server.Name, RunAsName = RunAsName(script), RunAsKind = script.RunAs, Account = script.Account,
-            Arguments = arguments.Count == 0 && secure.Count == 0 ? null : JsonSerializer.Serialize(arguments, AgentJson.Options), RequestedBy = user,
-            StartedAt = Clock.UtcNow, State = ScriptRunState.Sent, TimeoutSeconds = timeout,
-        };
-        db.AgentScriptRuns.Add(row);
+        var spec = new ScriptRunSpec(sensorId, server.Name, AgentPlatform.Windows, server.EncryptionKey, server.Capabilities, null, script.Name, script.Text,
+            script.Sha256, null, 0, function is null ? null : script.Parsed.Function(function)!.Name, script.RunAs, script.Account, RunAsName(script), null, shell,
+            timeout, arguments, secure, user, Guid.NewGuid());
+        var row = (await StartAsync(spec, BusyMode.Conflict, null, null, null, ct)).Row!;
         UdpViews.Audit(db, accessor, AuditEvents.AgentScriptRun,
-            $"script {script.Name} registered on {server.Name} ({script.Sha256[..12]}) as {row.RunAsName}, batch {row.BatchId}");
-        await db.SaveChangesAsync(ct);
-        await SendAsync(row, server.EncryptionKey, script.Text, arguments, secure, null, shell, AgentPlatform.Windows, ct);
+            $"script {script.Name}{(function is null ? "" : $", function {function},")} registered on {server.Name} ({script.Sha256[..12]}) as {row.RunAsName}, batch {row.BatchId}");
         await db.SaveChangesAsync(ct);
         return Item(row);
     }
@@ -581,14 +672,23 @@ public sealed partial class AgentScriptService(
         {
             q = q.Where(r => r.State == state);
         }
+        if (query.ConnectorId is { } connector)
+        {
+            q = q.Where(r => r.ConnectorId == connector);
+        }
+        if (query.ViaConnectors is { } via)
+        {
+            q = via ? q.Where(r => r.ConnectorId != null) : q.Where(r => r.ConnectorId == null);
+        }
         var page = await Paging.PageAsync(q.OrderByDescending(r => r.StartedAt), query, ct);
-        return new Paged<AgentScriptRunItem>(page.Items.Select(Item).ToList(), page.Page, page.PageSize, page.TotalCount);
+        var names = await ConnectorNamesAsync(page.Items, ct);
+        return new Paged<AgentScriptRunItem>(page.Items.Select(r => Item(r, names)).ToList(), page.Page, page.PageSize, page.TotalCount);
     }
 
     public async Task<AgentScriptRunDetail> RunDetailAsync(Guid id, CancellationToken ct)
     {
         var row = await db.AgentScriptRuns.AsNoTracking().SingleOrDefaultAsync(r => r.Id == id, ct) ?? throw ApiException.NotFound("Run");
-        return new AgentScriptRunDetail(Item(row), row.Arguments, row.Output, row.Hash, row.TimeoutSeconds);
+        return new AgentScriptRunDetail(Item(row, await ConnectorNamesAsync([row], ct)), row.Arguments, row.Output, row.Hash, row.TimeoutSeconds);
     }
 
     /// <summary>Removes a run's arguments from the history (§7.3). Audit-logged.</summary>
@@ -602,9 +702,20 @@ public sealed partial class AgentScriptService(
         return await RunDetailAsync(id, ct);
     }
 
-    private static AgentScriptRunItem Item(AgentScriptRunEntity r) => new(r.Id, r.BatchId, r.ScriptId, r.ScriptName, r.VersionNumber,
-        r.SensorId is { } s ? new Ref(s, r.ServerName) : null, r.ServerName, r.RunAsName, r.RunAsKind, r.Account, r.RequestedBy, r.StartedAt, r.FinishedAt, r.State,
-        r.ExitCode, r.Message, r.DurationMs, r.Redacted);
+    /// <summary>The connectors of these runs, by id, for the history's <i>via connector</i> (§13.6).</summary>
+    private async Task<IReadOnlyDictionary<Guid, string>> ConnectorNamesAsync(IReadOnlyCollection<AgentScriptRunEntity> runs, CancellationToken ct)
+    {
+        var ids = runs.Where(r => r.ConnectorId is not null).Select(r => r.ConnectorId!.Value).Distinct().ToList();
+        return ids.Count == 0 ? new Dictionary<Guid, string>()
+            : await db.Connectors.AsNoTracking().Where(c => ids.Contains(c.Id)).ToDictionaryAsync(c => c.Id, c => c.Name, ct);
+    }
+
+    private static AgentScriptRunItem Item(AgentScriptRunEntity r) => Item(r, null);
+
+    private static AgentScriptRunItem Item(AgentScriptRunEntity r, IReadOnlyDictionary<Guid, string>? connectors) => new(r.Id, r.BatchId, r.ScriptId, r.ScriptName,
+        r.VersionNumber, r.SensorId is { } s ? new Ref(s, r.ServerName) : null, r.ServerName, r.RunAsName, r.RunAsKind, r.Account, r.RequestedBy, r.StartedAt,
+        r.FinishedAt, r.State, r.ExitCode, r.Message, r.DurationMs, r.Redacted, r.Function,
+        r.ConnectorId is { } c ? new Ref(c, connectors?.GetValueOrDefault(c) ?? "a deleted connector") : null);
 }
 
 internal static class AgentScriptExtensions
@@ -615,3 +726,33 @@ internal static class AgentScriptExtensions
         return value;
     }
 }
+
+/// <summary>
+/// One run to start (docs/connectors-plan.md §9.2): the server, the script's text, hash and name, the library's script and version or
+/// none, the function, the account (kind and name), the shell, the timeout, the plain and secure arguments, who asked, the batch, and
+/// the connector whose call it is.
+/// </summary>
+public sealed record ScriptRunSpec(
+    Guid SensorId,
+    string ServerName,
+    AgentPlatform Platform,
+    string? EncryptionKey,
+    IReadOnlyCollection<string> Capabilities,
+    string? Rights,
+    string ScriptName,
+    string Text,
+    string Hash,
+    Guid? ScriptId,
+    int VersionNumber,
+    string? Function,
+    RunAsKind Kind,
+    string? Account,
+    string RunAsName,
+    string? Password,
+    string Shell,
+    int TimeoutSeconds,
+    IReadOnlyDictionary<string, JsonElement> Arguments,
+    IReadOnlyDictionary<string, string> Secure,
+    string? RequestedBy,
+    Guid BatchId,
+    Guid? ConnectorId = null);

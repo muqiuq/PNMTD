@@ -624,6 +624,19 @@ All of them are records in `PNMTD.Lib/Agent/`, shared by both sides. The same re
   - it deletes the files, and logs the run in its log file and in the Windows event log.
 - **PNMT keeps** the run (script version, arguments, account, who, when, output, exit code) as a history, as for MikroTik commands (docs/mikrotik-plan.md §8.3). An Admin can redact arguments.
 
+### 7.3a Functions in scripts (docs/connectors-plan.md §8)
+
+- **The parse lists a script's top-level functions,** each with its own parameters (`$f.Body.ParamBlock`, or `function F($a, $b)`, read by the same code as the script's) and its help. Two findings come with them:
+  - `function-top-level-code`: a statement at the top level that a function call runs first;
+  - `function-script-mandatory`: the script's own `param()` has a mandatory parameter, so its functions can't be called.
+
+  The agent announces `parse.functions.v1` always.
+- **A run can name a function** (`RunScriptRequest.Function`).
+  - The agent checks the name against its own fresh parse (`^[A-Za-z_][A-Za-z0-9_-]{0,99}$`, defined at the top level), and the arguments against the function's parameters.
+  - It writes the name to `function.txt`. The wrapper dot-sources `script.ps1`, resolves the name with `Get-Command -CommandType Function`, and splats the arguments into it.
+  - It announces `scripts.functions.v1` with `scripts.v1`. PNMTD sends a function only to an agent that announces it: an older agent would run the whole script.
+- **Registered scripts** get the same parse, so a function of a registered script can be called too.
+
 ### 7.4 Run-as accounts and passwords (R17, R20)
 
 | Kind | Password | Where it is kept |
@@ -1107,6 +1120,13 @@ On one Windows Server 2019 and one Windows 10 Pro or Windows 11 machine, with th
 9. Run the next version's executable: *Update*; the server stays the same sensor.
 10. *Scripts → Add script…* with the example script, as this service, daily: the copy and the task `\PNMT Sensor\` exist; *Run the task now* shows a result; *Add script…* with the same file name asks to replace. With *Allow PNMT to run scripts*, the same text pasted into PNMT runs from there; one changed character is refused.
 11. *Uninstall…*: the service, the key and the scripts' tasks are gone; PNMT shows *uninstalled* and no 460.
+12. **Functions** (docs/connectors-plan.md §8), with *Allow PNMT to run scripts*:
+    - a script with `Clear-ShopCache` (a mandatory `-Site` and a `ValidateSet`) and `Restart-ShopPool`: the library lists both functions with their parameters;
+    - *Run…* with *Function* `Clear-ShopCache` runs only it, with the arguments splatted;
+    - a function that throws: *failed*, with the error in the output;
+    - a line of top-level code shows `function-top-level-code`, and a mandatory script parameter shows `function-script-mandatory` and refuses the function;
+    - a connector that calls the function: 200 with the outcome;
+    - the previous release's agent is never sent a function: the run is refused in PNMT, "can't call functions".
 
 ### W6: PowerShell scripts
 

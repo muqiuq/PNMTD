@@ -270,13 +270,24 @@ public static class AuditEvents
     public const string McpTokensRevokedByAdmin = "McpTokensRevokedByAdmin";
     public const string McpDeleteAllowed = "McpDeleteAllowed";
     public const string McpDeleteEnded = "McpDeleteEnded";
+
+    // 3rd Party Connectors (docs/connectors-plan.md §12.2). A call whose run starts is AgentScriptRun, with the connector as actor.
+    public const string ConnectorChanged = "ConnectorChanged";
+    public const string ConnectorCallerChanged = "ConnectorCallerChanged";
+    public const string ConnectorCallerKeyViewed = "ConnectorCallerKeyViewed";
+    public const string ConnectorCallerKeyRotated = "ConnectorCallerKeyRotated";
+
+    /// <summary>A valid key from outside its caller's networks, a refusal by the review, an address blocked for failed keys.</summary>
+    public const string ConnectorRefused = "ConnectorRefused";
+    public const string ConnectorCallRedacted = "ConnectorCallRedacted";
+    public const string ConnectorCallCancelled = "ConnectorCallCancelled";
 }
 
 /// <summary>What an entry is about: its category on the page and in the filter (docs/audit-redmine-zabbix-plan.md §3.2).</summary>
 public enum AuditCategory
 {
     Auth, Users, Hosts, Sensors, Notifications, Locations, Knowledge, Files, Udp, Mikrotik, WireGuard, Agents, SshKeys,
-    Diagnostics, Dns, Mail, Ai, Decisions, System, Redmine, Zabbix, Cookie, Availability, Mcp, Certificates,
+    Diagnostics, Dns, Mail, Ai, Decisions, System, Redmine, Zabbix, Cookie, Availability, Mcp, Certificates, Connectors,
 }
 
 /// <summary>The colour of an event's tag.</summary>
@@ -318,6 +329,9 @@ public static class AuditTargets
     public const string CookieCase = "CookieCase";
     public const string McpToken = "McpToken";
     public const string CertificateAuthority = "CertificateAuthority";
+    public const string Connector = "Connector";
+    public const string ConnectorCaller = "ConnectorCaller";
+    public const string ConnectorCall = "ConnectorCall";
 }
 
 /// <summary>An event type of the catalog: its category, a label for people, the tone of its tag, what it is about.</summary>
@@ -442,6 +456,11 @@ public static class AuditCatalog
             AuditEvents.McpTokenExpired, AuditEvents.McpTokenBlocked, AuditEvents.McpTokenTurnedOffByAdmin, AuditEvents.McpDeleteAllowed,
             AuditEvents.McpDeleteEnded);
         Add(AuditCategory.Mcp, null, AuditEvents.McpTokensRevokedByAdmin);
+        Add(AuditCategory.Connectors, AuditTargets.Connector, AuditEvents.ConnectorChanged);
+        Add(AuditCategory.Connectors, AuditTargets.ConnectorCaller, AuditEvents.ConnectorCallerChanged, AuditEvents.ConnectorCallerKeyViewed,
+            AuditEvents.ConnectorCallerKeyRotated);
+        Add(AuditCategory.Connectors, null, AuditEvents.ConnectorRefused);
+        Add(AuditCategory.Connectors, AuditTargets.ConnectorCall, AuditEvents.ConnectorCallRedacted, AuditEvents.ConnectorCallCancelled);
     }
 
     public static IReadOnlyList<AuditEventInfo> All => Entries;
@@ -472,6 +491,9 @@ public static class AuditCatalog
         : type is AuditEvents.CertificateAccepted or AuditEvents.CertificateAuthorityAdded ? AuditTone.Warn
         // An app's reports deleted (docs/advanced-sensor-plan.md §8.3).
         : type is AuditEvents.AdvancedReportsCleared ? AuditTone.Warn
+        // docs/connectors-plan.md §12.2: a key shown or replaced, a call refused for a reason that may mean a leaked key.
+        : type is AuditEvents.ConnectorCallerKeyViewed or AuditEvents.ConnectorCallerKeyRotated ? AuditTone.Warn
+        : type is AuditEvents.ConnectorRefused ? AuditTone.Danger
         : System.Text.RegularExpressions.Regex.IsMatch(type, "Deleted|Reset|Revoked|Disabled|Cancelled|Retired|Removed|Redacted|Detached") ? AuditTone.Warn
         : System.Text.RegularExpressions.Regex.IsMatch(type, "Succeeded|Enabled|Created|Joined|Registered|Attached|Uploaded") ? AuditTone.Success
         : AuditTone.Neutral;

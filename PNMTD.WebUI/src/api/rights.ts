@@ -30,6 +30,8 @@ export const levelOrder: Record<Area, readonly Level[]> = {
   Mcp: ['View', 'Manage'],
   // docs/ssl-certificate-plan.md §6.4: the Certificate tab, certificate sensors with Monitoring: Edit, the private CAs.
   Certificates: ['View', 'Edit', 'Manage'],
+  // docs/connectors-plan.md §12.1: every call and connector; Manage changes them, and the callers and their keys.
+  Connectors: ['View', 'Manage'],
 }
 
 /** Whether these rights (the admin flag, or the levels per area) include the level asked for. */

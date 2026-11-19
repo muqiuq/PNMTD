@@ -33,11 +33,20 @@ describe('visibleNavigation', () => {
   })
 
   it('drops a group without entries', () => {
+    // Without Redmine and Zabbix configured, and without the connectors' right (docs/connectors-plan.md §13.1).
     const groups = visibleNavigation(
-      () => true,
+      (r) => r === 'admin' || r[0] !== 'Connectors',
       () => false,
     )
     expect(groups.map((g) => g.label)).not.toContain('Integrations')
+  })
+
+  it("shows 3rd Party Connectors in Integrations with the connectors' View, configured or not (docs/connectors-plan.md §13.1)", () => {
+    const view = visibleNavigation(
+      (r) => r !== 'admin' && holds(false, { Connectors: 'View' }, r[0], r[1]),
+      () => false,
+    )
+    expect(view.find((g) => g.label === 'Integrations')?.items.map((i) => i.name)).toEqual(['connectors'])
   })
 
   it('leaves out the menus the deployment hides, and only those (Redmine__HideMenu, Mail__HideMenu, Zabbix__HideMenu)', () => {

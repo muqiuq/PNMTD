@@ -26,6 +26,7 @@ README.md**/packages.lock.json.bak
 .tmpcheck
 artifacts
 docs
+!docs/connectors-api.md
 examples
 PNMTD.Contract.Tests
 PNMTD.WebUI/dist

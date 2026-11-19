@@ -104,7 +104,9 @@ A **new PostgreSQL major version** means `./backup.sh`, the new image in `docker
 
 - **Path prefixes:** forward every path unchanged, with no prefix stripped or added. The app needs `/event/`, `/read/`, `/api/` and `/pnmt-admin/` at the root of its host.
 - **Settings:**
-  - Set `Proxy=docker` in `.env` if the proxy runs in a Docker network, or else set it to the proxy's address. Without it, lockout and the audit log see the proxy's address instead of the client's.
+  - Set `Proxy=docker` in `.env` if the proxy runs in a Docker network, or else set it to the proxy's address. Without it, lockout, the audit log and the connectors' networks see the proxy's address instead of the client's.
+  - `Proxy` takes a list too, comma-separated, of `docker`, addresses and networks (`Proxy=docker,10.0.0.5`). Each entry is checked at the start, and a bad one stops it with a message naming the entry.
+  - **What a trusted range means:** `docker` trusts all of 172.16.0.0/12. A client that reaches PNMT's port directly from that range, not through the proxy, can claim any address in `X-Forwarded-For`, and with it pass a connector caller's networks. Behind a proxy on the same host, bind PNMT to `127.0.0.1` (below), or name the proxy's own address instead of `docker`.
   - With the proxy on the same host, set `PNMTD_BIND_ADDRESS=127.0.0.1`.
 - **Sensor URLs:** they stay plain HTTP if they were before. The app never redirects them.
 - **Restricting paths:** the app enforces sign-in itself. If you restrict paths at the proxy anyway, keep `/event/` and `/read/` open, and match them case-insensitively, because the app accepts `/EVENT/` too. The agents of servers (Windows and Linux) need `/agent/` as well.
@@ -296,6 +298,36 @@ A sensor of the type *Advanced* takes a JSON object that an app POSTs to `/repor
   | `Advanced__SampleDays` | `30` | Days of charted values. |
   | `Advanced__EvaluateSeconds` | `30` | The evaluator's timer: missing reports and age rules. Reports wake it at once. |
 
+## 3rd Party Connectors
+
+A connector lets an outside system (a ticketing system, a shop's back office, a scheduler) run one script, or one function in it, on one server with an agent, through PNMT and nothing else (docs/connectors-plan.md; for the callers' developers, docs/connectors-api.md, also on the area's *Documentation* tab).
+
+- **The path:** `/connector/v1/<slug>` is on PNMT's address and port, next to `/event`. A reverse proxy that passes only some paths needs `/connector/` too (POST and GET, bodies up to `Connectors__MaxBodyBytes`), and a read timeout above `Connectors__MaxWaitSeconds` (110 s): a caller in wait mode waits that long for the outcome. It needs no sign-in and sets no cookie.
+- **Callers:** each outside system is a *caller*, with one key (`pnmt_cx_…`, shown again on its page, each display in the audit log), the networks it calls from (at least one; anywhere is `0.0.0.0/0` and `::/0`), and the connectors granted to it.
+- **A caller's networks are only as good as `Proxy`.** Behind a reverse proxy, without `Proxy` every call seems to come from the proxy; with `Proxy=docker`, anything that reaches PNMT's port from 172.16.0.0/12 directly can claim an address (see *Behind a reverse proxy*). The caller's page shows the address PNMT sees for your browser.
+- **The server decides last:** a connector can't run what the agent's window (Windows) or `/etc/pnmt-agent/config.yaml` (Linux) refuses. A function in a script needs an agent of 1.15 or later.
+- **Who:** the rights area *3rd Party Connectors*, which the update gives no group: *View* sees every call and its output, *Manage* makes connectors and callers and shows their keys. *Manage* is as strong as running scripts on servers, for the callers it lets in.
+- **The review:** a connector can have each call checked by the typesafe model (Jev, `Ai__*`), and decides itself whether a call is refused or runs unreviewed when the review can't run.
+- **What is kept:** the newest `Connectors__KeepCalls` calls of all connectors, with their arguments (never a secret one), their review, and the runs they started with their output; they are in the backups (`pg_dump`). The keys: their hashes are in the database, their copies for display under Data Protection in the `pnmtd-keys` volume. A restore without that volume leaves the keys working, but they can't be shown: rotate them then.
+- **The system sensor** *3rd Party Connectors* (created with the first connector) fails with 433 when a valid key calls from outside its networks, the review refuses a call, or an address is blocked for wrong keys; it is OK again (233) after `Connectors__QuietMinutes`.
+- **The settings,** all optional:
+
+  | Setting | Default | |
+  |---|---|---|
+  | `Connectors__Enabled` | `true` | `false`: `/connector` answers 404, and nothing is queued. |
+  | `Connectors__MaxBodyBytes` | `65536` | The largest call. |
+  | `Connectors__MaxValueChars` | `4000` | The longest value of an argument. |
+  | `Connectors__MaxWaitSeconds` | `110` | The longest a connector may let a caller wait; keep it under the proxy's read timeout. |
+  | `Connectors__PatternTimeoutMs` | `100` | For patterns that need backtracking. |
+  | `Connectors__ReviewTimeoutSeconds` | `15` | The review's answer within this, or it couldn't run. |
+  | `Connectors__WorkerParallelism` | `4` | Reviews at once. |
+  | `Connectors__MaxRunningCalls` | `10` | Connector calls running at once over all connectors, 1 to 100; more wait in the queue, oldest first. Runs started in PNMT don't count. |
+  | `Connectors__FailedKeysPerAddress` | `20` | Wrong keys from one address within 10 minutes before it is blocked. |
+  | `Connectors__BlockMinutes` | `15` | How long. |
+  | `Connectors__IdempotencyHours` | `24` | How long an `Idempotency-Key` answers its first call. |
+  | `Connectors__QuietMinutes` | `60` | 433 → 233 after this long without another refusal of those kinds. |
+  | `Connectors__KeepCalls` | `100000` | The newest calls kept, with their runs; active calls always. At 100 000 calls with small outputs a few hundred MB; large outputs (up to 1 MiB each) are what grows. |
+
 ## AI (optional)
 
 PNMT can use AI models through [OpenRouter](https://openrouter.ai): to propose rules for mails no rule handles and to rate RouterOS releases (docs/ai-operations-plan.md). Cookie, the assistant, uses the same key (see *Cookie* below). It is off until `.env` has `Ai__Enabled=true` and `Ai__ApiKey`.
@@ -402,8 +434,8 @@ Images and attachments of locations and knowledge base pages (docs/locations-kno
 
 | Where | Holds | Backed up by |
 |---|---|---|
-| volume `pnmtd_pnmtd-pgdata` | the database, with the UDP nodes' keys, their command log and firmware images, the MikroTik routers' configurations and (encrypted) tunnel keys, and the advanced sensors' reports | `./backup.sh` (`pg_dump`) |
-| volume `pnmtd_pnmtd-keys` | Data Protection keys (sessions, 2FA secrets, PNMTD's SSH key and the tunnel keys) | `./backup.sh` |
+| volume `pnmtd_pnmtd-pgdata` | the database, with the UDP nodes' keys, their command log and firmware images, the MikroTik routers' configurations and (encrypted) tunnel keys, the advanced sensors' reports, and the connectors' calls with their runs' output | `./backup.sh` (`pg_dump`) |
+| volume `pnmtd_pnmtd-keys` | Data Protection keys (sessions, 2FA secrets, PNMTD's SSH key, the tunnel keys, and the connector callers' keys for display) | `./backup.sh` |
 | volume `pnmtd_pnmtd-downloads` | the agents' files PNMT serves, fetched from the GitHub release | not needed: fetched again |
 | folder `deploy/files/` (`PNMTD_FILES_DIR`) | the images and attachments of locations and pages | `./backup.sh` (`files.tar`), or your own tools with `--no-files` |
 | `deploy/.env` | database password, first admin password, settings | you. It is not in any backup |

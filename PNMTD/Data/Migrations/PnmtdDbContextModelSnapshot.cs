@@ -1025,6 +1025,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<Guid>("BatchId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ConnectorId")
+                        .HasColumnType("uuid");
+
                     b.Property<double?>("DurationMs")
                         .HasColumnType("double precision");
 
@@ -1033,6 +1036,10 @@ namespace PNMTD.Data.Migrations
 
                     b.Property<DateTime?>("FinishedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Function")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Hash")
                         .IsRequired()
@@ -1093,11 +1100,16 @@ namespace PNMTD.Data.Migrations
 
                     b.HasIndex("BatchId");
 
+                    b.HasIndex("ConnectorId");
+
                     b.HasIndex("ScriptId");
 
                     b.HasIndex("StartedAt");
 
                     b.HasIndex("SensorId", "StartedAt");
+
+                    b.HasIndex(new[] { "SensorId", "ScriptName" }, "IX_agent_script_runs_unfinished")
+                        .HasFilter("\"State\" IN (0, 1)");
 
                     b.ToTable("agent_script_runs");
                 });
@@ -1925,6 +1937,469 @@ namespace PNMTD.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("certificate_versions");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ConnectorArgumentEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConnectorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("FixedValue")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<bool>("Multiline")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Parameter")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Pattern")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("Required")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConnectorId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("connector_arguments");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ConnectorCallEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Accepted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Arguments")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ArgumentsHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("CallerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CallerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("CollectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ConnectorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConnectorName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("DryRun")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("From")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Function")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Hash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Redacted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("RefusedBy")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Review")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid?>("RunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ScriptName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("ScriptRevision")
+                        .HasColumnType("integer");
+
+                    b.PrimitiveCollection<List<string>>("SecureNames")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("ServerName")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("ServerSensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("WaitingFor")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReceivedAt");
+
+                    b.HasIndex("RunId");
+
+                    b.HasIndex("CallerId", "ReceivedAt")
+                        .IsDescending(false, true);
+
+                    b.HasIndex("ConnectorId", "ReceivedAt")
+                        .IsDescending(false, true);
+
+                    b.HasIndex("CallerId", "ConnectorId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("\"IdempotencyKey\" IS NOT NULL");
+
+                    b.HasIndex(new[] { "ReceivedAt" }, "IX_connector_calls_active")
+                        .HasFilter("\"State\" IN ('Queued', 'Running')");
+
+                    b.ToTable("connector_calls");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ConnectorCallerEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("KeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("KeyHint")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<DateTime>("KeyIssuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("KeyProtected")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastCallAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastCallFrom")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Networks")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KeyHash")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("connector_callers");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ConnectorEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastCallAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("MaxCallsPerHour")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaxQueueSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaxQueued")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("ReturnOutput")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ReviewChecks")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("ReviewEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ReviewFallback")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<bool>("ReviewPurpose")
+                        .HasColumnType("boolean");
+
+                    b.Property<double?>("ReviewThreshold")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("WaitSeconds")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("connectors");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ConnectorGrantEntity", b =>
+                {
+                    b.Property<Guid>("CallerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConnectorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(420)
+                        .HasColumnType("character varying(420)");
+
+                    b.HasKey("CallerId", "ConnectorId");
+
+                    b.HasIndex("ConnectorId");
+
+                    b.ToTable("connector_grants");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ConnectorScriptEntity", b =>
+                {
+                    b.Property<Guid>("ConnectorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Account")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Function")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Hash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("NeedsReview")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ParseError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ParseState")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Parsed")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("ParsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RunAsKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<int>("ScriptRevision")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ScriptText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Server")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Shell")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("TakenFrom")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("TimeoutSeconds")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ConnectorId");
+
+                    b.HasIndex("Hash");
+
+                    b.ToTable("connector_scripts");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.CookieCaseEntity", b =>
@@ -6729,6 +7204,61 @@ namespace PNMTD.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.ConnectorArgumentEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.ConnectorEntity", null)
+                        .WithMany("Arguments")
+                        .HasForeignKey("ConnectorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ConnectorCallEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.ConnectorCallerEntity", null)
+                        .WithMany()
+                        .HasForeignKey("CallerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.ConnectorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ConnectorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.AgentScriptRunEntity", null)
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ConnectorGrantEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.ConnectorCallerEntity", "Caller")
+                        .WithMany("Grants")
+                        .HasForeignKey("CallerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PNMTD.Models.Db.ConnectorEntity", "Connector")
+                        .WithMany("Grants")
+                        .HasForeignKey("ConnectorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Caller");
+
+                    b.Navigation("Connector");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ConnectorScriptEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.ConnectorEntity", null)
+                        .WithOne("Script")
+                        .HasForeignKey("PNMTD.Models.Db.ConnectorScriptEntity", "ConnectorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.CookieCaseEntryEntity", b =>
                 {
                     b.HasOne("PNMTD.Models.Db.CookieCaseEntity", null)
@@ -7383,6 +7913,20 @@ namespace PNMTD.Data.Migrations
             modelBuilder.Entity("PNMTD.Models.Db.CertificateSensorEntity", b =>
                 {
                     b.Navigation("Authorities");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ConnectorCallerEntity", b =>
+                {
+                    b.Navigation("Grants");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ConnectorEntity", b =>
+                {
+                    b.Navigation("Arguments");
+
+                    b.Navigation("Grants");
+
+                    b.Navigation("Script");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.DiagnosticSetEntity", b =>

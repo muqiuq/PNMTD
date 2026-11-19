@@ -30,6 +30,8 @@ COPY PNMTD.Lib/PNMTD.Lib.csproj PNMTD.Lib/packages.lock.json PNMTD.Lib/
 RUN dotnet restore PNMTD/PNMTD.csproj --locked-mode
 COPY PNMTD/ PNMTD/
 COPY PNMTD.Lib/ PNMTD.Lib/
+# The connectors' API reference (docs/connectors-plan.md §15), embedded: the Documentation tab shows the same text as the repository.
+COPY docs/connectors-api.md docs/
 COPY --from=web /web/dist PNMTD/wwwroot/pnmt-admin/
 # The restore brought everything the publish needs; the publish, where the analyzers and source
 # generators run, gets no network either (§7.1).

@@ -43,6 +43,8 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new("MCP tokens", KeyValueKeyEnums.LAST_MCP_TOKEN_EXPIRY, 300, c => c.GetValue("Mcp:Enabled", false)),
         // docs/ssl-certificate-plan.md §5.2: the due checks every 15 seconds, every sensor's evaluation every minute.
         new("Certificate checks", KeyValueKeyEnums.LAST_CERTIFICATE_CHECK, 60, c => c.GetValue("Certificates:Enabled", true)),
+        // docs/connectors-plan.md §9.1: the connectors' worker, every 5 seconds and when nudged.
+        new("Connectors' worker", KeyValueKeyEnums.LAST_CONNECTOR_WORK, 60, c => c.GetValue("Connectors:Enabled", true)),
         // docs/advanced-sensor-plan.md §7.3: the evaluator's timer every 30 seconds, nudged by every report in between.
         new("Advanced sensors", KeyValueKeyEnums.LAST_ADVANCED_EVALUATION, 60, _ => true),
     ];
@@ -140,6 +142,7 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.LINUX_ADMIN_LOGIN, "LINUX_ADMIN_LOGIN", true, "An admin (root included) logged in to a Linux server over SSH or at the console (optional, on by default)."),
         new(PNMTStatusCodes.DIAGNOSTICS_OK, "DIAGNOSTICS_OK", true, "Every check of a diagnostics set passed."),
         new(PNMTStatusCodes.SSL_OK, "SSL_OK", true, "An SSL certificate is valid under the sensor's trust and checks, with more than its warning days left."),
+        new(PNMTStatusCodes.CONNECTORS_OK, "CONNECTORS_OK", true, "No refusal of a 3rd Party Connector's call that may mean a leaked key, for Connectors__QuietMinutes after a 433."),
         new(PNMTStatusCodes.SSL_CHANGED, "SSL_CHANGED", true, "A new SSL certificate that the sensor's rules don't alarm on, usually a renewal; written once."),
         new(PNMTStatusCodes.ADVANCED_OK, "ADVANCED_OK", true, "An Advanced sensor's latest report holds every rule, or the sensor has no rules."),
         new(PNMTStatusCodes.ADVANCED_WARNING, "ADVANCED_WARNING", true, "Only rules marked warn don't hold for an Advanced sensor's latest report; the state stays OK."),
@@ -175,6 +178,7 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.LINUX_LOGIN_FAILURES, "LINUX_LOGIN_FAILURES", false, "A burst of failed logins against existing accounts on a Linux server from one source or for one user, or a lockout; invalid users never (optional, on by default)."),
         new(PNMTStatusCodes.LINUX_KEY_ADDED, "LINUX_KEY_ADDED", false, "An SSH key that isn't registered as active appeared in an authorized_keys file on a Linux server (optional, on by default)."),
         new(PNMTStatusCodes.DIAGNOSTICS_FAILED, "DIAGNOSTICS_FAILED", false, "At least one check of a diagnostics set failed; the message names them."),
+        new(PNMTStatusCodes.CONNECTORS_REFUSED, "CONNECTORS_REFUSED", false, "A 3rd Party Connector's call was refused in a way that may mean a leaked key: a valid key from outside its caller's networks, a refusal by the review, or an address blocked for failed keys."),
         new(PNMTStatusCodes.SSL_ABOUT_TO_EXPIRE, "SSL_ABOUT_TO_EXPIRE", false, "An SSL certificate, or an intermediate of its chain, expires within the sensor's warning days."),
         new(PNMTStatusCodes.SSL_EXPIRED, "SSL_EXPIRED", false, "An SSL certificate, or an intermediate of its chain, has expired."),
         new(PNMTStatusCodes.SSL_CHANGED_UNEXPECTEDLY, "SSL_CHANGED_UNEXPECTEDLY", false, "An SSL certificate, its key or its issuer changed, and the sensor alarms on that; until a person accepts the new certificate, or the accepted one returns."),

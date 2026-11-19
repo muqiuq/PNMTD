@@ -51,6 +51,9 @@
         // The advanced sensors' evaluator (docs/advanced-sensor-plan.md §7.3).
         LAST_ADVANCED_EVALUATION = 320,
 
+        // The 3rd Party Connectors' worker (docs/connectors-plan.md §9.1).
+        LAST_CONNECTOR_WORK = 330,
+
         UNUSED = 999,
     }
 }

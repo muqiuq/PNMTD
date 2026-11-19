@@ -1,3 +1,4 @@
+using PNMTD.Connectors;
 using PNMTD.Mcp;
 using PNMTD.Redmine;
 using PNMTD.Zabbix;
@@ -111,6 +112,8 @@ public partial class Program
         PNMTD.Availability.AvailabilitySetup.AddAvailability(builder.Services);
         // The MCP server (docs/mcp-plan.md §5), mapped only with Mcp__Enabled=true.
         PNMTD.Mcp.McpSetup.AddPnmtdMcp(builder.Services, builder.Configuration);
+        // 3rd Party Connectors (docs/connectors-plan.md): /connector/v1, the worker, the admin API.
+        PNMTD.Connectors.ConnectorSetup.AddConnectors(builder.Services, builder.Configuration);
 
         // The build writes the OpenAPI document by starting the host without a database (GetDocument.Insider).
         var documentBuild = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
@@ -168,6 +171,8 @@ public partial class Program
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.Access.AccessWatchTask>());
             // The availability plan stays filled for the next 365 days (docs/cookie-plan.md §8.2).
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Availability.AvailabilityFillTask>());
+            // The connectors' worker on its timer (docs/connectors-plan.md §9.1); nudges wake it in any case.
+            builder.Services.AddHostedService<PNMTD.Connectors.ConnectorWorkerTask>();
         }
 
         // UDP nodes (docs/udp-iot-plan.md §4.4): on unless Udp:Enabled=false, not tied to the
@@ -179,23 +184,13 @@ public partial class Program
             builder.Services.AddHostedService(sp => sp.GetRequiredService<JobRunner>());
         }
 
+        // Proxy: docker, addresses and networks, comma-separated (docs/connectors-plan.md §6.4). Parsed here, so a bad
+        // entry stops the start instead of trusting nothing.
         if (!string.IsNullOrWhiteSpace(builder.Configuration["Proxy"]))
         {
-            builder.Services.Configure<ForwardedHeadersOptions>(options =>
-            {
-                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-                options.RequireHeaderSymmetry = false;
-                options.ForwardLimit = null;
-                if (builder.Configuration["Proxy"] == "docker")
-                {
-                    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("::ffff:172.16.0.0"), 12));
-                }
-                else
-                {
-                    // Example format: ::ffff:172.20.10.20
-                    options.KnownProxies.Add(IPAddress.Parse(builder.Configuration["Proxy"]!));
-                }
-            });
+            var proxy = builder.Configuration["Proxy"]!;
+            PNMTD.Hosting.ProxySetting.Parse(proxy);
+            builder.Services.Configure<ForwardedHeadersOptions>(options => PNMTD.Hosting.ProxySetting.Configure(options, proxy));
         }
 
         if (!string.IsNullOrWhiteSpace(builder.Configuration["Identity"]))
@@ -230,8 +225,10 @@ public partial class Program
         // /mcp neither (docs/mcp-plan.md §5.2): a browser's cookie never authenticates an MCP call; its policy runs the token
         // scheme itself.
         app.UseMcpOriginCheck();
+        // Nor the connectors' calls (docs/connectors-plan.md §4.1), which authenticate by their caller's key.
         app.UseWhen(c => !SensorPaths.IsSensorPath(c.Request.Path) && !PNMTD.Agents.AgentPaths.IsAgentPath(c.Request.Path)
-            && !PNMTD.Advanced.ReportPaths.IsReportPath(c.Request.Path) && !PNMTD.Mcp.McpSetup.IsMcpPath(c.Request.Path), b => b.UseAuthentication());
+            && !PNMTD.Advanced.ReportPaths.IsReportPath(c.Request.Path) && !PNMTD.Mcp.McpSetup.IsMcpPath(c.Request.Path)
+            && !PNMTD.Connectors.ConnectorPaths.IsConnectorPath(c.Request.Path), b => b.UseAuthentication());
         app.UseAuthorization();            // deny by default (§3.6)
         app.UseSessionGates();   // a temporary password must be changed first
 
@@ -248,6 +245,8 @@ public partial class Program
         app.MapAgentEndpoints();           // /agent/v1/join, /agent/v1/ws
         PNMTD.Advanced.AdvancedSetup.MapReportEndpoints(app); // /report, /report/{token}
         app.MapPnmtdMcp();                 // /mcp, with Mcp__Enabled=true (docs/mcp-plan.md §5)
+        app.MapConnectorEndpoints();       // /connector/v1 (docs/connectors-plan.md §4.1)
+        PNMTD.Connectors.ConnectorSetup.StartConnectorWorker(app.Services);
         app.MapWebUi();                    // SPA deep links, /api 404s
 
         appTask = app.RunAsync();

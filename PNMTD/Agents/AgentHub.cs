@@ -355,6 +355,8 @@ public sealed class AgentHub(
         var config = await AgentConfiguration.BuildAsync(db, keys, settings, agent.SensorId, ct);
         var welcome = await keys.SignAsync(AgentMessageTypes.Welcome, agent.AgentId, config, ct, session: nonce);
         await connection.SendAsync(AgentMessageTypes.Welcome, welcome, ct);
+        // docs/connectors-plan.md §9.1: a connector's call may have waited for this server.
+        services.GetService<Connectors.ConnectorQueue>()?.Nudge();
         if (connection.Capabilities.Contains(AgentCapabilities.Parse))
         {
             // Script versions waiting for their parameters (§7.1) are parsed by the first agent that can.

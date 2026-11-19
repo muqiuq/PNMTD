@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { useQueries, useQuery } from '@tanstack/vue-query'
 import Button from 'primevue/button'
-import Checkbox from 'primevue/checkbox'
 import Dialog from 'primevue/dialog'
 import InputNumber from 'primevue/inputnumber'
-import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import MultiSelect from 'primevue/multiselect'
 import Password from 'primevue/password'
@@ -13,7 +11,8 @@ import SelectButton from 'primevue/selectbutton'
 import { computed, ref, watch } from 'vue'
 import { api, keys, type S } from '@/api/resources'
 import { useActions } from '@/composables/useActions'
-import { languageLabel, numericParameter, platformOf, runAsLabel } from './scriptFormat'
+import ScriptArgumentInput from './ScriptArgumentInput.vue'
+import { languageLabel, platformOf, runAsLabel } from './scriptFormat'
 
 /**
  * Run… (docs/windows-sensor-plan.md §7.3; docs/linux-sensor-plan.md §8.4): the servers of the script's platform, the account, and
@@ -110,7 +109,24 @@ watch(visible, (open) => {
 watch(language, (l, before) => {
   if (before && l !== before) targets.value = props.sensorId && props.platform === platformOf(l) ? [props.sensorId] : []
 })
-watch(chosen, () => (values.value = {}))
+watch(chosen, () => {
+  values.value = {}
+  fn.value = null
+})
+
+// docs/connectors-plan.md §8.4: a function of the script instead of the whole script; the form follows the choice.
+const fn = ref<string | null>(null)
+const parsedScript = computed(
+  () => (isLocal.value ? localScript.value?.script.parsed : detail.data.value?.parsed) ?? null,
+)
+const functionOptions = computed(() => [
+  { label: 'The whole script', value: null as string | null },
+  ...(parsedScript.value?.functions ?? []).map((f) => ({
+    label: f.help?.synopsis ? `${f.name}: ${f.help.synopsis}` : f.name,
+    value: f.name as string | null,
+  })),
+])
+watch(fn, () => (values.value = {}))
 
 // --- Linux: root (the service) or a local account, as each server's config.yaml allows (§8.4, §8.5) -----------------------
 const runAsMode = ref<'Service' | 'User'>('Service')
@@ -154,7 +170,9 @@ const maxMinutes = computed(() =>
 )
 
 const parameters = computed(() =>
-  isLocal.value ? (localScript.value?.script.parsed?.parameters ?? []) : (detail.data.value?.parsed?.parameters ?? []),
+  fn.value
+    ? (parsedScript.value?.functions?.find((f) => f.name === fn.value)?.parameters ?? [])
+    : (parsedScript.value?.parameters ?? []),
 )
 const headerErrors = computed(() => (bash.value ? (detail.data.value?.parsed?.errors.length ?? 0) : 0))
 const canRun = computed(() => {
@@ -187,6 +205,7 @@ async function start() {
               secureArguments: secure,
               timeoutSeconds: timeout.value,
               shell: shell.value,
+              function: fn.value,
             }),
           ]
         : bash.value
@@ -200,6 +219,7 @@ async function start() {
               shell: 'bash',
               runAs: runAsMode.value,
               account: runAsMode.value === 'User' ? linuxAccount.value : null,
+              function: fn.value,
             })
           : await api.agents.runScript(chosen.value!, {
               sensorIds: targets.value,
@@ -209,6 +229,7 @@ async function start() {
               password: selectedRunAs.value?.kind === 'TypedPerRun' ? password.value : null,
               timeoutSeconds: timeout.value,
               shell: shell.value,
+              function: fn.value,
             }),
     { success: 'Sent', invalidate: [keys.agents] },
   )
@@ -337,37 +358,26 @@ async function start() {
           <small class="field-hint">Encrypted to each server's agent, used once, never stored or logged.</small>
         </div>
       </template>
+      <div v-if="parsedScript?.functions?.length" class="field">
+        <label for="run-function">Function</label>
+        <Select
+          v-model="fn"
+          input-id="run-function"
+          :options="functionOptions"
+          option-label="label"
+          option-value="value"
+          placeholder="The whole script"
+        />
+        <small class="field-hint"
+          >A function runs instead of the whole script; the agent needs to be able to call functions (an update).</small
+        >
+      </div>
       <template v-for="p in parameters" :key="p.name">
         <div class="field">
           <label :for="`arg-${p.name}`"
             >{{ p.name }} <span class="muted small">[{{ p.type }}]{{ p.mandatory ? ' · mandatory' : '' }}</span></label
           >
-          <Checkbox v-if="p.isSwitch" v-model="values[p.name]" binary :input-id="`arg-${p.name}`" />
-          <Select
-            v-else-if="p.validateSet?.length"
-            v-model="values[p.name]"
-            :input-id="`arg-${p.name}`"
-            :options="p.validateSet"
-            :placeholder="p.default ?? ''"
-            show-clear
-          />
-          <Password
-            v-else-if="p.isSecure"
-            v-model="values[p.name] as string"
-            :input-id="`arg-${p.name}`"
-            :feedback="false"
-            toggle-mask
-          />
-          <InputNumber
-            v-else-if="numericParameter(p)"
-            v-model="values[p.name] as number"
-            :input-id="`arg-${p.name}`"
-            :min="p.rangeMin ?? undefined"
-            :max="p.rangeMax ?? undefined"
-            :max-fraction-digits="p.type === 'number' ? 6 : 0"
-            :placeholder="p.default ?? ''"
-          />
-          <InputText v-else :id="`arg-${p.name}`" v-model="values[p.name] as string" :placeholder="p.default ?? ''" />
+          <ScriptArgumentInput :id="`arg-${p.name}`" v-model="values[p.name]" :parameter="p" />
           <small v-if="p.helpMessage" class="field-hint">{{ p.helpMessage }}</small>
           <small v-if="p.isSecure" class="field-hint">Encrypted to each server's agent, never stored or logged.</small>
         </div>

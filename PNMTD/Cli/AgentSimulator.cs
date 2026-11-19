@@ -36,6 +36,15 @@ public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<Cancellati
     /// <summary>Whether an administrator allowed scripts on this (simulated) server (§7.2; Linux: config.yaml's scripts.enabled): off, as on a real one.</summary>
     public bool AllowScripts { get; set; }
 
+    /// <summary>An agent from before functions in scripts (docs/connectors-plan.md §8.3, <c>--no-functions</c>): neither function capability.</summary>
+    public bool NoFunctions { get; set; }
+
+    /// <summary>
+    /// For the tests: a run is acked at once, and its result waits until this completes (a run that takes its time). Null: the result
+    /// comes before the ack, as a quick script's does.
+    /// </summary>
+    public Func<RunScriptRequest, Task>? HoldRuns { get; set; }
+
     /// <summary>Linux: whether config.yaml allows PNMT to remove keys (docs/linux-sensor-plan.md §4.6), for deploy and www: off, as on a real one.</summary>
     public bool AllowKeyRemoval { get; set; }
 
@@ -78,8 +87,10 @@ public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<Cancellati
         using var agentKey = ECDsa.Create();
         agentKey.ImportPkcs8PrivateKey(Convert.FromBase64String(state.PrivateKey), out _);
         using var pnmtdKey = AgentSigning.ImportPublicKey(state.PnmtdKey) ?? throw new InvalidOperationException("The state's PNMTD key is invalid.");
-        var capabilities = Linux ? SimulatedLinux.Capabilities(AllowKeyRemoval, AllowScripts)
-            : Capabilities.Append(AgentCapabilities.Parse).Concat(AllowScripts ? [AgentCapabilities.Scripts] : Array.Empty<string>()).ToList();
+        var capabilities = Linux ? SimulatedLinux.Capabilities(AllowKeyRemoval, AllowScripts, !NoFunctions)
+            : Capabilities.Append(AgentCapabilities.Parse).Concat(NoFunctions ? [] : [AgentCapabilities.ParseFunctions])
+                .Concat(AllowScripts ? [AgentCapabilities.Scripts] : Array.Empty<string>())
+                .Concat(AllowScripts && !NoFunctions ? [AgentCapabilities.ScriptFunctions] : Array.Empty<string>()).ToList();
         var identity = new AgentIdentity(state.AgentId, agentKey, pnmtdKey, AgentSigning.Origin(baseUrl), AgentVersion, "x64", CurrentOs, capabilities,
             Convert.ToBase64String(encryption.ExportSubjectPublicKeyInfo()), Platform, Linux ? SimulatedLinux.Rights(AllowKeyRemoval, AllowScripts) : null);
         while (!ct.IsCancellationRequested)
@@ -209,7 +220,9 @@ public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<Cancellati
                 return new Ack(request.RequestId, true);
             case AgentMessageTypes.ParseScript:
                 var parse = AgentJson.Deserialize<ParseScriptRequest>(request.Body)!;
-                await current.SendAsync(AgentMessageTypes.ParseResult, new ParseResultMessage(request.RequestId, parse.Hash, SimulatedParser.Parse(parse.Text), null), ct);
+                var simulated = SimulatedParser.Parse(parse.Text);
+                await current.SendAsync(AgentMessageTypes.ParseResult, new ParseResultMessage(request.RequestId, parse.Hash,
+                    NoFunctions ? simulated with { Functions = null } : simulated, null), ct);
                 return new Ack(request.RequestId, true);
             case AgentMessageTypes.RunScript:
                 if (!AllowScripts)
@@ -217,19 +230,46 @@ public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<Cancellati
                     return new Ack(request.RequestId, false, "Scripts are not allowed on this server.");
                 }
                 var script = AgentJson.Deserialize<RunScriptRequest>(request.Body)!;
+                if (script.Function is { } function && (NoFunctions || SimulatedParser.Parse(script.Text).Function(function) is null))
+                {
+                    // An agent without functions would never be sent one (§8.3); this one checks the name against its own parse.
+                    return new Ack(request.RequestId, false, $"The script defines no function {function} at its top level.");
+                }
                 var started = DateTimeOffset.UtcNow;
                 var password = script.RunAs.Password is { } secret ? AgentSecrets.Decrypt(encryption, secret, script.RunId) : null;
                 var secure = script.SecureArguments.ToDictionary(p => p.Key, p => AgentSecrets.Decrypt(encryption, p.Value, script.RunId));
-                var output = $"Hello from {hostname} as {script.RunAs.Account ?? "SYSTEM"}\n" +
+                var output = (script.Function is { } called ? $"ran {called} with {string.Join(", ", script.Arguments.Select(a => $"{a.Key}={a.Value.GetRawText()}"))}\n" : "") +
+                    $"Hello from {hostname} as {script.RunAs.Account ?? "SYSTEM"}\n" +
                     string.Join("\n", script.Arguments.Select(a => $"{a.Key}={a.Value.GetRawText()}")) +
                     string.Join("", secure.Select(p => $"\n{p.Key} has {p.Value.Length} characters")) +
                     (password is null ? "" : $"\nthe password has {password.Length} characters");
-                await current.SendAsync(AgentMessageTypes.ScriptResult, new ScriptResultMessage(script.RunId, ScriptRunState.Done, 0, output, null, 12,
-                    started, DateTimeOffset.UtcNow), ct);
+                await ResultAsync(current, script, new ScriptResultMessage(script.RunId, ScriptRunState.Done, 0, output, null, 12, started, DateTimeOffset.UtcNow), ct);
                 return new Ack(request.RequestId, true);
             default:
                 return new Ack(request.RequestId, false, $"The simulator does not know \"{request.Type}\".");
         }
+    }
+
+    /// <summary>A run's result: before the ack, or with <see cref="HoldRuns"/> after it, once the hold ends.</summary>
+    private async Task ResultAsync(AgentSession current, RunScriptRequest script, ScriptResultMessage result, CancellationToken ct)
+    {
+        if (HoldRuns is not { } hold)
+        {
+            await current.SendAsync(AgentMessageTypes.ScriptResult, result, ct);
+            return;
+        }
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await hold(script);
+                await current.SendAsync(AgentMessageTypes.ScriptResult, result with { FinishedAt = DateTimeOffset.UtcNow }, ct);
+            }
+            catch (Exception e)
+            {
+                Write($"A held run's result was not sent: {e.Message}");
+            }
+        }, CancellationToken.None);
     }
 
     /// <summary>The keys this (simulated) server's removals took, as <see cref="SimulatedLinux.Place"/> names them.</summary>
@@ -287,7 +327,11 @@ public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<Cancellati
                     return new Ack(request.RequestId, false, script.Shell != "bash" ? $"This server runs bash, not {script.Shell}." : $"{account} is not in scripts.run_as.");
                 }
                 var parsed = BashScriptHeader.Parse(script.Text);
-                var problems = ScriptArguments.Check(parsed, script.Arguments, script.SecureArguments.Keys.ToList()).ToList();
+                if (script.Function is not null && NoFunctions)
+                {
+                    return new Ack(request.RequestId, false, "This agent can't call functions.");
+                }
+                var problems = ScriptArguments.Check(parsed, script.Function, script.Arguments, script.SecureArguments.Keys.ToList()).ToList();
                 if (parsed.Errors.Count > 0 || problems.Count > 0)
                 {
                     return new Ack(request.RequestId, false, parsed.Errors.Count > 0 ? parsed.Errors[0].Message : problems[0].Message);
@@ -297,9 +341,8 @@ public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<Cancellati
                 LastSecrets = secrets;
                 var environment = script.Arguments.Select(a => $"{BashScriptHeader.EnvironmentName(a.Key)}={(a.Value.ValueKind == JsonValueKind.String ? a.Value.GetString() : a.Value.GetRawText())}")
                     .Concat(secrets.Select(p => $"{BashScriptHeader.EnvironmentName(p.Key)}=({p.Value.Length} characters, secret)")).Order(StringComparer.Ordinal);
-                var output = $"Hello from {hostname} as {account}\n" + string.Join("\n", environment);
-                await current.SendAsync(AgentMessageTypes.ScriptResult, new ScriptResultMessage(script.RunId, ScriptRunState.Done, 0, output, null, 8, started,
-                    DateTimeOffset.UtcNow), ct);
+                var output = (script.Function is { } called ? $"ran {called}\n" : "") + $"Hello from {hostname} as {account}\n" + string.Join("\n", environment);
+                await ResultAsync(current, script, new ScriptResultMessage(script.RunId, ScriptRunState.Done, 0, output, null, 8, started, DateTimeOffset.UtcNow), ct);
                 return new Ack(request.RequestId, true);
             default:
                 return null;
@@ -650,6 +693,51 @@ public static partial class SimulatedParser
         {
             findings.Add(new ScriptFinding("InvokeExpression", "Invoke-Expression runs strings as code."));
         }
-        return new ParsedScript(parameters, null, [], findings);
+        // Functions (docs/connectors-plan.md §8.1): "function Name {", with the first param() block of its body.
+        var functions = new List<ScriptFunction>();
+        var matches = FunctionHeader().Matches(text);
+        for (var i = 0; i < matches.Count; i++)
+        {
+            var body = text[matches[i].Index..(i + 1 < matches.Count ? matches[i + 1].Index : text.Length)];
+            var own = ParametersOf(body);
+            functions.Add(new ScriptFunction(matches[i].Groups["name"].Value, text[..matches[i].Index].Count(c => c == '\n') + 1, own, null));
+        }
+        // The script's own param() comes before its first function.
+        var scriptPart = matches.Count > 0 ? text[..matches[0].Index] : text;
+        return new ParsedScript(matches.Count > 0 ? ParametersOf(scriptPart) : parameters, null, [], findings, functions);
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"(?m)^function\s+(?<name>[A-Za-z_][A-Za-z0-9_-]*)\s*(\{|\()")]
+    private static partial System.Text.RegularExpressions.Regex FunctionHeader();
+
+    private static List<ScriptParameter> ParametersOf(string text)
+    {
+        var start = text.IndexOf("param(", StringComparison.OrdinalIgnoreCase);
+        var parameters = new List<ScriptParameter>();
+        if (start < 0)
+        {
+            return parameters;
+        }
+        var depth = 0;
+        var end = start + 5;
+        for (; end < text.Length; end++)
+        {
+            depth += text[end] == '(' ? 1 : text[end] == ')' ? -1 : 0;
+            if (depth == 0)
+            {
+                break;
+            }
+        }
+        foreach (System.Text.RegularExpressions.Match m in Parameter().Matches(text[start..Math.Min(end + 1, text.Length)]))
+        {
+            var type = m.Groups["type"].Value;
+            var attrs = m.Groups["attrs"].Value;
+            var set = System.Text.RegularExpressions.Regex.Match(attrs, @"ValidateSet\(([^)]*)\)");
+            parameters.Add(new ScriptParameter(m.Groups["name"].Value, type, attrs.Contains("Mandatory", StringComparison.OrdinalIgnoreCase),
+                m.Groups["default"].Success ? m.Groups["default"].Value.Trim().Trim('\'', '"') : null, null,
+                set.Success ? set.Groups[1].Value.Split(',').Select(v => v.Trim().Trim('\'', '"')).ToList() : null, null, null, null,
+                type.Equals("switch", StringComparison.OrdinalIgnoreCase), type.Equals("securestring", StringComparison.OrdinalIgnoreCase)));
+        }
+        return parameters;
     }
 }

@@ -51,6 +51,11 @@ public sealed class EndpointAuditTests
         // The advanced sensors' reports (docs/advanced-sensor-plan.md §4.1): authenticated by the sensor's write token.
         "POST /report",
         "POST /report/{token}",
+        // 3rd Party Connectors (docs/connectors-plan.md §4.1): authenticated by the caller's key.
+        "POST /connector/v1/{slug}",
+        "GET /connector/v1/{slug}",
+        "GET /connector/v1/{slug}/tickets/{ticket}",
+        "GET /connector/v1",
     ];
 
     /// <summary>
@@ -539,6 +544,34 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/files/{id:guid}/{name}"] = ("KnowledgeBase:View|Locations:View", Roles.Viewer),
         ["GET /api/v1/files"] = ("KnowledgeBase:Manage", Roles.Admin),
         ["DELETE /api/v1/files/{id:guid}"] = ("KnowledgeBase:Manage", Roles.Admin),
+        // 3rd Party Connectors (docs/connectors-plan.md §11): a rights area of its own, granted to no group by the update.
+        ["GET /api/v1/connector-calls"] = ("Connectors:View", Roles.Admin),
+        ["GET /api/v1/connector-calls/figures"] = ("Connectors:View", Roles.Admin),
+        ["GET /api/v1/connector-calls/{id:guid}"] = ("Connectors:View", Roles.Admin),
+        ["POST /api/v1/connector-calls/{id:guid}/redact"] = ("Connectors:Manage", Roles.Admin),
+        ["POST /api/v1/connector-calls/{id:guid}/cancel"] = ("Connectors:Manage", Roles.Admin),
+        ["GET /api/v1/connectors"] = ("Connectors:View", Roles.Admin),
+        ["GET /api/v1/connectors/{id:guid}"] = ("Connectors:View", Roles.Admin),
+        ["GET /api/v1/connectors/docs"] = ("Connectors:View", Roles.Admin),
+        ["GET /api/v1/connectors/{id:guid}/compare"] = ("Connectors:View", Roles.Admin),
+        ["POST /api/v1/connectors"] = ("Connectors:Manage", Roles.Admin),
+        ["PUT /api/v1/connectors/{id:guid}"] = ("Connectors:Manage", Roles.Admin),
+        ["DELETE /api/v1/connectors/{id:guid}"] = ("Connectors:Manage", Roles.Admin),
+        ["POST /api/v1/connectors/{id:guid}/check"] = ("Connectors:Manage", Roles.Admin),
+        ["POST /api/v1/connectors/parse"] = ("Connectors:Manage", Roles.Admin),
+        ["POST /api/v1/connectors/patterns/test"] = ("Connectors:View", Roles.Admin),
+        ["GET /api/v1/connectors/lookups/servers"] = ("Connectors:Manage", Roles.Admin),
+        ["GET /api/v1/connectors/lookups/library"] = ("Connectors:Manage", Roles.Admin),
+        ["GET /api/v1/connectors/lookups/library/{scriptId:guid}/versions/{number:int}"] = ("Connectors:Manage", Roles.Admin),
+        ["GET /api/v1/connectors/lookups/registered"] = ("Connectors:Manage", Roles.Admin),
+        ["GET /api/v1/connectors/lookups/accounts"] = ("Connectors:Manage", Roles.Admin),
+        ["GET /api/v1/connector-callers"] = ("Connectors:View", Roles.Admin),
+        ["GET /api/v1/connector-callers/{id:guid}"] = ("Connectors:View", Roles.Admin),
+        ["POST /api/v1/connector-callers"] = ("Connectors:Manage", Roles.Admin),
+        ["PUT /api/v1/connector-callers/{id:guid}"] = ("Connectors:Manage", Roles.Admin),
+        ["DELETE /api/v1/connector-callers/{id:guid}"] = ("Connectors:Manage", Roles.Admin),
+        ["GET /api/v1/connector-callers/{id:guid}/key"] = ("Connectors:Manage", Roles.Admin),
+        ["POST /api/v1/connector-callers/{id:guid}/key/rotate"] = ("Connectors:Manage", Roles.Admin),
     };
 
     private sealed record EndpointInfo(string Key, string Method, string Pattern, RouteEndpoint Endpoint);

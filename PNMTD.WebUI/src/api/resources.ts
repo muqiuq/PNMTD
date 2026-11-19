@@ -738,8 +738,16 @@ export const api = {
     deleteScript: (id: Id) => call(client.DELETE('/api/v1/agents/scripts/{id}', { params: { path: { id } } })),
     runScript: (id: Id, body: S['AgentScriptRunRequest']) =>
       call(client.POST('/api/v1/agents/scripts/{id}/run', { params: { path: { id } }, body })),
-    scriptRuns: (query: ListQuery & { scriptId?: Id; sensorId?: Id; batchId?: Id; state?: S['ScriptRunState'] }) =>
-      call(client.GET('/api/v1/agents/script-runs', { params: { query } })),
+    scriptRuns: (
+      query: ListQuery & {
+        scriptId?: Id
+        sensorId?: Id
+        batchId?: Id
+        state?: S['ScriptRunState']
+        connectorId?: Id
+        viaConnectors?: boolean
+      },
+    ) => call(client.GET('/api/v1/agents/script-runs', { params: { query } })),
     scriptRun: (id: Id) => call(client.GET('/api/v1/agents/script-runs/{id}', { params: { path: { id } } })),
     redactRun: (id: Id) => call(client.POST('/api/v1/agents/script-runs/{id}/redact', { params: { path: { id } } })),
   },
@@ -933,6 +941,55 @@ export const api = {
     },
   },
 
+  /**
+   * 3rd Party Connectors (docs/connectors-plan.md §11): every connector's calls with their figures, the connectors with their
+   * target as text and its selectors, the callers with their keys (each display audited), networks and grants.
+   */
+  connectors: {
+    calls: (query: ListQuery & ConnectorCallFilters) =>
+      call(client.GET('/api/v1/connector-calls', { params: { query } })),
+    figures: () => call(client.GET('/api/v1/connector-calls/figures')),
+    call: (id: Id) => call(client.GET('/api/v1/connector-calls/{id}', { params: { path: { id } } })),
+    redactCall: (id: Id) => call(client.POST('/api/v1/connector-calls/{id}/redact', { params: { path: { id } } })),
+    cancelCall: (id: Id) => call(client.POST('/api/v1/connector-calls/{id}/cancel', { params: { path: { id } } })),
+    list: (query: ListQuery & { type?: S['ConnectorType']; enabled?: boolean }) =>
+      call(client.GET('/api/v1/connectors', { params: { query } })),
+    get: (id: Id) => call(client.GET('/api/v1/connectors/{id}', { params: { path: { id } } })),
+    compare: (id: Id) => call(client.GET('/api/v1/connectors/{id}/compare', { params: { path: { id } } })),
+    create: (body: S['ConnectorRequest']) => call(client.POST('/api/v1/connectors', { body })),
+    update: (id: Id, body: S['ConnectorRequest']) =>
+      call(client.PUT('/api/v1/connectors/{id}', { params: { path: { id } }, body })),
+    remove: (id: Id) => call(client.DELETE('/api/v1/connectors/{id}', { params: { path: { id } } })),
+    check: (id: Id, body: S['ConnectorCheckRequest']) =>
+      call(client.POST('/api/v1/connectors/{id}/check', { params: { path: { id } }, body })),
+    parse: (body: S['ConnectorParseRequest']) => call(client.POST('/api/v1/connectors/parse', { body })),
+    testPattern: (body: S['ConnectorPatternRequest']) =>
+      call(client.POST('/api/v1/connectors/patterns/test', { body })),
+    servers: (type: S['ConnectorType']) =>
+      call(client.GET('/api/v1/connectors/lookups/servers', { params: { query: { type } } })),
+    library: (type: S['ConnectorType']) =>
+      call(client.GET('/api/v1/connectors/lookups/library', { params: { query: { type } } })),
+    libraryVersion: (scriptId: Id, number: number) =>
+      call(
+        client.GET('/api/v1/connectors/lookups/library/{scriptId}/versions/{number}', {
+          params: { path: { scriptId, number } },
+        }),
+      ),
+    registered: (server: Id) =>
+      call(client.GET('/api/v1/connectors/lookups/registered', { params: { query: { server } } })),
+    accounts: (type: S['ConnectorType'], server?: Id) =>
+      call(client.GET('/api/v1/connectors/lookups/accounts', { params: { query: { type, server } } })),
+    callers: (query: ListQuery) => call(client.GET('/api/v1/connector-callers', { params: { query } })),
+    caller: (id: Id) => call(client.GET('/api/v1/connector-callers/{id}', { params: { path: { id } } })),
+    createCaller: (body: S['ConnectorCallerRequest']) => call(client.POST('/api/v1/connector-callers', { body })),
+    updateCaller: (id: Id, body: S['ConnectorCallerRequest']) =>
+      call(client.PUT('/api/v1/connector-callers/{id}', { params: { path: { id } }, body })),
+    removeCaller: (id: Id) => call(client.DELETE('/api/v1/connector-callers/{id}', { params: { path: { id } } })),
+    /** Audited on the server: every display of a key is an entry. */
+    key: (id: Id) => call(client.GET('/api/v1/connector-callers/{id}/key', { params: { path: { id } } })),
+    rotateKey: (id: Id) => call(client.POST('/api/v1/connector-callers/{id}/key/rotate', { params: { path: { id } } })),
+    docs: () => call(client.GET('/api/v1/connectors/docs')),
+  },
   /** The private CAs (docs/ssl-certificate-plan.md §4.5, §8.5): reading Certificates' View, changing its Manage. */
   certificateAuthorities: {
     list: () => call(client.GET('/api/v1/certificate-authorities')),
@@ -1068,6 +1125,19 @@ export interface AuditFilters {
   correlationId?: string
 }
 
+/** The filters of *Calls* (docs/connectors-plan.md §13.2), kept in the URL. */
+export interface ConnectorCallFilters {
+  connectorId?: Id
+  callerId?: Id
+  active?: boolean
+  state?: S['ConnectorCallState']
+  refusedBy?: string
+  from?: string
+  reference?: string
+  since?: string
+  until?: string
+}
+
 export const keys = {
   dashboard: ['dashboard'] as const,
   hosts: ['hosts'] as const,
@@ -1128,6 +1198,48 @@ export const keys = {
   availability: ['availability'] as const,
   /** MCP: one's tokens, the catalog, the log, everyone's tokens (docs/mcp-plan.md §10). */
   mcp: ['mcp'] as const,
+  /** 3rd Party Connectors: the calls, the connectors, the callers (docs/connectors-plan.md §13). */
+  connectors: ['connectors'] as const,
+  connector: (id: Id) => ['connectors', 'connector', id] as const,
+  connectorCaller: (id: Id) => ['connectors', 'caller', id] as const,
+}
+
+/** A connector's PUT from its detail, with some fields changed (v1's PUT takes every writable field; arguments only when given). */
+export function connectorRequest(
+  c: S['ConnectorDetail'],
+  patch: Partial<S['ConnectorRequest']> = {},
+): S['ConnectorRequest'] {
+  return {
+    name: c.name,
+    slug: c.slug,
+    purpose: c.purpose,
+    enabled: c.enabled,
+    target: {
+      server: c.target.server,
+      scriptName: c.target.scriptName,
+      scriptText: c.target.scriptText,
+      takenFrom: c.target.takenFrom,
+      function: c.target.function,
+      runAsKind: c.target.runAsKind,
+      account: c.target.account,
+      shell: c.target.shell,
+      timeoutSeconds: c.target.timeoutSeconds,
+    },
+    arguments: null,
+    mode: c.mode,
+    waitSeconds: c.waitSeconds,
+    returnOutput: c.returnOutput,
+    maxCallsPerHour: c.maxCallsPerHour,
+    maxQueued: c.maxQueued,
+    maxQueueSeconds: c.maxQueueSeconds,
+    reviewEnabled: c.review.enabled,
+    reviewPurpose: c.review.purpose,
+    reviewThreshold: c.review.threshold,
+    reviewChecks: c.review.checks,
+    reviewFallback: c.review.fallback,
+    callerIds: null,
+    ...patch,
+  }
 }
 
 /** The request of a resource as it is, with some fields changed: v1's PUT takes every writable field. */

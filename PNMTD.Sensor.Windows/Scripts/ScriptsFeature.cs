@@ -15,12 +15,14 @@ namespace PNMTD.Sensor.Windows.Scripts;
 /// where the window allowed it. Before a run: the signature (the session checked it), the local allowlists, the hash, a fresh
 /// parse and the arguments against it. The script and its arguments go to a folder only SYSTEM can read; the wrapper splats them.
 /// </summary>
-internal sealed class ScriptsFeature(ProblemReporter problems, ILogger<ScriptsFeature> logger) : IAgentFeature
+internal sealed partial class ScriptsFeature(ProblemReporter problems, ILogger<ScriptsFeature> logger) : IAgentFeature
 {
     public string Name => "scripts";
 
-    public IReadOnlyList<string> Capabilities =>
-        ScriptPolicy.Read().Enabled ? [AgentCapabilities.Parse, AgentCapabilities.Scripts] : [AgentCapabilities.Parse];
+    // docs/connectors-plan.md §8.3: the parse lists functions always; calling them comes with scripts.
+    public IReadOnlyList<string> Capabilities => ScriptPolicy.Read().Enabled
+        ? [AgentCapabilities.Parse, AgentCapabilities.ParseFunctions, AgentCapabilities.Scripts, AgentCapabilities.ScriptFunctions]
+        : [AgentCapabilities.Parse, AgentCapabilities.ParseFunctions];
 
     public void Configure(AgentConfig config)
     {
@@ -84,9 +86,25 @@ internal sealed class ScriptsFeature(ProblemReporter problems, ILogger<ScriptsFe
         {
             return $"The script has syntax errors: {parsed.Errors[0].Message}";
         }
-        var problems = ScriptArguments.Check(parsed, run.Arguments, run.SecureArguments.Keys.ToList()).ToList();
-        return problems.Count == 0 ? null : $"The arguments don't match the script: {string.Join("; ", problems.Select(p => p.Message))}";
+        if (run.Function is { } function)
+        {
+            // docs/connectors-plan.md §8.1: the name against this agent's own fresh parse, at the script's top level only.
+            if (!FunctionName().IsMatch(function) || parsed.Function(function) is null)
+            {
+                return $"The script defines no function {function} at its top level.";
+            }
+            if (parsed.Parameters.Any(p => p.Mandatory))
+            {
+                return "The script's own param() has a mandatory parameter: dot-sourcing would ask for it, so its functions can't be called.";
+            }
+        }
+        var problems = ScriptArguments.Check(parsed, run.Function, run.Arguments, run.SecureArguments.Keys.ToList()).ToList();
+        return problems.Count == 0 ? null
+            : $"The arguments don't match the {(run.Function is null ? "script" : "function")}: {string.Join("; ", problems.Select(p => p.Message))}";
     }
+
+    [System.Text.RegularExpressions.GeneratedRegex("^[A-Za-z_][A-Za-z0-9_-]{0,99}$")]
+    private static partial System.Text.RegularExpressions.Regex FunctionName();
 
     /// <summary>A script registered here runs as the kind it is registered with (its password stored here), whatever PNMT named.</summary>
     private static RunAsKind EffectiveKind(RunScriptRequest run) =>
@@ -127,6 +145,11 @@ internal sealed class ScriptsFeature(ProblemReporter problems, ILogger<ScriptsFe
             await File.WriteAllTextAsync(Path.Combine(folder, "script.ps1"), run.Text, new System.Text.UTF8Encoding(true));
             await File.WriteAllTextAsync(Path.Combine(folder, "wrapper.ps1"), PowerShell.Wrapper, new System.Text.UTF8Encoding(true));
             await File.WriteAllTextAsync(Path.Combine(folder, "args.json"), JsonSerializer.Serialize(run.Arguments));
+            if (run.Function is { } function)
+            {
+                // The wrapper reads the name from this file (§8.1), checked against the parse in CheckAsync.
+                await File.WriteAllTextAsync(Path.Combine(folder, "function.txt"), function, new System.Text.UTF8Encoding(false));
+            }
             string? password = null;
             if (run.SecureArguments.Count > 0 || run.RunAs.Password is not null)
             {

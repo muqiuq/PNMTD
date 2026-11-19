@@ -119,6 +119,14 @@ export const navigation: NavGroup[] = [
         feature: 'zabbix',
         menu: 'zabbix',
       },
+      {
+        // docs/connectors-plan.md §13.1: outside systems that do one thing on a server through PNMT.
+        label: '3rd Party Connectors',
+        icon: 'pi pi-arrow-right-arrow-left',
+        to: '/connectors',
+        name: 'connectors',
+        right: ['Connectors', 'View'],
+      },
     ],
   },
   {

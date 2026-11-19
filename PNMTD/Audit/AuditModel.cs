@@ -4,8 +4,11 @@ using PNMTD.Auth;
 
 namespace PNMTD.Audit;
 
-/// <summary>Who did it (docs/audit-redmine-zabbix-plan.md §3.2). Mcp: a person's MCP token (docs/mcp-plan.md §9.4).</summary>
-public enum AuditActor { User, Cli, Agent, System, Cookie, Mcp }
+/// <summary>
+/// Who did it (docs/audit-redmine-zabbix-plan.md §3.2). Mcp: a person's MCP token (docs/mcp-plan.md §9.4). Connector: an outside
+/// system's call to a connector (docs/connectors-plan.md §12.2).
+/// </summary>
+public enum AuditActor { User, Cli, Agent, System, Cookie, Mcp, Connector }
 
 /// <summary>How it ended (§3.5).</summary>
 public enum AuditOutcome { Succeeded, Failed, Denied }
@@ -24,6 +27,13 @@ public sealed record AuditWho(AuditActor Actor, Guid? UserId, string Username, s
     public static AuditWho Cookie(string reference) => new(AuditActor.Cookie, null, "cookie", reference, null, null);
 
     public static AuditWho Agent(string? address, string? reference = null) => new(AuditActor.Agent, null, "agent", reference, address, null);
+
+    /// <summary>
+    /// A connector's caller (docs/connectors-plan.md §9.2, §12.2): its name, <c>caller:{callerId}/connector:{connectorId}</c> as
+    /// <see cref="ActorRef"/>, and the address the call came from.
+    /// </summary>
+    public static AuditWho Connector(string? address, Guid callerId, string callerName, Guid? connectorId) =>
+        new(AuditActor.Connector, null, callerName, connectorId is { } c ? $"caller:{callerId}/connector:{c}" : $"caller:{callerId}", address, null);
 
     /// <summary>
     /// The signed-in user of a request, or nobody (an anonymous step of the sign-in). Through an MCP token, the token's user
