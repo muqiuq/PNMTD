@@ -1021,6 +1021,8 @@ export interface RedmineFilters {
   assignee?: string
   overdue?: boolean
   linked?: boolean
+  /** Open tickets nobody but Cookie changed for Redmine__StaleDays. */
+  stale?: boolean
 }
 
 /** Zabbix's problems' filters (docs/audit-redmine-zabbix-plan.md §7.5), all in the page's URL. */

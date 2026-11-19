@@ -95,7 +95,7 @@ const tiles = computed(() => {
       key: 'stale',
       label: `No update for ${o.value!.staleDays} days`,
       value: t.stale,
-      to: toSearch({ sort: 'updated' }),
+      to: toSearch({ stale: true, sort: 'updated' } as Filters),
     },
   ]
 })
@@ -117,7 +117,12 @@ const lists = computed(() => {
       items: v.problems,
       all: toSearch({ linked: true } as Filters),
     },
-    { key: 'stale', title: `No update for ${v.staleDays} days`, items: v.stale, all: toSearch({ sort: 'updated' }) },
+    {
+      key: 'stale',
+      title: `No update for ${v.staleDays} days`,
+      items: v.stale,
+      all: toSearch({ stale: true, sort: 'updated' } as Filters),
+    },
     { key: 'recent', title: 'Recently updated', items: v.recent, all: toSearch({ status: 'all' }) },
   ]
 })
@@ -129,6 +134,8 @@ const priority = ref<number | null>(numberOf('priority'))
 const assignee = ref<string | null>(fromQuery('assignee') || null)
 const overdue = ref(fromQuery('overdue') === 'true')
 const linked = ref(fromQuery('linked') === 'true')
+const stale = ref(fromQuery('stale') === 'true')
+const staleLabel = computed(() => (o.value ? `No update for ${o.value.staleDays} days` : 'No recent update'))
 const filters = computed<RedmineFilters>(() => ({
   project: project.value ?? undefined,
   status: statusFilter.value,
@@ -137,8 +144,9 @@ const filters = computed<RedmineFilters>(() => ({
   assignee: assignee.value ?? undefined,
   overdue: overdue.value || undefined,
   linked: linked.value || undefined,
+  stale: stale.value || undefined,
 }))
-watch([project, statusFilter, tracker, priority, assignee, overdue, linked], () =>
+watch([project, statusFilter, tracker, priority, assignee, overdue, linked, stale], () =>
   router.replace({
     query: {
       ...route.query,
@@ -149,6 +157,7 @@ watch([project, statusFilter, tracker, priority, assignee, overdue, linked], () 
       assignee: assignee.value ?? undefined,
       overdue: overdue.value ? 'true' : undefined,
       linked: linked.value ? 'true' : undefined,
+      stale: stale.value ? 'true' : undefined,
       page: undefined,
     },
   }),
@@ -158,7 +167,8 @@ const active = computed(
     [tracker.value, priority.value, assignee.value].filter((x) => x != null).length +
     (statusFilter.value === 'open' ? 0 : 1) +
     (overdue.value ? 1 : 0) +
-    (linked.value ? 1 : 0),
+    (linked.value ? 1 : 0) +
+    (stale.value ? 1 : 0),
 )
 const table = useServerTable<S['RedmineIssueItem']>({
   key: [...keys.redmine, 'issues'],
@@ -168,6 +178,27 @@ const table = useServerTable<S['RedmineIssueItem']>({
   pageSize: 25,
   syncUrl: true,
   refetchInterval: 120_000,
+})
+
+/**
+ * A tile, or a list's *All*, opens the search with its filters and sort in the URL. The page stays mounted when the tab
+ * changes, so the search reads them from the URL again then, not only when the page loads; otherwise it kept the old ones.
+ */
+function readQuery() {
+  if (numberOf('project') != null) project.value = numberOf('project')
+  statusFilter.value = (fromQuery('status') as 'open' | 'closed' | 'all') || 'open'
+  tracker.value = numberOf('tracker')
+  priority.value = numberOf('priority')
+  assignee.value = fromQuery('assignee') || null
+  overdue.value = fromQuery('overdue') === 'true'
+  linked.value = fromQuery('linked') === 'true'
+  stale.value = fromQuery('stale') === 'true'
+  table.sort.value = fromQuery('sort') || '-updated'
+  table.search.value = fromQuery('q')
+  table.page.value = Number(fromQuery('page')) || 1
+}
+watch(tab, (t) => {
+  if (t === 'search') readQuery()
 })
 const statuses = [
   { value: 'open', label: 'Open' },
@@ -328,6 +359,7 @@ const configError = computed(() =>
             />
             <label class="switch"><ToggleSwitch v-model="overdue" /> Overdue</label>
             <label class="switch"><ToggleSwitch v-model="linked" /> Linked in PNMT</label>
+            <label class="switch"><ToggleSwitch v-model="stale" /> {{ staleLabel }}</label>
             <Select
               v-model="table.sort.value"
               :options="sorts"

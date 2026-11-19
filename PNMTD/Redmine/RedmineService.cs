@@ -191,7 +191,18 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOpt
             {
                 return new Paged<RedmineIssueItem>([], page, size, 0);
             }
-            q.Plain("issue_id", string.Join(",", linked));
+            if (!query.Stale)
+            {
+                q.Plain("issue_id", string.Join(",", linked));
+            }
+            else
+            {
+                return await SearchStaleAsync(q, lookups, query, linked.ToHashSet(), page, size, ct);
+            }
+        }
+        if (query.Stale)
+        {
+            return await SearchStaleAsync(q, lookups, query, null, page, size, ct);
         }
         q.Plain("sort", Sort(query.Sort));
         q.Plain("offset", ((page - 1) * size).ToString(CultureInfo.InvariantCulture));
@@ -227,16 +238,187 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOpt
             : await ListAsync(q => q.Equal("priority_id", [.. urgentIds]), "priority:desc,created_on");
         var unassigned = await ListAsync(q => q.Filter("assigned_to_id", "!*"), "created_on");
         var overdue = await ListAsync(q => q.Filter("due_date", "<=", Yesterday()), "due_date");
-        var stale = await ListAsync(q => q.Filter("updated_on", "<=", DateOnly.FromDateTime(Clock.UtcNow).AddDays(-Math.Max(1, O.StaleDays))
-            .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)), "updated_on");
+        var stale = await StaleAsync(lookups, project, ct);
         var recentQuery = Filters(lookups, project, "all");
         recentQuery.Plain("sort", "updated_on:desc");
         recentQuery.Plain("limit", "10");
         var recent = await client.GetAsync<RmIssues>("/issues.json?" + recentQuery, ct);
         return new RedmineOverview(Clock.UtcNow, O.StaleDays,
-            new RedmineOverviewTiles(open.TotalCount, urgent.TotalCount, unassigned.TotalCount, overdue.TotalCount, stale.TotalCount),
+            new RedmineOverviewTiles(open.TotalCount, urgent.TotalCount, unassigned.TotalCount, overdue.TotalCount, stale.Total),
             await ItemsAsync(urgent.Issues, ct), await ItemsAsync(unassigned.Issues, ct), await ItemsAsync(overdue.Issues, ct),
-            await ProblemTicketsAsync(project, lookups, ct), await ItemsAsync(stale.Issues, ct), await ItemsAsync(recent.Issues, ct));
+            await ProblemTicketsAsync(project, lookups, ct), await ItemsAsync(stale.Issues.Take(10).ToList(), ct, stale.LastChange),
+            await ItemsAsync(recent.Issues, ct));
+    }
+
+    // --- no change for StaleDays, Cookie's notes not counted ------------------------------------------------------------
+
+    /// <summary>At most this many tickets make the list of tickets without a change, for the search.</summary>
+    public const int MaxStaleTickets = 500;
+
+    /// <summary>The cache's key for the Redmine user Cookie writes as, remembered as long as the lookups.</summary>
+    private const string WriterKey = "redmine:writer";
+
+    /// <summary>
+    /// The open tickets nobody but Cookie changed for <c>Redmine__StaleDays</c>, the oldest change first: how many, the first
+    /// <see cref="MaxStaleTickets"/> as Redmine listed them, and each one's last change that counts.
+    /// </summary>
+    private sealed record StaleTickets(int Total, IReadOnlyList<RmIssue> Issues, IReadOnlyDictionary<int, DateTime> LastChange);
+
+    /// <summary>The tickets without a change (<see cref="LoadStaleAsync"/>), cached a minute per project as the overview is.</summary>
+    private async Task<StaleTickets> StaleAsync(RedmineLookups lookups, int? project, CancellationToken ct) =>
+        (await cache.GetOrCreateAsync($"redmine:stale:{project}", async e =>
+        {
+            e.AbsoluteExpirationRelativeToNow = OverviewFor;
+            return await LoadStaleAsync(lookups, project, ct);
+        }))!;
+
+    /// <summary>
+    /// Any change counts (a note, a field, a status, an attachment, a relation), except Cookie's own notes. Redmine's
+    /// <c>updated_on</c> counts Cookie's notes too, so two lists make the answer:
+    /// <list type="number">
+    /// <item>open tickets with no change at all since the cutoff, Cookie's included: Redmine filters and counts these itself;</item>
+    /// <item>open tickets changed since, whose last change is Cookie's (<c>last_updated_by</c>): their journals say when anyone else
+    /// last changed them (<see cref="LastChangeAsync"/>).</item>
+    /// </list>
+    /// Without Cookie's write key, there are no notes of Cookie's, and the first list is the answer.
+    /// </summary>
+    private async Task<StaleTickets> LoadStaleAsync(RedmineLookups lookups, int? project, CancellationToken ct)
+    {
+        var cutoff = DateOnly.FromDateTime(Clock.UtcNow).AddDays(-Math.Max(1, O.StaleDays));
+        string Day(DateOnly d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        async Task<List<RmIssue>> AllAsync(Action<RedmineQueryString> filter, Action<int> total)
+        {
+            var issues = new List<RmIssue>();
+            for (var offset = 0; offset < MaxStaleTickets; offset += 100)
+            {
+                var q = Filters(lookups, project, "open");
+                filter(q);
+                q.Plain("sort", "updated_on");
+                q.Plain("offset", offset.ToString(CultureInfo.InvariantCulture));
+                q.Plain("limit", "100");
+                var page = await client.GetAsync<RmIssues>("/issues.json?" + q, ct);
+                total(page.TotalCount);
+                issues.AddRange(page.Issues);
+                if (page.Issues.Count == 0 || issues.Count >= page.TotalCount)
+                {
+                    break;
+                }
+            }
+            return issues;
+        }
+
+        var count = 0;
+        var issues = await AllAsync(q => q.Filter("updated_on", "<=", Day(cutoff)), t => count = t);
+        var lastChange = issues.ToDictionary(i => i.Id, i => Clock.AsUtc(i.UpdatedOn));
+        if (await CookieUserIdAsync(ct) is { } cookie)
+        {
+            var touched = await AllAsync(q =>
+            {
+                q.Filter("updated_on", ">=", Day(cutoff.AddDays(1)));
+                q.Filter("last_updated_by", "=", cookie.ToString(CultureInfo.InvariantCulture));
+            }, _ => { });
+            foreach (var issue in touched.Where(i => !lastChange.ContainsKey(i.Id)))
+            {
+                var last = await LastChangeAsync(issue, cookie, ct);
+                if (DateOnly.FromDateTime(last) <= cutoff)
+                {
+                    count++;
+                    issues.Add(issue);
+                    lastChange[issue.Id] = last;
+                }
+            }
+        }
+        return new StaleTickets(count, issues.OrderBy(i => lastChange[i.Id]).ThenBy(i => i.Id).Take(MaxStaleTickets).ToList(), lastChange);
+    }
+
+    /// <summary>The Redmine user Cookie writes as (<c>Redmine__WriteApiKey</c>); null without a write key, or when Redmine doesn't say.</summary>
+    private async Task<int?> CookieUserIdAsync(CancellationToken ct)
+    {
+        if (!O.CanWrite)
+        {
+            return null;
+        }
+        if (cache.TryGetValue(WriterKey, out int known))
+        {
+            return known;
+        }
+        try
+        {
+            var id = (await client.GetAsync<RmUserEnvelope>("/users/current.json", ct, asWriter: true)).User.Id;
+            cache.Set(WriterKey, id, LookupsFor);
+            return id;
+        }
+        catch (RedmineException)
+        {
+            // Cookie's notes then count as changes, as Redmine's own date has them, until Redmine answers again.
+            return null;
+        }
+    }
+
+    /// <summary>A ticket's last change by anyone but Cookie, from its journals; cached until the ticket changes again.</summary>
+    private async Task<DateTime> LastChangeAsync(RmIssue listed, int cookie, CancellationToken ct) =>
+        await cache.GetOrCreateAsync($"redmine:last-change:{listed.Id}:{listed.UpdatedOn.Ticks}", async e =>
+        {
+            e.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1);
+            var issue = (await client.GetAsync<RmIssueEnvelope>($"/issues/{listed.Id}.json?include=journals", ct)).Issue;
+            return LastChangeWithoutCookie(issue, cookie);
+        });
+
+    /// <summary>
+    /// The newest of: the ticket's creation, and every journal that isn't Cookie's. A change Redmine made without a journal
+    /// (its <c>updated_on</c> later than the newest journal) is someone else's change too.
+    /// </summary>
+    public static DateTime LastChangeWithoutCookie(RmIssue issue, int cookie)
+    {
+        var journals = issue.Journals ?? [];
+        var created = Clock.AsUtc(issue.CreatedOn);
+        var last = journals.Where(j => j.User?.Id != cookie).Select(j => Clock.AsUtc(j.CreatedOn)).Append(created).Max();
+        var newest = journals.Select(j => Clock.AsUtc(j.CreatedOn)).Append(created).Max();
+        var updated = Clock.AsUtc(issue.UpdatedOn);
+        return updated - newest > TimeSpan.FromSeconds(5) && updated > last ? updated : last;
+    }
+
+    /// <summary>
+    /// The search's tickets without a change (§6.3): Redmine applies the other filters to the stale tickets' numbers, and PNMT
+    /// sorts and pages them, because Redmine's <c>updated_on</c> would put a ticket with Cookie's note among the fresh ones.
+    /// </summary>
+    private async Task<Paged<RedmineIssueItem>> SearchStaleAsync(RedmineQueryString q, RedmineLookups lookups, RedmineQuery query, IReadOnlySet<int>? only,
+        int page, int size, CancellationToken ct)
+    {
+        var stale = await StaleAsync(lookups, query.Project, ct);
+        var ids = stale.Issues.Select(i => i.Id).Where(id => only is null || only.Contains(id)).ToList();
+        if (ids.Count == 0)
+        {
+            return new Paged<RedmineIssueItem>([], page, size, 0);
+        }
+        q.Plain("issue_id", string.Join(",", ids));
+        var filters = q.ToString();
+        var found = new List<RmIssue>();
+        for (var offset = 0; ; offset += 100)
+        {
+            var result = await client.GetAsync<RmIssues>($"/issues.json?{filters}&offset={offset}&limit=100", ct);
+            found.AddRange(result.Issues);
+            if (result.Issues.Count == 0 || found.Count >= result.TotalCount)
+            {
+                break;
+            }
+        }
+        DateTime Changed(RmIssue i) => stale.LastChange.TryGetValue(i.Id, out var at) ? at : Clock.AsUtc(i.UpdatedOn);
+        var priorities = lookups.Priorities.Select((p, index) => (p.Id, index)).ToDictionary(p => p.Id, p => p.index);
+        int Priority(RmIssue i) => i.Priority is { } p ? priorities.GetValueOrDefault(p.Id, -1) : -1;
+        IEnumerable<RmIssue> sorted = (query.Sort ?? "-updated") switch
+        {
+            "updated" => found.OrderBy(Changed).ThenBy(i => i.Id),
+            "created" => found.OrderBy(i => i.CreatedOn).ThenBy(i => i.Id),
+            "-created" => found.OrderByDescending(i => i.CreatedOn).ThenByDescending(i => i.Id),
+            "priority" => found.OrderBy(Priority).ThenByDescending(i => i.Id),
+            "-priority" => found.OrderByDescending(Priority).ThenByDescending(i => i.Id),
+            "id" => found.OrderBy(i => i.Id),
+            "-id" => found.OrderByDescending(i => i.Id),
+            _ => found.OrderByDescending(Changed).ThenByDescending(i => i.Id),
+        };
+        var items = sorted.Skip((page - 1) * size).Take(size).ToList();
+        return new Paged<RedmineIssueItem>(await ItemsAsync(items, ct, stale.LastChange), page, size, found.Count);
     }
 
     /// <summary>Open tickets linked to a failing sensor, its host or the host's location, from PNMT's copy (§6.3).</summary>
@@ -674,11 +856,14 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOpt
 
     // --- shared ------------------------------------------------------------------------------------------------------------
 
-    private async Task<List<RedmineIssueItem>> ItemsAsync(IReadOnlyList<RmIssue> issues, CancellationToken ct)
+    /// <summary>The tickets as list items; <paramref name="lastChange"/>, when given, is the time shown as updated (Cookie's notes left out).</summary>
+    private async Task<List<RedmineIssueItem>> ItemsAsync(IReadOnlyList<RmIssue> issues, CancellationToken ct,
+        IReadOnlyDictionary<int, DateTime>? lastChange = null)
     {
         var counts = await LinkCountsAsync(issues.Select(i => i.Id).ToList(), ct);
         return issues.Select(i => new RedmineIssueItem(i.Id, i.Project.Id, i.Project.Name ?? "", i.Tracker?.Name, i.Status.Name, i.Status.IsClosed,
-            i.Priority?.Name, i.Subject, i.AssignedTo?.Name, Clock.AsUtc(i.UpdatedOn), i.DueDate, IssueUrl(i.Id), counts.GetValueOrDefault(i.Id))).ToList();
+            i.Priority?.Name, i.Subject, i.AssignedTo?.Name, lastChange is not null && lastChange.TryGetValue(i.Id, out var at) ? at : Clock.AsUtc(i.UpdatedOn),
+            i.DueDate, IssueUrl(i.Id), counts.GetValueOrDefault(i.Id))).ToList();
     }
 
     private RedmineIssueItem Item(RedmineIssueEntity i, int links) => new(i.IssueId, i.ProjectId, i.ProjectName, i.TrackerName, i.StatusName, i.IsClosed,

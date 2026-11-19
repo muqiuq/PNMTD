@@ -24,7 +24,8 @@ public sealed record RedmineIssueItem(int Id, int ProjectId, string ProjectName,
 /// <summary>
 /// <c>GET /redmine/issues</c>: <c>search</c> (subject, description, notes; a number opens it), the configured projects or
 /// one of them, status (open by default, closed, all), tracker, priority, assignee (an id, or "none"), overdue, only
-/// tickets linked in PNMT. Sort: updated (default), created, priority, id; with "-" for ascending.
+/// tickets linked in PNMT, only open tickets without a change for <c>Redmine__StaleDays</c> (Cookie's notes don't count). Sort:
+/// updated (default), created, priority, id; with "-" for ascending.
 /// </summary>
 public sealed class RedmineQuery : PageQuery
 {
@@ -41,6 +42,9 @@ public sealed class RedmineQuery : PageQuery
     public bool Overdue { get; set; }
 
     public bool Linked { get; set; }
+
+    /// <summary>Open tickets nobody but Cookie changed for <c>Redmine__StaleDays</c>: the overview's tile.</summary>
+    public bool Stale { get; set; }
 }
 
 /// <summary><c>GET /redmine/overview</c> (§6.3): the most important tickets, cached a minute.</summary>

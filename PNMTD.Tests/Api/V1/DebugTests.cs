@@ -108,7 +108,11 @@ public sealed class DebugTests
         StringAssert.Contains(await limited.Content.ReadAsStringAsync(), "Too many test sends");
     }
 
-    /// <summary>Pushover's API as the provider sees it: <c>u-bad</c> is refused, everyone else accepted.</summary>
+    /// <summary>
+    /// Pushover's API as the provider sees it: <c>u-bad</c> is refused, everyone else accepted. Only Pushover's address: the
+    /// notification client also carries the plain-text POSTs of http(s) rules, which other tests leave pending in the shared
+    /// database (DbTestHelper's "HTTP Test"), and a <c>RunOnce</c> sends those too; they get a 404 and aren't recorded.
+    /// </summary>
     internal sealed class FakePushover
     {
         public ConcurrentQueue<JsonElement> Sent { get; } = new();
@@ -120,6 +124,10 @@ public sealed class DebugTests
         {
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
             {
+                if (request.RequestUri?.ToString() != PushoverNotification.PUSHOVER_ENDPOINT)
+                {
+                    return new HttpResponseMessage(HttpStatusCode.NotFound);
+                }
                 var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct)).RootElement.Clone();
                 owner.Sent.Enqueue(body);
                 var bad = body.GetProperty("user").GetString() == "u-bad";

@@ -1,6 +1,6 @@
 # PNMT 1.14: Advanced sensors, and SSL certificate sensors
 
-Version 1.14.2: 1.14.0 and the changes of 1.14.1 and 1.14.2 below.
+Version 1.14.3: 1.14.0 and the changes of 1.14.1, 1.14.2 and 1.14.3 below.
 
 **1.13 wasn't released on its own:** this release brings its SSL certificate sensors too. Their notes are [release-notes-1.13.md](release-notes-1.13.md); what they say about updating is folded in below.
 
@@ -44,9 +44,18 @@ Version 1.14.2: 1.14.0 and the changes of 1.14.1 and 1.14.2 below.
 - **The tests of the timespan sensors** (*one* or *all within a timespan*) failed in the last hour before midnight in the tests' time zone: they found "the next midnight" by rounding up to the next hour and adding the hours left to 24, which during the day's last hour gave the midnight after next. They take tomorrow's date now, place their events from that midnight rather than from the machine's clock, and evaluate the next day a minute after midnight, more than the day the interval needs. Nothing changes in the running app.
 - **Updating from 1.14.1:** `./update.sh --tag v1.14.2`. No migration, nothing to configure.
 
+## 1.14.3
+
+- **Redmine's *No update for 14 days* counts any change, except Cookie's own notes.** Until now it went by Redmine's *updated*, which Cookie's reminder notes move too, so a ticket nobody had touched dropped out of the list just before its 14 days. A ticket counts when nothing at all changed for `Redmine__StaleDays` (14) days, or only Cookie wrote since: Cookie is told apart by the Redmine user of `Redmine__WriteApiKey`. The list shows each ticket's last change that counts. Without a write key, every change counts, as before.
+- **Redmine's tiles and the lists' *All* open the search with their filter.** *Overdue*, *New, no one assigned*, *Urgent* and the others showed every open ticket instead: the search took its filters from the address only when the page was opened, not when it came from the overview. The search has a new filter, *No update for 14 days*, the tile's.
+- **A Redmine ticket's page** shows its history and its details half and half.
+- **A Zabbix host's *Latest data*** stays within its panel: a long value without spaces wraps instead of pushing the table under the side column.
+- **A test of the notification rules failed now and then,** depending on the order the tests ran in: sending the pending notifications, it also sent another test's plain-text HTTP rule, and its fake Pushover read every message as JSON. The fake answers only Pushover's address now. Nothing changes in the running app.
+- **Updating from 1.14.2:** `./update.sh --tag v1.14.3`. No migration, nothing to configure.
+
 ## Updating from 1.12
 
-In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.14.2`. It takes a backup first.
+In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.14.3`. It takes a backup first.
 
 - **Two migrations,** which run at the start; nothing existing changes:
   - `CertificateSensors`, four new tables: the certificate sensors' settings and state, the certificates they have seen, the private CAs, and which sensors trust them;

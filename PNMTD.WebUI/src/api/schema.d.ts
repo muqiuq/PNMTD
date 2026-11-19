@@ -12778,6 +12778,7 @@ export interface paths {
                     assignee?: string;
                     overdue?: boolean;
                     linked?: boolean;
+                    stale?: boolean;
                     page?: number;
                     pageSize?: number;
                     sort?: string;

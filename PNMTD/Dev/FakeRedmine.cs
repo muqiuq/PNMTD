@@ -32,6 +32,9 @@ public sealed class FakeRedmine : HttpMessageHandler
     public static readonly IReadOnlyDictionary<string, string?> WritableSettings =
         new Dictionary<string, string?>(Settings) { ["Redmine:WriteApiKey"] = WriteKey };
 
+    /// <summary>The Redmine user the write key belongs to, as whom Cookie's notes are written.</summary>
+    public const int CookieUserId = 9;
+
     /// <summary>Every write: the method, the path and the body.</summary>
     public List<(string Method, string Path, JsonObject Body)> Writes { get; } = [];
 
@@ -93,7 +96,8 @@ public sealed class FakeRedmine : HttpMessageHandler
         var query = Parse(request.RequestUri.Query);
         return Task.FromResult(path switch
         {
-            "/users/current.json" => File("users_current.json"),
+            "/users/current.json" => keys.Single() == WriteKey ? Json(new JsonObject { ["user"] = new JsonObject { ["id"] = CookieUserId, ["login"] = "pnmt-cookie",
+                ["firstname"] = "PNMT", ["lastname"] = "Cookie" } }) : File("users_current.json"),
             "/projects.json" => Json(new JsonObject
             {
                 ["projects"] = new JsonArray(Project(1, "IT Support", "it-support", null), Project(2, "Printers", "it-printers", 1),
@@ -138,7 +142,7 @@ public sealed class FakeRedmine : HttpMessageHandler
                 ["id"] = id, ["project"] = new JsonObject { ["id"] = projectId, ["name"] = projectId == 3 ? "Network" : "IT Support" },
                 ["tracker"] = new JsonObject { ["id"] = 1, ["name"] = "Bug" },
                 ["status"] = new JsonObject { ["id"] = 1, ["name"] = "New", ["is_closed"] = false },
-                ["priority"] = new JsonObject { ["id"] = 2, ["name"] = "Normal" }, ["author"] = new JsonObject { ["id"] = 9, ["name"] = "PNMT Cookie" },
+                ["priority"] = new JsonObject { ["id"] = 2, ["name"] = "Normal" }, ["author"] = new JsonObject { ["id"] = CookieUserId, ["name"] = "PNMT Cookie" },
                 ["subject"] = fields["subject"]!.GetValue<string>(), ["description"] = fields["description"]?.GetValue<string>(),
                 ["is_private"] = false, ["created_on"] = now, ["updated_on"] = now,
             };
@@ -154,7 +158,7 @@ public sealed class FakeRedmine : HttpMessageHandler
             var journals = existing["journals"]?.AsArray() ?? [];
             journals.Add(new JsonObject
             {
-                ["id"] = 9000 + journals.Count, ["user"] = new JsonObject { ["id"] = 9, ["name"] = "PNMT Cookie" }, ["notes"] = fields["notes"]?.GetValue<string>(),
+                ["id"] = 9000 + journals.Count, ["user"] = new JsonObject { ["id"] = CookieUserId, ["name"] = "PNMT Cookie" }, ["notes"] = fields["notes"]?.GetValue<string>(),
                 ["created_on"] = now, ["private_notes"] = fields["private_notes"]?.GetValue<bool>() ?? false, ["details"] = new JsonArray(),
             });
             existing["journals"] = journals;
@@ -214,7 +218,13 @@ public sealed class FakeRedmine : HttpMessageHandler
                     issues = issues.Where(i => i["due_date"]?.GetValue<string>() is { } d && string.CompareOrdinal(d, values[0]) <= 0);
                     break;
                 case "updated_on":
-                    issues = issues.Where(i => string.CompareOrdinal(i["updated_on"]!.GetValue<string>()[..10], values[0]) <= 0);
+                    issues = op == ">="
+                        ? issues.Where(i => string.CompareOrdinal(i["updated_on"]!.GetValue<string>()[..10], values[0]) >= 0)
+                        : issues.Where(i => string.CompareOrdinal(i["updated_on"]!.GetValue<string>()[..10], values[0]) <= 0);
+                    break;
+                case "last_updated_by":
+                    // The user of the newest journal, as Redmine 3.4 and later filter it.
+                    issues = issues.Where(i => i["journals"]?.AsArray().LastOrDefault()?["user"]?["id"]?.ToString() is { } user && values.Contains(user));
                     break;
                 case "any_searchable":
                     issues = issues.Where(i => (i["subject"]!.GetValue<string>() + " " + (i["description"]?.GetValue<string>() ?? ""))
@@ -231,6 +241,8 @@ public sealed class FakeRedmine : HttpMessageHandler
         var sort = plain.GetValueOrDefault("sort") ?? "id:desc";
         IOrderedEnumerable<JsonObject> ordered = sort.StartsWith("updated_on:desc", StringComparison.Ordinal)
             ? issues.OrderByDescending(i => i["updated_on"]!.GetValue<string>())
+            : sort == "updated_on"
+                ? issues.OrderBy(i => i["updated_on"]!.GetValue<string>())
             : sort.StartsWith("priority:desc", StringComparison.Ordinal)
                 ? issues.OrderByDescending(i => i["priority"]!["id"]!.GetValue<int>())
                 : issues.OrderByDescending(Id);

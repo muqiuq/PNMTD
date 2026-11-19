@@ -35,6 +35,17 @@ test("the overview, the search, a ticket linked to a host, and the host's panel"
   await expect(page.getByRole('combobox', { name: 'Project' })).toContainText('All projects')
   await shot(page, 'redmine-overview')
 
+  // A tile opens the search with its filter applied, not every open ticket (the page stays mounted between the tabs).
+  await page
+    .getByRole('region', { name: 'Counts' })
+    .getByRole('link', { name: /Overdue/ })
+    .click()
+  await expect(page).toHaveURL(/\/redmine\/search\?.*overdue=true/)
+  await expect(page.getByRole('switch', { name: 'Overdue' })).toBeChecked()
+  await expect(page.getByRole('row', { name: /Replace the switch in rack 4/ })).toBeVisible()
+  await expect(page.getByRole('row', { name: /New laptop for Ben/ })).toHaveCount(0)
+  await page.getByRole('link', { name: 'Overview' }).click()
+
   // The search: text, then a number opens the ticket's page.
   await page.getByRole('link', { name: 'Search' }).click()
   const search = page.getByPlaceholder('Subject, description, notes, or a number')

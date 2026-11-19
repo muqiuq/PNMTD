@@ -131,9 +131,9 @@ const links = computed(() => {
               <table v-else-if="items.data.value" class="items">
                 <thead>
                   <tr>
-                    <th scope="col">Item</th>
+                    <th scope="col" class="col-item">Item</th>
                     <th scope="col">Value</th>
-                    <th scope="col">When</th>
+                    <th scope="col" class="col-when">When</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -269,9 +269,19 @@ const links = computed(() => {
   margin-top: var(--pnmt-space-2);
 }
 
+/* Fixed columns: a long value without spaces wraps in its cell instead of widening the table past the panel. */
 .items {
   border-collapse: collapse;
   width: 100%;
+  table-layout: fixed;
+}
+
+.items .col-item {
+  width: 40%;
+}
+
+.items .col-when {
+  width: 8rem;
 }
 
 .items th,
@@ -279,6 +289,7 @@ const links = computed(() => {
   text-align: left;
   padding: var(--pnmt-space-1) var(--pnmt-space-2);
   border-bottom: 1px solid var(--pnmt-border);
+  overflow-wrap: anywhere;
 }
 
 .wrap {

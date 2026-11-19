@@ -290,7 +290,7 @@ const ownUrl = computed(() => `${location.origin}/pnmt-admin/redmine/issues/${id
 <style scoped>
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 21rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--pnmt-space-3);
   align-items: start;
 }

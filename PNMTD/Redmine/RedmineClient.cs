@@ -25,16 +25,24 @@ public sealed class RedmineClient(IHttpClientFactory http, IOptionsMonitor<Redmi
 
     internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    public async Task<T> GetAsync<T>(string pathAndQuery, CancellationToken ct)
+    /// <summary>
+    /// A read. With <paramref name="asWriter"/>, with Cookie's write key instead of the reading key: only to ask Redmine whose key it
+    /// is (<c>/users/current.json</c>), so that Cookie's own notes can be told apart.
+    /// </summary>
+    public async Task<T> GetAsync<T>(string pathAndQuery, CancellationToken ct, bool asWriter = false)
     {
         var o = options.CurrentValue;
         if (!o.Enabled)
         {
             throw new RedmineException(RedmineFailure.NotConfigured, "Redmine is not configured (Redmine__Url, Redmine__ApiKey, Redmine__Projects).");
         }
+        if (asWriter && !o.CanWrite)
+        {
+            throw new RedmineException(RedmineFailure.NotConfigured, "Reading as Cookie needs Redmine__WriteApiKey.");
+        }
         using var client = http.CreateClient(HttpClientName);
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(o.Url!.TrimEnd('/') + pathAndQuery));
-        request.Headers.Add("X-Redmine-API-Key", o.ApiKey);
+        request.Headers.Add("X-Redmine-API-Key", asWriter ? o.WriteApiKey : o.ApiKey);
         request.Headers.Accept.ParseAdd("application/json");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(o.TimeoutSeconds, 2, 120)));
@@ -56,7 +64,8 @@ public sealed class RedmineClient(IHttpClientFactory http, IOptionsMonitor<Redmi
             switch (response.StatusCode)
             {
                 case HttpStatusCode.Unauthorized:
-                    throw new RedmineException(RedmineFailure.Unauthorized, "Redmine refused the API key (Redmine__ApiKey), or its REST API is off.");
+                    throw new RedmineException(RedmineFailure.Unauthorized, asWriter ? "Redmine refused the write key (Redmine__WriteApiKey)."
+                        : "Redmine refused the API key (Redmine__ApiKey), or its REST API is off.");
                 case HttpStatusCode.Forbidden:
                     throw new RedmineException(RedmineFailure.Forbidden, "Redmine's account for PNMT may not read this.");
                 case HttpStatusCode.NotFound:
