@@ -179,9 +179,11 @@ grep -q '"isAdmin":true' "$dir/login.json" || fail "IsAdmin did not become the a
 
 [[ "$(env_value Identity)" == "Legacy Lab" ]] || fail "Identity was not copied: $(grep Identity .env)"
 [[ "$(env_value PublicBaseUrl)" == "http://localhost:${PORT}" ]] || fail "externalApiurl did not become PublicBaseUrl"
-docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$(nc ps -q pnmtd)" | grep -qx 'Smtp__Password=s3cr$t&pw' \
-  || fail "the SMTP password did not arrive unchanged"
-curl -fsS "$base/api/v1/system/info" | grep -q '"identity":"Legacy Lab"' || fail "1.0 does not run with the copied Identity"
+# The output first, then grep: `cmd | grep -q` under pipefail fails when the writer outlives grep's first match (deploy-test.sh).
+app_env="$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$(nc ps -q pnmtd)")" || fail "docker inspect of the app"
+grep -qx 'Smtp__Password=s3cr$t&pw' <<<"$app_env" || fail "the SMTP password did not arrive unchanged"
+system_info="$(curl -fsS "$base/api/v1/system/info")" || fail "1.0's system info"
+grep -q '"identity":"Legacy Lab"' <<<"$system_info" || fail "1.0 does not run with the copied Identity: $system_info"
 
 old_backend="$(unset COMPOSE_PROJECT_NAME; dc -f "$backend_dir/docker-compose.yml" --project-directory "$backend_dir" ps -aq "$backend_svc")"
 [[ "$(docker inspect -f '{{.State.Status}}' "$old_backend")" == "exited" ]] || fail "the old backend is not stopped and kept"

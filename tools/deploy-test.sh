@@ -66,7 +66,10 @@ up_wait || fail "the stack did not come up healthy: $(tail -3 "$dir/up.out")"
 status() { curl -s -o /dev/null -w '%{http_code}' "http://localhost:${PORT}$1"; }
 [[ "$(status /api/v1/hosts)" == "401" ]] || fail "/api/v1/hosts without a session: $(status /api/v1/hosts)"
 [[ "$(status /)" == "404" && "$(status /hosts)" == "404" ]] || fail "/ or /hosts is not a 404"
-curl -fsS "http://localhost:${PORT}/api/v1/system/info" | grep -q '"identity"' || fail "/api/v1/system/info"
+# Every check reads the whole output first, then greps it: `cmd | grep -q` stops reading at the first match, and pipefail took
+# the writer's SIGPIPE for a failure (CI on 1.15.1: list-users.sh, its line after the ops row, with the output right).
+system_info="$(curl -fsS "http://localhost:${PORT}/api/v1/system/info")" || fail "/api/v1/system/info"
+grep -q '"identity"' <<<"$system_info" || fail "/api/v1/system/info: $system_info"
 
 # Sign-in as a browser does it (§4.5, §4.7): the first admin with init.sh's password must change it
 # first; unsafe calls carry the XSRF-TOKEN cookie in X-XSRF-TOKEN.
@@ -95,18 +98,21 @@ ops_password="$(awk '/^    [A-Za-z0-9]+$/ {print $1}' "$dir/add-user.out")"
 reset_password="$(awk '/^    [A-Za-z0-9]+$/ {print $1}' "$dir/reset.out")"
 [[ "$(login ops "$ops_password")" == "401" ]] || fail "the old password still signs in after reset-password.sh"
 [[ "$(login ops "$reset_password")" == "200" ]] || fail "sign-in with reset-password.sh's password: $(cat "$dir/body")"
-./list-users.sh | grep -Eq '^ops +groups Viewers +active' || fail "list-users.sh: $(./list-users.sh)"
+users="$(./list-users.sh)" || fail "list-users.sh: $users"
+grep -Eq '^ops +groups Viewers +active' <<<"$users" || fail "list-users.sh: $users"
 
 # reset-totp.sh (§4.6): 2FA turned on behind the app's back (the enrollment itself is in the
 # integration tests), so the password alone no longer signs in; after the reset it does again.
 sql() { compose exec -T db psql -U pnmtd -d pnmtd -tAc "$1"; }
 sql "UPDATE users SET \"IsTotpEnabled\" = true, \"TotpSecretProtected\" = 'unreadable' WHERE \"NormalizedUsername\" = 'ops'" >/dev/null
 [[ "$(login ops "$reset_password")" == "200" ]] && grep -q '"next":"totp"' "$dir/body" || fail "no code step with 2FA on: $(cat "$dir/body")"
-./list-users.sh | grep -Eq '^ops +groups Viewers +active +2FA' || fail "list-users.sh shows no 2FA: $(./list-users.sh)"
+users="$(./list-users.sh)" || fail "list-users.sh: $users"
+grep -Eq '^ops +groups Viewers +active +2FA' <<<"$users" || fail "list-users.sh shows no 2FA: $users"
 ./reset-totp.sh ops >"$dir/reset-totp.out" || fail "reset-totp.sh: $(cat "$dir/reset-totp.out")"
 grep -q 'Turned 2FA off for ops' "$dir/reset-totp.out" || fail "reset-totp.sh: $(cat "$dir/reset-totp.out")"
 [[ "$(login ops "$reset_password")" == "200" ]] && grep -q '"next":"done"' "$dir/body" || fail "2FA still asked after reset-totp.sh: $(cat "$dir/body")"
-./info.sh | grep -q 'Admins without 2FA: admin\.' || fail "info.sh does not warn about the admin without 2FA: $(./info.sh)"
+info="$(./info.sh)" || fail "info.sh: $info"
+grep -q 'Admins without 2FA: admin\.' <<<"$info" || fail "info.sh does not warn about the admin without 2FA: $info"
 
 sql "INSERT INTO hosts (\"Id\",\"Created\",\"Enabled\",\"Name\") VALUES ('11111111-1111-1111-1111-111111111111', now(), true, 'h');
      INSERT INTO sensors (\"Id\",\"ParentId\",\"Type\",\"Name\",\"Created\",\"Enabled\",\"Ignore\",\"Interval\",\"GracePeriod\",\"SecretWriteToken\",\"SecretReadToken\")
@@ -141,7 +147,8 @@ grep -q '^  Files:      ./files' <<<"$info" || fail "info.sh shows no files fold
 folder="$(ls -1d backups/pnmtd-* | tail -1)"
 [[ -s "$folder/database.pgdump" && -s "$folder/keys.tar.gz" && -s "$folder/files.tar" ]] || fail "the backup folder is incomplete: $(ls "$folder")"
 [[ "$(stat -c %a "$folder" 2>/dev/null || stat -f %Lp "$folder")" == "700" ]] || fail "the backup folder is not 0700"
-tar -tf "$folder/files.tar" | grep -q -- '-before\.txt$' || fail "files.tar lacks the upload: $(tar -tf "$folder/files.tar")"
+listing="$(tar -tf "$folder/files.tar")" || fail "files.tar cannot be read"
+grep -q -- '-before\.txt$' <<<"$listing" || fail "files.tar lacks the upload: $listing"
 ./backup.sh --quiet --no-files --out "$dir/without-files" || fail "backup.sh --no-files"
 bare="$(ls -1d "$dir"/without-files/pnmtd-* | tail -1)"
 [[ -s "$bare/database.pgdump" && ! -e "$bare/files.tar" ]] || fail "backup.sh --no-files: $(ls "$bare")"

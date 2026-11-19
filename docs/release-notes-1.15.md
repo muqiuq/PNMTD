@@ -1,6 +1,6 @@
 # PNMT 1.15: 3rd Party Connectors
 
-Version 1.15.1: 1.15.0 and the change of 1.15.1 below.
+Version 1.15.2: 1.15.0, and the changes of 1.15.1 and 1.15.2 below.
 
 ## What's new
 
@@ -39,11 +39,16 @@ Version 1.15.1: 1.15.0 and the change of 1.15.1 below.
 ## 1.15.1
 
 - **A server busy with scripts could lose a run's result.** An agent's acks, script results and parse results counted against `Agents__MessagesPerMinute` (60), as heartbeats do. A server running many scripts in a minute, such as a connector's calls, had the rest dropped. A dropped result left its run *sent* until it was closed as lost; a dropped ack failed the run after 30 s. They now count with the reports (`Agents__ReportsPerMinute`, 300), as the sections and the diagnostics' results do. This was found by a connectors test that failed now and then.
-- **Updating from 1.15.0:** `./update.sh --tag v1.15.1`. No migration, nothing to configure, and the agents stay as they are.
+- **Updating from 1.15.0:** `./update.sh --tag v1.15.2`. No migration, nothing to configure, and the agents stay as they are.
+
+## 1.15.2
+
+- **No change to PNMT itself,** only to its tests. The deploy test (`tools/deploy-test.sh`, and two checks of `tools/upgrade-test.sh`) checked a script's output with `… | grep -q` under `pipefail`. grep stops reading at its match, so a script that printed a line after it died of SIGPIPE, and the check failed with the right output. It failed CI on 1.15.1 at `list-users.sh`. The checks read the whole output first now.
+- **Updating from 1.15.1** brings nothing new; from 1.15.0, see 1.15.1.
 
 ## Updating from 1.14
 
-In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.15.1`. It takes a backup first.
+In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.15.2`. It takes a backup first.
 
 - **One migration, `Connectors`,** runs at the start:
   - six new tables: the connectors, their callers, the grants between them, a script connector's target and arguments, and the calls;
