@@ -306,6 +306,13 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'MCP' },
   },
   {
+    // The network map (docs/network-map-plan.md §8.1): the map, connections, suggestions, scans and interfaces in ?tab=.
+    path: '/network-map',
+    name: 'network-map',
+    component: () => import('@/views/network/NetworkMapView.vue'),
+    meta: { title: 'Network map', right: ['NetworkMap', 'View'] },
+  },
+  {
     // 3rd Party Connectors (docs/connectors-plan.md §13.1): the area opens on Calls; a connector's page and a caller's page.
     path: '/connectors/:tab(calls|connectors|callers|docs)?',
     name: 'connectors',

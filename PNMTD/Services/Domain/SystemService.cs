@@ -47,6 +47,9 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new("Connectors' worker", KeyValueKeyEnums.LAST_CONNECTOR_WORK, 60, c => c.GetValue("Connectors:Enabled", true)),
         // docs/advanced-sensor-plan.md §7.3: the evaluator's timer every 30 seconds, nudged by every report in between.
         new("Advanced sensors", KeyValueKeyEnums.LAST_ADVANCED_EVALUATION, 60, _ => true),
+        // docs/network-map-plan.md §7.3: the schedule's check and the retention, every minute.
+        new("Network map schedule", KeyValueKeyEnums.LAST_NETWORK_SCAN_SCHEDULE_RUN, 60,
+            c => c.GetValue("Mikrotik:Enabled", true) && c.GetValue("NetworkMap:Enabled", true)),
     ];
 
     public static bool MailboxConfigured(IConfiguration c) =>

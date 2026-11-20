@@ -543,6 +543,35 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("advanced_sensors");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.AgentAdapterMacEntity", b =>
+                {
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Mac")
+                        .HasMaxLength(17)
+                        .HasColumnType("character varying(17)");
+
+                    b.Property<string>("Adapter")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Kind")
+                        .HasColumnType("text");
+
+                    b.Property<long?>("SpeedBps")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("Virtual")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("SensorId", "Mac", "Adapter");
+
+                    b.HasIndex("Mac");
+
+                    b.ToTable("agent_adapter_macs");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.AgentChangeEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5392,6 +5421,632 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("mikrotik_ssh_keys");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkConnectionEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AHostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AInterface")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("ASensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BHostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BInterface")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("BSensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CheckedScans")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatedByName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Evidence")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Misses")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<short>("Source")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime?>("UnconfirmedSince")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UpdatedByName")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AHostId");
+
+                    b.HasIndex("ASensorId");
+
+                    b.HasIndex("BHostId");
+
+                    b.HasIndex("BSensorId");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("network_connections");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkInterfaceEntity", b =>
+                {
+                    b.Property<string>("Mac")
+                        .HasMaxLength(17)
+                        .HasColumnType("character varying(17)");
+
+                    b.Property<DateTime?>("AssignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AssignedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AssignedByName")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("AssignedHostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AssignedInterface")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AttachedNote")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AttachedPort")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("AttachedSensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("AttachedVlan")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("HintHostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("HostName")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Ignored")
+                        .HasColumnType("boolean");
+
+                    b.PrimitiveCollection<List<string>>("Ips")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("MatchHostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("MatchInterface")
+                        .HasColumnType("text");
+
+                    b.Property<int>("MatchKind")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("MatchSensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("NeighborBoard")
+                        .HasColumnType("text");
+
+                    b.Property<string>("NeighborIdentity")
+                        .HasColumnType("text");
+
+                    b.Property<string>("NeighborPlatform")
+                        .HasColumnType("text");
+
+                    b.Property<string>("NeighborPort")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Random")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Sources")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Mac");
+
+                    b.HasIndex("AssignedHostId");
+
+                    b.HasIndex("AttachedSensorId");
+
+                    b.HasIndex("LastSeenAt");
+
+                    b.HasIndex("MatchHostId");
+
+                    b.ToTable("network_interfaces");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkMapSettingsEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ChangedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ChangedByName")
+                        .HasColumnType("text");
+
+                    b.Property<int>("RetentionDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ScanHour")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ScanIntervalDays")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("ScanScheduleEnabled")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("network_map_settings");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkObservationEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Board")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Bridge")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DiscoveredBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("HostName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Identity")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Interface")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Ip")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Mac")
+                        .HasMaxLength(17)
+                        .HasColumnType("character varying(17)");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Platform")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RemoteInterface")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RemoteKey")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("SeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Version")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("VlanId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Mac");
+
+                    b.HasIndex("SensorId", "Source");
+
+                    b.ToTable("network_observations");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkRouterPortEntity", b =>
+                {
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Bond")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Bridge")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DefaultName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DetectedType")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Disabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool?>("FullDuplex")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Mac")
+                        .HasMaxLength(17)
+                        .HasColumnType("character varying(17)");
+
+                    b.Property<int>("MacCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Mtu")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("RateMbps")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Running")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("SeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Sfp")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Type")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("VlanId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("VlanParent")
+                        .HasColumnType("text");
+
+                    b.HasKey("SensorId", "Name");
+
+                    b.HasIndex("Mac");
+
+                    b.ToTable("network_router_ports");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkRouterPositionEntity", b =>
+                {
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UpdatedByName")
+                        .HasColumnType("text");
+
+                    b.Property<double>("X")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Y")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("SensorId");
+
+                    b.ToTable("network_router_positions");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkRouterSnapshotEntity", b =>
+                {
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DiscoverySettings")
+                        .HasColumnType("jsonb");
+
+                    b.Property<byte[]>("Raw")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("RouterOsVersion")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ScanNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ScannedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TableErrors")
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("SensorId");
+
+                    b.ToTable("network_router_snapshots");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkScanEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CurrentRouterName")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("CurrentSensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CurrentStep")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("CurrentStepNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Failed")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RequestedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RequestedByName")
+                        .HasColumnType("text");
+
+                    b.Property<short>("Scope")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("ScopeName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Skipped")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short>("State")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("Succeeded")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Total")
+                        .HasColumnType("integer");
+
+                    b.Property<short>("Trigger")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("LocationId");
+
+                    b.HasIndex("SensorId");
+
+                    b.HasIndex("State", "CreatedAt");
+
+                    b.ToTable("network_scans");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkScanItemEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Counts")
+                        .HasColumnType("jsonb");
+
+                    b.Property<int?>("DurationMs")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RouterName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ScanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short>("State")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Step")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TableErrors")
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScanId", "Position");
+
+                    b.HasIndex("SensorId", "FinishedAt");
+
+                    b.HasIndex("State", "SensorId");
+
+                    b.ToTable("network_scan_items");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkSuggestionEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AHostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AInterface")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ASensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BHostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BInterface")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("BSensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Confidence")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ConnectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DecidedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DecidedByName")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("DiffersFrom")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short>("State")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Type")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AHostId");
+
+                    b.HasIndex("ASensorId");
+
+                    b.HasIndex("BHostId");
+
+                    b.HasIndex("BSensorId");
+
+                    b.HasIndex("ConnectionId");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.HasIndex("State", "Confidence");
+
+                    b.ToTable("network_suggestions");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.NotificationRuleEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -7218,6 +7873,15 @@ namespace PNMTD.Data.Migrations
                     b.Navigation("Sensor");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.AgentAdapterMacEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.AgentChangeEntity", b =>
                 {
                     b.HasOne("PNMTD.Models.Db.SensorEntity", null)
@@ -7810,6 +8474,132 @@ namespace PNMTD.Data.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Sensor");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkConnectionEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.HostEntity", null)
+                        .WithMany()
+                        .HasForeignKey("AHostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ASensorId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PNMTD.Models.Db.HostEntity", null)
+                        .WithMany()
+                        .HasForeignKey("BHostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("BSensorId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkInterfaceEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.HostEntity", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedHostId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkObservationEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkRouterPortEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkRouterPositionEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkRouterSnapshotEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkScanEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.LocationEntity", null)
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkScanItemEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.NetworkScanEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ScanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkSuggestionEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.HostEntity", null)
+                        .WithMany()
+                        .HasForeignKey("AHostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ASensorId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PNMTD.Models.Db.HostEntity", null)
+                        .WithMany()
+                        .HasForeignKey("BHostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("BSensorId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PNMTD.Models.Db.NetworkConnectionEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ConnectionId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.NotificationRuleEntity", b =>

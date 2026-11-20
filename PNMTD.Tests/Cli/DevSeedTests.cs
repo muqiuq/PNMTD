@@ -114,6 +114,17 @@ public sealed class DevSeedTests
         Assert.IsTrue(await db.MailLogs.AllAsync(m => m.Processed), "the mail task must find nothing to do");
         // Locations and the knowledge base (docs/locations-knowledge-plan.md K7), which the browser tests use: two sites, one with two
         // sub-locations and a level below; hosts assigned, and others with only their texts for From the hosts' texts…
+        // The network map (docs/network-map-plan.md §10.3): St. Gallen's hub, its fibre to the DC, and what is open.
+        Assert.AreEqual(8, await db.NetworkConnections.CountAsync());
+        Assert.AreEqual(4, await db.NetworkConnections.CountAsync(c => c.Type == "wireguard" && c.ConfirmedAt != null && c.UnconfirmedSince == null),
+            "the WireGuard star, confirmed by the analysis");
+        Assert.AreEqual(1, await db.NetworkConnections.CountAsync(c => c.UnconfirmedSince != null));
+        Assert.IsTrue(await db.NetworkSuggestions.AnyAsync(s => s.State == Models.Enums.NetworkSuggestionState.Open && s.Type == "smf-10g"
+            && s.Confidence == PNMTD.Lib.Network.Confidence.High), "Basel ↔ Bern's fibre");
+        Assert.IsTrue((await db.NetworkSuggestions.Select(s => s.Evidence).ToListAsync()).Any(e => e.Contains("behind-host")), "nas-01 behind router-core");
+        Assert.IsGreaterThanOrEqualTo(20, await db.NetworkInterfaces.CountAsync());
+        Assert.AreEqual(5, await db.NetworkRouterSnapshots.CountAsync());
+
         Assert.AreEqual(5, await db.Locations.CountAsync());
         Assert.AreEqual(2, await db.Locations.CountAsync(l => l.ParentId == null));
         Assert.IsTrue(await db.Locations.AnyAsync(l => l.Name == "Rack B4" && l.Parent!.Name == "Cage B" && l.Parent.Parent!.Name == "Zurich DC"));

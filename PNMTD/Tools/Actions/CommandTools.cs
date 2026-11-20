@@ -65,6 +65,13 @@ public static class CommandTools
                 Int("timeoutSeconds", "Per router"), Bool("backupBeforeAndAfter", "A backup before and after, to see what changed"),
                 Bool("oneAtATime", "Router after router, stopping at the first failure")),
             Area.Commands, Level.Run, ToolKind.Action, MikrotikRunAsync) { AuditEvents = [AuditEvents.MikrotikCommandStarted], Destructive = true },
+        // docs/network-map-plan.md §10.2: as a poll, one router; scans of many routers stay in the UI.
+        new("network_scan_router", "Scan a router for the network map",
+            "Queues a scan of one MikroTik router's interfaces, MAC table, neighbors, ARP and leases, read only as PNMT's own user. Routers are scanned " +
+            "one at a time, so it may wait behind others; its result shows in network_device_get (scan) and network_summary. A router already queued " +
+            "gives the run it is in.",
+            Schema(Id("sensorId", "The MIKROTIK sensor")), Area.Commands, Level.Run, ToolKind.Action, NetworkScanAsync)
+        { AuditEvents = [AuditEvents.NetworkScanStarted], Idempotent = true },
         new("server_collect_now", "Collect a server's data now", "Asks a Windows or Linux agent to send its sections now (all, or the ones named).",
             Schema(Id("sensorId", "The WINDOWS or LINUX sensor"),
                 new Field("sections", "array", "The sections, as services, disks; all when left out") { Extra = new System.Text.Json.Nodes.JsonObject { ["items"] = new System.Text.Json.Nodes.JsonObject { ["type"] = "string" } } }),
@@ -277,6 +284,25 @@ public static class CommandTools
         ctx.Target("Sensor", id, null);
         ctx.Summary = result.Changed ? "a new backup" : "backed up: no change";
         return new { result.Changed, result.Message, Backup = result.Backup is { } b ? new { b.Id, b.CreatedAt, b.Kind, b.IncludesSecrets } : null };
+    }
+
+    private static async Task<object> NetworkScanAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
+    {
+        var id = IdOf(args, "sensorId");
+        var scans = ctx.Services.GetRequiredService<Network.NetworkScanService>();
+        ctx.Target("Sensor", id, null);
+        try
+        {
+            var scan = await scans.StartAsync(new NetworkScanRequest { Scope = NetworkScanScope.Router, SensorId = id }, ct);
+            ctx.Summary = $"queued a network scan of {scan.ScopeName}";
+            return new { Queued = true, Scan = new { scan.Id, scan.ScopeName, scan.State, scan.CreatedAt } };
+        }
+        catch (Api.ApiException e) when (e.Code == "scan_queued" && e.Extensions?.GetValueOrDefault("scanId") is Guid existing)
+        {
+            var scan = (await scans.GetAsync(existing, ct)).Scan;
+            ctx.Summary = $"a network scan of {scan.ScopeName} is {scan.State.ToString().ToLowerInvariant()} already";
+            return new { Queued = false, Scan = new { scan.Id, scan.ScopeName, scan.State, scan.CreatedAt, Step = scan.CurrentStep } };
+        }
     }
 
     private static async Task<object> MikrotikRunAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)

@@ -264,7 +264,7 @@ internal static class MikrotikCommand
     }
 
     /// <summary>A sensor id, or the name of exactly one MikroTik router (case-insensitive).</summary>
-    private static Guid Resolve(IServiceProvider sp, string nameOrId)
+    internal static Guid Resolve(IServiceProvider sp, string nameOrId)
     {
         using var db = sp.GetRequiredService<IDbContextFactory<PnmtdDbContext>>().CreateDbContext();
         if (Guid.TryParse(nameOrId, out var id))

@@ -1,0 +1,1 @@
+{"monitor":{"ether1":{".id":"*1","default-cable-setting":"standard","full-duplex":false,"name":"ether1","status":"link-ok","supported":[]}},"ports":[{".id":"*1","arp":"enabled","disabled":false,"mac-address":"52:54:00:12:34:56","mtu":1500,"name":"ether1","running":true}]}

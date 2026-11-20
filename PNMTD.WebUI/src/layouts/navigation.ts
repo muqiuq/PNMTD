@@ -48,6 +48,14 @@ export const navigation: NavGroup[] = [
         name: 'locations',
         right: ['Locations', 'View'],
       },
+      // docs/network-map-plan.md §8.1: how the routers, hosts and servers are connected.
+      {
+        label: 'Network map',
+        icon: 'pi pi-map',
+        to: '/network-map',
+        name: 'network-map',
+        right: ['NetworkMap', 'View'],
+      },
       { label: 'DNS zones', icon: 'pi pi-globe', to: '/dns-zones', name: 'dns-zones', right: ['Monitoring', 'View'] },
       { label: 'Uplink', icon: 'pi pi-cloud', to: '/uplink', name: 'uplink', right: ['Monitoring', 'View'] },
     ],

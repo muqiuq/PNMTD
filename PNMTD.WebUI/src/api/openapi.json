@@ -16577,6 +16577,1541 @@
         }
       }
     },
+    "/api/v1/network-map/graph": {
+      "get": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "routers",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "routerLocationIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "hostLocationIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "onlyConnected",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "suggestions",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "physical",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "media",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ConnectionMedium"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkGraph"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkGraph"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkGraph"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/connection-types": {
+      "get": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NetworkConnectionTypeItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NetworkConnectionTypeItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NetworkConnectionTypeItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/devices/{kind}/{id}": {
+      "get": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/NetworkDeviceKind"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkDeviceDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkDeviceDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkDeviceDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/summary": {
+      "get": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkMapSummary"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkMapSummary"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkMapSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/path": {
+      "get": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "physicalOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkPath"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkPath"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkPath"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/positions": {
+      "put": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkPositionsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkPositionsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkPositionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkPositionsResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkPositionsResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkPositionsResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/positions/{sensorId}": {
+      "delete": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "sensorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/connections": {
+      "get": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "deviceId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "physical",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "routersOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "unconfirmed",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfNetworkConnectionItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfNetworkConnectionItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfNetworkConnectionItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkConnectionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkConnectionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkConnectionItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkConnectionItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkConnectionItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/connections/{id}": {
+      "get": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkConnectionItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkConnectionItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkConnectionItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkConnectionUpdate"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkConnectionUpdate"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkConnectionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkConnectionItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkConnectionItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkConnectionItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/suggestions": {
+      "get": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/NetworkSuggestionState"
+            }
+          },
+          {
+            "name": "confidence",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/Confidence"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SuggestionKind"
+            }
+          },
+          {
+            "name": "deviceId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "locationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfNetworkSuggestionItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfNetworkSuggestionItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfNetworkSuggestionItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/suggestions/{id}/accept": {
+      "post": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSuggestionAccept"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSuggestionAccept"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSuggestionAccept"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkConnectionItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkConnectionItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkConnectionItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/suggestions/accept": {
+      "post": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSuggestionIds"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSuggestionIds"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSuggestionIds"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSuggestionsDecided"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSuggestionsDecided"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSuggestionsDecided"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/suggestions/{id}/dismiss": {
+      "post": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSuggestionsDecided"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSuggestionsDecided"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSuggestionsDecided"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/suggestions/dismiss": {
+      "post": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSuggestionIds"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSuggestionIds"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSuggestionIds"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSuggestionsDecided"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSuggestionsDecided"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSuggestionsDecided"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/suggestions/{id}/restore": {
+      "post": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSuggestionsDecided"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSuggestionsDecided"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSuggestionsDecided"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/interfaces": {
+      "get": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "unassigned",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "routerId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "locationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "vlan",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "seenInLastScan",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "showIgnored",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "hostId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfNetworkInterfaceItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfNetworkInterfaceItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfNetworkInterfaceItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/interfaces/{mac}/assignment": {
+      "put": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "mac",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkInterfaceAssignment"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkInterfaceAssignment"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkInterfaceAssignment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkInterfaceItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkInterfaceItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkInterfaceItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "mac",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkInterfaceItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkInterfaceItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkInterfaceItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/interfaces/{mac}/ignore": {
+      "post": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "mac",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkInterfaceItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkInterfaceItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkInterfaceItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/interfaces/{mac}/unignore": {
+      "post": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "mac",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkInterfaceItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkInterfaceItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkInterfaceItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/scans/status": {
+      "get": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkScanStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkScanStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkScanStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/scans": {
+      "get": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfNetworkScanRow"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfNetworkScanRow"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfNetworkScanRow"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkScanRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkScanRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkScanRow"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkScanRow"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkScanRow"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/scans/{id}": {
+      "get": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkScanDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkScanDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkScanDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/scans/{id}/cancel": {
+      "post": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkScanRow"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkScanRow"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkScanRow"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/settings": {
+      "get": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkMapSettings"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkMapSettings"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkMapSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkMapSettingsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkMapSettingsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkMapSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkMapSettings"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkMapSettings"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkMapSettings"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/notification-rules": {
       "get": {
         "tags": [
@@ -28503,7 +30038,8 @@
           "Availability",
           "Mcp",
           "Certificates",
-          "Connectors"
+          "Connectors",
+          "NetworkMap"
         ]
       },
       "AssignMode": {
@@ -28550,7 +30086,8 @@
           "Availability",
           "Mcp",
           "Certificates",
-          "Connectors"
+          "Connectors",
+          "Network"
         ]
       },
       "AuditChange": {
@@ -30986,6 +32523,28 @@
             ]
           }
         }
+      },
+      "Confidence": {
+        "enum": [
+          "Low",
+          "Medium",
+          "High",
+          null
+        ]
+      },
+      "ConnectionMedium": {
+        "enum": [
+          "BaseT",
+          "Dac",
+          "Aoc",
+          "FiberMmf",
+          "FiberSmf",
+          "Wifi",
+          "WireGuard",
+          "Tunnel",
+          "VirtualMachine",
+          "Other"
+        ]
       },
       "ConnectorAccountOption": {
         "required": [
@@ -37309,6 +38868,25 @@
           }
         }
       },
+      "Evidence": {
+        "required": [
+          "rule",
+          "confidence",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "string"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/Confidence"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
       "Fail2banInfo": {
         "required": [
           "running",
@@ -42525,6 +44103,15 @@
           }
         }
       },
+      "MatchKind": {
+        "enum": [
+          "None",
+          "RouterPort",
+          "ServerAdapter",
+          "Manual",
+          "Ambiguous"
+        ]
+      },
       "McpAccountItem": {
         "required": [
           "enabled",
@@ -45529,6 +47116,1716 @@
           }
         }
       },
+      "NetworkAdapterItem": {
+        "required": [
+          "adapter",
+          "mac",
+          "kind",
+          "speedBps",
+          "virtual"
+        ],
+        "type": "object",
+        "properties": {
+          "adapter": {
+            "type": "string"
+          },
+          "mac": {
+            "type": "string"
+          },
+          "kind": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "speedBps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "virtual": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NetworkConnectionItem": {
+        "required": [
+          "id",
+          "a",
+          "b",
+          "type",
+          "typeLabel",
+          "physical",
+          "speedMbps",
+          "scan",
+          "confirmedAt",
+          "unconfirmedSince",
+          "notes",
+          "source",
+          "createdAt",
+          "createdByName",
+          "updatedAt",
+          "updatedByName"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "a": {
+            "$ref": "#/components/schemas/NetworkEndItem"
+          },
+          "b": {
+            "$ref": "#/components/schemas/NetworkEndItem"
+          },
+          "type": {
+            "type": "string"
+          },
+          "typeLabel": {
+            "type": "string"
+          },
+          "physical": {
+            "type": "boolean"
+          },
+          "speedMbps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "scan": {
+            "$ref": "#/components/schemas/NetworkScanEvidence"
+          },
+          "confirmedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "unconfirmedSince": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "$ref": "#/components/schemas/NetworkConnectionSource"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "updatedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NetworkConnectionRequest": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/NetworkEndRequest"
+          },
+          "b": {
+            "$ref": "#/components/schemas/NetworkEndRequest"
+          },
+          "type": {
+            "type": "string"
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NetworkConnectionSource": {
+        "enum": [
+          "Manual",
+          "Suggestion"
+        ]
+      },
+      "NetworkConnectionTypeItem": {
+        "required": [
+          "code",
+          "label",
+          "medium",
+          "speedMbps",
+          "physical"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "medium": {
+            "$ref": "#/components/schemas/ConnectionMedium"
+          },
+          "speedMbps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "physical": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NetworkConnectionUpdate": {
+        "type": "object",
+        "properties": {
+          "aInterface": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bInterface": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NetworkDeviceDetail": {
+        "required": [
+          "id",
+          "kind",
+          "hostId",
+          "sensorId",
+          "name",
+          "hostName",
+          "locationId",
+          "locationPath",
+          "state",
+          "stateMessage",
+          "model",
+          "version",
+          "identity",
+          "os",
+          "scan",
+          "connections",
+          "ports",
+          "adapters",
+          "interfaces",
+          "interfacesSeen",
+          "interfacesUnassigned",
+          "openSuggestions"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NetworkDeviceKind"
+          },
+          "hostId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "hostName": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "locationPath": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "state": {
+            "type": "string"
+          },
+          "stateMessage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "identity": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "os": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scan": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NetworkDeviceScan"
+              }
+            ]
+          },
+          "connections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkConnectionItem"
+            }
+          },
+          "ports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkPortItem"
+            }
+          },
+          "adapters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkAdapterItem"
+            }
+          },
+          "interfaces": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/NetworkInterfaceItem"
+            }
+          },
+          "interfacesSeen": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "interfacesUnassigned": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openSuggestions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "position": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NetworkRouterPosition"
+              }
+            ]
+          }
+        }
+      },
+      "NetworkDeviceKind": {
+        "enum": [
+          "Router",
+          "Host"
+        ]
+      },
+      "NetworkDeviceScan": {
+        "required": [
+          "scannedAt",
+          "state",
+          "error",
+          "tableErrors",
+          "discoverySettings"
+        ],
+        "type": "object",
+        "properties": {
+          "scannedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "state": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NetworkScanItemState"
+              }
+            ]
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tableErrors": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "discoverySettings": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NetworkEdge": {
+        "required": [
+          "id",
+          "source",
+          "target",
+          "sourcePort",
+          "targetPort",
+          "type",
+          "typeLabel",
+          "physical",
+          "speedMbps",
+          "scan",
+          "suggestion",
+          "confidence"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "sourcePort": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetPort": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "typeLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "physical": {
+            "type": "boolean"
+          },
+          "speedMbps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "scan": {
+            "$ref": "#/components/schemas/NetworkScanEvidence"
+          },
+          "suggestion": {
+            "type": "boolean"
+          },
+          "confidence": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Confidence"
+              }
+            ]
+          }
+        }
+      },
+      "NetworkEndItem": {
+        "required": [
+          "kind",
+          "hostId",
+          "sensorId",
+          "name",
+          "interface",
+          "siteId",
+          "site"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/NetworkDeviceKind"
+          },
+          "hostId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "interface": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "siteId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "site": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NetworkEndRequest": {
+        "type": "object",
+        "properties": {
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "hostId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "interface": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NetworkGraph": {
+        "required": [
+          "nodes",
+          "groups",
+          "edges",
+          "lastFullScanAt"
+        ],
+        "type": "object",
+        "properties": {
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkNode"
+            }
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkGroup"
+            }
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkEdge"
+            }
+          },
+          "lastFullScanAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "savedPositions": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          }
+        }
+      },
+      "NetworkGroup": {
+        "required": [
+          "locationId",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "NetworkInterfaceAssignment": {
+        "type": "object",
+        "properties": {
+          "hostId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "interface": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NetworkInterfaceItem": {
+        "required": [
+          "mac",
+          "random",
+          "ignored",
+          "ips",
+          "hostName",
+          "sources",
+          "attachedSensorId",
+          "attachedRouter",
+          "attachedPort",
+          "attachedVlan",
+          "attachedNote",
+          "neighborIdentity",
+          "neighborPlatform",
+          "neighborBoard",
+          "neighborPort",
+          "match",
+          "matchHostId",
+          "matchSensorId",
+          "matchName",
+          "matchInterface",
+          "hintHostId",
+          "hintHostName",
+          "assignedByName",
+          "assignedAt",
+          "firstSeenAt",
+          "lastSeenAt"
+        ],
+        "type": "object",
+        "properties": {
+          "mac": {
+            "type": "string"
+          },
+          "random": {
+            "type": "boolean"
+          },
+          "ignored": {
+            "type": "boolean"
+          },
+          "ips": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hostName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "attachedSensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "attachedRouter": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "attachedPort": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "attachedVlan": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "attachedNote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "neighborIdentity": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "neighborPlatform": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "neighborBoard": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "neighborPort": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "match": {
+            "$ref": "#/components/schemas/MatchKind"
+          },
+          "matchHostId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "matchSensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "matchName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "matchInterface": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hintHostId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "hintHostName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "assignedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "assignedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "firstSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "NetworkMapSettings": {
+        "required": [
+          "scanScheduleEnabled",
+          "scanIntervalDays",
+          "scanHour",
+          "retentionDays",
+          "timeZone",
+          "changedAt",
+          "changedByName"
+        ],
+        "type": "object",
+        "properties": {
+          "scanScheduleEnabled": {
+            "type": "boolean"
+          },
+          "scanIntervalDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scanHour": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "retentionDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "changedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "changedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NetworkMapSettingsRequest": {
+        "type": "object",
+        "properties": {
+          "scanScheduleEnabled": {
+            "type": "boolean"
+          },
+          "scanIntervalDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scanHour": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "retentionDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "NetworkMapSummary": {
+        "required": [
+          "routers",
+          "hostsWithConnections",
+          "connections",
+          "physical",
+          "virtual",
+          "unconfirmed",
+          "byMedium",
+          "openSuggestions",
+          "unassignedInterfaces",
+          "scans"
+        ],
+        "type": "object",
+        "properties": {
+          "routers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hostsWithConnections": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "connections": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "physical": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "virtual": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unconfirmed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "byMedium": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "openSuggestions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "unassignedInterfaces": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scans": {
+            "$ref": "#/components/schemas/NetworkScanStatus"
+          }
+        }
+      },
+      "NetworkNode": {
+        "required": [
+          "id",
+          "kind",
+          "hostId",
+          "sensorId",
+          "name",
+          "locationId",
+          "siteId",
+          "state",
+          "os",
+          "hiddenConnections"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NetworkDeviceKind"
+          },
+          "hostId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "siteId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string"
+          },
+          "os": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hiddenConnections": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "x": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "y": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "NetworkPath": {
+        "required": [
+          "from",
+          "to",
+          "hops",
+          "slowest",
+          "virtualHops",
+          "singlePoints",
+          "lastFullScanAt"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/NetworkEndItem"
+          },
+          "to": {
+            "$ref": "#/components/schemas/NetworkEndItem"
+          },
+          "hops": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkPathHop"
+            }
+          },
+          "slowest": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "virtualHops": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "singlePoints": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "lastFullScanAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "NetworkPathHop": {
+        "required": [
+          "connectionId",
+          "from",
+          "to",
+          "type",
+          "typeLabel",
+          "physical",
+          "scan",
+          "confirmedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "connectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "from": {
+            "$ref": "#/components/schemas/NetworkEndItem"
+          },
+          "to": {
+            "$ref": "#/components/schemas/NetworkEndItem"
+          },
+          "type": {
+            "type": "string"
+          },
+          "typeLabel": {
+            "type": "string"
+          },
+          "physical": {
+            "type": "boolean"
+          },
+          "scan": {
+            "$ref": "#/components/schemas/NetworkScanEvidence"
+          },
+          "confirmedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "NetworkPortItem": {
+        "required": [
+          "name",
+          "defaultName",
+          "type",
+          "mac",
+          "running",
+          "disabled",
+          "comment",
+          "bridge",
+          "vlanParent",
+          "vlanId",
+          "bond",
+          "rateMbps",
+          "fullDuplex",
+          "detectedType",
+          "detectedTypeLabel",
+          "role",
+          "macCount",
+          "sfp",
+          "connectionId",
+          "connectedTo",
+          "suggestionId"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "defaultName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mac": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "running": {
+            "type": "boolean"
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bridge": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "vlanParent": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "vlanId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "bond": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rateMbps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "fullDuplex": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "detectedType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "detectedTypeLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "$ref": "#/components/schemas/PortRole"
+          },
+          "macCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sfp": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PortFacts"
+              }
+            ]
+          },
+          "connectionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "connectedTo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "suggestionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "NetworkPositionInput": {
+        "type": "object",
+        "properties": {
+          "sensorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "x": {
+            "type": "number",
+            "format": "double"
+          },
+          "y": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "NetworkPositionsRequest": {
+        "type": "object",
+        "properties": {
+          "positions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/NetworkPositionInput"
+            }
+          }
+        }
+      },
+      "NetworkPositionsResult": {
+        "required": [
+          "saved",
+          "skipped"
+        ],
+        "type": "object",
+        "properties": {
+          "saved": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "NetworkRouterPosition": {
+        "required": [
+          "x",
+          "y",
+          "updatedAt",
+          "updatedByName"
+        ],
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number",
+            "format": "double"
+          },
+          "y": {
+            "type": "number",
+            "format": "double"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NetworkScanDetail": {
+        "required": [
+          "scan",
+          "routers"
+        ],
+        "type": "object",
+        "properties": {
+          "scan": {
+            "$ref": "#/components/schemas/NetworkScanRow"
+          },
+          "routers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkScanItemRow"
+            }
+          }
+        }
+      },
+      "NetworkScanEvidence": {
+        "enum": [
+          "Confirmed",
+          "Unconfirmed",
+          "Manual"
+        ]
+      },
+      "NetworkScanItemRow": {
+        "required": [
+          "id",
+          "sensorId",
+          "routerName",
+          "position",
+          "state",
+          "step",
+          "startedAt",
+          "finishedAt",
+          "error",
+          "tableErrors",
+          "counts",
+          "durationMs"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "routerName": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "state": {
+            "$ref": "#/components/schemas/NetworkScanItemState"
+          },
+          "step": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tableErrors": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "counts": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "durationMs": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "NetworkScanItemState": {
+        "enum": [
+          "Queued",
+          "Running",
+          "Succeeded",
+          "Failed",
+          "Skipped",
+          "Cancelled",
+          null
+        ]
+      },
+      "NetworkScanRequest": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "$ref": "#/components/schemas/NetworkScanScope"
+          },
+          "locationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "NetworkScanRow": {
+        "required": [
+          "id",
+          "scope",
+          "scopeName",
+          "locationId",
+          "sensorId",
+          "trigger",
+          "requestedByName",
+          "state",
+          "total",
+          "succeeded",
+          "failed",
+          "skipped",
+          "currentRouterName",
+          "currentStep",
+          "currentStepNumber",
+          "stepCount",
+          "createdAt",
+          "startedAt",
+          "finishedAt",
+          "estimatedSecondsLeft"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/NetworkScanScope"
+          },
+          "scopeName": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/NetworkScanTrigger"
+          },
+          "requestedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/NetworkScanState"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "succeeded": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentRouterName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "currentStep": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "currentStepNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "stepCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "estimatedSecondsLeft": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "NetworkScanScope": {
+        "enum": [
+          "Router",
+          "Location",
+          "All"
+        ]
+      },
+      "NetworkScanState": {
+        "enum": [
+          "Queued",
+          "Running",
+          "Done",
+          "Cancelled"
+        ]
+      },
+      "NetworkScanStatus": {
+        "required": [
+          "running",
+          "queued",
+          "lastFull",
+          "nextScheduledAt",
+          "scheduleEnabled",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "running": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NetworkScanRow"
+              }
+            ]
+          },
+          "queued": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkScanRow"
+            }
+          },
+          "lastFull": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NetworkScanRow"
+              }
+            ]
+          },
+          "nextScheduledAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "scheduleEnabled": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NetworkScanTrigger": {
+        "enum": [
+          "Manual",
+          "Schedule"
+        ]
+      },
       "NetworkSection": {
         "required": [
           "adapters",
@@ -45603,6 +48900,183 @@
             }
           }
         }
+      },
+      "NetworkSuggestionAccept": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "aInterface": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bInterface": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NetworkSuggestionIds": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "NetworkSuggestionItem": {
+        "required": [
+          "id",
+          "kind",
+          "a",
+          "b",
+          "type",
+          "typeLabel",
+          "confidence",
+          "evidence",
+          "differsFrom",
+          "state",
+          "connectionId",
+          "decidedByName",
+          "decidedAt",
+          "firstSeenAt",
+          "lastSeenAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SuggestionKind"
+          },
+          "a": {
+            "$ref": "#/components/schemas/NetworkEndItem"
+          },
+          "b": {
+            "$ref": "#/components/schemas/NetworkEndItem"
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "typeLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/Confidence"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            }
+          },
+          "differsFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/NetworkSuggestionState"
+          },
+          "connectionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "decidedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "decidedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "firstSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "NetworkSuggestionRefusal": {
+        "required": [
+          "id",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "NetworkSuggestionsDecided": {
+        "required": [
+          "done",
+          "refused"
+        ],
+        "type": "object",
+        "properties": {
+          "done": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkSuggestionRefusal"
+            }
+          }
+        }
+      },
+      "NetworkSuggestionState": {
+        "enum": [
+          "Open",
+          "Accepted",
+          "Dismissed"
+        ]
       },
       "NotificationAssignRequest": {
         "type": "object",
@@ -47925,6 +51399,122 @@
           }
         }
       },
+      "PagedOfNetworkConnectionItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkConnectionItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfNetworkInterfaceItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkInterfaceItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfNetworkScanRow": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkScanRow"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfNetworkSuggestionItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkSuggestionItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "PagedOfNotificationRuleItem": {
         "required": [
           "items",
@@ -48563,6 +52153,103 @@
             ]
           }
         }
+      },
+      "PortFacts": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "defaultName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rate": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "linkUp": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "fullDuplex": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "sfpModulePresent": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "sfpType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sfpConnector": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sfpWavelength": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sfpVendor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sfpPartNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sfpLinkLengths": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "sfpCompliance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PortRole": {
+        "enum": [
+          "Edge",
+          "ToRouter",
+          "ToNeighbor",
+          "Virtual"
+        ]
       },
       "ProblemHost": {
         "required": [
@@ -53942,6 +57629,12 @@
             "type": "boolean"
           }
         }
+      },
+      "SuggestionKind": {
+        "enum": [
+          "Link",
+          "Differs"
+        ]
       },
       "SystemInfo": {
         "required": [
@@ -59336,6 +63029,9 @@
     },
     {
       "name": "MikrotikCommands"
+    },
+    {
+      "name": "NetworkMap"
     },
     {
       "name": "NotificationRules"

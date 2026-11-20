@@ -281,13 +281,31 @@ public static class AuditEvents
     public const string ConnectorRefused = "ConnectorRefused";
     public const string ConnectorCallRedacted = "ConnectorCallRedacted";
     public const string ConnectorCallCancelled = "ConnectorCallCancelled";
+
+    // The network map (docs/network-map-plan.md §10.1). Scheduled scans are not audited.
+    public const string NetworkConnectionCreated = "NetworkConnectionCreated";
+    public const string NetworkConnectionUpdated = "NetworkConnectionUpdated";
+    public const string NetworkConnectionDeleted = "NetworkConnectionDeleted";
+    public const string NetworkSuggestionAccepted = "NetworkSuggestionAccepted";
+    public const string NetworkSuggestionDismissed = "NetworkSuggestionDismissed";
+    public const string NetworkSuggestionRestored = "NetworkSuggestionRestored";
+    public const string NetworkInterfaceAssigned = "NetworkInterfaceAssigned";
+    public const string NetworkInterfaceCleared = "NetworkInterfaceCleared";
+    public const string NetworkInterfaceIgnored = "NetworkInterfaceIgnored";
+    public const string NetworkInterfaceUnignored = "NetworkInterfaceUnignored";
+    public const string NetworkScanStarted = "NetworkScanStarted";
+    public const string NetworkScanCancelled = "NetworkScanCancelled";
+    public const string NetworkMapSettingsChanged = "NetworkMapSettingsChanged";
+    public const string NetworkPositionsSaved = "NetworkPositionsSaved";
+    public const string NetworkPositionCleared = "NetworkPositionCleared";
+    public const string NetworkPositionsReset = "NetworkPositionsReset";
 }
 
 /// <summary>What an entry is about: its category on the page and in the filter (docs/audit-redmine-zabbix-plan.md §3.2).</summary>
 public enum AuditCategory
 {
     Auth, Users, Hosts, Sensors, Notifications, Locations, Knowledge, Files, Udp, Mikrotik, WireGuard, Agents, SshKeys,
-    Diagnostics, Dns, Mail, Ai, Decisions, System, Redmine, Zabbix, Cookie, Availability, Mcp, Certificates, Connectors,
+    Diagnostics, Dns, Mail, Ai, Decisions, System, Redmine, Zabbix, Cookie, Availability, Mcp, Certificates, Connectors, Network,
 }
 
 /// <summary>The colour of an event's tag.</summary>
@@ -332,6 +350,11 @@ public static class AuditTargets
     public const string Connector = "Connector";
     public const string ConnectorCaller = "ConnectorCaller";
     public const string ConnectorCall = "ConnectorCall";
+    public const string NetworkConnection = "NetworkConnection";
+    public const string NetworkSuggestion = "NetworkSuggestion";
+    public const string NetworkInterface = "NetworkInterface";
+    public const string NetworkScan = "NetworkScan";
+    public const string NetworkRouterPosition = "NetworkRouterPosition";
 }
 
 /// <summary>An event type of the catalog: its category, a label for people, the tone of its tag, what it is about.</summary>
@@ -461,6 +484,16 @@ public static class AuditCatalog
             AuditEvents.ConnectorCallerKeyRotated);
         Add(AuditCategory.Connectors, null, AuditEvents.ConnectorRefused);
         Add(AuditCategory.Connectors, AuditTargets.ConnectorCall, AuditEvents.ConnectorCallRedacted, AuditEvents.ConnectorCallCancelled);
+        Add(AuditCategory.Network, AuditTargets.NetworkConnection, AuditEvents.NetworkConnectionCreated, AuditEvents.NetworkConnectionUpdated,
+            AuditEvents.NetworkConnectionDeleted);
+        Add(AuditCategory.Network, AuditTargets.NetworkSuggestion, AuditEvents.NetworkSuggestionAccepted, AuditEvents.NetworkSuggestionDismissed,
+            AuditEvents.NetworkSuggestionRestored);
+        Add(AuditCategory.Network, AuditTargets.NetworkInterface, AuditEvents.NetworkInterfaceAssigned, AuditEvents.NetworkInterfaceCleared,
+            AuditEvents.NetworkInterfaceIgnored, AuditEvents.NetworkInterfaceUnignored);
+        Add(AuditCategory.Network, AuditTargets.NetworkScan, AuditEvents.NetworkScanStarted, AuditEvents.NetworkScanCancelled);
+        Add(AuditCategory.Network, null, AuditEvents.NetworkMapSettingsChanged);
+        Add(AuditCategory.Network, AuditTargets.NetworkRouterPosition, AuditEvents.NetworkPositionsSaved, AuditEvents.NetworkPositionCleared,
+            AuditEvents.NetworkPositionsReset);
     }
 
     public static IReadOnlyList<AuditEventInfo> All => Entries;

@@ -7,6 +7,7 @@ import { api, keys, type S } from '@/api/resources'
 import CopyField from '@/components/CopyField.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { useActions } from '@/composables/useActions'
+import { useSession } from '@/stores/session'
 import { modeLabel } from './mikrotikDraft'
 
 /**
@@ -18,6 +19,16 @@ const props = defineProps<{ sensor: S['SensorDetail']; canWrite: boolean; isAdmi
 const emit = defineEmits<{ edit: [] }>()
 const queryClient = useQueryClient()
 const { run, busy, ask } = useActions()
+const session = useSession()
+
+/** The network map (docs/network-map-plan.md §8.8): a scan of this router is Commands: Run, as a poll is. */
+async function scan() {
+  await run(() => api.network.startScan({ scope: 'Router', sensorId: props.sensor.id }), {
+    success: 'Queued for a network scan: its result shows on the network map',
+    failure: 'Not started',
+    invalidate: [keys.network],
+  })
+}
 
 const m = computed(() => props.sensor.mikrotik!)
 const script = ref<S['MikrotikScript'] | null>(null)
@@ -131,6 +142,21 @@ async function accept() {
           :loading="busy"
           @click="poll"
         />
+        <Button
+          v-if="canWrite && m.mode !== 'WireGuardOnly' && m.setupState === 'Ready'"
+          label="Scan now"
+          icon="pi pi-sync"
+          size="small"
+          severity="secondary"
+          :disabled="busy"
+          @click="scan"
+        />
+        <RouterLink
+          v-if="session.can('NetworkMap', 'View')"
+          :to="{ name: 'network-map', query: { focus: `router:${sensor.id}` } }"
+          class="map-link"
+          >Show on the network map</RouterLink
+        >
       </div>
       <div class="panel-body">
         <ol class="steps">
@@ -290,6 +316,11 @@ async function accept() {
 </template>
 
 <style scoped>
+.map-link {
+  font-size: 0.857rem;
+  margin-left: var(--pnmt-space-2);
+}
+
 .setup {
   display: flex;
   flex-direction: column;

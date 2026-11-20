@@ -41,7 +41,7 @@ namespace PNMTD.Cli
                                                     90 days of events, UDP nodes, locations, knowledge base
                                                     pages and their files) into a database without hosts
 
-            """ + FakeIntegrationsCommand.Usage + "\n" + UdpCommand.Usage + "\n" + MikrotikCommand.Usage + "\n" + WireGuardCommand.Usage + "\n" + AgentCommand.Usage + """
+            """ + FakeIntegrationsCommand.Usage + "\n" + UdpCommand.Usage + "\n" + MikrotikCommand.Usage + "\n" + NetworkCommand.Usage + "\n" + WireGuardCommand.Usage + "\n" + AgentCommand.Usage + """
 
             Without --password-stdin a temporary password is generated and printed once: valid for 7 days,
             changed at the next sign-in. With it, the first line of standard input is the password.
@@ -64,6 +64,7 @@ namespace PNMTD.Cli
                     ["groups", "list"] => UsersCommand.Groups(Database, logger),
                     ["udp", .. var rest] => UdpCommand.Run(rest, Database),
                     ["mikrotik", .. var rest] => MikrotikCommand.Run(rest, Configuration()),
+                    ["network", .. var rest] => NetworkCommand.Run(rest, Configuration()),
                     ["wireguard", .. var rest] => WireGuardCommand.Run(rest, Configuration()),
                     ["agent", .. var rest] => AgentCommand.Run(rest, Database),
                     ["dev", "fake-integrations", .. var rest] => FakeIntegrationsCommand.Run(rest),

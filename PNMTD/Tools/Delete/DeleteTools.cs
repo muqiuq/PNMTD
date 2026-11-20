@@ -25,6 +25,10 @@ public static class DeleteTools
             Schema(Id("id", "The host's id")), Area.Monitoring, Level.Edit, ToolKind.Delete, HostAsync) { AuditEvents = [AuditEvents.HostDeleted] },
         new("mail_rule_delete", "Delete a mail input rule", "Deletes a mail input rule." + Window,
             Schema(Id("id", "The rule's id")), Area.Monitoring, Level.Edit, ToolKind.Delete, MailRuleAsync) { AuditEvents = [AuditEvents.MailInputRuleDeleted] },
+        // docs/network-map-plan.md §10.2: one connection of the network map.
+        new("network_connection_delete", "Delete a network connection", "Deletes one connection of the network map, as it was recorded." + Window,
+            Schema(Id("id", "The connection's id")), Area.NetworkMap, Level.Edit, ToolKind.Delete, NetworkConnectionAsync)
+        { AuditEvents = [AuditEvents.NetworkConnectionDeleted] },
     ];
 
     /// <summary>The object as it was, field by field, into the audit's changes (field: value → deleted).</summary>
@@ -53,6 +57,31 @@ public static class DeleteTools
         await ctx.Services.GetRequiredService<SensorService>().DeleteAsync(id, ct);
         ctx.Target("Sensor", id, $"{was.Host} / {was.Name}");
         ctx.Summary = $"deleted sensor {was.Host} / {was.Name} ({was.Type})";
+        return new { Deleted = snapshot };
+    }
+
+    private static async Task<object> NetworkConnectionAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
+    {
+        var id = IdOf(args);
+        var service = ctx.Services.GetRequiredService<Network.NetworkConnectionService>();
+        Api.V1.Contracts.NetworkConnectionItem was;
+        try
+        {
+            was = await service.GetAsync(id, ct);
+        }
+        catch (Api.ApiException e) when (e.Status == 404)
+        {
+            throw ToolException.NotFound("connection");
+        }
+        var snapshot = new
+        {
+            was.Id, A = $"{was.A.Name} {was.A.Interface}".Trim(), B = $"{was.B.Name} {was.B.Interface}".Trim(), was.Type, was.Notes, was.Source, was.CreatedAt,
+            was.CreatedByName,
+        };
+        AsItWas(snapshot);
+        await service.DeleteAsync(id, ct);
+        ctx.Target("NetworkConnection", id, $"{snapshot.A} ↔ {snapshot.B}");
+        ctx.Summary = $"deleted connection {snapshot.A} ↔ {snapshot.B} ({was.TypeLabel})";
         return new { Deleted = snapshot };
     }
 

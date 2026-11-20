@@ -15,5 +15,7 @@ public static class McpInstructions
         - Commands to devices are queued: ask for their result with the *_get tools later.
         - Deleting needs the person: they click "Allow deleting for 10 minutes" on Account → Security in PNMT first.
         - Results carry a url to the object's page in PNMT; hand it to the person when it helps.
+        - The network: network_connections_list (routersOnly for how the routers are connected) and network_path_get between two devices.
+          Connections were confirmed by people; suggestions are only what the routers' scans propose. Say when the routers were last scanned.
         """;
 }

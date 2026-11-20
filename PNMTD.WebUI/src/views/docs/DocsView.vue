@@ -18,6 +18,7 @@ import AvailabilityDocs from './AvailabilityDocs.vue'
 import CookieDocs from './CookieDocs.vue'
 import IntegrationsDocs from './IntegrationsDocs.vue'
 import MarkdownDocs from './MarkdownDocs.vue'
+import NetworkMapDocs from './NetworkMapDocs.vue'
 
 /**
  * The documentation (§5.6), from the API so it never drifts: the sensor API with examples for this
@@ -162,6 +163,7 @@ const visibleRules = computed(() => ruleTypes.list.value.filter((r) => has(r.typ
     <IntegrationsDocs :search="search" />
     <CookieDocs :search="search" />
     <AvailabilityDocs :search="search" />
+    <NetworkMapDocs :search="search" />
 
     <section v-if="visibleCodes.length" class="panel" aria-labelledby="codes-title">
       <div id="codes-title" class="panel-header">Status codes</div>

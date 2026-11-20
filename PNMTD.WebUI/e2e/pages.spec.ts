@@ -39,6 +39,12 @@ const pages: [string, string, string][] = [
   ['/connectors/connectors', '3rd Party Connectors', 'connectors-list'],
   ['/connectors/callers', '3rd Party Connectors', 'connectors-callers'],
   ['/connectors/docs', '3rd Party Connectors', 'connectors-docs'],
+  // docs/network-map-plan.md §8.1: the map and its tabs.
+  ['/network-map', 'Network map', 'network-map'],
+  ['/network-map?tab=connections', 'Network map', 'network-map-connections'],
+  ['/network-map?tab=suggestions', 'Network map', 'network-map-suggestions'],
+  ['/network-map?tab=scans', 'Network map', 'network-map-scans'],
+  ['/network-map?tab=interfaces', 'Network map', 'network-map-interfaces'],
   ['/docs', 'Documentation', 'docs'],
 ]
 

@@ -26,6 +26,8 @@ public static class McpRights
         [Area.Availability] = Level.View,
         // docs/ssl-certificate-plan.md §6.4: the sensors and Check now; accepting a change and the private CAs are no tools.
         [Area.Certificates] = Level.Edit,
+        // docs/network-map-plan.md §10.2: connections, suggestions and assignments; scans of many routers and the schedule stay in the UI.
+        [Area.NetworkMap] = Level.Edit,
     };
 
     /// <summary>
@@ -43,6 +45,7 @@ public static class McpRights
         [Area.Cookie] = Level.Use,
         [Area.Availability] = Level.View,
         [Area.Certificates] = Level.View,
+        [Area.NetworkMap] = Level.Details,
     };
 
     public static UserRights For(UserRights user, McpTokenKind kind)

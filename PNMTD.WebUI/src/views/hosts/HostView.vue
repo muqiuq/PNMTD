@@ -125,6 +125,11 @@ const more = computed(() => [
           <TicketCount :target="{ hostId: host.id }" />
         </template>
         <template #actions>
+          <RouterLink
+            v-if="session.can('NetworkMap', 'View')"
+            :to="{ name: 'network-map', query: { focus: `host:${host.id}` } }"
+            >Show on the network map</RouterLink
+          >
           <Button
             v-if="canWrite"
             label="Add sensor"

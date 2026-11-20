@@ -99,6 +99,8 @@ public partial class Program
         builder.Services.AddAi(builder.Configuration);
         builder.Services.AddUdpNodes(builder.Configuration);
         builder.Services.AddMikrotik(builder.Configuration);
+        // The network map (docs/network-map-plan.md §9.3): the scan, the analysis, the schedule.
+        PNMTD.Network.NetworkMapSetup.AddNetworkMap(builder.Services, builder.Configuration);
         builder.Services.AddWireGuard(builder.Configuration);
         builder.Services.AddAgents(builder.Configuration);
         builder.Services.AddFiles(builder.Configuration);
@@ -146,6 +148,8 @@ public partial class Program
             builder.Services.AddHostedService(sp => sp.GetRequiredService<VersionCatalog>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<AdvisoryFeed>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<BackupRetentionTask>());
+            // The network map's schedule and retention (docs/network-map-plan.md §7.3).
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Network.NetworkScanSchedule>());
             // Servers with an agent (docs/windows-sensor-plan.md §8.4): expired tokens and retention.
             builder.Services.AddHostedService(sp => sp.GetRequiredService<AgentMaintenanceTask>());
             // Uploaded files (docs/locations-knowledge-plan.md §5.5): the daily cleanup, and the check on the File storage sensor.
@@ -187,6 +191,8 @@ public partial class Program
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Outbound.OutboundLogWriter>());
             builder.Services.AddHostedService<UdpListener>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<JobRunner>());
+            // The network scan's worker (docs/network-map-plan.md §7.2): a scan someone started runs in any case.
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Network.NetworkScanner>());
         }
 
         // Proxy: docker, addresses and networks, comma-separated (docs/connectors-plan.md §6.4). Parsed here, so a bad

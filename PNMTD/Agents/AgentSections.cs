@@ -91,6 +91,22 @@ public static class AgentSections
         row.ChangedAt = now;
         row.Content = Compress(json);
         row.Errors = errors;
+        if (message.Name == SectionNames.Network)
+        {
+            // The network map matches interfaces by these MACs (docs/network-map-plan.md §6.2). A section PNMT can't read keeps the old ones.
+            NetworkSection? network = null;
+            try
+            {
+                network = AgentJson.Deserialize<NetworkSection>(json);
+            }
+            catch (Exception e) when (e is JsonException or NotSupportedException)
+            {
+            }
+            if (network is not null)
+            {
+                await Network.AgentMacIndex.ReplaceAsync(db, sensorId, network, ct);
+            }
+        }
         return (row, previous);
     }
 }

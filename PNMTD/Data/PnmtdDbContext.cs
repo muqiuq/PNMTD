@@ -62,6 +62,19 @@ namespace PNMTD.Data
         public DbSet<AdvancedReportEntity> AdvancedReports { get; set; }
         public DbSet<AdvancedSampleEntity> AdvancedSamples { get; set; }
 
+        // The network map (docs/network-map-plan.md §9.2): the settings, scans, the routers' latest tables, interfaces, connections, suggestions.
+        public DbSet<NetworkMapSettingsEntity> NetworkMapSettings { get; set; }
+        public DbSet<NetworkScanEntity> NetworkScans { get; set; }
+        public DbSet<NetworkScanItemEntity> NetworkScanItems { get; set; }
+        public DbSet<NetworkRouterSnapshotEntity> NetworkRouterSnapshots { get; set; }
+        public DbSet<NetworkRouterPortEntity> NetworkRouterPorts { get; set; }
+        public DbSet<NetworkObservationEntity> NetworkObservations { get; set; }
+        public DbSet<NetworkInterfaceEntity> NetworkInterfaces { get; set; }
+        public DbSet<AgentAdapterMacEntity> AgentAdapterMacs { get; set; }
+        public DbSet<NetworkConnectionEntity> NetworkConnections { get; set; }
+        public DbSet<NetworkSuggestionEntity> NetworkSuggestions { get; set; }
+        public DbSet<NetworkRouterPositionEntity> NetworkRouterPositions { get; set; }
+
         // 3rd Party Connectors (docs/connectors-plan.md §10): connectors, callers, grants, a script connector's target and arguments, calls.
         public DbSet<ConnectorEntity> Connectors { get; set; }
         public DbSet<ConnectorCallerEntity> ConnectorCallers { get; set; }
@@ -686,6 +699,7 @@ namespace PNMTD.Data
             });
 
             ConfigureLocations(modelBuilder);
+            ConfigureNetworkMap(modelBuilder);
             ConfigureKnowledgeBase(modelBuilder);
             ConfigureFiles(modelBuilder);
             ConfigureCookie(modelBuilder);
@@ -698,6 +712,83 @@ namespace PNMTD.Data
         /// Locations (docs/locations-knowledge-plan.md §8.2): a parent can't be deleted while it has sub-locations (§3.3);
         /// deleting a location unassigns its hosts and takes its values and history along.
         /// </summary>
+        /// <summary>
+        /// The network map (docs/network-map-plan.md §9.2). A router's scan data goes with its sensor; a connection with either end's
+        /// host or router; runs keep their history when a router or location goes.
+        /// </summary>
+        private static void ConfigureNetworkMap(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<NetworkScanEntity>(e =>
+            {
+                e.HasOne<LocationEntity>().WithMany().HasForeignKey(s => s.LocationId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(s => s.SensorId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(s => new { s.State, s.CreatedAt });
+                e.HasIndex(s => s.CreatedAt);
+            });
+            modelBuilder.Entity<NetworkScanItemEntity>(e =>
+            {
+                e.HasOne<NetworkScanEntity>().WithMany().HasForeignKey(i => i.ScanId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(i => i.SensorId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(i => new { i.ScanId, i.Position });
+                e.HasIndex(i => new { i.State, i.SensorId });
+                e.HasIndex(i => new { i.SensorId, i.FinishedAt });
+            });
+            modelBuilder.Entity<NetworkRouterSnapshotEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(s => s.SensorId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<NetworkRouterPortEntity>(e =>
+            {
+                e.HasKey(p => new { p.SensorId, p.Name });
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(p => p.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(p => p.Mac);
+            });
+            modelBuilder.Entity<NetworkObservationEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(o => o.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(o => new { o.SensorId, o.Source });
+                e.HasIndex(o => o.Mac);
+            });
+            modelBuilder.Entity<NetworkInterfaceEntity>(e =>
+            {
+                e.HasOne<HostEntity>().WithMany().HasForeignKey(i => i.AssignedHostId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(i => i.MatchHostId);
+                e.HasIndex(i => i.AttachedSensorId);
+                e.HasIndex(i => i.LastSeenAt);
+            });
+            modelBuilder.Entity<AgentAdapterMacEntity>(e =>
+            {
+                e.HasKey(m => new { m.SensorId, m.Mac, m.Adapter });
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(m => m.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(m => m.Mac);
+            });
+            modelBuilder.Entity<NetworkConnectionEntity>(e =>
+            {
+                e.HasIndex(c => c.Key).IsUnique();
+                e.HasOne<HostEntity>().WithMany().HasForeignKey(c => c.AHostId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<HostEntity>().WithMany().HasForeignKey(c => c.BHostId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(c => c.ASensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(c => c.BSensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(c => c.ASensorId);
+                e.HasIndex(c => c.BSensorId);
+                e.HasIndex(c => c.BHostId);
+            });
+            modelBuilder.Entity<NetworkRouterPositionEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(p => p.SensorId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<NetworkSuggestionEntity>(e =>
+            {
+                e.HasIndex(s => s.Key).IsUnique();
+                e.HasIndex(s => new { s.State, s.Confidence });
+                e.HasOne<NetworkConnectionEntity>().WithMany().HasForeignKey(s => s.ConnectionId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<HostEntity>().WithMany().HasForeignKey(s => s.AHostId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<HostEntity>().WithMany().HasForeignKey(s => s.BHostId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(s => s.ASensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(s => s.BSensorId).OnDelete(DeleteBehavior.Cascade);
+            });
+        }
+
         private static void ConfigureLocations(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<LocationEntity>(e =>

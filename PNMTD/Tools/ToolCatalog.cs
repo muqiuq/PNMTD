@@ -19,10 +19,12 @@ public static class ToolCatalog
         .. IntegrationReadTools.All,
         .. OperationsReadTools.All,
         .. AccessReadTools.All,
+        .. NetworkReadTools.All,
         .. CookieCaseTools.All,
         .. CookieChatTools.All,
         .. Write.MonitoringWriteTools.All,
         .. Write.KnowledgeWriteTools.All,
+        .. Write.NetworkWriteTools.All,
         .. Actions.CommandTools.All,
         .. Delete.DeleteTools.All,
     ];

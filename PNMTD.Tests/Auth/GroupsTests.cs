@@ -96,8 +96,10 @@ public sealed class GroupsTests
     public async Task TheCatalogListsEveryAreaWithItsLevels()
     {
         var catalog = await (await app.Client(Roles.Viewer).GetAsync("/api/v1/rights")).ReadAsync<List<RightsAreaItem>>();
-        Assert.AreEqual(21, catalog.Count,
-            "16, Cookie since docs/cookie-plan.md §10.1, Availability since §9.4, MCP since docs/mcp-plan.md §10.4, Certificates since docs/ssl-certificate-plan.md §6.4, and Connectors since docs/connectors-plan.md §12.1");
+        Assert.AreEqual(22, catalog.Count,
+            "16, Cookie since docs/cookie-plan.md §10.1, Availability since §9.4, MCP since docs/mcp-plan.md §10.4, Certificates since docs/ssl-certificate-plan.md §6.4, Connectors since docs/connectors-plan.md §12.1, and Network map since docs/network-map-plan.md §9.1");
+        CollectionAssert.AreEqual(new[] { Level.View, Level.Details, Level.Edit, Level.Manage },
+            catalog.Single(a => a.Area == Area.NetworkMap).Levels.Select(l => l.Level).ToArray());
         CollectionAssert.AreEqual(new[] { Level.View, Level.Manage },
             catalog.Single(a => a.Area == Area.Connectors).Levels.Select(l => l.Level).ToArray());
         CollectionAssert.AreEqual(new[] { Level.View, Level.Edit, Level.Manage },

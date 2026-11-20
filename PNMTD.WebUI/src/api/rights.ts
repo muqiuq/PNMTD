@@ -32,6 +32,8 @@ export const levelOrder: Record<Area, readonly Level[]> = {
   Certificates: ['View', 'Edit', 'Manage'],
   // docs/connectors-plan.md §12.1: every call and connector; Manage changes them, and the callers and their keys.
   Connectors: ['View', 'Manage'],
+  // docs/network-map-plan.md §9.1: the interfaces are Details, which name people (DHCP host names, Wi-Fi clients).
+  NetworkMap: ['View', 'Details', 'Edit', 'Manage'],
 }
 
 /** Whether these rights (the admin flag, or the levels per area) include the level asked for. */

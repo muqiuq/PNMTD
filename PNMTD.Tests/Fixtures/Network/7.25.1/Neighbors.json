@@ -1,0 +1,1 @@
+{"neighbors":[],"settings":{"add-dns-entries":false,"add-dns-entries-suffix":"lan","discover-interface-list":"static","discover-interval":"00:00:30","dying-gasp":false,"lldp-mac-phy-config":false,"lldp-max-frame-size":false,"lldp-med":true,"lldp-med-net-policy-vlan":"disabled","lldp-vlan-info":false,"mode":"tx-and-rx","protocol":["cdp","lldp","mndp"]}}

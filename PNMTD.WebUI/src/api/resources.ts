@@ -962,6 +962,94 @@ export const api = {
    * 3rd Party Connectors (docs/connectors-plan.md §11): every connector's calls with their figures, the connectors with their
    * target as text and its selectors, the callers with their keys (each display audited), networks and grants.
    */
+  /**
+   * The network map (docs/network-map-plan.md §10.1): the graph, a device's panel, connections, suggestions, interfaces
+   * (Details), scans (Manage; one router Commands: Run) and the settings.
+   */
+  network: {
+    graph: (query: {
+      routers?: 'all' | 'locations' | 'problems'
+      routerLocationIds?: Id[]
+      hostLocationIds?: Id[]
+      onlyConnected?: boolean
+      suggestions?: boolean
+      physical?: boolean
+      media?: S['ConnectionMedium'][]
+    }) => call(client.GET('/api/v1/network-map/graph', { params: { query } })),
+    connectionTypes: () => call(client.GET('/api/v1/network-map/connection-types')),
+    device: (kind: S['NetworkDeviceKind'], id: Id) =>
+      call(client.GET('/api/v1/network-map/devices/{kind}/{id}', { params: { path: { kind, id } } })),
+    summary: () => call(client.GET('/api/v1/network-map/summary')),
+    path: (from: string, to: string, physicalOnly = false) =>
+      call(client.GET('/api/v1/network-map/path', { params: { query: { from, to, physicalOnly } } })),
+    connections: (
+      query: ListQuery & {
+        locationId?: Id
+        deviceId?: Id
+        type?: string
+        physical?: boolean
+        routersOnly?: boolean
+        unconfirmed?: boolean
+      },
+    ) => call(client.GET('/api/v1/network-map/connections', { params: { query } })),
+    connection: (id: Id) => call(client.GET('/api/v1/network-map/connections/{id}', { params: { path: { id } } })),
+    createConnection: (body: S['NetworkConnectionRequest']) =>
+      call(client.POST('/api/v1/network-map/connections', { body })),
+    updateConnection: (id: Id, body: S['NetworkConnectionUpdate']) =>
+      call(client.PUT('/api/v1/network-map/connections/{id}', { params: { path: { id } }, body })),
+    deleteConnection: (id: Id) =>
+      call(client.DELETE('/api/v1/network-map/connections/{id}', { params: { path: { id } } })),
+    savePositions: (positions: S['NetworkPositionInput'][]) =>
+      call(client.PUT('/api/v1/network-map/positions', { body: { positions } })),
+    clearPosition: (sensorId: Id) =>
+      call(client.DELETE('/api/v1/network-map/positions/{sensorId}', { params: { path: { sensorId } } })),
+    resetPositions: () => call(client.DELETE('/api/v1/network-map/positions')),
+    suggestions: (
+      query: ListQuery & {
+        state?: S['NetworkSuggestionState']
+        confidence?: S['Confidence']
+        kind?: S['SuggestionKind']
+        deviceId?: Id
+        locationId?: Id
+      },
+    ) => call(client.GET('/api/v1/network-map/suggestions', { params: { query } })),
+    accept: (id: Id, body: S['NetworkSuggestionAccept'] = {}) =>
+      call(client.POST('/api/v1/network-map/suggestions/{id}/accept', { params: { path: { id } }, body })),
+    acceptMany: (ids: Id[]) => call(client.POST('/api/v1/network-map/suggestions/accept', { body: { ids } })),
+    dismiss: (id: Id) =>
+      call(client.POST('/api/v1/network-map/suggestions/{id}/dismiss', { params: { path: { id } } })),
+    dismissMany: (ids: Id[]) => call(client.POST('/api/v1/network-map/suggestions/dismiss', { body: { ids } })),
+    restore: (id: Id) =>
+      call(client.POST('/api/v1/network-map/suggestions/{id}/restore', { params: { path: { id } } })),
+    interfaces: (
+      query: ListQuery & {
+        unassigned?: boolean
+        routerId?: Id
+        locationId?: Id
+        source?: string
+        vlan?: number
+        seenInLastScan?: boolean
+        showIgnored?: boolean
+        hostId?: Id
+      },
+    ) => call(client.GET('/api/v1/network-map/interfaces', { params: { query } })),
+    assign: (mac: string, body: S['NetworkInterfaceAssignment']) =>
+      call(client.PUT('/api/v1/network-map/interfaces/{mac}/assignment', { params: { path: { mac } }, body })),
+    clearAssignment: (mac: string) =>
+      call(client.DELETE('/api/v1/network-map/interfaces/{mac}/assignment', { params: { path: { mac } } })),
+    ignore: (mac: string, ignore: boolean) =>
+      ignore
+        ? call(client.POST('/api/v1/network-map/interfaces/{mac}/ignore', { params: { path: { mac } } }))
+        : call(client.POST('/api/v1/network-map/interfaces/{mac}/unignore', { params: { path: { mac } } })),
+    scanStatus: () => call(client.GET('/api/v1/network-map/scans/status')),
+    scans: (query: ListQuery) => call(client.GET('/api/v1/network-map/scans', { params: { query } })),
+    scan: (id: Id) => call(client.GET('/api/v1/network-map/scans/{id}', { params: { path: { id } } })),
+    startScan: (body: S['NetworkScanRequest']) => call(client.POST('/api/v1/network-map/scans', { body })),
+    cancelScan: (id: Id) => call(client.POST('/api/v1/network-map/scans/{id}/cancel', { params: { path: { id } } })),
+    settings: () => call(client.GET('/api/v1/network-map/settings')),
+    saveSettings: (body: S['NetworkMapSettingsRequest']) => call(client.PUT('/api/v1/network-map/settings', { body })),
+  },
+
   connectors: {
     calls: (query: ListQuery & ConnectorCallFilters) =>
       call(client.GET('/api/v1/connector-calls', { params: { query } })),
@@ -1244,6 +1332,8 @@ export const keys = {
   connectors: ['connectors'] as const,
   connector: (id: Id) => ['connectors', 'connector', id] as const,
   connectorCaller: (id: Id) => ['connectors', 'caller', id] as const,
+  /** The network map: the graph, panels, connections, suggestions, interfaces and scans (docs/network-map-plan.md §8). */
+  network: ['network'] as const,
 }
 
 /** A connector's PUT from its detail, with some fields changed (v1's PUT takes every writable field; arguments only when given). */

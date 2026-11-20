@@ -54,6 +54,9 @@
         // The 3rd Party Connectors' worker (docs/connectors-plan.md §9.1).
         LAST_CONNECTOR_WORK = 330,
 
+        // The network map's schedule and retention (docs/network-map-plan.md §7.3).
+        LAST_NETWORK_SCAN_SCHEDULE_RUN = 340,
+
         UNUSED = 999,
     }
 }

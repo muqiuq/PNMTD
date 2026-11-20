@@ -10,7 +10,7 @@ namespace PNMTD.Auth.Rights;
 public enum Area
 {
     Monitoring, Commands, Mail, Decisions, Locations, KnowledgeBase, Redmine, Zabbix, UdpNodes, Mikrotik, Servers, SshKeys,
-    Diagnostics, Ai, System, AuditLog, Cookie, Availability, Mcp, Certificates, Connectors,
+    Diagnostics, Ai, System, AuditLog, Cookie, Availability, Mcp, Certificates, Connectors, NetworkMap,
 }
 
 /// <summary>
@@ -36,7 +36,7 @@ public static class RightsCatalog
             (Level.Details, "View, plus what names people: servers' and routers' logins and the access cases and notices about them, a server's event log, journal and SSH keys, and the reports of advanced sensors whose data names people."),
             (Level.Edit, "Details, plus create, change and delete them; sensor tokens and URLs; importance; notification assignments and the Pushover priorities; UDP keys and counters; a router's WireGuard keys; an agent's settings; attaching Zabbix hosts; advanced sensors' rules and fields, and deleting their reports.")]),
         new(Area.Commands, "Commands", [
-            (Level.Run, "UDP commands, a MikroTik router's poll, backup now and commands, an agent's Collect now, a diagnostics run.")]),
+            (Level.Run, "UDP commands, a MikroTik router's poll, backup now, network scan and commands, an agent's Collect now, a diagnostics run.")]),
         new(Area.Mail, "Mail", [(Level.Read, "The mail log and the mails' contents.")]),
         new(Area.Decisions, "Decisions", [(Level.Decide, "The decisions inbox. Decisions marked for admins stay with admins.")]),
         new(Area.Locations, "Locations", [
@@ -84,6 +84,12 @@ public static class RightsCatalog
         new(Area.Connectors, "3rd Party Connectors", [
             (Level.View, "3rd Party Connectors: every call, the connectors and their callers, and the output of their runs."),
             (Level.Manage, "View, plus adding, changing and deleting connectors, including the script a connector runs on a server and the account it runs as; adding and changing callers, their networks and grants, showing and rotating their keys; redacting and cancelling calls. As strong as running scripts on servers, for the callers it lets in.")]),
+        // docs/network-map-plan.md §9.1: a scan of one router is Commands: Run, as a poll is.
+        new(Area.NetworkMap, "Network map", [
+            (Level.View, "The network map, its connections, suggestions and scans, with the names of the routers and hosts on it."),
+            (Level.Details, "View, plus the network interfaces: MAC and IP addresses, DHCP host names, Wi-Fi clients, which can name people."),
+            (Level.Edit, "Details, plus creating, changing and deleting connections; accepting, dismissing and restoring suggestions; assigning and ignoring interfaces; saving where the routers are on the map, and putting them back to automatic."),
+            (Level.Manage, "Edit, plus scans of all routers or of a location, cancelling scans, and the schedule and settings.")]),
     ];
 
     private static readonly Dictionary<Area, AreaInfo> ByArea = Areas.ToDictionary(a => a.Area);

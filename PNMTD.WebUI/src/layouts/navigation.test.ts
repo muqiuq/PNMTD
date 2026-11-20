@@ -88,6 +88,14 @@ describe('visibleNavigation', () => {
     expect(navigation.flatMap((g) => g.items.map((i) => i.name))).not.toContain('docs')
   })
 
+  it('shows the network map with its View (docs/network-map-plan.md §8.1)', () => {
+    expect(names(visibleNavigation((r) => r !== 'admin' && r[0] === 'NetworkMap' && r[1] === 'View'))).toEqual([
+      'dashboard',
+      'network-map',
+    ])
+    expect(names(visibleNavigation((r) => r !== 'admin' && r[0] === 'Monitoring'))).not.toContain('network-map')
+  })
+
   it("shows Cookie's window with Cookie's Use and Admin → Cookie only with its Manage (docs/cookie-plan.md §10.1)", () => {
     const use = names(visibleNavigation((r) => r !== 'admin' && r[0] === 'Cookie' && r[1] === 'Use'))
     expect(use).toEqual(['dashboard', 'cookie'])

@@ -13030,6 +13030,1163 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/network-map/graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    routers?: string;
+                    routerLocationIds?: string[];
+                    hostLocationIds?: string[];
+                    onlyConnected?: boolean;
+                    suggestions?: boolean;
+                    physical?: boolean;
+                    media?: components["schemas"]["ConnectionMedium"][];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkGraph"];
+                        "text/json": components["schemas"]["NetworkGraph"];
+                        "text/plain": components["schemas"]["NetworkGraph"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/connection-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkConnectionTypeItem"][];
+                        "text/json": components["schemas"]["NetworkConnectionTypeItem"][];
+                        "text/plain": components["schemas"]["NetworkConnectionTypeItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/devices/{kind}/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    kind: components["schemas"]["NetworkDeviceKind"];
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkDeviceDetail"];
+                        "text/json": components["schemas"]["NetworkDeviceDetail"];
+                        "text/plain": components["schemas"]["NetworkDeviceDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkMapSummary"];
+                        "text/json": components["schemas"]["NetworkMapSummary"];
+                        "text/plain": components["schemas"]["NetworkMapSummary"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/path": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                    physicalOnly?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkPath"];
+                        "text/json": components["schemas"]["NetworkPath"];
+                        "text/plain": components["schemas"]["NetworkPath"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NetworkPositionsRequest"];
+                    "text/json": components["schemas"]["NetworkPositionsRequest"];
+                    "application/*+json": components["schemas"]["NetworkPositionsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkPositionsResult"];
+                        "text/json": components["schemas"]["NetworkPositionsResult"];
+                        "text/plain": components["schemas"]["NetworkPositionsResult"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/positions/{sensorId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sensorId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    locationId?: string;
+                    deviceId?: string;
+                    type?: string;
+                    physical?: boolean;
+                    routersOnly?: boolean;
+                    unconfirmed?: boolean;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfNetworkConnectionItem"];
+                        "text/json": components["schemas"]["PagedOfNetworkConnectionItem"];
+                        "text/plain": components["schemas"]["PagedOfNetworkConnectionItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NetworkConnectionRequest"];
+                    "text/json": components["schemas"]["NetworkConnectionRequest"];
+                    "application/*+json": components["schemas"]["NetworkConnectionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkConnectionItem"];
+                        "text/json": components["schemas"]["NetworkConnectionItem"];
+                        "text/plain": components["schemas"]["NetworkConnectionItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/connections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkConnectionItem"];
+                        "text/json": components["schemas"]["NetworkConnectionItem"];
+                        "text/plain": components["schemas"]["NetworkConnectionItem"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NetworkConnectionUpdate"];
+                    "text/json": components["schemas"]["NetworkConnectionUpdate"];
+                    "application/*+json": components["schemas"]["NetworkConnectionUpdate"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkConnectionItem"];
+                        "text/json": components["schemas"]["NetworkConnectionItem"];
+                        "text/plain": components["schemas"]["NetworkConnectionItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    state?: components["schemas"]["NetworkSuggestionState"];
+                    confidence?: components["schemas"]["Confidence"];
+                    kind?: components["schemas"]["SuggestionKind"];
+                    deviceId?: string;
+                    locationId?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfNetworkSuggestionItem"];
+                        "text/json": components["schemas"]["PagedOfNetworkSuggestionItem"];
+                        "text/plain": components["schemas"]["PagedOfNetworkSuggestionItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/suggestions/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NetworkSuggestionAccept"];
+                    "text/json": components["schemas"]["NetworkSuggestionAccept"];
+                    "application/*+json": components["schemas"]["NetworkSuggestionAccept"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkConnectionItem"];
+                        "text/json": components["schemas"]["NetworkConnectionItem"];
+                        "text/plain": components["schemas"]["NetworkConnectionItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/suggestions/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NetworkSuggestionIds"];
+                    "text/json": components["schemas"]["NetworkSuggestionIds"];
+                    "application/*+json": components["schemas"]["NetworkSuggestionIds"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkSuggestionsDecided"];
+                        "text/json": components["schemas"]["NetworkSuggestionsDecided"];
+                        "text/plain": components["schemas"]["NetworkSuggestionsDecided"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/suggestions/{id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkSuggestionsDecided"];
+                        "text/json": components["schemas"]["NetworkSuggestionsDecided"];
+                        "text/plain": components["schemas"]["NetworkSuggestionsDecided"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/suggestions/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NetworkSuggestionIds"];
+                    "text/json": components["schemas"]["NetworkSuggestionIds"];
+                    "application/*+json": components["schemas"]["NetworkSuggestionIds"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkSuggestionsDecided"];
+                        "text/json": components["schemas"]["NetworkSuggestionsDecided"];
+                        "text/plain": components["schemas"]["NetworkSuggestionsDecided"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/suggestions/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkSuggestionsDecided"];
+                        "text/json": components["schemas"]["NetworkSuggestionsDecided"];
+                        "text/plain": components["schemas"]["NetworkSuggestionsDecided"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/interfaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    unassigned?: boolean;
+                    routerId?: string;
+                    locationId?: string;
+                    source?: string;
+                    vlan?: number;
+                    seenInLastScan?: boolean;
+                    showIgnored?: boolean;
+                    hostId?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfNetworkInterfaceItem"];
+                        "text/json": components["schemas"]["PagedOfNetworkInterfaceItem"];
+                        "text/plain": components["schemas"]["PagedOfNetworkInterfaceItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/interfaces/{mac}/assignment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    mac: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NetworkInterfaceAssignment"];
+                    "text/json": components["schemas"]["NetworkInterfaceAssignment"];
+                    "application/*+json": components["schemas"]["NetworkInterfaceAssignment"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkInterfaceItem"];
+                        "text/json": components["schemas"]["NetworkInterfaceItem"];
+                        "text/plain": components["schemas"]["NetworkInterfaceItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    mac: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkInterfaceItem"];
+                        "text/json": components["schemas"]["NetworkInterfaceItem"];
+                        "text/plain": components["schemas"]["NetworkInterfaceItem"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/interfaces/{mac}/ignore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    mac: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkInterfaceItem"];
+                        "text/json": components["schemas"]["NetworkInterfaceItem"];
+                        "text/plain": components["schemas"]["NetworkInterfaceItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/interfaces/{mac}/unignore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    mac: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkInterfaceItem"];
+                        "text/json": components["schemas"]["NetworkInterfaceItem"];
+                        "text/plain": components["schemas"]["NetworkInterfaceItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/scans/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkScanStatus"];
+                        "text/json": components["schemas"]["NetworkScanStatus"];
+                        "text/plain": components["schemas"]["NetworkScanStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/scans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfNetworkScanRow"];
+                        "text/json": components["schemas"]["PagedOfNetworkScanRow"];
+                        "text/plain": components["schemas"]["PagedOfNetworkScanRow"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NetworkScanRequest"];
+                    "text/json": components["schemas"]["NetworkScanRequest"];
+                    "application/*+json": components["schemas"]["NetworkScanRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkScanRow"];
+                        "text/json": components["schemas"]["NetworkScanRow"];
+                        "text/plain": components["schemas"]["NetworkScanRow"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/scans/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkScanDetail"];
+                        "text/json": components["schemas"]["NetworkScanDetail"];
+                        "text/plain": components["schemas"]["NetworkScanDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/scans/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkScanRow"];
+                        "text/json": components["schemas"]["NetworkScanRow"];
+                        "text/plain": components["schemas"]["NetworkScanRow"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkMapSettings"];
+                        "text/json": components["schemas"]["NetworkMapSettings"];
+                        "text/plain": components["schemas"]["NetworkMapSettings"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NetworkMapSettingsRequest"];
+                    "text/json": components["schemas"]["NetworkMapSettingsRequest"];
+                    "application/*+json": components["schemas"]["NetworkMapSettingsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkMapSettings"];
+                        "text/json": components["schemas"]["NetworkMapSettings"];
+                        "text/plain": components["schemas"]["NetworkMapSettings"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notification-rules": {
         parameters: {
             query?: never;
@@ -19387,13 +20544,13 @@ export interface components {
             complaining: number;
         };
         /** @enum {unknown} */
-        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors";
+        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors" | "NetworkMap";
         /** @enum {unknown} */
         AssignMode: "Add" | "Remove";
         /** @enum {unknown} */
         AuditActor: "User" | "Cli" | "Agent" | "System" | "Cookie" | "Mcp" | "Connector";
         /** @enum {unknown} */
-        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors";
+        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors" | "Network";
         AuditChange: {
             object: null | string;
             field: string;
@@ -19958,6 +21115,10 @@ export interface components {
             currentPassword?: null | string;
             newPassword?: null | string;
         };
+        /** @enum {unknown} */
+        Confidence: "Low" | "Medium" | "High" | null;
+        /** @enum {unknown} */
+        ConnectionMedium: "BaseT" | "Dac" | "Aoc" | "FiberMmf" | "FiberSmf" | "Wifi" | "WireGuard" | "Tunnel" | "VirtualMachine" | "Other";
         ConnectorAccountOption: {
             kind: components["schemas"]["RunAsKind"];
             account: null | string;
@@ -21506,6 +22667,11 @@ export interface components {
         EventLogSection: {
             entries: components["schemas"]["EventEntry"][];
         };
+        Evidence: {
+            rule: string;
+            confidence: components["schemas"]["Confidence"];
+            text: string;
+        };
         Fail2banInfo: {
             running: boolean;
             jails: components["schemas"]["Fail2banJail"][];
@@ -22755,6 +23921,8 @@ export interface components {
             /** Format: int32 */
             unprocessed: number;
         };
+        /** @enum {unknown} */
+        MatchKind: "None" | "RouterPort" | "ServerAdapter" | "Manual" | "Ambiguous";
         McpAccountItem: {
             enabled: boolean;
             url: string;
@@ -23505,6 +24673,428 @@ export interface components {
             /** Format: int32 */
             seraphSampleEvery?: number;
         };
+        NetworkAdapterItem: {
+            adapter: string;
+            mac: string;
+            kind: null | string;
+            /** Format: int64 */
+            speedBps: null | number;
+            virtual: boolean;
+        };
+        NetworkConnectionItem: {
+            /** Format: uuid */
+            id: string;
+            a: components["schemas"]["NetworkEndItem"];
+            b: components["schemas"]["NetworkEndItem"];
+            type: string;
+            typeLabel: string;
+            physical: boolean;
+            /** Format: int32 */
+            speedMbps: null | number;
+            scan: components["schemas"]["NetworkScanEvidence"];
+            /** Format: date-time */
+            confirmedAt: null | string;
+            /** Format: date-time */
+            unconfirmedSince: null | string;
+            notes: null | string;
+            source: components["schemas"]["NetworkConnectionSource"];
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: null | string;
+            /** Format: date-time */
+            updatedAt: null | string;
+            updatedByName: null | string;
+        };
+        NetworkConnectionRequest: {
+            a?: components["schemas"]["NetworkEndRequest"];
+            b?: components["schemas"]["NetworkEndRequest"];
+            type?: string;
+            notes?: null | string;
+        };
+        /** @enum {unknown} */
+        NetworkConnectionSource: "Manual" | "Suggestion";
+        NetworkConnectionTypeItem: {
+            code: string;
+            label: string;
+            medium: components["schemas"]["ConnectionMedium"];
+            /** Format: int32 */
+            speedMbps: null | number;
+            physical: boolean;
+        };
+        NetworkConnectionUpdate: {
+            aInterface?: null | string;
+            bInterface?: null | string;
+            type?: null | string;
+            notes?: null | string;
+        };
+        NetworkDeviceDetail: {
+            id: string;
+            kind: components["schemas"]["NetworkDeviceKind"];
+            /** Format: uuid */
+            hostId: string;
+            /** Format: uuid */
+            sensorId: null | string;
+            name: string;
+            hostName: string;
+            /** Format: uuid */
+            locationId: null | string;
+            locationPath: null | string;
+            state: string;
+            stateMessage: null | string;
+            model: null | string;
+            version: null | string;
+            identity: null | string;
+            os: null | string;
+            scan: null | components["schemas"]["NetworkDeviceScan"];
+            connections: components["schemas"]["NetworkConnectionItem"][];
+            ports: components["schemas"]["NetworkPortItem"][];
+            adapters: components["schemas"]["NetworkAdapterItem"][];
+            interfaces: null | components["schemas"]["NetworkInterfaceItem"][];
+            /** Format: int32 */
+            interfacesSeen: number;
+            /** Format: int32 */
+            interfacesUnassigned: number;
+            /** Format: int32 */
+            openSuggestions: number;
+            position?: null | components["schemas"]["NetworkRouterPosition"];
+        };
+        /** @enum {unknown} */
+        NetworkDeviceKind: "Router" | "Host";
+        NetworkDeviceScan: {
+            /** Format: date-time */
+            scannedAt: null | string;
+            state: null | components["schemas"]["NetworkScanItemState"];
+            error: null | string;
+            tableErrors: null | {
+                [key: string]: string;
+            };
+            discoverySettings: null | string;
+        };
+        NetworkEdge: {
+            /** Format: uuid */
+            id: string;
+            source: string;
+            target: string;
+            sourcePort: null | string;
+            targetPort: null | string;
+            type: null | string;
+            typeLabel: null | string;
+            physical: boolean;
+            /** Format: int32 */
+            speedMbps: null | number;
+            scan: components["schemas"]["NetworkScanEvidence"];
+            suggestion: boolean;
+            confidence: null | components["schemas"]["Confidence"];
+        };
+        NetworkEndItem: {
+            kind: components["schemas"]["NetworkDeviceKind"];
+            /** Format: uuid */
+            hostId: string;
+            /** Format: uuid */
+            sensorId: null | string;
+            name: string;
+            interface: null | string;
+            /** Format: uuid */
+            siteId: null | string;
+            site: null | string;
+        };
+        NetworkEndRequest: {
+            /** Format: uuid */
+            sensorId?: null | string;
+            /** Format: uuid */
+            hostId?: null | string;
+            interface?: null | string;
+        };
+        NetworkGraph: {
+            nodes: components["schemas"]["NetworkNode"][];
+            groups: components["schemas"]["NetworkGroup"][];
+            edges: components["schemas"]["NetworkEdge"][];
+            /** Format: date-time */
+            lastFullScanAt: null | string;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            savedPositions: number;
+        };
+        NetworkGroup: {
+            /** Format: uuid */
+            locationId: string;
+            name: string;
+        };
+        NetworkInterfaceAssignment: {
+            /** Format: uuid */
+            hostId?: string;
+            interface?: null | string;
+        };
+        NetworkInterfaceItem: {
+            mac: string;
+            random: boolean;
+            ignored: boolean;
+            ips: string[];
+            hostName: null | string;
+            sources: string[];
+            /** Format: uuid */
+            attachedSensorId: null | string;
+            attachedRouter: null | string;
+            attachedPort: null | string;
+            /** Format: int32 */
+            attachedVlan: null | number;
+            attachedNote: null | string;
+            neighborIdentity: null | string;
+            neighborPlatform: null | string;
+            neighborBoard: null | string;
+            neighborPort: null | string;
+            match: components["schemas"]["MatchKind"];
+            /** Format: uuid */
+            matchHostId: null | string;
+            /** Format: uuid */
+            matchSensorId: null | string;
+            matchName: null | string;
+            matchInterface: null | string;
+            /** Format: uuid */
+            hintHostId: null | string;
+            hintHostName: null | string;
+            assignedByName: null | string;
+            /** Format: date-time */
+            assignedAt: null | string;
+            /** Format: date-time */
+            firstSeenAt: string;
+            /** Format: date-time */
+            lastSeenAt: string;
+        };
+        NetworkMapSettings: {
+            scanScheduleEnabled: boolean;
+            /** Format: int32 */
+            scanIntervalDays: number;
+            /** Format: int32 */
+            scanHour: number;
+            /** Format: int32 */
+            retentionDays: number;
+            timeZone: string;
+            /** Format: date-time */
+            changedAt: null | string;
+            changedByName: null | string;
+        };
+        NetworkMapSettingsRequest: {
+            scanScheduleEnabled?: boolean;
+            /** Format: int32 */
+            scanIntervalDays?: number;
+            /** Format: int32 */
+            scanHour?: number;
+            /** Format: int32 */
+            retentionDays?: number;
+        };
+        NetworkMapSummary: {
+            /** Format: int32 */
+            routers: number;
+            /** Format: int32 */
+            hostsWithConnections: number;
+            /** Format: int32 */
+            connections: number;
+            /** Format: int32 */
+            physical: number;
+            /** Format: int32 */
+            virtual: number;
+            /** Format: int32 */
+            unconfirmed: number;
+            byMedium: {
+                [key: string]: number;
+            };
+            openSuggestions: {
+                [key: string]: number;
+            };
+            /** Format: int32 */
+            unassignedInterfaces: number;
+            scans: components["schemas"]["NetworkScanStatus"];
+        };
+        NetworkNode: {
+            id: string;
+            kind: components["schemas"]["NetworkDeviceKind"];
+            /** Format: uuid */
+            hostId: string;
+            /** Format: uuid */
+            sensorId: null | string;
+            name: string;
+            /** Format: uuid */
+            locationId: null | string;
+            /** Format: uuid */
+            siteId: null | string;
+            state: string;
+            os: null | string;
+            /** Format: int32 */
+            hiddenConnections: number;
+            /** Format: double */
+            x?: null | number;
+            /** Format: double */
+            y?: null | number;
+        };
+        NetworkPath: {
+            from: components["schemas"]["NetworkEndItem"];
+            to: components["schemas"]["NetworkEndItem"];
+            hops: components["schemas"]["NetworkPathHop"][];
+            slowest: null | string;
+            /** Format: int32 */
+            virtualHops: number;
+            singlePoints: string[];
+            /** Format: date-time */
+            lastFullScanAt: null | string;
+        };
+        NetworkPathHop: {
+            /** Format: uuid */
+            connectionId: string;
+            from: components["schemas"]["NetworkEndItem"];
+            to: components["schemas"]["NetworkEndItem"];
+            type: string;
+            typeLabel: string;
+            physical: boolean;
+            scan: components["schemas"]["NetworkScanEvidence"];
+            /** Format: date-time */
+            confirmedAt: null | string;
+        };
+        NetworkPortItem: {
+            name: string;
+            defaultName: null | string;
+            type: null | string;
+            mac: null | string;
+            running: boolean;
+            disabled: boolean;
+            comment: null | string;
+            bridge: null | string;
+            vlanParent: null | string;
+            /** Format: int32 */
+            vlanId: null | number;
+            bond: null | string;
+            /** Format: int32 */
+            rateMbps: null | number;
+            fullDuplex: null | boolean;
+            detectedType: null | string;
+            detectedTypeLabel: null | string;
+            role: components["schemas"]["PortRole"];
+            /** Format: int32 */
+            macCount: number;
+            sfp: null | components["schemas"]["PortFacts"];
+            /** Format: uuid */
+            connectionId: null | string;
+            connectedTo: null | string;
+            /** Format: uuid */
+            suggestionId: null | string;
+        };
+        NetworkPositionInput: {
+            /** Format: uuid */
+            sensorId?: string;
+            /** Format: double */
+            x?: number;
+            /** Format: double */
+            y?: number;
+        };
+        NetworkPositionsRequest: {
+            positions?: null | components["schemas"]["NetworkPositionInput"][];
+        };
+        NetworkPositionsResult: {
+            /** Format: int32 */
+            saved: number;
+            /** Format: int32 */
+            skipped: number;
+        };
+        NetworkRouterPosition: {
+            /** Format: double */
+            x: number;
+            /** Format: double */
+            y: number;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedByName: null | string;
+        };
+        NetworkScanDetail: {
+            scan: components["schemas"]["NetworkScanRow"];
+            routers: components["schemas"]["NetworkScanItemRow"][];
+        };
+        /** @enum {unknown} */
+        NetworkScanEvidence: "Confirmed" | "Unconfirmed" | "Manual";
+        NetworkScanItemRow: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            sensorId: null | string;
+            routerName: string;
+            /** Format: int32 */
+            position: number;
+            state: components["schemas"]["NetworkScanItemState"];
+            step: null | string;
+            /** Format: date-time */
+            startedAt: null | string;
+            /** Format: date-time */
+            finishedAt: null | string;
+            error: null | string;
+            tableErrors: null | {
+                [key: string]: string;
+            };
+            counts: null | {
+                [key: string]: number;
+            };
+            /** Format: int32 */
+            durationMs: null | number;
+        };
+        /** @enum {unknown} */
+        NetworkScanItemState: "Queued" | "Running" | "Succeeded" | "Failed" | "Skipped" | "Cancelled" | null;
+        NetworkScanRequest: {
+            scope?: components["schemas"]["NetworkScanScope"];
+            /** Format: uuid */
+            locationId?: null | string;
+            /** Format: uuid */
+            sensorId?: null | string;
+        };
+        NetworkScanRow: {
+            /** Format: uuid */
+            id: string;
+            scope: components["schemas"]["NetworkScanScope"];
+            scopeName: string;
+            /** Format: uuid */
+            locationId: null | string;
+            /** Format: uuid */
+            sensorId: null | string;
+            trigger: components["schemas"]["NetworkScanTrigger"];
+            requestedByName: null | string;
+            state: components["schemas"]["NetworkScanState"];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            succeeded: number;
+            /** Format: int32 */
+            failed: number;
+            /** Format: int32 */
+            skipped: number;
+            currentRouterName: null | string;
+            currentStep: null | string;
+            /** Format: int32 */
+            currentStepNumber: null | number;
+            /** Format: int32 */
+            stepCount: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            startedAt: null | string;
+            /** Format: date-time */
+            finishedAt: null | string;
+            /** Format: int32 */
+            estimatedSecondsLeft: null | number;
+        };
+        /** @enum {unknown} */
+        NetworkScanScope: "Router" | "Location" | "All";
+        /** @enum {unknown} */
+        NetworkScanState: "Queued" | "Running" | "Done" | "Cancelled";
+        NetworkScanStatus: {
+            running: null | components["schemas"]["NetworkScanRow"];
+            queued: components["schemas"]["NetworkScanRow"][];
+            lastFull: null | components["schemas"]["NetworkScanRow"];
+            /** Format: date-time */
+            nextScheduledAt: null | string;
+            scheduleEnabled: boolean;
+            enabled: boolean;
+        };
+        /** @enum {unknown} */
+        NetworkScanTrigger: "Manual" | "Schedule";
         NetworkSection: {
             adapters: components["schemas"]["AdapterInfo"][];
             teams: components["schemas"]["TeamInfo"][];
@@ -23518,6 +25108,50 @@ export interface components {
             proxy: null | string;
             hostsEntries: string[];
         };
+        NetworkSuggestionAccept: {
+            type?: null | string;
+            aInterface?: null | string;
+            bInterface?: null | string;
+            notes?: null | string;
+        };
+        NetworkSuggestionIds: {
+            ids?: string[];
+        };
+        NetworkSuggestionItem: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["SuggestionKind"];
+            a: components["schemas"]["NetworkEndItem"];
+            b: components["schemas"]["NetworkEndItem"];
+            type: null | string;
+            typeLabel: null | string;
+            confidence: components["schemas"]["Confidence"];
+            evidence: components["schemas"]["Evidence"][];
+            /** Format: uuid */
+            differsFrom: null | string;
+            state: components["schemas"]["NetworkSuggestionState"];
+            /** Format: uuid */
+            connectionId: null | string;
+            decidedByName: null | string;
+            /** Format: date-time */
+            decidedAt: null | string;
+            /** Format: date-time */
+            firstSeenAt: string;
+            /** Format: date-time */
+            lastSeenAt: string;
+        };
+        NetworkSuggestionRefusal: {
+            /** Format: uuid */
+            id: string;
+            reason: string;
+        };
+        NetworkSuggestionsDecided: {
+            /** Format: int32 */
+            done: number;
+            refused: components["schemas"]["NetworkSuggestionRefusal"][];
+        };
+        /** @enum {unknown} */
+        NetworkSuggestionState: "Open" | "Accepted" | "Dismissed";
         NotificationAssignRequest: {
             ruleIds?: string[];
             sensorIds?: string[];
@@ -24225,6 +25859,42 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
+        PagedOfNetworkConnectionItem: {
+            items: components["schemas"]["NetworkConnectionItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfNetworkInterfaceItem: {
+            items: components["schemas"]["NetworkInterfaceItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfNetworkScanRow: {
+            items: components["schemas"]["NetworkScanRow"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfNetworkSuggestionItem: {
+            items: components["schemas"]["NetworkSuggestionItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfNotificationRuleItem: {
             items: components["schemas"]["NotificationRuleItem"][];
             /** Format: int32 */
@@ -24415,6 +26085,26 @@ export interface components {
             maxMs: null | number;
             address: null | string;
         };
+        PortFacts: {
+            type?: null | string;
+            name?: null | string;
+            defaultName?: null | string;
+            rate?: null | string;
+            linkUp?: null | boolean;
+            fullDuplex?: null | boolean;
+            sfpModulePresent?: null | boolean;
+            sfpType?: null | string;
+            sfpConnector?: null | string;
+            sfpWavelength?: null | string;
+            sfpVendor?: null | string;
+            sfpPartNumber?: null | string;
+            sfpLinkLengths?: {
+                [key: string]: string;
+            };
+            sfpCompliance?: null | string;
+        };
+        /** @enum {unknown} */
+        PortRole: "Edge" | "ToRouter" | "ToNeighbor" | "Virtual";
         ProblemHost: {
             /** Format: uuid */
             id: string;
@@ -25688,6 +27378,8 @@ export interface components {
             line: number;
             noPassword: boolean;
         };
+        /** @enum {unknown} */
+        SuggestionKind: "Link" | "Differs";
         SystemInfo: {
             identity: string;
             version?: null | string;

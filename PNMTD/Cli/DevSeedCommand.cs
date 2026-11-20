@@ -231,6 +231,8 @@ internal static class DevSeedCommand
         }
         db.Database.ExecuteSqlRaw("ANALYZE events");
         var knowledge = DevSeedKnowledge.Seed(database, configuration, hosts, now);
+        // The network map (docs/network-map-plan.md §10.3): the routers' tables, the connections, and the analysis' suggestions.
+        DevSeedNetwork.Seed(database, hosts, now);
         return (hosts.Count, counter, events, knowledge);
     }
 

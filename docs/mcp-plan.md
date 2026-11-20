@@ -359,6 +359,7 @@ app.MapMcp("/mcp").RequireAuthorization(McpSetup.Policy);   // the McpToken sche
 | Zabbix | Details | Details | Details is a reading level |
 | Cookie | Instruct (instructions become drafts, §8.5) | Use (questions only) | Stopping a case and the big brother stay in the UI |
 | Availability plan | View | View | Editing the plan is about people, in the UI |
+| Network map | Edit | Details | Connections, suggestions and assignments (docs/network-map-plan.md §10.2); scans of many routers and the schedule are *Manage*, in the UI. Details is a reading level: the interfaces |
 | Decisions | — | — | **An AI behind a client never approves anything** (cookie plan §3.5) |
 | UDP nodes, MikroTik & WireGuard, Servers, SSH keys, Diagnostics, AI, System, Audit log, MCP | — | — | **These are the *Manage* areas: PNMT's settings and admin pages** |
 | (the admin flag) | never | never | |
@@ -566,6 +567,8 @@ Cookie's placeholders stay Cookie's step: `ToolContext.Masker` is `Pseudonyms` f
 | `cookie_trace` *(new)* | Cookie's trace, by the rights of the cookie plan §9.2 | Cookie Use | `CookieService` |
 | `cookie_reply` *(new, MCP only)* | The reply to a message sent with `cookie_ask` (§8.4) | Cookie Use | `CookieService` |
 | `availability_get` | The availability plan | Availability View | `AvailabilityPlan` |
+| `network_summary`, `network_connections_list`, `network_device_get`, `network_path_get`, `network_suggestions_list` *(new)* | The network map (docs/network-map-plan.md §10.2): its figures; the connections (`routersOnly`: how the routers are connected); a router's or host's panel; the path between two devices with its single points; the suggestions | Network map View | `NetworkMapService`, `NetworkConnectionService` |
+| `network_interfaces_search` *(new)* | Where a MAC, IP or DHCP host name is attached, and what it is matched to | Network map Details | `NetworkConnectionService` |
 
 ### 7.3 Writing (kind *write*: the read-write token only)
 
@@ -587,6 +590,9 @@ Cookie's placeholders stay Cookie's step: `ToolContext.Masker` is `Pseudonyms` f
 | `kb_page_archive` | Archive or restore | KB Edit | `KbPageArchived`, `KbPageRestored` |
 | `ticket_link` | Link, change or unlink a ticket to a page, a location, a host or a sensor, with a note | Redmine Link | `RedmineLinkAdded`, `RedmineLinkChanged`, `RedmineLinkRemoved` |
 | `case_comment` | A comment on one of Cookie's cases | Cookie Use | `CookieCaseCommented` |
+| `network_connection_create`, `network_connection_update` | A network map connection: its ends, ports, type, notes | Network map Edit | `NetworkConnectionCreated`, `NetworkConnectionUpdated` |
+| `network_suggestion_decide` | Accept (optionally with another type, ports, notes) or dismiss a suggestion | Network map Edit | `NetworkSuggestionAccepted`, `NetworkSuggestionDismissed` |
+| `network_interface_assign` | A MAC to an existing host, or clear it | Network map Edit | `NetworkInterfaceAssigned`, `NetworkInterfaceCleared` |
 
 **A tool writes exactly the events its REST endpoint writes** (all of them already in `AuditEvents`), so the audit's filters and the History tabs see no difference except the actor.
 
@@ -600,6 +606,7 @@ Cookie's placeholders stay Cookie's step: `ToolContext.Masker` is `Pseudonyms` f
 | `udp_command_cancel` | A queued command | Commands Run | |
 | `router_poll` | Polls a MikroTik router now | Commands Run | The router's state, synchronously |
 | `router_backup_now` | | Commands Run | Whether a new version was stored |
+| `network_scan_router` | Queues a network map scan of one router, read only as `pnmt` (docs/network-map-plan.md §10.2) | Commands Run | The run; a router already queued gives the run it is in |
 | `mikrotik_command_run` | RouterOS commands on **at most 10 routers**, **as the `pnmt` user only**, optional backups before and after, one router at a time. `destructiveHint` | Commands Run | The batch id; results through `mikrotik_command_get` |
 | `server_collect_now` | An agent's *Collect now* | Commands Run | Done or `agent_offline` (30 s) |
 | `diagnostics_run` | Runs a diagnostics assignment | Commands Run | The run's id |
@@ -623,6 +630,7 @@ Cookie's placeholders stay Cookie's step: `ToolContext.Masker` is `Pseudonyms` f
 | `sensor_delete` | A sensor, with its events and rule links, as in the UI. System and diagnostics sensors are refused, as in the UI | Monitoring Edit | `SensorDeleted` |
 | `host_delete` | **A host without sensors.** A host that still has any gets `host_has_sensors`, with their list: the AI deletes them one by one first, each counted, or the person deletes the host in the UI | Monitoring Edit | `HostDeleted` |
 | `mail_rule_delete` | A mail input rule | Monitoring Edit | `MailInputRuleDeleted` |
+| `network_connection_delete` | A network map connection (docs/network-map-plan.md §10.2) | Network map Edit | `NetworkConnectionDeleted` |
 
 **Rules for every delete:**
 
