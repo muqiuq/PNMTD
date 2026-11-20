@@ -7339,6 +7339,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cookie/admin/settings/lounge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LoungeSettings"];
+                    "text/json": components["schemas"]["LoungeSettings"];
+                    "application/*+json": components["schemas"]["LoungeSettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSaved"];
+                        "text/json": components["schemas"]["CookieSaved"];
+                        "text/plain": components["schemas"]["CookieSaved"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cookie/admin/settings/rights": {
         parameters: {
             query?: never;
@@ -10940,6 +10983,736 @@ export interface paths {
                         "text/json": components["schemas"]["LocationFieldItem"];
                         "text/plain": components["schemas"]["LocationFieldItem"];
                     };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lounge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    afterId?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeRoom"];
+                        "text/json": components["schemas"]["LoungeRoom"];
+                        "text/plain": components["schemas"]["LoungeRoom"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lounge/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LoungePostRequest"];
+                    "text/json": components["schemas"]["LoungePostRequest"];
+                    "application/*+json": components["schemas"]["LoungePostRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeMessageItem"];
+                        "text/json": components["schemas"]["LoungeMessageItem"];
+                        "text/plain": components["schemas"]["LoungeMessageItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lounge/about": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeAbout"];
+                        "text/json": components["schemas"]["LoungeAbout"];
+                        "text/plain": components["schemas"]["LoungeAbout"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/lounge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeSwitches"];
+                        "text/json": components["schemas"]["LoungeSwitches"];
+                        "text/plain": components["schemas"]["LoungeSwitches"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LoungeSwitches"];
+                    "text/json": components["schemas"]["LoungeSwitches"];
+                    "application/*+json": components["schemas"]["LoungeSwitches"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeSwitches"];
+                        "text/json": components["schemas"]["LoungeSwitches"];
+                        "text/plain": components["schemas"]["LoungeSwitches"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/lounge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeSwitches"];
+                        "text/json": components["schemas"]["LoungeSwitches"];
+                        "text/plain": components["schemas"]["LoungeSwitches"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LoungeSwitches"];
+                    "text/json": components["schemas"]["LoungeSwitches"];
+                    "application/*+json": components["schemas"]["LoungeSwitches"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeSwitches"];
+                        "text/json": components["schemas"]["LoungeSwitches"];
+                        "text/plain": components["schemas"]["LoungeSwitches"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/lounge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeAdminStatus"];
+                        "text/json": components["schemas"]["LoungeAdminStatus"];
+                        "text/plain": components["schemas"]["LoungeAdminStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/lounge/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeAdminStatus"];
+                        "text/json": components["schemas"]["LoungeAdminStatus"];
+                        "text/plain": components["schemas"]["LoungeAdminStatus"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/lounge/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeAdminStatus"];
+                        "text/json": components["schemas"]["LoungeAdminStatus"];
+                        "text/plain": components["schemas"]["LoungeAdminStatus"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/lounge/talk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeAdminStatus"];
+                        "text/json": components["schemas"]["LoungeAdminStatus"];
+                        "text/plain": components["schemas"]["LoungeAdminStatus"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/lounge/sleep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeAdminStatus"];
+                        "text/json": components["schemas"]["LoungeAdminStatus"];
+                        "text/plain": components["schemas"]["LoungeAdminStatus"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/lounge/scenes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeSceneItem"][];
+                        "text/json": components["schemas"]["LoungeSceneItem"][];
+                        "text/plain": components["schemas"]["LoungeSceneItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/lounge/scenes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeSceneDetail"];
+                        "text/json": components["schemas"]["LoungeSceneDetail"];
+                        "text/plain": components["schemas"]["LoungeSceneDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/lounge/memories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    voice?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeMemoryItem"][];
+                        "text/json": components["schemas"]["LoungeMemoryItem"][];
+                        "text/plain": components["schemas"]["LoungeMemoryItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/lounge/memories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/lounge/forget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LoungeForgetRequest"];
+                    "text/json": components["schemas"]["LoungeForgetRequest"];
+                    "application/*+json": components["schemas"]["LoungeForgetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/lounge/messages/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/lounge/opinions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoungeOpinionItem"][];
+                        "text/json": components["schemas"]["LoungeOpinionItem"][];
+                        "text/plain": components["schemas"]["LoungeOpinionItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/lounge/positions/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -20544,7 +21317,7 @@ export interface components {
             complaining: number;
         };
         /** @enum {unknown} */
-        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors" | "NetworkMap";
+        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors" | "NetworkMap" | "Lounge";
         /** @enum {unknown} */
         AssignMode: "Add" | "Remove";
         /** @enum {unknown} */
@@ -21643,6 +22416,17 @@ export interface components {
             installed: boolean;
             running: boolean;
         };
+        Conviction: {
+            key: string;
+            question: string;
+            minus: string;
+            plus: string;
+            owner: string;
+            /** Format: double */
+            cookie: number;
+            /** Format: double */
+            seraph: number;
+        };
         CookieActingItem: {
             /** Format: int32 */
             waiting: number;
@@ -21697,6 +22481,7 @@ export interface components {
             rights: components["schemas"]["CookieRightsSettings"];
             lessons: components["schemas"]["LessonSettings"];
             access: components["schemas"]["AccessSettings"];
+            lounge: components["schemas"]["LoungeSettings"];
         };
         CookieBudgetItem: {
             /** Format: double */
@@ -21753,14 +22538,14 @@ export interface components {
             stopped?: null | components["schemas"]["CookieStop"];
         };
         /** @enum {unknown} */
-        CookieCaseKind: "Problem" | "Ticket" | "Request" | "Access";
+        CookieCaseKind: "Problem" | "Ticket" | "Request" | "Access" | "Raised";
         CookieCaseRef: {
             /** Format: uuid */
             id: string;
             title: string;
         };
         /** @enum {unknown} */
-        CookieChannel: "Email" | "Pushover" | "RedmineNote" | "RedminePrivateNote" | "RedmineTicket" | "AccessEmail" | "AccessPushover" | "WasThisYou";
+        CookieChannel: "Email" | "Pushover" | "RedmineNote" | "RedminePrivateNote" | "RedmineTicket" | "AccessEmail" | "AccessPushover" | "WasThisYou" | "LoungeEmail";
         CookieDecisionItem: {
             /** Format: int64 */
             id: number;
@@ -23765,6 +24550,255 @@ export interface components {
         LogonKind: "Console" | "Rdp" | "RdpConnection" | "Ssh" | "WinRm" | "Network" | "Cached" | "Unlock" | "Explicit" | "Batch" | "Lockout" | "Sudo" | "Su" | "Sftp" | "Winbox" | "Web" | "Api" | "Telnet" | "Ftp";
         /** @enum {unknown} */
         LogonOutcome: "Success" | "Failure";
+        LoungeAbout: {
+            cookie: components["schemas"]["LoungeKeepsakeItem"][];
+            seraph: components["schemas"]["LoungeKeepsakeItem"][];
+            convictions: components["schemas"]["LoungeConvictionItem"][];
+            cookieName: string;
+        };
+        LoungeAdminStatus: {
+            enabled: boolean;
+            running: boolean;
+            /** Format: date-time */
+            startedAt: null | string;
+            startedBy: null | string;
+            /** Format: date-time */
+            stoppedAt: null | string;
+            stoppedBy: null | string;
+            state: components["schemas"]["LoungeState"];
+            reason: null | string;
+            speaking: null | string;
+            /** Format: date-time */
+            nextAt: null | string;
+            cantStart: null | string;
+            /** Format: int32 */
+            scenesToday: number;
+            /** Format: int32 */
+            messagesToday: number;
+            /** Format: int32 */
+            commentsToday: number;
+            /** Format: int32 */
+            emailsToday: number;
+            /** Format: int32 */
+            casesToday: number;
+            budget: components["schemas"]["CookieBudgetItem"];
+            rhythm: string;
+            budgetLasts: null | string;
+            budgetWarning: boolean;
+            lastError: null | string;
+            /** Format: date-time */
+            lastErrorAt: null | string;
+            readsWith: string[];
+            gap: components["schemas"]["LoungeGapItem"][];
+            /** Format: int32 */
+            users: number;
+            writers: string[];
+        };
+        LoungeConvictionItem: {
+            key: string;
+            question: string;
+            minus: string;
+            plus: string;
+            owner: string;
+            /** Format: double */
+            cookie: number;
+            /** Format: double */
+            seraph: number;
+            lastMove: null | components["schemas"]["LoungeMoveItem"];
+        };
+        LoungeEmailItem: {
+            to: string;
+            outcome: string;
+        };
+        LoungeForgetRequest: {
+            voice: null | string;
+        };
+        LoungeGapItem: {
+            area: string;
+            level: string;
+            /** Format: int32 */
+            lacking: number;
+            users: string[];
+        };
+        LoungeKeepsakeItem: {
+            /** Format: int64 */
+            id: number;
+            text: string;
+            /** Format: date-time */
+            since: string;
+        };
+        LoungeMemoryItem: {
+            /** Format: int64 */
+            id: number;
+            voice: string;
+            text: string;
+            kind: string;
+            keepsake: boolean;
+            /** Format: double */
+            strength: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            refreshedAt: string;
+            /** Format: int32 */
+            recalls: number;
+            /** Format: int64 */
+            sourceMessageId: null | number;
+            people: string[];
+        };
+        LoungeMessageItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            at: string;
+            from: string;
+            kind: string;
+            /** Format: uuid */
+            userId: null | string;
+            author: null | string;
+            authorColor: null | string;
+            authorCode: null | string;
+            text: string;
+            /** Format: int64 */
+            onId: null | number;
+            /** Format: int64 */
+            takenById: null | number;
+            /** Format: int64 */
+            replyToId: null | number;
+            refused: boolean;
+            removed: boolean;
+            /** Format: uuid */
+            caseId: null | string;
+            caseTitle: null | string;
+            email: null | components["schemas"]["LoungeEmailItem"];
+            /** @default false */
+            important: boolean;
+        };
+        LoungeMoveItem: {
+            /** Format: date-time */
+            at: string;
+            voice: string;
+            /** Format: double */
+            before: number;
+            /** Format: double */
+            after: number;
+            why: string;
+        };
+        LoungeOpinionItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            at: string;
+            conviction: string;
+            voice: string;
+            /** Format: double */
+            before: number;
+            /** Format: double */
+            after: number;
+            why: string;
+        };
+        LoungePostRequest: {
+            text: null | string;
+            kind?: null | string;
+            /** Format: int64 */
+            onId?: null | number;
+        };
+        LoungeRoom: {
+            messages: components["schemas"]["LoungeMessageItem"][];
+            state: components["schemas"]["LoungeStateItem"];
+            cookieName: string;
+        };
+        LoungeSceneDetail: {
+            scene: components["schemas"]["LoungeSceneItem"];
+            steps: components["schemas"]["LoungeStepItem"][];
+            messages: components["schemas"]["LoungeMessageItem"][];
+        };
+        LoungeSceneItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            endedAt: null | string;
+            kind: string;
+            opener: string;
+            seed: null | string;
+            disagree: boolean;
+            /** Format: int32 */
+            plannedLength: number;
+            /** Format: int32 */
+            messages: number;
+            /** Format: int32 */
+            toolCalls: number;
+            /** Format: double */
+            cost: number;
+            outcome: string;
+        };
+        LoungeSettings: {
+            awake?: components["schemas"]["DayHours"][];
+            asleepOnHolidays?: boolean;
+            /** Format: int32 */
+            messagesPerHour?: number;
+            /** Format: int32 */
+            longestScene?: number;
+            /** Format: double */
+            disagreeShare?: number;
+            /** Format: int32 */
+            importantPerDay?: number;
+            /** Format: int32 */
+            repliesPerHour?: number;
+            /** Format: uuid */
+            groupId?: null | string;
+            effort?: string;
+            /** Format: int32 */
+            toolCallsPerMessage?: number;
+            /** Format: int32 */
+            casesPerDay?: number;
+            emailLevel?: components["schemas"]["ActionLevel"];
+            /** Format: int32 */
+            emailsPerDay?: number;
+            /** Format: int32 */
+            emailsPerPersonWeek?: number;
+            /** Format: double */
+            halfLifeDays?: number;
+            /** Format: int32 */
+            memoriesInPrompt?: number;
+            /** Format: double */
+            maxDriftPerDay?: number;
+            convictions?: components["schemas"]["Conviction"][];
+            /** Format: double */
+            budgetUsd?: number;
+        };
+        /** @enum {unknown} */
+        LoungeState: "Stopped" | "Asleep" | "Awake" | "Speaking" | "Paused";
+        LoungeStateItem: {
+            running: boolean;
+            state: components["schemas"]["LoungeState"];
+            reason: null | string;
+            speaking: null | string;
+            /** Format: date-time */
+            nextAt: null | string;
+            canWrite: boolean;
+            waiting: boolean;
+            /** Format: date-time */
+            awakeUntil: null | string;
+        };
+        LoungeStepItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            messageId: null | number;
+            /** Format: date-time */
+            at: string;
+            kind: string;
+            title: string;
+            body: string;
+            areas: string[];
+        };
+        LoungeSwitches: {
+            mentions: boolean;
+            emails: boolean;
+        };
         MachineInfo: {
             manufacturer: null | string;
             model: null | string;

@@ -12,7 +12,7 @@ import RelativeTime from '@/components/RelativeTime.vue'
 import { useServerTable } from '@/composables/useServerTable'
 import { importanceSeverity } from '@/views/notifications/importance'
 import CaseDetail from './CaseDetail.vue'
-import { caseKinds, dutyName } from './cookieFormat'
+import { caseKindName, caseKinds, dutyName } from './cookieFormat'
 
 /**
  * The case book (docs/cookie-plan.md §4.3, §19.1): a problem per host, a ticket per watched Redmine ticket, open ones
@@ -43,7 +43,7 @@ const shows = [
 // Every kind is no filter (null), which the select shows as its placeholder.
 const kindOptions = [
   { label: 'Every kind', value: null as S['CookieCaseKind'] | null },
-  ...caseKinds.map((k) => ({ label: k, value: k as S['CookieCaseKind'] | null })),
+  ...caseKinds.map((k) => ({ label: caseKindName(k), value: k as S['CookieCaseKind'] | null })),
 ]
 /** A stopped case (§4.3): Cookie leaves it alone; who stopped it and why. */
 const stoppedTitle = (c: S['CookieCaseItem']) =>
@@ -85,7 +85,7 @@ const stoppedTitle = (c: S['CookieCaseItem']) =>
           <template #body="{ data }">
             <div :class="{ strong: data.id === selected }" class="ellipsis" :title="data.title">{{ data.title }}</div>
             <div class="line">
-              <Tag :value="data.kind" severity="secondary" />
+              <Tag :value="caseKindName(data.kind)" severity="secondary" />
               <Tag :value="data.importance" :severity="importanceSeverity(data.importance)" />
               <Tag v-if="data.stopped" value="stopped" severity="warn" :title="stoppedTitle(data)" />
               <Tag v-if="!data.open" value="closed" severity="secondary" />
@@ -110,7 +110,7 @@ const stoppedTitle = (c: S['CookieCaseItem']) =>
         <template #mobile="{ item }">
           <div class="ellipsis">{{ item.title }}</div>
           <div class="muted small">
-            {{ item.kind }} · {{ item.importance }}<template v-if="item.stopped"> · stopped</template
+            {{ caseKindName(item.kind) }} · {{ item.importance }}<template v-if="item.stopped"> · stopped</template
             ><template v-if="item.next?.dueAt">
               · {{ dutyName(item.next?.kind) }} <RelativeTime :value="item.next?.dueAt"
             /></template>

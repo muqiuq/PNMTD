@@ -35,6 +35,8 @@ export const navigation: NavGroup[] = [
       { label: 'Decisions', icon: 'pi pi-inbox', to: '/decisions', name: 'decisions', right: ['Decisions', 'Decide'] },
       { label: 'Events', icon: 'pi pi-list', to: '/events', name: 'events', right: ['Monitoring', 'View'] },
       { label: 'Cookie', icon: 'pi pi-microchip-ai', to: '/cookie', name: 'cookie', right: ['Cookie', 'Use'] },
+      // docs/lounge-plan.md §15.1: one conversation for every signed-in user, like the dashboard; writing needs Lounge: Use.
+      { label: 'Lounge', icon: 'pi pi-comments', to: '/lounge', name: 'lounge' },
     ],
   },
   {

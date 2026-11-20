@@ -10,7 +10,7 @@ namespace PNMTD.Auth.Rights;
 public enum Area
 {
     Monitoring, Commands, Mail, Decisions, Locations, KnowledgeBase, Redmine, Zabbix, UdpNodes, Mikrotik, Servers, SshKeys,
-    Diagnostics, Ai, System, AuditLog, Cookie, Availability, Mcp, Certificates, Connectors, NetworkMap,
+    Diagnostics, Ai, System, AuditLog, Cookie, Availability, Mcp, Certificates, Connectors, NetworkMap, Lounge,
 }
 
 /// <summary>
@@ -90,6 +90,9 @@ public static class RightsCatalog
             (Level.Details, "View, plus the network interfaces: MAC and IP addresses, DHCP host names, Wi-Fi clients, which can name people."),
             (Level.Edit, "Details, plus creating, changing and deleting connections; accepting, dismissing and restoring suggestions; assigning and ignoring interfaces; saving where the routers are on the map, and putting them back to automatic."),
             (Level.Manage, "Edit, plus scans of all routers or of a location, cancelling scans, and the schedule and settings.")]),
+        // docs/lounge-plan.md §3.1: reading the lounge needs no right; Admin → Cookie → Lounge is Cookie: Manage.
+        new(Area.Lounge, "Lounge", [
+            (Level.Use, "Writing in the lounge: messages and comments to Cookie and Seraph, which everyone reads. Reading the lounge needs no right.")]),
     ];
 
     private static readonly Dictionary<Area, AreaInfo> ByArea = Areas.ToDictionary(a => a.Area);

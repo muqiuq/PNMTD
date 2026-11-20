@@ -186,5 +186,10 @@ public sealed class CookieLoop(IDbContextFactory<PnmtdDbContext> dbs, CookieRoun
         // The decision log and ended instructions (§21.2): a year, like the outbox.
         await db.CookieDecisions.Where(d => d.At < year).ExecuteDeleteAsync(ct);
         await db.CookieInstructions.Where(i => (i.EndedAt ?? i.Until) < year).ExecuteDeleteAsync(ct);
+        // The lounge (docs/lounge-plan.md §10): the conversation 90 days, its scenes and their steps 30, the convictions' history a year.
+        var quarter = Clock.UtcNow.AddDays(-90);
+        await db.LoungeMessages.Where(m => m.At < quarter).ExecuteDeleteAsync(ct);
+        await db.LoungeScenes.Where(s => s.StartedAt < month).ExecuteDeleteAsync(ct);
+        await db.LoungeOpinions.Where(o => o.At < year).ExecuteDeleteAsync(ct);
     }
 }

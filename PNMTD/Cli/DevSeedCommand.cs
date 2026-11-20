@@ -81,6 +81,11 @@ internal static class DevSeedCommand
         {
             Console.WriteLine(DevSeedCookie.Seed(cookieDb, settings, Clock.UtcNow));
         }
+        // The lounge (docs/lounge-plan.md §13): three days of conversation, memories and keepsakes; stopped.
+        using (var loungeDb = database())
+        {
+            Console.WriteLine(DevSeedLounge.Seed(loungeDb, Clock.UtcNow));
+        }
         return 0;
     }
 

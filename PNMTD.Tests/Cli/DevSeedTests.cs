@@ -124,6 +124,13 @@ public sealed class DevSeedTests
         Assert.IsTrue((await db.NetworkSuggestions.Select(s => s.Evidence).ToListAsync()).Any(e => e.Contains("behind-host")), "nas-01 behind router-core");
         Assert.IsGreaterThanOrEqualTo(20, await db.NetworkInterfaces.CountAsync());
         Assert.AreEqual(5, await db.NetworkRouterSnapshots.CountAsync());
+        // The lounge (docs/lounge-plan.md §13): three days of conversation with a comment on a message, three keepsakes each, stopped.
+        Assert.IsGreaterThanOrEqualTo(13, await db.LoungeMessages.CountAsync(m => m.From == "cookie" || m.From == "seraph"));
+        Assert.IsTrue(await db.LoungeMessages.AnyAsync(m => m.Kind == "comment" && m.OnId != null && m.TakenById != null));
+        Assert.AreEqual(3, await db.LoungeMemories.CountAsync(m => m.Voice == "cookie" && m.Keepsake));
+        Assert.AreEqual(3, await db.LoungeMemories.CountAsync(m => m.Voice == "seraph" && m.Keepsake));
+        Assert.IsFalse(await db.LoungeRuntime.AnyAsync(r => r.Running));
+        Assert.IsTrue(await db.CookieSettings.AnyAsync(s => s.Section == "lounge"));
 
         Assert.AreEqual(5, await db.Locations.CountAsync());
         Assert.AreEqual(2, await db.Locations.CountAsync(l => l.ParentId == null));

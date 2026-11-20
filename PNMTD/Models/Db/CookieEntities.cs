@@ -10,8 +10,11 @@ public enum CookieState { Stopped, Sleeping, Working, Paused }
 /// <summary>The overall state on the dashboard (docs/cookie-plan.md §8).</summary>
 public enum OverallState { AllFine, Info, Warning, Alert }
 
-/// <summary>What a case is about (docs/cookie-plan.md §4.3, §19.1); <see cref="Access"/>: an unusual login (docs/cookie-access-plan.md §5.1).</summary>
-public enum CookieCaseKind { Problem, Ticket, Request, Access }
+/// <summary>
+/// What a case is about (docs/cookie-plan.md §4.3, §19.1); <see cref="Access"/>: an unusual login (docs/cookie-access-plan.md §5.1);
+/// <see cref="Raised"/>: one Cookie or Seraph opened from the lounge (docs/lounge-plan.md §8.1), which never changes the code's state.
+/// </summary>
+public enum CookieCaseKind { Problem, Ticket, Request, Access, Raised }
 
 /// <summary>A deadline's step (docs/cookie-plan.md §7, §19.1).</summary>
 public enum CookieDutyKind { FirstAnswerReminder, FirstAnswerMissed, UpdateReminder, UpdateMissed, ProblemTicket, ClosingNote }
@@ -21,9 +24,9 @@ public enum CookieDutyState { Due, Done, HeldBack, Off, NotPossible, Failed, Sto
 
 /// <summary>
 /// How something left PNMT (docs/cookie-plan.md §6.1). The access watch's own (docs/cookie-access-plan.md §6) have limits of their
-/// own: its notices by e-mail and Pushover, and <i>Was this you?</i>.
+/// own: its notices by e-mail and Pushover, and <i>Was this you?</i>. So has the lounge's e-mail (docs/lounge-plan.md §8.2).
 /// </summary>
-public enum CookieChannel { Email, Pushover, RedmineNote, RedminePrivateNote, RedmineTicket, AccessEmail, AccessPushover, WasThisYou }
+public enum CookieChannel { Email, Pushover, RedmineNote, RedminePrivateNote, RedmineTicket, AccessEmail, AccessPushover, WasThisYou, LoungeEmail }
 
 public enum CookieOutboxState { Sent, HeldBack, Failed, Simulated }
 
@@ -324,6 +327,9 @@ public class CookieCaseEntity
 
     [MaxLength(200)]
     public string? TicketAskedBy { get; set; }
+
+    /// <summary>A raised case's message in the lounge (docs/lounge-plan.md §8.1): the voice's message that opened it.</summary>
+    public long? LoungeMessageId { get; set; }
 }
 
 /// <summary>

@@ -6,8 +6,9 @@ namespace PNMTD.Cookie;
 /// <summary>
 /// The closed list of Cookie's actions (docs/cookie-plan.md §6): every one only adds. <see cref="AccessNotice"/>: telling the access
 /// watch's contacts about an unusual login (docs/cookie-access-plan.md §6.4); its recipients come from the settings, never the model.
+/// <see cref="LoungeEmail"/>: a light e-mail from the lounge (docs/lounge-plan.md §8.2), with a level and limits of its own.
 /// </summary>
-public enum CookieActionKind { Pushover, Email, Ticket, PrivateNote, PublicAnswer, ObjectNote, MailEvent, HandToPerson, AccessNotice }
+public enum CookieActionKind { Pushover, Email, Ticket, PrivateNote, PublicAnswer, ObjectNote, MailEvent, HandToPerson, AccessNotice, LoungeEmail }
 
 /// <summary>
 /// A proposal at the end of a case's work (§21.1): the action, its targets as ids from the brief or the tools (never an
@@ -34,8 +35,11 @@ public sealed record MailEventPayload(Guid MailId, Guid RuleId, Guid SensorId, i
 /// <summary>An access notice's case and verdict (docs/cookie-access-plan.md §6.4): code wrote both; the model only the reason.</summary>
 public sealed record AccessNoticePayload(Guid CaseId, string Verdict, bool Strong);
 
-/// <summary>What the decision log keeps of a proposal: the action, and for a mail its event, for an access notice its case and verdict.</summary>
-public sealed record CookieProposal(ProposedAction Action, MailEventPayload? Mail = null, AccessNoticePayload? Access = null);
+/// <summary>
+/// What the decision log keeps of a proposal: the action, and for a mail its event, for an access notice its case and verdict, for a lounge
+/// e-mail the voice that wrote it (docs/lounge-plan.md §8.2).
+/// </summary>
+public sealed record CookieProposal(ProposedAction Action, MailEventPayload? Mail = null, AccessNoticePayload? Access = null, string? LoungeVoice = null);
 
 public enum SeraphVerdictKind { Approve, Revise, Reject, Ask }
 

@@ -34,6 +34,8 @@ export const levelOrder: Record<Area, readonly Level[]> = {
   Connectors: ['View', 'Manage'],
   // docs/network-map-plan.md §9.1: the interfaces are Details, which name people (DHCP host names, Wi-Fi clients).
   NetworkMap: ['View', 'Details', 'Edit', 'Manage'],
+  // docs/lounge-plan.md §3.1: writing in the lounge; reading it needs no right.
+  Lounge: ['Use'],
 }
 
 /** Whether these rights (the admin flag, or the levels per area) include the level asked for. */

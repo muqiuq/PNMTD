@@ -30,7 +30,8 @@ public sealed record CaseNoteAnswer(
     [property: Description("info, important or urgent")] Urgency Urgency,
     [property: Description("Who should look at it, in a few words; empty when nobody needs to")] string Attention,
     [property: Description("What you propose to do now, at most 3; empty when nothing is needed")] IReadOnlyList<ProposedAction>? Proposals = null,
-    [property: Description("True when something is broken and needs a technical fix that nobody has found yet")] bool NeedsFixing = false);
+    [property: Description("True when something is broken and needs a technical fix that nobody has found yet")] bool NeedsFixing = false,
+    [property: Description("Only for a case raised in the lounge: true when it doesn't hold up or someone already takes care of it; false otherwise")] bool Settled = false);
 
 /// <summary>Whether a person's message gives an instruction, filled in for them to confirm (§10.3, §21.1).</summary>
 public sealed record InstructionAnswer(
@@ -231,6 +232,7 @@ public sealed class CookieBrain(CookieSettings settings, Instructions instructio
         CookieCaseKind.Ticket => c.FirstAnswerAt is null && !c.AuthorIsStaff ? "firstAnswer" : "noUpdate",
         CookieCaseKind.Request => "request",
         CookieCaseKind.Access => Access.AccessJudge.Instruction,
+        CookieCaseKind.Raised => "raised",
         _ when now - c.ProgressAt >= TimeSpan.FromHours(unresolvedHours) => "unresolved",
         _ when recurrences >= 3 => "recurring",
         _ when members.Count > 0 && members.All(m => m.Type == CaseMember.Zabbix) => "zabbixProblem",

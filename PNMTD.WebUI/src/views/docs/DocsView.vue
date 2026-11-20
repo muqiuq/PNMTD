@@ -18,6 +18,7 @@ import AvailabilityDocs from './AvailabilityDocs.vue'
 import CookieDocs from './CookieDocs.vue'
 import IntegrationsDocs from './IntegrationsDocs.vue'
 import MarkdownDocs from './MarkdownDocs.vue'
+import LoungeDocs from './LoungeDocs.vue'
 import NetworkMapDocs from './NetworkMapDocs.vue'
 
 /**
@@ -162,6 +163,7 @@ const visibleRules = computed(() => ruleTypes.list.value.filter((r) => has(r.typ
     <AccessDocs :search="search" />
     <IntegrationsDocs :search="search" />
     <CookieDocs :search="search" />
+    <LoungeDocs :search="search" />
     <AvailabilityDocs :search="search" />
     <NetworkMapDocs :search="search" />
 

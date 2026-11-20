@@ -6,11 +6,13 @@ defineProps<{
   items: { key: string; label: string; icon?: string; to: RouteLocationRaw; badge?: string | number | null }[]
   active: string
   label: string
+  /** Many tabs (Admin → Cookie): a second line instead of scrolling, where the tabs past the edge would be hidden. */
+  wrap?: boolean
 }>()
 </script>
 
 <template>
-  <nav class="tab-nav" :aria-label="label">
+  <nav class="tab-nav" :class="{ wrap }" :aria-label="label">
     <RouterLink
       v-for="item in items"
       :key="item.key"
@@ -33,6 +35,11 @@ defineProps<{
   border-bottom: 1px solid var(--pnmt-border);
   overflow-x: auto;
   scrollbar-width: none;
+}
+
+.tab-nav.wrap {
+  flex-wrap: wrap;
+  overflow-x: visible;
 }
 
 .tab {

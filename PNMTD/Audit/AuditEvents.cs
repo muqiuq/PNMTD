@@ -162,6 +162,17 @@ public static class AuditEvents
     public const string CookieBigBrotherAsked = "CookieBigBrotherAsked";
     public const string CookiePowersUsed = "CookiePowersUsed";
 
+    // The lounge (docs/lounge-plan.md §13): its Start and Stop, Talk now and Put to sleep, moderation, and one's own switches.
+    public const string LoungeStarted = "LoungeStarted";
+    public const string LoungeStopped = "LoungeStopped";
+    public const string LoungeTalkNow = "LoungeTalkNow";
+    public const string LoungeSlept = "LoungeSlept";
+    public const string LoungeMessageDeleted = "LoungeMessageDeleted";
+    public const string LoungeMemoryDeleted = "LoungeMemoryDeleted";
+    public const string LoungeForgotten = "LoungeForgotten";
+    public const string LoungePositionsReset = "LoungePositionsReset";
+    public const string LoungeSwitchesChanged = "LoungeSwitchesChanged";
+
     // The access watch (docs/cookie-access-plan.md §10.1).
     public const string AccessAnswered = "AccessAnswered";
     public const string AccessPersonAnswered = "AccessPersonAnswered";
@@ -444,6 +455,9 @@ public static class AuditCatalog
         Add(AuditCategory.Cookie, null, AuditEvents.AccessKnownAdded, AuditEvents.AccessKnownEnded);
         Add(AuditCategory.Cookie, AuditTargets.Sensor, AuditEvents.AccessWatchChanged);
         Add(AuditCategory.Cookie, null, AuditEvents.CookieInstructionCreated, AuditEvents.CookieInstructionConfirmed, AuditEvents.CookieInstructionEnded);
+        Add(AuditCategory.Cookie, null, AuditEvents.LoungeStarted, AuditEvents.LoungeStopped, AuditEvents.LoungeTalkNow, AuditEvents.LoungeSlept,
+            AuditEvents.LoungeMessageDeleted, AuditEvents.LoungeMemoryDeleted, AuditEvents.LoungeForgotten, AuditEvents.LoungePositionsReset);
+        Add(AuditCategory.Users, AuditTargets.User, AuditEvents.LoungeSwitchesChanged);
         Add(AuditCategory.Users, AuditTargets.User, AuditEvents.ContactChanged, AuditEvents.ContactTested);
         Add(AuditCategory.Availability, null, AuditEvents.AvailabilityChanged, AuditEvents.AvailabilityFilled, AuditEvents.AvailabilityPeopleChanged,
             AuditEvents.AvailabilitySettingsChanged);

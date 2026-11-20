@@ -401,7 +401,7 @@ public sealed class CookieSettings(IDbContextFactory<PnmtdDbContext> dbs, IMemor
     public static readonly IReadOnlyList<string> Sections =
     [
         IdentitySettings.Section, PromptSettings.Section, CaseSettings.Section, CookieRedmineSettings.Section, ActionSettings.Section,
-        ModelSettings.Section, CookieRightsSettings.Section, LessonSettings.Section, Access.AccessSettings.Section,
+        ModelSettings.Section, CookieRightsSettings.Section, LessonSettings.Section, Access.AccessSettings.Section, Lounge.LoungeSettings.Section,
     ];
 
     private static string Key(string section) => $"cookie-settings:{section}";

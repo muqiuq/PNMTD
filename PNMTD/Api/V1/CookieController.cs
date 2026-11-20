@@ -211,6 +211,11 @@ public sealed class CookieAdminController(CookieService cookie) : V1ControllerBa
     [Audit(AuditEvents.CookieSettingsChanged)]
     public async Task<CookieSaved> SaveAccess(PNMTD.Cookie.Access.AccessSettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);
 
+    /// <summary>The lounge (docs/lounge-plan.md §12): its rhythm, what it reads with, its powers, memory, convictions and budget.</summary>
+    [HttpPut("settings/lounge")]
+    [Audit(AuditEvents.CookieSettingsChanged)]
+    public async Task<CookieSaved> SaveLounge(PNMTD.Cookie.Lounge.LoungeSettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);
+
     [HttpPut("settings/rights")]
     [Audit(AuditEvents.CookieSettingsChanged)]
     public async Task<CookieSaved> SaveRights(CookieRightsSettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);

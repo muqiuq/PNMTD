@@ -475,6 +475,19 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         {
             values.TryAdd(name, $"[{name.Replace('_', ' ')}]");
         }
+        if (CookiePrompts.IsLounge(key) && CookiePrompts.Defaults.ContainsKey(key))
+        {
+            // A voice in the lounge (docs/lounge-plan.md §4.2): Cookie's identity or Seraph's line, the lounge's rules, the character; then the step's.
+            var voice = key == "loungeSeraph" ? Lounge.LoungeVoices.Seraph : Lounge.LoungeVoices.Cookie;
+            values["other"] = voice == Lounge.LoungeVoices.Seraph ? values["name"] : "Seraph";
+            values["not_mentioned"] = "[the people who opted out]";
+            foreach (var name in new[] { "awake", "convictions", "keepsakes", "memories", "ground", "staffing", "seed", "direction", "drift", "day" })
+            {
+                values.TryAdd(name, $"[{name}]");
+            }
+            var system = await services.GetRequiredService<Lounge.LoungeVoice>().SystemAsync(voice, values, ct);
+            return new CookiePromptPreview(key, key is "loungeScene" or "loungeNight" ? $"{system}\n\n{CookiePrompts.Fill(await brain.PromptAsync(key, ct), values)}" : system);
+        }
         var basePrompt = await brain.BaseAsync(values, ct);
         string text;
         if (key.StartsWith("case:", StringComparison.Ordinal) && CookiePrompts.CaseKinds.ContainsKey(key[5..]))
@@ -758,7 +771,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         await settings.GetAsync<IdentitySettings>(ct), await settings.GetAsync<PromptSettings>(ct), await settings.GetAsync<CaseSettings>(ct),
         await settings.GetAsync<CookieRedmineSettings>(ct),
         await settings.GetAsync<ActionSettings>(ct), await settings.GetAsync<ModelSettings>(ct), await settings.GetAsync<CookieRightsSettings>(ct),
-        await settings.GetAsync<LessonSettings>(ct), await settings.GetAsync<Access.AccessSettings>(ct));
+        await settings.GetAsync<LessonSettings>(ct), await settings.GetAsync<Access.AccessSettings>(ct), await settings.GetAsync<Lounge.LoungeSettings>(ct));
 
     public async Task<CookieSaved> SaveAsync<T>(T value, ClaimsPrincipal user, CancellationToken ct) where T : class, ICookieSection, new()
     {
@@ -866,6 +879,9 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
             case CookieRightsSettings { GroupId: { } groupId }:
                 v.Check(await db.Groups.AnyAsync(g => g.Id == groupId, ct), "groupId", "No such group.");
                 break;
+            case Lounge.LoungeSettings { GroupId: { } loungeGroup }:
+                v.Check(await db.Groups.AnyAsync(g => g.Id == loungeGroup, ct), "groupId", "No such group.");
+                break;
             case Access.AccessSettings a:
             {
                 // The contacts are PNMT's users and groups (docs/cookie-access-plan.md §6.2), by id.
@@ -899,6 +915,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         "lessons" => "Lessons",
         "rights" => "Rights",
         "access" => "Access",
+        "lounge" => "Lounge",
         _ => section,
     };
 }

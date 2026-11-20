@@ -91,6 +91,7 @@ describe('visibleNavigation', () => {
   it('shows the network map with its View (docs/network-map-plan.md §8.1)', () => {
     expect(names(visibleNavigation((r) => r !== 'admin' && r[0] === 'NetworkMap' && r[1] === 'View'))).toEqual([
       'dashboard',
+      'lounge',
       'network-map',
     ])
     expect(names(visibleNavigation((r) => r !== 'admin' && r[0] === 'Monitoring'))).not.toContain('network-map')
@@ -98,17 +99,17 @@ describe('visibleNavigation', () => {
 
   it("shows Cookie's window with Cookie's Use and Admin → Cookie only with its Manage (docs/cookie-plan.md §10.1)", () => {
     const use = names(visibleNavigation((r) => r !== 'admin' && r[0] === 'Cookie' && r[1] === 'Use'))
-    expect(use).toEqual(['dashboard', 'cookie'])
+    expect(use).toEqual(['dashboard', 'cookie', 'lounge'])
     const manage = names(visibleNavigation((r) => r !== 'admin' && r[0] === 'Cookie'))
-    expect(manage).toEqual(['dashboard', 'cookie', 'cookie-admin'])
+    expect(manage).toEqual(['dashboard', 'cookie', 'lounge', 'cookie-admin'])
   })
 
   it('shows the availability plan with its View, and to everyone in the plan without a right (docs/cookie-plan.md §9.4)', () => {
     const none = () => false
-    expect(names(visibleNavigation(none))).toEqual(['dashboard'])
-    expect(names(visibleNavigation(none, () => true, [], true))).toEqual(['dashboard', 'availability'])
+    expect(names(visibleNavigation(none))).toEqual(['dashboard', 'lounge'])
+    expect(names(visibleNavigation(none, () => true, [], true))).toEqual(['dashboard', 'lounge', 'availability'])
     const view = names(visibleNavigation((r) => r !== 'admin' && r[0] === 'Availability'))
-    expect(view).toEqual(['dashboard', 'availability'])
+    expect(view).toEqual(['dashboard', 'lounge', 'availability'])
   })
 
   it('shows Admin → Certificates with Certificates: Manage only (docs/ssl-certificate-plan.md §8.5)', () => {
@@ -116,7 +117,15 @@ describe('visibleNavigation', () => {
       names(visibleNavigation((r) => r !== 'admin' && holds(false, { Certificates: level }, r[0], r[1])))
     expect(as('View')).not.toContain('certificates')
     expect(as('Edit')).not.toContain('certificates')
-    expect(as('Manage')).toEqual(['dashboard', 'certificates'])
+    expect(as('Manage')).toEqual(['dashboard', 'lounge', 'certificates'])
+  })
+
+  it('shows the lounge to every signed-in user, without a right (docs/lounge-plan.md §15.1)', () => {
+    const overview = visibleNavigation(() => false).find((g) => g.label === 'Overview')
+    expect(overview?.items.map((i) => i.name)).toEqual(['dashboard', 'lounge'])
+    const all = visibleNavigation(() => true).find((g) => g.label === 'Overview')
+    expect(all?.items.map((i) => i.name)).toEqual(['dashboard', 'decisions', 'events', 'cookie', 'lounge'])
+    expect(navigation.flatMap((g) => g.items).find((i) => i.name === 'lounge')?.right).toBeUndefined()
   })
 
   it('drops the Mail group when Mail__HideMenu hides its entries', () => {

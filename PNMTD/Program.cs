@@ -172,6 +172,8 @@ public partial class Program
             // The MCP tokens' expiry (docs/mcp-plan.md §4.3).
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Mcp.McpTokenExpiryTask>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CookieLoop>());
+            // The lounge (docs/lounge-plan.md §3.3): Cookie and Seraph off duty, started and stopped on its own.
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.Lounge.LoungeLoop>());
             // Cookie's lessons and Seraph's drift report, once a day while Cookie runs (docs/cookie-plan.md §21.1).
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CookieDailyTask>());
             // The access watch (docs/cookie-access-plan.md §6.5): PNMT's sign-ins, code's notice, the waiting notices, with Cookie:Enabled=true.

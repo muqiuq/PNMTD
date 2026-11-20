@@ -9,6 +9,7 @@ import CaseSettingsTab from './CaseSettingsTab.vue'
 import IdentityTab from './IdentityTab.vue'
 import InstructionsTab from './InstructionsTab.vue'
 import LessonsTab from './LessonsTab.vue'
+import LoungeTab from './LoungeTab.vue'
 import ModelsTab from './ModelsTab.vue'
 import OverviewTab from './OverviewTab.vue'
 import RedmineTab from './RedmineTab.vue'
@@ -31,6 +32,7 @@ const tabs = [
   item('redmine', 'Redmine'),
   item('actions', 'Actions'),
   item('access', 'Access'),
+  item('lounge', 'Lounge'),
   item('instructions', 'Mute, suppress'),
   item('lessons', 'Lessons'),
   item('models', 'Models'),
@@ -41,13 +43,14 @@ const tabs = [
 <template>
   <div class="page">
     <PageHeader title="Cookie" :crumbs="[{ label: 'Admin' }]" />
-    <TabNav :items="tabs" :active="tab" label="Cookie" />
+    <TabNav :items="tabs" :active="tab" label="Cookie" wrap />
     <OverviewTab v-if="tab === 'overview'" />
     <IdentityTab v-else-if="tab === 'identity'" />
     <CaseSettingsTab v-else-if="tab === 'cases'" />
     <RedmineTab v-else-if="tab === 'redmine'" />
     <ActionsTab v-else-if="tab === 'actions'" />
     <AccessTab v-else-if="tab === 'access'" />
+    <LoungeTab v-else-if="tab === 'lounge'" />
     <InstructionsTab v-else-if="tab === 'instructions'" />
     <LessonsTab v-else-if="tab === 'lessons'" />
     <ModelsTab v-else-if="tab === 'models'" />

@@ -203,6 +203,14 @@ namespace PNMTD.Data
         public DbSet<CookieMessageEntity> CookieMessages { get; set; }
         public DbSet<CookiePseudonymEntity> CookiePseudonyms { get; set; }
 
+        // The lounge (docs/lounge-plan.md §12): one conversation, its scenes and log, the voices' memories and convictions, its state.
+        public DbSet<LoungeMessageEntity> LoungeMessages { get; set; }
+        public DbSet<LoungeSceneEntity> LoungeScenes { get; set; }
+        public DbSet<LoungeStepEntity> LoungeSteps { get; set; }
+        public DbSet<LoungeMemoryEntity> LoungeMemories { get; set; }
+        public DbSet<LoungeOpinionEntity> LoungeOpinions { get; set; }
+        public DbSet<LoungeRuntimeEntity> LoungeRuntime { get; set; }
+
         // The access watch (docs/cookie-access-plan.md §10.1)
         public DbSet<AccessReviewEntity> AccessReviews { get; set; }
         public DbSet<AccessKnownEntity> AccessKnown { get; set; }
@@ -1059,6 +1067,32 @@ namespace PNMTD.Data
                 e.HasIndex(p => new { p.Kind, p.Value }).IsUnique();
                 e.HasIndex(p => p.Placeholder).IsUnique();
             });
+            ConfigureLounge(modelBuilder);
+        }
+
+        /// <summary>The lounge (docs/lounge-plan.md §12): the conversation by time, comments by the message they are on, memories by voice.</summary>
+        private static void ConfigureLounge(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<LoungeMessageEntity>(e =>
+            {
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<LoungeSceneEntity>().WithMany().HasForeignKey(m => m.SceneId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<CookieCaseEntity>().WithMany().HasForeignKey(m => m.CaseId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(m => m.At);
+                e.HasIndex(m => m.OnId);
+                e.HasIndex(m => new { m.UserId, m.At });
+                e.HasIndex(m => m.Kind).HasFilter("\"Kind\" = 'comment' AND \"TakenById\" IS NULL AND \"RefusedWhy\" IS NULL");
+            });
+            modelBuilder.Entity<LoungeSceneEntity>().HasIndex(s => s.StartedAt);
+            modelBuilder.Entity<LoungeStepEntity>(e =>
+            {
+                e.HasOne<LoungeSceneEntity>().WithMany().HasForeignKey(s => s.SceneId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(s => new { s.SceneId, s.Id });
+                e.HasIndex(s => s.At);
+            });
+            modelBuilder.Entity<LoungeMemoryEntity>().HasIndex(m => new { m.Voice, m.Keepsake });
+            modelBuilder.Entity<LoungeOpinionEntity>().HasIndex(o => new { o.Conviction, o.At });
+            modelBuilder.Entity<LoungeRuntimeEntity>().Property(r => r.State).HasConversion<string>().HasMaxLength(16);
         }
 
         private sealed class UtcDateTimeConverter() : ValueConverter<DateTime, DateTime>(

@@ -45,6 +45,9 @@ const pages: [string, string, string][] = [
   ['/network-map?tab=suggestions', 'Network map', 'network-map-suggestions'],
   ['/network-map?tab=scans', 'Network map', 'network-map-scans'],
   ['/network-map?tab=interfaces', 'Network map', 'network-map-interfaces'],
+  // docs/lounge-plan.md §15: the room, and its tab on Admin → Cookie.
+  ['/lounge', 'Lounge', 'lounge'],
+  ['/admin/cookie/lounge', 'Cookie', 'cookie-admin-lounge'],
   ['/docs', 'Documentation', 'docs'],
 ]
 

@@ -74,6 +74,7 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
                 logger.LogWarning("The case book couldn't read the watched tickets: {Error}", e.Message);
             }
         }
+        await RaisedAsync(db, now, counts, ct);
         await db.SaveChangesAsync(ct);
         await DutiesAsync(db, caseSettings, now, lastRun, counts, ct);
         await StatusAsync(db, now, ticketsRead, error, ct);
@@ -87,6 +88,21 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
         }
         var open = await db.CookieCases.CountAsync(c => c.Open, ct);
         return new CaseBookResult(counts.Opened, counts.Changed, counts.Closed, open, ticketsRead, error);
+    }
+
+    /// <summary>A raised case closes after 14 days without change (docs/lounge-plan.md §8.1), if Cookie's note didn't settle it first.</summary>
+    public static readonly TimeSpan RaisedFor = TimeSpan.FromDays(14);
+
+    private static async Task RaisedAsync(PnmtdDbContext db, DateTime now, Counts counts, CancellationToken ct)
+    {
+        var before = now - RaisedFor;
+        foreach (var c in await db.CookieCases.Where(c => c.Open && c.Kind == CookieCaseKind.Raised && c.ChangedAt < before).ToListAsync(ct))
+        {
+            c.Open = false;
+            c.ClosedAt = now;
+            Entry(db, c.Id, now, "closed", "14 days without change.");
+            counts.Closed++;
+        }
     }
 
     private sealed class Counts
@@ -557,7 +573,8 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
 
     private async Task StatusAsync(PnmtdDbContext db, DateTime now, bool ticketsRead, string? error, CancellationToken ct)
     {
-        var open = await db.CookieCases.AsNoTracking().Where(c => c.Open && c.Kind != CookieCaseKind.Request).ToListAsync(ct);
+        // Raised cases never change the code's state (docs/lounge-plan.md §8.1, D8): banter never turns the dashboard yellow.
+        var open = await db.CookieCases.AsNoTracking().Where(c => c.Open && c.Kind != CookieCaseKind.Request && c.Kind != CookieCaseKind.Raised).ToListAsync(ct);
         var openIds = open.Select(c => c.Id).ToList();
         var duties = await db.CookieDuties.AsNoTracking().Where(d => openIds.Contains(d.CaseId) && d.DueAt <= now
             && d.Kind != CookieDutyKind.ProblemTicket && d.Kind != CookieDutyKind.ClosingNote).ToListAsync(ct);

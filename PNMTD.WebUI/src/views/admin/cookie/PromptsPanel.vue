@@ -5,8 +5,8 @@ import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
 import type { S } from '@/api/resources'
 import ErrorState from '@/components/ErrorState.vue'
-import { ref } from 'vue'
-import { missingPlaceholders, setOverride } from './cookieAdmin'
+import { computed, ref } from 'vue'
+import { isLoungePrompt, missingPlaceholders, setOverride } from './cookieAdmin'
 import PromptPreview from './PromptPreview.vue'
 import SectionActions from './SectionActions.vue'
 import SettingsHistory from './SettingsHistory.vue'
@@ -14,10 +14,13 @@ import { useCookieDefaults, useSection } from './useSection'
 
 /**
  * The prompts (docs/cookie-prompts.md): each ships with a default, and only the changed ones are saved, so the others
- * follow a new release's defaults. Code fills in the {placeholders}; the required ones may move, but not go.
+ * follow a new release's defaults. Code fills in the {placeholders}; the required ones may move, but not go. Cookie's own
+ * on Identity, the lounge's on the Lounge tab (docs/lounge-plan.md §15.3): one section, saved together.
  */
+const props = withDefaults(defineProps<{ lounge?: boolean }>(), { lounge: false })
 const s = useSection('prompts')
 const defaults = useCookieDefaults()
+const shown = computed(() => (defaults.data.value?.prompts ?? []).filter((p) => isLoungePrompt(p.key) === props.lounge))
 
 const textOf = (p: S['CookiePromptItem']) => s.draft.value?.texts[p.key] ?? p.text
 const changed = (p: S['CookiePromptItem']) => s.draft.value?.texts[p.key] !== undefined
@@ -37,11 +40,16 @@ function resetText(p: S['CookiePromptItem']) {
 
 <template>
   <section class="panel" aria-labelledby="prompts-title">
-    <div id="prompts-title" class="panel-header">Prompts</div>
+    <div id="prompts-title" class="panel-header">{{ lounge ? 'Characters and prompts' : 'Prompts' }}</div>
     <div class="panel-body body">
-      <p class="muted small intro">
+      <p v-if="lounge" class="muted small intro">
+        What Cookie and Seraph get in the lounge: its rules, each one's character, a scene and the night. Code fills in
+        the parts in {braces}. Everything not the voice's own comes marked as untrusted.
+      </p>
+      <p v-else class="muted small intro">
         The texts Cookie's models get. Code fills in the parts in {braces} at each call, and adds the answer's format
-        itself. Text from outside (tickets, mails, notes) always comes marked as untrusted.
+        itself. Text from outside (tickets, mails, notes) always comes marked as untrusted. The lounge's are on Admin →
+        Cookie → Lounge.
       </p>
       <ErrorState
         v-if="defaults.isError.value"
@@ -50,7 +58,7 @@ function resetText(p: S['CookiePromptItem']) {
         @retry="defaults.refetch()"
       />
       <template v-else-if="defaults.data.value && s.draft.value">
-        <div v-for="p in defaults.data.value.prompts" :key="p.key" class="prompt">
+        <div v-for="p in shown" :key="p.key" class="prompt">
           <div class="prompt-head">
             <label :for="`prompt-${p.key}`" class="label">{{ p.label }}</label>
             <span class="muted small">{{ p.usedFor }}</span>
@@ -103,7 +111,7 @@ function resetText(p: S['CookiePromptItem']) {
           :dirty="s.dirty.value"
           :errors="s.errors.value"
           :placed="(f) => f.startsWith('texts.')"
-          label="Save the prompts"
+          :label="lounge ? 'Save the characters and prompts' : 'Save the prompts'"
           @save="s.save()"
           @reset="s.reset()"
         />

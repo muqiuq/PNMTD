@@ -29,6 +29,15 @@ public sealed class Seraph(CookieModel model, CookieBrain brain, CookieSettings 
             AiRole.Verify);
     }
 
+    /// <summary>Cookie's own model as a reviewer (docs/lounge-plan.md §8.2): for a lounge e-mail Seraph wrote.</summary>
+    public async Task<ModelChoice> CookieChoiceAsync(CancellationToken ct)
+    {
+        var models = await settings.GetAsync<ModelSettings>(ct);
+        var o = options.CurrentValue;
+        return new ModelChoice(string.IsNullOrWhiteSpace(models.Model) ? o.Model : models.Model.Trim(), string.IsNullOrWhiteSpace(models.Providers) ? o.Providers : models.Providers,
+            o.MinQuantization, AiRole.Verify);
+    }
+
     /// <summary>
     /// What Seraph judges on an order from the chat (docs/cookie-powers-plan.md §6.1): harm only, since need, timing and recipient were the
     /// admin's decision. Fixed in code, after the review prompt.
@@ -41,13 +50,22 @@ public sealed class Seraph(CookieModel model, CookieBrain brain, CookieSettings 
         "your confidence how sure you are: 0.95 means you would be wrong 1 time in 20. Ask a person when you can't tell.";
 
     /// <summary>
+    /// What a lounge e-mail is judged on (docs/lounge-plan.md §8.2), fixed in code after the review prompt: it is light, not work.
+    /// </summary>
+    public const string LoungeParagraph =
+        "This is a light e-mail from the lounge, not work. Approve it if it is kind, true, free of secrets and of anyone's personal data but the " +
+        "recipient's own, not embarrassing for the recipient or the organisation, and something they would be glad, or at least fine, to get. " +
+        "Reject anything else.";
+
+    /// <summary>
     /// A review: the verdict, or null when Seraph has no model or failed (the proposal then goes to a person). <paramref name="order"/>: the
-    /// paragraph for an order from the chat, after the prompt.
+    /// paragraph for an order from the chat, or a lounge e-mail's, after the prompt. <paramref name="reviewer"/>: another model than Seraph's,
+    /// for a lounge e-mail Seraph wrote (never its own reviewer, D7), under <paramref name="purpose"/>.
     /// </summary>
     public async Task<(SeraphVerdict? Verdict, string? Model, string? Error)> ReviewAsync(CookieProposal proposal, string evidence, string instructions,
-        CancellationToken ct, string? order = null)
+        CancellationToken ct, string? order = null, ModelChoice? reviewer = null, string purpose = "seraph", int? maxTokens = null)
     {
-        if (await ChoiceAsync(ct) is not { } choice)
+        if ((reviewer ?? await ChoiceAsync(ct)) is not { } choice)
         {
             return (null, null, "Seraph has no model (Cookie__SeraphModel).");
         }
@@ -63,8 +81,8 @@ public sealed class Seraph(CookieModel model, CookieBrain brain, CookieSettings 
                 new JsonObject { ["role"] = "system", ["content"] = rules },
                 new JsonObject { ["role"] = "user", ["content"] = order is null ? user : $"{user}\n\n{order}" });
             var effort = (await settings.GetAsync<ModelSettings>(ct)).SeraphEffort;
-            var turn = await model.CompleteAsync("seraph", messages, null, (nameof(SeraphVerdict), AiJson.SchemaFor<SeraphVerdict>()), effort, null, Tokens.Seraph, ct,
-                choice);
+            var turn = await model.CompleteAsync(purpose, messages, null, (nameof(SeraphVerdict), AiJson.SchemaFor<SeraphVerdict>()), effort, null,
+                maxTokens ?? Tokens.Seraph, ct, choice);
             var verdict = JsonSerializer.Deserialize<SeraphVerdict>(turn.Content ?? "", AiJson.Options)
                 ?? throw new AiRequestException(AiOutcome.InvalidOutput, "Seraph's answer is empty.");
             return (verdict with { Reason = CaseBook.Cut(verdict.Reason.Trim(), 300)!, Confidence = Math.Clamp(verdict.Confidence, 0, 1) }, choice.Model, null);

@@ -35,6 +35,9 @@ export function withUnknown<T extends string | number>(
   return [...options, ...extra]
 }
 
+/** The lounge's prompts (docs/lounge-plan.md §17): on Admin → Cookie → Lounge, not with Cookie's own on Identity. */
+export const isLoungePrompt = (key: string) => key.startsWith('lounge')
+
 /** The placeholders a prompt's text has lost: code fills them in, so they may move but not go (docs/cookie-prompts.md). */
 export const missingPlaceholders = (text: string, required: readonly string[]) =>
   required.filter((p) => !text.includes(p))

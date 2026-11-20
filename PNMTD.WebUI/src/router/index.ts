@@ -229,6 +229,13 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'Cookie', right: ['Cookie', 'Use'] },
   },
   {
+    // The lounge (docs/lounge-plan.md §15.2): one conversation, the same for every signed-in user; writing needs Lounge: Use.
+    path: '/lounge',
+    name: 'lounge',
+    component: () => import('@/views/lounge/LoungeView.vue'),
+    meta: { title: 'Lounge' },
+  },
+  {
     path: '/notifications',
     name: 'notifications',
     component: () => import('@/views/notifications/NotificationsView.vue'),
@@ -388,7 +395,7 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     // Admin → Cookie (docs/cookie-plan.md §9.3, §21.5): one tab per section, each versioned; and mute and suppress.
-    path: '/admin/cookie/:tab(overview|identity|cases|redmine|actions|access|instructions|lessons|models|rights)?',
+    path: '/admin/cookie/:tab(overview|identity|cases|redmine|actions|access|lounge|instructions|lessons|models|rights)?',
     name: 'cookie-admin',
     component: () => import('@/views/admin/cookie/CookieAdminView.vue'),
     meta: { title: 'Cookie', right: ['Cookie', 'Manage'] },

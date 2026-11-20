@@ -9072,6 +9072,55 @@
         }
       }
     },
+    "/api/v1/cookie/admin/settings/lounge": {
+      "put": {
+        "tags": [
+          "CookieAdmin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoungeSettings"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoungeSettings"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoungeSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieSaved"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieSaved"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieSaved"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cookie/admin/settings/rights": {
       "put": {
         "tags": [
@@ -13925,6 +13974,695 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/lounge": {
+      "get": {
+        "tags": [
+          "Lounge"
+        ],
+        "parameters": [
+          {
+            "name": "afterId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeRoom"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeRoom"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeRoom"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lounge/messages": {
+      "post": {
+        "tags": [
+          "Lounge"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoungePostRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoungePostRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoungePostRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeMessageItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeMessageItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeMessageItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lounge/about": {
+      "get": {
+        "tags": [
+          "Lounge"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAbout"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAbout"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAbout"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/lounge": {
+      "get": {
+        "tags": [
+          "LoungeAccount"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeSwitches"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeSwitches"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeSwitches"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "LoungeAccount"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoungeSwitches"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoungeSwitches"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoungeSwitches"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeSwitches"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeSwitches"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeSwitches"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/lounge": {
+      "get": {
+        "tags": [
+          "LoungeUsers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeSwitches"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeSwitches"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeSwitches"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "LoungeUsers"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoungeSwitches"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoungeSwitches"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoungeSwitches"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeSwitches"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeSwitches"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeSwitches"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/lounge": {
+      "get": {
+        "tags": [
+          "LoungeAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAdminStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAdminStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAdminStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/lounge/start": {
+      "post": {
+        "tags": [
+          "LoungeAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAdminStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAdminStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAdminStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/lounge/stop": {
+      "post": {
+        "tags": [
+          "LoungeAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAdminStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAdminStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAdminStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/lounge/talk": {
+      "post": {
+        "tags": [
+          "LoungeAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAdminStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAdminStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAdminStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/lounge/sleep": {
+      "post": {
+        "tags": [
+          "LoungeAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAdminStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAdminStatus"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeAdminStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/lounge/scenes": {
+      "get": {
+        "tags": [
+          "LoungeAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoungeSceneItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoungeSceneItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoungeSceneItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/lounge/scenes/{id}": {
+      "get": {
+        "tags": [
+          "LoungeAdmin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeSceneDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeSceneDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoungeSceneDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/lounge/memories": {
+      "get": {
+        "tags": [
+          "LoungeAdmin"
+        ],
+        "parameters": [
+          {
+            "name": "voice",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoungeMemoryItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoungeMemoryItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoungeMemoryItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/lounge/memories/{id}": {
+      "delete": {
+        "tags": [
+          "LoungeAdmin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/lounge/forget": {
+      "post": {
+        "tags": [
+          "LoungeAdmin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoungeForgetRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoungeForgetRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoungeForgetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/lounge/messages/{id}": {
+      "delete": {
+        "tags": [
+          "LoungeAdmin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/lounge/opinions": {
+      "get": {
+        "tags": [
+          "LoungeAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoungeOpinionItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoungeOpinionItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoungeOpinionItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/lounge/positions/reset": {
+      "post": {
+        "tags": [
+          "LoungeAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -30039,7 +30777,8 @@
           "Mcp",
           "Certificates",
           "Connectors",
-          "NetworkMap"
+          "NetworkMap",
+          "Lounge"
         ]
       },
       "AssignMode": {
@@ -34817,6 +35556,43 @@
           }
         }
       },
+      "Conviction": {
+        "required": [
+          "key",
+          "question",
+          "minus",
+          "plus",
+          "owner",
+          "cookie",
+          "seraph"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "minus": {
+            "type": "string"
+          },
+          "plus": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "cookie": {
+            "type": "number",
+            "format": "double"
+          },
+          "seraph": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "CookieActingItem": {
         "required": [
           "waiting",
@@ -34980,7 +35756,8 @@
           "models",
           "rights",
           "lessons",
-          "access"
+          "access",
+          "lounge"
         ],
         "type": "object",
         "properties": {
@@ -35010,6 +35787,9 @@
           },
           "access": {
             "$ref": "#/components/schemas/AccessSettings"
+          },
+          "lounge": {
+            "$ref": "#/components/schemas/LoungeSettings"
           }
         }
       },
@@ -35252,7 +36032,8 @@
           "Problem",
           "Ticket",
           "Request",
-          "Access"
+          "Access",
+          "Raised"
         ]
       },
       "CookieCaseRef": {
@@ -35280,7 +36061,8 @@
           "RedmineTicket",
           "AccessEmail",
           "AccessPushover",
-          "WasThisYou"
+          "WasThisYou",
+          "LoungeEmail"
         ]
       },
       "CookieDecisionItem": {
@@ -43486,6 +44268,926 @@
           "Success",
           "Failure"
         ]
+      },
+      "LoungeAbout": {
+        "required": [
+          "cookie",
+          "seraph",
+          "convictions",
+          "cookieName"
+        ],
+        "type": "object",
+        "properties": {
+          "cookie": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoungeKeepsakeItem"
+            }
+          },
+          "seraph": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoungeKeepsakeItem"
+            }
+          },
+          "convictions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoungeConvictionItem"
+            }
+          },
+          "cookieName": {
+            "type": "string"
+          }
+        }
+      },
+      "LoungeAdminStatus": {
+        "required": [
+          "enabled",
+          "running",
+          "startedAt",
+          "startedBy",
+          "stoppedAt",
+          "stoppedBy",
+          "state",
+          "reason",
+          "speaking",
+          "nextAt",
+          "cantStart",
+          "scenesToday",
+          "messagesToday",
+          "commentsToday",
+          "emailsToday",
+          "casesToday",
+          "budget",
+          "rhythm",
+          "budgetLasts",
+          "budgetWarning",
+          "lastError",
+          "lastErrorAt",
+          "readsWith",
+          "gap",
+          "users",
+          "writers"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "running": {
+            "type": "boolean"
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "startedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "stoppedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "stoppedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/LoungeState"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "speaking": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nextAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "cantStart": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scenesToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "messagesToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "commentsToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "emailsToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "casesToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/CookieBudgetItem"
+          },
+          "rhythm": {
+            "type": "string"
+          },
+          "budgetLasts": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "budgetWarning": {
+            "type": "boolean"
+          },
+          "lastError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastErrorAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "readsWith": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "gap": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoungeGapItem"
+            }
+          },
+          "users": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "writers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LoungeConvictionItem": {
+        "required": [
+          "key",
+          "question",
+          "minus",
+          "plus",
+          "owner",
+          "cookie",
+          "seraph",
+          "lastMove"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "minus": {
+            "type": "string"
+          },
+          "plus": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "cookie": {
+            "type": "number",
+            "format": "double"
+          },
+          "seraph": {
+            "type": "number",
+            "format": "double"
+          },
+          "lastMove": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LoungeMoveItem"
+              }
+            ]
+          }
+        }
+      },
+      "LoungeEmailItem": {
+        "required": [
+          "to",
+          "outcome"
+        ],
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          }
+        }
+      },
+      "LoungeForgetRequest": {
+        "required": [
+          "voice"
+        ],
+        "type": "object",
+        "properties": {
+          "voice": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "LoungeGapItem": {
+        "required": [
+          "area",
+          "level",
+          "lacking",
+          "users"
+        ],
+        "type": "object",
+        "properties": {
+          "area": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "lacking": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LoungeKeepsakeItem": {
+        "required": [
+          "id",
+          "text",
+          "since"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "text": {
+            "type": "string"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LoungeMemoryItem": {
+        "required": [
+          "id",
+          "voice",
+          "text",
+          "kind",
+          "keepsake",
+          "strength",
+          "createdAt",
+          "refreshedAt",
+          "recalls",
+          "sourceMessageId",
+          "people"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "voice": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "keepsake": {
+            "type": "boolean"
+          },
+          "strength": {
+            "type": "number",
+            "format": "double"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "refreshedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recalls": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sourceMessageId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LoungeMessageItem": {
+        "required": [
+          "id",
+          "at",
+          "from",
+          "kind",
+          "userId",
+          "author",
+          "authorColor",
+          "authorCode",
+          "text",
+          "onId",
+          "takenById",
+          "replyToId",
+          "refused",
+          "removed",
+          "caseId",
+          "caseTitle",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "from": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "author": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "authorColor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "authorCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "onId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "takenById": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "replyToId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "refused": {
+            "type": "boolean"
+          },
+          "removed": {
+            "type": "boolean"
+          },
+          "caseId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "caseTitle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LoungeEmailItem"
+              }
+            ]
+          },
+          "important": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "LoungeMoveItem": {
+        "required": [
+          "at",
+          "voice",
+          "before",
+          "after",
+          "why"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "voice": {
+            "type": "string"
+          },
+          "before": {
+            "type": "number",
+            "format": "double"
+          },
+          "after": {
+            "type": "number",
+            "format": "double"
+          },
+          "why": {
+            "type": "string"
+          }
+        }
+      },
+      "LoungeOpinionItem": {
+        "required": [
+          "id",
+          "at",
+          "conviction",
+          "voice",
+          "before",
+          "after",
+          "why"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "conviction": {
+            "type": "string"
+          },
+          "voice": {
+            "type": "string"
+          },
+          "before": {
+            "type": "number",
+            "format": "double"
+          },
+          "after": {
+            "type": "number",
+            "format": "double"
+          },
+          "why": {
+            "type": "string"
+          }
+        }
+      },
+      "LoungePostRequest": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "onId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "LoungeRoom": {
+        "required": [
+          "messages",
+          "state",
+          "cookieName"
+        ],
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoungeMessageItem"
+            }
+          },
+          "state": {
+            "$ref": "#/components/schemas/LoungeStateItem"
+          },
+          "cookieName": {
+            "type": "string"
+          }
+        }
+      },
+      "LoungeSceneDetail": {
+        "required": [
+          "scene",
+          "steps",
+          "messages"
+        ],
+        "type": "object",
+        "properties": {
+          "scene": {
+            "$ref": "#/components/schemas/LoungeSceneItem"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoungeStepItem"
+            }
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoungeMessageItem"
+            }
+          }
+        }
+      },
+      "LoungeSceneItem": {
+        "required": [
+          "id",
+          "startedAt",
+          "endedAt",
+          "kind",
+          "opener",
+          "seed",
+          "disagree",
+          "plannedLength",
+          "messages",
+          "toolCalls",
+          "cost",
+          "outcome"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "opener": {
+            "type": "string"
+          },
+          "seed": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "disagree": {
+            "type": "boolean"
+          },
+          "plannedLength": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "messages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "toolCalls": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cost": {
+            "type": "number",
+            "format": "double"
+          },
+          "outcome": {
+            "type": "string"
+          }
+        }
+      },
+      "LoungeSettings": {
+        "type": "object",
+        "properties": {
+          "awake": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayHours"
+            }
+          },
+          "asleepOnHolidays": {
+            "type": "boolean"
+          },
+          "messagesPerHour": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "longestScene": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "disagreeShare": {
+            "type": "number",
+            "format": "double"
+          },
+          "importantPerDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "repliesPerHour": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "groupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "effort": {
+            "type": "string"
+          },
+          "toolCallsPerMessage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "casesPerDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "emailLevel": {
+            "$ref": "#/components/schemas/ActionLevel"
+          },
+          "emailsPerDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "emailsPerPersonWeek": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "halfLifeDays": {
+            "type": "number",
+            "format": "double"
+          },
+          "memoriesInPrompt": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxDriftPerDay": {
+            "type": "number",
+            "format": "double"
+          },
+          "convictions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Conviction"
+            }
+          },
+          "budgetUsd": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "LoungeState": {
+        "enum": [
+          "Stopped",
+          "Asleep",
+          "Awake",
+          "Speaking",
+          "Paused"
+        ]
+      },
+      "LoungeStateItem": {
+        "required": [
+          "running",
+          "state",
+          "reason",
+          "speaking",
+          "nextAt",
+          "canWrite",
+          "waiting",
+          "awakeUntil"
+        ],
+        "type": "object",
+        "properties": {
+          "running": {
+            "type": "boolean"
+          },
+          "state": {
+            "$ref": "#/components/schemas/LoungeState"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "speaking": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nextAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "canWrite": {
+            "type": "boolean"
+          },
+          "waiting": {
+            "type": "boolean"
+          },
+          "awakeUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "LoungeStepItem": {
+        "required": [
+          "id",
+          "messageId",
+          "at",
+          "kind",
+          "title",
+          "body",
+          "areas"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "messageId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "areas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LoungeSwitches": {
+        "required": [
+          "mentions",
+          "emails"
+        ],
+        "type": "object",
+        "properties": {
+          "mentions": {
+            "type": "boolean"
+          },
+          "emails": {
+            "type": "boolean"
+          }
+        }
       },
       "MachineInfo": {
         "required": [
@@ -63005,6 +64707,18 @@
     },
     {
       "name": "LocationFields"
+    },
+    {
+      "name": "Lounge"
+    },
+    {
+      "name": "LoungeAccount"
+    },
+    {
+      "name": "LoungeUsers"
+    },
+    {
+      "name": "LoungeAdmin"
     },
     {
       "name": "MailInputRules"

@@ -24,6 +24,12 @@ public sealed record LessonDraft(
 /// ratings into lessons, saved as a new version of the <c>lessons</c> section; a lesson that is a suppress rule becomes a
 /// suppress object for 30 days. Ratings and comments are untrusted text, masked like everything Cookie reads.
 /// </summary>
+/// <summary>The lounge's e-mails in the decision log (docs/lounge-plan.md §8.2): never in the lessons or the drift report (D12).</summary>
+file static class LoungeKinds
+{
+    public static readonly string Email = ProposedAction.Name(CookieActionKind.LoungeEmail);
+}
+
 public sealed class Lessons(IDbContextFactory<PnmtdDbContext> dbs, CookieModel model, CookieBrain brain, CookieSettings settings, PrivacyFilter privacy,
     Instructions instructions, IOptionsMonitor<CookieOptions> options, ILogger<Lessons> logger)
 {
@@ -55,7 +61,8 @@ public sealed class Lessons(IDbContextFactory<PnmtdDbContext> dbs, CookieModel m
     public async Task<bool> DueAsync(DateTime? lastRun, CancellationToken ct)
     {
         await using var db = await dbs.CreateDbContextAsync(ct);
-        var unread = await db.CookieDecisions.CountAsync(d => d.Rating != null && !d.RatingRead, ct);
+        // The lounge's e-mails stay out (docs/lounge-plan.md §8.2, D12): their ratings would teach the case work about banter.
+        var unread = await db.CookieDecisions.CountAsync(d => d.Rating != null && !d.RatingRead && d.Kind != LoungeKinds.Email, ct);
         return unread >= NewRatings || (unread > 0 && (lastRun is null || Clock.UtcNow - lastRun >= TimeSpan.FromDays(1)));
     }
 
@@ -63,7 +70,8 @@ public sealed class Lessons(IDbContextFactory<PnmtdDbContext> dbs, CookieModel m
     {
         await using var db = await dbs.CreateDbContextAsync(ct);
         var since = Clock.UtcNow.AddDays(-30);
-        var rated = await db.CookieDecisions.Where(d => d.Rating != null && d.RatedAt >= since).OrderByDescending(d => d.RatedAt).Take(200).ToListAsync(ct);
+        var rated = await db.CookieDecisions.Where(d => d.Rating != null && d.RatedAt >= since && d.Kind != LoungeKinds.Email).OrderByDescending(d => d.RatedAt)
+            .Take(200).ToListAsync(ct);
         if (rated.Count == 0)
         {
             return 0;
@@ -155,7 +163,8 @@ public sealed class CookieDailyTask(IDbContextFactory<PnmtdDbContext> dbs, Lesso
     {
         await using var db = await dbs.CreateDbContextAsync(ct);
         var since = Clock.UtcNow.AddDays(-1);
-        var decisions = await db.CookieDecisions.AsNoTracking().Where(d => d.At >= since && d.Kind != "drift").OrderBy(d => d.Id).Take(300).ToListAsync(ct);
+        var decisions = await db.CookieDecisions.AsNoTracking().Where(d => d.At >= since && d.Kind != "drift" && d.Kind != LoungeKinds.Email).OrderBy(d => d.Id)
+            .Take(300).ToListAsync(ct);
         var every = Math.Max(1, (await settings.GetAsync<ModelSettings>(ct)).SeraphSampleEvery);
         var notes = (await db.CookieCaseEntries.AsNoTracking().Where(e => e.At >= since && e.Kind == "note").OrderBy(e => e.Id).ToListAsync(ct))
             .Where((_, i) => i % every == 0).Take(50).ToList();

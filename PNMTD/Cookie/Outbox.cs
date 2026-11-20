@@ -91,6 +91,22 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
                 }
                 break;
             }
+            case CookieChannel.LoungeEmail:
+            {
+                // The lounge's own limits (docs/lounge-plan.md §8.2): a day, and per person a week; Cookie's e-mail limits aren't touched.
+                var lounge = await settings.GetAsync<Lounge.LoungeSettings>(ct);
+                if (await sent.CountAsync(o => o.Channel == CookieChannel.LoungeEmail, ct) >= lounge.EmailsPerDay)
+                {
+                    return $"lounge e-mails: {lounge.EmailsPerDay} a day";
+                }
+                var week = Clock.UtcNow - CookieExecutor.LoungeEmailEvery;
+                if (await db.CookieOutbox.AsNoTracking().CountAsync(o => o.Channel == CookieChannel.LoungeEmail && o.UserId == r.UserId && o.CreatedAt >= week
+                        && (o.State == CookieOutboxState.Sent || o.State == CookieOutboxState.Simulated), ct) >= lounge.EmailsPerPersonWeek)
+                {
+                    return $"lounge e-mails per person: {lounge.EmailsPerPersonWeek} a week";
+                }
+                break;
+            }
             case CookieChannel.RedmineTicket:
                 if (await sent.CountAsync(o => o.Channel == CookieChannel.RedmineTicket, ct) >= limits.TicketsPerDay)
                 {
@@ -165,7 +181,7 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
         var person = row.UserId is { } u ? await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == u, ct) : null;
         var address = row.Channel switch
         {
-            CookieChannel.Email or CookieChannel.AccessEmail or CookieChannel.WasThisYou => person?.Email,
+            CookieChannel.Email or CookieChannel.AccessEmail or CookieChannel.WasThisYou or CookieChannel.LoungeEmail => person?.Email,
             CookieChannel.Pushover or CookieChannel.AccessPushover => person?.PushoverKey,
             _ => null,
         };
@@ -189,7 +205,8 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
         {
             switch (r.Channel)
             {
-                case CookieChannel.Email or CookieChannel.Pushover or CookieChannel.AccessEmail or CookieChannel.AccessPushover or CookieChannel.WasThisYou:
+                case CookieChannel.Email or CookieChannel.Pushover or CookieChannel.AccessEmail or CookieChannel.AccessPushover or CookieChannel.WasThisYou
+                    or CookieChannel.LoungeEmail:
                 {
                     var pushover = r.Channel is CookieChannel.Pushover or CookieChannel.AccessPushover;
                     if (string.IsNullOrWhiteSpace(r.Address))
@@ -304,6 +321,7 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
         CookieChannel.AccessEmail => "Access e-mail",
         CookieChannel.AccessPushover => "Access Pushover",
         CookieChannel.WasThisYou => "Was this you?",
+        CookieChannel.LoungeEmail => "Lounge e-mail",
         _ => channel.ToString(),
     };
 }

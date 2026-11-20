@@ -35,6 +35,9 @@ public sealed record ModelChoice(string Model, string Providers, string? MinQuan
 /// <summary>Cookie's budget is spent for the month (§19.1): Cookie pauses until the next.</summary>
 public sealed class CookieBudgetException(decimal spent, decimal limit) : Exception($"Cookie's budget is spent: {spent:0.00} of {limit:0.00} USD this month.");
 
+/// <summary>The lounge's budget is spent for the month (docs/lounge-plan.md §11): the voices sleep until the 1st.</summary>
+public sealed class LoungeBudgetException(decimal spent, decimal limit) : Exception($"The lounge's budget is spent: {spent:0.00} of {limit:0.00} USD this month.");
+
 /// <summary>
 /// Cookie's model (docs/cookie-plan.md §14.3): OpenRouter's Chat Completions with tools (<c>tool_choice: auto</c> only), reasoning
 /// passed back unchanged with every tool result, a strict schema only on a final call without tools, the providers in order
@@ -50,6 +53,9 @@ public sealed class CookieModel(IHttpClientFactory http, IOptionsMonitor<AiOptio
     /// <summary>The big brother's calls: under cookie.* for package one's budget, with a budget of their own (§15.5).</summary>
     public const string BigBrotherPurpose = "cookie.bigbrother";
 
+    /// <summary>The lounge's calls (docs/lounge-plan.md §11): under cookie.* in the request log, with a budget of their own.</summary>
+    public const string LoungePurpose = "cookie.lounge";
+
     public static readonly string[] AtLeastFp8 = ["fp8", "fp16", "bf16", "fp32"];
 
     public async Task<decimal> BudgetLimitAsync(CancellationToken ct) =>
@@ -61,9 +67,21 @@ public sealed class CookieModel(IHttpClientFactory http, IOptionsMonitor<AiOptio
         var today = DateOnly.FromDateTime(Clock.LocalNow);
         var first = new DateOnly(today.Year, today.Month, 1);
         await using var db = await dbs.CreateDbContextAsync(ct);
-        return await db.AiSpending.Where(s => s.Day >= first && s.Purpose.StartsWith(PurposePrefix) && !s.Purpose.StartsWith(BigBrotherPurpose))
+        return await db.AiSpending.Where(s => s.Day >= first && s.Purpose.StartsWith(PurposePrefix) && !s.Purpose.StartsWith(BigBrotherPurpose)
+                && !s.Purpose.StartsWith(LoungePurpose))
             .SumAsync(s => (decimal?)s.Cost, ct) ?? 0m;
     }
+
+    /// <summary>What the lounge spent this calendar month (docs/lounge-plan.md §11): left out of Cookie's.</summary>
+    public async Task<decimal> LoungeSpentAsync(CancellationToken ct)
+    {
+        var today = DateOnly.FromDateTime(Clock.LocalNow);
+        var first = new DateOnly(today.Year, today.Month, 1);
+        await using var db = await dbs.CreateDbContextAsync(ct);
+        return await db.AiSpending.Where(s => s.Day >= first && s.Purpose.StartsWith(LoungePurpose)).SumAsync(s => (decimal?)s.Cost, ct) ?? 0m;
+    }
+
+    public async Task<decimal> LoungeBudgetLimitAsync(CancellationToken ct) => (await settings.GetAsync<Lounge.LoungeSettings>(ct)).BudgetUsd;
 
     /// <summary>What the big brother spent this calendar month (§15.5).</summary>
     public async Task<decimal> BigBrotherSpentAsync(CancellationToken ct)
@@ -102,6 +120,15 @@ public sealed class CookieModel(IHttpClientFactory http, IOptionsMonitor<AiOptio
             if (limit > 0 && await BigBrotherSpentAsync(ct) is var spentByBrother && spentByBrother >= limit)
             {
                 throw new CookieBudgetException(spentByBrother, limit);
+            }
+        }
+        else if ((PurposePrefix + purpose).StartsWith(LoungePurpose, StringComparison.Ordinal))
+        {
+            // The lounge's own budget (docs/lounge-plan.md §11): banter never spends Cookie's, and Cookie's work never the lounge's.
+            var limit = await LoungeBudgetLimitAsync(ct);
+            if (limit > 0 && await LoungeSpentAsync(ct) is var spentInLounge && spentInLounge >= limit)
+            {
+                throw new LoungeBudgetException(spentInLounge, limit);
             }
         }
         else

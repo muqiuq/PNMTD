@@ -27,6 +27,9 @@ public sealed record ActionRequest(
     Func<string, CancellationToken, Task<ProposedAction?>>? Retry = null,
     CookieOrder? Order = null);
 
+/// <summary>A lounge e-mail to take through the executor (docs/lounge-plan.md §8.2): who wrote it, to whom, what, and what it read.</summary>
+public sealed record LoungeEmailRequest(string Voice, Guid UserId, string Subject, string Text, IReadOnlyList<string> Areas, Pseudonyms Privacy);
+
 /// <summary>
 /// Cookie's executor (docs/cookie-plan.md §6, §21.1): every proposal goes through the action's level, its confidence
 /// threshold, its targets and rights, mute and suppress and the case's stop, duplicates, Seraph for what leaves PNMT or
@@ -218,6 +221,103 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         return log;
     }
 
+    /// <summary>A lounge e-mail again to the same person within this long is a duplicate (docs/lounge-plan.md §8.2).</summary>
+    public static readonly TimeSpan LoungeEmailEvery = TimeSpan.FromDays(7);
+
+    /// <summary>
+    /// A lounge e-mail (docs/lounge-plan.md §8.2): the lounge's level, the recipient's checks (active, an address, not opted out, works
+    /// today), mute and suppress of e-mail, one per person a week, working hours, and a review by the other voice's model, never its own (D7);
+    /// then the inbox (<i>Propose</i>) or the outbox's own channel (<i>Auto</i>). Each step is in Cookie's decision log, kept out of the lessons.
+    /// </summary>
+    public async Task<CookieDecisionEntity> HandleLoungeEmailAsync(LoungeEmailRequest r, CancellationToken ct)
+    {
+        var lounge = await settings.GetAsync<Lounge.LoungeSettings>(ct);
+        var voiceName = r.Voice == Lounge.LoungeVoices.Seraph ? "Seraph" : (await settings.GetAsync<IdentitySettings>(ct)).Name;
+        var action = new ProposedAction(CookieActionKind.LoungeEmail, r.UserId.ToString(), 0, null, CaseBook.Cut(r.Subject.Trim(), 120)!,
+            CaseBook.Cut(r.Text.Trim(), 1500)!, $"From the lounge, written by {voiceName}.", [], 1, Urgency.Info);
+        var proposal = new CookieProposal(action, LoungeVoice: r.Voice);
+        await using var db = await dbs.CreateDbContextAsync(ct);
+        var recipient = await db.Users.AsNoTracking().Where(u => u.Id == r.UserId).Select(u => u.DisplayName).FirstOrDefaultAsync(ct) ?? r.UserId.ToString();
+        var log = new CookieDecisionEntity
+        {
+            At = Clock.UtcNow, Kind = ProposedAction.Name(CookieActionKind.LoungeEmail),
+            Title = CaseBook.Cut($"{Label(CookieActionKind.LoungeEmail)} by {voiceName} to {recipient}: {r.Privacy.Unmask(action.Subject)}", 300)!,
+            Proposal = JsonSerializer.Serialize(proposal, Json), Confidence = 1, Areas = [.. r.Areas.Distinct().Order()], Outcome = "noted",
+        };
+        db.CookieDecisions.Add(log);
+        async Task<CookieDecisionEntity> Done(string outcome, string detail)
+        {
+            log.Outcome = outcome;
+            log.Detail = CaseBook.Cut(detail, 1000);
+            await db.SaveChangesAsync(ct);
+            return log;
+        }
+        if (lounge.EmailLevel == ActionLevel.Off)
+        {
+            return await Done("off", "Lounge e-mails are off on Admin → Cookie → Lounge.");
+        }
+        var (refusal, target) = await CheckAsync(db, proposal, null, UserRights.None, ct);
+        log.Target = target;
+        if (refusal is not null)
+        {
+            return await Done("refused", refusal);
+        }
+        var active = await instructions.ActiveAsync(ct);
+        if (Instructions.Blocks(active, CookieActionKind.LoungeEmail, null, []) is { } blocked)
+        {
+            return await Done("muted", $"{blocked.Kind} {blocked.Scope} {blocked.Label ?? blocked.Value}, by {blocked.CreatedByName}");
+        }
+        var since = Clock.UtcNow - LoungeEmailEvery;
+        if (await db.CookieDecisions.AnyAsync(d => d.Kind == log.Kind && d.Target == target
+                && (d.Outcome == "proposed" || d.Outcome == "running" || d.At >= since && (d.Outcome == "done" || d.Outcome == "approved")), ct))
+        {
+            return await Done("duplicate", "A lounge e-mail to the same person was sent this week, or waits for a person.");
+        }
+        string? toPerson = null;
+        if (!(await plan.CalendarAsync(ct)).IsWorking(Clock.UtcNow))
+        {
+            toPerson = "Outside working hours: a person decides whether it goes out now.";
+        }
+        // Never its own reviewer (D7): Seraph's model reviews Cookie's e-mails, and Cookie's model reviews Seraph's.
+        var reviewer = r.Voice == Lounge.LoungeVoices.Seraph ? await seraph.CookieChoiceAsync(ct) : await seraph.ChoiceAsync(ct);
+        var evidence = $"The recipient {r.UserId} is {r.Privacy.Mask(recipient)}. {voiceName} wrote it in the lounge, a conversation everyone at the " +
+            "organisation reads.";
+        var tokens = services.GetRequiredService<IOptionsMonitor<CookieOptions>>().CurrentValue.Tokens.LoungeReview;
+        var (verdict, model, error) = reviewer is null ? (null, null, "Seraph has no model (Cookie__SeraphModel).")
+            : await seraph.ReviewAsync(Masked(proposal, r.Privacy), evidence, r.Privacy.Mask(Instructions.PromptText(active)), ct, Seraph.LoungeParagraph, reviewer,
+                "lounge.review", tokens);
+        log.Model = model;
+        if (verdict is null)
+        {
+            toPerson ??= $"It couldn't be reviewed: {error}";
+        }
+        else
+        {
+            log.Verdict = verdict.Verdict.ToString().ToLowerInvariant();
+            log.VerdictReason = verdict.Reason;
+            log.VerdictConfidence = verdict.Confidence;
+            if (verdict.Verdict == SeraphVerdictKind.Reject)
+            {
+                return await Done("rejected", $"The review: {verdict.Reason}");
+            }
+            if (verdict.Verdict is SeraphVerdictKind.Revise or SeraphVerdictKind.Ask)
+            {
+                toPerson ??= $"The review: {verdict.Reason}";
+            }
+        }
+        if (toPerson is not null || lounge.EmailLevel == ActionLevel.Propose)
+        {
+            await db.SaveChangesAsync(ct);
+            log.InboxDecisionId = await inbox.RaiseAsync(new DecisionDraft(InboxKind, CaseBook.Cut($"Cookie proposes: {log.Title}", 300)!,
+                Summary(proposal, r.Privacy, log.VerdictReason, toPerson), new CookieActionPayload(log.Id), $"{InboxKind}:{log.Id}",
+                AdminOnly: log.Areas.Any(x => !InboxAreas.Contains(x)), Priority: 0), ct);
+            return await Done("proposed", toPerson ?? "Propose: a person decides in the decisions inbox.");
+        }
+        await RunAsync(db, log, proposal, null, "lounge", ct);
+        await db.SaveChangesAsync(ct);
+        return log;
+    }
+
     /// <summary>A person approved a proposal in the inbox: it runs now, through the limits.</summary>
     public async Task<CookieDecisionEntity> RunApprovedAsync(long id, string by, CancellationToken ct)
     {
@@ -242,7 +342,8 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         // judgement it passed the first time (docs/cookie-powers-plan.md §6).
         var ordered = log.OrderedBy is not null;
         var rights = await services.GetRequiredService<CookieRound>().RightsAsync(ct) ?? UserRights.None;
-        var level = (await settings.GetAsync<ActionSettings>(ct)).Levels.Of(proposal.Action.Action).Level;
+        var level = proposal.Action.Action == CookieActionKind.LoungeEmail ? (await settings.GetAsync<Lounge.LoungeSettings>(ct)).EmailLevel
+            : (await settings.GetAsync<ActionSettings>(ct)).Levels.Of(proposal.Action.Action).Level;
         var (refusal, _) = await CheckAsync(db, proposal, c, rights, ct, ordered);
         var members = c is null ? [] : JsonSerializer.Deserialize<List<CaseMember>>(c.Members, CookieSettings.Json) ?? [];
         var blocked = ordered ? null : Instructions.Blocks(await instructions.ActiveAsync(ct), proposal.Action.Action, c, members,
@@ -257,7 +358,8 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
             await db.SaveChangesAsync(ct);
             return log;
         }
-        await RunAsync(db, log, proposal, c, ordered ? "order" : "cookie", ct, log.OrderedBy, approved: true);
+        await RunAsync(db, log, proposal, c, ordered ? "order" : proposal.Action.Action == CookieActionKind.LoungeEmail ? "lounge" : "cookie", ct, log.OrderedBy,
+            approved: true);
         log.Detail = CaseBook.Cut($"Approved by {by}. {log.Detail}", 1000);
         await db.SaveChangesAsync(ct);
         return log;
@@ -283,6 +385,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         CookieActionKind.ObjectNote => "Note",
         CookieActionKind.MailEvent => "Mail rule event",
         CookieActionKind.AccessNotice => "Access notice",
+        CookieActionKind.LoungeEmail => "Lounge e-mail",
         _ => "For a person",
     };
 
@@ -344,6 +447,34 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                 var today = DateOnly.FromDateTime(Clock.LocalNow);
                 var day = await plan.DayAsync(today, ct, [userId]);
                 if (!ordered && !day.Closed(today) && !day.Works(userId, today))
+                {
+                    return ($"{user.DisplayName} doesn't work today (the availability plan).", null);
+                }
+                return (null, $"user:{userId}");
+            }
+            case CookieActionKind.LoungeEmail:
+            {
+                // docs/lounge-plan.md §8.2, §9.4: an active user with an address, who hasn't opted out and works today; never important.
+                if (!Guid.TryParse(a.UserId, out var userId))
+                {
+                    return ("A person must be named by their user id.", null);
+                }
+                var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == userId && u.IsActive, ct);
+                if (user is null)
+                {
+                    return ("No active PNMT user with that id.", null);
+                }
+                if (string.IsNullOrWhiteSpace(user.Email))
+                {
+                    return ($"{user.DisplayName} has no e-mail address.", null);
+                }
+                if (!user.LoungeEmails)
+                {
+                    return ($"{user.DisplayName} doesn't want e-mails from the lounge.", null);
+                }
+                var today = DateOnly.FromDateTime(Clock.LocalNow);
+                var day = await plan.DayAsync(today, ct, [userId]);
+                if (!day.Closed(today) && !day.Works(userId, today))
                 {
                     return ($"{user.DisplayName} doesn't work today (the availability plan).", null);
                 }
@@ -523,6 +654,19 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                     var row = await outbox.SendAsync(new OutboxRequest(pushover ? CookieChannel.Pushover : CookieChannel.Email, subject,
                         pushover ? body : body + sign, c?.Id, null, user.Id, user.DisplayName, pushover ? user.PushoverKey : user.Email, c?.IssueId,
                         Urgency: a.Urgency, Source: source, Unlimited: orderedBy is not null, OrderedBy: orderedBy, ByPerson: byPerson), ct);
+                    Outcome(log, row);
+                    break;
+                }
+                case CookieActionKind.LoungeEmail:
+                {
+                    // Signed by the voice that wrote it, from the lounge, with a link to it (docs/lounge-plan.md §8.2).
+                    var user = await db.Users.AsNoTracking().SingleAsync(u => u.Id == Guid.Parse(a.UserId!), ct);
+                    var writer = p.LoungeVoice == Lounge.LoungeVoices.Seraph ? "Seraph" : identity.Name;
+                    var other = p.LoungeVoice == Lounge.LoungeVoices.Seraph ? identity.Name : "Seraph";
+                    var baseUrl = services.GetRequiredService<IConfiguration>()["PublicBaseUrl"];
+                    var link = string.IsNullOrWhiteSpace(baseUrl) ? "" : $"\n{baseUrl.TrimEnd('/')}/pnmt-admin/lounge";
+                    var row = await outbox.SendAsync(new OutboxRequest(CookieChannel.LoungeEmail, subject, $"{body}\n\n— {writer} (and {other}), from PNMT's lounge{link}",
+                        null, null, user.Id, user.DisplayName, user.Email, Urgency: Urgency.Info, Source: source, ByPerson: byPerson), ct);
                     Outcome(log, row);
                     break;
                 }

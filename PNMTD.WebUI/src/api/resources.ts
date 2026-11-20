@@ -185,6 +185,10 @@ export const api = {
     profile: (id: Id) => call(client.GET('/api/v1/users/{id}/profile', { params: { path: { id } } })),
     saveProfile: (id: Id, body: S['UserProfileRequest']) =>
       call(client.PUT('/api/v1/users/{id}/profile', { params: { path: { id } }, body })),
+    /** The person's switches for the lounge (docs/lounge-plan.md §9.4): Cookie and Seraph may talk about them, e-mail them. Admin. */
+    lounge: (id: Id) => call(client.GET('/api/v1/users/{id}/lounge', { params: { path: { id } } })),
+    saveLounge: (id: Id, body: S['LoungeSwitches']) =>
+      call(client.PUT('/api/v1/users/{id}/lounge', { params: { path: { id } }, body })),
   },
 
   /** One's own contact details (docs/cookie-plan.md §8.1): the e-mail address and the Pushover key, and a test. */
@@ -194,6 +198,9 @@ export const api = {
     /** A message to one's own saved address or key; 409 when there is none yet, or no provider. */
     testContact: (channel: 'email' | 'pushover') =>
       call(client.POST('/api/v1/account/contact/test', { body: { channel } })),
+    /** One's own switches for the lounge (docs/lounge-plan.md §9.4): Cookie and Seraph may talk about one, and e-mail one. */
+    lounge: () => call(client.GET('/api/v1/account/lounge')),
+    saveLounge: (body: S['LoungeSwitches']) => call(client.PUT('/api/v1/account/lounge', { body })),
   },
 
   /**
@@ -580,6 +587,7 @@ export const api = {
       rights: (body: S['CookieRightsSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/rights', { body })),
       lessons: (body: S['LessonSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/lessons', { body })),
       access: (body: S['AccessSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/access', { body })),
+      lounge: (body: S['LoungeSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/lounge', { body })),
     },
     /** Mute, suppress and instructions (§10.3): the active ones and drafts, then the last 30 days'. */
     instructions: () => call(client.GET('/api/v1/cookie/admin/instructions')),
@@ -636,6 +644,43 @@ export const api = {
     /** Many routers' switches at once (§4.2): all of a location, all on, all off. */
     switchAccessRouters: (sensorIds: Id[], watch: boolean) =>
       call(client.PUT('/api/v1/cookie/admin/access/routers', { body: { sensorIds, watch } })),
+  },
+
+  /**
+   * The lounge (docs/lounge-plan.md §14): one conversation for every signed-in user; writing needs Lounge: Use and a started
+   * lounge. Admin → Cookie → Lounge is Cookie's Manage.
+   */
+  lounge: {
+    /** The newest 100 lines and the state; afterId for what came since. */
+    room: (afterId?: number) => call(client.GET('/api/v1/lounge', { params: { query: { afterId } } })),
+    /** A message (the voices answer it) or a comment (they take it up), on a message or on none. 409 closed, 429 over 20 an hour. */
+    post: (body: S['LoungePostRequest']) => call(client.POST('/api/v1/lounge/messages', { body })),
+    /** The side panel: the keepsakes, and the convictions with both positions and the last move. */
+    about: () => call(client.GET('/api/v1/lounge/about')),
+    // --- Admin → Cookie → Lounge: Cookie's Manage -----------------------------------------------------------------------
+    status: () => call(client.GET('/api/v1/cookie/admin/lounge')),
+    /** Start, 409 with the reason without a group, Cookie__Enabled or Seraph's model; Stop, the room stays readable. */
+    start: () => call(client.POST('/api/v1/cookie/admin/lounge/start')),
+    stop: () => call(client.POST('/api/v1/cookie/admin/lounge/stop')),
+    /** A scene now, awake or not (not past the budget). */
+    talk: () => call(client.POST('/api/v1/cookie/admin/lounge/talk')),
+    /** Asleep until the next awake period. */
+    sleep: () => call(client.POST('/api/v1/cookie/admin/lounge/sleep')),
+    scenes: () => call(client.GET('/api/v1/cookie/admin/lounge/scenes')),
+    scene: (id: number) => call(client.GET('/api/v1/cookie/admin/lounge/scenes/{id}', { params: { path: { id } } })),
+    /** Keepsakes first, then the memories by their strength now; one voice, or both without. */
+    memories: (voice?: string) =>
+      call(client.GET('/api/v1/cookie/admin/lounge/memories', { params: { query: { voice } } })),
+    forgetMemory: (id: number) =>
+      call(client.DELETE('/api/v1/cookie/admin/lounge/memories/{id}', { params: { path: { id } } })),
+    /** Forget everything: one voice, or both with null. */
+    forget: (voice: string | null) => call(client.POST('/api/v1/cookie/admin/lounge/forget', { body: { voice } })),
+    /** Remove a message or a comment, and the memories made from it. */
+    removeMessage: (id: number) =>
+      call(client.DELETE('/api/v1/cookie/admin/lounge/messages/{id}', { params: { path: { id } } })),
+    /** The convictions' history. */
+    opinions: () => call(client.GET('/api/v1/cookie/admin/lounge/opinions')),
+    resetPositions: () => call(client.POST('/api/v1/cookie/admin/lounge/positions/reset')),
   },
 
   /**
@@ -1268,6 +1313,8 @@ export interface ConnectorCallFilters {
 
 export const keys = {
   dashboard: ['dashboard'] as const,
+  /** The lounge (docs/lounge-plan.md §15): the room, its side panel, and Admin → Cookie → Lounge. */
+  lounge: ['lounge'] as const,
   hosts: ['hosts'] as const,
   host: (id: Id) => ['host', id] as const,
   /** Cookie's notes on a host or a sensor (docs/cookie-object-notes-plan.md §6). */

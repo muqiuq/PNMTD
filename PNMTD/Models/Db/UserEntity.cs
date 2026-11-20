@@ -132,5 +132,11 @@ public class UserEntity
 
     /// <summary>The column's place in the plan.</summary>
     public int PlanOrder { get; set; }
+
+    /// <summary>Cookie and Seraph may talk about the person in the lounge (docs/lounge-plan.md §9.4); on by default.</summary>
+    public bool LoungeMentions { get; set; } = true;
+
+    /// <summary>Cookie and Seraph may send the person an e-mail from the lounge (§8.2, §9.4); on by default.</summary>
+    public bool LoungeEmails { get; set; } = true;
 }
 

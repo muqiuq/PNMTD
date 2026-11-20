@@ -110,6 +110,13 @@ public sealed class CookieTokenOptions
     public int BigBrother { get; set; } = 16_000;
 
     public int BigBrotherSolution { get; set; } = 8000;
+
+    /// <summary>The lounge (docs/lounge-plan.md §11): a voice's message turn, a voice's night, and an e-mail's review.</summary>
+    public int Lounge { get; set; } = 3000;
+
+    public int LoungeNight { get; set; } = 4000;
+
+    public int LoungeReview { get; set; } = 2000;
 }
 
 /// <summary>Cookie's services (docs/cookie-plan.md §19.3).</summary>
@@ -153,6 +160,14 @@ public static class CookieSetup
         services.AddSingleton<Access.AccessJudge>();
         services.AddSingleton<Access.AccessWatchTask>();
         services.AddScoped<Access.AccessService>();
+        // The lounge (docs/lounge-plan.md §13): its own loop, signals, ground, voices, night and tools; its API.
+        services.AddSingleton<Lounge.LoungeSignals>();
+        services.AddSingleton<Lounge.LoungeGround>();
+        services.AddSingleton<Lounge.LoungeTools>();
+        services.AddSingleton<Lounge.LoungeVoice>();
+        services.AddSingleton<Lounge.LoungeNight>();
+        services.AddSingleton<Lounge.LoungeLoop>();
+        services.AddScoped<Lounge.LoungeService>();
         return services;
     }
 }

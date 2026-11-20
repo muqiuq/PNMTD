@@ -22,7 +22,18 @@ export const sourceLabel = (source: string) => (source === 'cookie' ? 'as Cookie
 export const cookieStateSeverity = (s: S['CookieState']): Severity =>
   s === 'Working' ? 'info' : s === 'Sleeping' ? 'success' : s === 'Paused' ? 'warn' : 'secondary'
 
-export const caseKinds: S['CookieCaseKind'][] = ['Problem', 'Ticket', 'Request', 'Access']
+export const caseKinds: S['CookieCaseKind'][] = ['Problem', 'Ticket', 'Request', 'Access', 'Raised']
+
+/** A kind of case as people read it; a raised case is one Cookie or Seraph opened from the lounge (docs/lounge-plan.md §8.1). */
+export const caseKindLabel: Record<S['CookieCaseKind'], string> = {
+  Problem: 'Problem',
+  Ticket: 'Ticket',
+  Request: 'Request',
+  Access: 'Access',
+  Raised: 'Raised in the lounge',
+}
+
+export const caseKindName = (k: S['CookieCaseKind']) => caseKindLabel[k] ?? k
 
 export const dutyKinds: DutyKind[] = [
   'FirstAnswerReminder',
@@ -76,6 +87,7 @@ export const channels: S['CookieChannel'][] = [
   'AccessEmail',
   'AccessPushover',
   'WasThisYou',
+  'LoungeEmail',
 ]
 
 export const channelLabel: Record<S['CookieChannel'], string> = {
@@ -87,6 +99,7 @@ export const channelLabel: Record<S['CookieChannel'], string> = {
   AccessEmail: 'Access e-mail',
   AccessPushover: 'Access Pushover',
   WasThisYou: 'Was this you?',
+  LoungeEmail: 'Lounge e-mail',
 }
 
 export const channelName = (c: S['CookieChannel']) => channelLabel[c] ?? c

@@ -23,6 +23,7 @@ import { useServerTable } from '@/composables/useServerTable'
 import { formatAbsolute } from '@/format'
 import { useSession } from '@/stores/session'
 import RemoveKeysDialog from './sshkeys/RemoveKeysDialog.vue'
+import UserLoungeSwitches from './UserLoungeSwitches.vue'
 import UserProfileForm from './UserProfileForm.vue'
 import type { RemovalSource } from './sshkeys/sshKeyFormat'
 import UserKeys from './sshkeys/UserKeys.vue'
@@ -409,6 +410,10 @@ async function create() {
         <section class="profile" aria-labelledby="profile-title">
           <h3 id="profile-title">Contact and availability plan</h3>
           <UserProfileForm :key="selected.id" :user-id="selected.id" :username="selected.username" />
+        </section>
+        <section class="profile" aria-labelledby="user-lounge-title">
+          <h3 id="user-lounge-title">Lounge</h3>
+          <UserLoungeSwitches :key="selected.id" :user-id="selected.id" :username="selected.username" />
         </section>
         <section class="access">
           <h3>Rights</h3>

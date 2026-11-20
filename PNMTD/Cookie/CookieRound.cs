@@ -116,8 +116,11 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             // People's comments on the cases in focus (§4.3): untrusted, screened with the rest.
             var focusIds = focus.Select(c => c.Id).ToList();
             var commentSince = now.AddDays(-14);
-            var comments = (await db.CookieCaseEntries.AsNoTracking().Where(e => focusIds.Contains(e.CaseId) && e.Kind == "comment" && e.At >= commentSince)
-                .OrderByDescending(e => e.At).ToListAsync(ct)).GroupBy(e => e.CaseId).ToDictionary(g => g.Key, g => g.Take(5).Reverse().ToList());
+            // A raised case's why (docs/lounge-plan.md §8.1) comes along the same way: untrusted, a voice may have been led there by a ticket's text.
+            var comments = (await db.CookieCaseEntries.AsNoTracking().Where(e => focusIds.Contains(e.CaseId) && (e.Kind == "comment" && e.At >= commentSince
+                    || e.Kind == LoungeRaisedEntry))
+                .OrderByDescending(e => e.At).ToListAsync(ct)).GroupBy(e => e.CaseId)
+                .ToDictionary(g => g.Key, g => g.Where(e => e.Kind == LoungeRaisedEntry).Take(1).Concat(g.Where(e => e.Kind != LoungeRaisedEntry).Take(5).Reverse()).ToList());
             if (!force && hash == runtime.BriefHash && runtime.CookieStatus is not null)
             {
                 // Nothing changed: no call, and Cookie's status stays as it was (§3.3).
@@ -225,7 +228,8 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 var people = await PeopleAsync(db, c, p, ct);
                 // The big brother (§15.2): code offers the case when it matters and nobody took care of it for a working day.
                 var offered = BigBrother.Offered(c, runtime, missed.Contains(c.Id), calendar, now);
-                var caseText = $"The case:\n{CookieBrain.Json(Summary(c, due.GetValueOrDefault(c.Id), p, full: true, withheld,
+                var raisedWhy = comments.GetValueOrDefault(c.Id)?.Where(e => e.Kind == LoungeRaisedEntry).ToList();
+                var caseText = $"The case:\n{CookieBrain.Json(Summary(c, due.GetValueOrDefault(c.Id), p, full: true, withheld, raisedWhy is { Count: > 0 } ? raisedWhy : null,
                     yourNotes: await CookieObjectNotes.ForCaseAsync(db, c, p, ct)))}\n\n" +
                     $"PeopleYouMayAddress:\n{CookieBrain.Json(people)}" +
                     (offered ? "\n\nThis case matters and nobody has taken care of it for a working day: if something is broken that needs a technical " +
@@ -286,6 +290,13 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 c.CookieNoteAreas = [.. context.Areas.Order()];
                 CaseBook.Entry(db, c.Id, Clock.UtcNow, "note", text, "cookie");
                 trace.Add(c.Id, "note", $"Note: {c.Title}", text, c.CookieNoteAreas);
+                if (c.Kind == CookieCaseKind.Raised && note.Settled)
+                {
+                    // Only a raised case closes on Settled (docs/lounge-plan.md §8.1): the lounge hears of it in its ground.
+                    c.Open = false;
+                    c.ClosedAt = Clock.UtcNow;
+                    CaseBook.Entry(db, c.Id, Clock.UtcNow, "closed", "Settled: nothing more to do.", "cookie");
+                }
                 await db.SaveChangesAsync(ct);
 
                 // The proposals (§21.1): each through the executor; Seraph's "revise" gets one retry of the note call.
@@ -761,7 +772,10 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
         })];
     }
 
-    private static object Summary(CookieCaseEntity c, CookieDutyEntity? next, Pseudonyms p, bool full, bool withheld = false,
+    /// <summary>The entry a raised case opens with (docs/lounge-plan.md §8.1): the voice's why, untrusted in the brief.</summary>
+    public const string LoungeRaisedEntry = "raised";
+
+    public static object Summary(CookieCaseEntity c, CookieDutyEntity? next, Pseudonyms p, bool full, bool withheld = false,
         IReadOnlyList<CookieCaseEntryEntity>? comments = null, IReadOnlyList<object>? yourNotes = null)
     {
         if (!full)
@@ -788,7 +802,13 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             YourLastNote = p.Mask(c.CookieNote),
             // Cookie's own notes on the case's host and sensors (docs/cookie-object-notes-plan.md §3.3): its words, not outside text.
             YourNotes = yourNotes,
-            PeoplesComments = comments?.Select(e => new
+            RaisedInTheLounge = comments?.Where(e => e.Kind == LoungeRaisedEntry).Select(e => new
+            {
+                e.At, By = e.ActorName,
+                Why = withheld ? "<untrusted source=\"lounge\" withheld=\"the guard flagged this round's messages\"></untrusted>"
+                    : $"<untrusted source=\"lounge\">{p.Mask(InputSanitizer.Clean(e.Text, 600).Text)}</untrusted>",
+            }).FirstOrDefault(),
+            PeoplesComments = comments?.Where(e => e.Kind != LoungeRaisedEntry).Select(e => new
             {
                 e.At, By = p.Mask(e.ActorName),
                 Text = withheld ? "<untrusted source=\"comment\" withheld=\"the guard flagged this round's messages\"></untrusted>"

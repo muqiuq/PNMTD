@@ -30,6 +30,7 @@ export const decisionKinds = [
   'drift',
   'access',
   'access-notice',
+  'lounge-email',
 ] as const
 
 const kindLabels: Record<string, string> = {
@@ -46,6 +47,7 @@ const kindLabels: Record<string, string> = {
   drift: 'Drift report',
   access: 'Access verdict',
   'access-notice': 'Access notice',
+  'lounge-email': 'Lounge e-mail',
 }
 
 export const decisionKindLabel = (kind: string) => kindLabels[kind] ?? kind

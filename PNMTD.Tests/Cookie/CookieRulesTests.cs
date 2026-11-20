@@ -156,7 +156,14 @@ public sealed class CookieRulesTests
                 StringAssert.Contains(prompt.Text, required, key);
             }
         }
-        Assert.AreEqual(10, CookiePrompts.CaseKinds.Count);
+        // Eleven since the lounge's raised cases (docs/lounge-plan.md §17.6).
+        Assert.AreEqual(11, CookiePrompts.CaseKinds.Count);
+        foreach (var key in new[] { "loungeRules", "loungeCookie", "loungeSeraph", "loungeScene", "loungeNight" })
+        {
+            Assert.IsTrue(CookiePrompts.Defaults.ContainsKey(key) && CookiePrompts.IsLounge(key), key);
+        }
+        CollectionAssert.AreEqual(new[] { "{ground}", "{direction}" }, CookiePrompts.Required("loungeScene").ToArray());
+        Assert.IsFalse(CookiePrompts.Defaults.Keys.Where(k => !k.StartsWith("lounge", StringComparison.Ordinal)).Any(CookiePrompts.IsLounge));
         Assert.AreEqual("Hi Cookie, {unknown}", CookiePrompts.Fill("Hi {name}, {unknown}", new Dictionary<string, string> { ["name"] = "Cookie" }));
     }
 }

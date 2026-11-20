@@ -37,7 +37,8 @@ public sealed class Instructions(IDbContextFactory<PnmtdDbContext> dbs)
     public static string? ChannelOf(CookieActionKind kind) => kind switch
     {
         CookieActionKind.Pushover => "pushover",
-        CookieActionKind.Email => "email",
+        // A suppress of the channel "email" stops the lounge's e-mails too (docs/lounge-plan.md §8.2).
+        CookieActionKind.Email or CookieActionKind.LoungeEmail => "email",
         CookieActionKind.Ticket => "ticket",
         CookieActionKind.PrivateNote or CookieActionKind.PublicAnswer => "redmine-note",
         _ => null,

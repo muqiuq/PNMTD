@@ -22,6 +22,7 @@ import ZabbixSeverityTag from '@/views/zabbix/ZabbixSeverityTag.vue'
 import AccessCase from './AccessCase.vue'
 import {
   actorLabel,
+  caseKindName,
   dutyName,
   dutyStateName,
   dutyStateSeverity,
@@ -54,6 +55,10 @@ const canRedmine = computed(() => session.can('Redmine', 'View'))
 
 const zabbixSeverity = (m: S['CaseMember']) => m.severity as S['ZabbixSeverity']
 const byPerson = (e: S['CookieEntryItem']) => (personKinds as readonly string[]).includes(e.kind)
+/** A raised case's why (docs/lounge-plan.md §15.4): the voice that opened it in the lounge, and its reason. */
+const raised = computed(() =>
+  c.value?.kind === 'Raised' ? d.value?.entries.find((e) => e.kind === 'raised') : undefined,
+)
 
 // --- comments, Stop and Go on (§4.3) --------------------------------------------------------------------------------
 const queryClient = useQueryClient()
@@ -159,7 +164,7 @@ async function confirm() {
   <div v-else-if="!d || !c" class="center"><ProgressSpinner style="width: 32px; height: 32px" /></div>
   <template v-else>
     <div class="panel-header">
-      <Tag :value="c.kind" severity="secondary" />
+      <Tag :value="caseKindName(c.kind)" severity="secondary" />
       <Tag :value="c.open ? 'open' : 'closed'" :severity="c.open ? 'info' : 'secondary'" />
       <Tag :value="c.importance" :severity="importanceSeverity(c.importance)" />
       <Tag v-if="c.stopped" value="stopped" severity="warn" />
@@ -188,6 +193,13 @@ async function confirm() {
           :disabled="busy"
           @click="ask('go-on')"
         />
+      </Message>
+      <Message v-if="c.kind === 'Raised'" severity="secondary" :closable="false" class="stopped">
+        <div>
+          <strong>Raised in the lounge</strong
+          ><template v-if="raised"> by {{ raised.actorName ?? actorLabel(raised) }}: “{{ raised.text }}”</template>
+        </div>
+        <RouterLink :to="{ name: 'lounge' }" class="small">The conversation in the lounge</RouterLink>
       </Message>
       <p v-if="c.cookieNote" class="note">{{ c.cookieNote }}</p>
       <dl class="facts">
