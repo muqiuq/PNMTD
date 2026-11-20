@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
 import { collectProblems, shot, signIn } from './support'
 
@@ -5,7 +6,8 @@ import { collectProblems, shot, signIn } from './support'
  * 3rd Party Connectors (docs/connectors-plan.md §13, §16) on the seed: the area opens on Calls; a Linux connector added on web-01 with
  * its script taken from the library; an argument exposed with a pattern; a caller with its networks, its key shown; a call through
  * /connector/v1, wrong first (422), then right (202: the seed's agents aren't connected, so it waits for the server with its ticket);
- * both on Calls. Only what the browser can break: the server side has its tests in PNMTD.Tests.
+ * both on Calls; the documentation downloaded as one .md file. Only what the browser can break: the server side has its tests in
+ * PNMTD.Tests.
  */
 test('a connector from the library, a caller with its key, and its calls', async ({ page }) => {
   const problems = collectProblems(page)
@@ -107,5 +109,17 @@ test('a connector from the library, a caller with its key, and its calls', async
     page.getByRole('row', { name: new RegExp(`refused · arguments.*${name.slice(0, 10)}`) }).first(),
   ).toBeVisible()
   await shot(page, 'connectors-calls-after')
+
+  // The documentation, to hand on: the whole API as one .md file, its title included.
+  await page.getByRole('link', { name: 'Documentation', exact: true }).click()
+  const downloading = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download as Markdown' }).click()
+  const download = await downloading
+  expect(download.suggestedFilename()).toBe('pnmt-connectors-api.md')
+  const markdown = await readFile(await download.path(), 'utf8')
+  expect(markdown.startsWith('# PNMT 3rd Party Connectors: the API for callers\n')).toBe(true)
+  for (const heading of ['## A call', '## Wait or ticket', '## Errors', '## Examples']) {
+    expect(markdown).toContain(`\n${heading}\n`)
+  }
   expect(problems).toEqual([])
 })
