@@ -86,6 +86,8 @@ public static class IntegrationReadTools
                 Notes = j.Notes is null ? null : ctx.Untrusted($"ticket #{t.Id} note", j.Notes.Text, 1200),
             }),
             Url = ctx.Link($"redmine/issues/{t.Id}"),
+            // How old PNMT's copy of the ticket is (docs/redmine-queue-outbound-plan.md §4.5); the agent doesn't refresh it.
+            RefreshedAt = t.Freshness.RefreshedAt,
         };
     }
 

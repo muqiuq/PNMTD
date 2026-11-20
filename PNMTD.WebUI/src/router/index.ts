@@ -419,8 +419,9 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/DebugView.vue'),
     meta: { title: 'Debug', right: ['System', 'Manage'] },
   },
+  // System health (§5.6) and its Outbound tab (docs/redmine-queue-outbound-plan.md §7.1): /admin/system stays the overview.
   {
-    path: '/admin/system',
+    path: '/admin/system/:tab(overview|outbound)?',
     name: 'system',
     component: () => import('@/views/admin/SystemView.vue'),
     meta: { title: 'System health', right: ['System', 'Manage'] },

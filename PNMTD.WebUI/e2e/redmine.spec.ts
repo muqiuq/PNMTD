@@ -3,8 +3,9 @@ import { collectProblems, shot, signIn } from './support'
 
 /**
  * Redmine (docs/audit-redmine-zabbix-plan.md §6, §12), against the tickets recorded in R0 (tools/e2e.sh's fake, or a real
- * Redmine through E2E_ENV): the overview's tiles and lists, the search, a number opening the ticket, the ticket's page
- * linking a host, and the host's Tickets panel with its two buttons, its header chip and Unlink. Skipped without Redmine.
+ * Redmine through E2E_ENV): the overview's tiles and lists, the bar with its refresh button (docs/redmine-queue-outbound-plan.md
+ * §5), the search, a number opening the ticket, the ticket's page linking a host, and the host's Tickets panel with its two
+ * buttons, its header chip and Unlink. Skipped without Redmine.
  */
 async function api(page: Page, method: 'POST', path: string, data: unknown) {
   const xsrf = (await page.context().cookies()).find((c) => c.name === 'XSRF-TOKEN')?.value ?? ''
@@ -35,6 +36,18 @@ test("the overview, the search, a ticket linked to a host, and the host's panel"
   await expect(page.getByRole('combobox', { name: 'Project' })).toContainText('All projects')
   await shot(page, 'redmine-overview')
 
+  // The bar: when the overview was read from Redmine; ⟳ reads it again, and the time is now.
+  const refreshed = page.getByText(/^Refreshed /)
+  await expect(refreshed).toBeVisible()
+  const refresh = page.getByRole('button', { name: 'Refresh from Redmine' })
+  const answer = page.waitForResponse(
+    (r) => r.url().includes('/api/v1/redmine/refresh') && r.request().method() === 'POST',
+  )
+  await refresh.click()
+  expect([200, 202]).toContain((await answer).status())
+  await expect(refresh).toBeEnabled()
+  await expect(refreshed).toHaveText('Refreshed just now')
+
   // A tile opens the search with its filter applied, not every open ticket (the page stays mounted between the tabs).
   await page
     .getByRole('region', { name: 'Counts' })
@@ -58,6 +71,8 @@ test("the overview, the search, a ticket linked to a host, and the host's panel"
   await expect(page).toHaveURL(/\/redmine\/issues\/9$/)
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Printer on floor 2 does not print')
   await expect(page.getByRole('link', { name: 'Open in Redmine' })).toHaveAttribute('href', /\/issues\/9$/)
+  await expect(page.getByText(/^Refreshed /)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Refresh from Redmine' })).toBeVisible()
 
   // Linked to a host from the ticket's page.
   const name = `e2e-redmine-${Date.now()}`

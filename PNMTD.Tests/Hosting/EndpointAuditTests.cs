@@ -70,6 +70,12 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/search"] = ("Monitoring:View", Roles.Viewer),
         ["GET /api/v1/system/uplink"] = ("Monitoring:View", Roles.Viewer),
         ["GET /api/v1/system/tasks"] = ("System:Manage", Roles.Admin),
+        // The two outbound logs and the Redmine queue (docs/redmine-queue-outbound-plan.md §7.4, §8): System health's right.
+        ["GET /api/v1/system/outbound/notifications"] = ("System:Manage", Roles.Admin),
+        ["GET /api/v1/system/outbound/notifications/{id:long}"] = ("System:Manage", Roles.Admin),
+        ["GET /api/v1/system/outbound/redmine"] = ("System:Manage", Roles.Admin),
+        ["GET /api/v1/system/outbound/redmine/{id:long}"] = ("System:Manage", Roles.Admin),
+        ["GET /api/v1/system/outbound/live"] = ("System:Manage", Roles.Admin),
         ["GET /api/v1/system/status-codes"] = ("Monitoring:View", Roles.Viewer),
         ["GET /api/v1/system/sensor-types"] = ("Monitoring:View", Roles.Viewer),
         ["GET /api/v1/system/notification-rule-types"] = ("Monitoring:View", Roles.Viewer),
@@ -168,6 +174,8 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/redmine/overview"] = ("Redmine:View", Roles.User),
         ["GET /api/v1/redmine/issues"] = ("Redmine:View", Roles.User),
         ["GET /api/v1/redmine/issues/{id:int}"] = ("Redmine:View", Roles.User),
+        // The refresh button (docs/redmine-queue-outbound-plan.md §5.3): a read, as the page.
+        ["POST /api/v1/redmine/refresh"] = ("Redmine:View", Roles.User),
         ["GET /api/v1/redmine/related"] = ("Redmine:View", Roles.User),
         ["GET /api/v1/redmine/problems"] = ("Redmine:View", Roles.User),
         ["POST /api/v1/redmine/links"] = ("Redmine:Link", Roles.User),

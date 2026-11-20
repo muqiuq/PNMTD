@@ -823,13 +823,15 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         try
         {
             var redmine = services.GetRequiredService<RedmineService>();
-            var client = services.GetRequiredService<RedmineClient>();
+            var worker = services.GetRequiredService<RedmineWorker>();
             var lookups = await redmine.LookupsAsync(ct);
             IReadOnlyList<RmRef> roles;
             string? rolesError = null;
             try
             {
-                roles = (await client.GetAsync<RmRoles>("/roles.json", ct)).Roles;
+                // Through the worker's queue (docs/redmine-queue-outbound-plan.md §3.2): someone waits on Cookie's settings page.
+                roles = (await worker.RunAsync(new RedmineJobSpec("roles", PNMTD.Models.Db.RedmineLane.Interactive, "Cookie settings: roles", "PNMT"),
+                    calls => calls.GetAsync<RmRoles>("/roles.json", "roles")).WaitAsync(ct)).Roles;
             }
             catch (RedmineException e)
             {

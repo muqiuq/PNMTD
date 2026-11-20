@@ -131,7 +131,8 @@ public static partial class People
         }
         var recipient = pushover ? $"pushover://{address.Trim()}" : address.Trim();
         var text = string.Create(CultureInfo.InvariantCulture, $"A test from PNMT for {user.DisplayName}: this is where PNMT's assistant reaches you.");
-        var result = await notifications.SendAsync(new NotificationMessage(recipient, "PNMT: a test", text, text, Importance.Normal), "Contact test", simulate, ct);
+        var result = await notifications.SendAsync(new NotificationMessage(recipient, "PNMT: a test", text, text, Importance.Normal), "Contact test", simulate, ct,
+            user.DisplayName);
         return result ?? throw ApiException.Conflict("contact_no_provider", pushover ? "Pushover isn't set up on this server." : "E-mail isn't set up on this server.");
     }
 

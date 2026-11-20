@@ -46,6 +46,28 @@ public sealed class RedmineOptions
 
     public int TimeoutSeconds { get; set; } = 15;
 
+    // The worker and its snapshots (docs/redmine-queue-outbound-plan.md §3, §4, §9).
+
+    /// <summary>Calls in flight at most; one of them is kept for the button, write and interactive lanes.</summary>
+    public int Parallelism { get; set; } = 4;
+
+    /// <summary>How old a watched snapshot may get.</summary>
+    public int RefreshSeconds { get; set; } = 60;
+
+    /// <summary>How long a request keeps a snapshot watched.</summary>
+    public int WatchMinutes { get; set; } = 5;
+
+    /// <summary>When a snapshot nobody asked for is removed.</summary>
+    public int KeepMinutes { get; set; } = 60;
+
+    public int MaxSnapshots { get; set; } = 500;
+
+    /// <summary>How long a button or interactive caller waits for a job.</summary>
+    public int WaitSeconds { get; set; } = 30;
+
+    /// <summary>The background lane's pause after Redmine answered 429 or 503, unless it says how long itself.</summary>
+    public int BackoffSeconds { get; set; } = 30;
+
     public bool Enabled => !string.IsNullOrWhiteSpace(Url) && !string.IsNullOrWhiteSpace(ApiKey) && ProjectList.Count > 0;
 
     public IReadOnlyList<string> ProjectList =>

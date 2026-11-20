@@ -27,18 +27,14 @@ namespace PNMTD.Notifications
 
         public string Endpoint => configuration["Pushover:Endpoint"] is { Length: > 0 } endpoint ? endpoint : PUSHOVER_ENDPOINT;
 
-        public async Task<DeliveryResult> SendAsync(NotificationMessage message, CancellationToken ct)
+        /// <summary>The JSON Pushover gets: the app token, the user key, the title, the text, the priority, and an emergency's retry and expiry.</summary>
+        private async Task<Dictionary<string, object>> BodyAsync(NotificationMessage message, CancellationToken ct)
         {
-            var watch = Stopwatch.StartNew();
-            if (string.IsNullOrWhiteSpace(ApiKey))
-            {
-                return DeliveryResult.Failed($"No API key: {PUSHOVER_APIKEY_KEY} is not set.", watch.Elapsed);
-            }
             var settings = await priorities.GetAsync(ct);
             var priority = message.Priority ?? settings.Of(message.Importance);
             var body = new Dictionary<string, object>
             {
-                ["token"] = ApiKey!,
+                ["token"] = ApiKey ?? "",
                 ["user"] = UserKey(message.Recipient),
                 ["title"] = message.Subject,
                 ["message"] = message.Short,
@@ -54,6 +50,21 @@ namespace PNMTD.Notifications
             {
                 body["device"] = message.Device!.Trim();
             }
+            return body;
+        }
+
+        public async Task<OutboundDescription> DescribeAsync(NotificationMessage message, CancellationToken ct) =>
+            new("POST", Endpoint, [["Content-Type", "application/json; charset=utf-8"]],
+                PNMTD.Outbound.OutboundRedactor.PushoverBody(JsonSerializer.Serialize(await BodyAsync(message, ct))));
+
+        public async Task<DeliveryResult> SendAsync(NotificationMessage message, CancellationToken ct)
+        {
+            var watch = Stopwatch.StartNew();
+            if (string.IsNullOrWhiteSpace(ApiKey))
+            {
+                return DeliveryResult.Failed($"No API key: {PUSHOVER_APIKEY_KEY} is not set.", watch.Elapsed);
+            }
+            var body = await BodyAsync(message, ct);
             try
             {
                 using var response = await http.CreateClient(NotificationService.HttpClientName).PostAsJsonAsync(Endpoint, body, ct);

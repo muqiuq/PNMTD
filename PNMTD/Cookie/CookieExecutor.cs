@@ -257,7 +257,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
             await db.SaveChangesAsync(ct);
             return log;
         }
-        await RunAsync(db, log, proposal, c, ordered ? "order" : "cookie", ct, log.OrderedBy);
+        await RunAsync(db, log, proposal, c, ordered ? "order" : "cookie", ct, log.OrderedBy, approved: true);
         log.Detail = CaseBook.Cut($"Approved by {by}. {log.Detail}", 1000);
         await db.SaveChangesAsync(ct);
         return log;
@@ -498,10 +498,15 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
 
     // --- Running it ---------------------------------------------------------------------------------------------------------
 
-    /// <summary><paramref name="orderedBy"/>: the admin whose order it is; the outbox then counts no limit and the audit names them.</summary>
+    /// <summary>
+    /// <paramref name="orderedBy"/>: the admin whose order it is; the outbox then counts no limit and the audit names them.
+    /// <paramref name="approved"/>: a person approved it in the inbox. Either way a person waits, so a Redmine write goes in the
+    /// worker's button lane (docs/redmine-queue-outbound-plan.md §3.3); the limits don't change.
+    /// </summary>
     private async Task RunAsync(PnmtdDbContext db, CookieDecisionEntity log, CookieProposal p, CookieCaseEntity? c, string source, CancellationToken ct,
-        string? orderedBy = null)
+        string? orderedBy = null, bool approved = false)
     {
+        var byPerson = approved || orderedBy is not null;
         var a = p.Action;
         var identity = await settings.GetAsync<IdentitySettings>(ct);
         var sign = $"\n\n— {identity.Name}, PNMT's assistant";
@@ -517,7 +522,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                     var pushover = a.Action == CookieActionKind.Pushover;
                     var row = await outbox.SendAsync(new OutboxRequest(pushover ? CookieChannel.Pushover : CookieChannel.Email, subject,
                         pushover ? body : body + sign, c?.Id, null, user.Id, user.DisplayName, pushover ? user.PushoverKey : user.Email, c?.IssueId,
-                        Urgency: a.Urgency, Source: source, Unlimited: orderedBy is not null, OrderedBy: orderedBy), ct);
+                        Urgency: a.Urgency, Source: source, Unlimited: orderedBy is not null, OrderedBy: orderedBy, ByPerson: byPerson), ct);
                     Outcome(log, row);
                     break;
                 }
@@ -526,7 +531,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                     var redmineSettings = await settings.GetAsync<CookieRedmineSettings>(ct);
                     var row = await outbox.SendAsync(new OutboxRequest(CookieChannel.RedmineTicket, subject, body + sign, c?.Id,
                         Recipient: $"project {redmineSettings.TicketProjectId}", ProjectId: redmineSettings.TicketProjectId, TrackerId: redmineSettings.TicketTrackerId,
-                        Urgency: a.Urgency, Source: source, Unlimited: orderedBy is not null, OrderedBy: orderedBy), ct);
+                        Urgency: a.Urgency, Source: source, Unlimited: orderedBy is not null, OrderedBy: orderedBy, ByPerson: byPerson), ct);
                     Outcome(log, row);
                     if (row.State == CookieOutboxState.Sent && row.IssueId is { } issueId && c is not null)
                     {
@@ -547,7 +552,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                 case CookieActionKind.PrivateNote or CookieActionKind.PublicAnswer:
                 {
                     var row = await outbox.SendAsync(new OutboxRequest(a.Action == CookieActionKind.PrivateNote ? CookieChannel.RedminePrivateNote : CookieChannel.RedmineNote,
-                        $"#{a.IssueId}: {subject}", body + sign, c?.Id, IssueId: a.IssueId, Recipient: $"#{a.IssueId}", Urgency: a.Urgency, Source: source, Unlimited: orderedBy is not null, OrderedBy: orderedBy), ct);
+                        $"#{a.IssueId}: {subject}", body + sign, c?.Id, IssueId: a.IssueId, Recipient: $"#{a.IssueId}", Urgency: a.Urgency, Source: source, Unlimited: orderedBy is not null, OrderedBy: orderedBy, ByPerson: byPerson), ct);
                     Outcome(log, row);
                     break;
                 }

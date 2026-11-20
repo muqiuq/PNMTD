@@ -113,6 +113,10 @@ namespace PNMTD.Data
         public DbSet<AiSpendingEntity> AiSpending { get; set; }
         public DbSet<AiBudgetStateEntity> AiBudgetState { get; set; }
 
+        // The two outbound logs (docs/redmine-queue-outbound-plan.md §6).
+        public DbSet<OutboundNotificationEntity> OutboundNotifications { get; set; }
+        public DbSet<RedmineCallEntity> RedmineCalls { get; set; }
+
         // Decisions (docs/ai-operations-plan.md §5).
         public DbSet<DecisionEntity> Decisions { get; set; }
 
@@ -512,6 +516,18 @@ namespace PNMTD.Data
                 e.HasOne<AiWorkEntity>().WithMany().HasForeignKey(r => r.WorkId).OnDelete(DeleteBehavior.SetNull);
             });
             modelBuilder.Entity<AiSpendingEntity>().HasKey(s => new { s.Day, s.Purpose, s.Model });
+
+            // The outbound logs (docs/redmine-queue-outbound-plan.md §6.2): newest first, by channel, outcome and job.
+            modelBuilder.Entity<OutboundNotificationEntity>(e =>
+            {
+                e.HasIndex(n => new { n.Channel, n.Id });
+                e.HasIndex(n => new { n.Outcome, n.Id });
+            });
+            modelBuilder.Entity<RedmineCallEntity>(e =>
+            {
+                e.HasIndex(c => c.JobId);
+                e.HasIndex(c => new { c.Outcome, c.Id });
+            });
 
             modelBuilder.Entity<DecisionEntity>(e =>
             {

@@ -71,11 +71,16 @@ public sealed partial class SearchService(PnmtdDbContext db, LocationTree locati
             }
             try
             {
+                // At most 5 s for a number nobody looked up yet (docs/redmine-queue-outbound-plan.md §3.6); the worker keeps reading it.
                 var found = await services.GetRequiredService<Redmine.RedmineService>()
-                    .SearchAsync(new RedmineQuery { Search = number.ToString(System.Globalization.CultureInfo.InvariantCulture) }, ct);
+                    .SearchAsync(new RedmineQuery { Search = number.ToString(System.Globalization.CultureInfo.InvariantCulture) }, ct, TimeSpan.FromSeconds(5));
                 return found.Items.Select(i => new SearchTicket(i.Id, i.Subject, i.Status, i.IsClosed)).ToList();
             }
             catch (Redmine.RedmineException)
+            {
+                return [];
+            }
+            catch (Api.ApiException e) when (e.Status == StatusCodes.Status504GatewayTimeout)
             {
                 return [];
             }

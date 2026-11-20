@@ -5576,6 +5576,190 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("notification_settings");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.OutboundNotificationEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AskedBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<short>("Channel")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<short>("Outcome")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Recipient")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<byte[]>("RequestBody")
+                        .HasColumnType("bytea");
+
+                    b.Property<long>("RequestBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("RequestHeaders")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<byte[]>("ResponseBody")
+                        .HasColumnType("bytea");
+
+                    b.Property<long>("ResponseBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ResponseHeaders")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("StatusCode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Target")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<byte[]>("Transcript")
+                        .HasColumnType("bytea");
+
+                    b.Property<bool>("Truncated")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Channel", "Id");
+
+                    b.HasIndex("Outcome", "Id");
+
+                    b.ToTable("outbound_notifications");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.RedmineCallEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AskedBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("JobId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Kind")
+                        .HasColumnType("smallint");
+
+                    b.Property<short>("Lane")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<short>("Outcome")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("QueuedMs")
+                        .HasColumnType("integer");
+
+                    b.Property<byte[]>("RequestBody")
+                        .HasColumnType("bytea");
+
+                    b.Property<long>("RequestBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("RequestHeaders")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<byte[]>("ResponseBody")
+                        .HasColumnType("bytea");
+
+                    b.Property<long>("ResponseBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ResponseHeaders")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("StatusCode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Target")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<bool>("Truncated")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobId");
+
+                    b.HasIndex("Outcome", "Id");
+
+                    b.ToTable("redmine_calls");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.RedmineIssueEntity", b =>
                 {
                     b.Property<int>("IssueId")

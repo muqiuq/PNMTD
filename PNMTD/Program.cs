@@ -89,6 +89,8 @@ public partial class Program
             });
         });
         builder.Services.AddHttpClient();
+        // The two outbound logs (docs/redmine-queue-outbound-plan.md §6), before the notifications and Redmine that record into them.
+        PNMTD.Outbound.OutboundSetup.AddOutbound(builder.Services, builder.Configuration);
         builder.Services.AddNotifications();
         // PNMT's own conditions as sensors, and the uplink (docs/ai-operations-plan.md §4, §7).
         builder.Services.AddSingleton<PNMTD.Services.Events.SystemSensors>();
@@ -151,8 +153,9 @@ public partial class Program
             builder.Services.AddHostedService(sp => sp.GetRequiredService<FileCheckTask>());
             // The audit log's retention (docs/audit-redmine-zabbix-plan.md §3.8).
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Audit.AuditRetentionTask>());
-            // Redmine's copy of linked tickets (docs/audit-redmine-zabbix-plan.md §6.7).
-            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Redmine.RedmineSync>());
+            // The Redmine worker's scheduler (docs/redmine-queue-outbound-plan.md §3.1, §4.3): refreshes and the linked copy. Its jobs
+            // run without it too (the tests).
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Redmine.RedmineWorker>());
             // Zabbix's open problems and its hosts' mirror (docs/audit-redmine-zabbix-plan.md §7.3).
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Zabbix.ZabbixPoller>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Zabbix.ZabbixHostSync>());
@@ -180,6 +183,8 @@ public partial class Program
         // MikroTik jobs (docs/mikrotik-plan.md §9.3): an update an Admin started runs in any case.
         if (!documentBuild)
         {
+            // The outbound logs' writer (docs/redmine-queue-outbound-plan.md §6.4): what is sent is recorded in any case.
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Outbound.OutboundLogWriter>());
             builder.Services.AddHostedService<UdpListener>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<JobRunner>());
         }

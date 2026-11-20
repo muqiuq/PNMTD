@@ -22,6 +22,12 @@ namespace PNMTD.Notifications
         public static DeliveryResult Failed(string detail, TimeSpan duration) => new(false, detail, duration);
     }
 
+    /// <summary>
+    /// A request as a provider would send it (docs/redmine-queue-outbound-plan.md §6.3): for a simulated send's record in the
+    /// notification log. <see cref="Headers"/> are <c>[name, value]</c> pairs.
+    /// </summary>
+    public sealed record OutboundDescription(string Method, string Target, IReadOnlyList<string[]> Headers, string? Body);
+
     public interface INotificationProvider
     {
         /// <summary>pushover, email or http, as <c>NotificationProviders.Match</c> names them.</summary>
@@ -31,5 +37,8 @@ namespace PNMTD.Notifications
 
         /// <summary>Never throws for a delivery problem: it is the result.</summary>
         Task<DeliveryResult> SendAsync(NotificationMessage message, CancellationToken ct);
+
+        /// <summary>What <see cref="SendAsync"/> would send, without sending it; secrets as the notification log keeps them.</summary>
+        Task<OutboundDescription> DescribeAsync(NotificationMessage message, CancellationToken ct);
     }
 }

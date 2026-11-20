@@ -10,9 +10,10 @@ export interface Paged<T> {
   totalCount: number
 }
 
-interface Options<T> {
+interface Options<T, P extends Paged<T>> {
   key: readonly unknown[]
-  fetch: (query: ListQuery & Record<string, unknown>) => Promise<Paged<T>>
+  /** A page, or an answer with more than `Paged`'s fields (Redmine's search has its freshness), kept in `query.data`. */
+  fetch: (query: ListQuery & Record<string, unknown>) => Promise<P>
   defaultSort?: string
   pageSize?: number
   /** Extra query fields (filters), reactive; a change goes back to page 1. */
@@ -21,13 +22,15 @@ interface Options<T> {
   syncUrl?: boolean
   /** Default 30 s; a ref to change it (Live: 10 s). */
   refetchInterval?: number | Ref<number>
+  /** Off: nothing is fetched (a tab not shown); on again, a stale page is fetched at once. */
+  enabled?: Ref<boolean>
 }
 
 /**
  * A v1 list as a PrimeVue DataTable in lazy mode (§5.1): server paging, sorting and search. The sort
  * goes to the API as "field" or "-field"; the search is debounced.
  */
-export function useServerTable<T>(options: Options<T>) {
+export function useServerTable<T, P extends Paged<T> = Paged<T>>(options: Options<T, P>) {
   const route = useRoute()
   const router = useRouter()
   const fromUrl = options.syncUrl ? route.query : {}
@@ -81,6 +84,7 @@ export function useServerTable<T>(options: Options<T>) {
     queryFn: () => options.fetch(params.value),
     placeholderData: keepPreviousData,
     refetchInterval: computed(() => unref(options.refetchInterval) ?? 30_000),
+    enabled: options.enabled ?? true,
   })
 
   const items = computed(() => query.data.value?.items ?? [])
@@ -116,5 +120,5 @@ export function useServerTable<T>(options: Options<T>) {
     page.value = Math.max(1, target)
   }
 
-  return { query, items, total, page, pageSize, sort, search, tableProps, onPage, onSort, goTo }
+  return { query, items, total, page, pageSize, sort, search, params, tableProps, onPage, onSort, goTo }
 }

@@ -17378,6 +17378,280 @@
         }
       }
     },
+    "/api/v1/system/outbound/notifications": {
+      "get": {
+        "tags": [
+          "Outbound"
+        ],
+        "parameters": [
+          {
+            "name": "channel",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/OutboundChannel"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/OutboundOutcome"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfOutboundNotificationItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfOutboundNotificationItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfOutboundNotificationItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/outbound/notifications/{id}": {
+      "get": {
+        "tags": [
+          "Outbound"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutboundDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutboundDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutboundDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/outbound/redmine": {
+      "get": {
+        "tags": [
+          "Outbound"
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/RedmineCallKind"
+            }
+          },
+          {
+            "name": "lane",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/RedmineLane"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/OutboundOutcome"
+            }
+          },
+          {
+            "name": "job",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfRedmineCallItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfRedmineCallItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfRedmineCallItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/outbound/redmine/{id}": {
+      "get": {
+        "tags": [
+          "Outbound"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutboundDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutboundDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutboundDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/outbound/live": {
+      "get": {
+        "tags": [
+          "Outbound"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutboundLive"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutboundLive"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutboundLive"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/redmine/status": {
       "get": {
         "tags": [
@@ -17577,17 +17851,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PagedOfRedmineIssueItem"
+                  "$ref": "#/components/schemas/RedmineSearchPage"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PagedOfRedmineIssueItem"
+                  "$ref": "#/components/schemas/RedmineSearchPage"
                 }
               },
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/PagedOfRedmineIssueItem"
+                  "$ref": "#/components/schemas/RedmineSearchPage"
                 }
               }
             }
@@ -17628,6 +17902,141 @@
               "text/plain": {
                 "schema": {
                   "$ref": "#/components/schemas/RedmineIssueDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/redmine/refresh": {
+      "post": {
+        "tags": [
+          "Redmine"
+        ],
+        "parameters": [
+          {
+            "name": "view",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "project",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tracker",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "assignee",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "overdue",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "linked",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "stale",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedmineFreshness"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedmineFreshness"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedmineFreshness"
                 }
               }
             }
@@ -46041,6 +46450,260 @@
           }
         }
       },
+      "OutboundChannel": {
+        "enum": [
+          "Email",
+          "Pushover",
+          "Http"
+        ]
+      },
+      "OutboundDetail": {
+        "required": [
+          "notification",
+          "redmine",
+          "requestHeaders",
+          "requestBody",
+          "responseHeaders",
+          "responseBody",
+          "transcript"
+        ],
+        "type": "object",
+        "properties": {
+          "notification": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OutboundNotificationItem"
+              }
+            ]
+          },
+          "redmine": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RedmineCallItem"
+              }
+            ]
+          },
+          "requestHeaders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OutboundHeader"
+            }
+          },
+          "requestBody": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "responseHeaders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OutboundHeader"
+            }
+          },
+          "responseBody": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "transcript": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "OutboundHeader": {
+        "required": [
+          "name",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "OutboundLive": {
+        "required": [
+          "running",
+          "redmine",
+          "newestNotificationId",
+          "newestRedmineId",
+          "droppedNotifications",
+          "droppedRedmine"
+        ],
+        "type": "object",
+        "properties": {
+          "running": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OutboundRunningItem"
+            }
+          },
+          "redmine": {
+            "$ref": "#/components/schemas/RedmineQueueState"
+          },
+          "newestNotificationId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "newestRedmineId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "droppedNotifications": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "droppedRedmine": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "OutboundNotificationItem": {
+        "required": [
+          "id",
+          "startedAt",
+          "durationMs",
+          "channel",
+          "method",
+          "target",
+          "recipient",
+          "summary",
+          "purpose",
+          "askedBy",
+          "outcome",
+          "statusCode",
+          "error",
+          "requestBytes",
+          "responseBytes",
+          "truncated"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "durationMs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/OutboundChannel"
+          },
+          "method": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "recipient": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "summary": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "askedBy": {
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/OutboundOutcome"
+          },
+          "statusCode": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "requestBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "responseBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OutboundOutcome": {
+        "enum": [
+          "Ok",
+          "Failed",
+          "Simulated",
+          "Cancelled"
+        ]
+      },
+      "OutboundRunningItem": {
+        "required": [
+          "log",
+          "channel",
+          "method",
+          "target",
+          "purpose",
+          "askedBy",
+          "startedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "log": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "askedBy": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "OutputLimits": {
         "type": "object",
         "properties": {
@@ -47291,7 +47954,7 @@
           }
         }
       },
-      "PagedOfRedmineIssueItem": {
+      "PagedOfOutboundNotificationItem": {
         "required": [
           "items",
           "page",
@@ -47303,7 +47966,36 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/RedmineIssueItem"
+              "$ref": "#/components/schemas/OutboundNotificationItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfRedmineCallItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RedmineCallItem"
             }
           },
           "page": {
@@ -48082,6 +48774,108 @@
           }
         }
       },
+      "RedmineCallItem": {
+        "required": [
+          "id",
+          "startedAt",
+          "durationMs",
+          "queuedMs",
+          "kind",
+          "method",
+          "target",
+          "summary",
+          "purpose",
+          "askedBy",
+          "jobId",
+          "lane",
+          "outcome",
+          "statusCode",
+          "error",
+          "requestBytes",
+          "responseBytes",
+          "truncated"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "durationMs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "queuedMs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RedmineCallKind"
+          },
+          "method": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "askedBy": {
+            "type": "string"
+          },
+          "jobId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "lane": {
+            "$ref": "#/components/schemas/RedmineLane"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/OutboundOutcome"
+          },
+          "statusCode": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "requestBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "responseBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RedmineCallKind": {
+        "enum": [
+          "Read",
+          "Write"
+        ]
+      },
       "RedmineChange": {
         "required": [
           "field",
@@ -48122,6 +48916,40 @@
           }
         }
       },
+      "RedmineFreshness": {
+        "required": [
+          "refreshedAt",
+          "refreshing",
+          "failedAt",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "refreshedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "refreshing": {
+            "type": "boolean"
+          },
+          "failedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "RedmineIssueDetail": {
         "required": [
           "id",
@@ -48147,7 +48975,8 @@
           "attachments",
           "related",
           "links",
-          "url"
+          "url",
+          "freshness"
         ],
         "type": "object",
         "properties": {
@@ -48277,6 +49106,9 @@
           },
           "url": {
             "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/RedmineFreshness"
           }
         }
       },
@@ -48355,6 +49187,64 @@
           }
         }
       },
+      "RedmineJobItem": {
+        "required": [
+          "id",
+          "key",
+          "purpose",
+          "askedBy",
+          "lane",
+          "started",
+          "queuedAt",
+          "startedAt",
+          "callsRunning",
+          "callsDone"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "askedBy": {
+            "type": "string"
+          },
+          "lane": {
+            "$ref": "#/components/schemas/RedmineLane"
+          },
+          "started": {
+            "type": "boolean"
+          },
+          "queuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "callsRunning": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "callsDone": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "RedmineJournalItem": {
         "required": [
           "id",
@@ -48400,6 +49290,14 @@
             "type": "boolean"
           }
         }
+      },
+      "RedmineLane": {
+        "enum": [
+          "Button",
+          "Write",
+          "Interactive",
+          "Background"
+        ]
       },
       "RedmineLinkedTicket": {
         "required": [
@@ -48595,7 +49493,7 @@
       },
       "RedmineOverview": {
         "required": [
-          "asOf",
+          "freshness",
           "staleDays",
           "tiles",
           "urgent",
@@ -48607,9 +49505,8 @@
         ],
         "type": "object",
         "properties": {
-          "asOf": {
-            "type": "string",
-            "format": "date-time"
+          "freshness": {
+            "$ref": "#/components/schemas/RedmineFreshness"
           },
           "staleDays": {
             "type": "integer",
@@ -48756,6 +49653,63 @@
           }
         }
       },
+      "RedmineQueueState": {
+        "required": [
+          "button",
+          "write",
+          "interactive",
+          "background",
+          "running",
+          "slotsInUse",
+          "slots",
+          "backgroundPausedUntil",
+          "jobs"
+        ],
+        "type": "object",
+        "properties": {
+          "button": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "write": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "interactive": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "background": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "running": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "slotsInUse": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "slots": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "backgroundPausedUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RedmineJobItem"
+            }
+          }
+        }
+      },
       "RedmineRelated": {
         "required": [
           "own",
@@ -48852,12 +49806,46 @@
           }
         }
       },
+      "RedmineSearchPage": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount",
+          "freshness"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RedmineIssueItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/RedmineFreshness"
+          }
+        }
+      },
       "RedmineStatus": {
         "required": [
           "enabled",
           "url",
           "projects",
-          "error"
+          "error",
+          "freshness"
         ],
         "type": "object",
         "properties": {
@@ -48880,6 +49868,16 @@
             "type": [
               "null",
               "string"
+            ]
+          },
+          "freshness": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RedmineFreshness"
+              }
             ]
           }
         }
@@ -58344,6 +59342,9 @@
     },
     {
       "name": "Notifications"
+    },
+    {
+      "name": "Outbound"
     },
     {
       "name": "Redmine"

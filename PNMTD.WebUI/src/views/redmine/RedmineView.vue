@@ -17,14 +17,16 @@ import PageHeader from '@/components/PageHeader.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import TabNav from '@/components/TabNav.vue'
 import { useServerTable } from '@/composables/useServerTable'
-import { formatTime } from '@/format'
+import RedmineFreshnessBar from './RedmineFreshnessBar.vue'
 import TicketButtons from './TicketButtons.vue'
 import TicketRow from './TicketRow.vue'
 
 /**
  * Redmine (docs/audit-redmine-zabbix-plan.md §6.3): *Overview*, the most important tickets of the configured projects in
  * tiles and six lists, and *Search*, Redmine's list with filters, 25 to a page. Every ticket has its two buttons; a
- * number in the search opens the ticket's page.
+ * number in the search opens the ticket's page. Both come from the server's snapshots at once, with the bar in the header
+ * (docs/redmine-queue-outbound-plan.md §5): polled every 2 s while a refresh runs, else every 30 s (the overview) or
+ * 60 s (the search, §5.4). The overview doesn't wait for the status.
  */
 const route = useRoute()
 const router = useRouter()
@@ -49,11 +51,12 @@ const redmineUrl = computed(() => {
 
 // --- the overview --------------------------------------------------------------------------------------------------
 const project = ref<number | null>(numberOf('project'))
+const overviewKey = computed(() => [...keys.redmine, 'overview', project.value])
 const overview = useQuery({
-  queryKey: computed(() => [...keys.redmine, 'overview', project.value]),
+  queryKey: overviewKey,
   queryFn: () => api.redmine.overview(project.value ?? undefined),
-  enabled: computed(() => tab.value === 'overview' && !!status.data.value?.enabled),
-  refetchInterval: 60_000,
+  enabled: computed(() => tab.value === 'overview'),
+  refetchInterval: (q) => (q.state.data?.freshness.refreshing ? 2000 : 30_000),
 })
 const o = computed(() => overview.data.value)
 
@@ -170,15 +173,22 @@ const active = computed(
     (linked.value ? 1 : 0) +
     (stale.value ? 1 : 0),
 )
-const table = useServerTable<S['RedmineIssueItem']>({
+const searchRefreshing = ref(false)
+const table = useServerTable<S['RedmineIssueItem'], S['RedmineSearchPage']>({
   key: [...keys.redmine, 'issues'],
   fetch: (q) => api.redmine.issues({ ...q, ...filters.value }),
   filters: computed(() => ({ ...filters.value })),
   defaultSort: '-updated',
   pageSize: 25,
   syncUrl: true,
-  refetchInterval: 120_000,
+  refetchInterval: computed(() => (searchRefreshing.value ? 2000 : 60_000)),
+  enabled: computed(() => tab.value === 'search'),
 })
+const searchPage = computed(() => table.query.data.value)
+watch(
+  () => !!searchPage.value?.freshness.refreshing,
+  (refreshing) => (searchRefreshing.value = refreshing),
+)
 
 /**
  * A tile, or a list's *All*, opens the search with its filters and sort in the URL. The page stays mounted when the tab
@@ -225,6 +235,10 @@ function enter() {
   if (m) void router.push({ name: 'redmine-issue', params: { id: m[1] } })
 }
 
+/** What the bar refreshes: the overview shown, or the search with exactly the page's query. */
+const overviewRefresh = computed(() => ({ view: 'overview' as const, project: project.value ?? undefined }))
+const searchRefresh = computed(() => ({ view: 'search' as const, ...table.params.value, ...filters.value }))
+
 const tabs = computed(() => [
   { key: 'overview', label: 'Overview', icon: 'pi pi-th-large', to: { name: 'redmine', params: { tab: 'overview' } } },
   { key: 'search', label: 'Search', icon: 'pi pi-search', to: { name: 'redmine', params: { tab: 'search' } } },
@@ -238,6 +252,18 @@ const configError = computed(() =>
   <div class="page">
     <PageHeader title="Redmine">
       <template #actions>
+        <RedmineFreshnessBar
+          v-if="tab === 'overview' && o"
+          :freshness="o.freshness"
+          :refresh="overviewRefresh"
+          :query-key="overviewKey"
+        />
+        <RedmineFreshnessBar
+          v-else-if="tab === 'search' && searchPage"
+          :freshness="searchPage.freshness"
+          :refresh="searchRefresh"
+          :query-key="[...keys.redmine, 'issues']"
+        />
         <Select
           v-if="projects.length > 1"
           v-model="project"
@@ -288,7 +314,6 @@ const configError = computed(() =>
               <span class="muted">{{ t.label }}</span>
             </RouterLink>
           </section>
-          <p class="muted asof">As of {{ formatTime(o.asOf) }}</p>
           <div class="lists">
             <section v-for="l in lists" :key="l.key" class="panel" :aria-label="l.title">
               <div class="panel-header">
@@ -483,11 +508,6 @@ const configError = computed(() =>
 
 .tile.warn .big {
   color: var(--pnmt-warn);
-}
-
-.asof {
-  margin: 0;
-  font-size: 0.85em;
 }
 
 .lists {

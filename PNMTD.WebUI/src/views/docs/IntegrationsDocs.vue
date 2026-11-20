@@ -8,7 +8,7 @@ const has = (...texts: string[]) => {
   return !q || texts.some((t) => t.toLowerCase().includes(q))
 }
 const redmineText =
-  'redmine tickets issues overview search link unlink new in redmine details copy sync projects api key panel chip urgent overdue unassigned stale 429'
+  'redmine tickets issues overview search link unlink new in redmine details copy sync projects api key panel chip urgent overdue unassigned stale 429 refreshed refresh queue outbound log'
 const showRedmine = computed(() => has(redmineText))
 const zabbixText =
   'zabbix problems hosts severity disaster high average warning information acknowledged suppressed maintenance category host group tag attach suggestions sensor 290 490 491 492 430 inventory'
@@ -47,9 +47,18 @@ const showZabbix = computed(() => has(zabbixText))
           on its page: someone is on it.
         </li>
         <li>
+          <strong>Redmine's pages open at once</strong>, from what PNMT read last: the header says
+          <em>Refreshed 2 min ago</em>, and PNMT reads the page again in the background while it is open, at most a
+          minute old. <em>⟳</em> reads it now; it spins until the new data is in, and goes before everything else PNMT
+          asks of Redmine. A page nobody opened for a while is read again when someone does. If Redmine doesn't answer,
+          the page keeps what it had and says <em>refresh failed</em>.
+        </li>
+        <li>
           <strong>PNMT keeps a copy of the linked tickets</strong> (number, subject, status, assignee), refreshed every
-          few minutes, so the panels work when Redmine is slow or down; descriptions, comments and attachments always
-          come from Redmine. When Redmine stops answering, the system sensor <em>Redmine</em> reports <code>429</code>.
+          few minutes, so the panels work when Redmine is slow or down. When Redmine stops answering, the system sensor
+          <em>Redmine</em> reports <code>429</code>. Every call PNMT makes to Redmine is in
+          <em>System health → Outbound → Redmine</em>: what it was for, who asked, how long it waited and took, and
+          Redmine's answer.
         </li>
       </ul>
     </div>

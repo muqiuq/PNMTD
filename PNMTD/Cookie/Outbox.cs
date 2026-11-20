@@ -14,7 +14,9 @@ namespace PNMTD.Cookie;
 
 /// <summary>
 /// What is to go out: a message to a person (e-mail, Pushover), a note on a ticket, or a ticket. <see cref="Unlimited"/>: no limit
-/// holds it back, for an <i>alarming</i> access notice (docs/cookie-access-plan.md §6.4).
+/// holds it back, for an <i>alarming</i> access notice (docs/cookie-access-plan.md §6.4). <see cref="ByPerson"/>: a person ordered
+/// it (approved it, sent it, ordered it in the chat); a Redmine write then goes in the worker's button lane
+/// (docs/redmine-queue-outbound-plan.md §3.8). It changes no limit.
 /// </summary>
 public sealed record OutboxRequest(
     CookieChannel Channel,
@@ -31,14 +33,15 @@ public sealed record OutboxRequest(
     Urgency Urgency = Urgency.Important,
     string Source = "code",
     bool Unlimited = false,
-    string? OrderedBy = null);
+    string? OrderedBy = null,
+    bool ByPerson = false);
 
 /// <summary>
 /// Everything that leaves PNMT for Cookie goes through here (docs/cookie-plan.md §6.1, §19.1): the limits are counted
 /// against what went out today, what is over a limit is held back and kept, and a person can send it later.
 /// </summary>
-public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings settings, NotificationService notifications, RedmineClient redmine,
-    IServiceScopeFactory scopes, IConfiguration configuration, ILogger<Outbox> logger)
+public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings settings, NotificationService notifications, RedmineWorker redmine,
+    IConfiguration configuration, ILogger<Outbox> logger)
 {
     private readonly SemaphoreSlim gate = new(1, 1);
 
@@ -168,8 +171,8 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
         };
         var redmineSettings = await settings.GetAsync<CookieRedmineSettings>(ct);
         var request = new OutboxRequest(row.Channel, row.Subject, row.Body, row.CaseId, row.DutyId, row.UserId, row.Recipient, address, row.IssueId,
-            redmineSettings.TicketProjectId, redmineSettings.TicketTrackerId, Urgency.Important, row.Source);
-        await DeliverAsync(db, row, request, ct, byPerson: true);
+            redmineSettings.TicketProjectId, redmineSettings.TicketTrackerId, Urgency.Important, row.Source, ByPerson: true);
+        await DeliverAsync(db, row, request, ct, byPerson: true, by: userName);
         row.SentById = userId;
         row.SentByName = CaseBook.Cut(userName, 200);
         await db.SaveChangesAsync(ct);
@@ -177,8 +180,11 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
         return row;
     }
 
-    private async Task DeliverAsync(PnmtdDbContext db, CookieOutboxEntity row, OutboxRequest r, CancellationToken ct, bool byPerson = false)
+    private async Task DeliverAsync(PnmtdDbContext db, CookieOutboxEntity row, OutboxRequest r, CancellationToken ct, bool byPerson = false, string? by = null)
     {
+        // Who asked, for the outbound logs (docs/redmine-queue-outbound-plan.md §6.2).
+        var askedBy = by ?? r.OrderedBy ?? "Cookie";
+        var lane = r.ByPerson || byPerson ? RedmineLane.Button : RedmineLane.Write;
         try
         {
             switch (r.Channel)
@@ -196,20 +202,28 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
                     var importance = r.Urgency == Urgency.Urgent ? Importance.High : Importance.Normal;
                     var message = new NotificationMessage(recipient, r.Subject, CaseBook.Cut(r.Body, 900)!, r.Body, importance);
                     var simulate = configuration.GetValue("Development:DoNotSendNotifications", false);
-                    var result = await notifications.SendAsync(message, $"Cookie: {r.Subject}", simulate, ct);
+                    var result = await notifications.SendAsync(message, $"Cookie: {r.Subject}", simulate, ct, askedBy);
                     row.State = result is null || !result.Ok ? CookieOutboxState.Failed : simulate ? CookieOutboxState.Simulated : CookieOutboxState.Sent;
                     row.Detail = CaseBook.Cut(result?.Detail ?? "No provider takes this recipient.", 500);
                     break;
                 }
                 case CookieChannel.RedmineNote or CookieChannel.RedminePrivateNote:
                 {
-                    await AllowedAsync(r.IssueId!.Value, ct);
-                    await redmine.WriteAsync(HttpMethod.Put, $"/issues/{r.IssueId}.json", new JsonObject
+                    // Through the worker's queue (docs/redmine-queue-outbound-plan.md §3.8): a fresh read for the project check, then the note.
+                    var issueId = r.IssueId!.Value;
+                    var purpose = $"Cookie: {(r.Channel == CookieChannel.RedminePrivateNote ? "private note" : "note")} on #{issueId}";
+                    await redmine.RunAsync(new RedmineJobSpec(null, lane, purpose, askedBy, IsWrite: true), async calls =>
                     {
-                        ["issue"] = new JsonObject { ["notes"] = r.Body, ["private_notes"] = r.Channel == CookieChannel.RedminePrivateNote },
-                    }, ct);
+                        await AllowedAsync(calls, issueId);
+                        await calls.WriteAsync(HttpMethod.Put, $"/issues/{issueId}.json", new JsonObject
+                        {
+                            ["issue"] = new JsonObject { ["notes"] = r.Body, ["private_notes"] = r.Channel == CookieChannel.RedminePrivateNote },
+                        }, "the note");
+                        return true;
+                    }).WaitAsync(ct);
+                    redmine.AfterWrite(issueId, lane);
                     row.State = CookieOutboxState.Sent;
-                    row.Detail = $"Note on #{r.IssueId}.";
+                    row.Detail = $"Note on #{issueId}.";
                     break;
                 }
                 case CookieChannel.RedmineTicket:
@@ -219,8 +233,13 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
                     {
                         fields["tracker_id"] = tracker;
                     }
-                    using var created = await redmine.WriteAsync(HttpMethod.Post, "/issues.json", new JsonObject { ["issue"] = fields }, ct);
-                    var id = created?.RootElement.GetProperty("issue").GetProperty("id").GetInt32();
+                    var id = await redmine.RunAsync(new RedmineJobSpec(null, lane, $"Cookie: new ticket in project {r.ProjectId}", askedBy, IsWrite: true),
+                        async calls =>
+                        {
+                            using var created = await calls.WriteAsync(HttpMethod.Post, "/issues.json", new JsonObject { ["issue"] = fields }, "the ticket");
+                            return created?.RootElement.GetProperty("issue").GetProperty("id").GetInt32();
+                        }).WaitAsync(ct);
+                    redmine.AfterWrite(null, lane);
                     row.IssueId = id;
                     row.State = CookieOutboxState.Sent;
                     row.Detail = $"Ticket #{id}.";
@@ -228,8 +247,9 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
                 }
             }
         }
-        catch (RedmineException e)
+        catch (Exception e) when (e is RedmineException or Api.ApiException { Status: StatusCodes.Status504GatewayTimeout })
         {
+            // Redmine refused or failed, or the queue's lookups took too long (docs/redmine-queue-outbound-plan.md §3.6).
             row.State = CookieOutboxState.Failed;
             row.Detail = CaseBook.Cut(e.Message, 500);
             logger.LogWarning("Cookie's {Channel} failed: {Error}", r.Channel, e.Message);
@@ -253,21 +273,18 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
         }
     }
 
-    /// <summary>Only tickets of the projects PNMT shows (audit plan §6): an id from elsewhere is refused before anything is written.</summary>
-    private async Task AllowedAsync(int issueId, CancellationToken ct)
+    /// <summary>
+    /// Only tickets of the projects PNMT shows (audit plan §6): an id from elsewhere is refused before anything is written. The
+    /// ticket is read fresh, in the write's job.
+    /// </summary>
+    private async Task AllowedAsync(RedmineCalls calls, int issueId)
     {
-        var issue = (await redmine.GetAsync<RmIssueEnvelope>($"/issues/{issueId}.json", ct)).Issue;
-        var allowed = await AllowedProjectsAsync(ct);
+        var issue = (await calls.GetAsync<RmIssueEnvelope>($"/issues/{issueId}.json", "the ticket's project")).Issue;
+        var allowed = (await redmine.LookupsAsync(calls.Job.Lane, calls.Job.AskedBy, calls.Token)).Allowed;
         if (!allowed.Contains(issue.Project.Id))
         {
             throw new RedmineException(RedmineFailure.Forbidden, $"#{issueId} is in a project PNMT doesn't show.");
         }
-    }
-
-    private async Task<IReadOnlySet<int>> AllowedProjectsAsync(CancellationToken ct)
-    {
-        await using var scope = scopes.CreateAsyncScope();
-        return (await scope.ServiceProvider.GetRequiredService<RedmineService>().LookupsAsync(ct)).Allowed;
     }
 
     private static string Who(OutboxRequest r) => r.Channel switch

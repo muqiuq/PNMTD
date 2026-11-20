@@ -1,7 +1,5 @@
 using System.Globalization;
-using System.Net;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using PNMTD.Api;
 using PNMTD.Api.V1.Contracts;
@@ -20,20 +18,19 @@ public sealed record RedmineLookups(IReadOnlyList<RmProject> Projects, IReadOnly
 /// <summary>
 /// Redmine in PNMT (docs/audit-redmine-zabbix-plan.md §6): the overview, the search, a ticket, PNMT's links and its copy of
 /// linked tickets. <b>Only the configured projects:</b> a ticket of any other is "not found", whatever the key could read.
-/// Filters use Redmine's query syntax (f[], op[], v[]), the one that takes several projects and priorities (R0).
+/// It never calls Redmine itself: it reads the worker's snapshots, which answer at once however old they are, with their
+/// freshness, and asks the worker for a job where there is none yet (docs/redmine-queue-outbound-plan.md §4). What PNMT
+/// knows (links, problems) is added at every read (§4.4).
 /// </summary>
-public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOptionsMonitor<RedmineOptions> options, IMemoryCache cache,
-    LocationTree tree, DashboardCache dashboard, IHttpContextAccessor accessor)
+public sealed class RedmineService(PnmtdDbContext db, RedmineWorker worker, IOptionsMonitor<RedmineOptions> options, LocationTree tree,
+    DashboardCache dashboard, IHttpContextAccessor accessor)
 {
-    public static readonly TimeSpan LookupsFor = TimeSpan.FromHours(1);
-
-    public static readonly TimeSpan OverviewFor = TimeSpan.FromMinutes(1);
-
-    private const string LookupsKey = "redmine:lookups";
-
     private RedmineOptions O => options.CurrentValue;
 
     public string IssueUrl(int id) => $"{O.BrowserUrl}/issues/{id}";
+
+    /// <summary>Who asks, for the Redmine log: the signed-in person, or PNMT.</summary>
+    private string Who() => UdpViews.User(accessor).Name ?? "PNMT";
 
     // --- status and lookups -------------------------------------------------------------------------------------------
 
@@ -41,95 +38,26 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOpt
     {
         if (!O.Enabled)
         {
-            return new RedmineStatus(false, null, [], null);
+            return new RedmineStatus(false, null, [], null, null);
         }
         try
         {
             var lookups = await LookupsAsync(ct);
             return new RedmineStatus(true, O.BrowserUrl, Projects(lookups), lookups.NotFound.Count > 0
-                ? $"Not found in Redmine: {string.Join(", ", lookups.NotFound)} (Redmine__Projects)." : null);
+                ? $"Not found in Redmine: {string.Join(", ", lookups.NotFound)} (Redmine__Projects)." : null, worker.LookupsFreshness());
         }
         catch (RedmineException e)
         {
-            return new RedmineStatus(true, O.BrowserUrl, [], e.Message);
+            return new RedmineStatus(true, O.BrowserUrl, [], e.Message, worker.LookupsFreshness());
+        }
+        catch (ApiException e) when (e.Status == StatusCodes.Status504GatewayTimeout)
+        {
+            return new RedmineStatus(true, O.BrowserUrl, [], e.Message, worker.LookupsFreshness());
         }
     }
 
-    public async Task<RedmineLookups> LookupsAsync(CancellationToken ct) =>
-        (await cache.GetOrCreateAsync(LookupsKey, async e =>
-        {
-            e.AbsoluteExpirationRelativeToNow = LookupsFor;
-            return await LoadLookupsAsync(ct);
-        }))!;
-
-    public void ForgetLookups() => cache.Remove(LookupsKey);
-
-    private async Task<RedmineLookups> LoadLookupsAsync(CancellationToken ct)
-    {
-        var all = new List<RmProject>();
-        for (var offset = 0; ; offset += 100)
-        {
-            var page = await client.GetAsync<RmProjects>($"/projects.json?limit=100&offset={offset}", ct);
-            all.AddRange(page.Projects);
-            if (page.Projects.Count == 0 || all.Count >= page.TotalCount)
-            {
-                break;
-            }
-        }
-        var chosen = new List<RmProject>();
-        var notFound = new List<string>();
-        foreach (var wanted in O.ProjectList)
-        {
-            var project = all.FirstOrDefault(p => p.Identifier.Equals(wanted, StringComparison.OrdinalIgnoreCase) || p.Id.ToString(CultureInfo.InvariantCulture) == wanted);
-            if (project is null)
-            {
-                notFound.Add(wanted);
-            }
-            else if (chosen.All(c => c.Id != project.Id))
-            {
-                chosen.Add(project);
-            }
-        }
-        var allowed = chosen.Select(p => p.Id).ToHashSet();
-        if (O.IncludeSubprojects)
-        {
-            // Descendants of the chosen ones: a project whose parent chain reaches one of them.
-            var byId = all.ToDictionary(p => p.Id);
-            foreach (var p in all)
-            {
-                for (var parent = p.Parent?.Id; parent is { } id && byId.ContainsKey(id); parent = byId[id].Parent?.Id)
-                {
-                    if (chosen.Any(c => c.Id == id))
-                    {
-                        allowed.Add(p.Id);
-                        break;
-                    }
-                }
-            }
-        }
-        var statuses = (await client.GetAsync<RmStatuses>("/issue_statuses.json", ct)).IssueStatuses;
-        var trackers = (await client.GetAsync<RmTrackers>("/trackers.json", ct)).Trackers;
-        var priorities = (await client.GetAsync<RmPriorities>("/enumerations/issue_priorities.json", ct)).IssuePriorities;
-        var members = new Dictionary<int, RmRef>();
-        foreach (var project in chosen)
-        {
-            try
-            {
-                var page = await client.GetAsync<RmMemberships>($"/projects/{project.Id}/memberships.json?limit=100", ct);
-                foreach (var m in page.Memberships.Where(m => m.User is not null))
-                {
-                    members[m.User!.Id] = m.User;
-                }
-            }
-            catch (RedmineException e) when (e.Failure == RedmineFailure.Forbidden)
-            {
-                // The account may not see the members: the filter offers none.
-            }
-        }
-        var projects = all.Where(p => allowed.Contains(p.Id)).OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase).ToList();
-        return new RedmineLookups(projects, allowed, notFound, statuses, trackers, priorities,
-            members.Values.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList());
-    }
+    /// <summary>The lookups, from their snapshot; read through the queue in <paramref name="lane"/> if there is none yet.</summary>
+    public Task<RedmineLookups> LookupsAsync(CancellationToken ct, RedmineLane lane = RedmineLane.Interactive) => worker.LookupsAsync(lane, Who(), ct);
 
     public async Task<RedmineLookupsItem> LookupsItemAsync(CancellationToken ct)
     {
@@ -143,226 +71,84 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOpt
     private List<RedmineProjectItem> Projects(RedmineLookups l) =>
         l.Projects.Select(p => new RedmineProjectItem(p.Id, p.Identifier, p.Name, p.Parent?.Id, $"{O.BrowserUrl}/projects/{p.Identifier}")).ToList();
 
+    private static void CheckProject(RedmineLookups lookups, int? project)
+    {
+        if (project is { } one && !lookups.Allowed.Contains(one))
+        {
+            throw ApiException.Invalid("project", "Not one of PNMT's Redmine projects.");
+        }
+    }
+
     // --- the search and the overview -----------------------------------------------------------------------------------
 
-    /// <summary>Redmine's issue list with PNMT's filters (§6.3): always within the configured projects.</summary>
-    public async Task<Paged<RedmineIssueItem>> SearchAsync(RedmineQuery query, CancellationToken ct)
+    /// <summary>
+    /// Redmine's issue list with PNMT's filters (§6.3): always within the configured projects, from the search's snapshot.
+    /// <paramref name="wait"/>: how long a search nobody ran yet may take (the global search's 5 s).
+    /// </summary>
+    public async Task<RedmineSearchPage> SearchAsync(RedmineQuery query, CancellationToken ct, TimeSpan? wait = null)
+    {
+        CheckProject(await LookupsAsync(ct), query.Project);
+        var (data, freshness) = await worker.ReadAsync<SearchData>(worker.Search(query), RedmineLane.Interactive, Who(), ct, wait);
+        return new RedmineSearchPage(await ItemsAsync(data.Issues, ct, data.LastChange), data.Page, data.PageSize, data.Total, freshness);
+    }
+
+    /// <summary>The most important tickets (§6.3), from the overview's snapshot; the problems from PNMT's copy, now.</summary>
+    public async Task<RedmineOverview> OverviewAsync(int? project, CancellationToken ct)
     {
         var lookups = await LookupsAsync(ct);
-        var size = Math.Clamp(query.PageSize, 1, 100);
-        var page = Math.Max(1, query.Page);
-        // A number (1234, #1234) is the ticket itself.
-        var text = query.Search?.Trim();
-        if (text is { Length: > 0 } && int.TryParse(text.TrimStart('#'), NumberStyles.None, CultureInfo.InvariantCulture, out var number))
-        {
-            var found = await client.GetAsync<RmIssues>($"/issues.json?issue_id={number}&status_id=*", ct);
-            var items = found.Issues.Where(i => lookups.Allowed.Contains(i.Project.Id)).ToList();
-            return new Paged<RedmineIssueItem>(await ItemsAsync(items, ct), 1, size, items.Count);
-        }
-        var q = Filters(lookups, query.Project, query.Status ?? "open");
-        if (query.Tracker is { } tracker)
-        {
-            q.Equal("tracker_id", tracker);
-        }
-        if (query.Priority is { } priority)
-        {
-            q.Equal("priority_id", priority);
-        }
-        if (query.Assignee is "none")
-        {
-            q.Filter("assigned_to_id", "!*");
-        }
-        else if (int.TryParse(query.Assignee, NumberStyles.None, CultureInfo.InvariantCulture, out var assignee))
-        {
-            q.Equal("assigned_to_id", assignee);
-        }
-        if (query.Overdue)
-        {
-            q.Filter("due_date", "<=", Yesterday());
-        }
-        if (text is { Length: > 0 })
-        {
-            q.Filter("any_searchable", "~", text);
-        }
-        if (query.Linked)
-        {
-            var linked = await db.RedmineLinks.AsNoTracking().Select(l => l.IssueId).Distinct().Take(500).ToListAsync(ct);
-            if (linked.Count == 0)
-            {
-                return new Paged<RedmineIssueItem>([], page, size, 0);
-            }
-            if (!query.Stale)
-            {
-                q.Plain("issue_id", string.Join(",", linked));
-            }
-            else
-            {
-                return await SearchStaleAsync(q, lookups, query, linked.ToHashSet(), page, size, ct);
-            }
-        }
-        if (query.Stale)
-        {
-            return await SearchStaleAsync(q, lookups, query, null, page, size, ct);
-        }
-        q.Plain("sort", Sort(query.Sort));
-        q.Plain("offset", ((page - 1) * size).ToString(CultureInfo.InvariantCulture));
-        q.Plain("limit", size.ToString(CultureInfo.InvariantCulture));
-        var result = await client.GetAsync<RmIssues>("/issues.json?" + q, ct);
-        return new Paged<RedmineIssueItem>(await ItemsAsync(result.Issues, ct), page, size, result.TotalCount);
+        CheckProject(lookups, project);
+        var (o, freshness) = await worker.ReadAsync<OverviewData>(worker.Overview(project), RedmineLane.Interactive, Who(), ct);
+        return new RedmineOverview(freshness, O.StaleDays,
+            new RedmineOverviewTiles(o.Open, o.Urgent.TotalCount, o.Unassigned.TotalCount, o.Overdue.TotalCount, o.Stale.Total),
+            await ItemsAsync(o.Urgent.Issues, ct), await ItemsAsync(o.Unassigned.Issues, ct), await ItemsAsync(o.Overdue.Issues, ct),
+            await ProblemTicketsAsync(project, lookups, ct), await ItemsAsync(o.Stale.Issues.Take(10).ToList(), ct, o.Stale.LastChange),
+            await ItemsAsync(o.Recent.Issues, ct));
     }
-
-    /// <summary>The most important tickets (§6.3): six calls to Redmine, cached a minute for everyone.</summary>
-    public async Task<RedmineOverview> OverviewAsync(int? project, CancellationToken ct) =>
-        (await cache.GetOrCreateAsync($"redmine:overview:{project}", async e =>
-        {
-            e.AbsoluteExpirationRelativeToNow = OverviewFor;
-            return await LoadOverviewAsync(project, ct);
-        }))!;
-
-    private async Task<RedmineOverview> LoadOverviewAsync(int? project, CancellationToken ct)
-    {
-        var lookups = await LookupsAsync(ct);
-        async Task<RmIssues> ListAsync(Action<RedmineQueryString> filter, string sort, int limit = 10)
-        {
-            var q = Filters(lookups, project, "open");
-            filter(q);
-            q.Plain("sort", sort);
-            q.Plain("limit", limit.ToString(CultureInfo.InvariantCulture));
-            return await client.GetAsync<RmIssues>("/issues.json?" + q, ct);
-        }
-        // Above Redmine's default priority (High, Urgent, Immediate in a standard Redmine): nothing to configure.
-        var defaultIndex = lookups.Priorities.ToList().FindIndex(p => p.IsDefault);
-        var urgentIds = lookups.Priorities.Skip(defaultIndex + 1).Select(p => p.Id).ToList();
-        var open = await ListAsync(_ => { }, "updated_on:desc", 1);
-        var urgent = urgentIds.Count == 0 ? new RmIssues([], 0, 0, 0)
-            : await ListAsync(q => q.Equal("priority_id", [.. urgentIds]), "priority:desc,created_on");
-        var unassigned = await ListAsync(q => q.Filter("assigned_to_id", "!*"), "created_on");
-        var overdue = await ListAsync(q => q.Filter("due_date", "<=", Yesterday()), "due_date");
-        var stale = await StaleAsync(lookups, project, ct);
-        var recentQuery = Filters(lookups, project, "all");
-        recentQuery.Plain("sort", "updated_on:desc");
-        recentQuery.Plain("limit", "10");
-        var recent = await client.GetAsync<RmIssues>("/issues.json?" + recentQuery, ct);
-        return new RedmineOverview(Clock.UtcNow, O.StaleDays,
-            new RedmineOverviewTiles(open.TotalCount, urgent.TotalCount, unassigned.TotalCount, overdue.TotalCount, stale.Total),
-            await ItemsAsync(urgent.Issues, ct), await ItemsAsync(unassigned.Issues, ct), await ItemsAsync(overdue.Issues, ct),
-            await ProblemTicketsAsync(project, lookups, ct), await ItemsAsync(stale.Issues.Take(10).ToList(), ct, stale.LastChange),
-            await ItemsAsync(recent.Issues, ct));
-    }
-
-    // --- no change for StaleDays, Cookie's notes not counted ------------------------------------------------------------
-
-    /// <summary>At most this many tickets make the list of tickets without a change, for the search.</summary>
-    public const int MaxStaleTickets = 500;
-
-    /// <summary>The cache's key for the Redmine user Cookie writes as, remembered as long as the lookups.</summary>
-    private const string WriterKey = "redmine:writer";
 
     /// <summary>
-    /// The open tickets nobody but Cookie changed for <c>Redmine__StaleDays</c>, the oldest change first: how many, the first
-    /// <see cref="MaxStaleTickets"/> as Redmine listed them, and each one's last change that counts.
+    /// The refresh button (docs/redmine-queue-outbound-plan.md §5.3): the view's snapshot read again in the button lane, joining
+    /// a refresh that is queued or running. Done: the new freshness; not done within <c>Redmine__WaitSeconds</c>: it goes on.
     /// </summary>
-    private sealed record StaleTickets(int Total, IReadOnlyList<RmIssue> Issues, IReadOnlyDictionary<int, DateTime> LastChange);
-
-    /// <summary>The tickets without a change (<see cref="LoadStaleAsync"/>), cached a minute per project as the overview is.</summary>
-    private async Task<StaleTickets> StaleAsync(RedmineLookups lookups, int? project, CancellationToken ct) =>
-        (await cache.GetOrCreateAsync($"redmine:stale:{project}", async e =>
-        {
-            e.AbsoluteExpirationRelativeToNow = OverviewFor;
-            return await LoadStaleAsync(lookups, project, ct);
-        }))!;
-
-    /// <summary>
-    /// Any change counts (a note, a field, a status, an attachment, a relation), except Cookie's own notes. Redmine's
-    /// <c>updated_on</c> counts Cookie's notes too, so two lists make the answer:
-    /// <list type="number">
-    /// <item>open tickets with no change at all since the cutoff, Cookie's included: Redmine filters and counts these itself;</item>
-    /// <item>open tickets changed since, whose last change is Cookie's (<c>last_updated_by</c>): their journals say when anyone else
-    /// last changed them (<see cref="LastChangeAsync"/>).</item>
-    /// </list>
-    /// Without Cookie's write key, there are no notes of Cookie's, and the first list is the answer.
-    /// </summary>
-    private async Task<StaleTickets> LoadStaleAsync(RedmineLookups lookups, int? project, CancellationToken ct)
+    public async Task<(RedmineFreshness Freshness, bool Done)> RefreshAsync(string? view, int? id, RedmineQuery query, CancellationToken ct)
     {
-        var cutoff = DateOnly.FromDateTime(Clock.UtcNow).AddDays(-Math.Max(1, O.StaleDays));
-        string Day(DateOnly d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        async Task<List<RmIssue>> AllAsync(Action<RedmineQueryString> filter, Action<int> total)
+        var lookups = await LookupsAsync(ct, RedmineLane.Button);
+        var snapshot = view switch
         {
-            var issues = new List<RmIssue>();
-            for (var offset = 0; offset < MaxStaleTickets; offset += 100)
-            {
-                var q = Filters(lookups, project, "open");
-                filter(q);
-                q.Plain("sort", "updated_on");
-                q.Plain("offset", offset.ToString(CultureInfo.InvariantCulture));
-                q.Plain("limit", "100");
-                var page = await client.GetAsync<RmIssues>("/issues.json?" + q, ct);
-                total(page.TotalCount);
-                issues.AddRange(page.Issues);
-                if (page.Issues.Count == 0 || issues.Count >= page.TotalCount)
-                {
-                    break;
-                }
-            }
-            return issues;
-        }
-
-        var count = 0;
-        var issues = await AllAsync(q => q.Filter("updated_on", "<=", Day(cutoff)), t => count = t);
-        var lastChange = issues.ToDictionary(i => i.Id, i => Clock.AsUtc(i.UpdatedOn));
-        if (await CookieUserIdAsync(ct) is { } cookie)
-        {
-            var touched = await AllAsync(q =>
-            {
-                q.Filter("updated_on", ">=", Day(cutoff.AddDays(1)));
-                q.Filter("last_updated_by", "=", cookie.ToString(CultureInfo.InvariantCulture));
-            }, _ => { });
-            foreach (var issue in touched.Where(i => !lastChange.ContainsKey(i.Id)))
-            {
-                var last = await LastChangeAsync(issue, cookie, ct);
-                if (DateOnly.FromDateTime(last) <= cutoff)
-                {
-                    count++;
-                    issues.Add(issue);
-                    lastChange[issue.Id] = last;
-                }
-            }
-        }
-        return new StaleTickets(count, issues.OrderBy(i => lastChange[i.Id]).ThenBy(i => i.Id).Take(MaxStaleTickets).ToList(), lastChange);
-    }
-
-    /// <summary>The Redmine user Cookie writes as (<c>Redmine__WriteApiKey</c>); null without a write key, or when Redmine doesn't say.</summary>
-    private async Task<int?> CookieUserIdAsync(CancellationToken ct)
-    {
-        if (!O.CanWrite)
-        {
-            return null;
-        }
-        if (cache.TryGetValue(WriterKey, out int known))
-        {
-            return known;
-        }
+            "overview" => worker.Overview(Checked(lookups, query.Project)),
+            "search" => worker.Search(Checked(lookups, query)),
+            "issue" => worker.Issue(id is > 0 ? id.Value : throw ApiException.Invalid("id", "A ticket's number.")),
+            _ => throw ApiException.Invalid("view", "overview, search or issue."),
+        };
+        snapshot.RequestedAt = Clock.UtcNow;
+        var task = worker.RefreshAsync(snapshot, RedmineLane.Button, Who());
         try
         {
-            var id = (await client.GetAsync<RmUserEnvelope>("/users/current.json", ct, asWriter: true)).User.Id;
-            cache.Set(WriterKey, id, LookupsFor);
-            return id;
+            await task.WaitAsync(TimeSpan.FromSeconds(Math.Clamp(O.WaitSeconds, 1, 600)), ct);
+            return (worker.Freshness(snapshot), true);
         }
-        catch (RedmineException)
+        catch (TimeoutException)
         {
-            // Cookie's notes then count as changes, as Redmine's own date has them, until Redmine answers again.
-            return null;
+            return (worker.Freshness(snapshot), false);
+        }
+        catch (RedmineException e) when (view == "issue" && e.Failure is RedmineFailure.NotFound or RedmineFailure.Forbidden)
+        {
+            throw new ApiException(StatusCodes.Status404NotFound, "redmine_not_found", $"#{id} is not in Redmine, or not for PNMT's account.");
         }
     }
 
-    /// <summary>A ticket's last change by anyone but Cookie, from its journals; cached until the ticket changes again.</summary>
-    private async Task<DateTime> LastChangeAsync(RmIssue listed, int cookie, CancellationToken ct) =>
-        await cache.GetOrCreateAsync($"redmine:last-change:{listed.Id}:{listed.UpdatedOn.Ticks}", async e =>
-        {
-            e.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1);
-            var issue = (await client.GetAsync<RmIssueEnvelope>($"/issues/{listed.Id}.json?include=journals", ct)).Issue;
-            return LastChangeWithoutCookie(issue, cookie);
-        });
+    private static int? Checked(RedmineLookups lookups, int? project)
+    {
+        CheckProject(lookups, project);
+        return project;
+    }
+
+    private static RedmineQuery Checked(RedmineLookups lookups, RedmineQuery query)
+    {
+        CheckProject(lookups, query.Project);
+        return query;
+    }
+
+    // --- the stale tickets' last change --------------------------------------------------------------------------------
 
     /// <summary>
     /// The newest of: the ticket's creation, and every journal that isn't Cookie's. A change Redmine made without a journal
@@ -376,49 +162,6 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOpt
         var newest = journals.Select(j => Clock.AsUtc(j.CreatedOn)).Append(created).Max();
         var updated = Clock.AsUtc(issue.UpdatedOn);
         return updated - newest > TimeSpan.FromSeconds(5) && updated > last ? updated : last;
-    }
-
-    /// <summary>
-    /// The search's tickets without a change (§6.3): Redmine applies the other filters to the stale tickets' numbers, and PNMT
-    /// sorts and pages them, because Redmine's <c>updated_on</c> would put a ticket with Cookie's note among the fresh ones.
-    /// </summary>
-    private async Task<Paged<RedmineIssueItem>> SearchStaleAsync(RedmineQueryString q, RedmineLookups lookups, RedmineQuery query, IReadOnlySet<int>? only,
-        int page, int size, CancellationToken ct)
-    {
-        var stale = await StaleAsync(lookups, query.Project, ct);
-        var ids = stale.Issues.Select(i => i.Id).Where(id => only is null || only.Contains(id)).ToList();
-        if (ids.Count == 0)
-        {
-            return new Paged<RedmineIssueItem>([], page, size, 0);
-        }
-        q.Plain("issue_id", string.Join(",", ids));
-        var filters = q.ToString();
-        var found = new List<RmIssue>();
-        for (var offset = 0; ; offset += 100)
-        {
-            var result = await client.GetAsync<RmIssues>($"/issues.json?{filters}&offset={offset}&limit=100", ct);
-            found.AddRange(result.Issues);
-            if (result.Issues.Count == 0 || found.Count >= result.TotalCount)
-            {
-                break;
-            }
-        }
-        DateTime Changed(RmIssue i) => stale.LastChange.TryGetValue(i.Id, out var at) ? at : Clock.AsUtc(i.UpdatedOn);
-        var priorities = lookups.Priorities.Select((p, index) => (p.Id, index)).ToDictionary(p => p.Id, p => p.index);
-        int Priority(RmIssue i) => i.Priority is { } p ? priorities.GetValueOrDefault(p.Id, -1) : -1;
-        IEnumerable<RmIssue> sorted = (query.Sort ?? "-updated") switch
-        {
-            "updated" => found.OrderBy(Changed).ThenBy(i => i.Id),
-            "created" => found.OrderBy(i => i.CreatedOn).ThenBy(i => i.Id),
-            "-created" => found.OrderByDescending(i => i.CreatedOn).ThenByDescending(i => i.Id),
-            "priority" => found.OrderBy(Priority).ThenByDescending(i => i.Id),
-            "-priority" => found.OrderByDescending(Priority).ThenByDescending(i => i.Id),
-            "id" => found.OrderBy(i => i.Id),
-            "-id" => found.OrderByDescending(i => i.Id),
-            _ => found.OrderByDescending(Changed).ThenByDescending(i => i.Id),
-        };
-        var items = sorted.Skip((page - 1) * size).Take(size).ToList();
-        return new Paged<RedmineIssueItem>(await ItemsAsync(items, ct, stale.LastChange), page, size, found.Count);
     }
 
     /// <summary>Open tickets linked to a failing sensor, its host or the host's location, from PNMT's copy (§6.3).</summary>
@@ -464,27 +207,24 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOpt
 
     // --- a ticket --------------------------------------------------------------------------------------------------------
 
-    /// <summary>A ticket in full (§6.4), if it is in the configured projects; PNMT's copy is refreshed if it is linked.</summary>
+    /// <summary>A ticket in full (§6.4), if it is in the configured projects, from its snapshot; PNMT's links now.</summary>
     public async Task<RedmineIssueDetail> IssueAsync(int id, CancellationToken ct)
     {
         var lookups = await LookupsAsync(ct);
-        RmIssue issue;
+        IssueData data;
+        RedmineFreshness freshness;
         try
         {
-            issue = (await client.GetAsync<RmIssueEnvelope>($"/issues/{id}.json?include=journals,attachments,relations,children", ct)).Issue;
+            (data, freshness) = await worker.ReadAsync<IssueData>(worker.Issue(id), RedmineLane.Interactive, Who(), ct);
         }
         catch (RedmineException e) when (e.Failure is RedmineFailure.NotFound or RedmineFailure.Forbidden)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "redmine_not_found", $"#{id} is not in Redmine, or not for PNMT's account.");
         }
+        var issue = data.Issue;
         if (!lookups.Allowed.Contains(issue.Project.Id))
         {
             throw new ApiException(StatusCodes.Status404NotFound, "redmine_other_project", $"#{id} is not in PNMT's Redmine projects.");
-        }
-        if (await db.RedmineLinks.AnyAsync(l => l.IssueId == id, ct))
-        {
-            await UpsertCopyAsync([issue], ct);
-            await db.SaveChangesAsync(ct);
         }
         var project = lookups.Projects.First(p => p.Id == issue.Project.Id);
         var attachments = issue.Attachments ?? [];
@@ -493,10 +233,7 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOpt
                 (j.Details ?? []).Select(d => Change(d, lookups)).ToList(), j.PrivateNotes))
             .Where(j => j.Notes is not null || j.Changes.Count > 0)
             .ToList();
-        var relatedIds = (issue.Relations ?? []).Select(r => r.IssueId == id ? r.IssueToId : r.IssueId)
-            .Concat((issue.Children ?? []).Select(c => c.Id)).Concat(issue.Parent is { } parent ? [parent.Id] : []).Distinct().ToList();
-        var related = relatedIds.Count == 0 ? [] : (await client.GetAsync<RmIssues>($"/issues.json?issue_id={string.Join(",", relatedIds)}&status_id=*&limit=100", ct))
-            .Issues.Where(i => lookups.Allowed.Contains(i.Project.Id)).ToDictionary(i => i.Id);
+        var related = data.Related;
         RedmineRelatedItem Related(int other, string relation) => related.TryGetValue(other, out var r)
             ? new RedmineRelatedItem(other, relation, r.Subject, r.Status.Name, r.Status.IsClosed)
             : new RedmineRelatedItem(other, relation, null, null, null);
@@ -513,7 +250,7 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOpt
             issue.EstimatedHours, issue.CreatedOn, issue.UpdatedOn, issue.ClosedOn, issue.IsPrivate, fields, journals,
             attachments.Select(a => new RedmineAttachmentItem(a.Id, a.Filename, a.Filesize, a.ContentType, a.Author?.Name, a.CreatedOn,
                 AttachmentUrl(a))).ToList(),
-            relations, await LinksOfAsync(id, ct), IssueUrl(issue.Id));
+            relations, await LinksOfAsync(id, ct), IssueUrl(issue.Id), freshness);
     }
 
     private string AttachmentUrl(RmAttachment a) => $"{O.BrowserUrl}/attachments/{a.Id}";
@@ -592,7 +329,8 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOpt
 
     // --- links -----------------------------------------------------------------------------------------------------------
 
-    public async Task<RedmineLinkItem> AddLinkAsync(RedmineLinkRequest request, CancellationToken ct)
+    /// <summary>A link (§6.5); <paramref name="lane"/> is the button's for <i>Link</i> (docs/redmine-queue-outbound-plan.md §3.3).</summary>
+    public async Task<RedmineLinkItem> AddLinkAsync(RedmineLinkRequest request, CancellationToken ct, RedmineLane lane = RedmineLane.Interactive)
     {
         var targets = new[] { request.PageId, request.LocationId, request.HostId, request.SensorId };
         new ApiValidator()
@@ -601,11 +339,11 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOpt
             .Check(request.Note is null || request.Note.Trim().Length <= 500, "note", "At most 500 characters.")
             .ThrowIfInvalid();
         var (kind, targetId, name, subjects) = await TargetAsync(request, ct);
-        var lookups = await LookupsAsync(ct);
+        var lookups = await LookupsAsync(ct, lane);
         RmIssue issue;
         try
         {
-            issue = (await client.GetAsync<RmIssueEnvelope>($"/issues/{request.IssueId}.json", ct)).Issue;
+            issue = (await worker.ReadAsync<IssueData>(worker.Issue(request.IssueId), lane, Who(), ct)).Value.Issue;
         }
         catch (RedmineException e) when (e.Failure is RedmineFailure.NotFound or RedmineFailure.Forbidden)
         {
@@ -623,10 +361,11 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOpt
             CreatedById = by, CreatedByName = byName,
         };
         db.RedmineLinks.Add(link);
-        await UpsertCopyAsync([issue], ct);
+        await UpsertCopyAsync(db, [issue], ct);
         AuditLog.Record(db, AuditEvents.RedmineLinkAdded, $"#{issue.Id} {issue.Subject} → {kind.ToString().ToLowerInvariant()} {name}",
             AuditWho.From(accessor), new AuditTarget(AuditTargets.RedmineTicket, issue.Id.ToString(CultureInfo.InvariantCulture), issue.Subject, [targetId, .. subjects]));
         await db.SaveChangesAsync(ct);
+        worker.AfterLinkChange();
         return new RedmineLinkItem(link.Id, link.IssueId, kind, targetId, name, link.Note, link.CreatedAt, link.CreatedByName);
     }
 
@@ -654,6 +393,7 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOpt
         AuditLog.Record(db, AuditEvents.RedmineLinkRemoved, $"#{link.IssueId} {subject} unlinked from {item.Kind.ToString().ToLowerInvariant()} {item.TargetName}",
             AuditWho.From(accessor), new AuditTarget(AuditTargets.RedmineTicket, link.IssueId.ToString(CultureInfo.InvariantCulture), subject, [item.TargetId]));
         await db.SaveChangesAsync(ct);
+        worker.AfterLinkChange();
     }
 
     private async Task<(RedmineLinkKind Kind, Guid Id, string Name, IReadOnlyList<Guid> Subjects)> TargetAsync(RedmineLinkRequest r, CancellationToken ct)
@@ -820,7 +560,7 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOpt
     // --- the copy ----------------------------------------------------------------------------------------------------------
 
     /// <summary>Writes the tickets' headers into PNMT's copy (added to the context; the caller saves).</summary>
-    internal async Task UpsertCopyAsync(IReadOnlyList<RmIssue> issues, CancellationToken ct)
+    internal static async Task UpsertCopyAsync(PnmtdDbContext db, IReadOnlyList<RmIssue> issues, CancellationToken ct)
     {
         var ids = issues.Select(i => i.Id).ToList();
         var existing = await db.RedmineIssues.Where(i => ids.Contains(i.IssueId)).ToDictionaryAsync(i => i.IssueId, ct);
@@ -872,70 +612,4 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineClient client, IOpt
     private async Task<Dictionary<int, int>> LinkCountsAsync(List<int> ids, CancellationToken ct) => ids.Count == 0 ? []
         : await db.RedmineLinks.AsNoTracking().Where(l => ids.Contains(l.IssueId)).GroupBy(l => l.IssueId)
             .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(g => g.Key, g => g.Count, ct);
-
-    /// <summary>The configured projects, or one of them (with its subprojects): always Redmine's query syntax.</summary>
-    private RedmineQueryString Filters(RedmineLookups lookups, int? project, string status)
-    {
-        var q = new RedmineQueryString();
-        IEnumerable<int> projects = lookups.Allowed;
-        if (project is { } one)
-        {
-            if (!lookups.Allowed.Contains(one))
-            {
-                throw ApiException.Invalid("project", "Not one of PNMT's Redmine projects.");
-            }
-            projects = O.IncludeSubprojects ? lookups.Projects.Where(p => p.Id == one || IsWithin(lookups, p, one)).Select(p => p.Id) : [one];
-        }
-        q.Equal("project_id", [.. projects]);
-        q.Filter("status_id", status switch { "closed" => "c", "all" => "*", _ => "o" });
-        return q;
-    }
-
-    private static bool IsWithin(RedmineLookups l, RmProject p, int ancestor)
-    {
-        for (var parent = p.Parent?.Id; parent is { } id; parent = l.Projects.FirstOrDefault(x => x.Id == id)?.Parent?.Id)
-        {
-            if (id == ancestor)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static string Sort(string? sort) => (sort ?? "-updated") switch
-    {
-        "updated" => "updated_on",
-        "created" => "created_on",
-        "-created" => "created_on:desc",
-        "priority" => "priority,id:desc",
-        "-priority" => "priority:desc,id:desc",
-        "id" => "id",
-        "-id" => "id:desc",
-        _ => "updated_on:desc",
-    };
-
-    private static string Yesterday() => DateOnly.FromDateTime(Clock.UtcNow).AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-}
-
-/// <summary>Redmine's query string, its filter syntax included (f[]=status_id&amp;op[status_id]=o&amp;v[status_id][]=…).</summary>
-internal sealed class RedmineQueryString
-{
-    private readonly List<(string Key, string Value)> parts = [];
-
-    public void Plain(string key, string value) => parts.Add((key, value));
-
-    public void Filter(string field, string op, params string[] values)
-    {
-        parts.Add(("f[]", field));
-        parts.Add(($"op[{field}]", op));
-        foreach (var v in values)
-        {
-            parts.Add(($"v[{field}][]", v));
-        }
-    }
-
-    public void Equal(string field, params int[] values) => Filter(field, "=", [.. values.Select(v => v.ToString(CultureInfo.InvariantCulture))]);
-
-    public override string ToString() => string.Join("&", parts.Select(p => $"{WebUtility.UrlEncode(p.Key)}={WebUtility.UrlEncode(p.Value)}"));
 }

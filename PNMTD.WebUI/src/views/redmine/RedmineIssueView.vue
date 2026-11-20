@@ -18,13 +18,15 @@ import { useActions } from '@/composables/useActions'
 import { useCopy } from '@/composables/useCopy'
 import { formatAbsolute } from '@/format'
 import { useSession } from '@/stores/session'
+import RedmineFreshnessBar from './RedmineFreshnessBar.vue'
 import RedmineTextView from './RedmineTextView.vue'
 import TargetPicker, { type Target } from './TargetPicker.vue'
 
 /**
  * A ticket's page (docs/audit-redmine-zabbix-plan.md §6.4), a full page: its description and history as Redmine shows
  * them, its details, what it is linked to in PNMT, its related tickets and attachments (links to Redmine). *Link to…* a
- * knowledge base page, a location, a host or a sensor; *Open in Redmine*; *Copy link*. Always asked of Redmine.
+ * knowledge base page, a location, a host or a sensor; *Open in Redmine*; *Copy link*. From the server's snapshot of the
+ * ticket, with the bar (docs/redmine-queue-outbound-plan.md §5): polled every 2 s while a refresh runs, else every 60 s.
  */
 const route = useRoute()
 const session = useSession()
@@ -33,10 +35,12 @@ const { run, done, ask } = useActions()
 const copy = useCopy()
 
 const id = computed(() => Number(route.params.id))
+const issueKey = computed(() => [...keys.redmine, 'issue', id.value])
 const query = useQuery({
-  queryKey: computed(() => [...keys.redmine, 'issue', id.value]),
+  queryKey: issueKey,
   queryFn: () => api.redmine.issue(id.value),
   retry: (count, e) => !(e instanceof ApiError && e.status < 500) && count < 2,
+  refetchInterval: (q) => (q.state.data?.freshness.refreshing ? 2000 : 60_000),
 })
 const issue = computed(() => query.data.value)
 const error = computed(() => (query.error.value instanceof ApiError ? query.error.value : null))
@@ -141,6 +145,11 @@ const ownUrl = computed(() => `${location.origin}/pnmt-admin/redmine/issues/${id
           <i v-if="issue.isPrivate" class="pi pi-lock muted" title="Private in Redmine" />
         </template>
         <template #actions>
+          <RedmineFreshnessBar
+            :freshness="issue.freshness"
+            :refresh="{ view: 'issue', id: issue.id }"
+            :query-key="issueKey"
+          />
           <Button
             as="a"
             :href="issue.url"

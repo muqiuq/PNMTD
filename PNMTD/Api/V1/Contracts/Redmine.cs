@@ -3,7 +3,16 @@ namespace PNMTD.Api.V1.Contracts;
 // Redmine in PNMT (docs/audit-redmine-zabbix-plan.md §6): read-only, PNMT's links, a copy of linked tickets' headers.
 
 /// <summary><c>GET /redmine/status</c>: whether Redmine is configured, where browsers open it, and the projects PNMT shows.</summary>
-public sealed record RedmineStatus(bool Enabled, string? Url, IReadOnlyList<RedmineProjectItem> Projects, string? Error);
+public sealed record RedmineStatus(bool Enabled, string? Url, IReadOnlyList<RedmineProjectItem> Projects, string? Error, RedmineFreshness? Freshness);
+
+/// <summary>
+/// How old a Redmine answer is (docs/redmine-queue-outbound-plan.md §4.5): when its data was read from Redmine, whether a
+/// refresh is queued or running, and the last refresh's failure if it failed after that.
+/// </summary>
+public sealed record RedmineFreshness(DateTime? RefreshedAt, bool Refreshing, DateTime? FailedAt, string? Error);
+
+/// <summary><c>GET /redmine/issues</c>: a page of the search, as <see cref="Paged{T}"/>, and how old it is.</summary>
+public sealed record RedmineSearchPage(IReadOnlyList<RedmineIssueItem> Items, int Page, int PageSize, int TotalCount, RedmineFreshness Freshness);
 
 public sealed record RedmineProjectItem(int Id, string Identifier, string Name, int? ParentId, string Url);
 
@@ -47,8 +56,8 @@ public sealed class RedmineQuery : PageQuery
     public bool Stale { get; set; }
 }
 
-/// <summary><c>GET /redmine/overview</c> (§6.3): the most important tickets, cached a minute.</summary>
-public sealed record RedmineOverview(DateTime AsOf, int StaleDays, RedmineOverviewTiles Tiles, IReadOnlyList<RedmineIssueItem> Urgent,
+/// <summary><c>GET /redmine/overview</c> (§6.3): the most important tickets, from the worker's snapshot, and how old it is.</summary>
+public sealed record RedmineOverview(RedmineFreshness Freshness, int StaleDays, RedmineOverviewTiles Tiles, IReadOnlyList<RedmineIssueItem> Urgent,
     IReadOnlyList<RedmineIssueItem> Unassigned, IReadOnlyList<RedmineIssueItem> Overdue, IReadOnlyList<RedmineIssueItem> Problems,
     IReadOnlyList<RedmineIssueItem> Stale, IReadOnlyList<RedmineIssueItem> Recent);
 
@@ -93,7 +102,8 @@ public sealed record RedmineIssueDetail(
     IReadOnlyList<RedmineAttachmentItem> Attachments,
     IReadOnlyList<RedmineRelatedItem> Related,
     IReadOnlyList<RedmineLinkItem> Links,
-    string Url);
+    string Url,
+    RedmineFreshness Freshness);
 
 public enum RedmineLinkKind { Page, Location, Host, Sensor }
 

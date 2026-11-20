@@ -3,13 +3,16 @@ using Microsoft.AspNetCore.Mvc;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Audit;
 using PNMTD.Auth.Rights;
+using PNMTD.Models.Db;
 using PNMTD.Redmine;
 
 namespace PNMTD.Api.V1;
 
 /// <summary>
-/// Redmine (docs/audit-redmine-zabbix-plan.md §6, §9): its overview, search and tickets for Redmine's View; links for its
-/// Link; the connection's test for System's Manage. Redmine's failures are 502; not configured is 409, as for AI.
+/// Redmine (docs/audit-redmine-zabbix-plan.md §6, §9): its overview, search and tickets for Redmine's View, from the worker's
+/// snapshots with their freshness, and the refresh button (docs/redmine-queue-outbound-plan.md §5.3); links for its Link; the
+/// connection's test for System's Manage. The buttons' jobs go first in the worker's queue (§3.3). Redmine's failures are 502;
+/// not configured is 409, as for AI; a job that takes longer than <c>Redmine__WaitSeconds</c> is 504.
 /// </summary>
 [Route("api/v1/redmine")]
 [Authorize]
@@ -29,11 +32,26 @@ public sealed class RedmineController(RedmineService redmine) : V1ControllerBase
 
     [HttpGet("issues")]
     [RequireRight(Area.Redmine, Level.View)]
-    public async Task<Paged<RedmineIssueItem>> Issues([FromQuery] RedmineQuery query, CancellationToken ct) => await Call(() => redmine.SearchAsync(query, ct));
+    public async Task<RedmineSearchPage> Issues([FromQuery] RedmineQuery query, CancellationToken ct) => await Call(() => redmine.SearchAsync(query, ct));
 
     [HttpGet("issues/{id:int}")]
     [RequireRight(Area.Redmine, Level.View)]
     public async Task<RedmineIssueDetail> Issue(int id, CancellationToken ct) => await Call(() => redmine.IssueAsync(id, ct));
+
+    /// <summary>
+    /// The refresh button (docs/redmine-queue-outbound-plan.md §5.3): <c>?view=overview|search|issue</c> with the view's
+    /// <c>project</c>, search filters or <c>id</c>. Waits for the new data up to <c>Redmine__WaitSeconds</c>; 202 if it is
+    /// still being read then.
+    /// </summary>
+    [HttpPost("refresh")]
+    [RequireRight(Area.Redmine, Level.View)]
+    [NotAudited("a read of Redmine, as the page itself")]
+    public async Task<ActionResult<RedmineFreshness>> Refresh([FromQuery] string? view, [FromQuery] int? id, [FromQuery] RedmineQuery query,
+        CancellationToken ct)
+    {
+        var (freshness, done) = await Call(() => redmine.RefreshAsync(view, id, query, ct));
+        return done ? freshness : StatusCode(StatusCodes.Status202Accepted, freshness);
+    }
 
     /// <summary>An object's tickets, from PNMT's copy: <c>?pageId|locationId|hostId|sensorId</c>, <c>deep</c> for a location's Tickets tab.</summary>
     [HttpGet("related")]
@@ -50,7 +68,7 @@ public sealed class RedmineController(RedmineService redmine) : V1ControllerBase
     [RequireRight(Area.Redmine, Level.Link)]
     [Audit(AuditEvents.RedmineLinkAdded)]
     public async Task<ActionResult<RedmineLinkItem>> Link(RedmineLinkRequest request, CancellationToken ct) =>
-        StatusCode(StatusCodes.Status201Created, await Call(() => redmine.AddLinkAsync(request, ct)));
+        StatusCode(StatusCodes.Status201Created, await Call(() => redmine.AddLinkAsync(request, ct, RedmineLane.Button)));
 
     [HttpPut("links/{id:guid}")]
     [RequireRight(Area.Redmine, Level.Link)]
@@ -66,19 +84,17 @@ public sealed class RedmineController(RedmineService redmine) : V1ControllerBase
         return NoContent();
     }
 
-    /// <summary>The connection's test (§8.5): the key's account, the projects found and those not found.</summary>
+    /// <summary>The connection's test (§8.5), in the button lane: the key's account, the projects found and those not found.</summary>
     [HttpPost("test")]
     [RequireRight(Area.System, Level.Manage)]
     [Audit(AuditEvents.RedmineTested)]
-    public async Task<RedmineTestResult> Test([FromServices] RedmineClient client, CancellationToken ct) => await Call(async () =>
+    public async Task<RedmineTestResult> Test([FromServices] RedmineWorker worker, CancellationToken ct) => await Call(async () =>
     {
-        var user = (await client.GetAsync<RmUserEnvelope>("/users/current.json", ct)).User;
-        redmine.ForgetLookups();
+        var (account, lookups) = await worker.TestAsync(User.Identity?.Name ?? "PNMT", ct);
         var status = await redmine.StatusAsync(ct);
-        var lookups = await redmine.LookupsAsync(ct);
-        AuditLog.Summary($"account {user.Login}; projects {string.Join(", ", status.Projects.Select(p => p.Identifier))}"
+        AuditLog.Summary($"account {account}; projects {string.Join(", ", status.Projects.Select(p => p.Identifier))}"
             + (lookups.NotFound.Count > 0 ? $"; not found: {string.Join(", ", lookups.NotFound)}" : ""));
-        return new RedmineTestResult(user.Login, status.Projects, lookups.NotFound);
+        return new RedmineTestResult(account, status.Projects, lookups.NotFound);
     });
 
     private static async Task<T> Call<T>(Func<Task<T>> call)

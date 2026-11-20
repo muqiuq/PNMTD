@@ -150,13 +150,13 @@ public sealed class RedmineTests
     {
         var host = await (await user.PostAsJsonAsync("/api/v1/hosts", new { name = $"rm-sync-{Guid.NewGuid():N}"[..22] })).ReadAsync<HostDetail>();
         Assert.AreEqual(HttpStatusCode.Created, (await user.PostAsJsonAsync("/api/v1/redmine/links", new { issueId = 12, hostId = host.Id })).StatusCode);
-        var sync = app.Services.GetRequiredService<RedmineSync>();
+        var worker = app.Services.GetRequiredService<RedmineWorker>();
         var sensors = app.Services.GetRequiredService<SystemSensors>();
         var removed = redmine.Issues[12];
         redmine.Issues.Remove(12);
         try
         {
-            await sync.RunAsync(CancellationToken.None);
+            await worker.SyncAsync(CancellationToken.None);
             await using (var db = app.NewDb())
             {
                 Assert.IsTrue(await db.RedmineIssues.Where(i => i.IssueId == 12).Select(i => i.Missing).SingleAsync());
@@ -167,17 +167,21 @@ public sealed class RedmineTests
             redmine.Issues[12] = removed;
         }
         redmine.Down = true;
-        await sync.RunAsync(CancellationToken.None);
+        await worker.SyncAsync(CancellationToken.None);
         Assert.AreNotEqual(PNMTStatusCodes.REDMINE_FAILING, (await sensors.LastAsync(SystemSensorKeys.Redmine, CancellationToken.None))?.Code, "once is no outage");
-        await sync.RunAsync(CancellationToken.None);
+        await worker.SyncAsync(CancellationToken.None);
         var failing = await sensors.LastAsync(SystemSensorKeys.Redmine, CancellationToken.None);
         Assert.AreEqual(PNMTStatusCodes.REDMINE_FAILING, failing!.Code);
         StringAssert.Contains(failing.Message, "doesn't answer");
-        var down = await user.GetAsync("/api/v1/redmine/issues/9");
+        // A ticket nobody read yet can't be shown; one PNMT keeps a snapshot of is shown as it was (docs/redmine-queue-outbound-plan.md §4.2).
+        var down = await user.GetAsync("/api/v1/redmine/issues/11");
         Assert.AreEqual(HttpStatusCode.BadGateway, down.StatusCode);
+        var kept = await (await user.GetAsync("/api/v1/redmine/issues/12")).ReadAsync<RedmineIssueDetail>();
+        Assert.AreEqual(12, kept.Id, "read when it was linked");
+        Assert.IsNotNull(kept.Freshness.RefreshedAt);
 
         redmine.Down = false;
-        await sync.RunAsync(CancellationToken.None);
+        await worker.SyncAsync(CancellationToken.None);
         Assert.AreEqual(PNMTStatusCodes.SYSTEM_OK, (await sensors.LastAsync(SystemSensorKeys.Redmine, CancellationToken.None))!.Code);
         await using (var db = app.NewDb())
         {

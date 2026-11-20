@@ -25,7 +25,7 @@ public sealed record CaseBookResult(int Opened, int Changed, int Closed, int Ope
 /// whether Cookie is started or not; it only needs <c>Cookie__Enabled=true</c>.
 /// </summary>
 public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScopeFactory scopes, CookieSettings settings, ZabbixSnapshot zabbix,
-    RedmineClient redmine, IOptionsMonitor<RedmineOptions> redmineOptions, IMemoryCache cache, CookieSignals signals,
+    RedmineWorker redmine, IOptionsMonitor<RedmineOptions> redmineOptions, IMemoryCache cache, CookieSignals signals,
     PNMTD.Availability.AvailabilityPlan plan, CookieIntegrations integrations, ILogger<CaseBook> logger)
 {
     public const int MaxTicketPages = 10;
@@ -283,10 +283,22 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
 
     // --- Tickets: a case per watched ticket ---------------------------------------------------------------------------
 
-    private async Task TicketsAsync(PnmtdDbContext db, RedmineService service, CookieRedmineSettings redmineSettings, DateTime now, Counts counts,
-        CancellationToken ct)
+    /// <summary>
+    /// The watched projects' tickets, as one background job of the Redmine worker (docs/redmine-queue-outbound-plan.md §3.2):
+    /// every read waits for a slot behind what people and Cookie's writes need.
+    /// </summary>
+    private Task TicketsAsync(PnmtdDbContext db, RedmineService service, CookieRedmineSettings redmineSettings, DateTime now, Counts counts,
+        CancellationToken ct) =>
+        redmine.RunAsync(new RedmineJobSpec(null, RedmineLane.Background, "Cookie: case book tickets", "Cookie"), async calls =>
+        {
+            await TicketsAsync(calls, db, service, redmineSettings, now, counts, ct);
+            return true;
+        }).WaitAsync(ct);
+
+    private async Task TicketsAsync(RedmineCalls calls, PnmtdDbContext db, RedmineService service, CookieRedmineSettings redmineSettings, DateTime now,
+        Counts counts, CancellationToken ct)
     {
-        var lookups = await service.LookupsAsync(ct);
+        var lookups = await service.LookupsAsync(ct, RedmineLane.Background);
         var watched = redmineSettings.Projects.Where(p => lookups.Allowed.Contains(p.ProjectId)).ToDictionary(p => p.ProjectId);
         var open = await db.CookieCases.Where(c => c.Open && c.Kind == CookieCaseKind.Ticket).ToListAsync(ct);
         var byIssue = open.Where(c => c.IssueId is not null).ToDictionary(c => c.IssueId!.Value);
@@ -302,7 +314,7 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
                 q.Plain("sort", "updated_on:desc");
                 q.Plain("limit", "100");
                 q.Plain("offset", (page * 100).ToString(System.Globalization.CultureInfo.InvariantCulture));
-                var result = await redmine.GetAsync<RmIssues>($"/issues.json?{q}", ct);
+                var result = await calls.GetAsync<RmIssues>($"/issues.json?{q}", $"open tickets, page {page + 1}");
                 issues.AddRange(result.Issues);
                 if (result.Issues.Count < 100 || issues.Count >= result.TotalCount)
                 {
@@ -319,8 +331,8 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
                 {
                     continue;
                 }
-                var full = (await redmine.GetAsync<RmIssueEnvelope>($"/issues/{issue.Id}.json?include=journals", ct)).Issue;
-                var staff = await StaffAsync(project, ct);
+                var full = (await calls.GetAsync<RmIssueEnvelope>($"/issues/{issue.Id}.json?include=journals", $"#{issue.Id}'s journals")).Issue;
+                var staff = await StaffAsync(calls, project);
                 var clock = CaseRules.Clock(full, staff);
                 if (isNew)
                 {
@@ -385,7 +397,7 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
             {
                 try
                 {
-                    var issue = (await redmine.GetAsync<RmIssueEnvelope>($"/issues/{c.IssueId}.json", ct)).Issue;
+                    var issue = (await calls.GetAsync<RmIssueEnvelope>($"/issues/{c.IssueId}.json", $"#{c.IssueId}, no longer listed")).Issue;
                     why = issue.Status.IsClosed ? $"Closed in Redmine ({issue.Status.Name})." : watched.ContainsKey(issue.Project.Id) ? "" : "Moved to a project that isn't watched.";
                 }
                 catch (RedmineException e) when (e.Failure is RedmineFailure.NotFound or RedmineFailure.Forbidden)
@@ -406,7 +418,7 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
     }
 
     /// <summary>The project's members with a staff role (§7.2), cached for an hour; null when no role is set.</summary>
-    private async Task<IReadOnlySet<int>?> StaffAsync(WatchedProject project, CancellationToken ct)
+    private async Task<IReadOnlySet<int>?> StaffAsync(RedmineCalls calls, WatchedProject project)
     {
         if (project.StaffRoleIds.Count == 0)
         {
@@ -419,7 +431,8 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
             var staff = new HashSet<int>();
             for (var offset = 0; offset < 1000; offset += 100)
             {
-                var page = await redmine.GetAsync<RmMemberships>($"/projects/{project.ProjectId}/memberships.json?limit=100&offset={offset}", ct);
+                var page = await calls.GetAsync<RmMemberships>($"/projects/{project.ProjectId}/memberships.json?limit=100&offset={offset}",
+                    $"staff of project {project.ProjectId}");
                 foreach (var m in page.Memberships.Where(m => m.User is not null && (m.Roles ?? []).Any(r => project.StaffRoleIds.Contains(r.Id))))
                 {
                     staff.Add(m.User!.Id);

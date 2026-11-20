@@ -13651,6 +13651,211 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/system/outbound/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    channel?: components["schemas"]["OutboundChannel"];
+                    outcome?: components["schemas"]["OutboundOutcome"];
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfOutboundNotificationItem"];
+                        "text/json": components["schemas"]["PagedOfOutboundNotificationItem"];
+                        "text/plain": components["schemas"]["PagedOfOutboundNotificationItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/outbound/notifications/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OutboundDetail"];
+                        "text/json": components["schemas"]["OutboundDetail"];
+                        "text/plain": components["schemas"]["OutboundDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/outbound/redmine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    kind?: components["schemas"]["RedmineCallKind"];
+                    lane?: components["schemas"]["RedmineLane"];
+                    outcome?: components["schemas"]["OutboundOutcome"];
+                    job?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfRedmineCallItem"];
+                        "text/json": components["schemas"]["PagedOfRedmineCallItem"];
+                        "text/plain": components["schemas"]["PagedOfRedmineCallItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/outbound/redmine/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OutboundDetail"];
+                        "text/json": components["schemas"]["OutboundDetail"];
+                        "text/plain": components["schemas"]["OutboundDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/outbound/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OutboundLive"];
+                        "text/json": components["schemas"]["OutboundLive"];
+                        "text/plain": components["schemas"]["OutboundLive"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/redmine/status": {
         parameters: {
             query?: never;
@@ -13799,9 +14004,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["PagedOfRedmineIssueItem"];
-                        "text/json": components["schemas"]["PagedOfRedmineIssueItem"];
-                        "text/plain": components["schemas"]["PagedOfRedmineIssueItem"];
+                        "application/json": components["schemas"]["RedmineSearchPage"];
+                        "text/json": components["schemas"]["RedmineSearchPage"];
+                        "text/plain": components["schemas"]["RedmineSearchPage"];
                     };
                 };
             };
@@ -13847,6 +14052,58 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/redmine/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: {
+                    view?: string;
+                    id?: number;
+                    project?: number;
+                    status?: string;
+                    tracker?: number;
+                    priority?: number;
+                    assignee?: string;
+                    overdue?: boolean;
+                    linked?: boolean;
+                    stale?: boolean;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RedmineFreshness"];
+                        "text/json": components["schemas"]["RedmineFreshness"];
+                        "text/plain": components["schemas"]["RedmineFreshness"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -23490,6 +23747,69 @@ export interface components {
             productType: null | string;
             activation?: null | components["schemas"]["ActivationInfo"];
         };
+        /** @enum {unknown} */
+        OutboundChannel: "Email" | "Pushover" | "Http";
+        OutboundDetail: {
+            notification: null | components["schemas"]["OutboundNotificationItem"];
+            redmine: null | components["schemas"]["RedmineCallItem"];
+            requestHeaders: components["schemas"]["OutboundHeader"][];
+            requestBody: null | string;
+            responseHeaders: components["schemas"]["OutboundHeader"][];
+            responseBody: null | string;
+            transcript: null | string;
+        };
+        OutboundHeader: {
+            name: string;
+            value: string;
+        };
+        OutboundLive: {
+            running: components["schemas"]["OutboundRunningItem"][];
+            redmine: components["schemas"]["RedmineQueueState"];
+            /** Format: int64 */
+            newestNotificationId: number;
+            /** Format: int64 */
+            newestRedmineId: number;
+            /** Format: int64 */
+            droppedNotifications: number;
+            /** Format: int64 */
+            droppedRedmine: number;
+        };
+        OutboundNotificationItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: int32 */
+            durationMs: number;
+            channel: components["schemas"]["OutboundChannel"];
+            method: string;
+            target: string;
+            recipient: null | string;
+            summary: string;
+            purpose: string;
+            askedBy: string;
+            outcome: components["schemas"]["OutboundOutcome"];
+            /** Format: int32 */
+            statusCode: null | number;
+            error: null | string;
+            /** Format: int64 */
+            requestBytes: number;
+            /** Format: int64 */
+            responseBytes: number;
+            truncated: boolean;
+        };
+        /** @enum {unknown} */
+        OutboundOutcome: "Ok" | "Failed" | "Simulated" | "Cancelled";
+        OutboundRunningItem: {
+            log: string;
+            channel: string;
+            method: string;
+            target: string;
+            purpose: string;
+            askedBy: string;
+            /** Format: date-time */
+            startedAt: string;
+        };
         OutputLimits: {
             /**
              * Format: int32
@@ -23914,8 +24234,17 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
-        PagedOfRedmineIssueItem: {
-            items: components["schemas"]["RedmineIssueItem"][];
+        PagedOfOutboundNotificationItem: {
+            items: components["schemas"]["OutboundNotificationItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfRedmineCallItem: {
+            items: components["schemas"]["RedmineCallItem"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */
@@ -24138,6 +24467,36 @@ export interface components {
             createdOn: string;
             url: string;
         };
+        RedmineCallItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: int32 */
+            durationMs: number;
+            /** Format: int32 */
+            queuedMs: number;
+            kind: components["schemas"]["RedmineCallKind"];
+            method: string;
+            target: string;
+            summary: string;
+            purpose: string;
+            askedBy: string;
+            /** Format: uuid */
+            jobId: null | string;
+            lane: components["schemas"]["RedmineLane"];
+            outcome: components["schemas"]["OutboundOutcome"];
+            /** Format: int32 */
+            statusCode: null | number;
+            error: null | string;
+            /** Format: int64 */
+            requestBytes: number;
+            /** Format: int64 */
+            responseBytes: number;
+            truncated: boolean;
+        };
+        /** @enum {unknown} */
+        RedmineCallKind: "Read" | "Write";
         RedmineChange: {
             field: string;
             old: null | string;
@@ -24146,6 +24505,14 @@ export interface components {
         RedmineFieldItem: {
             name: string;
             value: string;
+        };
+        RedmineFreshness: {
+            /** Format: date-time */
+            refreshedAt: null | string;
+            refreshing: boolean;
+            /** Format: date-time */
+            failedAt: null | string;
+            error: null | string;
         };
         RedmineIssueDetail: {
             /** Format: int32 */
@@ -24178,6 +24545,7 @@ export interface components {
             related: components["schemas"]["RedmineRelatedItem"][];
             links: components["schemas"]["RedmineLinkItem"][];
             url: string;
+            freshness: components["schemas"]["RedmineFreshness"];
         };
         RedmineIssueItem: {
             /** Format: int32 */
@@ -24198,6 +24566,23 @@ export interface components {
             /** Format: int32 */
             links: number;
         };
+        RedmineJobItem: {
+            /** Format: uuid */
+            id: string;
+            key: null | string;
+            purpose: string;
+            askedBy: string;
+            lane: components["schemas"]["RedmineLane"];
+            started: boolean;
+            /** Format: date-time */
+            queuedAt: string;
+            /** Format: date-time */
+            startedAt: null | string;
+            /** Format: int32 */
+            callsRunning: number;
+            /** Format: int32 */
+            callsDone: number;
+        };
         RedmineJournalItem: {
             /** Format: int32 */
             id: number;
@@ -24208,6 +24593,8 @@ export interface components {
             changes: components["schemas"]["RedmineChange"][];
             private: boolean;
         };
+        /** @enum {unknown} */
+        RedmineLane: "Button" | "Write" | "Interactive" | "Background";
         RedmineLinkedTicket: {
             /** Format: uuid */
             linkId: string;
@@ -24259,8 +24646,7 @@ export interface components {
             name: string;
         };
         RedmineOverview: {
-            /** Format: date-time */
-            asOf: string;
+            freshness: components["schemas"]["RedmineFreshness"];
             /** Format: int32 */
             staleDays: number;
             tiles: components["schemas"]["RedmineOverviewTiles"];
@@ -24303,6 +24689,25 @@ export interface components {
             parentId: null | number;
             url: string;
         };
+        RedmineQueueState: {
+            /** Format: int32 */
+            button: number;
+            /** Format: int32 */
+            write: number;
+            /** Format: int32 */
+            interactive: number;
+            /** Format: int32 */
+            background: number;
+            /** Format: int32 */
+            running: number;
+            /** Format: int32 */
+            slotsInUse: number;
+            /** Format: int32 */
+            slots: number;
+            /** Format: date-time */
+            backgroundPausedUntil: null | string;
+            jobs: components["schemas"]["RedmineJobItem"][];
+        };
         RedmineRelated: {
             own: components["schemas"]["RedmineLinkedTicket"][];
             via: components["schemas"]["RedmineRelatedGroup"][];
@@ -24324,11 +24729,22 @@ export interface components {
             status: null | string;
             isClosed: null | boolean;
         };
+        RedmineSearchPage: {
+            items: components["schemas"]["RedmineIssueItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            freshness: components["schemas"]["RedmineFreshness"];
+        };
         RedmineStatus: {
             enabled: boolean;
             url: null | string;
             projects: components["schemas"]["RedmineProjectItem"][];
             error: null | string;
+            freshness: null | components["schemas"]["RedmineFreshness"];
         };
         RedmineStatusItem: {
             /** Format: int32 */

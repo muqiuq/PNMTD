@@ -33,6 +33,18 @@ export const api = {
     statusCodes: () => call(client.GET('/api/v1/system/status-codes')),
     sensorTypes: () => call(client.GET('/api/v1/system/sensor-types')),
     ruleTypes: () => call(client.GET('/api/v1/system/notification-rule-types')),
+    /** *System health → Outbound* (docs/redmine-queue-outbound-plan.md §7, §8): the two logs, a record in full, what runs now. */
+    outbound: {
+      notifications: (query: ListQuery & OutboundNotificationFilters) =>
+        call(client.GET('/api/v1/system/outbound/notifications', { params: { query } })),
+      notification: (id: number) =>
+        call(client.GET('/api/v1/system/outbound/notifications/{id}', { params: { path: { id } } })),
+      redmine: (query: ListQuery & RedmineCallFilters) =>
+        call(client.GET('/api/v1/system/outbound/redmine', { params: { query } })),
+      redmineCall: (id: number) =>
+        call(client.GET('/api/v1/system/outbound/redmine/{id}', { params: { path: { id } } })),
+      live: () => call(client.GET('/api/v1/system/outbound/live')),
+    },
   },
 
   hosts: {
@@ -226,6 +238,11 @@ export const api = {
     overview: (project?: number) => call(client.GET('/api/v1/redmine/overview', { params: { query: { project } } })),
     issues: (query: ListQuery & RedmineFilters) => call(client.GET('/api/v1/redmine/issues', { params: { query } })),
     issue: (id: number) => call(client.GET('/api/v1/redmine/issues/{id}', { params: { path: { id } } })),
+    /**
+     * The refresh button (docs/redmine-queue-outbound-plan.md §5.3): the view's new data from Redmine, waited for up to
+     * Redmine__WaitSeconds; `refreshing` still true (202) when it took longer.
+     */
+    refresh: (query: RedmineRefresh) => call(client.POST('/api/v1/redmine/refresh', { params: { query } })),
     related: (query: RedmineTarget & { deep?: boolean }) =>
       call(client.GET('/api/v1/redmine/related', { params: { query } })),
     problems: () => call(client.GET('/api/v1/redmine/problems')),
@@ -1082,6 +1099,29 @@ export interface RedmineFilters {
   stale?: boolean
 }
 
+/**
+ * What a Redmine page's refresh button refreshes (docs/redmine-queue-outbound-plan.md §5.3): the overview of a project (or
+ * all), a ticket, or the search with exactly the query of the page shown.
+ */
+export type RedmineRefresh =
+  | { view: 'overview'; project?: number }
+  | { view: 'issue'; id: number }
+  | ({ view: 'search' } & ListQuery & RedmineFilters)
+
+/** The notification log's filters (docs/redmine-queue-outbound-plan.md §7.2), kept in the URL. */
+export interface OutboundNotificationFilters {
+  channel?: S['OutboundChannel']
+  outcome?: S['OutboundOutcome']
+}
+
+/** The Redmine log's filters (§7.2), kept in the URL; `job` for one job's calls. */
+export interface RedmineCallFilters {
+  kind?: S['RedmineCallKind']
+  lane?: S['RedmineLane']
+  outcome?: S['OutboundOutcome']
+  job?: string
+}
+
 /** Zabbix's problems' filters (docs/audit-redmine-zabbix-plan.md §7.5), all in the page's URL. */
 export interface ZabbixProblemFilters {
   minSeverity?: S['ZabbixSeverity']
@@ -1170,6 +1210,8 @@ export const keys = {
   zabbix: ['zabbix'] as const,
   audit: ['audit'] as const,
   system: ['system'] as const,
+  /** *System health → Outbound*: the two logs, a record, what runs now (docs/redmine-queue-outbound-plan.md §7). */
+  outbound: ['system', 'outbound'] as const,
   /** Everything UDP: the admin page's lists, a node's packets, commands and updates, the protocol examples. */
   udp: ['udp'] as const,
   udpNode: (id: Id) => ['udp', 'node', id] as const,
