@@ -29,6 +29,9 @@ public static class TestDefaults
         Environment.SetEnvironmentVariable("Auth__LoginRateLimit__PermitLimit", "100000");
         // The monitoring tasks would add events under the tests' feet.
         Environment.SetEnvironmentVariable("BackgroundTasks__Enabled", "false");
+        // The network scan's worker (docs/network-map-plan.md §7.2) runs "in any case", in every app of the run, on the one database:
+        // another test's app would claim a test's queued router and dial its made-up address. Scans run where a test calls RunHereAsync.
+        Environment.SetEnvironmentVariable("NetworkMap__Scan__Background", "false");
         // The UDP listener only where a test asks for it, on a free port (Udp:Enabled, Udp:Port 0).
         Environment.SetEnvironmentVariable("Udp__Enabled", "false");
         Environment.SetEnvironmentVariable("Database__ConnectionString", CreateDatabase());

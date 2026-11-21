@@ -52,7 +52,11 @@ public sealed class NetworkScanner(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await RequeueAsync(stoppingToken);
+        // Without the loop (the tests) the queue belongs to RunHereAsync: an app starting must not requeue another's running router.
+        if (options.CurrentValue.Scan.Background)
+        {
+            await RequeueAsync(stoppingToken);
+        }
         while (!stoppingToken.IsCancellationRequested)
         {
             try
