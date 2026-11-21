@@ -664,6 +664,9 @@ namespace PNMTD.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<bool>("DpkgInterrupted")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("EncryptionKey")
                         .HasColumnType("text");
 
@@ -679,6 +682,13 @@ namespace PNMTD.Data.Migrations
 
                     b.Property<string>("Heartbeat")
                         .HasColumnType("jsonb");
+
+                    b.Property<bool>("HighRiskEvents")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("HighRiskMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("Hostname")
                         .IsRequired()
@@ -705,6 +715,12 @@ namespace PNMTD.Data.Migrations
                     b.Property<DateTime?>("LastSeenAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("LastUpgradeAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ListsUpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("MachineId")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -721,12 +737,25 @@ namespace PNMTD.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("OsDistribution")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
                     b.Property<string>("OsEdition")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
                     b.Property<bool>("OsSupported")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("OsUpdatesEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("PendingSecurity")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PendingUpdates")
+                        .HasColumnType("integer");
 
                     b.Property<int>("Platform")
                         .HasColumnType("integer");
@@ -773,6 +802,13 @@ namespace PNMTD.Data.Migrations
 
                     b.Property<DateTime?>("UninstalledAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("UpdateFailedEvents")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("UpdateFailedMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("WmiSettings")
                         .HasColumnType("text");
@@ -6610,6 +6646,510 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("notification_settings");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.OsAdvisoryItemEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AiWorkId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AssessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AssessedBy")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Assessment")
+                        .HasColumnType("jsonb");
+
+                    b.PrimitiveCollection<List<string>>("Cves")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Guid")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Hash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.PrimitiveCollection<List<string>>("Keywords")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FirstSeenAt");
+
+                    b.HasIndex("SourceId", "Guid", "Hash")
+                        .IsUnique();
+
+                    b.ToTable("os_advisory_items");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.OsAdvisorySourceEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Cursor")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ETag")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Entries")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("IntervalMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastFetchAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastModified")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("LastSuccessAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Kind");
+
+                    b.ToTable("os_advisory_sources");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.OsCveRiskEntity", b =>
+                {
+                    b.Property<string>("Cve")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<double?>("Epss")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateOnly?>("EpssDate")
+                        .HasColumnType("date");
+
+                    b.Property<double?>("EpssPercentile")
+                        .HasColumnType("double precision");
+
+                    b.Property<bool>("Kev")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateOnly?>("KevAddedAt")
+                        .HasColumnType("date");
+
+                    b.Property<string>("KevName")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<bool>("KevRansomware")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Cve");
+
+                    b.ToTable("os_cve_risks");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.OsFixEntity", b =>
+                {
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Distribution")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("SourcePackage")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Cve")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("FixedVersion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Scope")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Urgency")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.HasKey("SourceId", "Distribution", "SourcePackage", "Cve");
+
+                    b.HasIndex("Distribution", "SourcePackage");
+
+                    b.ToTable("os_fixes");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.OsPackageChangelogEntity", b =>
+                {
+                    b.Property<string>("Distribution")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("SourcePackage")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Version")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.PrimitiveCollection<List<string>>("Cves")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("FetchedFrom")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("InstalledVersion")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.PrimitiveCollection<List<string>>("Urgencies")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.HasKey("Distribution", "SourcePackage", "Version");
+
+                    b.HasIndex("ReceivedAt");
+
+                    b.ToTable("os_package_changelogs");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.OsPendingPackageEntity", b =>
+                {
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Arch")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Candidate")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("InUpgrade")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Installed")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("InstalledSourceVersion")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Origin")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<bool>("Phased")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Security")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SourceVersion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("SensorId", "Name", "Arch");
+
+                    b.HasIndex("Source", "SourceVersion");
+
+                    b.ToTable("os_pending_packages");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.OsUpdateFindingEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AcknowledgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AcknowledgedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AcknowledgedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.PrimitiveCollection<List<string>>("AcknowledgedKinds")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("AcknowledgedReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("AcknowledgedUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("AcknowledgementEndedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AcknowledgementEndedReason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Candidate")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Cve")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Installed")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Packages")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reasons")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourcePackage")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResolvedAt");
+
+                    b.HasIndex(new[] { "SensorId", "SourcePackage", "Cve" }, "IX_os_update_findings_open")
+                        .IsUnique()
+                        .HasFilter("\"ResolvedAt\" IS NULL");
+
+                    b.ToTable("os_update_findings");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.OsUpdateLogChunkEntity", b =>
+                {
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Offset")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Bytes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("RunId", "Offset");
+
+                    b.ToTable("os_update_log_chunks");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.OsUpdateRunEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Command")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("DismissedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DismissedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("ExitCode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastHeardAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("LogBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("LogIncomplete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LogSha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<bool>("LogTruncated")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int?>("Mode")
+                        .HasColumnType("integer");
+
+                    b.Property<long?>("ReportedLogBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RequestedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RequestedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Summary")
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("Trigger")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("State");
+
+                    b.HasIndex("SensorId", "ExternalId")
+                        .IsUnique()
+                        .HasFilter("\"ExternalId\" IS NOT NULL");
+
+                    b.HasIndex("SensorId", "Kind", "RequestedAt");
+
+                    b.ToTable("os_update_runs");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.OutboundNotificationEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -9100,6 +9640,60 @@ namespace PNMTD.Data.Migrations
                     b.Navigation("NotificationRule");
 
                     b.Navigation("Sensor");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.OsAdvisoryItemEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.OsAdvisorySourceEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.OsFixEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.OsAdvisorySourceEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.OsPendingPackageEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.OsUpdateFindingEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.OsUpdateLogChunkEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.OsUpdateRunEntity", null)
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.OsUpdateRunEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.RedmineLinkEntity", b =>

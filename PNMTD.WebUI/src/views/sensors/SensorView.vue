@@ -83,6 +83,8 @@ import LinuxOverviewTab from './linux/LinuxOverviewTab.vue'
 import LinuxRemoteAccessTab from './linux/LinuxRemoteAccessTab.vue'
 import LinuxServicesTab from './linux/LinuxServicesTab.vue'
 import LinuxSshKeysTab from './linux/LinuxSshKeysTab.vue'
+import OsUpdatesTab from './linux/updates/OsUpdatesTab.vue'
+import { useOsUpdates } from './linux/updates/useOsUpdates'
 import WindowsAccessTab from './windows/WindowsAccessTab.vue'
 import WindowsEventLogTab from './windows/WindowsEventLogTab.vue'
 import WindowsOverviewTab from './windows/WindowsOverviewTab.vue'
@@ -98,7 +100,7 @@ import WindowsWmiTab from './windows/WindowsWmiTab.vue'
  * A MikroTik router (docs/mikrotik-plan.md §11.1) adds its status strip, Setup, and in the SSH modes Backups.
  * An SSL certificate (docs/ssl-certificate-plan.md §8.3) adds its status strip, its rows, the change waiting
  * and the Certificate tab. An Advanced sensor (docs/advanced-sensor-plan.md §10.3) adds its status strip, its pinned fields,
- * and the Data and Rules tabs.
+ * and the Data and Rules tabs. A Linux server adds its OS updates tab (docs/linux-os-updates-plan.md §10.1).
  */
 const route = useRoute()
 const router = useRouter()
@@ -157,6 +159,16 @@ const canEditSensor = computed(
 const isAdvancedType = computed(() => sensor.value?.type === 'ADVANCED')
 const isAdvanced = computed(() => isAdvancedType.value && !!sensor.value?.advanced)
 const agent = useAgentServer(id, isAgent)
+// A Linux server's OS updates (docs/linux-os-updates-plan.md §10.1): the tab's badge, and Servers: Run for its buttons (D2).
+const osUpdates = useOsUpdates(id, isLinux)
+const canRunUpdates = computed(() => session.can('Servers', 'Run'))
+/** The security count, or a red ! while a high-risk update is pending or an update failed. */
+const osUpdatesBadge = computed((): { badge: string | number | null; tone: 'danger' | null } => {
+  const v = osUpdates.view.value
+  if (!v) return { badge: null, tone: null }
+  if (v.highRisk > 0 || v.updateFailedMessage) return { badge: '!', tone: 'danger' }
+  return { badge: v.security || null, tone: null }
+})
 const tab = computed(
   () =>
     (route.params.tab === 'history' && 'history') ||
@@ -190,6 +202,7 @@ const linuxTabs = computed(() => {
     { key: 'hardware', label: 'Hardware', icon: 'pi pi-box', to: to('hardware') },
     { key: 'network', label: 'Network', icon: 'pi pi-sitemap', to: to('network') },
     { key: 'services', label: 'Services', icon: 'pi pi-cog', to: to('services') },
+    { key: 'os-updates', label: 'OS updates', icon: 'pi pi-download', to: to('os-updates'), ...osUpdatesBadge.value },
     { key: 'remote-access', label: 'Remote access', icon: 'pi pi-desktop', to: to('remote-access') },
     // Logins, the journal and the SSH keys hold names, addresses and key comments: Monitoring's Details.
     ...(canDetails.value
@@ -661,6 +674,12 @@ const more = computed(() =>
           v-else-if="isLinux && tab === 'services'"
           :server="agent.server.value"
           :can-write="canWrite"
+        />
+        <OsUpdatesTab
+          v-else-if="isLinux && tab === 'os-updates'"
+          :server="agent.server.value"
+          :can-run="canRunUpdates"
+          :can-manage="isAdmin"
         />
         <WindowsRemoteAccessTab
           v-else-if="isWindows && tab === 'remote-access'"

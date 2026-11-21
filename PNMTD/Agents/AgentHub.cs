@@ -163,7 +163,7 @@ public sealed class AgentHub(
             try
             {
                 await using var db = await dbs.CreateDbContextAsync(ct);
-                var config = await AgentConfiguration.BuildAsync(db, keys, options.CurrentValue, connection.SensorId, ct);
+                var config = await AgentConfiguration.BuildAsync(db, keys, options.CurrentValue, connection.SensorId, ct, OsUpdatesSettings());
                 var signed = await keys.SignAsync(AgentMessageTypes.Config, connection.AgentId, config, ct, session: connection.Session);
                 await connection.SendAsync(AgentMessageTypes.Config, signed, ct);
             }
@@ -352,7 +352,7 @@ public sealed class AgentHub(
         }
         await db.SaveChangesAsync(ct);
 
-        var config = await AgentConfiguration.BuildAsync(db, keys, settings, agent.SensorId, ct);
+        var config = await AgentConfiguration.BuildAsync(db, keys, settings, agent.SensorId, ct, OsUpdatesSettings());
         var welcome = await keys.SignAsync(AgentMessageTypes.Welcome, agent.AgentId, config, ct, session: nonce);
         await connection.SendAsync(AgentMessageTypes.Welcome, welcome, ct);
         // docs/connectors-plan.md §9.1: a connector's call may have waited for this server.
@@ -425,7 +425,8 @@ public sealed class AgentHub(
             // docs/connectors-plan.md §9) sends an ack and a result per run, and a dropped result left its run "sent" until it was lost.
             var report = envelope.T is AgentMessageTypes.Section or AgentMessageTypes.Access or AgentMessageTypes.DiagResult
                 or AgentMessageTypes.ScriptResult or AgentMessageTypes.ParseResult or AgentMessageTypes.Ack or AgentMessageTypes.Log
-                or AgentMessageTypes.KeyRemoval;
+                or AgentMessageTypes.KeyRemoval or AgentMessageTypes.OsUpdateStarted or AgentMessageTypes.OsUpdateOutput or AgentMessageTypes.OsUpdateResult
+                or AgentMessageTypes.OsUpdateHistory or AgentMessageTypes.OsChangelogs;
             if (!connection.Allow(report, report ? settings.ReportsPerMinute : settings.MessagesPerMinute))
             {
                 if (Clock.UtcNow - droppedAt > TimeSpan.FromMinutes(1))
@@ -495,6 +496,22 @@ public sealed class AgentHub(
             case AgentMessageTypes.ParseResult or AgentMessageTypes.ScriptResult:
                 await services.GetRequiredService<AgentScriptResults>().ResultAsync(connection, envelope.T, body, ct);
                 break;
+            // docs/linux-os-updates-plan.md §4.6: OS updates' runs, history and changelogs.
+            case AgentMessageTypes.OsUpdateStarted:
+                await OsUpdateRuns().StartedAsync(connection, Read<OsUpdateStartedMessage>(body), ct);
+                break;
+            case AgentMessageTypes.OsUpdateOutput:
+                await OsUpdateRuns().OutputAsync(connection, Read<OsUpdateOutputMessage>(body), ct);
+                break;
+            case AgentMessageTypes.OsUpdateResult:
+                await OsUpdateRuns().ResultAsync(connection, Read<OsUpdateResultMessage>(body), ct);
+                break;
+            case AgentMessageTypes.OsUpdateHistory:
+                await OsUpdateRuns().HistoryAsync(connection, Read<OsUpdateHistoryMessage>(body), ct);
+                break;
+            case AgentMessageTypes.OsChangelogs:
+                await OsUpdateRuns().ChangelogsAsync(connection, Read<OsChangelogsMessage>(body), ct);
+                break;
             case AgentMessageTypes.Bye:
                 await Report().ByeAsync(connection, Read<Bye>(body), ct);
                 break;
@@ -505,6 +522,10 @@ public sealed class AgentHub(
     }
 
     private AgentReportService Report() => services.GetRequiredService<AgentReportService>();
+
+    private OsUpdates.OsUpdatesOptions? OsUpdatesSettings() => services.GetService<IOptionsMonitor<OsUpdates.OsUpdatesOptions>>()?.CurrentValue;
+
+    private OsUpdates.OsUpdateRuns OsUpdateRuns() => services.GetRequiredService<OsUpdates.OsUpdateRuns>();
 
     private static T Read<T>(JsonElement body) =>
         AgentJson.Deserialize<T>(body) ?? throw new JsonException($"An empty {typeof(T).Name}.");

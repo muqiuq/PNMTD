@@ -33,6 +33,8 @@ public static class SimulatedLinux
     public static IReadOnlyList<string> Capabilities(bool keyRemoval, bool scripts, bool functions = true) =>
     [
         AgentCapabilities.Collect, AgentCapabilities.Access, AgentCapabilities.DiagPing, AgentCapabilities.DiagDns, AgentCapabilities.Keys, AgentCapabilities.Parse,
+        // docs/linux-os-updates-plan.md §4.6: every agent with the feature.
+        AgentCapabilities.OsUpdates,
         .. keyRemoval ? [AgentCapabilities.KeysRemove] : Array.Empty<string>(),
         .. scripts ? [AgentCapabilities.Scripts] : Array.Empty<string>(),
         // docs/connectors-plan.md §8.3: calling a function of a bash script, with scripts only.
@@ -45,7 +47,7 @@ public static class SimulatedLinux
     /// </summary>
     public static AgentRightsSummary Rights(bool keyRemoval, bool scripts) => new(
         keyRemoval || scripts ? "config.yaml" : "defaults", null, keyRemoval, keyRemoval ? ["deploy", "www"] : [], keyRemoval ? 1 : 0, [], scripts,
-        scripts ? ["root", "deploy"] : [], 0, 60, false, false);
+        scripts ? ["root", "deploy"] : [], 0, 60, false, false, OsUpdates: new OsUpdatesRightsSummary(true, true, true, true));
 
     /// <summary>Changes what the next sections report, for the tests of the differs: a section's data by name and host name.</summary>
     public static Func<string, string, object?>? Override { get; set; }
@@ -65,6 +67,7 @@ public static class SimulatedLinux
             [SectionNames.Access] = Access(),
             [SectionNames.Journal] = Journal(),
             [SectionNames.SshKeys] = SshKeys(hostname, proxmox, keyRemoval, removed),
+            [SectionNames.OsUpdates] = OsUpdates(proxmox),
         };
         foreach (var name in sections.Keys.ToList())
         {
@@ -97,6 +100,50 @@ public static class SimulatedLinux
         new(DateTimeOffset.UtcNow, Boot,
         3.5 + Random.Shared.NextDouble() * 6, 38.4, "/", 61.2, [new SessionInfo("philipp", "Ssh", "active", "10.0.4.17")], true, Hashes(hostname, keyRemoval, removed),
         configVersion, agentVersion, 0, hostname, $"clean shutdown at {Boot.AddMinutes(-1).ToLocalTime():yyyy-MM-dd HH:mm}");
+
+    // --- os-updates (docs/linux-os-updates-plan.md §4.1) --------------------------------------------------------
+
+    /// <summary>
+    /// The pending packages: on Debian 12 an openssl security update (its CVEs in the seed's tracker), expat, tzdata and openssh from the
+    /// point release; on Proxmox VE a new kernel, pve-manager and a removal only a full upgrade makes. <paramref name="upgraded"/>: after an
+    /// upgrade, nothing pending.
+    /// </summary>
+    public static OsUpdatesSection OsUpdates(bool proxmox = false, bool upgraded = false)
+    {
+        PendingPackage P(string name, string arch, string? installed, string candidate, string source, bool security, string? installedSource = null, bool inUpgrade = true) =>
+            new(name, arch, installed, candidate, source, candidate, installedSource ?? installed, security
+                ? proxmox ? "Debian-Security:13/stable-security" : "Debian-Security:12/oldstable-security"
+                : proxmox ? "Proxmox:trixie/pve-no-subscription" : "Debian:12.15/oldstable", security, inUpgrade);
+        List<PendingPackage> packages = upgraded ? [] : proxmox
+            ?
+            [
+                P("libssl3t64", "amd64", "3.5.7-1~deb13u2", "3.5.7-1~deb13u3", "openssl", true),
+                P("openssl", "amd64", "3.5.7-1~deb13u2", "3.5.7-1~deb13u3", "openssl", true),
+                P("proxmox-kernel-6.14.11-5-pve-signed", "amd64", null, "6.14.11-5", "proxmox-kernel-6.14", false, inUpgrade: false),
+                P("proxmox-default-kernel", "all", "2.0.0", "2.0.1", "proxmox-default-kernel", false, inUpgrade: false),
+                P("pve-manager", "all", "9.0.10", "9.0.11", "pve-manager", false),
+                P("libpve-common-perl", "all", "9.0.9", "9.0.10", "libpve-common-perl", false),
+            ]
+            :
+            [
+                P("libssl3", "amd64", "3.0.20-1~deb12u2", "3.0.22-1~deb12u2", "openssl", true),
+                P("openssl", "amd64", "3.0.20-1~deb12u2", "3.0.22-1~deb12u2", "openssl", true),
+                P("libexpat1", "amd64", "2.5.0-1+deb12u2", "2.5.0-1+deb12u5", "expat", true),
+                P("tzdata", "all", "2026b-0+deb12u1", "2026f-0+deb12u1", "tzdata", true),
+                P("openssh-client", "amd64", "1:9.2p1-2+deb12u9", "1:9.2p1-2+deb12u10", "openssh", false),
+                P("openssh-server", "amd64", "1:9.2p1-2+deb12u9", "1:9.2p1-2+deb12u10", "openssh", false),
+            ];
+        var upgrade = packages.Where(p => p.InUpgrade).ToList();
+        var removals = proxmox && !upgraded ? new List<string> { "libpve-u2f-server-perl" } : [];
+        var lists = Stamp.AddDays(19).AddHours(-4);
+        return new OsUpdatesSection(proxmox ? "debian:trixie" : "debian:bookworm", lists, lists.AddDays(1), packages, packages.Count,
+            new AptPlan(upgrade.Count(p => p.Installed is not null), upgrade.Count(p => p.Installed is null), 0, packages.Count - upgrade.Count,
+                upgraded ? 0 : proxmox ? 112_400_000 : 5_246_000, upgraded ? 0 : proxmox ? 9_000 : 10_200, [], AptPlan.HashOf([])),
+            new AptPlan(packages.Count(p => p.Installed is not null), packages.Count(p => p.Installed is null), removals.Count, 0,
+                upgraded ? 0 : proxmox ? 203_100_000 : 5_246_000, upgraded ? 0 : proxmox ? 498_000_000 : 10_200, removals, AptPlan.HashOf(removals)),
+            false, [], new NeedsRestartInfo(upgraded ? [] : ["ssh.service", "systemd-journald.service"], false, null, null), proxmox && !upgraded,
+            proxmox && !upgraded ? ["proxmox-kernel-6.14.11-5-pve-signed"] : [], null, null, []);
+    }
 
     // --- system (§5.2) ------------------------------------------------------------------------------------------
 

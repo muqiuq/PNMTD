@@ -1,0 +1,24 @@
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Calculating upgrade...
+The following packages will be upgraded:
+  libexpat1 liblzma5 libssl3 openssh-client openssh-server openssh-sftp-server
+  openssl tzdata
+8 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+Inst libssl3 [3.0.20-1~deb12u2] (3.0.22-1~deb12u2 Debian-Security:12/oldstable-security [arm64])
+Inst openssh-sftp-server [1:9.2p1-2+deb12u9] (1:9.2p1-2+deb12u10 Debian:12.15/oldstable [arm64]) []
+Inst openssh-server [1:9.2p1-2+deb12u9] (1:9.2p1-2+deb12u10 Debian:12.15/oldstable [arm64]) []
+Inst openssh-client [1:9.2p1-2+deb12u9] (1:9.2p1-2+deb12u10 Debian:12.15/oldstable [arm64])
+Inst liblzma5 [5.4.1-1+deb12u1] (5.4.1-1+deb12u2 Debian-Security:12/oldstable-security [arm64])
+Conf liblzma5 (5.4.1-1+deb12u2 Debian-Security:12/oldstable-security [arm64])
+Inst tzdata [2026b-0+deb12u1] (2026f-0+deb12u1 Debian-Security:12/oldstable-security [all])
+Inst libexpat1 [2.5.0-1+deb12u2] (2.5.0-1+deb12u5 Debian-Security:12/oldstable-security [arm64])
+Inst openssl [3.0.20-1~deb12u2] (3.0.22-1~deb12u2 Debian-Security:12/oldstable-security [arm64])
+Conf libssl3 (3.0.22-1~deb12u2 Debian-Security:12/oldstable-security [arm64])
+Conf openssh-sftp-server (1:9.2p1-2+deb12u10 Debian:12.15/oldstable [arm64])
+Conf openssh-server (1:9.2p1-2+deb12u10 Debian:12.15/oldstable [arm64])
+Conf openssh-client (1:9.2p1-2+deb12u10 Debian:12.15/oldstable [arm64])
+Conf tzdata (2026f-0+deb12u1 Debian-Security:12/oldstable-security [all])
+Conf libexpat1 (2.5.0-1+deb12u5 Debian-Security:12/oldstable-security [arm64])
+Conf openssl (3.0.22-1~deb12u2 Debian-Security:12/oldstable-security [arm64])

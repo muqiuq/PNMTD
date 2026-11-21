@@ -39,7 +39,32 @@ public static class ServerRights
         return new AgentRightsSummary(Cuts.Cut(rights.Source ?? "", 20), Cuts.CutOrNull(rights.Problem, 500), rights.KeyRemoval, List(rights.KeyRemovalUsers),
             Math.Max(0, rights.ProtectedKeys), List(rights.WritablePaths), rights.Scripts, List(rights.ScriptRunAs), Math.Max(0, rights.AllowedScriptHashes),
             Math.Clamp(rights.MaxScriptTimeoutMinutes, 0, 24 * 60), rights.SudoCommands, rights.CronCommands,
-            rights.Warnings is { Count: > 0 } warnings ? List(warnings, 20) : null);
+            rights.Warnings is { Count: > 0 } warnings ? List(warnings, 20) : null, rights.OsUpdates);
+    }
+
+    /// <summary>"; OS updates: update, upgrade and full upgrade allowed" (docs/linux-os-updates-plan.md §3), as the agent words it; nothing from an older agent.</summary>
+    private static string OsUpdates(OsUpdatesRightsSummary? os)
+    {
+        if (os is null)
+        {
+            return "";
+        }
+        var allowed = new List<string>();
+        if (os.Update)
+        {
+            allowed.Add("update");
+        }
+        if (os.Upgrade)
+        {
+            allowed.Add("upgrade");
+        }
+        if (os.FullUpgrade)
+        {
+            allowed.Add("full upgrade");
+        }
+        var runs = allowed.Count == 0 ? "OS updates off"
+            : $"OS updates: {(allowed.Count == 1 ? allowed[0] : string.Join(", ", allowed[..^1]) + " and " + allowed[^1])} allowed";
+        return "; " + (os.Changelogs || allowed.Count == 0 ? runs : runs + ", no changelogs");
     }
 
     /// <summary>
@@ -69,6 +94,6 @@ public static class ServerRights
             collect.Add("crontab lines in full");
         }
         var defaults = string.Equals(rights.Source, "defaults", StringComparison.OrdinalIgnoreCase) ? " (no config.yaml: the defaults)" : "";
-        return $"{keys}; {scripts}" + (collect.Count > 0 ? $"; collects {string.Join(" and ", collect)}" : "") + defaults;
+        return $"{keys}; {scripts}" + (collect.Count > 0 ? $"; collects {string.Join(" and ", collect)}" : "") + OsUpdates(rights.OsUpdates) + defaults;
     }
 }

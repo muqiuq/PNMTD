@@ -1,0 +1,10 @@
+Hit:1 http://deb.debian.org/debian bookworm InRelease
+Hit:2 http://deb.debian.org/debian bookworm-updates InRelease
+Hit:3 http://deb.debian.org/debian-security bookworm-security InRelease
+Err:4 https://enterprise.proxmox.com/debian/pve bookworm InRelease
+  401  Unauthorized [IP: 45.84.67.184 443]
+Reading package lists...
+E: Failed to fetch https://enterprise.proxmox.com/debian/pve/dists/bookworm/InRelease  401  Unauthorized [IP: 45.84.67.184 443]
+E: The repository 'https://enterprise.proxmox.com/debian/pve bookworm InRelease' is not signed.
+exit 100
+====

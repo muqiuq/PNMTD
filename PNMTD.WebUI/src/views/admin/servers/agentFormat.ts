@@ -23,12 +23,33 @@ export const platformIcon = (platform: S['AgentPlatform'] | null | undefined) =>
 
 /**
  * A platform's event codes (docs/linux-sensor-plan.md §9.2): Windows 25x and 45x, Linux 26x and 46x. The switches and the
- * changes name them. Linux adds unregistered keys (465) and pending security updates (462).
+ * changes name them. Linux adds unregistered keys (465) and pending security updates (462), and OS updates
+ * (docs/linux-os-updates-plan.md §5.4): updates installed (265), a high-risk update pending (466), an update failed (467).
  */
 export function platformCodes(platform: S['AgentPlatform'] | null | undefined) {
   return platform === 'Linux'
-    ? { changed: 263, adminLogin: 264, loginFailures: 464, critical: 463, keyAdded: 465, securityUpdates: 462 }
-    : { changed: 253, adminLogin: 254, loginFailures: 454, critical: 453, keyAdded: null, securityUpdates: null }
+    ? {
+        changed: 263,
+        adminLogin: 264,
+        loginFailures: 464,
+        critical: 463,
+        keyAdded: 465,
+        securityUpdates: 462,
+        updatesInstalled: 265,
+        highRisk: 466,
+        updateFailed: 467,
+      }
+    : {
+        changed: 253,
+        adminLogin: 254,
+        loginFailures: 454,
+        critical: 453,
+        keyAdded: null,
+        securityUpdates: null,
+        updatesInstalled: null,
+        highRisk: null,
+        updateFailed: null,
+      }
 }
 
 /** A login's kind in words: "RDP", "SSH", "SFTP", "sudo", "explicit credentials"; a router's "WinBox", "WebFig", "API". */

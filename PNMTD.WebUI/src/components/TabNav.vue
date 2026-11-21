@@ -1,9 +1,19 @@
 <script setup lang="ts">
 import type { RouteLocationRaw } from 'vue-router'
 
-/** A page's subpages as tabs, each a link with its own route (§6.2), so a tab can be linked and opened anew. */
+/**
+ * A page's subpages as tabs, each a link with its own route (§6.2), so a tab can be linked and opened anew. A badge in the
+ * danger tone is red: a server's OS updates with a high-risk update or a failure (docs/linux-os-updates-plan.md §10.1).
+ */
 defineProps<{
-  items: { key: string; label: string; icon?: string; to: RouteLocationRaw; badge?: string | number | null }[]
+  items: {
+    key: string
+    label: string
+    icon?: string
+    to: RouteLocationRaw
+    badge?: string | number | null
+    tone?: 'danger' | null
+  }[]
   active: string
   label: string
   /** Many tabs (Admin → Cookie): a second line instead of scrolling, where the tabs past the edge would be hidden. */
@@ -23,7 +33,7 @@ defineProps<{
     >
       <i v-if="item.icon" :class="item.icon" aria-hidden="true" />
       <span>{{ item.label }}</span>
-      <span v-if="item.badge" class="badge">{{ item.badge }}</span>
+      <span v-if="item.badge" class="badge" :class="item.tone ? `tone-${item.tone}` : undefined">{{ item.badge }}</span>
     </RouterLink>
   </nav>
 </template>
@@ -75,5 +85,10 @@ defineProps<{
   border-radius: 999px;
   background: var(--pnmt-none-soft);
   color: var(--pnmt-text);
+}
+
+.badge.tone-danger {
+  background: var(--pnmt-fail-soft);
+  color: var(--pnmt-fail);
 }
 </style>

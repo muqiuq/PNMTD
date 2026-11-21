@@ -12,8 +12,9 @@ import { useLinuxSection } from '../agent/useAgentSection'
 /**
  * The system section on a Linux server's overview (docs/linux-sensor-plan.md §5.2, §11.2): the host, the distribution (with
  * the not a supported version badge), the kernel, uptime and the last shutdown, updates with the security ones and a pending
- * reboot, time, the firewall, AppArmor, Secure Boot, LUKS, fail2ban; then the administrators with how each is one, the sudo
- * rules giving ALL, and the accounts with whether a password is set or locked (never the hash).
+ * reboot (linking the OS updates tab, docs/linux-os-updates-plan.md §10.1), time, the firewall, AppArmor, Secure Boot, LUKS,
+ * fail2ban; then the administrators with how each is one, the sudo rules giving ALL, and the accounts with whether a password
+ * is set or locked (never the hash).
  */
 const props = defineProps<{ server: S['AgentServerDetail']; canWrite: boolean }>()
 const id = toRef(() => props.server.server.sensorId)
@@ -124,6 +125,9 @@ const containers = computed(() =>
                 severity="warn"
                 :title="sys.updates.rebootReasons.join('; ')"
               />
+              <RouterLink :to="{ name: 'sensor', params: { id, tab: 'os-updates' } }" class="small"
+                >OS updates tab</RouterLink
+              >
             </div>
             <div v-if="sys.updates.securityPackages.length" class="mono small muted">
               {{ sys.updates.securityPackages.join(', ')

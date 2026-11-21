@@ -162,6 +162,17 @@ namespace PNMTD.Data
         public DbSet<WindowsRunAsEntity> WindowsRunAs { get; set; }
         public DbSet<AgentScriptRunEntity> AgentScriptRuns { get; set; }
 
+        // OS updates on Linux servers (docs/linux-os-updates-plan.md §5.2, §6, §7).
+        public DbSet<OsUpdateRunEntity> OsUpdateRuns { get; set; }
+        public DbSet<OsUpdateLogChunkEntity> OsUpdateLogChunks { get; set; }
+        public DbSet<OsPendingPackageEntity> OsPendingPackages { get; set; }
+        public DbSet<OsUpdateFindingEntity> OsUpdateFindings { get; set; }
+        public DbSet<OsAdvisorySourceEntity> OsAdvisorySources { get; set; }
+        public DbSet<OsFixEntity> OsFixes { get; set; }
+        public DbSet<OsCveRiskEntity> OsCveRisks { get; set; }
+        public DbSet<OsPackageChangelogEntity> OsPackageChangelogs { get; set; }
+        public DbSet<OsAdvisoryItemEntity> OsAdvisoryItems { get; set; }
+
         // Locations (docs/locations-knowledge-plan.md §3, §4, §8.2).
         public DbSet<LocationEntity> Locations { get; set; }
         public DbSet<LocationFieldEntity> LocationFields { get; set; }
@@ -679,6 +690,51 @@ namespace PNMTD.Data
                 // docs/connectors-plan.md §9.2, §10.5: one run per script and server; the runs of a connector.
                 e.HasIndex(r => new { r.SensorId, r.ScriptName }, "IX_agent_script_runs_unfinished").HasFilter("\"State\" IN (0, 1)");
                 e.HasIndex(r => r.ConnectorId);
+            });
+            // OS updates (docs/linux-os-updates-plan.md §5.2): runs, logs, pending packages and findings go with their server; the
+            // sources' data goes with its source.
+            modelBuilder.Entity<OsUpdateRunEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(r => r.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(r => new { r.SensorId, r.Kind, r.RequestedAt });
+                e.HasIndex(r => new { r.SensorId, r.ExternalId }).IsUnique().HasFilter("\"ExternalId\" IS NOT NULL");
+                e.HasIndex(r => r.State);
+                e.Ignore(r => r.Finished);
+            });
+            modelBuilder.Entity<OsUpdateLogChunkEntity>(e =>
+            {
+                e.HasKey(c => new { c.RunId, c.Offset });
+                e.HasOne<OsUpdateRunEntity>().WithMany().HasForeignKey(c => c.RunId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<OsPendingPackageEntity>(e =>
+            {
+                e.HasKey(p => new { p.SensorId, p.Name, p.Arch });
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(p => p.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(p => new { p.Source, p.SourceVersion });
+            });
+            modelBuilder.Entity<OsUpdateFindingEntity>(e =>
+            {
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(f => f.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(f => new { f.SensorId, f.SourcePackage, f.Cve }, "IX_os_update_findings_open").IsUnique().HasFilter("\"ResolvedAt\" IS NULL");
+                e.HasIndex(f => f.ResolvedAt);
+            });
+            modelBuilder.Entity<OsAdvisorySourceEntity>(e => e.HasIndex(s => s.Kind));
+            modelBuilder.Entity<OsFixEntity>(e =>
+            {
+                e.HasKey(f => new { f.SourceId, f.Distribution, f.SourcePackage, f.Cve });
+                e.HasOne<OsAdvisorySourceEntity>().WithMany().HasForeignKey(f => f.SourceId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(f => new { f.Distribution, f.SourcePackage });
+            });
+            modelBuilder.Entity<OsPackageChangelogEntity>(e =>
+            {
+                e.HasKey(c => new { c.Distribution, c.SourcePackage, c.Version });
+                e.HasIndex(c => c.ReceivedAt);
+            });
+            modelBuilder.Entity<OsAdvisoryItemEntity>(e =>
+            {
+                e.HasOne<OsAdvisorySourceEntity>().WithMany().HasForeignKey(i => i.SourceId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(i => new { i.SourceId, i.Guid, i.Hash }).IsUnique();
+                e.HasIndex(i => i.FirstSeenAt);
             });
             modelBuilder.Entity<AgentLogEntity>(e =>
             {

@@ -18,6 +18,7 @@ using PNMTD.Sensor.Linux.Access;
 using PNMTD.Sensor.Linux.Collectors;
 using PNMTD.Sensor.Linux.Join;
 using PNMTD.Sensor.Linux.Keys;
+using PNMTD.Sensor.Linux.OsUpdates;
 using PNMTD.Sensor.Linux.Platform;
 using PNMTD.Sensor.Linux.Rights;
 using PNMTD.Sensor.Linux.Scripts;
@@ -48,6 +49,11 @@ internal static class Program
         pnmt-agent collect-now         asks the running service to collect everything now
         pnmt-agent log [-n <lines>] [-f]
                                        the log file's last lines (100), or follows it
+        pnmt-agent os-updates          what config.yaml allows, the next daily apt-get update, the run in progress
+                                       and the last runs (docs/linux-os-updates-plan.md §4.7)
+        pnmt-agent os-updates log [<run id>|last] [-f]
+                                       a run's log as PNMT gets it, or follows the run in progress
+        pnmt-agent os-updates update   asks the service to run apt-get update now; PNMT shows it as run on the server
         pnmt-agent update [<file>] [--force]
                                        the version Linux agents get, from PNMT, checked against its signed manifest;
                                        or a file. Stops the service, keeps the program as .previous, replaces it and
@@ -62,7 +68,8 @@ internal static class Program
         """;
 
     private static readonly string[] Commands =
-        ["join", "status", "keys", "config", "collect", "collect-now", "log", "update", "uninstall", "service", "install-unit", "update-install", "internal"];
+        ["join", "status", "keys", "config", "collect", "collect-now", "log", "os-updates", "update", "uninstall", "service", "install-unit", "update-install",
+            "internal"];
 
     /// <summary>The hidden commands the agent starts as a key file's owner (setpriv, §6.5): they run without root, and need none.</summary>
     private static readonly string[] AsOwnerCommands = ["rewrite-keys", "write-keys"];
@@ -103,6 +110,7 @@ internal static class Program
                 "collect" => Collect(args[1..]),
                 "collect-now" => CollectNow(),
                 "log" => Log(args[1..]),
+                "os-updates" => OsUpdatesCommand(args[1..]),
                 "update" => Update(args[1..]),
                 "uninstall" => Uninstall(args[1..]),
                 "install-unit" => InstallUnit(),
@@ -195,6 +203,9 @@ internal static class Program
         services.AddSingleton<IAgentFeature, KeysFeature>();
         // Bash scripts (§8): parse.v1, scripts.v1 while config.yaml enables them.
         services.AddSingleton<IAgentFeature, ScriptsFeature>();
+        // OS updates (docs/linux-os-updates-plan.md §4): the os-updates section, the daily apt-get update, and the runs PNMT asks for.
+        services.AddSingleton<Collector, OsUpdatesCollector>();
+        services.AddSingleton<IAgentFeature, OsUpdatesFeature>();
         services.AddSingleton<SectionScheduler>();
         services.AddSingleton<IHeartbeatSampler, LinuxHeartbeatSampler>();
         services.AddSingleton<AgentService>();
@@ -429,6 +440,8 @@ internal static class Program
               + (rights.Scripts.AllowedHashes.Count == 0 ? "any script of PNMT's library" : $"only {rights.Scripts.AllowedHashes.Count} allowed scripts")
               + $"; at most {rights.Scripts.MaxTimeoutMinutes} min")}");
         Console.WriteLine($"Collect:        sudo's command lines {(rights.Collect.SudoCommands ? "yes" : "no")}; crontab lines in full {(rights.Collect.CronCommands ? "yes" : "no")}");
+        // docs/linux-os-updates-plan.md §3: on unless this file says false (D1).
+        Console.WriteLine($"OS updates:     {rights.OsUpdates.Describe()}");
         Console.WriteLine($"Log level:      {(config.Debug ? "debug" : "info")}");
         foreach (var warning in rights.Warnings)
         {
@@ -774,6 +787,94 @@ internal static class Program
             Console.WriteLine(line);
         }
         return follow ? Follow() : 0;
+    }
+
+    // --- os-updates (docs/linux-os-updates-plan.md §4.7) ------------------------------------------------------------------
+
+    private static int OsUpdatesCommand(string[] args)
+    {
+        var store = OsUpdatesStore.Default;
+        switch (args)
+        {
+            case []:
+                return OsUpdatesStatus(store);
+            case ["update"]:
+                store.Ensure();
+                File.WriteAllText(store.UpdateNowFlag, DateTimeOffset.UtcNow.ToString("O"));
+                return Print(Systemd.IsActive()
+                    ? "Asked: the service runs apt-get update within a few seconds (pnmt-agent os-updates log -f follows it)."
+                    : "Asked, but the service isn't running: it runs apt-get update when it starts (systemctl start pnmt-agent).", 0);
+            case ["log", .. var rest]:
+                var follow = rest.Contains("-f");
+                var which = rest.FirstOrDefault(a => a != "-f") ?? "last";
+                if (rest.Count(a => a != "-f") > 1)
+                {
+                    return Error(Usage, 2);
+                }
+                var logs = store.LocalLogs();
+                Guid? id = which == "last" ? (store.Current()?.RunId ?? (logs.Count > 0 ? logs[0].RunId : null))
+                    : Guid.TryParse(which, out var parsed) ? parsed
+                    : logs.Select(l => (Guid?)l.RunId).FirstOrDefault(l => l!.Value.ToString("N").StartsWith(which, StringComparison.OrdinalIgnoreCase));
+                if (id is not { } run)
+                {
+                    return Error(logs.Count == 0 ? "No run's log is on this server yet." : $"No run {which}: pnmt-agent os-updates lists them.", 1);
+                }
+                var path = store.CleanLog(run);
+                if (!File.Exists(path))
+                {
+                    return Error($"The log of run {run:N} isn't on this server any more.", 1);
+                }
+                var position = 0L;
+                while (true)
+                {
+                    using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    {
+                        stream.Seek(position, SeekOrigin.Begin);
+                        using var reader = new StreamReader(stream);
+                        Console.Write(reader.ReadToEnd());
+                        position = stream.Length;
+                    }
+                    if (!follow || store.Runs().FirstOrDefault(r => r.RunId == run) is not { Finished: false })
+                    {
+                        return 0;
+                    }
+                    Thread.Sleep(1000);
+                }
+            default:
+                return Error(Usage, 2);
+        }
+    }
+
+    private static int OsUpdatesStatus(OsUpdatesStore store)
+    {
+        var rights = Rights.ConfigYaml.Read().Rights;
+        Console.WriteLine($"Rights:       {rights.OsUpdates.Describe()} ({(rights.Source == Core.Rights.AgentRights.Refused ? $"config.yaml refused: {rights.Problem}" : rights.Source)})");
+        var config = AgentFiles.ReadConfig();
+        var window = config?.Config?.OsUpdates;
+        Console.WriteLine(window is not { Enabled: true } ? "Daily update: off in PNMT (or PNMT hasn't sent its window yet)"
+            : !window.DailyUpdate ? "Daily update: off in PNMT"
+            : config?.AgentId is { } agentId
+                ? $"Daily update: at {OsUpdatesFeature.Slot(DateOnly.FromDateTime(DateTime.Now), window, agentId, TimeZoneInfo.Local).LocalDateTime:HH:mm} (window {window.WindowStart}, {window.WindowMinutes} min, local time)"
+                : "Daily update: not joined");
+        var schedule = store.Schedule();
+        Console.WriteLine(schedule.LastUpdateAt is { } last ? $"Last update:  {last.LocalDateTime:yyyy-MM-dd HH:mm} ({schedule.LastUpdateState?.ToString().ToLowerInvariant()})" : "Last update:  none by PNMT yet");
+        if (store.Current() is { } current)
+        {
+            Console.WriteLine($"Running:      {current.Command}, since {current.StartedAt.LocalDateTime:HH:mm:ss} (pnmt-agent os-updates log -f)");
+        }
+        var runs = store.Runs().Where(r => r.Finished).TakeLast(10).ToList();
+        var logs = store.LocalLogs();
+        if (logs.Count > 0)
+        {
+            Console.WriteLine();
+            Console.WriteLine("Logs on this server (pnmt-agent os-updates log <id>):");
+            foreach (var (runId, writtenAt, bytes) in logs)
+            {
+                var run = runs.FirstOrDefault(r => r.RunId == runId);
+                Console.WriteLine($"  {runId.ToString("N")[..8]}  {writtenAt.ToLocalTime():yyyy-MM-dd HH:mm}  {bytes / 1024.0,8:0.0} KiB  {(run is null ? "" : OsUpdatesFeature.Describe(run))}");
+            }
+        }
+        return 0;
     }
 
     /// <summary>Follows today's log file, and the next day's when the date changes; Ctrl-C ends it.</summary>

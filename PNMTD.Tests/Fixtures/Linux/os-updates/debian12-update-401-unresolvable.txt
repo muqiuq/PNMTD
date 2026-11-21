@@ -1,0 +1,14 @@
+Ign:1 http://nonexistent.invalid/debian bookworm InRelease
+Hit:2 http://deb.debian.org/debian bookworm InRelease
+Err:3 https://enterprise.proxmox.com/debian/pve bookworm InRelease
+  401  Unauthorized [IP: 45.84.67.184 443]
+Hit:4 http://deb.debian.org/debian bookworm-updates InRelease
+Hit:5 http://deb.debian.org/debian-security bookworm-security InRelease
+Ign:1 http://nonexistent.invalid/debian bookworm InRelease
+Ign:1 http://nonexistent.invalid/debian bookworm InRelease
+Err:1 http://nonexistent.invalid/debian bookworm InRelease
+  Could not resolve 'nonexistent.invalid'
+Reading package lists...
+E: Failed to fetch https://enterprise.proxmox.com/debian/pve/dists/bookworm/InRelease  401  Unauthorized [IP: 45.84.67.184 443]
+E: The repository 'https://enterprise.proxmox.com/debian/pve bookworm InRelease' is not signed.
+exit 100

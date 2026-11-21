@@ -19,7 +19,8 @@ export const levelOrder: Record<Area, readonly Level[]> = {
   Zabbix: ['View', 'Details'],
   UdpNodes: ['Manage'],
   Mikrotik: ['Manage'],
-  Servers: ['Manage'],
+  // docs/linux-os-updates-plan.md §8.2 (D2): Run installs OS updates and acknowledges high-risk findings; Manage includes it.
+  Servers: ['Run', 'Manage'],
   SshKeys: ['Manage'],
   Diagnostics: ['Manage'],
   Ai: ['Manage'],

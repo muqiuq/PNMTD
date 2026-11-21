@@ -97,6 +97,17 @@ public static class AuditEvents
     public const string AgentScriptChanged = "AgentScriptChanged";
     public const string AgentScriptRun = "AgentScriptRun";
 
+    // OS updates on Linux servers (docs/linux-os-updates-plan.md §6.5, §8.2): a run asked for, a failure marked handled, the server's
+    // switches, high-risk findings acknowledged (and how each acknowledgement ended), and the advisory sources.
+    public const string OsUpdateRequested = "OsUpdateRequested";
+    public const string OsUpdateFailureDismissed = "OsUpdateFailureDismissed";
+    public const string OsUpdateSettingsChanged = "OsUpdateSettingsChanged";
+    public const string OsUpdateFindingAcknowledged = "OsUpdateFindingAcknowledged";
+    public const string OsUpdateFindingAcknowledgementEnded = "OsUpdateFindingAcknowledgementEnded";
+    public const string OsAdvisorySourceCreated = "OsAdvisorySourceCreated";
+    public const string OsAdvisorySourceChanged = "OsAdvisorySourceChanged";
+    public const string OsAdvisorySourceDeleted = "OsAdvisorySourceDeleted";
+
     /// <summary>Fetch again of the agents' files (docs/linux-sensor-plan.md §4.4).</summary>
     public const string AgentDownloadsFetched = "AgentDownloadsFetched";
 
@@ -366,6 +377,7 @@ public static class AuditTargets
     public const string NetworkInterface = "NetworkInterface";
     public const string NetworkScan = "NetworkScan";
     public const string NetworkRouterPosition = "NetworkRouterPosition";
+    public const string OsAdvisorySource = "OsAdvisorySource";
 }
 
 /// <summary>An event type of the catalog: its category, a label for people, the tone of its tag, what it is about.</summary>
@@ -430,6 +442,10 @@ public static class AuditCatalog
         Add(AuditCategory.Diagnostics, AuditTargets.DiagnosticsSet, AuditEvents.DiagnosticsSetChanged);
         Add(AuditCategory.Diagnostics, AuditTargets.DiagnosticsAssignment, AuditEvents.DiagnosticsAssignmentChanged);
         Add(AuditCategory.Agents, AuditTargets.Script, AuditEvents.AgentScriptChanged, AuditEvents.AgentScriptRun);
+        Add(AuditCategory.Agents, AuditTargets.Sensor, AuditEvents.OsUpdateRequested, AuditEvents.OsUpdateFailureDismissed, AuditEvents.OsUpdateSettingsChanged,
+            AuditEvents.OsUpdateFindingAcknowledged, AuditEvents.OsUpdateFindingAcknowledgementEnded);
+        Add(AuditCategory.Agents, AuditTargets.OsAdvisorySource, AuditEvents.OsAdvisorySourceCreated, AuditEvents.OsAdvisorySourceChanged,
+            AuditEvents.OsAdvisorySourceDeleted);
         Add(AuditCategory.Agents, null, AuditEvents.AgentDownloadsFetched, AuditEvents.AgentVersionChosen, AuditEvents.AgentVersionFetched,
             AuditEvents.AgentVersionUploaded, AuditEvents.AgentVersionDeleted);
         Add(AuditCategory.SshKeys, AuditTargets.SshKey, AuditEvents.SshKeyRegistered, AuditEvents.SshKeyChanged, AuditEvents.SshKeyRetired,
@@ -522,7 +538,7 @@ public static class AuditCatalog
     {
         ["Totp"] = "2FA", ["Udp"] = "UDP", ["Kb"] = "KB", ["Ai"] = "AI", ["Ssh"] = "SSH", ["Dns"] = "DNS", ["Wmi"] = "WMI",
         ["Ota"] = "OTA", ["Mikrotik"] = "MikroTik", ["Wireguard"] = "WireGuard", ["Csv"] = "CSV", ["Redmine"] = "Redmine",
-        ["Zabbix"] = "Zabbix", ["Windows"] = "Windows", ["Mcp"] = "MCP",
+        ["Zabbix"] = "Zabbix", ["Windows"] = "Windows", ["Mcp"] = "MCP", ["Os"] = "OS",
     };
 
     /// <summary>"MikrotikJoinScriptViewed" → "MikroTik join script viewed".</summary>
@@ -541,6 +557,8 @@ public static class AuditCatalog
         // docs/connectors-plan.md §12.2: a key shown or replaced, a call refused for a reason that may mean a leaked key.
         : type is AuditEvents.ConnectorCallerKeyViewed or AuditEvents.ConnectorCallerKeyRotated ? AuditTone.Warn
         : type is AuditEvents.ConnectorRefused ? AuditTone.Danger
+        // docs/linux-os-updates-plan.md §6.5: a high-risk finding accepted for a while.
+        : type is AuditEvents.OsUpdateFindingAcknowledged ? AuditTone.Warn
         : System.Text.RegularExpressions.Regex.IsMatch(type, "Deleted|Reset|Revoked|Disabled|Cancelled|Retired|Removed|Redacted|Detached") ? AuditTone.Warn
         : System.Text.RegularExpressions.Regex.IsMatch(type, "Succeeded|Enabled|Created|Joined|Registered|Attached|Uploaded") ? AuditTone.Success
         : AuditTone.Neutral;

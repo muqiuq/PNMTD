@@ -270,7 +270,8 @@ public static class AgentJoinEndpoint
         }
         logger.LogInformation("{Platform} agent {Hostname} joined as {Name} from {Address}", row.Platform, agent.Hostname, name, address);
 
-        var config = await AgentConfiguration.BuildAsync(db, keys, settings, sensor.Id, ct);
+        var config = await AgentConfiguration.BuildAsync(db, keys, settings, sensor.Id, ct,
+            http.RequestServices.GetService<Microsoft.Extensions.Options.IOptionsMonitor<OsUpdates.OsUpdatesOptions>>()?.CurrentValue);
         var grant = new JoinGrant(agent.AgentId, sensor.Id, sensor.Name, host.Name, fingerprint, config);
         var signed = AgentSigning.Sign(signing.Key, AgentMessageTypes.Join, agent.AgentId, grant, AgentProtocol.RequestLifetime);
         return Results.Json(new JoinResponse(signing.PublicKey, signing.Fingerprint, signed), AgentJson.Options);

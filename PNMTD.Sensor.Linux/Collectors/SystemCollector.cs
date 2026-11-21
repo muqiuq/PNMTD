@@ -10,7 +10,7 @@ namespace PNMTD.Sensor.Linux.Collectors;
 
 /// <summary>
 /// <c>system</c> (docs/linux-sensor-plan.md §5.2 → <see cref="LinuxSystemSection"/>): identity, OS and the version check, uptime and
-/// the last shutdown, updates (<c>apt-get -s dist-upgrade</c>, a simulation, never <c>apt update</c>), time, security (firewall,
+/// the last shutdown, updates (<c>apt-get -s dist-upgrade</c>, a simulation; the daily <c>apt-get update</c> is the os-updates feature's), time, security (firewall,
 /// AppArmor, Secure Boot, LUKS, fail2ban), local administrators, sudo's rules, accounts, and the sessions now. Every 15 minutes; each
 /// part on its own, a missing tool <i>not available</i>.
 /// </summary>
@@ -116,7 +116,8 @@ internal sealed partial class SystemCollector : Collector
         {
             throw new NotAvailableException("apt-get is not installed");
         }
-        var simulation = Tool.Text("apt-get", ["-s", "-q", "-o", "Debug::NoLocking=1", "dist-upgrade"], TimeSpan.FromSeconds(90));
+        // The os-updates section's simulation (docs/linux-os-updates-plan.md §4.1): full-upgrade is dist-upgrade, cached for a minute.
+        var simulation = OsUpdates.AptState.Simulate(Lib.Agent.OsUpgradeMode.FullUpgrade);
         var (upgradable, security) = ParseAptSimulation(simulation);
         var reasons = Isolated.Part(errors, "reboot pending", LinuxFacts.RebootReasons) ?? [];
         if (Isolated.Part(errors, "needrestart", NeedrestartKernel) is { } kernel)
@@ -124,7 +125,7 @@ internal sealed partial class SystemCollector : Collector
             reasons.Add(kernel);
         }
         var periodic = Isolated.Part(errors, "apt-config", AptPeriodic) ?? [];
-        return new LinuxUpdatesInfo(upgradable, security.Count, security.Take(200).ToList(), ListsUpdatedAt(),
+        return new LinuxUpdatesInfo(upgradable, security.Count, security.Take(200).ToList(), OsUpdates.AptState.ListsUpdatedAt(),
             File.Exists("/usr/bin/unattended-upgrade"), periodic.GetValueOrDefault("APT::Periodic::Unattended-Upgrade") is { } u && u != "0",
             LastWrite("/var/log/unattended-upgrades/unattended-upgrades.log") ?? LastWrite("/var/lib/apt/periodic/unattended-upgrades-stamp"),
             reasons.Count > 0, reasons, os.Id == "ubuntu" ? Esm() : null);
@@ -171,19 +172,6 @@ internal sealed partial class SystemCollector : Collector
         .Select(l => l.Trim()).Where(l => l.EndsWith("\";", StringComparison.Ordinal) && l.Contains(" \"", StringComparison.Ordinal))
         .Select(l => (Name: l[..l.IndexOf(' ')], Value: l[(l.IndexOf(" \"", StringComparison.Ordinal) + 2)..^2]))
         .GroupBy(p => p.Name).ToDictionary(g => g.Key, g => g.Last().Value, StringComparer.Ordinal);
-
-    /// <summary>When the package lists were last refreshed: the newest Release file in /var/lib/apt/lists.</summary>
-    private static DateTimeOffset? ListsUpdatedAt()
-    {
-        const string lists = "/var/lib/apt/lists";
-        if (!Directory.Exists(lists))
-        {
-            return null;
-        }
-        var newest = Directory.GetFiles(lists).Where(f => f.EndsWith("Release", StringComparison.Ordinal))
-            .Select(File.GetLastWriteTimeUtc).DefaultIfEmpty().Max();
-        return newest == default ? null : new DateTimeOffset(newest, TimeSpan.Zero);
-    }
 
     /// <summary>Ubuntu Pro's ESM: its sources are there.</summary>
     private static bool? Esm() =>

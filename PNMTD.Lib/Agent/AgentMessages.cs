@@ -72,7 +72,8 @@ public sealed record AgentRightsSummary(
     int MaxScriptTimeoutMinutes,
     bool SudoCommands,
     bool CronCommands,
-    IReadOnlyList<string>? Warnings = null);
+    IReadOnlyList<string>? Warnings = null,
+    OsUpdatesRightsSummary? OsUpdates = null);
 
 /// <summary>
 /// The configuration (§3.6): sent signed in <c>welcome</c> after the hello, and as <c>config</c> when it changes. The agent
@@ -85,7 +86,8 @@ public sealed record AgentConfig(
     AccessConfig Access,
     IReadOnlyList<DiagnosticsAssignment> Diagnostics,
     string? LogLevel = null,
-    WmiConfig? Wmi = null);
+    WmiConfig? Wmi = null,
+    OsUpdatesConfig? OsUpdates = null);
 
 /// <summary>How logins and connections are recorded (§4.7).</summary>
 public sealed record AccessConfig(int AggregateMinutes = 10, int MaxBatch = 500);

@@ -56,8 +56,10 @@ public static class RightsCatalog
         new(Area.UdpNodes, "UDP nodes", [(Level.Manage, "Admin → UDP nodes: firmware, updates, unknown senders.")]),
         new(Area.Mikrotik, "MikroTik & WireGuard", [
             (Level.Manage, "Admin → MikroTik & WireGuard: update jobs, PNMT's SSH keys, backup settings and keys, accepting host keys, deleting backups, tunnels, redacting commands.")]),
+        // docs/linux-os-updates-plan.md §8.2 (D2): installing OS updates without the rest of Servers.
         new(Area.Servers, "Servers", [
-            (Level.Manage, "Admin → Servers: join tokens, revoking, scripts and running them, run-as accounts, WMI, the agents' files and logs.")]),
+            (Level.Run, "Running apt update, installing OS updates and acknowledging high-risk findings on Linux servers (their OS updates tab)."),
+            (Level.Manage, "Admin → Servers: join tokens, revoking, scripts and running them, run-as accounts, WMI, the agents' files and logs, OS update settings and advisory sources.")]),
         new(Area.SshKeys, "SSH keys", [(Level.Manage, "Admin → SSH keys: the key manager and removals.")]),
         new(Area.Diagnostics, "Diagnostics", [(Level.Manage, "Admin → Diagnostics: sets and assignments.")]),
         new(Area.Ai, "AI", [(Level.Manage, "Admin → AI: the work queue, backfills, analysis runs, the request log.")]),

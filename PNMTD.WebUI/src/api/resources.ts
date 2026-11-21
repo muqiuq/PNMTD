@@ -842,6 +842,74 @@ export const api = {
   linux: {
     section: (id: Id, section: string) =>
       call(client.GET('/api/v1/linux/servers/{id}/sections/{section}', { params: { path: { id, section } } })),
+    /**
+     * OS updates (docs/linux-os-updates-plan.md §9): a server's state, runs, logs and changelogs for Monitoring: View; refreshing
+     * the lists, installing updates, marking a failure handled and acknowledging findings for Servers: Run; the server's switches,
+     * the advisory sources and texts for Servers: Manage; the dashboard's summary for Monitoring: View.
+     */
+    osUpdates: {
+      get: (id: Id) => call(client.GET('/api/v1/linux/servers/{id}/os-updates', { params: { path: { id } } })),
+      runs: (id: Id, query: ListQuery & { kind?: S['OsUpdateKind'] }) =>
+        call(client.GET('/api/v1/linux/servers/{id}/os-updates/runs', { params: { path: { id }, query } })),
+      run: (id: Id, runId: Id) =>
+        call(client.GET('/api/v1/linux/servers/{id}/os-updates/runs/{runId}', { params: { path: { id, runId } } })),
+      /** The log from a byte offset, for the live view: append its text, ask again from nextOffset. */
+      log: (id: Id, runId: Id, from = 0) =>
+        call(
+          client.GET('/api/v1/linux/servers/{id}/os-updates/runs/{runId}/log', {
+            params: { path: { id, runId }, query: { from } },
+          }),
+        ),
+      /** A plain link: the browser downloads the whole log with the session cookie. */
+      logUrl: (id: Id, runId: Id) =>
+        `${typeof location !== 'undefined' ? location.origin : ''}/api/v1/linux/servers/${encodeURIComponent(id)}/os-updates/runs/${encodeURIComponent(runId)}/log/download`,
+      /** A pending package's changelog part (by package or source name); 404 while the server sent none. */
+      changelog: (id: Id, pkg: string) =>
+        call(
+          client.GET('/api/v1/linux/servers/{id}/os-updates/changelogs/{package}', {
+            params: { path: { id, package: pkg } },
+          }),
+        ),
+      /** *Refresh lists*: apt-get update now. */
+      update: (id: Id) =>
+        call(client.POST('/api/v1/linux/servers/{id}/os-updates/update', { params: { path: { id } } })),
+      /** *Install updates…*: a full upgrade carries the removals' hash the person saw. */
+      upgrade: (id: Id, body: S['OsUpdateUpgradeRequest']) =>
+        call(client.POST('/api/v1/linux/servers/{id}/os-updates/upgrade', { params: { path: { id } }, body })),
+      /** *Mark handled*: a failed upgrade's 467 ends. */
+      dismiss: (id: Id, runId: Id) =>
+        call(
+          client.POST('/api/v1/linux/servers/{id}/os-updates/runs/{runId}/dismiss', {
+            params: { path: { id, runId } },
+          }),
+        ),
+      settings: (id: Id, body: S['OsUpdateServerSettings']) =>
+        call(client.PUT('/api/v1/linux/servers/{id}/os-updates/settings', { params: { path: { id } }, body })),
+      acknowledge: (id: Id, body: S['OsFindingAcknowledgeRequest']) =>
+        call(
+          client.POST('/api/v1/linux/servers/{id}/os-updates/findings/acknowledge', { params: { path: { id } }, body }),
+        ),
+      unacknowledge: (id: Id, findingId: Id) =>
+        call(
+          client.DELETE('/api/v1/linux/servers/{id}/os-updates/findings/{findingId}/acknowledgement', {
+            params: { path: { id, findingId } },
+          }),
+        ),
+      /** The dashboard's card (§10.3). */
+      summary: () => call(client.GET('/api/v1/linux/os-updates/summary')),
+      // --- Admin → Servers → Advisories (§10.4): Servers: Manage ------------------------------------------------------
+      sources: () => call(client.GET('/api/v1/linux/os-updates/sources')),
+      createSource: (body: S['OsAdvisorySourceRequest']) =>
+        call(client.POST('/api/v1/linux/os-updates/sources', { body })),
+      updateSource: (sourceId: Id, body: S['OsAdvisorySourceRequest']) =>
+        call(client.PUT('/api/v1/linux/os-updates/sources/{sourceId}', { params: { path: { sourceId } }, body })),
+      deleteSource: (sourceId: Id) =>
+        call(client.DELETE('/api/v1/linux/os-updates/sources/{sourceId}', { params: { path: { sourceId } } })),
+      /** Fetched on the fetcher's next pass, within a minute (202). */
+      fetchSource: (sourceId: Id) =>
+        call(client.POST('/api/v1/linux/os-updates/sources/{sourceId}/fetch', { params: { path: { sourceId } } })),
+      advisories: (query: ListQuery) => call(client.GET('/api/v1/linux/os-updates/advisories', { params: { query } })),
+    },
   },
 
   /**
@@ -1355,6 +1423,10 @@ export const keys = {
   /** Servers with an agent, of every platform (docs/windows-sensor-plan.md §10; docs/linux-sensor-plan.md §11). */
   agents: ['agents'] as const,
   agentServer: (id: Id) => ['agents', 'server', id] as const,
+  /** A Linux server's OS updates (docs/linux-os-updates-plan.md §10.1): under the server's key, so its refreshes include them. */
+  osUpdatesServer: (id: Id) => ['agents', 'server', id, 'os-updates'] as const,
+  /** OS updates across the fleet: the dashboard's card, the advisory sources and texts (§10.3, §10.4). */
+  osUpdates: ['os-updates'] as const,
   /** The SSH key manager (docs/linux-sensor-plan.md §11.4): the register, unregistered keys, removals, a user's keys. */
   sshKeys: ['ssh-keys'] as const,
   /** Diagnostics: sets, assignments and runs (docs/windows-sensor-plan.md §10.3). */

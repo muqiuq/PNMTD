@@ -1,0 +1,150 @@
+openssl (3.0.22-1~deb12u2) bookworm-security; urgency=high
+
+  * Non-maintainer upload by the LTS Team.
+  * CVE-2026-84782 ("DTLS Retransmits Handshake Messages From a Stale Buffer
+    Offset")
+  * CVE-2026-35189 ("Memory Allocation in Relative CRLDP Processing")
+  * CVE-2026-54872 ("Timing Side-Channel in Scalar Multiplication for Non-NIST
+    EC Curves")
+  * CVE-2026-75805 ("NULL Pointer Dereference in CMP Client Revocation
+    Response Handling")
+  * CVE-2026-75806 ("Unauthenticated and Undersized DTLS 1.2 AEAD Record
+    Causes DoS")
+  * CVE-2026-77696 ("Timing Side-Channel in SM2 Signature Generation")
+
+ -- Arnaud Rebillout <arnaudr@debian.org>  Wed, 21 Oct 2026 16:54:24 +0700
+
+openssl (3.0.22-1~deb12u1) bookworm-security; urgency=medium
+
+  * Non-maintainer upload by the LTS Team
+  * Import 3.0.22
+  * CVE-2026-42767 ("Fix potential NULL dereference in
+    OSSL_CRMF_ENCRYPTEDVALUE_get1_encCert()")
+  * CVE-2026-54874 ("Fixed excessive memory use buffering DTLS records for a
+    future epoch")
+  * CVE-2026-63072 ("Fixed heap buffer overflow in CMS key unwrapping")
+  * CVE-2026-63074 ("Fixed CMP indefinite cache growth of extraCerts")
+  * CVE-2026-63076 ("Fixed invalid pointer dereference in CMP server via
+    crafted protectionAlg")
+  * CVE-2026-75803 ("Fixed possibility of AEAD forgeries with empty ciphertext
+    when using EVP_Cipher()")
+  * Fixed checking of authentication tags for empty ciphertexts for AEAD ciphers
+    in CCM cipher mode
+
+ -- Arnaud Rebillout <arnaudr@debian.org>  Wed, 23 Sep 2026 10:52:17 +0700
+
+openssl (3.0.20-1~deb12u2) bookworm-security; urgency=medium
+
+  * CVE-2026-7383 ("Possible Heap Buffer Overflow in ASN.1 Multibyte String
+    Conversion")
+  * CVE-2026-9076 ("Out-of-Bounds Read in CMS Password-Based Decryption")
+  * CVE-2026-34180 ("Heap Buffer Over-read in ASN.1 Content Parsing")
+  * CVE-2026-34182 ("CMS AuthEnvelopedData Processing May Accept Forged
+    Messages")
+  * CVE-2026-42766 ("Possible NULL Dereference in Password-Based CMS
+    Decryption")
+  * CVE-2026-42770 ("FFC-DH Peer Validation Uses Attacker-Supplied q")
+  * CVE-2026-45445 ("AES-OCB IV Ignored on EVP_Cipher() Path")
+  * CVE-2026-45446 ("Incorrect Tag Processing for Empty Messages in
+    AES-GCM-SIV and AES-SIV modes")
+  * CVE-2026-45447 ("Heap Use-After-Free in OpenSSL PKCS7_verify()")
+
+ -- Sebastian Andrzej Siewior <sebastian@breakpoint.cc>  Sat, 06 Jun 2026 21:56:20 +0200
+
+openssl (3.0.20-1~deb12u1) bookworm; urgency=medium
+
+  * Import 3.0.20
+
+ -- Sebastian Andrzej Siewior <sebastian@breakpoint.cc>  Mon, 04 May 2026 20:47:50 +0200
+
+openssl (3.0.19-1~deb12u2) bookworm-security; urgency=medium
+
+  * CVE-2026-28387 ("Potential use-after-free in DANE client code")
+  * CVE-2026-28389 ("Possible NULL dereference when processing CMS
+    KeyAgreeRecipientInfo")
+  * CVE-2026-28390 ("Possible NULL dereference when processing CMS
+    KeyTransportRecipient Info")
+  * CVE-2026-31789 ("Heap buffer overflow in hexadecimal conversion")
+  * CVE-2026-31790 ("Incorrect failure handling in RSA KEM RSASVE
+    encapsulation")
+  * CVE-2026-28388 ("NULL Pointer Dereference When Processing a Delta CRL")
+
+ -- Sebastian Andrzej Siewior <sebastian@breakpoint.cc>  Fri, 03 Apr 2026 14:29:32 +0200
+
+openssl (3.0.19-1~deb12u1) bookworm; urgency=medium
+
+  * Import 3.0.19
+
+ -- Sebastian Andrzej Siewior <sebastian@breakpoint.cc>  Sun, 22 Feb 2026 18:36:50 +0100
+
+openssl (3.0.18-1~deb12u2) bookworm-security; urgency=medium
+
+  * CVE-2025-15467 (Stack buffer overflow in CMS AuthEnvelopedData parsing)
+  * CVE-2025-68160 (Heap out-of-bounds write in BIO_f_linebuffer on short
+    writes)
+  * CVE-2025-69418 (Unauthenticated/unencrypted trailing bytes with low-level
+    OCB function calls)
+  * CVE-2025-69419 (Out of bounds write in PKCS12_get_friendlyname() UTF-8
+    conversion)
+  * CVE-2025-69420 (Missing ASN1_TYPE validation in TS_RESP_verify_response()
+    function)
+  * CVE-2025-69421 (NULL Pointer Dereference in PKCS12_item_decrypt_d2i_ex
+    function)
+  * CVE-2026-22795 (Missing ASN1_TYPE validation in PKCS#12 parsing)
+  * CVE-2026-22796 (ASN1_TYPE Type Confusion in the
+    PKCS7_digest_from_attributes() function)
+
+ -- Sebastian Andrzej Siewior <sebastian@breakpoint.cc>  Sat, 24 Jan 2026 16:01:59 +0100
+
+openssl (3.0.18-1~deb12u1) bookworm; urgency=medium
+
+  * Import 3.0.18
+
+ -- Sebastian Andrzej Siewior <sebastian@breakpoint.cc>  Sat, 01 Nov 2025 12:54:37 +0100
+
+openssl (3.0.17-1~deb12u3) bookworm-security; urgency=medium
+
+  * CVE-2025-9230 (Out-of-bounds read & write in RFC 3211 KEK Unwrap)
+  * CVE-2025-9232 (Out-of-bounds read in HTTP client no_proxy handling)
+
+ -- Sebastian Andrzej Siewior <sebastian@breakpoint.cc>  Fri, 26 Sep 2025 20:59:22 +0200
+
+openssl (3.0.17-1~deb12u2) bookworm; urgency=medium
+
+  * Revert the following upstream changes to avoid crashes in downstream
+    software:
+    - 7141330fb98ce ("Drop "by store"'s by_store_subject_ex()")
+    - 340383f5f49f8 ("Rework the "by store" X509_LOOKUP method to open the given URI early")
+    - a468bdb02531e ("Add test_verify tests")
+    Closes: #1110254
+
+ -- Sebastian Andrzej Siewior <sebastian@breakpoint.cc>  Tue, 05 Aug 2025 09:09:41 +0200
+
+openssl (3.0.17-1~deb12u1) bookworm; urgency=medium
+
+  * Import 3.0.17
+
+ -- Sebastian Andrzej Siewior <sebastian@breakpoint.cc>  Sun, 13 Jul 2025 14:39:08 +0200
+
+openssl (3.0.16-1~deb12u1) bookworm; urgency=medium
+
+  * Import 3.0.16
+    - CVE-2024-13176 (Timing side-channel in ECDSA signature computation)
+      (Closes: #1094027).
+
+ -- Sebastian Andrzej Siewior <sebastian@breakpoint.cc>  Tue, 15 Apr 2025 21:59:18 +0200
+
+openssl (3.0.15-1~deb12u1) bookworm; urgency=medium
+
+  * Import 3.0.15
+    - CVE-2024-5535 (SSL_select_next_proto buffer overread)
+      (Closes: #1074487).
+    - CVE-2024-9143 (Low-level invalid GF(2^m) parameters lead to OOB memory
+      access) (Closes: #1085378).
+
+ -- Sebastian Andrzej Siewior <sebastian@breakpoint.cc>  Sun, 27 Oct 2024 15:16:28 +0100
+
+openssl (3.0.14-1~deb12u2) bookworm-security; urgency=medium
+
+  * CVE-2024-6119 (Possible denial of service in X.509 name checks).
+

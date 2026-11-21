@@ -1,0 +1,1858 @@
+{
+ "expat": {
+  "CVE-2026-32776": {
+   "debianbug": 1131117,
+   "description": "libexpat before 2.7.5 allows a NULL pointer dereference with empty external para",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u4",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-32777": {
+   "debianbug": 1131118,
+   "description": "libexpat before 2.7.5 allows an infinite loop while parsing DTD content.",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u4",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-32778": {
+   "debianbug": 1131119,
+   "description": "libexpat before 2.7.5 allows a NULL pointer dereference in the function setConte",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u4",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-41080": {
+   "debianbug": 1134732,
+   "description": "libexpat before 2.8.0 uses insufficient entropy, and thus hash flooding can occu",
+   "releases": {
+    "bookworm": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-45186": {
+   "debianbug": 1136164,
+   "description": "In libexpat before 2.8.1, the computational complexity of attribute name collisi",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u4",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-50219": {
+   "debianbug": 1138862,
+   "description": "libexpat before 2.8.2 lacks handler call depth tracking for calls to XML_GetBuff",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u3",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-56131": {
+   "debianbug": 1140387,
+   "description": "libexpat before 2.8.2 lacks handler call depth tracking for calls to XML_ResumeP",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u3",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-56132": {
+   "debianbug": 1140388,
+   "description": "In libexpat before 2.8.2, there is a heap-based buffer overflow in doProlog in x",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u5",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-56403": {
+   "debianbug": 1140557,
+   "description": "libexpat before 2.8.2 has an integer overflow in storeAtts.",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u3",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-56404": {
+   "debianbug": 1140557,
+   "description": "libexpat before 2.8.2 has an integer overflow in addBinding.",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u3",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-56405": {
+   "debianbug": 1140557,
+   "description": "libexpat before 2.8.2 has an integer overflow in getAttributeId.",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u3",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-56406": {
+   "debianbug": 1140557,
+   "description": "libexpat before 2.8.2 has an integer overflow in XML_ParseBuffer because it lack",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u3",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-56407": {
+   "debianbug": 1140557,
+   "description": "libexpat before 2.8.2 has an integer overflow in doProlog that is related to sto",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u3",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-56408": {
+   "debianbug": 1140557,
+   "description": "libexpat before 2.8.2 has an integer overflow in copyString.",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u3",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-56409": {
+   "debianbug": 1140557,
+   "description": "xmlwf in libexpat before 2.8.2 has an integer overflow for the output filename w",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u3",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-56410": {
+   "debianbug": 1140557,
+   "description": "xmlwf in libexpat before 2.8.2 has an integer overflow in resolveSystemId.",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u3",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-56411": {
+   "debianbug": 1140557,
+   "description": "xmlwf in libexpat before 2.8.2 has an integer overflow in endDoctypeDecl via NOT",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u3",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-56412": {
+   "debianbug": 1140557,
+   "description": "libexpat before 2.8.2 does not consider XML_TOK_DATA_CHARS in doCdataSection and",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u3",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.2-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-66046": {
+   "debianbug": 1144925,
+   "description": "Expat through 2.8.3 contains a denial of service vulnerability caused by quadrat",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u4",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.9.0-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-72522": {
+   "debianbug": 1144064,
+   "description": "libexpat before 2.8.3 has an out-of-bounds read and resultant infinite loop beca",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u3",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.8.3-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-76641": {
+   "description": "Expat through 2.8.3 contains an out-of-bounds read vulnerability that allows att",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "fixed_version": "0",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-76956": {
+   "debianbug": 1144926,
+   "description": "In libexpat 2.8.2 and 2.8.3 before 2.8.4, misinterpretation of getentropy's retu",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "fixed_version": "2.9.0-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-76957": {
+   "debianbug": 1144927,
+   "description": "libexpat before 2.8.4 lacks handler call depth tracking with custom encoding cal",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u3",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.9.0-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-77214": {
+   "debianbug": 1150320,
+   "description": "libexpat before commit 13c5f63 contains a heap buffer over-read vulnerability in",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u5",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.9.0-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-93990": {
+   "debianbug": 1148665,
+   "description": "Expat before 2.8.5 fails to validate that a high surrogate in UTF-16 input is fo",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "2.5.0-1+deb12u4",
+     "repositories": {
+      "bookworm": "2.5.0-1+deb12u2",
+      "bookworm-security": "2.5.0-1+deb12u5"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "2.9.0-1~deb13u1",
+     "repositories": {
+      "trixie": "2.8.3-1~deb13u1",
+      "trixie-security": "2.9.0-1~deb13u1"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  }
+ },
+ "openssh": {
+  "CVE-2026-106587": {
+   "description": "In sshd in OpenSSH before 10.6, the value \"none\" for a configuration option is s",
+   "releases": {
+    "bookworm": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "postponed",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-106588": {
+   "description": "In sshd in OpenSSH through 10.6, use of the macOS 27 (or later) SDK has the side",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "fixed_version": "0",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-106589": {
+   "description": "In sshd in OpenSSH through 10.6, in certain environments such as QNX 6 and SCO O",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "fixed_version": "0",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-110928": {
+   "description": "",
+   "releases": {
+    "bookworm": {
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "undetermined",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "undetermined",
+     "urgency": "not yet assigned"
+    }
+   }
+  },
+  "CVE-2026-123158": {
+   "description": "sshd in OpenSSH before 10.6p2 on Linux, when musl libc is used without PAM, lack",
+   "releases": {
+    "bookworm": {
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "open",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "open",
+     "urgency": "unimportant"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-3497": {
+   "debianbug": 1130595,
+   "description": "Vulnerability in the OpenSSH GSSAPI delta included in various Linux distribution",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "1:9.2p1-2+deb12u9",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "1:10.0p1-7+deb13u2",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-35385": {
+   "debianbug": 1132572,
+   "description": "In OpenSSH before 10.3, a file downloaded by scp may be installed setuid or setg",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "1:9.2p1-2+deb12u10",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "1:10.0p1-7+deb13u3",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-35386": {
+   "debianbug": 1132573,
+   "description": "In OpenSSH before 10.3, command execution can occur via shell metacharacters in ",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "1:9.2p1-2+deb12u10",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "1:10.0p1-7+deb13u3",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-35387": {
+   "debianbug": 1132574,
+   "description": "OpenSSH before 10.3 can use unintended ECDSA algorithms. Listing of any ECDSA al",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "1:9.2p1-2+deb12u10",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "1:10.0p1-7+deb13u3",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-35388": {
+   "debianbug": 1132575,
+   "description": "OpenSSH before 10.3 omits connection multiplexing confirmation for proxy-mode mu",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "1:9.2p1-2+deb12u10",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "1:10.0p1-7+deb13u3",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-35414": {
+   "debianbug": 1132576,
+   "description": "OpenSSH before 10.3 mishandles the authorized_keys principals option in uncommon",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "1:9.2p1-2+deb12u10",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "1:10.0p1-7+deb13u3",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-55653": {
+   "description": "A flaw was found in OpenSSH. A malicious SSH server can exploit a double free vu",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "fixed_version": "0",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-55654": {
+   "description": "A flaw was found in OpenSSH. This vulnerability, a heap out-of-bounds read, occu",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-55655": {
+   "description": "A flaw was found in OpenSSH. A local unprivileged attacker on a Linux client hos",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "fixed_version": "0",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-59995": {
+   "description": "sftp in OpenSSH before 10.4 does not properly constrain the location of download",
+   "releases": {
+    "bookworm": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "postponed",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-59996": {
+   "description": "scp in OpenSSH before 10.4 may place a file in the parent directory of an intend",
+   "releases": {
+    "bookworm": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "postponed",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-59997": {
+   "description": "internal-sftp in sshd in OpenSSH before 10.4 recognizes only the first 9 command",
+   "releases": {
+    "bookworm": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "postponed",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-59998": {
+   "description": "sshd in OpenSSH before 10.4 has an undocumented security-relevant behavior: GSSA",
+   "releases": {
+    "bookworm": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "postponed",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-59999": {
+   "description": "In sshd in OpenSSH before 10.4, DisableForwarding=yes was supposed to take prece",
+   "releases": {
+    "bookworm": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "postponed",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-60000": {
+   "description": "sshd in OpenSSH before 10.4 allows remote attackers to cause a denial of service",
+   "releases": {
+    "bookworm": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "postponed",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-60001": {
+   "description": "sshd in OpenSSH before 10.4 does not always honor the minimum authentication del",
+   "releases": {
+    "bookworm": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "postponed",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-60002": {
+   "description": "ssh in OpenSSH before 10.4 can have a use-after-free when a server changes its h",
+   "releases": {
+    "bookworm": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "postponed",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-73281": {
+   "debianbug": 1144192,
+   "description": "In ssh-agent in OpenSSH before 10.5, some operations can occur remotely but were",
+   "releases": {
+    "bookworm": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "postponed",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-73282": {
+   "debianbug": 1144192,
+   "description": "In ssh in OpenSSH before 10.5, a use-after-free for realloc data can occur if a ",
+   "releases": {
+    "bookworm": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "postponed",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-73283": {
+   "debianbug": 1144192,
+   "description": "In sshd in OpenSSH before 10.5, the restrict keyword (in authorized_keys) was su",
+   "releases": {
+    "bookworm": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "postponed",
+     "repositories": {
+      "bookworm": "1:9.2p1-2+deb12u10",
+      "bookworm-security": "1:9.2p1-2+deb12u9"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "nodsa": "Minor issue",
+     "nodsa_reason": "",
+     "repositories": {
+      "trixie": "1:10.0p1-7+deb13u4",
+      "trixie-security": "1:10.0p1-7+deb13u2"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  }
+ },
+ "openssl": {
+  "CVE-2026-54874": {
+   "description": "Issue summary: Receiving a DTLS record for a future epoch while a handshake is i",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "3.0.22-1~deb12u1",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "3.5.7-1~deb13u2",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-54875": {
+   "description": "Issue summary: A non-constant-time optimized implementation of scalar point mult",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "fixed_version": "3.5.7-1~deb13u3",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-54876": {
+   "debianbug": 1143841,
+   "description": "Issue summary: A malicious TLS server can cause a memory leak in a TLS client th",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "fixed_version": "0",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-63072": {
+   "description": "Issue summary: OpenSSL CMS decryption sizes the key-unwrap output buffer based o",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "3.0.22-1~deb12u1",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "3.5.7-1~deb13u2",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-63073": {
+   "description": "Issue summary: OpenSSL CMP response validation passed an unexpected response sen",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "fixed_version": "3.5.7-1~deb13u2",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-63074": {
+   "description": "Issue summary: The OpenSSL Certificate Management Protocol (CMP) caches addition",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "3.0.22-1~deb12u1",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "3.5.7-1~deb13u2",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-63075": {
+   "description": "Issue summary: When OpenSSL processes QUIC traffic from a peer that repeatedly s",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "fixed_version": "3.5.7-1~deb13u2",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-63076": {
+   "description": "Issue summary: OpenSSL CMP password based protection verification only checks wh",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "3.0.22-1~deb12u1",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "3.5.7-1~deb13u2",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-72897": {
+   "description": "Issue summary: A TLS server that calls SSL_set_SSL_CTX() to switch a connection ",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "fixed_version": "3.5.7-1~deb13u3",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-7383": {
+   "debianbug": 1139674,
+   "description": "Issue summary: A signed integer overflow when sizing the destination buffer for ",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "3.0.20-1~deb12u2",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "3.5.6-1~deb13u2",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-75803": {
+   "debianbug": 1145172,
+   "description": "Issue summary: ChaCha20-Poly1305 and AES-OCB decryption with an empty ciphertext",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "3.0.22-1~deb12u1",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "3.5.7-1~deb13u2",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-75804": {
+   "description": "Issue summary: OpenSSL QUIC stack does not enforce connection level flow control",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "fixed_version": "3.5.7-1~deb13u3",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-75805": {
+   "description": "Issue summary: A CMP client that requests certificate revocation on the basis of",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "3.0.22-1~deb12u2",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "3.5.7-1~deb13u3",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-75806": {
+   "description": "Issue summary: An established DTLS 1.2 association using an AEAD cipher suite ca",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "3.0.22-1~deb12u2",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "3.5.7-1~deb13u3",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-77696": {
+   "description": "Issue summary: SM2 signature generation uses non-constant-time arithmetic on sec",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "3.0.22-1~deb12u2",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "3.5.7-1~deb13u3",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-84782": {
+   "description": "Issue summary: The DTLS retransmission logic does not correctly handle a handsha",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "3.0.22-1~deb12u2",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "3.5.7-1~deb13u3",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-84783": {
+   "description": "Issue summary: The first concurrent use of the same X.509 certificate by several",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "fixed_version": "0",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-84784": {
+   "description": "Issue summary: A malicious remote peer may flood the local QUIC stack with NEW_C",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "fixed_version": "3.5.7-1~deb13u3",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-84786": {
+   "description": "Issue summary: A DANE-enabled TLS client may crash by dereferencing a NULL point",
+   "releases": {
+    "bookworm": {
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-88822": {
+   "description": "Issue summary: QUIC, when performing automated peer detection, may allow uniniti",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-88823": {
+   "description": "Issue summary: The AES-GCM-SIV implementation treats a zero-length Additional Au",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-9076": {
+   "debianbug": 1139674,
+   "description": "Issue summary: When CMS password-based decryption (RFC 3211 / PWRI key unwrap) p",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "3.0.20-1~deb12u2",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "fixed_version": "3.5.6-1~deb13u2",
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "resolved",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-95690": {
+   "description": "Issue summary: Receiving crafted out-of-sequence DTLS handshake fragments may ca",
+   "releases": {
+    "bookworm": {
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    },
+    "trixie": {
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-95691": {
+   "description": "Issue summary: A retransmitted QUIC CRYPTO frame can release packet storage whil",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  },
+  "CVE-2026-95692": {
+   "description": "Issue summary: Setting an AES-GCM-SIV IV shorter than the expected nonce length ",
+   "releases": {
+    "bookworm": {
+     "fixed_version": "0",
+     "repositories": {
+      "bookworm": "3.0.20-1~deb12u2",
+      "bookworm-security": "3.0.22-1~deb12u2"
+     },
+     "status": "resolved",
+     "urgency": "unimportant"
+    },
+    "trixie": {
+     "repositories": {
+      "trixie": "3.5.7-1~deb13u2",
+      "trixie-security": "3.5.7-1~deb13u3"
+     },
+     "status": "open",
+     "urgency": "not yet assigned"
+    }
+   },
+   "scope": "local"
+  }
+ }
+}

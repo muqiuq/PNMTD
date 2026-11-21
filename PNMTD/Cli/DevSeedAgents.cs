@@ -38,6 +38,8 @@ internal static class DevSeedAgents
         var linuxServers = SeedLinux(db, hosts, now, ref count);
         count += SeedKeyManager(db, linuxServers, owners, now);
         count += SeedBashScripts(db, linuxServers, now);
+        // OS updates (docs/linux-os-updates-plan.md): pending packages, runs, the check's sources and findings.
+        count += DevSeedOsUpdates.Seed(db, linuxServers, now);
         foreach (var plan in Plans.Where(p => hosts.ContainsKey(p.Host)))
         {
             var sensor = new SensorEntity

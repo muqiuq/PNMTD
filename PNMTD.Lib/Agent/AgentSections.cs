@@ -25,15 +25,18 @@ public static class SectionNames
     /// <summary>Linux: sshd's key settings, every authorized_keys file and its keys (docs/linux-sensor-plan.md §6.1).</summary>
     public const string SshKeys = "ssh-keys";
 
+    /// <summary>Linux: the pending packages and what an upgrade would do (docs/linux-os-updates-plan.md §4.1).</summary>
+    public const string OsUpdates = "os-updates";
+
     public const int SchemaVersion = 1;
 
     /// <summary>What a Windows agent sends.</summary>
     public static readonly IReadOnlyList<string> Windows = [System, Hardware, Network, Services, RemoteAccess, Access, EventLog, Scripts, Wmi];
 
     /// <summary>What a Linux agent sends.</summary>
-    public static readonly IReadOnlyList<string> Linux = [System, Hardware, Network, Services, RemoteAccess, Access, Journal, SshKeys];
+    public static readonly IReadOnlyList<string> Linux = [System, Hardware, Network, Services, RemoteAccess, Access, Journal, SshKeys, OsUpdates];
 
-    public static readonly IReadOnlyList<string> All = [.. Windows, Journal, SshKeys];
+    public static readonly IReadOnlyList<string> All = [.. Windows, Journal, SshKeys, OsUpdates];
 
     public static bool IsKnown(string? name) => name is not null && All.Contains(name);
 

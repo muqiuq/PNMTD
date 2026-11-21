@@ -49,6 +49,8 @@ public static class DomainServicesSetup
         services.AddScoped<AgentServerService>();
         services.AddScoped<DiagnosticsSetService>();
         services.AddScoped<AgentScriptService>();
+        // OS updates on Linux servers (docs/linux-os-updates-plan.md §9).
+        services.AddScoped<OsUpdatesService>();
         // The SSH key manager (docs/linux-sensor-plan.md §6.4, §10).
         services.AddScoped<SshKeyService>();
         // Locations (docs/locations-knowledge-plan.md §3, §4): the tree in memory, the locations, their fields and values.

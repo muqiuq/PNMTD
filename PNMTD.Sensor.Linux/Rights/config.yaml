@@ -20,3 +20,9 @@ scripts:
 collect:
   sudo_commands: false          # sudo's command lines in the logins (they can contain passwords)
   cron_commands: false          # crontab lines in full (by default only the program each line runs)
+
+os_updates:                     # on unless set to false here (docs/linux-os-updates-plan.md §3)
+  update: true                  # PNMT may run apt-get update: daily, and when asked in its OS updates tab
+  upgrade: true                 # PNMT may run apt-get upgrade --with-new-pkgs when a person asks in its OS updates tab
+  full_upgrade: true            # ... and apt-get full-upgrade, which may remove packages (Proxmox VE needs it)
+  changelogs: true              # fetch the pending packages' changelogs, to find the CVEs they fix

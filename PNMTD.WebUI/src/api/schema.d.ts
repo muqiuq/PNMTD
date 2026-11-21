@@ -10372,6 +10372,744 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/linux/servers/{id}/os-updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OsUpdatesView"];
+                        "text/json": components["schemas"]["OsUpdatesView"];
+                        "text/plain": components["schemas"]["OsUpdatesView"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/servers/{id}/os-updates/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    kind?: components["schemas"]["OsUpdateKind"];
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfOsUpdateRunItem"];
+                        "text/json": components["schemas"]["PagedOfOsUpdateRunItem"];
+                        "text/plain": components["schemas"]["PagedOfOsUpdateRunItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/servers/{id}/os-updates/runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    runId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OsUpdateRunDetail"];
+                        "text/json": components["schemas"]["OsUpdateRunDetail"];
+                        "text/plain": components["schemas"]["OsUpdateRunDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/servers/{id}/os-updates/runs/{runId}/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: number;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                    runId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OsUpdateLogPart"];
+                        "text/json": components["schemas"]["OsUpdateLogPart"];
+                        "text/plain": components["schemas"]["OsUpdateLogPart"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/servers/{id}/os-updates/runs/{runId}/log/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    runId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/servers/{id}/os-updates/changelogs/{package}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    package: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OsPackageChangelogView"];
+                        "text/json": components["schemas"]["OsPackageChangelogView"];
+                        "text/plain": components["schemas"]["OsPackageChangelogView"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/servers/{id}/os-updates/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OsUpdateStarted"];
+                        "text/json": components["schemas"]["OsUpdateStarted"];
+                        "text/plain": components["schemas"]["OsUpdateStarted"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/servers/{id}/os-updates/upgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OsUpdateUpgradeRequest"];
+                    "text/json": components["schemas"]["OsUpdateUpgradeRequest"];
+                    "application/*+json": components["schemas"]["OsUpdateUpgradeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OsUpdateStarted"];
+                        "text/json": components["schemas"]["OsUpdateStarted"];
+                        "text/plain": components["schemas"]["OsUpdateStarted"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/servers/{id}/os-updates/runs/{runId}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    runId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OsUpdateRunItem"];
+                        "text/json": components["schemas"]["OsUpdateRunItem"];
+                        "text/plain": components["schemas"]["OsUpdateRunItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/servers/{id}/os-updates/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OsUpdateServerSettings"];
+                    "text/json": components["schemas"]["OsUpdateServerSettings"];
+                    "application/*+json": components["schemas"]["OsUpdateServerSettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OsUpdatesView"];
+                        "text/json": components["schemas"]["OsUpdatesView"];
+                        "text/plain": components["schemas"]["OsUpdatesView"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/servers/{id}/os-updates/findings/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OsFindingAcknowledgeRequest"];
+                    "text/json": components["schemas"]["OsFindingAcknowledgeRequest"];
+                    "application/*+json": components["schemas"]["OsFindingAcknowledgeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OsUpdatesView"];
+                        "text/json": components["schemas"]["OsUpdatesView"];
+                        "text/plain": components["schemas"]["OsUpdatesView"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/servers/{id}/os-updates/findings/{findingId}/acknowledgement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    findingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OsUpdatesView"];
+                        "text/json": components["schemas"]["OsUpdatesView"];
+                        "text/plain": components["schemas"]["OsUpdatesView"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/os-updates/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OsUpdatesSummary"];
+                        "text/json": components["schemas"]["OsUpdatesSummary"];
+                        "text/plain": components["schemas"]["OsUpdatesSummary"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/os-updates/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OsAdvisorySourcesView"];
+                        "text/json": components["schemas"]["OsAdvisorySourcesView"];
+                        "text/plain": components["schemas"]["OsAdvisorySourcesView"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OsAdvisorySourceRequest"];
+                    "text/json": components["schemas"]["OsAdvisorySourceRequest"];
+                    "application/*+json": components["schemas"]["OsAdvisorySourceRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OsAdvisorySourceView"];
+                        "text/json": components["schemas"]["OsAdvisorySourceView"];
+                        "text/plain": components["schemas"]["OsAdvisorySourceView"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/os-updates/sources/{sourceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sourceId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OsAdvisorySourceRequest"];
+                    "text/json": components["schemas"]["OsAdvisorySourceRequest"];
+                    "application/*+json": components["schemas"]["OsAdvisorySourceRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OsAdvisorySourceView"];
+                        "text/json": components["schemas"]["OsAdvisorySourceView"];
+                        "text/plain": components["schemas"]["OsAdvisorySourceView"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sourceId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/os-updates/sources/{sourceId}/fetch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sourceId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/linux/os-updates/advisories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfOsAdvisoryItemView"];
+                        "text/json": components["schemas"]["PagedOfOsAdvisoryItemView"];
+                        "text/plain": components["schemas"]["PagedOfOsAdvisoryItemView"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/locations": {
         parameters: {
             query?: never;
@@ -20896,6 +21634,7 @@ export interface components {
             sudoCommands: boolean;
             cronCommands: boolean;
             warnings?: null | string[];
+            osUpdates?: null | components["schemas"]["OsUpdatesRightsSummary"];
         };
         AgentScriptDetail: {
             /** Format: uuid */
@@ -21315,6 +22054,22 @@ export interface components {
             enforcing: number;
             /** Format: int32 */
             complaining: number;
+        };
+        AptPlan: {
+            /** Format: int32 */
+            upgrade: number;
+            /** Format: int32 */
+            install: number;
+            /** Format: int32 */
+            remove: number;
+            /** Format: int32 */
+            keptBack: number;
+            /** Format: int64 */
+            downloadBytes: null | number;
+            /** Format: int64 */
+            diskBytes: null | number;
+            removals: string[];
+            removalsHash: string;
         };
         /** @enum {unknown} */
         Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors" | "NetworkMap" | "Lounge";
@@ -25707,6 +26462,12 @@ export interface components {
             /** Format: int32 */
             seraphSampleEvery?: number;
         };
+        NeedsRestartInfo: {
+            services: string[];
+            kernelPending: boolean;
+            runningKernel: null | string;
+            expectedKernel: null | string;
+        };
         NetworkAdapterItem: {
             adapter: string;
             mac: string;
@@ -26399,6 +27160,137 @@ export interface components {
             enabled: boolean;
             fix: null | string;
         };
+        OsAdvisoryAssessment: {
+            claims: components["schemas"]["OsAdvisoryClaim"][];
+            summary: null | string;
+            verdicts: {
+                [key: string]: string;
+            };
+            dropped: string[];
+            /** Format: double */
+            injectionProbability: null | number;
+        };
+        OsAdvisoryClaim: {
+            cve: string;
+            packages: string[];
+            exploitedInTheWild: boolean;
+            zeroDay: boolean;
+            remoteWithoutCredentials: boolean;
+            quote: string;
+        };
+        OsAdvisoryItemView: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            sourceId: string;
+            sourceName: string;
+            title: string;
+            link: null | string;
+            /** Format: date-time */
+            publishedAt: null | string;
+            /** Format: date-time */
+            firstSeenAt: string;
+            cves: string[];
+            keywords: string[];
+            assessedBy: string;
+            /** Format: date-time */
+            assessedAt: null | string;
+            assessment: null | components["schemas"]["OsAdvisoryAssessment"];
+        };
+        OsAdvisoryRole: {
+            role: string;
+            label: string;
+            working: string[];
+            covered: boolean;
+        };
+        /** @enum {unknown} */
+        OsAdvisorySourceKind: "DebianTracker" | "UbuntuNotices" | "CisaKev" | "Epss" | "Rss";
+        OsAdvisorySourceRequest: {
+            kind: components["schemas"]["OsAdvisorySourceKind"];
+            name: string;
+            url: string;
+            enabled: boolean;
+            /** Format: int32 */
+            intervalMinutes: number;
+        };
+        OsAdvisorySourcesView: {
+            checkEnabled: boolean;
+            aiEnabled: boolean;
+            sources: components["schemas"]["OsAdvisorySourceView"][];
+            roles: components["schemas"]["OsAdvisoryRole"][];
+            /** Format: double */
+            highRiskEpssPercentile: number;
+            /** Format: double */
+            importantEpssPercentile: number;
+            /** Format: int32 */
+            staleHours: number;
+            allowPrivateAddresses: boolean;
+            state: string;
+            ok: boolean;
+            /** Format: int32 */
+            acknowledgeMaxDays: number;
+        };
+        OsAdvisorySourceView: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["OsAdvisorySourceKind"];
+            role: null | string;
+            name: string;
+            url: string;
+            enabled: boolean;
+            /** Format: int32 */
+            intervalMinutes: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastFetchAt: null | string;
+            /** Format: date-time */
+            lastSuccessAt: null | string;
+            /** Format: int32 */
+            entries: number;
+            error: null | string;
+            stale: boolean;
+        };
+        OsFindingAcknowledgement: {
+            byName: null | string;
+            reason: string;
+            /** Format: date-time */
+            at: string;
+            /** Format: date-time */
+            until: string;
+        };
+        OsFindingAcknowledgeRequest: {
+            findingIds: string[];
+            reason: string;
+            /** Format: int32 */
+            days: number;
+        };
+        /** @enum {unknown} */
+        OsFindingRating: "Important" | "HighRisk" | null;
+        OsFindingReason: {
+            kind: string;
+            high: boolean;
+            source: string;
+            detail: string;
+            link: null | string;
+        };
+        OsFindingView: {
+            /** Format: uuid */
+            id: string;
+            sourcePackage: string;
+            cve: string;
+            packages: string;
+            installed: null | string;
+            candidate: string;
+            rating: components["schemas"]["OsFindingRating"];
+            reasons: components["schemas"]["OsFindingReason"][];
+            /** Format: date-time */
+            firstSeenAt: string;
+            acknowledgement: null | components["schemas"]["OsFindingAcknowledgement"];
+            /** Format: date-time */
+            acknowledgementEndedAt: null | string;
+            acknowledgementEndedReason: null | string;
+        };
         OsInfo: {
             caption: string;
             edition: null | string;
@@ -26415,6 +27307,256 @@ export interface components {
             productType: null | string;
             activation?: null | components["schemas"]["ActivationInfo"];
         };
+        OsPackageChangelogView: {
+            source: string;
+            version: string;
+            installedVersion: null | string;
+            cves: string[];
+            urgencies: string[];
+            text: string;
+            fetchedFrom: null | string;
+            /** Format: date-time */
+            receivedAt: string;
+        };
+        OsPendingPackageView: {
+            name: string;
+            arch: string;
+            installed: null | string;
+            candidate: string;
+            source: string;
+            sourceVersion: string;
+            origin: null | string;
+            security: boolean;
+            inUpgrade: boolean;
+            phased: boolean;
+            /** Format: date-time */
+            firstSeenAt: string;
+            cves: string[];
+            rating: null | components["schemas"]["OsFindingRating"];
+            hasChangelog: boolean;
+        };
+        OsUpdateCounts: {
+            /** Format: int32 */
+            upgraded: number;
+            /** Format: int32 */
+            installed: number;
+            /** Format: int32 */
+            removed: number;
+            /** Format: int32 */
+            warnings: number;
+            /** Format: int32 */
+            errors: number;
+            /** Format: int32 */
+            servicesToRestart: number;
+            rebootRequired: boolean;
+            /** Format: int32 */
+            repositoriesReached: number;
+            /** Format: int32 */
+            repositoriesFailed: number;
+            /** Format: int32 */
+            configFilesKept: number;
+        };
+        /** @enum {unknown} */
+        OsUpdateKind: "Update" | "Upgrade";
+        OsUpdateLogPart: {
+            text: string;
+            /** Format: int64 */
+            nextOffset: number;
+            finished: boolean;
+            /** Format: int64 */
+            totalBytes: number;
+            truncated: boolean;
+            incomplete: boolean;
+        };
+        OsUpdateRunDetail: {
+            run: components["schemas"]["OsUpdateRunItem"];
+            summary: null | components["schemas"]["OsUpdateSummary"];
+        };
+        OsUpdateRunItem: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["OsUpdateKind"];
+            mode: null | components["schemas"]["OsUpgradeMode"];
+            trigger: components["schemas"]["OsUpdateTrigger"];
+            requestedByName: null | string;
+            /** Format: date-time */
+            requestedAt: string;
+            /** Format: date-time */
+            startedAt: null | string;
+            /** Format: date-time */
+            finishedAt: null | string;
+            state: components["schemas"]["OsUpdateState"];
+            /** Format: int32 */
+            exitCode: null | number;
+            message: null | string;
+            command: null | string;
+            /** Format: int64 */
+            logBytes: number;
+            logTruncated: boolean;
+            logIncomplete: boolean;
+            takingLong: boolean;
+            dismissed: boolean;
+            counts: components["schemas"]["OsUpdateCounts"];
+            waiting: boolean;
+        };
+        OsUpdateServerSettings: {
+            enabled: boolean;
+            highRiskEvents: boolean;
+            updateFailedEvents: boolean;
+        };
+        OsUpdatesPackageRow: {
+            source: string;
+            version: string;
+            /** Format: int32 */
+            serverCount: number;
+            servers: string[];
+            security: boolean;
+            rating: null | components["schemas"]["OsFindingRating"];
+            cves: string[];
+        };
+        OsUpdatesRightsSummary: {
+            update: boolean;
+            upgrade: boolean;
+            fullUpgrade: boolean;
+            changelogs: boolean;
+        };
+        OsUpdatesServerRow: {
+            /** Format: uuid */
+            sensorId: string;
+            name: string;
+            hostName: string;
+            /** Format: int32 */
+            pending: number;
+            /** Format: int32 */
+            security: number;
+            /** Format: int32 */
+            highRisk: number;
+            /** Format: int32 */
+            highRiskAcknowledged: number;
+            /** Format: date-time */
+            acknowledgedUntil: null | string;
+            rebootRequired: boolean;
+            listsStale: boolean;
+            /** Format: date-time */
+            listsUpdatedAt: null | string;
+            failed: boolean;
+            running: boolean;
+            failedMessage: null | string;
+        };
+        OsUpdatesSummary: {
+            enabled: boolean;
+            checkEnabled: boolean;
+            /** Format: int32 */
+            servers: number;
+            /** Format: int32 */
+            serversWithUpdates: number;
+            /** Format: int32 */
+            packages: number;
+            /** Format: int32 */
+            security: number;
+            /** Format: int32 */
+            highRisk: number;
+            /** Format: int32 */
+            highRiskAcknowledged: number;
+            /** Format: int32 */
+            failed: number;
+            /** Format: int32 */
+            listsStale: number;
+            /** Format: int32 */
+            running: number;
+            byServer: components["schemas"]["OsUpdatesServerRow"][];
+            byPackage: components["schemas"]["OsUpdatesPackageRow"][];
+        };
+        OsUpdateStarted: {
+            /** Format: uuid */
+            runId: string;
+            state: components["schemas"]["OsUpdateState"];
+            message: null | string;
+        };
+        /** @enum {unknown} */
+        OsUpdateState: "Requested" | "Refused" | "Running" | "Succeeded" | "Warnings" | "Failed" | "Lost";
+        OsUpdateSummary: {
+            upgraded: components["schemas"]["PackageChange"][];
+            installed: components["schemas"]["PackageChange"][];
+            removed: components["schemas"]["PackageChange"][];
+            configFilesKept: string[];
+            servicesToRestart: string[];
+            rebootRequired: boolean;
+            warnings: string[];
+            errors: string[];
+            /**
+             * Format: int32
+             * @default 0
+             */
+            repositoriesReached: number;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            repositoriesFailed: number;
+            fetched?: null | string;
+        };
+        OsUpdatesView: {
+            /** Format: uuid */
+            sensorId: string;
+            hostname: string;
+            enabled: boolean;
+            checkEnabled: boolean;
+            connected: boolean;
+            capable: boolean;
+            unavailable: null | string;
+            rights: null | components["schemas"]["OsUpdatesRightsSummary"];
+            rightsRefused: boolean;
+            distribution: null | string;
+            proxmox: boolean;
+            /** Format: date-time */
+            listsUpdatedAt: null | string;
+            /** Format: date-time */
+            nextUpdateAt: null | string;
+            dailyUpdate: boolean;
+            windowStart: string;
+            /** Format: int32 */
+            windowMinutes: number;
+            /** Format: int32 */
+            pending: number;
+            /** Format: int32 */
+            security: number;
+            /** Format: int32 */
+            highRisk: number;
+            /** Format: int32 */
+            highRiskAcknowledged: number;
+            /** Format: int32 */
+            important: number;
+            dpkgInterrupted: boolean;
+            rebootRequired: boolean;
+            rebootPackages: string[];
+            needsRestart: null | components["schemas"]["NeedsRestartInfo"];
+            warnings: string[];
+            phasedDeferred: string[];
+            upgrade: null | components["schemas"]["AptPlan"];
+            fullUpgrade: null | components["schemas"]["AptPlan"];
+            defaultMode: components["schemas"]["OsUpgradeMode"];
+            current: null | components["schemas"]["OsUpdateRunItem"];
+            lastUpdate: null | components["schemas"]["OsUpdateRunItem"];
+            lastUpgrade: null | components["schemas"]["OsUpdateRunItem"];
+            packages: components["schemas"]["OsPendingPackageView"][];
+            findings: components["schemas"]["OsFindingView"][];
+            settings: components["schemas"]["OsUpdateServerSettings"];
+            updateFailedMessage: null | string;
+            highRiskMessage: null | string;
+            /** Format: int32 */
+            upgradeWarnMinutes: number;
+            /** Format: int32 */
+            acknowledgeMaxDays: number;
+        };
+        /** @enum {unknown} */
+        OsUpdateTrigger: "Schedule" | "Person" | "Server" | "External";
+        OsUpdateUpgradeRequest: {
+            mode: components["schemas"]["OsUpgradeMode"];
+            removalsHash: null | string;
+        };
+        /** @enum {unknown} */
+        OsUpgradeMode: "Upgrade" | "FullUpgrade";
         /** @enum {unknown} */
         OutboundChannel: "Email" | "Pushover" | "Http";
         OutboundDetail: {
@@ -26549,6 +27691,12 @@ export interface components {
             /** Format: date-time */
             at: null | string;
             cases: components["schemas"]["CookieCaseRef"][];
+        };
+        PackageChange: {
+            name: string;
+            arch: null | string;
+            from: null | string;
+            to: null | string;
         };
         PacketField: {
             /** Format: int32 */
@@ -26931,6 +28079,24 @@ export interface components {
         };
         PagedOfNotificationRuleItem: {
             items: components["schemas"]["NotificationRuleItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfOsAdvisoryItemView: {
+            items: components["schemas"]["OsAdvisoryItemView"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfOsUpdateRunItem: {
+            items: components["schemas"]["OsUpdateRunItem"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */

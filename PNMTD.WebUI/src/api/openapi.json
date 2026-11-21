@@ -13188,6 +13188,897 @@
         }
       }
     },
+    "/api/v1/linux/servers/{id}/os-updates": {
+      "get": {
+        "tags": [
+          "LinuxOsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdatesView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdatesView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdatesView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/linux/servers/{id}/os-updates/runs": {
+      "get": {
+        "tags": [
+          "LinuxOsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/OsUpdateKind"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfOsUpdateRunItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfOsUpdateRunItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfOsUpdateRunItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/linux/servers/{id}/os-updates/runs/{runId}": {
+      "get": {
+        "tags": [
+          "LinuxOsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdateRunDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdateRunDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdateRunDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/linux/servers/{id}/os-updates/runs/{runId}/log": {
+      "get": {
+        "tags": [
+          "LinuxOsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdateLogPart"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdateLogPart"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdateLogPart"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/linux/servers/{id}/os-updates/runs/{runId}/log/download": {
+      "get": {
+        "tags": [
+          "LinuxOsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/linux/servers/{id}/os-updates/changelogs/{package}": {
+      "get": {
+        "tags": [
+          "LinuxOsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "package",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsPackageChangelogView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsPackageChangelogView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsPackageChangelogView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/linux/servers/{id}/os-updates/update": {
+      "post": {
+        "tags": [
+          "LinuxOsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdateStarted"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdateStarted"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdateStarted"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/linux/servers/{id}/os-updates/upgrade": {
+      "post": {
+        "tags": [
+          "LinuxOsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OsUpdateUpgradeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OsUpdateUpgradeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OsUpdateUpgradeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdateStarted"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdateStarted"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdateStarted"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/linux/servers/{id}/os-updates/runs/{runId}/dismiss": {
+      "post": {
+        "tags": [
+          "LinuxOsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdateRunItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdateRunItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdateRunItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/linux/servers/{id}/os-updates/settings": {
+      "put": {
+        "tags": [
+          "LinuxOsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OsUpdateServerSettings"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OsUpdateServerSettings"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OsUpdateServerSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdatesView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdatesView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdatesView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/linux/servers/{id}/os-updates/findings/acknowledge": {
+      "post": {
+        "tags": [
+          "LinuxOsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OsFindingAcknowledgeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OsFindingAcknowledgeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OsFindingAcknowledgeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdatesView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdatesView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdatesView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/linux/servers/{id}/os-updates/findings/{findingId}/acknowledgement": {
+      "delete": {
+        "tags": [
+          "LinuxOsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "findingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdatesView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdatesView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdatesView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/linux/os-updates/summary": {
+      "get": {
+        "tags": [
+          "OsUpdates"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdatesSummary"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdatesSummary"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsUpdatesSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/linux/os-updates/sources": {
+      "get": {
+        "tags": [
+          "OsUpdates"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsAdvisorySourcesView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsAdvisorySourcesView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsAdvisorySourcesView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "OsUpdates"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OsAdvisorySourceRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OsAdvisorySourceRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OsAdvisorySourceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsAdvisorySourceView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsAdvisorySourceView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsAdvisorySourceView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/linux/os-updates/sources/{sourceId}": {
+      "put": {
+        "tags": [
+          "OsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OsAdvisorySourceRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OsAdvisorySourceRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OsAdvisorySourceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsAdvisorySourceView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsAdvisorySourceView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OsAdvisorySourceView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "OsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/linux/os-updates/sources/{sourceId}/fetch": {
+      "post": {
+        "tags": [
+          "OsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/linux/os-updates/advisories": {
+      "get": {
+        "tags": [
+          "OsUpdates"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfOsAdvisoryItemView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfOsAdvisoryItemView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfOsAdvisoryItemView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/locations": {
       "get": {
         "tags": [
@@ -29040,6 +29931,16 @@
             "items": {
               "type": "string"
             }
+          },
+          "osUpdates": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OsUpdatesRightsSummary"
+              }
+            ]
           }
         }
       },
@@ -30751,6 +31652,60 @@
           "complaining": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "AptPlan": {
+        "required": [
+          "upgrade",
+          "install",
+          "remove",
+          "keptBack",
+          "downloadBytes",
+          "diskBytes",
+          "removals",
+          "removalsHash"
+        ],
+        "type": "object",
+        "properties": {
+          "upgrade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "install": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "remove": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "keptBack": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "downloadBytes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "diskBytes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "removals": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "removalsHash": {
+            "type": "string"
           }
         }
       },
@@ -48818,6 +49773,38 @@
           }
         }
       },
+      "NeedsRestartInfo": {
+        "required": [
+          "services",
+          "kernelPending",
+          "runningKernel",
+          "expectedKernel"
+        ],
+        "type": "object",
+        "properties": {
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kernelPending": {
+            "type": "boolean"
+          },
+          "runningKernel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expectedKernel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "NetworkAdapterItem": {
         "required": [
           "adapter",
@@ -51539,6 +52526,532 @@
           }
         }
       },
+      "OsAdvisoryAssessment": {
+        "required": [
+          "claims",
+          "summary",
+          "verdicts",
+          "dropped",
+          "injectionProbability"
+        ],
+        "type": "object",
+        "properties": {
+          "claims": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OsAdvisoryClaim"
+            }
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "verdicts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "dropped": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "injectionProbability": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "OsAdvisoryClaim": {
+        "required": [
+          "cve",
+          "packages",
+          "exploitedInTheWild",
+          "zeroDay",
+          "remoteWithoutCredentials",
+          "quote"
+        ],
+        "type": "object",
+        "properties": {
+          "cve": {
+            "type": "string"
+          },
+          "packages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "exploitedInTheWild": {
+            "type": "boolean"
+          },
+          "zeroDay": {
+            "type": "boolean"
+          },
+          "remoteWithoutCredentials": {
+            "type": "boolean"
+          },
+          "quote": {
+            "type": "string"
+          }
+        }
+      },
+      "OsAdvisoryItemView": {
+        "required": [
+          "id",
+          "sourceId",
+          "sourceName",
+          "title",
+          "link",
+          "publishedAt",
+          "firstSeenAt",
+          "cves",
+          "keywords",
+          "assessedBy",
+          "assessedAt",
+          "assessment"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceName": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "link": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "firstSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cves": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assessedBy": {
+            "type": "string"
+          },
+          "assessedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "assessment": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OsAdvisoryAssessment"
+              }
+            ]
+          }
+        }
+      },
+      "OsAdvisoryRole": {
+        "required": [
+          "role",
+          "label",
+          "working",
+          "covered"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "working": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "covered": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OsAdvisorySourceKind": {
+        "enum": [
+          "DebianTracker",
+          "UbuntuNotices",
+          "CisaKev",
+          "Epss",
+          "Rss"
+        ]
+      },
+      "OsAdvisorySourceRequest": {
+        "required": [
+          "kind",
+          "name",
+          "url",
+          "enabled",
+          "intervalMinutes"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/OsAdvisorySourceKind"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "intervalMinutes": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "OsAdvisorySourcesView": {
+        "required": [
+          "checkEnabled",
+          "aiEnabled",
+          "sources",
+          "roles",
+          "highRiskEpssPercentile",
+          "importantEpssPercentile",
+          "staleHours",
+          "allowPrivateAddresses",
+          "state",
+          "ok",
+          "acknowledgeMaxDays"
+        ],
+        "type": "object",
+        "properties": {
+          "checkEnabled": {
+            "type": "boolean"
+          },
+          "aiEnabled": {
+            "type": "boolean"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OsAdvisorySourceView"
+            }
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OsAdvisoryRole"
+            }
+          },
+          "highRiskEpssPercentile": {
+            "type": "number",
+            "format": "double"
+          },
+          "importantEpssPercentile": {
+            "type": "number",
+            "format": "double"
+          },
+          "staleHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "allowPrivateAddresses": {
+            "type": "boolean"
+          },
+          "state": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "acknowledgeMaxDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "OsAdvisorySourceView": {
+        "required": [
+          "id",
+          "kind",
+          "role",
+          "name",
+          "url",
+          "enabled",
+          "intervalMinutes",
+          "createdAt",
+          "lastFetchAt",
+          "lastSuccessAt",
+          "entries",
+          "error",
+          "stale"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/OsAdvisorySourceKind"
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "intervalMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastFetchAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastSuccessAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "entries": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "stale": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OsFindingAcknowledgement": {
+        "required": [
+          "byName",
+          "reason",
+          "at",
+          "until"
+        ],
+        "type": "object",
+        "properties": {
+          "byName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "until": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OsFindingAcknowledgeRequest": {
+        "required": [
+          "findingIds",
+          "reason",
+          "days"
+        ],
+        "type": "object",
+        "properties": {
+          "findingIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "reason": {
+            "type": "string"
+          },
+          "days": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "OsFindingRating": {
+        "enum": [
+          "Important",
+          "HighRisk",
+          null
+        ]
+      },
+      "OsFindingReason": {
+        "required": [
+          "kind",
+          "high",
+          "source",
+          "detail",
+          "link"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "high": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "link": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "OsFindingView": {
+        "required": [
+          "id",
+          "sourcePackage",
+          "cve",
+          "packages",
+          "installed",
+          "candidate",
+          "rating",
+          "reasons",
+          "firstSeenAt",
+          "acknowledgement",
+          "acknowledgementEndedAt",
+          "acknowledgementEndedReason"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourcePackage": {
+            "type": "string"
+          },
+          "cve": {
+            "type": "string"
+          },
+          "packages": {
+            "type": "string"
+          },
+          "installed": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "candidate": {
+            "type": "string"
+          },
+          "rating": {
+            "$ref": "#/components/schemas/OsFindingRating"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OsFindingReason"
+            }
+          },
+          "firstSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "acknowledgement": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OsFindingAcknowledgement"
+              }
+            ]
+          },
+          "acknowledgementEndedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "acknowledgementEndedReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "OsInfo": {
         "required": [
           "caption",
@@ -51625,6 +53138,1015 @@
             ]
           }
         }
+      },
+      "OsPackageChangelogView": {
+        "required": [
+          "source",
+          "version",
+          "installedVersion",
+          "cves",
+          "urgencies",
+          "text",
+          "fetchedFrom",
+          "receivedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "installedVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cves": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "urgencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "text": {
+            "type": "string"
+          },
+          "fetchedFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OsPendingPackageView": {
+        "required": [
+          "name",
+          "arch",
+          "installed",
+          "candidate",
+          "source",
+          "sourceVersion",
+          "origin",
+          "security",
+          "inUpgrade",
+          "phased",
+          "firstSeenAt",
+          "cves",
+          "rating",
+          "hasChangelog"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "arch": {
+            "type": "string"
+          },
+          "installed": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "candidate": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "sourceVersion": {
+            "type": "string"
+          },
+          "origin": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "security": {
+            "type": "boolean"
+          },
+          "inUpgrade": {
+            "type": "boolean"
+          },
+          "phased": {
+            "type": "boolean"
+          },
+          "firstSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cves": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rating": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OsFindingRating"
+              }
+            ]
+          },
+          "hasChangelog": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OsUpdateCounts": {
+        "required": [
+          "upgraded",
+          "installed",
+          "removed",
+          "warnings",
+          "errors",
+          "servicesToRestart",
+          "rebootRequired",
+          "repositoriesReached",
+          "repositoriesFailed",
+          "configFilesKept"
+        ],
+        "type": "object",
+        "properties": {
+          "upgraded": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "installed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "removed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warnings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errors": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "servicesToRestart": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rebootRequired": {
+            "type": "boolean"
+          },
+          "repositoriesReached": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "repositoriesFailed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "configFilesKept": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "OsUpdateKind": {
+        "enum": [
+          "Update",
+          "Upgrade"
+        ]
+      },
+      "OsUpdateLogPart": {
+        "required": [
+          "text",
+          "nextOffset",
+          "finished",
+          "totalBytes",
+          "truncated",
+          "incomplete"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "nextOffset": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "finished": {
+            "type": "boolean"
+          },
+          "totalBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "incomplete": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OsUpdateRunDetail": {
+        "required": [
+          "run",
+          "summary"
+        ],
+        "type": "object",
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/OsUpdateRunItem"
+          },
+          "summary": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OsUpdateSummary"
+              }
+            ]
+          }
+        }
+      },
+      "OsUpdateRunItem": {
+        "required": [
+          "id",
+          "kind",
+          "mode",
+          "trigger",
+          "requestedByName",
+          "requestedAt",
+          "startedAt",
+          "finishedAt",
+          "state",
+          "exitCode",
+          "message",
+          "command",
+          "logBytes",
+          "logTruncated",
+          "logIncomplete",
+          "takingLong",
+          "dismissed",
+          "counts",
+          "waiting"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/OsUpdateKind"
+          },
+          "mode": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OsUpgradeMode"
+              }
+            ]
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/OsUpdateTrigger"
+          },
+          "requestedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "state": {
+            "$ref": "#/components/schemas/OsUpdateState"
+          },
+          "exitCode": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "command": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "logBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "logTruncated": {
+            "type": "boolean"
+          },
+          "logIncomplete": {
+            "type": "boolean"
+          },
+          "takingLong": {
+            "type": "boolean"
+          },
+          "dismissed": {
+            "type": "boolean"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/OsUpdateCounts"
+          },
+          "waiting": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OsUpdateServerSettings": {
+        "required": [
+          "enabled",
+          "highRiskEvents",
+          "updateFailedEvents"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "highRiskEvents": {
+            "type": "boolean"
+          },
+          "updateFailedEvents": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OsUpdatesPackageRow": {
+        "required": [
+          "source",
+          "version",
+          "serverCount",
+          "servers",
+          "security",
+          "rating",
+          "cves"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "serverCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "servers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "security": {
+            "type": "boolean"
+          },
+          "rating": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OsFindingRating"
+              }
+            ]
+          },
+          "cves": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "OsUpdatesRightsSummary": {
+        "required": [
+          "update",
+          "upgrade",
+          "fullUpgrade",
+          "changelogs"
+        ],
+        "type": "object",
+        "properties": {
+          "update": {
+            "type": "boolean"
+          },
+          "upgrade": {
+            "type": "boolean"
+          },
+          "fullUpgrade": {
+            "type": "boolean"
+          },
+          "changelogs": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OsUpdatesServerRow": {
+        "required": [
+          "sensorId",
+          "name",
+          "hostName",
+          "pending",
+          "security",
+          "highRisk",
+          "highRiskAcknowledged",
+          "acknowledgedUntil",
+          "rebootRequired",
+          "listsStale",
+          "listsUpdatedAt",
+          "failed",
+          "running",
+          "failedMessage"
+        ],
+        "type": "object",
+        "properties": {
+          "sensorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "hostName": {
+            "type": "string"
+          },
+          "pending": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "security": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "highRisk": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "highRiskAcknowledged": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "acknowledgedUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "rebootRequired": {
+            "type": "boolean"
+          },
+          "listsStale": {
+            "type": "boolean"
+          },
+          "listsUpdatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "failed": {
+            "type": "boolean"
+          },
+          "running": {
+            "type": "boolean"
+          },
+          "failedMessage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "OsUpdatesSummary": {
+        "required": [
+          "enabled",
+          "checkEnabled",
+          "servers",
+          "serversWithUpdates",
+          "packages",
+          "security",
+          "highRisk",
+          "highRiskAcknowledged",
+          "failed",
+          "listsStale",
+          "running",
+          "byServer",
+          "byPackage"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "checkEnabled": {
+            "type": "boolean"
+          },
+          "servers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "serversWithUpdates": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "packages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "security": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "highRisk": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "highRiskAcknowledged": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "listsStale": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "running": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "byServer": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OsUpdatesServerRow"
+            }
+          },
+          "byPackage": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OsUpdatesPackageRow"
+            }
+          }
+        }
+      },
+      "OsUpdateStarted": {
+        "required": [
+          "runId",
+          "state",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/OsUpdateState"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "OsUpdateState": {
+        "enum": [
+          "Requested",
+          "Refused",
+          "Running",
+          "Succeeded",
+          "Warnings",
+          "Failed",
+          "Lost"
+        ]
+      },
+      "OsUpdateSummary": {
+        "required": [
+          "upgraded",
+          "installed",
+          "removed",
+          "configFilesKept",
+          "servicesToRestart",
+          "rebootRequired",
+          "warnings",
+          "errors"
+        ],
+        "type": "object",
+        "properties": {
+          "upgraded": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageChange"
+            }
+          },
+          "installed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageChange"
+            }
+          },
+          "removed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageChange"
+            }
+          },
+          "configFilesKept": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "servicesToRestart": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rebootRequired": {
+            "type": "boolean"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "repositoriesReached": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "repositoriesFailed": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "fetched": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "OsUpdatesView": {
+        "required": [
+          "sensorId",
+          "hostname",
+          "enabled",
+          "checkEnabled",
+          "connected",
+          "capable",
+          "unavailable",
+          "rights",
+          "rightsRefused",
+          "distribution",
+          "proxmox",
+          "listsUpdatedAt",
+          "nextUpdateAt",
+          "dailyUpdate",
+          "windowStart",
+          "windowMinutes",
+          "pending",
+          "security",
+          "highRisk",
+          "highRiskAcknowledged",
+          "important",
+          "dpkgInterrupted",
+          "rebootRequired",
+          "rebootPackages",
+          "needsRestart",
+          "warnings",
+          "phasedDeferred",
+          "upgrade",
+          "fullUpgrade",
+          "defaultMode",
+          "current",
+          "lastUpdate",
+          "lastUpgrade",
+          "packages",
+          "findings",
+          "settings",
+          "updateFailedMessage",
+          "highRiskMessage",
+          "upgradeWarnMinutes",
+          "acknowledgeMaxDays"
+        ],
+        "type": "object",
+        "properties": {
+          "sensorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "hostname": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "checkEnabled": {
+            "type": "boolean"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "capable": {
+            "type": "boolean"
+          },
+          "unavailable": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rights": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OsUpdatesRightsSummary"
+              }
+            ]
+          },
+          "rightsRefused": {
+            "type": "boolean"
+          },
+          "distribution": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "proxmox": {
+            "type": "boolean"
+          },
+          "listsUpdatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "nextUpdateAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "dailyUpdate": {
+            "type": "boolean"
+          },
+          "windowStart": {
+            "type": "string"
+          },
+          "windowMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pending": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "security": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "highRisk": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "highRiskAcknowledged": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "important": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dpkgInterrupted": {
+            "type": "boolean"
+          },
+          "rebootRequired": {
+            "type": "boolean"
+          },
+          "rebootPackages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "needsRestart": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NeedsRestartInfo"
+              }
+            ]
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "phasedDeferred": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "upgrade": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AptPlan"
+              }
+            ]
+          },
+          "fullUpgrade": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AptPlan"
+              }
+            ]
+          },
+          "defaultMode": {
+            "$ref": "#/components/schemas/OsUpgradeMode"
+          },
+          "current": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OsUpdateRunItem"
+              }
+            ]
+          },
+          "lastUpdate": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OsUpdateRunItem"
+              }
+            ]
+          },
+          "lastUpgrade": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OsUpdateRunItem"
+              }
+            ]
+          },
+          "packages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OsPendingPackageView"
+            }
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OsFindingView"
+            }
+          },
+          "settings": {
+            "$ref": "#/components/schemas/OsUpdateServerSettings"
+          },
+          "updateFailedMessage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "highRiskMessage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "upgradeWarnMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "acknowledgeMaxDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "OsUpdateTrigger": {
+        "enum": [
+          "Schedule",
+          "Person",
+          "Server",
+          "External"
+        ]
+      },
+      "OsUpdateUpgradeRequest": {
+        "required": [
+          "mode",
+          "removalsHash"
+        ],
+        "type": "object",
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/OsUpgradeMode"
+          },
+          "removalsHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "OsUpgradeMode": {
+        "enum": [
+          "Upgrade",
+          "FullUpgrade"
+        ]
       },
       "OutboundChannel": {
         "enum": [
@@ -51984,6 +54506,38 @@
             "items": {
               "$ref": "#/components/schemas/CookieCaseRef"
             }
+          }
+        }
+      },
+      "PackageChange": {
+        "required": [
+          "name",
+          "arch",
+          "from",
+          "to"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "arch": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "to": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -53230,6 +55784,64 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/NotificationRuleItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfOsAdvisoryItemView": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OsAdvisoryItemView"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfOsUpdateRunItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OsUpdateRunItem"
             }
           },
           "page": {
@@ -64701,6 +67313,12 @@
     },
     {
       "name": "LinuxServers"
+    },
+    {
+      "name": "LinuxOsUpdates"
+    },
+    {
+      "name": "OsUpdates"
     },
     {
       "name": "Locations"

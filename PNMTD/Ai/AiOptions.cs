@@ -107,6 +107,9 @@ public sealed class AiOptions
 
         public int RouterOsRate { get; set; } = 800;
 
+        /// <summary>An advisory text's claims (docs/linux-os-updates-plan.md §7): <c>Ai__Tokens__OsAdvisoryRate</c>.</summary>
+        public int OsAdvisoryRate { get; set; } = 900;
+
         public int KbTags { get; set; } = 400;
 
         public int Verify { get; set; } = 600;

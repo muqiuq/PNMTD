@@ -494,6 +494,27 @@ public sealed class EndpointAuditTests
         ["DELETE /api/v1/windows/run-as/{id:guid}"] = ("Servers:Manage", Roles.Admin),
         // Linux's own (docs/linux-sensor-plan.md §10): the typed sections; access, journal and ssh-keys check CanWrite inside.
         ["GET /api/v1/linux/servers/{id:guid}/sections/{section}"] = ("Monitoring:View", Roles.Viewer),
+        // OS updates (docs/linux-os-updates-plan.md §9): the state for everyone who sees the server; runs and acknowledgements need Servers: Run
+        // (new in 1.19, below Manage), the switches and the advisory sources Servers: Manage.
+        ["GET /api/v1/linux/servers/{id:guid}/os-updates"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/linux/servers/{id:guid}/os-updates/runs"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/linux/servers/{id:guid}/os-updates/runs/{runId:guid}"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/linux/servers/{id:guid}/os-updates/runs/{runId:guid}/log"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/linux/servers/{id:guid}/os-updates/runs/{runId:guid}/log/download"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/linux/servers/{id:guid}/os-updates/changelogs/{package}"] = ("Monitoring:View", Roles.Viewer),
+        ["POST /api/v1/linux/servers/{id:guid}/os-updates/update"] = ("Servers:Run", Roles.Admin),
+        ["POST /api/v1/linux/servers/{id:guid}/os-updates/upgrade"] = ("Servers:Run", Roles.Admin),
+        ["POST /api/v1/linux/servers/{id:guid}/os-updates/runs/{runId:guid}/dismiss"] = ("Servers:Run", Roles.Admin),
+        ["PUT /api/v1/linux/servers/{id:guid}/os-updates/settings"] = ("Servers:Manage", Roles.Admin),
+        ["POST /api/v1/linux/servers/{id:guid}/os-updates/findings/acknowledge"] = ("Servers:Run", Roles.Admin),
+        ["DELETE /api/v1/linux/servers/{id:guid}/os-updates/findings/{findingId:guid}/acknowledgement"] = ("Servers:Run", Roles.Admin),
+        ["GET /api/v1/linux/os-updates/summary"] = ("Monitoring:View", Roles.Viewer),
+        ["GET /api/v1/linux/os-updates/sources"] = ("Servers:Manage", Roles.Admin),
+        ["POST /api/v1/linux/os-updates/sources"] = ("Servers:Manage", Roles.Admin),
+        ["PUT /api/v1/linux/os-updates/sources/{sourceId:guid}"] = ("Servers:Manage", Roles.Admin),
+        ["DELETE /api/v1/linux/os-updates/sources/{sourceId:guid}"] = ("Servers:Manage", Roles.Admin),
+        ["POST /api/v1/linux/os-updates/sources/{sourceId:guid}/fetch"] = ("Servers:Manage", Roles.Admin),
+        ["GET /api/v1/linux/os-updates/advisories"] = ("Servers:Manage", Roles.Admin),
         // The SSH key manager (docs/linux-sensor-plan.md §6.4, §6.5, §10): Admin, so nobody vouches for a key by registering it; a
         // user's own keys for every role.
         ["GET /api/v1/ssh-keys"] = ("SshKeys:Manage", Roles.Admin),

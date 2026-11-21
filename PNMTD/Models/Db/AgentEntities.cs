@@ -250,6 +250,51 @@ public class AgentEntity
     [MaxLength(200)]
     public string? Distribution { get; set; }
 
+    // --- OS updates (docs/linux-os-updates-plan.md §5.2, migration AddOsUpdates) ------------------------------------------------
+
+    /// <summary>Linux: OS updates in PNMT for this server (§3): the daily update and the buttons. On by default.</summary>
+    public bool OsUpdatesEnabled { get; set; } = true;
+
+    /// <summary>Linux: 466 while a pending update fixes a high-risk vulnerability (§5.4). On by default; it needs the check on.</summary>
+    public bool HighRiskEvents { get; set; } = true;
+
+    /// <summary>Linux: 467 for a failed upgrade, interrupted dpkg, or lists not refreshed for days (§5.4). On by default.</summary>
+    public bool UpdateFailedEvents { get; set; } = true;
+
+    /// <summary>Linux: the pending packages and those from a security archive, from the os-updates section.</summary>
+    [AuditIgnore]
+    public int PendingUpdates { get; set; }
+
+    [AuditIgnore]
+    public int PendingSecurity { get; set; }
+
+    /// <summary>Linux: 466's message while unacknowledged high-risk findings are pending (the evaluator keeps it), or null.</summary>
+    [AuditIgnore]
+    [MaxLength(2000)]
+    public string? HighRiskMessage { get; set; }
+
+    /// <summary>Linux: 467's message while it applies, or null.</summary>
+    [AuditIgnore]
+    [MaxLength(2000)]
+    public string? UpdateFailedMessage { get; set; }
+
+    /// <summary>Linux: when the lists were last refreshed, from the os-updates section.</summary>
+    [AuditIgnore]
+    public DateTime? ListsUpdatedAt { get; set; }
+
+    /// <summary>Linux: the last upgrade that ended, of any trigger.</summary>
+    [AuditIgnore]
+    public DateTime? LastUpgradeAt { get; set; }
+
+    /// <summary>Linux: dpkg was interrupted (<c>dpkg --audit</c>), from the os-updates section: 467, and upgrades are refused.</summary>
+    [AuditIgnore]
+    public bool DpkgInterrupted { get; set; }
+
+    /// <summary>Linux: the distribution as the advisory sources name it (<c>debian:bookworm</c>, <c>ubuntu:noble</c>), from the os-updates section.</summary>
+    [AuditIgnore]
+    [MaxLength(60)]
+    public string? OsDistribution { get; set; }
+
     public DateTime? RevokedAt { get; set; }
 
     [MaxLength(500)]

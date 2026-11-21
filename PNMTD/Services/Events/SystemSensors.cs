@@ -28,6 +28,9 @@ public static class SystemSensorKeys
 
     /// <summary>3rd Party Connectors (docs/connectors-plan.md §12.3): created with the first connector.</summary>
     public const string Connectors = "connectors";
+
+    /// <summary>The OS updates' high-risk check (docs/linux-os-updates-plan.md §5.4): its sources fresh, or 434.</summary>
+    public const string OsAdvisories = "os-advisories";
 }
 
 /// <summary>A system sensor: its key, its name, its importance, and when it exists.</summary>
@@ -56,6 +59,8 @@ public sealed class SystemSensors(IDbContextFactory<PnmtdDbContext> dbs, IConfig
         new(SystemSensorKeys.Zabbix, "Zabbix", Importance.High, PNMTD.Zabbix.ZabbixSetup.Configured),
         // Not at start: the first connector creates it, so installations without connectors don't get it.
         new(SystemSensorKeys.Connectors, "3rd Party Connectors", Importance.High, _ => false),
+        new(SystemSensorKeys.OsAdvisories, "OS advisories", Importance.High,
+            c => c.GetValue("OsUpdates:Enabled", true) && c.GetValue("OsUpdates:Advisories:Enabled", false)),
     ];
 
     private readonly ConcurrentDictionary<string, Guid> ids = new();

@@ -20,13 +20,14 @@ import IntegrationsDocs from './IntegrationsDocs.vue'
 import MarkdownDocs from './MarkdownDocs.vue'
 import LoungeDocs from './LoungeDocs.vue'
 import NetworkMapDocs from './NetworkMapDocs.vue'
+import OsUpdatesDocs from './OsUpdatesDocs.vue'
 
 /**
  * The documentation (§5.6), from the API so it never drifts: the sensor API with examples for this
  * instance's address (§3.3), JSON reports to Advanced sensors (docs/advanced-sensor-plan.md §10.4), UDP nodes (docs/udp-iot-plan.md §6.7, with a link to the protocol
  * reference), the status codes, the sensor types and the notification rule types. *Markdown in PNMT*
  * (docs/locations-knowledge-plan.md §10.7) has a section of its own, with an editor to try; Cookie and the availability plan
- * too (docs/cookie-plan.md).
+ * too (docs/cookie-plan.md), and OS updates on Linux servers with the high-risk check (docs/linux-os-updates-plan.md §10.4).
  */
 const session = useSession()
 const codes = useStatusCodes()
@@ -161,6 +162,7 @@ const visibleRules = computed(() => ruleTypes.list.value.filter((r) => has(r.typ
 
     <MarkdownDocs :search="search" />
     <AccessDocs :search="search" />
+    <OsUpdatesDocs :search="search" />
     <IntegrationsDocs :search="search" />
     <CookieDocs :search="search" />
     <LoungeDocs :search="search" />

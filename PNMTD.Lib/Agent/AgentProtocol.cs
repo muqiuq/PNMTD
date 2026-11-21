@@ -110,6 +110,17 @@ public static class AgentMessageTypes
     public const string RemoveSshKey = "remove-ssh-key";
     public const string KeyRemoval = "key-removal";
 
+    // Linux (docs/linux-os-updates-plan.md §4.6): OS updates. PNMTD → agent: run, send a log again, results received; agent → PNMTD
+    // the rest.
+    public const string OsUpdateRun = "os-update-run";
+    public const string OsUpdateLog = "os-update-log";
+    public const string OsUpdateReceived = "os-update-received";
+    public const string OsUpdateStarted = "os-update-started";
+    public const string OsUpdateOutput = "os-update-output";
+    public const string OsUpdateResult = "os-update-result";
+    public const string OsUpdateHistory = "os-update-history";
+    public const string OsChangelogs = "os-changelogs";
+
     /// <summary>What the download manifest's signed part is typed as (docs/linux-sensor-plan.md §4.4).</summary>
     public const string DownloadManifest = "download-manifest";
 
@@ -119,7 +130,7 @@ public static class AgentMessageTypes
     /// <summary>The requests an agent accepts from PNMTD, all signed. Before W6 there is no way to run anything (§6).</summary>
     public static readonly IReadOnlySet<string> SignedRequests = new HashSet<string>(StringComparer.Ordinal)
     {
-        Collect, RunDiagnostics, SendLog, ParseScript, RunScript, RemoveSshKey,
+        Collect, RunDiagnostics, SendLog, ParseScript, RunScript, RemoveSshKey, OsUpdateRun, OsUpdateLog, OsUpdateReceived,
     };
 }
 
@@ -176,6 +187,12 @@ public static class AgentCapabilities
 
     /// <summary>Linux: removing keys, only while config.yaml allows it (§6.5).</summary>
     public const string KeysRemove = "keys.remove.v1";
+
+    /// <summary>
+    /// Linux: OS updates (docs/linux-os-updates-plan.md §4.6): the os-updates section, runs, history and changelogs. Announced by every
+    /// agent that has the feature; what config.yaml allows is in the hello's rights (<see cref="AgentRightsSummary.OsUpdates"/>).
+    /// </summary>
+    public const string OsUpdates = "os-updates.v1";
 }
 
 /// <summary>The JSON of the protocol: camelCase, enums as their names, no nulls written, numbers strict.</summary>

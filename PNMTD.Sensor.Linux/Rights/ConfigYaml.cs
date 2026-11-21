@@ -25,6 +25,7 @@ internal sealed record LinuxConfig(AgentRights Rights, bool Debug)
 /// <item>an unknown key or a wrong value: that setting off, with a warning, so a typo never silently grants or withholds. A list that
 /// restricts a right (<c>users</c>, <c>protect</c>, <c>run_as</c>, <c>allowed_hashes</c>) that can't be read turns that right off,
 /// because an empty list would mean "every".</item>
+/// <item><c>os_updates</c> (docs/linux-os-updates-plan.md §3, D1): a missing block or key is on; <c>false</c> or a wrong value is off.</item>
 /// </list>
 /// </summary>
 internal static partial class ConfigYaml
@@ -133,13 +134,14 @@ internal static partial class ConfigYaml
         }
         if (rootNode is not YamlMappingNode root)
         {
-            return LinuxConfig.Refused("it is not a mapping of settings (log_level, ssh_keys, scripts, collect)");
+            return LinuxConfig.Refused("it is not a mapping of settings (log_level, ssh_keys, scripts, collect, os_updates)");
         }
         var warnings = new List<string>();
         var debug = false;
         var keys = KeyRights.Off;
         var scripts = ScriptRights.Off;
         var collect = CollectRights.Off;
+        var osUpdates = OsUpdateRights.On;
         foreach (var (keyNode, value) in root.Children)
         {
             var name = (keyNode as YamlScalarNode)?.Value ?? "?";
@@ -157,12 +159,15 @@ internal static partial class ConfigYaml
                 case "collect":
                     collect = Collect(value, warnings);
                     break;
+                case "os_updates":
+                    osUpdates = OsUpdates(value, warnings);
+                    break;
                 default:
                     warnings.Add($"{name} (line {keyNode.Start.Line}): unknown setting, ignored");
                     break;
             }
         }
-        return new LinuxConfig(new AgentRights(AgentRights.FromFile, null, keys, scripts, collect, warnings), debug);
+        return new LinuxConfig(new AgentRights(AgentRights.FromFile, null, keys, scripts, collect, warnings, osUpdates), debug);
     }
 
     private static bool LogLevel(YamlNode node, List<string> warnings)
@@ -289,6 +294,42 @@ internal static partial class ConfigYaml
             }
         }
         return new CollectRights(sudo, cron);
+    }
+
+    /// <summary>
+    /// <c>os_updates</c> (D1): each setting on unless it says <c>false</c>; a wrong value is off, with a warning, as everywhere; a block
+    /// that isn't a group of settings turns all of it off.
+    /// </summary>
+    private static OsUpdateRights OsUpdates(YamlNode node, List<string> warnings)
+    {
+        if (Section("os_updates", node, warnings) is not { } settings)
+        {
+            return OsUpdateRights.Off;
+        }
+        var rights = OsUpdateRights.On;
+        foreach (var (name, value) in settings)
+        {
+            bool On() => (value is YamlScalarNode s && IsNull(s)) || (Bool($"os_updates.{name}", value, warnings) ?? false);
+            switch (name)
+            {
+                case "update":
+                    rights = rights with { Update = On() };
+                    break;
+                case "upgrade":
+                    rights = rights with { Upgrade = On() };
+                    break;
+                case "full_upgrade":
+                    rights = rights with { FullUpgrade = On() };
+                    break;
+                case "changelogs":
+                    rights = rights with { Changelogs = On() };
+                    break;
+                default:
+                    warnings.Add($"os_updates.{name} (line {value.Start.Line}): unknown setting, ignored");
+                    break;
+            }
+        }
+        return rights;
     }
 
     /// <summary>A group's settings by name; an empty group is all defaults; anything but a mapping turns the whole group off, with a warning.</summary>

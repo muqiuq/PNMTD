@@ -69,6 +69,12 @@ namespace PNMTD.Lib.Models
         public const int CONNECTORS_REFUSED = 433;
 
         /// <summary>
+        /// OS updates' high-risk check (docs/linux-os-updates-plan.md §5.4), on its system sensor: every enabled source fresh (220), or a
+        /// source not fetched for OsUpdates__Advisories__StaleHours, or a role without a working source.
+        /// </summary>
+        public const int OS_ADVISORIES_FAILING = 434;
+
+        /// <summary>
         /// A Zabbix host attached as a sensor (docs/audit-redmine-zabbix-plan.md §7.7): no problem from its severity up, a problem,
         /// the host gone from Zabbix (deleted, disabled, out of the token's groups), an interface unavailable (when that fails it).
         /// </summary>
@@ -99,6 +105,14 @@ namespace PNMTD.Lib.Models
         public const int LINUX_CRITICAL_ENTRY = 463;
         public const int LINUX_LOGIN_FAILURES = 464;
         public const int LINUX_KEY_ADDED = 465;
+
+        /// <summary>
+        /// OS updates on Linux servers (docs/linux-os-updates-plan.md §5.4): an upgrade PNMT ran succeeded (once); a pending update fixes
+        /// a high-risk vulnerability and isn't acknowledged; a failed upgrade, interrupted dpkg, or lists not refreshed for days.
+        /// </summary>
+        public const int LINUX_UPDATES_INSTALLED = 265;
+        public const int LINUX_HIGH_RISK_UPDATE = 466;
+        public const int LINUX_UPDATE_FAILED = 467;
 
         /// <summary>Diagnostics (docs/windows-sensor-plan.md §5.4): every check passed, or at least one failed.</summary>
         public const int DIAGNOSTICS_OK = 252;

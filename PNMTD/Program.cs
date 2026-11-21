@@ -20,6 +20,7 @@ using PNMTD.Tasks;
 using PNMTD.Udp;
 using PNMTD.WireGuard;
 using PNMTD.Agents;
+using PNMTD.OsUpdates;
 using PNMTD.Files;
 
 namespace PNMTD;
@@ -103,6 +104,8 @@ public partial class Program
         PNMTD.Network.NetworkMapSetup.AddNetworkMap(builder.Services, builder.Configuration);
         builder.Services.AddWireGuard(builder.Configuration);
         builder.Services.AddAgents(builder.Configuration);
+        // OS updates on Linux servers (docs/linux-os-updates-plan.md): runs, logs, the high-risk check.
+        builder.Services.AddOsUpdates(builder.Configuration);
         builder.Services.AddFiles(builder.Configuration);
         builder.Services.AddAudit(builder.Configuration);
         builder.Services.AddRedmine(builder.Configuration);
@@ -152,6 +155,10 @@ public partial class Program
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Network.NetworkScanSchedule>());
             // Servers with an agent (docs/windows-sensor-plan.md §8.4): expired tokens and retention.
             builder.Services.AddHostedService(sp => sp.GetRequiredService<AgentMaintenanceTask>());
+            // OS updates (docs/linux-os-updates-plan.md §5.3, §6): upkeep, the advisory sources and the high-risk check.
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.OsUpdates.OsUpdatesMaintenance>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.OsUpdates.OsAdvisoryFetcher>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.OsUpdates.OsAdvisoryEvaluator>());
             // Uploaded files (docs/locations-knowledge-plan.md §5.5): the daily cleanup, and the check on the File storage sensor.
             builder.Services.AddHostedService(sp => sp.GetRequiredService<FileCleanupTask>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<FileCheckTask>());

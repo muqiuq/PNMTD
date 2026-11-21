@@ -13,12 +13,13 @@ namespace PNMTD.Agents;
 /// <summary>
 /// What agents report (docs/windows-sensor-plan.md §3.5, §3.8, §8.2), with the codes of their platform
 /// (docs/linux-sensor-plan.md §9.2): heartbeats become OK (250, 260), or a restart (251, 261) after the boot time moved, or an
-/// agent problem (451, 461) for a clock that is off or problems in three heartbeats in a row; on Linux also 461 while
-/// config.yaml is refused, and 462 while security updates are pending too long (the server's switch). Problems go to the agent
-/// log; <c>bye</c> marks the server uninstalled.
+/// agent problem (451, 461) for a clock that is off or problems in three heartbeats in a row; on Linux also 466 while a high-risk
+/// update is pending and unacknowledged, 461 while config.yaml is refused, 467 for a failed upgrade, interrupted dpkg or stale lists
+/// (docs/linux-os-updates-plan.md §5.4), and 462 while security updates are pending too long (the server's switches). Problems go to
+/// the agent log; <c>bye</c> marks the server uninstalled.
 /// </summary>
 public sealed class AgentReportService(IDbContextFactory<PnmtdDbContext> dbs, IOptionsMonitor<AgentOptions> options, AgentChanges changes,
-    ILogger<AgentReportService> logger)
+    OsUpdates.OsUpdatePackages osUpdates, IOptionsMonitor<OsUpdates.OsUpdatesOptions> osUpdateOptions, ILogger<AgentReportService> logger)
 {
     /// <summary>A boot time that moved by more than this is a restart (clock adjustments move it a little).</summary>
     private static readonly TimeSpan BootTolerance = TimeSpan.FromMinutes(2);
@@ -92,15 +93,26 @@ public sealed class AgentReportService(IDbContextFactory<PnmtdDbContext> dbs, IO
         }
         if (platform.Platform == AgentPlatform.Linux)
         {
+            // docs/linux-os-updates-plan.md §5.4: a high-risk update before everything that lasts; its message is kept by the evaluator.
+            var updates = osUpdateOptions.CurrentValue;
+            if (updates.Enabled && updates.Advisories.Enabled && agent.OsUpdatesEnabled && agent.HighRiskEvents && agent.HighRiskMessage is { Length: > 0 } highRisk)
+            {
+                return (PNMTStatusCodes.LINUX_HIGH_RISK_UPDATE, highRisk);
+            }
             // §4.6: an unsafe or broken config.yaml grants nothing, and is a problem while it lasts (461).
             if (ServerRights.Read(agent.Rights) is { } rights && ServerRights.IsRefused(rights))
             {
                 return (platform.ProblemCode,
                     $"{agent.Hostname}: /etc/pnmt-agent/config.yaml is refused{(rights.Problem is { } problem ? $" ({Cuts.Cut(problem, 300)})" : "")}: it grants PNMT nothing");
             }
-            if (SecurityUpdatesMessage(agent, Clock.UtcNow) is { } updates)
+            // 467: kept by OsUpdateConditions (null while OS updates are off for the server or in PNMT).
+            if (agent.UpdateFailedEvents && agent.UpdateFailedMessage is { Length: > 0 } failed)
             {
-                return (PNMTStatusCodes.LINUX_SECURITY_UPDATES, updates);
+                return (PNMTStatusCodes.LINUX_UPDATE_FAILED, failed);
+            }
+            if (SecurityUpdatesMessage(agent, Clock.UtcNow) is { } securityUpdates)
+            {
+                return (PNMTStatusCodes.LINUX_SECURITY_UPDATES, securityUpdates);
             }
         }
         return (platform.OkCode, platform.OkMessage(agent));
@@ -180,6 +192,11 @@ public sealed class AgentReportService(IDbContextFactory<PnmtdDbContext> dbs, IO
         var (row, previous) = await AgentSections.StoreAsync(db, connection.SensorId, message, ct);
         // A new hash (or the first): both times were set to the same now.
         await changes.StoredAsync(db, agent, message, previous, row.ChangedAt == row.ReceivedAt, ct);
+        if (agent.Platform == AgentPlatform.Linux && message.Name == SectionNames.OsUpdates)
+        {
+            // docs/linux-os-updates-plan.md §4.1: the pending packages, their counts, the lists' age and dpkg's state.
+            await osUpdates.SectionAsync(db, agent, message, ct);
+        }
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         logger.LogDebug("Agent {Name}: the section {Section} stored ({Bytes} bytes, hash {Hash}, {Errors} errors, {State})", connection.AgentName, message.Name,

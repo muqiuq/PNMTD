@@ -344,8 +344,73 @@ public sealed class AgentSimulator(Uri baseUrl, HttpClient http, Func<Cancellati
                 var output = (script.Function is { } called ? $"ran {called}\n" : "") + $"Hello from {hostname} as {account}\n" + string.Join("\n", environment);
                 await ResultAsync(current, script, new ScriptResultMessage(script.RunId, ScriptRunState.Done, 0, output, null, 8, started, DateTimeOffset.UtcNow), ct);
                 return new Ack(request.RequestId, true);
+            // docs/linux-os-updates-plan.md §4.6: a run as the agent reports it, its log in two parts; after an upgrade nothing is pending.
+            case AgentMessageTypes.OsUpdateRun:
+                var run = AgentJson.Deserialize<OsUpdateRunRequest>(request.Body)!;
+                Write($"OS updates: {run.Kind} {run.Mode} for {run.RequestedByName}");
+                _ = Task.Run(() => SimulateRunAsync(current, run, CancellationToken.None), CancellationToken.None);
+                return new Ack(request.RequestId, true);
+            case AgentMessageTypes.OsUpdateLog or AgentMessageTypes.OsUpdateReceived:
+                return new Ack(request.RequestId, true);
             default:
                 return null;
+        }
+    }
+
+    /// <summary>After an upgrade the simulated server has nothing pending.</summary>
+    private bool osUpgraded;
+
+    private async Task SimulateRunAsync(AgentSession current, OsUpdateRunRequest run, CancellationToken ct)
+    {
+        try
+        {
+            var started = DateTimeOffset.UtcNow;
+            var command = run.Kind == OsUpdateKind.Update ? "apt-get -q update"
+                : run.Mode == OsUpgradeMode.FullUpgrade ? "apt-get -y -q full-upgrade" : "apt-get -y -q upgrade --with-new-pkgs";
+            await current.SendAsync(AgentMessageTypes.OsUpdateStarted, new OsUpdateStartedMessage(run.RunId, run.Kind, run.Mode, OsUpdateTrigger.Person,
+                run.RequestedByName, started, command), ct);
+            var section = SimulatedLinux.OsUpdates(upgraded: osUpgraded);
+            var parts = run.Kind == OsUpdateKind.Update
+                ? new[]
+                {
+                    $"PNMT: {command}\nHit:1 http://deb.debian.org/debian bookworm InRelease\nGet:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]\n",
+                    "Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [34.8 kB]\nFetched 90.2 kB in 1s (90.2 kB/s)\nReading package lists...\n",
+                }
+                : new[]
+                {
+                    $"PNMT: {command}\nReading package lists...\nCalculating upgrade...\n{section.Packages.Count} upgraded, 0 newly installed, 0 to remove and 0 not upgraded.\n",
+                    string.Concat(section.Packages.Select(p => $"Unpacking {p.Name} ({p.Candidate}) over ({p.Installed}) ...\nSetting up {p.Name} ({p.Candidate}) ...\n"))
+                    + "\nServices to be restarted:\n systemctl restart ssh.service\n",
+                };
+            long offset = 0;
+            foreach (var part in parts)
+            {
+                await Task.Delay(1500, ct);
+                await current.SendAsync(AgentMessageTypes.OsUpdateOutput, new OsUpdateOutputMessage(run.RunId, offset, part), ct);
+                offset += System.Text.Encoding.UTF8.GetByteCount(part);
+            }
+            var log = string.Concat(parts);
+            var summary = run.Kind == OsUpdateKind.Update
+                ? OsUpdateSummary.Empty with { RepositoriesReached = 3, Fetched = "Fetched 90.2 kB in 1s (90.2 kB/s)" }
+                : OsUpdateSummary.Empty with
+                {
+                    Upgraded = section.Packages.Select(p => new PackageChange(p.Name, p.Arch, p.Installed, p.Candidate)).ToList(),
+                    ServicesToRestart = ["ssh.service"],
+                };
+            var hash = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(log))).ToLowerInvariant();
+            await current.SendAsync(AgentMessageTypes.OsUpdateResult, new OsUpdateResultMessage(run.RunId, run.Kind, run.Mode, OsUpdateTrigger.Person,
+                run.RequestedByName, OsUpdateState.Succeeded, 0, summary, null, started, DateTimeOffset.UtcNow, offset, hash, command), ct);
+            if (run.Kind == OsUpdateKind.Upgrade)
+            {
+                osUpgraded = true;
+                var element = AgentJson.ToElement(SimulatedLinux.OsUpdates(upgraded: true));
+                await current.SendAsync(AgentMessageTypes.Section,
+                    new SectionMessage(SectionNames.OsUpdates, SectionNames.SchemaVersion, SimulatedLinux.Hash(element), DateTimeOffset.UtcNow, element), ct);
+            }
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            Write($"OS updates: the simulated run failed to report: {e.Message}");
         }
     }
 
