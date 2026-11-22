@@ -201,6 +201,10 @@ export const api = {
     /** One's own switches for the lounge (docs/lounge-plan.md §9.4): Cookie and Seraph may talk about one, and e-mail one. */
     lounge: () => call(client.GET('/api/v1/account/lounge')),
     saveLounge: (body: S['LoungeSwitches']) => call(client.PUT('/api/v1/account/lounge', { body })),
+    /** One's own notification choices (docs/knowledge-base-extensions-plan.md §10.2): the kinds one's rights allow, by e-mail. */
+    notifications: () => call(client.GET('/api/v1/account/notifications')),
+    saveNotifications: (body: S['UserNotificationSettingsRequest']) =>
+      call(client.PUT('/api/v1/account/notifications', { body })),
   },
 
   /**

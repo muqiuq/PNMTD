@@ -184,6 +184,9 @@ public static class AuditEvents
     public const string LoungePositionsReset = "LoungePositionsReset";
     public const string LoungeSwitchesChanged = "LoungeSwitchesChanged";
 
+    // One's own notification choices (docs/knowledge-base-extensions-plan.md §10.2).
+    public const string NotificationPreferencesChanged = "NotificationPreferencesChanged";
+
     // The access watch (docs/cookie-access-plan.md §10.1).
     public const string AccessAnswered = "AccessAnswered";
     public const string AccessPersonAnswered = "AccessPersonAnswered";
@@ -474,6 +477,7 @@ public static class AuditCatalog
         Add(AuditCategory.Cookie, null, AuditEvents.LoungeStarted, AuditEvents.LoungeStopped, AuditEvents.LoungeTalkNow, AuditEvents.LoungeSlept,
             AuditEvents.LoungeMessageDeleted, AuditEvents.LoungeMemoryDeleted, AuditEvents.LoungeForgotten, AuditEvents.LoungePositionsReset);
         Add(AuditCategory.Users, AuditTargets.User, AuditEvents.LoungeSwitchesChanged);
+        Add(AuditCategory.Users, AuditTargets.User, AuditEvents.NotificationPreferencesChanged);
         Add(AuditCategory.Users, AuditTargets.User, AuditEvents.ContactChanged, AuditEvents.ContactTested);
         Add(AuditCategory.Availability, null, AuditEvents.AvailabilityChanged, AuditEvents.AvailabilityFilled, AuditEvents.AvailabilityPeopleChanged,
             AuditEvents.AvailabilitySettingsChanged);

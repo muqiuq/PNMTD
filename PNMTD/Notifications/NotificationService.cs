@@ -101,6 +101,9 @@ namespace PNMTD.Notifications
             services.AddSingleton<NotificationService>();
             // Whom a rule reaches (docs/notification-recipients-plan.md §4): reads the availability plan, so it is a singleton like it.
             services.AddSingleton<NotificationRecipients>();
+            // Notifications to people about their own work (docs/knowledge-base-extensions-plan.md §10): the queue and the choices.
+            services.AddOptions<UserNotificationOptions>().BindConfiguration(UserNotificationOptions.Section);
+            services.AddSingleton<UserNotifications>();
             return services;
         }
     }

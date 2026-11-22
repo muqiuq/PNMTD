@@ -50,6 +50,8 @@ async function save() {
       pushoverKey: orNull(form.value.pushoverKey),
     })
     queryClient.setQueryData(contactKey, saved)
+    // Whether there is an address decides what the notification choices offer (docs/knowledge-base-extensions-plan.md §10.2).
+    await queryClient.invalidateQueries({ queryKey: [...keys.account, 'notifications'] })
     form.value = { email: saved.email ?? '', pushoverKey: saved.pushoverKey ?? '' }
     base.value = JSON.stringify(form.value)
     tests.value = {}

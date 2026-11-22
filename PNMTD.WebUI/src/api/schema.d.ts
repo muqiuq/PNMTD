@@ -526,6 +526,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserNotificationSettings"];
+                        "text/json": components["schemas"]["UserNotificationSettings"];
+                        "text/plain": components["schemas"]["UserNotificationSettings"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UserNotificationSettingsRequest"];
+                    "text/json": components["schemas"]["UserNotificationSettingsRequest"];
+                    "application/*+json": components["schemas"]["UserNotificationSettingsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserNotificationSettings"];
+                        "text/json": components["schemas"]["UserNotificationSettings"];
+                        "text/plain": components["schemas"]["UserNotificationSettings"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sensors/{id}/advanced": {
         parameters: {
             query?: never;
@@ -30407,6 +30471,36 @@ export interface components {
             sshKeys: number;
             /** Format: date-time */
             lastSeenAt?: null | string;
+        };
+        /** @enum {unknown} */
+        UserNotificationChannel: "Email";
+        UserNotificationChannelItem: {
+            channel: components["schemas"]["UserNotificationChannel"];
+            enabled: boolean;
+            default: boolean;
+        };
+        UserNotificationChoice: {
+            kind?: string;
+            channel?: components["schemas"]["UserNotificationChannel"];
+            enabled?: boolean;
+        };
+        UserNotificationKindItem: {
+            kind: string;
+            label: string;
+            help: string;
+            channels: components["schemas"]["UserNotificationChannelItem"][];
+        };
+        UserNotificationSettings: {
+            hasEmail: boolean;
+            enabled: boolean;
+            /** Format: int32 */
+            batchMinutes: number;
+            /** Format: int32 */
+            maxPerDay: number;
+            kinds: components["schemas"]["UserNotificationKindItem"][];
+        };
+        UserNotificationSettingsRequest: {
+            items?: components["schemas"]["UserNotificationChoice"][];
         };
         UserProfileRequest: {
             email: null | string;

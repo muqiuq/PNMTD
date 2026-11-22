@@ -57,6 +57,9 @@
         // The network map's schedule and retention (docs/network-map-plan.md §7.3).
         LAST_NETWORK_SCAN_SCHEDULE_RUN = 340,
 
+        // The notification task's second timer: notifications to people (docs/knowledge-base-extensions-plan.md §10.5).
+        LAST_USER_NOTIFICATION_RUN = 350,
+
         UNUSED = 999,
     }
 }

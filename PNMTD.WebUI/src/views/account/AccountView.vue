@@ -5,11 +5,13 @@ import { useSession } from '@/stores/session'
 import ContactDetails from './ContactDetails.vue'
 import LoungeSwitches from './LoungeSwitches.vue'
 import MySshKeys from './MySshKeys.vue'
+import NotificationSwitches from './NotificationSwitches.vue'
 import PasswordForm from './PasswordForm.vue'
 
 /**
- * The own account (§5.6): who you are, your contact details (docs/cookie-plan.md §8.1), your switches for the lounge
- * (docs/lounge-plan.md §9.4), your password, and your SSH keys (docs/linux-sensor-plan.md §6.4).
+ * The own account (§5.6): who you are, your contact details (docs/cookie-plan.md §8.1), your notification choices
+ * (docs/knowledge-base-extensions-plan.md §10.2), your switches for the lounge (docs/lounge-plan.md §9.4), your password, and
+ * your SSH keys (docs/linux-sensor-plan.md §6.4).
  */
 const session = useSession()
 </script>
@@ -45,6 +47,7 @@ const session = useSession()
       </div>
       <div class="column">
         <ContactDetails />
+        <NotificationSwitches />
         <LoungeSwitches />
         <section class="panel" aria-labelledby="password-title">
           <div id="password-title" class="panel-header">Change password</div>

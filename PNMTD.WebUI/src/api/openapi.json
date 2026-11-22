@@ -667,6 +667,82 @@
         }
       }
     },
+    "/api/v1/account/notifications": {
+      "get": {
+        "tags": [
+          "AccountNotifications"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserNotificationSettings"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserNotificationSettings"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserNotificationSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AccountNotifications"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserNotificationSettingsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserNotificationSettingsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserNotificationSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserNotificationSettings"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserNotificationSettings"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserNotificationSettings"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/sensors/{id}/advanced": {
       "get": {
         "tags": [
@@ -65143,6 +65219,113 @@
           }
         }
       },
+      "UserNotificationChannel": {
+        "enum": [
+          "Email"
+        ]
+      },
+      "UserNotificationChannelItem": {
+        "required": [
+          "channel",
+          "enabled",
+          "default"
+        ],
+        "type": "object",
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/UserNotificationChannel"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "default": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UserNotificationChoice": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/UserNotificationChannel"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UserNotificationKindItem": {
+        "required": [
+          "kind",
+          "label",
+          "help",
+          "channels"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "help": {
+            "type": "string"
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserNotificationChannelItem"
+            }
+          }
+        }
+      },
+      "UserNotificationSettings": {
+        "required": [
+          "hasEmail",
+          "enabled",
+          "batchMinutes",
+          "maxPerDay",
+          "kinds"
+        ],
+        "type": "object",
+        "properties": {
+          "hasEmail": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "batchMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxPerDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kinds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserNotificationKindItem"
+            }
+          }
+        }
+      },
+      "UserNotificationSettingsRequest": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserNotificationChoice"
+            }
+          }
+        }
+      },
       "UserProfileRequest": {
         "required": [
           "email",
@@ -67420,6 +67603,9 @@
     },
     {
       "name": "WasThisYou"
+    },
+    {
+      "name": "AccountNotifications"
     },
     {
       "name": "AdvancedSensor"

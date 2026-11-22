@@ -302,6 +302,8 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/lounge/about"] = ("signed-in", Roles.Viewer),
         ["GET /api/v1/account/lounge"] = ("signed-in", Roles.Viewer),
         ["PUT /api/v1/account/lounge"] = ("signed-in", Roles.Viewer),
+        ["GET /api/v1/account/notifications"] = ("signed-in", Roles.Viewer),
+        ["PUT /api/v1/account/notifications"] = ("signed-in", Roles.Viewer),
         ["GET /api/v1/users/{id:guid}/lounge"] = ("admin", Roles.Admin),
         ["PUT /api/v1/users/{id:guid}/lounge"] = ("admin", Roles.Admin),
         ["POST /api/v1/lounge/messages"] = ("Lounge:Use", Roles.Admin),

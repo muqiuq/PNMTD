@@ -187,6 +187,8 @@ namespace PNMTD.Data
         public DbSet<KbLinkEntity> KbLinks { get; set; }
         public DbSet<KbPageRefEntity> KbPageRefs { get; set; }
         public DbSet<KbPageViewEntity> KbPageViews { get; set; }
+        public DbSet<UserNotificationPreferenceEntity> UserNotificationPreferences { get; set; }
+        public DbSet<UserNotificationEntity> UserNotifications { get; set; }
         public DbSet<KbAiQuestionEntity> KbAiQuestions { get; set; }
 
         // Uploaded files (docs/locations-knowledge-plan.md §5.5, §8.2): their metadata; the bytes are in the files folder.
@@ -765,6 +767,7 @@ namespace PNMTD.Data
             ConfigureLocations(modelBuilder);
             ConfigureNetworkMap(modelBuilder);
             ConfigureKnowledgeBase(modelBuilder);
+            ConfigureUserNotifications(modelBuilder);
             ConfigureFiles(modelBuilder);
             ConfigureCookie(modelBuilder);
             ConfigureAvailability(modelBuilder);
@@ -985,6 +988,27 @@ namespace PNMTD.Data
                 e.HasKey(q => new { q.PageId, q.UserId });
                 e.HasOne<KbPageEntity>().WithMany().HasForeignKey(q => q.PageId).OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(q => q.AskedAt);
+            });
+        }
+
+        /// <summary>
+        /// Notifications to people (docs/knowledge-base-extensions-plan.md §10): a person's choices and their queue go with them.
+        /// </summary>
+        private static void ConfigureUserNotifications(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<UserNotificationPreferenceEntity>(e =>
+            {
+                e.HasKey(p => new { p.UserId, p.Kind, p.Channel });
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<UserNotificationEntity>(e =>
+            {
+                e.Property(n => n.Id).UseIdentityByDefaultColumn();
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(n => n.UserId).OnDelete(DeleteBehavior.Cascade);
+                // The due batches; a person's e-mails today (the daily limit); cancelling what an undone like made.
+                e.HasIndex(n => new { n.State, n.DueAt });
+                e.HasIndex(n => new { n.UserId, n.SentAt });
+                e.HasIndex(n => n.SourceId);
             });
         }
 

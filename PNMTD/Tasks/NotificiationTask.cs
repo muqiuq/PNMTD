@@ -17,32 +17,42 @@ using System.Text.Json.Serialization;
 
 namespace PNMTD.Tasks
 {
+    /// <summary>
+    /// The alerts of the notification rules, every 10 seconds (<see cref="RunOnce"/>); and on a second timer of its own, with a guard of
+    /// its own, the notifications to people about their own work (docs/knowledge-base-extensions-plan.md §10.5): the two never wait for
+    /// each other, so a slow mail server for a person's e-mail never delays an alert.
+    /// </summary>
     public class NotificationTask : IHostedService, IDisposable
     {
         private readonly ILogger<NotificationTask> logger;
         private readonly IServiceProvider services;
         private readonly IConfiguration configuration;
         private Timer _timer;
+        private Timer? userTimer;
         private int executionCount;
         private readonly NotificationService notificationService;
         private readonly NotificationRecipients recipients;
+        private readonly UserNotifications userNotifications;
 
         public NotificationTask(ILogger<NotificationTask> _logger,
             IServiceProvider services,
             IConfiguration configuration,
             NotificationService service,
-            NotificationRecipients recipients)
+            NotificationRecipients recipients,
+            UserNotifications userNotifications)
         {
             logger = _logger;
             this.services = services;
             this.configuration = configuration;
             this.notificationService = service;
             this.recipients = recipients;
+            this.userNotifications = userNotifications;
         }
 
         public void Dispose()
         {
             _timer?.Dispose();
+            userTimer?.Dispose();
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -52,8 +62,33 @@ namespace PNMTD.Tasks
             _timer = new Timer(tryDoWork, null, TimeSpan.Zero,
             TimeSpan.FromSeconds(10));
 
+            var userInterval = Math.Max(5, configuration.GetValue($"{UserNotificationOptions.Section}:IntervalSeconds", 30));
+            userTimer = new Timer(tryUserWork, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(userInterval));
+
             return Task.CompletedTask;
         }
+
+        private readonly RunGuard userGuard = new();
+
+        private void tryUserWork(object? state)
+        {
+            if (!userGuard.TryEnter()) return;
+            try
+            {
+                RunUserNotificationsOnceAsync().GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "NotificationTask: the notifications to people");
+            }
+            finally
+            {
+                userGuard.Exit();
+            }
+        }
+
+        /// <summary>One run of the second timer: the notifications to people that are due. The tests call it directly.</summary>
+        internal Task<int> RunUserNotificationsOnceAsync(CancellationToken ct = default) => userNotifications.RunOnceAsync(ct);
 
 
         private readonly RunGuard runGuard = new();
@@ -222,6 +257,7 @@ namespace PNMTD.Tasks
             logger.LogInformation("NotificiationTask is stopping.");
 
             _timer?.Change(Timeout.Infinite, 0);
+            userTimer?.Change(Timeout.Infinite, 0);
 
             return Task.CompletedTask;
         }
