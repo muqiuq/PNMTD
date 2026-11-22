@@ -2,6 +2,7 @@
 import Button from 'primevue/button'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { S } from '@/api/resources'
+import { bendOf, boundsOf, edgePath } from '@/components/graph/geometry'
 import { usePanZoom } from '@/composables/usePanZoom'
 import { edgeDash, edgeTone, edgeWidth, nodeGlyph } from './networkFormat'
 import { bodyRadius, encloseGroup, layout, nodeRadius, type GroupCircle, type Point } from './networkLayout'
@@ -70,8 +71,7 @@ const edges = computed(() =>
       const twins = props.graph.edges.filter(
         (x) => (x.source === e.source && x.target === e.target) || (x.source === e.target && x.target === e.source),
       )
-      const index = twins.indexOf(e)
-      const bend = twins.length > 1 ? (index - (twins.length - 1) / 2) * 18 : 0
+      const bend = bendOf(twins.indexOf(e), twins.length)
       return { ...e, a: a.p, b: b.p, bend, key: `${e.id}-${i}` }
     })
     .filter((e): e is NonNullable<typeof e> => e !== null),
@@ -88,27 +88,15 @@ const neighbours = computed(() => {
 })
 
 function path(e: { a: Point; b: Point; bend: number }): string {
-  if (!e.bend) return `M ${e.a.x} ${e.a.y} L ${e.b.x} ${e.b.y}`
-  const mx = (e.a.x + e.b.x) / 2
-  const my = (e.a.y + e.b.y) / 2
-  const dx = e.b.x - e.a.x
-  const dy = e.b.y - e.a.y
-  const d = Math.max(1, Math.hypot(dx, dy))
-  return `M ${e.a.x} ${e.a.y} Q ${mx - (dy / d) * e.bend} ${my + (dx / d) * e.bend} ${e.b.x} ${e.b.y}`
+  return edgePath(e.a, e.b, e.bend)
 }
 
 /** Everything drawn: the circles, and the nodes outside them. */
 function bounds() {
-  const b = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
-  const add = (x: number, y: number, r: number) => {
-    b.minX = Math.min(b.minX, x - r)
-    b.minY = Math.min(b.minY, y - r)
-    b.maxX = Math.max(b.maxX, x + r)
-    b.maxY = Math.max(b.maxY, y + r)
-  }
-  for (const g of groups.value) add(g.x, g.y, g.r)
-  for (const n of nodes.value) add(n.p.x, n.p.y, bodyRadius(n.kind))
-  return Number.isFinite(b.minX) ? b : computedLayout.value.bounds
+  return boundsOf(
+    [...groups.value, ...nodes.value.map((n) => ({ x: n.p.x, y: n.p.y, r: bodyRadius(n.kind) }))],
+    computedLayout.value.bounds,
+  )
 }
 function fit() {
   pan.fit(bounds())

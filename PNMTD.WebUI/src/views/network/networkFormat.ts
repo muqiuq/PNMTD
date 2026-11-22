@@ -1,4 +1,5 @@
 import type { S } from '@/api/resources'
+import { parseFocus as parseGraphFocus } from '@/components/graph/focus'
 
 /** The network map's words, colours and widths (docs/network-map-plan.md §8). */
 
@@ -40,11 +41,7 @@ export function endDevice(end: End): { kind: S['NetworkDeviceKind']; id: string 
 
 /** Parses ?focus=router:{id}, host:{id} or connection:{id}. */
 export function parseFocus(value: unknown): { kind: 'router' | 'host' | 'connection'; id: string } | null {
-  if (typeof value !== 'string') return null
-  const match = /^(router|host|connection):([0-9a-f-]{36})$/i.exec(value.trim())
-  return match
-    ? { kind: match[1]!.toLowerCase() as 'router' | 'host' | 'connection', id: match[2]!.toLowerCase() }
-    : null
+  return parseGraphFocus(value, ['router', 'host', 'connection'] as const)
 }
 
 export const mediumLabels: Record<S['ConnectionMedium'], string> = {
