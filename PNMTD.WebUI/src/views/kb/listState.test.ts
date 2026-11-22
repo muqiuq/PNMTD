@@ -11,6 +11,8 @@ describe('the knowledge base list in the URL', () => {
       host: null,
       sensor: null,
       archived: false,
+      sensitive: null,
+      ai: null,
       sort: null,
       period: '30d',
       page: 1,
@@ -25,10 +27,14 @@ describe('the knowledge base list in the URL', () => {
       period: 'all',
       status: 'Draft',
       archived: 'true',
+      sensitive: 'false',
+      ai: 'true',
       page: '3',
       q: 'ups',
     }
     expect(toQuery(fromQuery(query))).toEqual(query)
+    expect(toApi(fromQuery(query))).toMatchObject({ sensitive: false, ai: true })
+    expect(fromQuery({ sensitive: 'maybe', ai: '' })).toMatchObject({ sensitive: null, ai: null })
   })
 
   it('normalises tags and drops what it does not know', () => {

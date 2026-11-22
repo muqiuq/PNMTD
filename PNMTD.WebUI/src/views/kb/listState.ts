@@ -16,6 +16,10 @@ export interface KbListState {
   host: string | null
   sensor: string | null
   archived: boolean
+  /** Only sensitive pages (true), only the others (false), or all (docs/knowledge-base-extensions-plan.md §4). */
+  sensitive: boolean | null
+  /** Only pages written mostly with AI (true), only the others (false), or all (§5). */
+  ai: boolean | null
   /** Null: newest, or relevance while searching (the server's default). */
   sort: KbSort | null
   period: KbPeriod
@@ -37,6 +41,12 @@ const statuses = new Set<string>(['Draft', 'Published', 'NeedsReview'])
 function one(value: LocationQuery[string]): string {
   const v = Array.isArray(value) ? value[0] : value
   return typeof v === 'string' ? v : ''
+}
+
+/** "true" or "false" in the URL; anything else: no filter. */
+function yesNo(value: LocationQuery[string]): boolean | null {
+  const v = one(value)
+  return v === 'true' ? true : v === 'false' ? false : null
 }
 
 /** A tag as the server stores it, for the URL: lower case, no leading #. */
@@ -67,6 +77,8 @@ export function fromQuery(query: LocationQuery): KbListState {
     host: one(query.host) || null,
     sensor: one(query.sensor) || null,
     archived: one(query.archived) === 'true',
+    sensitive: yesNo(query.sensitive),
+    ai: yesNo(query.ai),
     sort: sorts.has(sort) ? (sort as KbSort) : null,
     period: one(query.period) === 'all' ? 'all' : '30d',
     page: page > 1 ? page : 1,
@@ -82,6 +94,8 @@ export function toQuery(state: KbListState): Record<string, string> {
   if (state.host) query.host = state.host
   if (state.sensor) query.sensor = state.sensor
   if (state.archived) query.archived = 'true'
+  if (state.sensitive !== null) query.sensitive = String(state.sensitive)
+  if (state.ai !== null) query.ai = String(state.ai)
   if (state.sort) query.sort = state.sort
   if (state.period !== '30d' && (state.sort === 'views' || state.sort === 'edits')) query.period = state.period
   if (state.page > 1) query.page = String(state.page)
@@ -99,6 +113,8 @@ export function toApi(state: KbListState, pageSize = 50): KbListQuery {
     host: state.host ?? undefined,
     sensor: state.sensor ?? undefined,
     archived: state.archived || undefined,
+    sensitive: state.sensitive ?? undefined,
+    ai: state.ai ?? undefined,
     sort: state.sort === 'relevance' && !searching ? undefined : (state.sort ?? undefined),
     period: state.sort === 'views' || state.sort === 'edits' ? state.period : undefined,
     page: state.page,

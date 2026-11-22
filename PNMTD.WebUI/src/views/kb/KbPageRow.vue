@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import Tag from 'primevue/tag'
-import { kbNumber, kbStatusLabel, kbStatusSeverity, type KbListItem } from '@/api/kb'
+import { kbAiWrittenIcon, kbNumber, kbStatusLabel, kbStatusSeverity, type KbListItem } from '@/api/kb'
 
-/** A page in a panel or a short list: its number, title, a lock and a clip, and its status unless published. */
+/**
+ * A page in a panel or a short list: its number, title, a lock, the AI mark and a clip, and its status unless published.
+ */
 defineProps<{ page: KbListItem }>()
 </script>
 
@@ -13,6 +15,7 @@ defineProps<{ page: KbListItem }>()
       page.title
     }}</RouterLink>
     <i v-if="page.sensitive" class="pi pi-lock muted" title="Sensitive: never shown to AI or MCP" />
+    <i v-if="page.writtenWithAi" :class="kbAiWrittenIcon" class="muted" title="Written mostly with AI" />
     <i v-if="page.hasAttachments" class="pi pi-paperclip muted" title="Has attachments" />
     <Tag
       v-if="page.status !== 'Published'"

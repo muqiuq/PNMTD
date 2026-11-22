@@ -57,6 +57,12 @@ public class KbPageEntity
     /// <summary>Never sent to an AI, never shown to MCP (§7.1, §7.4).</summary>
     public bool Sensitive { get; set; }
 
+    /// <summary>
+    /// A person said most of the text came from an AI (docs/knowledge-base-extensions-plan.md §5). Readers see it; it changes
+    /// nothing else.
+    /// </summary>
+    public bool WrittenWithAi { get; set; }
+
     /// <summary>The current revision's number; a save carries the revision it started from (409 <c>edit_conflict</c>).</summary>
     [AuditIgnore]
     public int Revision { get; set; }
@@ -153,6 +159,9 @@ public class KbRevisionEntity
     public KbPageStatus Status { get; set; }
 
     public bool Sensitive { get; set; }
+
+    /// <summary>Written mostly with AI, at this revision (docs/knowledge-base-extensions-plan.md §5).</summary>
+    public bool WrittenWithAi { get; set; }
 
     public bool Archived { get; set; }
 

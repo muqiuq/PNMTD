@@ -30,6 +30,8 @@ export interface KbListQuery {
   host?: Id
   sensor?: Id
   archived?: boolean
+  sensitive?: boolean
+  ai?: boolean
   sort?: string
   period?: string
   page?: number
@@ -112,6 +114,9 @@ export function kbRequest(page: KbPage, patch: Partial<KbPageRequest> = {}): KbP
   }
 }
 
+/** The mark of a page written mostly with AI (docs/knowledge-base-extensions-plan.md §5); the spark is for AI tags. */
+export const kbAiWrittenIcon = 'pi pi-microchip-ai'
+
 /** KB-42 */
 export const kbNumber = (number: number) => `KB-${number}`
 
@@ -147,6 +152,7 @@ export const kbChangeLabel: Record<string, string> = {
   restored: 'Restored',
   aiTags: 'AI tags',
   redacted: 'Redacted',
+  writtenWithAi: 'Written with AI',
 }
 
 export const kbLinkIcon: Record<KbLinkKind, string> = {

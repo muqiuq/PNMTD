@@ -530,6 +530,86 @@ public sealed class KbPageTests
         Assert.IsTrue((await RevisionsAsync(other.Id))[0].Changes.Any(c => c.Kind == KbChangeKinds.Sensitive && c.Text == "marked"));
     }
 
+    // --- the sensitive mark and Written with AI (docs/knowledge-base-extensions-plan.md §4, §5, §15) ---------------------
+
+    [TestMethod]
+    public async Task A_save_without_the_new_fields_keeps_the_sensitive_mark_and_written_with_ai()
+    {
+        var tag = Unique("t");
+        var created = await CreateAsync(new KbPageRequest { Title = "Old callers", Content = "one", Tags = [tag], MarkSensitive = true, WrittenWithAi = true });
+        Assert.IsTrue(created.Page.Sensitive);
+        Assert.IsTrue(created.Page.WrittenWithAi);
+        CollectionAssert.IsSubsetOf(new[] { KbChangeKinds.Sensitive, KbChangeKinds.WrittenWithAi },
+            (await RevisionsAsync(created.Page.Id))[0].Changes.Select(c => c.Kind).ToArray());
+        // As the page view's quick saves and MCP's kb_page_update send it: every old field, none of the new ones.
+        var saved = await SaveAsync(created.Page, r => r.Content = "one\ntwo");
+        Assert.AreEqual(2, saved.Page.Revision);
+        Assert.IsTrue(saved.Page.Sensitive);
+        Assert.IsTrue(saved.Page.WrittenWithAi);
+        Assert.IsFalse((await RevisionsAsync(created.Page.Id))[0].Changes.Any(c => c.Kind is KbChangeKinds.Sensitive or KbChangeKinds.WrittenWithAi));
+    }
+
+    [TestMethod]
+    public async Task The_editing_page_marks_and_unmarks_sensitive_with_the_save_and_the_statements_cover_the_saved_text()
+    {
+        var page = (await CreateAsync(Request("Switch in the details", "text", Unique("t")))).Page;
+        var marked = await SaveAsync(page, r => r.Sensitive = true);
+        Assert.IsTrue(marked.Page.Sensitive);
+        Assert.AreEqual(2, marked.Page.Revision);
+        Assert.IsFalse(marked.AskAiTags);
+
+        var unmark = From(marked.Page);
+        unmark.Content = "text, rewritten";
+        unmark.Sensitive = false;
+        var refused = await user.PutJsonAsync($"/api/v1/kb/pages/{page.Id}", unmark);
+        Assert.AreEqual(HttpStatusCode.BadRequest, refused.StatusCode);
+        Assert.IsTrue((await refused.ProblemAsync()).GetProperty("errors").TryGetProperty("statements", out _));
+        unmark.Statements = new KbStatements { NoCredentials = true };
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await user.PutJsonAsync($"/api/v1/kb/pages/{page.Id}", unmark)).StatusCode);
+
+        unmark.Statements = new KbStatements { NoCredentials = true, NoPersonalData = true };
+        var unmarked = await (await user.PutJsonAsync($"/api/v1/kb/pages/{page.Id}", unmark)).ReadAsync<KbSaveResult>();
+        Assert.IsFalse(unmarked.Page.Sensitive);
+        var revision = (await RevisionsAsync(page.Id))[0];
+        Assert.AreEqual(3, revision.Number);
+        Assert.IsTrue(revision.Changes.Any(c => c.Kind == KbChangeKinds.Sensitive && c.Text == "unmarked"));
+        Assert.IsTrue(revision.Changes.Any(c => c.Kind == KbChangeKinds.Content));
+        // The declaration is for the text this save wrote, revision 3, not the one before.
+        Assert.AreEqual(3, revision.Declaration!.Revision);
+        CollectionAssert.AreEquivalent(KbStatementNames.Both.ToArray(), revision.Declaration.Statements.ToArray());
+        await using var db = app.NewDb();
+        Assert.AreEqual(2, await db.AuditLog.CountAsync(l => l.EventType == AuditEvents.KbPageSensitivityChanged && l.Detail!.StartsWith($"KB-{page.Number} ")));
+        // Unmarking a page that isn't sensitive changes nothing, and needs no statements.
+        var again = await SaveAsync(unmarked.Page, r => r.Sensitive = false);
+        Assert.AreEqual(3, again.Page.Revision);
+    }
+
+    [TestMethod]
+    public async Task Written_with_ai_is_kept_in_the_revisions_and_the_list_filters_by_it_and_by_sensitive()
+    {
+        var tag = Unique("t");
+        var ai = (await CreateAsync(new KbPageRequest { Title = "Mostly AI", Content = "a", Tags = [tag], WrittenWithAi = true })).Page;
+        var mine = (await CreateAsync(new KbPageRequest { Title = "By hand", Content = "b", Tags = [tag], MarkSensitive = true })).Page;
+        Assert.IsTrue(ai.WrittenWithAi);
+        Assert.IsFalse(mine.WrittenWithAi);
+
+        var unchecked_ = await SaveAsync(ai, r => r.WrittenWithAi = false);
+        Assert.IsFalse(unchecked_.Page.WrittenWithAi);
+        var revision = (await RevisionsAsync(ai.Id))[0];
+        Assert.IsTrue(revision.Changes.Any(c => c.Kind == KbChangeKinds.WrittenWithAi && c.Text == "unmarked"));
+        Assert.IsFalse(revision.IsEdit);
+        var first = await (await viewer.GetAsync($"/api/v1/kb/pages/{ai.Id}/revisions/1")).ReadAsync<KbRevisionDetail>();
+        Assert.IsTrue(first.WrittenWithAi);
+        await SaveAsync(unchecked_.Page, r => r.WrittenWithAi = true);
+
+        CollectionAssert.AreEqual(new[] { ai.Number }, (await ListAsync($"tags={tag}&ai=true")).Items.Select(i => i.Number).ToArray());
+        CollectionAssert.AreEqual(new[] { mine.Number }, (await ListAsync($"tags={tag}&ai=false")).Items.Select(i => i.Number).ToArray());
+        CollectionAssert.AreEqual(new[] { mine.Number }, (await ListAsync($"tags={tag}&sensitive=true")).Items.Select(i => i.Number).ToArray());
+        var both = (await ListAsync($"tags={tag}&sensitive=false")).Items.Single();
+        Assert.AreEqual(ai.Number, both.Number);
+        Assert.IsTrue(both.WrittenWithAi);
+    }
+
     // --- fixtures ------------------------------------------------------------------------------------------------------
 
     private static async Task<Paged<KbPageListItem>> ListAsync(string query) =>

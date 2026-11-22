@@ -2,18 +2,21 @@
 import { useQueryClient } from '@tanstack/vue-query'
 import AutoComplete from 'primevue/autocomplete'
 import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
+import ToggleSwitch from 'primevue/toggleswitch'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '@/api/client'
 import {
   credentialKinds,
   credentialLines,
+  kbAiWrittenIcon,
   kbApi,
   kbKeys,
   kbLinkIcon,
@@ -39,6 +42,9 @@ import { normalizeTag } from './listState'
  * completion, links, the note for the history), folded, and open for a new page. Drafts, conflicts (409 edit_conflict
  * with their changes), the credentials warning (422 looks_like_credential) and who else is editing come with it. After
  * Save the reading view opens, with the AI question when the server's answer asks for it (§7.2).
+ *
+ * The details also hold the sensitive mark and *Written mostly with AI* (docs/knowledge-base-extensions-plan.md §4, §5): each
+ * is sent only when it changed. Unmarking takes the two statements, about the text being saved.
  */
 const route = useRoute()
 const router = useRouter()
@@ -58,6 +64,15 @@ const summary = ref('')
 const tags = ref<{ name: string; ai: boolean }[]>([])
 const links = ref<LinkTarget[]>([])
 const note = ref('')
+const sensitive = ref(false)
+const writtenWithAi = ref(false)
+/** As loaded: a switch is sent only when it changed, so the save never undoes someone else's mark. */
+const loadedSensitive = ref(false)
+const loadedAi = ref(false)
+const noCredentials = ref(false)
+const noPersonalData = ref(false)
+const unmarking = computed(() => loadedSensitive.value && !sensitive.value)
+const statementsError = ref(false)
 const detailsOpen = ref(false)
 const saving = ref(false)
 const dirty = ref(false)
@@ -76,6 +91,8 @@ const snapshot = () =>
     tags.value,
     links.value.map((l) => `${l.kind}:${l.id}`),
     note.value,
+    sensitive.value,
+    writtenWithAi.value,
   ])
 
 async function linkFromQuery(): Promise<LinkTarget | null> {
@@ -119,6 +136,8 @@ onMounted(async () => {
       links.value = p.links
         .filter((l) => l.exists)
         .map((l) => ({ kind: l.kind, id: l.id, name: l.name, detail: l.detail ?? null }))
+      sensitive.value = loadedSensitive.value = p.sensitive
+      writtenWithAi.value = loadedAi.value = p.writtenWithAi
       startPresence(p.id)
     } else {
       const link = await linkFromQuery()
@@ -157,6 +176,8 @@ const detailsSummary = computed(() => {
   const parts = [summary.value.trim() ? 'summary' : 'no summary']
   parts.push(`${tags.value.length} tag${tags.value.length === 1 ? '' : 's'}`)
   parts.push(`${links.value.length} link${links.value.length === 1 ? '' : 's'}`)
+  if (sensitive.value) parts.push('sensitive')
+  if (writtenWithAi.value) parts.push('written with AI')
   if (note.value.trim()) parts.push('note')
   return parts.join(' · ')
 })
@@ -233,12 +254,28 @@ function request(s: MarkdownSave): KbPageRequest {
     note: note.value.trim() || null,
     acknowledgeCredentials: s.acknowledgeCredentials,
     markSensitive: s.markSensitive,
+    sensitive: sensitive.value !== loadedSensitive.value ? sensitive.value : null,
+    statements: unmarking.value ? { noCredentials: noCredentials.value, noPersonalData: noPersonalData.value } : null,
+    writtenWithAi: writtenWithAi.value !== loadedAi.value ? writtenWithAi.value : null,
   }
+}
+
+function setSensitive(on: boolean) {
+  sensitive.value = on
+  // Never checked in advance, never remembered (docs/locations-knowledge-plan.md §7.2).
+  noCredentials.value = false
+  noPersonalData.value = false
+  statementsError.value = false
 }
 
 async function save(s: MarkdownSave) {
   if (title.value.trim().length < 3) {
     titleError.value = 'A title of 3–160 characters.'
+    return
+  }
+  if (unmarking.value && !(noCredentials.value && noPersonalData.value)) {
+    statementsError.value = true
+    detailsOpen.value = true
     return
   }
   saving.value = true
@@ -250,6 +287,8 @@ async function save(s: MarkdownSave) {
     initial.value = snapshot()
     queryClient.setQueryData(kbKeys.page(result.page.number), result.page)
     await queryClient.invalidateQueries({ queryKey: kbKeys.all })
+    loadedSensitive.value = sensitive.value = result.page.sensitive
+    loadedAi.value = writtenWithAi.value = result.page.writtenWithAi
     for (const same of result.sameTitle) {
       notify.info(`${kbNumber(same.number)} has the same title`, same.title ?? undefined)
     }
@@ -443,6 +482,40 @@ const draftKey = computed(() => (page.value ? `kb:${page.value.id}` : 'kb:new'))
           </ul>
           <LinkPicker :exclude="links" @pick="pickLink" />
         </div>
+        <div class="field wide flags">
+          <div class="flag">
+            <ToggleSwitch
+              :model-value="sensitive"
+              input-id="kb-sensitive"
+              @update:model-value="(v: boolean) => setSensitive(v)"
+            />
+            <label for="kb-sensitive"
+              ><i class="pi pi-lock" aria-hidden="true" /> <strong>Sensitive:</strong> never sent to AI, never shown to
+              MCP</label
+            >
+          </div>
+          <div v-if="unmarking" class="statements" role="group" aria-label="Statements to unmark the page">
+            <p class="muted">To unmark it, confirm that the text you save contains:</p>
+            <label class="statement">
+              <Checkbox v-model="noCredentials" binary input-id="kb-no-credentials" />
+              <span>no credentials: no passwords, keys, tokens or codes</span>
+            </label>
+            <label class="statement">
+              <Checkbox v-model="noPersonalData" binary input-id="kb-no-personal-data" />
+              <span>no personal data, and no confidential or IP-protected information</span>
+            </label>
+            <small v-if="statementsError && !(noCredentials && noPersonalData)" class="field-error"
+              >Check both statements, or keep the page sensitive.</small
+            >
+          </div>
+          <div class="flag">
+            <Checkbox v-model="writtenWithAi" binary input-id="kb-written-with-ai" />
+            <label for="kb-written-with-ai"
+              ><i :class="kbAiWrittenIcon" aria-hidden="true" /> <strong>Written mostly with AI</strong>
+              <span class="muted"> · Check it when most of the text came from an AI. Readers see it.</span></label
+            >
+          </div>
+        </div>
         <div class="field wide">
           <label for="kb-note">Note for the history</label>
           <InputText
@@ -512,6 +585,38 @@ const draftKey = computed(() => (page.value ? `kb:${page.value.id}` : 'kb:new'))
   .title-field {
     width: 100%;
   }
+}
+
+.flags {
+  gap: var(--pnmt-space-2);
+}
+
+.flag {
+  display: flex;
+  align-items: center;
+  gap: var(--pnmt-space-2);
+}
+
+.flag label {
+  font-weight: normal;
+}
+
+.statements {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-1);
+  margin-left: 2.75rem;
+}
+
+.statements p {
+  margin: 0;
+}
+
+.statement {
+  display: flex;
+  align-items: center;
+  gap: var(--pnmt-space-2);
+  font-weight: normal;
 }
 
 .chips {

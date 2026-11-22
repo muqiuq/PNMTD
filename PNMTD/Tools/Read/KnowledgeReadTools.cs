@@ -51,12 +51,12 @@ public static class KnowledgeReadTools
         var pattern = $"%{query.Replace("%", "").Replace("_", "")}%";
         var pages = await MachineAccess.Pages(db).Where(p => p.Status == KbPageStatus.Published && p.ArchivedAt == null
                 && (EF.Functions.ILike(p.Title, pattern) || EF.Functions.ILike(p.PlainText, pattern) || EF.Functions.ILike(p.TagsText, pattern)))
-            .OrderByDescending(p => p.UpdatedAt).Take(10).Select(p => new { p.Id, p.Number, p.Title, p.Summary, p.UpdatedAt }).ToListAsync(ct);
+            .OrderByDescending(p => p.UpdatedAt).Take(10).Select(p => new { p.Id, p.Number, p.Title, p.Summary, p.WrittenWithAi, p.UpdatedAt }).ToListAsync(ct);
         ctx.Summary = $"{pages.Count} pages for \"{query}\"";
         return pages.Select(p => new
         {
             p.Id, p.Number, Title = ctx.Untrusted("page title", p.Title, 200), Summary = p.Summary is null ? null : ctx.Untrusted("page summary", p.Summary, 400),
-            p.UpdatedAt, Url = ctx.Link($"kb/{p.Number}"),
+            p.WrittenWithAi, p.UpdatedAt, Url = ctx.Link($"kb/{p.Number}"),
         }).ToList();
     }
 
@@ -64,12 +64,12 @@ public static class KnowledgeReadTools
     {
         var number = IntOf(args, "number");
         var page = await MachineAccess.Pages(db).Where(p => p.Number == number && p.ArchivedAt == null)
-            .Select(p => new { p.Id, p.Number, p.Title, p.PlainText, p.UpdatedAt }).SingleOrDefaultAsync(ct) ?? throw ToolException.NotFound("page");
+            .Select(p => new { p.Id, p.Number, p.Title, p.PlainText, p.WrittenWithAi, p.UpdatedAt }).SingleOrDefaultAsync(ct) ?? throw ToolException.NotFound("page");
         ctx.Target("KbPage", page.Id, $"KB-{page.Number}");
         return new
         {
-            page.Id, page.Number, Title = ctx.Untrusted("page title", page.Title, 200), Text = ctx.Untrusted("page", page.PlainText, 6000), page.UpdatedAt,
-            Url = ctx.Link($"kb/{page.Number}"),
+            page.Id, page.Number, Title = ctx.Untrusted("page title", page.Title, 200), Text = ctx.Untrusted("page", page.PlainText, 6000),
+            page.WrittenWithAi, page.UpdatedAt, Url = ctx.Link($"kb/{page.Number}"),
         };
     }
 

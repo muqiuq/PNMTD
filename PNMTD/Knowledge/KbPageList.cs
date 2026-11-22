@@ -44,6 +44,14 @@ public sealed class KbPageList(PnmtdDbContext db, LocationTree tree)
         {
             pages = pages.Where(p => p.Status == status);
         }
+        if (query.Sensitive is { } sensitive)
+        {
+            pages = pages.Where(p => p.Sensitive == sensitive);
+        }
+        if (query.Ai is { } writtenWithAi)
+        {
+            pages = pages.Where(p => p.WrittenWithAi == writtenWithAi);
+        }
         var tags = (query.Tags ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(KbTags.Normalize).OfType<string>().Concat(parsed.Tags).Distinct().ToList();
         foreach (var tag in tags)
@@ -209,7 +217,8 @@ public sealed class KbPageList(PnmtdDbContext db, LocationTree tree)
             p.Sensitive, p.CreatedAt, p.CreatedByName, p.UpdatedAt, p.UpdatedByName, p.ArchivedAt, p.Views,
             db.KbPageViews.Where(v => v.PageId == p.Id && v.Day >= day).Sum(v => (int?)v.Views) ?? 0,
             db.KbRevisions.Count(r => r.PageId == p.Id && r.IsEdit),
-            db.KbRevisions.Count(r => r.PageId == p.Id && r.IsEdit && r.At >= instant)));
+            db.KbRevisions.Count(r => r.PageId == p.Id && r.IsEdit && r.At >= instant),
+            p.WrittenWithAi));
     }
 
     /// <summary>The first day (PNMT's time zone) and the first instant of the last 30 days.</summary>

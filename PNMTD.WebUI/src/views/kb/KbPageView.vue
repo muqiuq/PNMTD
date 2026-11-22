@@ -10,6 +10,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '@/api/client'
 import {
+  kbAiWrittenIcon,
   kbApi,
   kbKeys,
   kbLinkIcon,
@@ -243,7 +244,20 @@ const more = computed(() => {
             :value="kbStatusLabel[page.status]"
             :severity="kbStatusSeverity(page.status)"
           />
-          <i v-if="page.sensitive" class="pi pi-lock muted" title="Sensitive: never shown to AI or MCP" />
+          <Tag
+            v-if="page.sensitive"
+            icon="pi pi-lock"
+            value="Sensitive"
+            severity="secondary"
+            title="Sensitive: never sent to AI, never shown to MCP"
+          />
+          <Tag
+            v-if="page.writtenWithAi"
+            :icon="kbAiWrittenIcon"
+            value="Written with AI"
+            severity="secondary"
+            title="Written mostly with AI"
+          />
         </template>
         <template #actions>
           <Button
@@ -391,6 +405,28 @@ const more = computed(() => {
               </dd>
               <dt>Views</dt>
               <dd>{{ page.views.toLocaleString() }}</dd>
+              <dt>Sensitive</dt>
+              <dd class="with-action">
+                <span>{{ page.sensitive ? 'Yes: never sent to AI or shown to MCP' : 'No' }}</span>
+                <Button
+                  v-if="canWrite && !page.sensitive"
+                  label="Mark…"
+                  size="small"
+                  text
+                  class="no-print"
+                  @click="markSensitive"
+                />
+                <Button
+                  v-if="canWrite && page.sensitive"
+                  label="Unmark…"
+                  size="small"
+                  text
+                  class="no-print"
+                  @click="unmarkDialog = true"
+                />
+              </dd>
+              <dt>Written with AI</dt>
+              <dd>{{ page.writtenWithAi ? 'Yes, mostly' : 'No' }}</dd>
             </dl>
           </section>
         </aside>
@@ -521,6 +557,17 @@ const more = computed(() => {
   display: flex;
   justify-content: center;
   padding: var(--pnmt-space-6);
+}
+
+.with-action {
+  display: flex;
+  align-items: center;
+  gap: var(--pnmt-space-1);
+  flex-wrap: wrap;
+}
+
+.with-action :deep(.p-button) {
+  padding-block: 0;
 }
 
 @media print {

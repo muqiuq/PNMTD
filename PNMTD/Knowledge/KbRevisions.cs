@@ -27,6 +27,9 @@ public static class KbChangeKinds
     public const string Restored = "restored";
     public const string AiTags = "aiTags";
     public const string Redacted = "redacted";
+
+    /// <summary>Written mostly with AI, <i>marked</i> or <i>unmarked</i> (docs/knowledge-base-extensions-plan.md §5).</summary>
+    public const string WrittenWithAi = "writtenWithAi";
 }
 
 /// <summary>The statements of §7.2, as a declaration names them.</summary>
@@ -55,12 +58,13 @@ public sealed record KbSnapshot(
     KbPageStatus Status,
     bool Sensitive,
     bool Archived,
-    IReadOnlyList<KbLinkRef> Links)
+    IReadOnlyList<KbLinkRef> Links,
+    bool WrittenWithAi = false)
 {
     /// <summary>The page as it is: its tags with <c>Tag</c> loaded, and its links.</summary>
     public static KbSnapshot Of(KbPageEntity page) => new(page.Title, page.Summary, page.Content,
         page.Tags.Select(t => (t.Tag!.Name, t.Source)).OrderBy(t => t.Name, StringComparer.Ordinal).ToList(),
-        page.Status, page.Sensitive, page.ArchivedAt is not null, KbRevisions.LinksOf(page));
+        page.Status, page.Sensitive, page.ArchivedAt is not null, KbRevisions.LinksOf(page), page.WrittenWithAi);
 }
 
 /// <summary>Who does something: the user's id and their display name at the time (§8.2); the CLI without a user.</summary>
@@ -145,6 +149,7 @@ public sealed class KbRevisions(PnmtdDbContext db, IHttpContextAccessor accessor
             Tags = after.Tags.Select(t => t.Name).ToList(),
             Status = page.Status,
             Sensitive = page.Sensitive,
+            WrittenWithAi = page.WrittenWithAi,
             Archived = page.ArchivedAt is not null,
             Links = JsonSerializer.Serialize(after.Links, Json),
             Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
@@ -175,6 +180,10 @@ public sealed class KbRevisions(PnmtdDbContext db, IHttpContextAccessor accessor
             if (after.Sensitive)
             {
                 yield return new KbChange(KbChangeKinds.Sensitive, "marked");
+            }
+            if (after.WrittenWithAi)
+            {
+                yield return new KbChange(KbChangeKinds.WrittenWithAi, "marked");
             }
             yield break;
         }
@@ -218,6 +227,10 @@ public sealed class KbRevisions(PnmtdDbContext db, IHttpContextAccessor accessor
         if (before.Archived != after.Archived)
         {
             yield return new KbChange(KbChangeKinds.Archived, after.Archived ? "archived" : "restored");
+        }
+        if (before.WrittenWithAi != after.WrittenWithAi)
+        {
+            yield return new KbChange(KbChangeKinds.WrittenWithAi, after.WrittenWithAi ? "marked" : "unmarked");
         }
     }
 

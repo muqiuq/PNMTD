@@ -88,7 +88,7 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         return new KbPageDetail(page.Id, page.Number, page.Title, page.Summary, page.Content, page.Status,
             page.Tags.Select(t => new KbPageTag(t.Tag!.Name, t.Source)).OrderBy(t => t.Name, StringComparer.Ordinal).ToList(),
             links, page.Sensitive, page.Revision, page.CreatedAt, page.CreatedByName, page.UpdatedAt, page.UpdatedByName, page.ArchivedAt,
-            page.ArchivedByName, page.Views, files, linkedFrom, linksTo, presence.Others(page.Id, me), AiTagsOn);
+            page.ArchivedByName, page.Views, files, linkedFrom, linksTo, presence.Others(page.Id, me), AiTagsOn, page.WrittenWithAi);
     }
 
     /// <summary>The files a content uses, in its order, without those deleted (the page shows <i>File removed</i>).</summary>
@@ -105,7 +105,7 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
     // --- saving --------------------------------------------------------------------------------------------------------
 
     private sealed record Input(string Title, string? Summary, string Content, List<string> Tags, HashSet<string>? AiTags, KbPageStatus Status,
-        List<KbLinkRef> Links, string? Note);
+        List<KbLinkRef> Links, string? Note, bool? WrittenWithAi);
 
     public async Task<KbSaveResult> CreateAsync(KbPageRequest request, CancellationToken ct)
     {
@@ -121,7 +121,7 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         };
         db.KbPages.Add(page);
         await ApplyAsync(page, input, ct);
-        var marked = request.MarkSensitive;
+        var marked = Marks(request);
         if (marked)
         {
             page.Sensitive = true;
@@ -157,22 +157,34 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         }
         var startedFrom = page.Content;
         CheckCredentials(request, startedFrom, input.Content);
+        var marked = Marks(request) && !page.Sensitive;
+        var unmarked = request.Sensitive == false && page.Sensitive;
+        if (unmarked && !KbStatementNames.Complete(request.Statements))
+        {
+            throw ApiException.Invalid("statements", "Confirm both statements to unmark the page.");
+        }
         var before = KbSnapshot.Of(page);
         await ApplyAsync(page, input, ct);
-        var marked = request.MarkSensitive && !page.Sensitive;
-        if (marked)
+        if (marked || unmarked)
         {
-            page.Sensitive = true;
+            page.Sensitive = marked;
         }
         if (!Differs(before, KbSnapshot.Of(page)))
         {
             // Nothing changed: no revision, no question.
             return new KbSaveResult(await DetailAsync(id, ct), false, []);
         }
-        var revision = await revisions.CommitAsync(page, before, input.Note, null, ct);
+        // Unmarked with the save (docs/knowledge-base-extensions-plan.md §4): the statements are about the text being saved, so
+        // they are the declaration of the revision this save makes.
+        var actor = revisions.Actor;
+        var declaration = unmarked ? new KbStoredDeclaration(actor.Id, actor.Name, Clock.UtcNow, KbStatementNames.Both, page.Revision + 1) : null;
+        var revision = await revisions.CommitAsync(page, before, input.Note, null, ct, declaration);
+        if (marked || unmarked)
+        {
+            AuditSensitivity(page, declaration);
+        }
         if (marked)
         {
-            AuditSensitivity(page, null);
             scans.Cancel(page.Id);
         }
         await db.SaveChangesAsync(ct);
@@ -219,7 +231,7 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
             throw ApiException.Invalid("links", missing == 1 ? "A linked location, host or sensor doesn't exist." : $"{missing} linked objects don't exist.");
         }
         var aiTags = r.AiTags?.Select(KbTags.Normalize).OfType<string>().ToHashSet(StringComparer.Ordinal);
-        return new Input(title, summary, content, tags, aiTags, r.Status, links, note);
+        return new Input(title, summary, content, tags, aiTags, r.Status, links, note, r.WrittenWithAi);
     }
 
     private async Task<int> MissingTargetsAsync(IReadOnlyList<KbLinkRef> links, CancellationToken ct)
@@ -242,6 +254,10 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         page.Summary = input.Summary;
         page.Content = input.Content;
         page.Status = input.Status;
+        if (input.WrittenWithAi is { } writtenWithAi)
+        {
+            page.WrittenWithAi = writtenWithAi;
+        }
         await SetTagsAsync(page, input.Tags, input.AiTags, actor, ct);
         page.Links.RemoveAll(l => !input.Links.Contains(Ref(l)));
         foreach (var link in input.Links.Where(l => page.Links.All(existing => Ref(existing) != l)).ToList())
@@ -293,7 +309,7 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
     /// </summary>
     private static void CheckCredentials(KbPageRequest request, string startedFrom, string content)
     {
-        if (request.AcknowledgeCredentials || request.MarkSensitive)
+        if (request.AcknowledgeCredentials || Marks(request))
         {
             return;
         }
@@ -320,6 +336,9 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
             ["lines"] = findings.Select(f => f.Line).ToList(),
             ["kinds"] = findings.Select(f => f.Kind).ToList(),
         });
+
+    /// <summary>The save marks the page sensitive: the credentials warning's answer, or the editing page's switch (§4).</summary>
+    private static bool Marks(KbPageRequest request) => request.MarkSensitive || request.Sensitive == true;
 
     public static ApiException Conflict(KbPageEntity page) =>
         ApiException.EditConflict(page.Revision, page.UpdatedByName, page.UpdatedAt,
@@ -438,7 +457,7 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         var links = await KbLinkNames.ResolveAsync(db, tree, KbRevisions.Links(r.Links), ct);
         var files = await FilesAsync(MarkdownText.Read(r.Content).FileIds, ct);
         return new KbRevisionDetail(r.Number, r.At, r.ByName, r.Note, KbRevisions.Changes(r.Changes), Declaration(r.Declaration), r.Title, r.Summary,
-            r.Content, r.Tags, r.Status, r.Sensitive, r.Archived, links, files);
+            r.Content, r.Tags, r.Status, r.Sensitive, r.Archived, links, files, r.WrittenWithAi);
     }
 
     /// <summary>Two revisions compared (§6.3): by default the current one against the one before it.</summary>
@@ -672,7 +691,7 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         ?? throw ApiException.NotFound("Revision");
 
     private static KbSnapshot Snapshot(KbRevisionEntity r) => new(r.Title, r.Summary, r.Content,
-        r.Tags.Select(t => (t, KbTagSource.Manual)).ToList(), r.Status, r.Sensitive, r.Archived, KbRevisions.Links(r.Links));
+        r.Tags.Select(t => (t, KbTagSource.Manual)).ToList(), r.Status, r.Sensitive, r.Archived, KbRevisions.Links(r.Links), r.WrittenWithAi);
 
     public static KbDeclaration? Declaration(string? json) =>
         KbRevisions.Declaration(json) is { } d ? new KbDeclaration(d.ByName, d.At, d.Statements, d.Revision) : null;

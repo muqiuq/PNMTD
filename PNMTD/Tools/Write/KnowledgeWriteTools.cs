@@ -37,10 +37,11 @@ public static class KnowledgeWriteTools
             Area.Locations, Level.Edit, ToolKind.Write, LocationValueAsync) { AuditEvents = [AuditEvents.LocationValueChanged], Idempotent = true },
         new("kb_page_create", "Create a knowledge base page",
             "A new page: title, Markdown, summary, tags. Credentials are refused (looks_like_credential); a page that needs to be kept from machines is " +
-            "marked sensitive by a person in PNMT.",
+            "marked sensitive by a person in PNMT. The page says it was written mostly with AI unless writtenWithAi is false.",
             Schema(Text("title", "3 to 160 characters", true), Text("content", "Markdown", true), Text("summary", "At most 300 characters"),
                 new Field("tags", "array", "Tags") { Extra = new System.Text.Json.Nodes.JsonObject { ["items"] = new System.Text.Json.Nodes.JsonObject { ["type"] = "string" } } },
-                Choice("status", "Published when left out", Enum.GetNames<KbPageStatus>())),
+                Choice("status", "Published when left out", Enum.GetNames<KbPageStatus>()),
+                Bool("writtenWithAi", "Whether most of the text came from an AI; true when left out")),
             Area.KnowledgeBase, Level.Edit, ToolKind.Write, KbCreateAsync) { AuditEvents = [AuditEvents.KbPageCreated] },
         new("kb_page_update", "Change a knowledge base page",
             "Changes the given fields of a page; the others, its links and AI tags stay. revision is the page's revision you read (kb_page): if someone " +
@@ -48,7 +49,8 @@ public static class KnowledgeWriteTools
             Schema(Int("number", "The page's number", true), Int("revision", "The revision you read", true), Text("title", "3 to 160 characters"),
                 Text("content", "Markdown, the whole page"), Text("summary", "At most 300 characters"),
                 new Field("tags", "array", "The tags, all of them") { Extra = new System.Text.Json.Nodes.JsonObject { ["items"] = new System.Text.Json.Nodes.JsonObject { ["type"] = "string" } } },
-                Choice("status", "Its status", Enum.GetNames<KbPageStatus>())),
+                Choice("status", "Its status", Enum.GetNames<KbPageStatus>()),
+                Bool("writtenWithAi", "Whether most of the text came from an AI; unchanged when left out")),
             Area.KnowledgeBase, Level.Edit, ToolKind.Write, KbUpdateAsync) { AuditEvents = [AuditEvents.KbPageSaved] },
         new("kb_page_archive", "Archive or restore a page", "Archives a page (it stays, out of the lists) or restores it.",
             Schema(Int("number", "The page's number", true), Bool("archived", "true to archive, false to restore", true)),
@@ -149,7 +151,11 @@ public static class KnowledgeWriteTools
     private static object PageResult(ToolContext ctx, KbPageDetail p)
     {
         ctx.Target("KbPage", p.Id, $"KB-{p.Number}");
-        return new { p.Id, p.Number, p.Title, p.Summary, p.Status, Tags = p.Tags.Select(t => t.Name), p.Revision, p.UpdatedAt, p.ArchivedAt, Url = ctx.Link($"kb/{p.Number}") };
+        return new
+        {
+            p.Id, p.Number, p.Title, p.Summary, p.Status, Tags = p.Tags.Select(t => t.Name), p.Revision, p.WrittenWithAi, p.UpdatedAt, p.ArchivedAt,
+            Url = ctx.Link($"kb/{p.Number}"),
+        };
     }
 
     private static List<string>? TagsOf(JsonElement args)
@@ -173,6 +179,8 @@ public static class KnowledgeWriteTools
             Summary = OptionalText(args, "summary", 300),
             Tags = TagsOf(args) ?? [],
             Status = OptionalEnum<KbPageStatus>(args, "status") ?? KbPageStatus.Published,
+            // An AI client wrote the text (docs/knowledge-base-extensions-plan.md §5), unless it says otherwise.
+            WrittenWithAi = OptionalBool(args, "writtenWithAi") ?? true,
         }, ct);
         ctx.Summary = $"created page KB-{saved.Page.Number}";
         return PageResult(ctx, saved.Page);
@@ -191,6 +199,7 @@ public static class KnowledgeWriteTools
             Status = OptionalEnum<KbPageStatus>(args, "status") ?? current.Status,
             Links = [.. current.Links.Select(l => new KbLinkRequest { Kind = l.Kind, Id = l.Id })],
             Revision = IntOf(args, "revision"),
+            WrittenWithAi = OptionalBool(args, "writtenWithAi"),
         }, ct);
         ctx.Summary = $"saved page KB-{saved.Page.Number} (revision {saved.Page.Revision})";
         return PageResult(ctx, saved.Page);

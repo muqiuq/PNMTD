@@ -12111,6 +12111,20 @@
             }
           },
           {
+            "name": "sensitive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "ai",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "sort",
             "in": "query",
             "schema": {
@@ -42216,7 +42230,8 @@
           "linkedFrom",
           "linksTo",
           "editing",
-          "aiTags"
+          "aiTags",
+          "writtenWithAi"
         ],
         "type": "object",
         "properties": {
@@ -42325,6 +42340,9 @@
           },
           "aiTags": {
             "type": "boolean"
+          },
+          "writtenWithAi": {
+            "type": "boolean"
           }
         }
       },
@@ -42347,7 +42365,8 @@
           "views",
           "recentViews",
           "edits",
-          "recentEdits"
+          "recentEdits",
+          "writtenWithAi"
         ],
         "type": "object",
         "properties": {
@@ -42431,6 +42450,9 @@
           "recentEdits": {
             "type": "integer",
             "format": "int32"
+          },
+          "writtenWithAi": {
+            "type": "boolean"
           }
         }
       },
@@ -42514,6 +42536,28 @@
           },
           "markSensitive": {
             "type": "boolean"
+          },
+          "sensitive": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "statements": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/KbStatements"
+              }
+            ]
+          },
+          "writtenWithAi": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -42640,7 +42684,8 @@
           "sensitive",
           "archived",
           "links",
-          "files"
+          "files",
+          "writtenWithAi"
         ],
         "type": "object",
         "properties": {
@@ -42715,6 +42760,9 @@
             "items": {
               "$ref": "#/components/schemas/FileItem"
             }
+          },
+          "writtenWithAi": {
+            "type": "boolean"
           }
         }
       },

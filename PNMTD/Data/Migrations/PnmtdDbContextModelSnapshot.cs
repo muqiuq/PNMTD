@@ -4178,6 +4178,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<int>("Views")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("WrittenWithAi")
+                        .HasColumnType("boolean");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAt");
@@ -4328,6 +4331,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<string>("Via")
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
+
+                    b.Property<bool>("WrittenWithAi")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 

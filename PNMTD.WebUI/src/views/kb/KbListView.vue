@@ -10,6 +10,7 @@ import Tag from 'primevue/tag'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
+  kbAiWrittenIcon,
   kbApi,
   kbKeys,
   kbLinkIcon,
@@ -89,6 +90,18 @@ const periods = [
   { label: 'All time', value: 'all' },
 ]
 const statuses = [{ label: 'Any status', value: '' }, ...kbStatusOptions]
+// Tri-state filters (docs/knowledge-base-extensions-plan.md §4, §5): the URL holds true or false, '' is no filter.
+const sensitiveOptions = [
+  { label: 'Sensitive or not', value: '' },
+  { label: 'Only sensitive', value: 'true' },
+  { label: 'Not sensitive', value: 'false' },
+]
+const aiOptions = [
+  { label: 'AI or not', value: '' },
+  { label: 'Written with AI', value: 'true' },
+  { label: 'Not written with AI', value: 'false' },
+]
+const asYesNo = (v: string): boolean | null => (v === 'true' ? true : v === 'false' ? false : null)
 
 // What the list is filtered to link to: its name comes with the picked target, or from the first row's links.
 const linked = ref<LinkTarget | null>(null)
@@ -121,7 +134,9 @@ const activeFilters = computed(
     state.value.tags.length +
     (state.value.status ? 1 : 0) +
     (linkFilter.value ? 1 : 0) +
-    (state.value.archived ? 1 : 0),
+    (state.value.archived ? 1 : 0) +
+    (state.value.sensitive !== null ? 1 : 0) +
+    (state.value.ai !== null ? 1 : 0),
 )
 
 const count = (n: number, what: string) => `${n.toLocaleString()} ${what}${n === 1 ? '' : 's'}`
@@ -179,6 +194,24 @@ function newPage() {
         aria-label="Status"
         @update:model-value="(v: string) => update({ status: (v || null) as KbListState['status'] })"
       />
+      <Select
+        :model-value="state.sensitive === null ? '' : String(state.sensitive)"
+        :options="sensitiveOptions"
+        option-label="label"
+        option-value="value"
+        size="small"
+        aria-label="Sensitive"
+        @update:model-value="(v: string) => update({ sensitive: asYesNo(v) })"
+      />
+      <Select
+        :model-value="state.ai === null ? '' : String(state.ai)"
+        :options="aiOptions"
+        option-label="label"
+        option-value="value"
+        size="small"
+        aria-label="Written with AI"
+        @update:model-value="(v: string) => update({ ai: asYesNo(v) })"
+      />
       <div class="link-filter">
         <LinkPicker placeholder="Linked to…" @pick="pickLink" />
       </div>
@@ -235,6 +268,7 @@ function newPage() {
                 p.title
               }}</RouterLink>
               <i v-if="p.sensitive" class="pi pi-lock muted" title="Sensitive: never shown to AI or MCP" />
+              <i v-if="p.writtenWithAi" :class="kbAiWrittenIcon" class="muted" title="Written mostly with AI" />
               <i v-if="p.hasAttachments" class="pi pi-paperclip muted" title="Has attachments" />
               <Tag
                 v-if="p.status !== 'Published'"

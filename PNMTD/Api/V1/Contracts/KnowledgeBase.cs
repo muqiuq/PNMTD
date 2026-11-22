@@ -58,7 +58,8 @@ public sealed record KbPageDetail(
     IReadOnlyList<KbPageRef> LinkedFrom,
     IReadOnlyList<KbPageRef> LinksTo,
     IReadOnlyList<KbEditor> Editing,
-    bool AiTags);
+    bool AiTags,
+    bool WrittenWithAi);
 
 /// <summary>A link to set: the kind and the target's id.</summary>
 public sealed class KbLinkRequest
@@ -110,6 +111,19 @@ public sealed class KbPageRequest
 
     /// <summary><i>Mark as sensitive and save</i> (§5.7, §7.1): in the same revision. Never unmarks.</summary>
     public bool MarkSensitive { get; set; }
+
+    /// <summary>
+    /// The sensitive mark with the save (docs/knowledge-base-extensions-plan.md §4). Null leaves it as it is; true marks the page
+    /// in the save's revision, as <see cref="MarkSensitive"/> does; false unmarks it, which takes both <see cref="Statements"/>,
+    /// recorded as the declaration of the revision the save makes.
+    /// </summary>
+    public bool? Sensitive { get; set; }
+
+    /// <summary>For unmarking with <see cref="Sensitive"/> false: both statements, about the text being saved.</summary>
+    public KbStatements? Statements { get; set; }
+
+    /// <summary>Written mostly with AI (§5): null leaves it as it is, and is false for a new page.</summary>
+    public bool? WrittenWithAi { get; set; }
 }
 
 /// <summary>
@@ -141,6 +155,12 @@ public sealed class KbPageQuery
 
     /// <summary>Archived pages too.</summary>
     public bool Archived { get; set; }
+
+    /// <summary>Only sensitive pages (true), or only the others (false) (docs/knowledge-base-extensions-plan.md §4).</summary>
+    public bool? Sensitive { get; set; }
+
+    /// <summary>Only pages written mostly with AI (true), or only the others (false) (§5).</summary>
+    public bool? Ai { get; set; }
 
     public string? Sort { get; set; }
 
@@ -175,7 +195,8 @@ public sealed record KbPageListItem(
     int Views,
     int RecentViews,
     int Edits,
-    int RecentEdits);
+    int RecentEdits,
+    bool WrittenWithAi);
 
 /// <summary>Pages linked to an object the panel's own links (§6.5): <i>via Zurich DC</i>, <i>via its hosts</i>.</summary>
 public sealed record KbRelatedGroup(KbLinkKind Kind, Guid? Id, string Name, IReadOnlyList<KbPageListItem> Pages);
@@ -238,7 +259,8 @@ public sealed record KbRevisionDetail(
     bool Sensitive,
     bool Archived,
     IReadOnlyList<KbLinkItem> Links,
-    IReadOnlyList<FileItem> Files);
+    IReadOnlyList<FileItem> Files,
+    bool WrittenWithAi);
 
 public sealed record KbDiffLine(Lib.Helper.DiffLineKind Kind, string Text, int? OldNumber, int? NewNumber);
 

@@ -9532,6 +9532,8 @@ export interface paths {
                     host?: string;
                     sensor?: string;
                     archived?: boolean;
+                    sensitive?: boolean;
+                    ai?: boolean;
                     sort?: string;
                     period?: string;
                     page?: number;
@@ -24656,6 +24658,7 @@ export interface components {
             linksTo: components["schemas"]["KbPageRef"][];
             editing: components["schemas"]["KbEditor"][];
             aiTags: boolean;
+            writtenWithAi: boolean;
         };
         KbPageListItem: {
             /** Format: uuid */
@@ -24685,6 +24688,7 @@ export interface components {
             edits: number;
             /** Format: int32 */
             recentEdits: number;
+            writtenWithAi: boolean;
         };
         KbPageRef: {
             /** Format: int32 */
@@ -24705,6 +24709,9 @@ export interface components {
             note?: null | string;
             acknowledgeCredentials?: boolean;
             markSensitive?: boolean;
+            sensitive?: null | boolean;
+            statements?: null | components["schemas"]["KbStatements"];
+            writtenWithAi?: null | boolean;
         };
         /** @enum {unknown} */
         KbPageStatus: "Draft" | "Published" | "NeedsReview";
@@ -24753,6 +24760,7 @@ export interface components {
             archived: boolean;
             links: components["schemas"]["KbLinkItem"][];
             files: components["schemas"]["FileItem"][];
+            writtenWithAi: boolean;
         };
         KbRevisionItem: {
             /** Format: int32 */
