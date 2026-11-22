@@ -94,6 +94,12 @@ defineExpose({ count: computed(() => own.value.length) })
         <li v-for="p in own.slice(0, limit)" :key="p.id"><KbPageRow :page="p" /></li>
       </ul>
       <RouterLink v-if="own.length > limit" :to="allPages" class="all">All {{ own.length }} pages…</RouterLink>
+      <RouterLink
+        v-if="own.length || via.length"
+        :to="{ name: 'kb-map', query: { focus: `${target.kind}:${target.id}` } }"
+        class="all map-link"
+        ><i class="pi pi-sitemap" aria-hidden="true" /> Show on the knowledge map</RouterLink
+      >
       <div v-for="(group, i) in via" :key="`${group.kind}-${group.id ?? group.name}`" class="via">
         <button type="button" class="via-toggle" :aria-expanded="!!open[i]" @click="open[i] = !open[i]">
           <i :class="open[i] ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" aria-hidden="true" />
@@ -137,6 +143,10 @@ defineExpose({ count: computed(() => own.value.length) })
 .all {
   display: inline-block;
   margin-top: var(--pnmt-space-2);
+}
+
+.map-link {
+  display: block;
 }
 
 .via {

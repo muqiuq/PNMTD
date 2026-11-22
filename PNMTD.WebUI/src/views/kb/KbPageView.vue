@@ -276,6 +276,11 @@ const more = computed(() => {
       icon: 'pi pi-history',
       command: () => router.push({ name: 'kb-history', params: { number: p.number } }),
     },
+    {
+      label: 'Show on the knowledge map',
+      icon: 'pi pi-sitemap',
+      command: () => router.push({ name: 'kb-map', query: { focus: `page:${p.number}` } }),
+    },
     { label: 'Download .md', icon: 'pi pi-download', command: download },
     { label: 'Print', icon: 'pi pi-print', command: () => window.print() },
     ...(canWrite.value

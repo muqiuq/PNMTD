@@ -580,6 +580,7 @@ public sealed class EndpointAuditTests
         ["DELETE /api/v1/kb/pages/{id:guid}"] = ("KnowledgeBase:Manage", Roles.Admin),
         ["POST /api/v1/kb/pages/{id:guid}/views"] = ("KnowledgeBase:View", Roles.Viewer),
         ["GET /api/v1/kb/changes"] = ("KnowledgeBase:View", Roles.Viewer),
+        ["GET /api/v1/kb/map"] = ("KnowledgeBase:View", Roles.Viewer),
         ["PUT /api/v1/kb/pages/{id:guid}/like"] = ("KnowledgeBase:View", Roles.Viewer),
         ["GET /api/v1/kb/pages/{id:guid}/likes"] = ("KnowledgeBase:View", Roles.Viewer),
         ["POST /api/v1/kb/pages/{id:guid}/uses"] = ("KnowledgeBase:View", Roles.Viewer),

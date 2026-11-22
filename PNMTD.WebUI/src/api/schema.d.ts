@@ -10518,6 +10518,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/kb/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    focus?: string;
+                    depth?: number;
+                    tags?: string;
+                    location?: string;
+                    status?: components["schemas"]["KbPageStatus"];
+                    ai?: boolean;
+                    archived?: boolean;
+                    unlinked?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbGraph"];
+                        "text/json": components["schemas"]["KbGraph"];
+                        "text/plain": components["schemas"]["KbGraph"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/kb/related": {
         parameters: {
             query?: never;
@@ -24940,6 +24986,50 @@ export interface components {
             /** Format: date-time */
             since: string;
         };
+        KbGraph: {
+            nodes: components["schemas"]["KbGraphNode"][];
+            edges: components["schemas"]["KbGraphEdge"][];
+            groups: components["schemas"]["KbGraphGroup"][];
+            /** Format: int32 */
+            total: number;
+            truncated: boolean;
+            focus: null | string;
+        };
+        KbGraphEdge: {
+            source: string;
+            target: string;
+            kind: components["schemas"]["KbGraphEdgeKind"];
+            /** @default false */
+            alsoInText: boolean;
+        };
+        /** @enum {unknown} */
+        KbGraphEdgeKind: "PageLink" | "TextLink" | "ObjectLink" | "Structure";
+        KbGraphGroup: {
+            id: string;
+            name: string;
+        };
+        KbGraphNode: {
+            id: string;
+            kind: components["schemas"]["KbGraphNodeKind"];
+            /** Format: uuid */
+            refId: string;
+            name: string;
+            detail: null | string;
+            /** Format: int32 */
+            number: null | number;
+            status: null | components["schemas"]["KbPageStatus"];
+            sensitive: boolean;
+            writtenWithAi: boolean;
+            archived: boolean;
+            /** Format: int32 */
+            likes: number;
+            /** Format: int32 */
+            uses: number;
+            state: null | string;
+            group: null | string;
+        };
+        /** @enum {unknown} */
+        KbGraphNodeKind: "Page" | "Location" | "Host" | "Sensor";
         KbLikeItem: {
             byName: string;
             /** Format: date-time */

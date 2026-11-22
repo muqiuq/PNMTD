@@ -184,3 +184,44 @@ test('a Viewer likes a page and records a use with a note, undoes it, and finds 
   await expect(page.getByRole('switch', { name: 'Someone used a page I wrote to solve a problem' })).toBeVisible()
   await shot(page, 'kbx-account-notifications')
 })
+
+test('the knowledge map: the whole knowledge base, around a page with its panel, and from a location', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signIn(page)
+  await page.goto('/pnmt-admin/kb')
+  await page.getByRole('button', { name: 'Map' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Knowledge map' })).toBeVisible()
+  const map = page.getByTestId('knowledge-map')
+  await expect(map.locator('[data-node^="page:"]').first()).toBeVisible()
+  await shot(page, 'kbx-map-whole')
+
+  // Around a page, from its menu: the page selected, its panel with what it is connected to (§8.4).
+  await openPage(page, 'Network overview, Zurich DC')
+  await page.getByRole('button', { name: 'More actions for the page' }).click()
+  await page.getByRole('menuitem', { name: 'Show on the knowledge map' }).click()
+  await expect(page).toHaveURL(/focus=page%3A\d+|focus=page:\d+/)
+  await expect(page.getByLabel('Focus', { exact: true })).toContainText('Network overview, Zurich DC')
+  const panel = page.getByRole('complementary').or(page.locator('.map-panel'))
+  await expect(panel.getByText('Firewall failover, fw-01 and fw-02')).toBeVisible()
+  await expect(map.getByRole('button', { name: /Firewall failover/ })).toBeVisible()
+  await shot(page, 'kbx-map-focus')
+
+  // Focus on a neighbour from the panel; one step fewer; the circles.
+  await panel.getByRole('link', { name: /Firewall failover/ }).click()
+  await panel.getByRole('button', { name: 'Focus here' }).click()
+  await expect(page.getByLabel('Focus', { exact: true })).toContainText('Firewall failover, fw-01 and fw-02')
+  await page.getByRole('combobox', { name: 'Steps' }).click()
+  await page.getByRole('option', { name: '1 step', exact: true }).click()
+  await expect(page).toHaveURL(/depth=1/)
+  await page.getByText('Circles for sites').click()
+  await expect(page).toHaveURL(/circles=true/)
+
+  // From a location's knowledge base panel.
+  await page.goto('/pnmt-admin/locations')
+  await page.getByRole('link', { name: 'Zurich DC', exact: true }).first().click()
+  await page.getByRole('link', { name: 'Show on the knowledge map' }).first().click()
+  await expect(page).toHaveURL(/focus=location/)
+  await expect(map.locator('[data-node^="location:"]').first()).toBeVisible()
+})

@@ -166,6 +166,14 @@ function newPage() {
       </template>
       <template #actions>
         <Button
+          label="Map"
+          icon="pi pi-sitemap"
+          size="small"
+          severity="secondary"
+          outlined
+          @click="router.push({ name: 'kb-map' })"
+        />
+        <Button
           v-if="session.can('KnowledgeBase', 'Edit')"
           label="New page"
           icon="pi pi-plus"

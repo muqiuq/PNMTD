@@ -22,6 +22,21 @@ export type KbAiStatus = S['KbAiTagsStatus']
 export type KbRelatedGroup = S['KbRelatedGroup']
 export type KbRecentChange = S['KbRecentChange']
 export type KbReactions = S['KbReactions']
+export type KbGraph = S['KbGraph']
+export type KbGraphNode = S['KbGraphNode']
+export type KbGraphEdge = S['KbGraphEdge']
+
+/** The knowledge map's query (docs/knowledge-base-extensions-plan.md §8.2): what the URL holds, as the API takes it. */
+export interface KbMapQuery {
+  focus?: string
+  depth?: number
+  tags?: string
+  location?: Id
+  status?: KbStatus
+  ai?: boolean
+  archived?: boolean
+  unlinked?: boolean
+}
 export type KbUseItem = S['KbUseItem']
 
 /** The list's query (§6.6): what the URL holds, as the API takes it. */
@@ -53,6 +68,8 @@ export const kbApi = {
     call(client.POST('/api/v1/kb/pages/{id}/uses', { params: { path: { id } }, body: { note: note ?? null } })),
   noteUse: (id: Id, useId: Id, note: string | null) =>
     call(client.PUT('/api/v1/kb/pages/{id}/uses/{useId}', { params: { path: { id, useId } }, body: { note } })),
+  /** The knowledge map (§8). */
+  map: (query: KbMapQuery) => call(client.GET('/api/v1/kb/map', { params: { query } })),
   undoUse: (id: Id, useId: Id) =>
     call(client.DELETE('/api/v1/kb/pages/{id}/uses/{useId}', { params: { path: { id, useId } } })),
   get: (number: number) => call(client.GET('/api/v1/kb/pages/{number}', { params: { path: { number } } })),
@@ -105,6 +122,7 @@ export const kbKeys = {
   all: ['kb'] as const,
   list: (query: KbListQuery) => ['kb', 'list', query] as const,
   changes: ['kb', 'changes'] as const,
+  map: (query: KbMapQuery) => ['kb', 'map', query] as const,
   page: (number: number) => ['kb', 'page', number] as const,
   revisions: (id: Id) => ['kb', 'revisions', id] as const,
   related: (query: { locationId?: Id; hostId?: Id; sensorId?: Id }) => ['kb', 'related', query] as const,

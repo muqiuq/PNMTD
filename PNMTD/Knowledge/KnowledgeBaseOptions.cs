@@ -57,6 +57,9 @@ public sealed class KnowledgeBaseOptions
     /// <summary>The same person records another use of a page after this many hours (§9).</summary>
     public int UseRepeatHours { get; set; } = 12;
 
+    /// <summary>The knowledge map shows at most this many nodes, nearest to its focus or most linked first (§8.2).</summary>
+    public int MapMaxNodes { get; set; } = 600;
+
     /// <summary><see cref="BlockedExtensions"/> as a set: lower case, without dots.</summary>
     public IReadOnlySet<string> BlockedExtensionSet =>
         BlockedExtensions.Split([' ', ',', ';', '\t', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

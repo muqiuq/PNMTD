@@ -15,7 +15,7 @@ namespace PNMTD.Api.V1;
 [Route("api/v1/kb")]
 [RequireRight(Area.KnowledgeBase, Level.View)]
 public sealed class KnowledgeBaseController(KbPageService pages, KbPageList lists, KbTags tags, KbAiTags aiTags, KbChanges changes,
-    KbReactionService reactions) : V1ControllerBase
+    KbReactionService reactions, KbMap map) : V1ControllerBase
 {
     /// <summary>The list and the content search (§6.6, §6.7).</summary>
     [HttpGet("pages")]
@@ -159,6 +159,13 @@ public sealed class KnowledgeBaseController(KbPageService pages, KbPageList list
     [NotAudited("undoing one's own use: a reaction, not an operation")]
     public async Task<ActionResult<KbReactions>> UndoUse(Guid id, Guid useId, CancellationToken ct) =>
         await reactions.UndoUseAsync(id, useId, ct);
+
+    /// <summary>
+    /// The knowledge map (docs/knowledge-base-extensions-plan.md §8): around a focus (<c>page:42</c>, <c>host:&lt;id&gt;</c>), or the whole
+    /// knowledge base with filters; the states of hosts and sensors with <i>Monitoring: View</i>.
+    /// </summary>
+    [HttpGet("map")]
+    public async Task<ActionResult<KbGraph>> Map([FromQuery] KbMapQuery query, CancellationToken ct) => await map.GraphAsync(query, ct);
 
     [HttpGet("related")]
     public async Task<ActionResult<KbRelated>> Related([FromQuery] Guid? locationId, [FromQuery] Guid? hostId, [FromQuery] Guid? sensorId,

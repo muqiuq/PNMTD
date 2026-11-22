@@ -103,6 +103,13 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'New page', right: ['KnowledgeBase', 'Edit'] },
   },
   {
+    // The knowledge map (docs/knowledge-base-extensions-plan.md §8).
+    path: '/kb/map',
+    name: 'kb-map',
+    component: () => import('@/views/kb/map/KnowledgeMapView.vue'),
+    meta: { title: 'Knowledge map', right: ['KnowledgeBase', 'View'] },
+  },
+  {
     path: '/kb/:number(\\d+)',
     name: 'kb-page',
     component: () => import('@/views/kb/KbPageView.vue'),
