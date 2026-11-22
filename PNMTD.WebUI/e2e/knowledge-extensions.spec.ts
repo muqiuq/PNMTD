@@ -141,3 +141,46 @@ test('a link between two pages is mutual: made on one, shown on both, in both hi
     await expect(related().getByRole('link', { name: title })).toBeVisible()
   }
 })
+
+test('a Viewer likes a page and records a use with a note, undoes it, and finds the e-mails on the account', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signIn(page, 'viewer')
+  await openPage(page, 'Wi-Fi for guests')
+  await page.getByRole('button', { name: 'Like', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Unlike' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Unlike' })).toContainText('1')
+
+  // A use: the bar with its note and Undo, the recent uses, and no second one for 12 hours (§9).
+  const used = page.getByRole('button', { name: /Used to solve a problem/ })
+  await used.click()
+  await expect(page.getByText(/You used it to solve a problem at/)).toBeVisible()
+  await page.getByRole('textbox', { name: 'What it solved' }).fill('The code for the visitors in room 2')
+  await page.getByRole('button', { name: 'Save note' }).click()
+  await expect(page.getByRole('list', { name: 'Recent uses' })).toContainText('The code for the visitors in room 2')
+  await expect(used).toBeDisabled()
+  await expect(used).toContainText('1')
+  await shot(page, 'kbx-reactions')
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect(page.getByText(/You used it to solve a problem at/)).toHaveCount(0)
+  await expect(used).toBeEnabled()
+  await expect(page.getByRole('list', { name: 'Recent uses' })).toHaveCount(0)
+
+  // Who likes it.
+  await page.getByRole('link', { name: '1 person' }).click()
+  await expect(page.getByRole('dialog', { name: 'Liked by' }).getByRole('listitem')).toHaveCount(1)
+  await page.keyboard.press('Escape')
+
+  // The seed's most liked pages first.
+  await page.goto('/pnmt-admin/kb?sort=likes&period=all')
+  await expect(page.getByRole('list', { name: 'Pages' }).getByRole('listitem').first()).toContainText(
+    /Power outage procedure|How PNMT watches us/,
+  )
+
+  // Account → Notifications: the two kinds a reader of the knowledge base can choose (§10.2).
+  await page.goto('/pnmt-admin/account')
+  await expect(page.getByRole('switch', { name: 'Someone liked a page I wrote' })).toBeVisible()
+  await expect(page.getByRole('switch', { name: 'Someone used a page I wrote to solve a problem' })).toBeVisible()
+  await shot(page, 'kbx-account-notifications')
+})

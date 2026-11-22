@@ -15,6 +15,10 @@ public static class KnowledgeSetup
         services.AddScoped<KbPageService>();
         services.AddScoped<KbPageList>();
         services.AddScoped<KbChanges>();
+        // Likes and uses, and their e-mails to the page's authors (docs/knowledge-base-extensions-plan.md §9).
+        services.AddScoped<KbReactionService>();
+        services.AddSingleton<Notifications.IUserNotificationRenderer, KbLikedNotice>();
+        services.AddSingleton<Notifications.IUserNotificationRenderer, KbUsedNotice>();
         services.AddScoped<KbTags>();
         services.AddScoped<KbAiTags>();
         services.AddSingleton<KbPresence>();

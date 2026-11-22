@@ -96,6 +96,12 @@ public sealed class UserNotificationsTests
     [TestInitialize]
     public void Freeze()
     {
+        // A clean queue: other classes' likes and uses in the shared database would fall due on this clock too.
+        using (var db = app.NewDb())
+        {
+            db.UserNotifications.Where(n => n.State == UserNotificationState.Pending || n.State == UserNotificationState.Sending)
+                .ExecuteUpdate(u => u.SetProperty(n => n.State, UserNotificationState.Cancelled));
+        }
         var now = DateTimeOffset.UtcNow;
         time = new FakeTimeProvider(new DateTimeOffset(now.UtcTicks - now.UtcTicks % TimeSpan.TicksPerSecond, TimeSpan.Zero));
         Clock.Provider = time;

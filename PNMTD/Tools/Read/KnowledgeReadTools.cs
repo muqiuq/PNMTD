@@ -19,7 +19,9 @@ public static class KnowledgeReadTools
     [
         new("location_get", "A location", "A location: its name, its parent, and its hosts.",
             Schema(Id("id", "The location's id")), Area.Locations, Level.View, ToolKind.Read, LocationAsync) { ForCookie = true },
-        new("kb_search", "Search the knowledge base", "Knowledge base pages that contain the text: id, number, title, summary. Pages marked sensitive never appear.",
+        new("kb_search", "Search the knowledge base",
+            "Knowledge base pages that contain the text: id, number, title, summary, how many people like each and how often it was used to solve a " +
+            "problem. Pages marked sensitive never appear.",
             Schema(Text("query", "Words to look for", true)), Area.KnowledgeBase, Level.View, ToolKind.Read, KbSearchAsync) { ForCookie = true },
         new("kb_page", "A knowledge base page",
             "A knowledge base page's text, whether it was written mostly with AI, and its related pages (linked with it, or by links in a text). " +
@@ -53,12 +55,13 @@ public static class KnowledgeReadTools
         var pattern = $"%{query.Replace("%", "").Replace("_", "")}%";
         var pages = await MachineAccess.Pages(db).Where(p => p.Status == KbPageStatus.Published && p.ArchivedAt == null
                 && (EF.Functions.ILike(p.Title, pattern) || EF.Functions.ILike(p.PlainText, pattern) || EF.Functions.ILike(p.TagsText, pattern)))
-            .OrderByDescending(p => p.UpdatedAt).Take(10).Select(p => new { p.Id, p.Number, p.Title, p.Summary, p.WrittenWithAi, p.UpdatedAt }).ToListAsync(ct);
+            .OrderByDescending(p => p.UpdatedAt).Take(10).Select(p => new { p.Id, p.Number, p.Title, p.Summary, p.WrittenWithAi, p.Likes, p.Uses, p.LastUsedAt, p.UpdatedAt })
+            .ToListAsync(ct);
         ctx.Summary = $"{pages.Count} pages for \"{query}\"";
         return pages.Select(p => new
         {
             p.Id, p.Number, Title = ctx.Untrusted("page title", p.Title, 200), Summary = p.Summary is null ? null : ctx.Untrusted("page summary", p.Summary, 400),
-            p.WrittenWithAi, p.UpdatedAt, Url = ctx.Link($"kb/{p.Number}"),
+            p.WrittenWithAi, p.Likes, UsedToSolveAProblem = p.Uses, p.LastUsedAt, p.UpdatedAt, Url = ctx.Link($"kb/{p.Number}"),
         }).ToList();
     }
 
@@ -66,7 +69,8 @@ public static class KnowledgeReadTools
     {
         var number = IntOf(args, "number");
         var page = await MachineAccess.Pages(db).Where(p => p.Number == number && p.ArchivedAt == null)
-            .Select(p => new { p.Id, p.Number, p.Title, p.PlainText, p.WrittenWithAi, p.UpdatedAt }).SingleOrDefaultAsync(ct) ?? throw ToolException.NotFound("page");
+            .Select(p => new { p.Id, p.Number, p.Title, p.PlainText, p.WrittenWithAi, p.Likes, p.Uses, p.LastUsedAt, p.UpdatedAt }).SingleOrDefaultAsync(ct)
+            ?? throw ToolException.NotFound("page");
         ctx.Target("KbPage", page.Id, $"KB-{page.Number}");
         // Related pages (docs/knowledge-base-extensions-plan.md §7.5): page links, then links in the text either way; only readable pages.
         var linked = await MachineAccess.PageLinks(db).Where(l => l.PageId == page.Id).Select(l => l.TargetPageId!.Value).ToListAsync(ct);
@@ -78,7 +82,7 @@ public static class KnowledgeReadTools
         return new
         {
             page.Id, page.Number, Title = ctx.Untrusted("page title", page.Title, 200), Text = ctx.Untrusted("page", page.PlainText, 6000),
-            page.WrittenWithAi, page.UpdatedAt, Url = ctx.Link($"kb/{page.Number}"),
+            page.WrittenWithAi, page.Likes, UsedToSolveAProblem = page.Uses, page.LastUsedAt, page.UpdatedAt, Url = ctx.Link($"kb/{page.Number}"),
             Related = related.Select(p => new
             {
                 p.Number, Title = ctx.Untrusted("page title", p.Title, 200),

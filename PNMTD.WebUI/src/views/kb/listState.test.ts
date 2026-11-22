@@ -35,6 +35,10 @@ describe('the knowledge base list in the URL', () => {
     expect(toQuery(fromQuery(query))).toEqual(query)
     expect(toApi(fromQuery(query))).toMatchObject({ sensitive: false, ai: true })
     expect(fromQuery({ sensitive: 'maybe', ai: '' })).toMatchObject({ sensitive: null, ai: null })
+    // Most liked and most used count over a period too.
+    expect(toQuery(fromQuery({ sort: 'likes', period: 'all' }))).toEqual({ sort: 'likes', period: 'all' })
+    expect(toApi(fromQuery({ sort: 'uses' }))).toMatchObject({ sort: 'uses', period: '30d' })
+    expect(toQuery(fromQuery({ sort: 'title', period: 'all' }))).toEqual({ sort: 'title' })
   })
 
   it('normalises tags and drops what it does not know', () => {

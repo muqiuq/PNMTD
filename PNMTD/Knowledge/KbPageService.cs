@@ -88,7 +88,8 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         return new KbPageDetail(page.Id, page.Number, page.Title, page.Summary, page.Content, page.Status,
             page.Tags.Select(t => new KbPageTag(t.Tag!.Name, t.Source)).OrderBy(t => t.Name, StringComparer.Ordinal).ToList(),
             links, page.Sensitive, page.Revision, page.CreatedAt, page.CreatedByName, page.UpdatedAt, page.UpdatedByName, page.ArchivedAt,
-            page.ArchivedByName, page.Views, files, linkedFrom, linksTo, presence.Others(page.Id, me), AiTagsOn, page.WrittenWithAi);
+            page.ArchivedByName, page.Views, files, linkedFrom, linksTo, presence.Others(page.Id, me), AiTagsOn, page.WrittenWithAi,
+            await KbReactionService.OfAsync(db, page.Id, me, TimeSpan.FromHours(Math.Max(0, kb.CurrentValue.UseRepeatHours)), ct));
     }
 
     /// <summary>The files a content uses, in its order, without those deleted (the page shows <i>File removed</i>).</summary>
@@ -639,9 +640,10 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         }
         var inPage = redaction.Count(page.Title) + redaction.Count(page.Summary) + redaction.Count(page.Content);
         var aiRequests = await RedactAiLogAsync(id, redaction, ct);
-        if (changed == 0 && inPage == 0 && aiRequests == 0)
+        var notes = await RedactUseNotesAsync(id, redaction, ct);
+        if (changed == 0 && inPage == 0 && aiRequests == 0 && notes == 0)
         {
-            throw ApiException.Invalid("text", "The text doesn't occur in this page, its history or its AI requests.");
+            throw ApiException.Invalid("text", "The text doesn't occur in this page, its history, its uses' notes or its AI requests.");
         }
         occurrences += inPage;
         var before = KbSnapshot.Of(page);
@@ -649,6 +651,7 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         page.Summary = redaction.Replace(page.Summary, 300);
         page.Content = redaction.Replace(page.Content)!;
         var summary = $"1 text in {changed} revision{(changed == 1 ? "" : "s")}" +
+            (notes > 0 ? $", {notes} note{(notes == 1 ? "" : "s")} of its uses" : "") +
             (aiRequests > 0 ? $" and {aiRequests} AI request{(aiRequests == 1 ? "" : "s")}" : "");
         // The redaction's own revision compares with the redacted history: only what it says.
         await revisions.CommitAsync(page, before with { Title = page.Title, Summary = page.Summary, Content = page.Content }, null,
@@ -659,6 +662,27 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         // A scan started meanwhile waited for the row lock and found the old revision: it goes stale, and stops here.
         scans.Cancel(id);
         return new KbRedactResult(changed, occurrences, aiRequests, await DetailAsync(id, ct));
+    }
+
+    /// <summary>
+    /// The text out of the notes of the page's uses (docs/knowledge-base-extensions-plan.md §9), and out of their notifications that
+    /// haven't gone out; how many notes held it. Saved with the caller's transaction.
+    /// </summary>
+    private async Task<int> RedactUseNotesAsync(Guid page, KbRedaction redaction, CancellationToken ct)
+    {
+        var uses = await db.KbPageUses.Where(u => u.PageId == page && u.Note != null).ToListAsync(ct);
+        var count = 0;
+        foreach (var use in uses.Where(u => redaction.Count(u.Note) > 0))
+        {
+            use.Note = redaction.Replace(use.Note, KbReactionService.MaxNote);
+            count++;
+        }
+        var pending = await db.UserNotifications.Where(n => n.SubjectId == page && n.Detail != null && n.State == UserNotificationState.Pending).ToListAsync(ct);
+        foreach (var notice in pending.Where(n => redaction.Count(n.Detail) > 0))
+        {
+            notice.Detail = redaction.Replace(notice.Detail, 300);
+        }
+        return count;
     }
 
     /// <summary>

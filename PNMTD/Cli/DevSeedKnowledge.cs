@@ -95,6 +95,7 @@ internal static class DevSeedKnowledge
             Pages();
             Values();
             Views();
+            Reactions();
             return new Counts(locations.Count, pages.Count, files.Count);
         }
 
@@ -483,6 +484,54 @@ internal static class DevSeedKnowledge
                 }
                 db.SaveChanges();
                 db.KbPages.Where(p => p.Id == page.Id).ExecuteUpdate(u => u.SetProperty(p => p.Views, total));
+            }
+        }
+
+        /// <summary>
+        /// Likes and uses (docs/knowledge-base-extensions-plan.md §9): pages people found useful, some uses with a note. Written directly,
+        /// so the seed enqueues no e-mails; the pages' counters follow.
+        /// </summary>
+        private void Reactions()
+        {
+            using var db = Db();
+            (string Page, string[] By)[] likes =
+            [
+                ("power", ["anna", "ben", "admin"]), ("veeam-restore", ["philipp", "ben"]), ("vpn", ["anna"]), ("monitoring", ["ben", "anna", "philipp"]),
+                ("printer", ["anna"]), ("firewall-ha", ["ben"]),
+            ];
+            (string Page, string By, double DaysAgo, string? Note)[] uses =
+            [
+                ("veeam-restore", "ben", 3, "Restored the wiki VM after the failed update"), ("veeam-restore", "anna", 21, null),
+                ("heartbeat", "philipp", 6, "The backup job was paused since patch day"), ("printer", "ben", 1.2, "New laptop on the 3rd floor"),
+                ("printer", "ben", 40, null), ("vpn", "anna", 9, "A contractor's key had expired"), ("disk-full", "philipp", 15, null),
+                ("power", "anna", 33, "Feed B tripped during the generator test"),
+            ];
+            var day = 0;
+            foreach (var (page, by) in likes)
+            {
+                foreach (var who in by)
+                {
+                    db.KbPageLikes.Add(new KbPageLikeEntity
+                    {
+                        Id = Guid.NewGuid(), PageId = pages[page].Id, UserId = users[who].Id, UserName = users[who].DisplayName, At = now.AddDays(-(2 + day++ % 50)),
+                    });
+                }
+            }
+            foreach (var (page, by, daysAgo, note) in uses)
+            {
+                db.KbPageUses.Add(new KbPageUseEntity
+                {
+                    Id = Guid.NewGuid(), PageId = pages[page].Id, UserId = users[by].Id, UserName = users[by].DisplayName, At = now.AddDays(-daysAgo), Note = note,
+                });
+            }
+            db.SaveChanges();
+            foreach (var page in likes.Select(l => l.Page).Concat(uses.Select(u => u.Page)).Distinct())
+            {
+                var id = pages[page].Id;
+                db.KbPages.Where(p => p.Id == id).ExecuteUpdate(u => u
+                    .SetProperty(p => p.Likes, p => db.KbPageLikes.Count(l => l.PageId == id))
+                    .SetProperty(p => p.Uses, p => db.KbPageUses.Count(x => x.PageId == id))
+                    .SetProperty(p => p.LastUsedAt, p => db.KbPageUses.Where(x => x.PageId == id).Max(x => (DateTime?)x.At)));
             }
         }
 

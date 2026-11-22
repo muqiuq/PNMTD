@@ -14,7 +14,8 @@ namespace PNMTD.Api.V1;
 /// </summary>
 [Route("api/v1/kb")]
 [RequireRight(Area.KnowledgeBase, Level.View)]
-public sealed class KnowledgeBaseController(KbPageService pages, KbPageList lists, KbTags tags, KbAiTags aiTags, KbChanges changes) : V1ControllerBase
+public sealed class KnowledgeBaseController(KbPageService pages, KbPageList lists, KbTags tags, KbAiTags aiTags, KbChanges changes,
+    KbReactionService reactions) : V1ControllerBase
 {
     /// <summary>The list and the content search (§6.6, §6.7).</summary>
     [HttpGet("pages")]
@@ -127,6 +128,38 @@ public sealed class KnowledgeBaseController(KbPageService pages, KbPageList list
     public async Task<ActionResult<KbAiTagsStatus>> AiTagsStatus(Guid id, Guid workId, CancellationToken ct) => await aiTags.StatusAsync(id, workId, ct);
 
     /// <summary>The Knowledge base panels of a location, a host or a sensor (§6.5): exactly one of the three.</summary>
+    // --- likes and uses (docs/knowledge-base-extensions-plan.md §9): every reader's, as views are ---------------------------
+
+    [HttpPut("pages/{id:guid}/like")]
+    [NotAudited("a like: a reaction, not an operation")]
+    public async Task<ActionResult<KbReactions>> Like(Guid id, KbLikeRequest request, CancellationToken ct) =>
+        await reactions.LikeAsync(id, request.Liked, ct);
+
+    [HttpGet("pages/{id:guid}/likes")]
+    public async Task<ActionResult<IReadOnlyList<KbLikeItem>>> Likes(Guid id, CancellationToken ct) => Ok(await reactions.LikesAsync(id, ct));
+
+    /// <summary>A use now: 409 <c>used_recently</c> within the repeat window of one's last.</summary>
+    [HttpPost("pages/{id:guid}/uses")]
+    [NotAudited("a use: a reaction, not an operation")]
+    public async Task<ActionResult<KbReactions>> Use(Guid id, KbUseRequest request, CancellationToken ct) =>
+        StatusCode(StatusCodes.Status201Created, await reactions.UseAsync(id, request, ct));
+
+    [HttpGet("pages/{id:guid}/uses")]
+    public async Task<ActionResult<Paged<KbUseItem>>> Uses(Guid id, [FromQuery] PageQuery query, CancellationToken ct) =>
+        await reactions.UsesAsync(id, query, ct);
+
+    /// <summary>One's own use's note, within a day.</summary>
+    [HttpPut("pages/{id:guid}/uses/{useId:guid}")]
+    [NotAudited("a use's note: a reaction, not an operation")]
+    public async Task<ActionResult<KbReactions>> UseNote(Guid id, Guid useId, KbUseRequest request, CancellationToken ct) =>
+        await reactions.NoteAsync(id, useId, request, ct);
+
+    /// <summary>One's own use undone, within 10 minutes.</summary>
+    [HttpDelete("pages/{id:guid}/uses/{useId:guid}")]
+    [NotAudited("undoing one's own use: a reaction, not an operation")]
+    public async Task<ActionResult<KbReactions>> UndoUse(Guid id, Guid useId, CancellationToken ct) =>
+        await reactions.UndoUseAsync(id, useId, ct);
+
     [HttpGet("related")]
     public async Task<ActionResult<KbRelated>> Related([FromQuery] Guid? locationId, [FromQuery] Guid? hostId, [FromQuery] Guid? sensorId,
         CancellationToken ct) => await lists.RelatedAsync(locationId, hostId, sensorId, ct);

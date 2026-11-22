@@ -21,6 +21,8 @@ export type KbStatements = S['KbStatements']
 export type KbAiStatus = S['KbAiTagsStatus']
 export type KbRelatedGroup = S['KbRelatedGroup']
 export type KbRecentChange = S['KbRecentChange']
+export type KbReactions = S['KbReactions']
+export type KbUseItem = S['KbUseItem']
 
 /** The list's query (§6.6): what the URL holds, as the API takes it. */
 export interface KbListQuery {
@@ -43,6 +45,16 @@ export const kbApi = {
   list: (query: KbListQuery) => call(client.GET('/api/v1/kb/pages', { params: { query } })),
   /** The recent changes on top of the list (docs/knowledge-base-extensions-plan.md §6). */
   changes: () => call(client.GET('/api/v1/kb/changes')),
+  /** Likes and uses (§9): every reader's, as views are. */
+  like: (id: Id, liked: boolean) =>
+    call(client.PUT('/api/v1/kb/pages/{id}/like', { params: { path: { id } }, body: { liked } })),
+  likes: (id: Id) => call(client.GET('/api/v1/kb/pages/{id}/likes', { params: { path: { id } } })),
+  use: (id: Id, note?: string | null) =>
+    call(client.POST('/api/v1/kb/pages/{id}/uses', { params: { path: { id } }, body: { note: note ?? null } })),
+  noteUse: (id: Id, useId: Id, note: string | null) =>
+    call(client.PUT('/api/v1/kb/pages/{id}/uses/{useId}', { params: { path: { id, useId } }, body: { note } })),
+  undoUse: (id: Id, useId: Id) =>
+    call(client.DELETE('/api/v1/kb/pages/{id}/uses/{useId}', { params: { path: { id, useId } } })),
   get: (number: number) => call(client.GET('/api/v1/kb/pages/{number}', { params: { path: { number } } })),
   create: (body: KbPageRequest) => call(client.POST('/api/v1/kb/pages', { body })),
   update: (id: Id, body: KbPageRequest) =>

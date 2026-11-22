@@ -17,7 +17,7 @@ namespace PNMTD.Knowledge;
 /// </summary>
 public sealed class KbPageList(PnmtdDbContext db, LocationTree tree)
 {
-    public static readonly string[] Sorts = ["newest", "updated", "views", "edits", "title", "relevance"];
+    public static readonly string[] Sorts = ["newest", "updated", "views", "edits", "likes", "uses", "title", "relevance"];
 
     /// <summary>The recent period of <i>most viewed</i> and <i>most edited</i>.</summary>
     public const int RecentDays = 30;
@@ -84,6 +84,11 @@ public sealed class KbPageList(PnmtdDbContext db, LocationTree tree)
             "views" => pages.OrderByDescending(p => db.KbPageViews.Where(v => v.PageId == p.Id && v.Day >= day).Sum(v => (int?)v.Views) ?? 0),
             "edits" when all => pages.OrderByDescending(p => db.KbRevisions.Count(r => r.PageId == p.Id && r.IsEdit)),
             "edits" => pages.OrderByDescending(p => db.KbRevisions.Count(r => r.PageId == p.Id && r.IsEdit && r.At >= instant)),
+            // Most liked and most used (docs/knowledge-base-extensions-plan.md §9).
+            "likes" when all => pages.OrderByDescending(p => p.Likes),
+            "likes" => pages.OrderByDescending(p => db.KbPageLikes.Count(l => l.PageId == p.Id && l.At >= instant)),
+            "uses" when all => pages.OrderByDescending(p => p.Uses),
+            "uses" => pages.OrderByDescending(p => db.KbPageUses.Count(u => u.PageId == p.Id && u.At >= instant)),
             "title" => pages.OrderBy(p => p.Title),
             _ => pages.OrderByDescending(p => p.CreatedAt),
         };
@@ -218,7 +223,11 @@ public sealed class KbPageList(PnmtdDbContext db, LocationTree tree)
             db.KbPageViews.Where(v => v.PageId == p.Id && v.Day >= day).Sum(v => (int?)v.Views) ?? 0,
             db.KbRevisions.Count(r => r.PageId == p.Id && r.IsEdit),
             db.KbRevisions.Count(r => r.PageId == p.Id && r.IsEdit && r.At >= instant),
-            p.WrittenWithAi));
+            p.WrittenWithAi,
+            p.Likes,
+            db.KbPageLikes.Count(l => l.PageId == p.Id && l.At >= instant),
+            p.Uses,
+            db.KbPageUses.Count(u => u.PageId == p.Id && u.At >= instant)));
     }
 
     /// <summary>The first day (PNMT's time zone) and the first instant of the last 30 days.</summary>

@@ -28,7 +28,16 @@ import RelativeTime from '@/components/RelativeTime.vue'
 import { useMedia } from '@/composables/useMedia'
 import { useSession } from '@/stores/session'
 import LinkPicker, { type LinkTarget } from './LinkPicker.vue'
-import { fromQuery, sortOptions, toApi, toggleTag, toQuery, type KbListState, type KbSort } from './listState'
+import {
+  fromQuery,
+  periodSorts,
+  sortOptions,
+  toApi,
+  toggleTag,
+  toQuery,
+  type KbListState,
+  type KbSort,
+} from './listState'
 import RecentChanges from './RecentChanges.vue'
 import { hasMatch, snippetParts } from './snippet'
 import TagBrowser from './TagBrowser.vue'
@@ -178,7 +187,7 @@ function newPage() {
         aria-label="Order"
       />
       <SelectButton
-        v-if="state.sort === 'views' || state.sort === 'edits'"
+        v-if="state.sort && periodSorts.includes(state.sort)"
         :model-value="state.period"
         :options="periods"
         option-label="label"
@@ -289,6 +298,21 @@ function newPage() {
                 </span>
                 <span v-else-if="state.sort === 'edits'"
                   >{{ count(state.period === 'all' ? p.edits : p.recentEdits, 'edit') }} ·
+                </span>
+                <span v-else-if="state.sort === 'likes'"
+                  >{{ count(state.period === 'all' ? (p.likes ?? 0) : (p.recentLikes ?? 0), 'like') }} ·
+                </span>
+                <span v-else-if="state.sort === 'uses'"
+                  >{{ count(state.period === 'all' ? (p.uses ?? 0) : (p.recentUses ?? 0), 'use') }} ·
+                </span>
+                <span v-if="p.likes && state.sort !== 'likes'" class="reaction" :title="count(p.likes, 'like')"
+                  ><i class="pi pi-heart" aria-hidden="true" /> {{ p.likes }} ·
+                </span>
+                <span
+                  v-if="p.uses && state.sort !== 'uses'"
+                  class="reaction"
+                  :title="`Used ${count(p.uses, 'time')} to solve a problem`"
+                  ><i class="pi pi-check-circle" aria-hidden="true" /> {{ p.uses }} ·
                 </span>
                 <span v-else-if="p.views">{{ count(p.views, 'view') }} · </span>
                 <RelativeTime :value="state.sort === 'newest' || !state.sort ? p.createdAt : p.updatedAt" />
@@ -409,6 +433,10 @@ function newPage() {
 }
 
 .status {
+  font-size: 0.75rem;
+}
+
+.reaction .pi {
   font-size: 0.75rem;
 }
 

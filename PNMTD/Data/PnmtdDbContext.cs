@@ -187,6 +187,8 @@ namespace PNMTD.Data
         public DbSet<KbLinkEntity> KbLinks { get; set; }
         public DbSet<KbPageRefEntity> KbPageRefs { get; set; }
         public DbSet<KbPageViewEntity> KbPageViews { get; set; }
+        public DbSet<KbPageLikeEntity> KbPageLikes { get; set; }
+        public DbSet<KbPageUseEntity> KbPageUses { get; set; }
         public DbSet<UserNotificationPreferenceEntity> UserNotificationPreferences { get; set; }
         public DbSet<UserNotificationEntity> UserNotifications { get; set; }
         public DbSet<KbAiQuestionEntity> KbAiQuestions { get; set; }
@@ -928,6 +930,9 @@ namespace PNMTD.Data
                 e.HasIndex(p => p.CreatedAt);
                 e.HasIndex(p => p.UpdatedAt);
                 e.HasIndex(p => p.Views);
+                // Most liked and most used of all time (docs/knowledge-base-extensions-plan.md §9).
+                e.HasIndex(p => p.Likes);
+                e.HasIndex(p => p.Uses);
                 e.HasMany(p => p.Tags).WithOne().HasForeignKey(t => t.PageId).OnDelete(DeleteBehavior.Cascade);
                 e.HasMany(p => p.Links).WithOne().HasForeignKey(l => l.PageId).OnDelete(DeleteBehavior.Cascade);
             });
@@ -981,6 +986,19 @@ namespace PNMTD.Data
                 e.HasOne<KbPageEntity>().WithMany().HasForeignKey(v => v.PageId).OnDelete(DeleteBehavior.Cascade);
                 // Most viewed in the last 30 days (§6.6).
                 e.HasIndex(v => v.Day);
+            });
+            modelBuilder.Entity<KbPageLikeEntity>(e =>
+            {
+                // Once per person and page; the page's leads, for its likes and the 30 days.
+                e.HasIndex(l => new { l.PageId, l.UserId }).IsUnique();
+                e.HasOne<KbPageEntity>().WithMany().HasForeignKey(l => l.PageId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(l => l.At);
+            });
+            modelBuilder.Entity<KbPageUseEntity>(e =>
+            {
+                e.HasOne<KbPageEntity>().WithMany().HasForeignKey(u => u.PageId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(u => new { u.PageId, u.At });
+                e.HasIndex(u => new { u.PageId, u.UserId, u.At });
             });
             modelBuilder.Entity<KbAiQuestionEntity>(e =>
             {

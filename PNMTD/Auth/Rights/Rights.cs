@@ -44,8 +44,8 @@ public static class RightsCatalog
             (Level.Edit, "Create, rename and move locations, fill in their fields, set hosts' locations."),
             (Level.Manage, "Admin → Location fields, and deleting locations.")]),
         new(Area.KnowledgeBase, "Knowledge base", [
-            (Level.View, "Pages, their history and files."),
-            (Level.Edit, "Write, archive and restore pages, AI tags, the sensitive mark, uploads."),
+            (Level.View, "Pages, their history and files, the recent changes; liking pages and recording that one used a page to solve a problem."),
+            (Level.Edit, "Write, archive and restore pages, links between pages, AI tags, the sensitive mark, Written with AI, uploads."),
             (Level.Manage, "Deleting pages and files, redacting, tags, Admin → Knowledge base.")]),
         new(Area.Redmine, "Redmine", [
             (Level.View, "The Redmine page, tickets, their panels and chips."),

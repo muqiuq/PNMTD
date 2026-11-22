@@ -54,6 +54,9 @@ public sealed class KnowledgeBaseOptions
     /// <summary>At most this many pages in the recent changes, each with its newest change (§6).</summary>
     public int RecentChangesMax { get; set; } = 10;
 
+    /// <summary>The same person records another use of a page after this many hours (§9).</summary>
+    public int UseRepeatHours { get; set; } = 12;
+
     /// <summary><see cref="BlockedExtensions"/> as a set: lower case, without dots.</summary>
     public IReadOnlySet<string> BlockedExtensionSet =>
         BlockedExtensions.Split([' ', ',', ';', '\t', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

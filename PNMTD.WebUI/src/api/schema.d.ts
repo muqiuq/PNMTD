@@ -10291,6 +10291,233 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/kb/pages/{id}/like": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["KbLikeRequest"];
+                    "text/json": components["schemas"]["KbLikeRequest"];
+                    "application/*+json": components["schemas"]["KbLikeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbReactions"];
+                        "text/json": components["schemas"]["KbReactions"];
+                        "text/plain": components["schemas"]["KbReactions"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}/likes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbLikeItem"][];
+                        "text/json": components["schemas"]["KbLikeItem"][];
+                        "text/plain": components["schemas"]["KbLikeItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}/uses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfKbUseItem"];
+                        "text/json": components["schemas"]["PagedOfKbUseItem"];
+                        "text/plain": components["schemas"]["PagedOfKbUseItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["KbUseRequest"];
+                    "text/json": components["schemas"]["KbUseRequest"];
+                    "application/*+json": components["schemas"]["KbUseRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbReactions"];
+                        "text/json": components["schemas"]["KbReactions"];
+                        "text/plain": components["schemas"]["KbReactions"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kb/pages/{id}/uses/{useId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    useId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["KbUseRequest"];
+                    "text/json": components["schemas"]["KbUseRequest"];
+                    "application/*+json": components["schemas"]["KbUseRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbReactions"];
+                        "text/json": components["schemas"]["KbReactions"];
+                        "text/plain": components["schemas"]["KbReactions"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    useId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbReactions"];
+                        "text/json": components["schemas"]["KbReactions"];
+                        "text/plain": components["schemas"]["KbReactions"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/kb/related": {
         parameters: {
             query?: never;
@@ -24713,6 +24940,14 @@ export interface components {
             /** Format: date-time */
             since: string;
         };
+        KbLikeItem: {
+            byName: string;
+            /** Format: date-time */
+            at: string;
+        };
+        KbLikeRequest: {
+            liked?: boolean;
+        };
         KbLinkItem: {
             kind: components["schemas"]["KbLinkKind"];
             /** Format: uuid */
@@ -24764,6 +24999,7 @@ export interface components {
             editing: components["schemas"]["KbEditor"][];
             aiTags: boolean;
             writtenWithAi: boolean;
+            reactions: components["schemas"]["KbReactions"];
         };
         KbPageListItem: {
             /** Format: uuid */
@@ -24794,6 +25030,26 @@ export interface components {
             /** Format: int32 */
             recentEdits: number;
             writtenWithAi: boolean;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            likes: number;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            recentLikes: number;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            uses: number;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            recentUses: number;
         };
         KbPageRef: {
             /** Format: int32 */
@@ -24823,6 +25079,21 @@ export interface components {
         KbPageTag: {
             name: string;
             source: components["schemas"]["KbTagSource"];
+        };
+        KbReactions: {
+            /** Format: int32 */
+            likes: number;
+            likedByMe: boolean;
+            /** Format: int32 */
+            uses: number;
+            /** Format: int32 */
+            people: number;
+            /** Format: date-time */
+            lastUsedAt: null | string;
+            myLastUse: null | components["schemas"]["KbUseItem"];
+            /** Format: date-time */
+            canUseAgainAt: null | string;
+            recentUses: components["schemas"]["KbUseItem"][];
         };
         KbRecentChange: {
             /** Format: uuid */
@@ -24951,6 +25222,19 @@ export interface components {
         };
         /** @enum {unknown} */
         KbTagSource: "Manual" | "Ai";
+        KbUseItem: {
+            /** Format: uuid */
+            id: string;
+            byName: string;
+            /** Format: date-time */
+            at: string;
+            note: null | string;
+            mine: boolean;
+            canUndo: boolean;
+        };
+        KbUseRequest: {
+            note?: null | string;
+        };
         /** @enum {unknown} */
         KeyFamily: "HmacSha256" | "Aes" | "HmacSha1" | "HmacMd5";
         KeyValueItem: {
@@ -28099,6 +28383,15 @@ export interface components {
         };
         PagedOfKbPageListItem: {
             items: components["schemas"]["KbPageListItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfKbUseItem: {
+            items: components["schemas"]["KbUseItem"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */

@@ -4136,6 +4136,12 @@ namespace PNMTD.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Likes")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Number")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
@@ -4184,6 +4190,9 @@ namespace PNMTD.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<int>("Uses")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Views")
                         .HasColumnType("integer");
 
@@ -4194,6 +4203,8 @@ namespace PNMTD.Data.Migrations
 
                     b.HasIndex("CreatedAt");
 
+                    b.HasIndex("Likes");
+
                     b.HasIndex("Number")
                         .IsUnique();
 
@@ -4203,9 +4214,41 @@ namespace PNMTD.Data.Migrations
 
                     b.HasIndex("UpdatedAt");
 
+                    b.HasIndex("Uses");
+
                     b.HasIndex("Views");
 
                     b.ToTable("kb_pages");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.KbPageLikeEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.HasIndex("PageId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("kb_page_likes");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.KbPageRefEntity", b =>
@@ -4245,6 +4288,39 @@ namespace PNMTD.Data.Migrations
                     b.HasIndex("TagId");
 
                     b.ToTable("kb_page_tags");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.KbPageUseEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("PageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PageId", "At");
+
+                    b.HasIndex("PageId", "UserId", "At");
+
+                    b.ToTable("kb_page_uses");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.KbPageViewEntity", b =>
@@ -9369,6 +9445,15 @@ namespace PNMTD.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.KbPageLikeEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.KbPageEntity", null)
+                        .WithMany()
+                        .HasForeignKey("PageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.KbPageRefEntity", b =>
                 {
                     b.HasOne("PNMTD.Models.Db.KbPageEntity", null)
@@ -9393,6 +9478,15 @@ namespace PNMTD.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.KbPageUseEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.KbPageEntity", null)
+                        .WithMany()
+                        .HasForeignKey("PageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.KbPageViewEntity", b =>

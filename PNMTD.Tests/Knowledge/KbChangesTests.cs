@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Time.Testing;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Knowledge;
@@ -8,8 +9,9 @@ namespace PNMTD.Tests.Knowledge;
 
 /// <summary>
 /// The recent changes on top of the knowledge base (docs/knowledge-base-extensions-plan.md §6, §16): what counts as a change,
-/// one row per page with its newest change, newest first, archived pages left out, at most 10, and the last 14 days. The tests
-/// run one after another, so the pages a test has just changed are the newest in the shared database.
+/// one row per page with its newest change, newest first, archived pages left out, at most 10, and the last 14 days. Each test runs
+/// on a fake clock a day after the newest revision in the shared database (other tests' clocks run ahead too), so its own changes
+/// are the newest.
 /// </summary>
 [TestClass]
 public sealed class KbChangesTests
@@ -39,6 +41,20 @@ public sealed class KbChangesTests
         return (await (await user.PutJsonAsync($"/api/v1/kb/pages/{page.Id}", request)).ReadAsync<KbSaveResult>()).Page;
     }
 
+    /// <summary>A fake clock on a whole second, a day after every revision there is.</summary>
+    private static async Task<FakeTimeProvider> AfterEverythingAsync()
+    {
+        await using var db = app.NewDb();
+        var newest = await db.KbRevisions.MaxAsync(r => (DateTime?)r.At) ?? DateTime.UtcNow;
+        var after = new DateTimeOffset(Clock.AsUtc(newest > DateTime.UtcNow ? newest : DateTime.UtcNow)).AddDays(1);
+        var time = new FakeTimeProvider(new DateTimeOffset(after.UtcTicks - after.UtcTicks % TimeSpan.TicksPerSecond, TimeSpan.Zero));
+        Clock.Provider = time;
+        return time;
+    }
+
+    [TestCleanup]
+    public void Thaw() => Clock.Provider = TimeProvider.System;
+
     private static async Task<List<KbRecentChange>> ChangesAsync()
     {
         var changes = await (await viewer.GetAsync("/api/v1/kb/changes")).ReadAsync<KbRecentChanges>();
@@ -49,10 +65,15 @@ public sealed class KbChangesTests
     [TestMethod]
     public async Task Each_page_shows_once_with_its_newest_change_and_housekeeping_doesnt_count()
     {
+        var time = await AfterEverythingAsync();
         var a = await CreateAsync("Changed text");
+        time.Advance(TimeSpan.FromSeconds(1));
         var b = await CreateAsync("Changed status");
+        time.Advance(TimeSpan.FromSeconds(1));
         a = await SaveAsync(a, r => { r.Content = "one\n2\nthree"; r.Note = "the second line"; });
+        time.Advance(TimeSpan.FromSeconds(1));
         b = await SaveAsync(b, r => r.Status = KbPageStatus.Draft);
+        time.Advance(TimeSpan.FromSeconds(1));
         // Housekeeping after that: a tag on A, the sensitive mark and Written with AI on B.
         a = await SaveAsync(a, r => r.Tags = ["housekeeping"]);
         b = await SaveAsync(b, r => { r.Sensitive = true; r.WrittenWithAi = true; });
@@ -76,7 +97,9 @@ public sealed class KbChangesTests
         Assert.AreEqual(1, edited.People);
         Assert.AreEqual(1, changes.Count(c => c.Number == a.Number));
 
+        time.Advance(TimeSpan.FromSeconds(1));
         var restored = await (await user.PostAsync($"/api/v1/kb/pages/{a.Id}/revisions/1/restore", null)).ReadAsync<KbPageDetail>();
+        time.Advance(TimeSpan.FromSeconds(1));
         var created = await CreateAsync("Created last");
         await (await user.PostAsync($"/api/v1/kb/pages/{b.Id}/archive", null)).ReadAsync<KbPageDetail>();
         changes = await ChangesAsync();
@@ -92,12 +115,11 @@ public sealed class KbChangesTests
     [TestMethod]
     public async Task At_most_ten_pages_from_the_last_fourteen_days()
     {
-        var now = DateTimeOffset.UtcNow;
-        var start = new DateTimeOffset(now.UtcTicks - now.UtcTicks % TimeSpan.TicksPerSecond, TimeSpan.Zero) + TimeSpan.FromDays(60);
-        var time = new FakeTimeProvider(start);
+        var time = await AfterEverythingAsync();
+        time.Advance(TimeSpan.FromDays(15));
+        var start = time.GetUtcNow();
         try
         {
-            Clock.Provider = time;
             Assert.AreEqual(0, (await ChangesAsync()).Count, "everything else is older than 14 days");
             var pages = new List<KbPageDetail>();
             for (var i = 0; i < 11; i++)

@@ -18,9 +18,9 @@ public static class UserNotificationKinds
 
     public static readonly IReadOnlyList<UserNotificationKind> All =
     [
-        new(KbLiked, "Someone liked a page I wrote", "Pages you created or edited. One e-mail per page for the likes of a quarter of an hour.",
+        new(KbLiked, "Someone liked a page I wrote", "Pages you created or edited.", Area.KnowledgeBase, Level.View, true),
+        new(KbUsed, "Someone used a page I wrote to solve a problem", "Pages you created or edited, with the note they wrote, if any.",
             Area.KnowledgeBase, Level.View, true),
-        new(KbUsed, "Someone used a page I wrote to solve a problem", "With the note they wrote, if any.", Area.KnowledgeBase, Level.View, true),
     ];
 
     public static UserNotificationKind? Find(string key) => All.FirstOrDefault(k => k.Key == key);

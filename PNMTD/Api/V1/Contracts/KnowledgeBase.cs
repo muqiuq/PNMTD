@@ -64,7 +64,40 @@ public sealed record KbPageDetail(
     IReadOnlyList<KbPageRef> LinksTo,
     IReadOnlyList<KbEditor> Editing,
     bool AiTags,
-    bool WrittenWithAi);
+    bool WrittenWithAi,
+    KbReactions Reactions);
+
+/// <summary>
+/// Likes and uses of a page (docs/knowledge-base-extensions-plan.md §9), as the person reading sees them: the counts, whether they
+/// like it, their last use (which they can still undo or add a note to) and when they can record another, and the last 5 uses.
+/// </summary>
+public sealed record KbReactions(
+    int Likes,
+    bool LikedByMe,
+    int Uses,
+    int People,
+    DateTime? LastUsedAt,
+    KbUseItem? MyLastUse,
+    DateTime? CanUseAgainAt,
+    IReadOnlyList<KbUseItem> RecentUses);
+
+/// <summary>A use (§9): who, when, the note; <see cref="Mine"/> with whether it can still be undone.</summary>
+public sealed record KbUseItem(Guid Id, string ByName, DateTime At, string? Note, bool Mine, bool CanUndo);
+
+/// <summary>Who likes a page, newest first.</summary>
+public sealed record KbLikeItem(string ByName, DateTime At);
+
+/// <summary><c>PUT /kb/pages/{id}/like</c>.</summary>
+public sealed class KbLikeRequest
+{
+    public bool Liked { get; set; }
+}
+
+/// <summary><c>POST /kb/pages/{id}/uses</c> and its note: what it solved, at most 200 characters.</summary>
+public sealed class KbUseRequest
+{
+    public string? Note { get; set; }
+}
 
 /// <summary>A link to set: the kind and the target's id.</summary>
 public sealed class KbLinkRequest
@@ -141,8 +174,9 @@ public sealed record KbSaveResult(KbPageDetail Page, bool AskAiTags, IReadOnlyLi
 /// <c>GET /kb/pages</c> (§6.6, §6.7). <see cref="Q"/> searches the content (<c>"…"</c> a phrase, <c>-word</c> excludes,
 /// <c>or</c> alternatives, <c>#tag</c> a tag); <see cref="Tags"/> are comma-separated and all must match;
 /// <see cref="Location"/> includes its sub-locations. Sorts: <c>newest</c> (the default), <c>updated</c>,
-/// <c>views</c>, <c>edits</c>, <c>title</c>, and <c>relevance</c> (the default while searching). <see cref="Period"/>
-/// for views and edits: <c>30d</c> (the default) or <c>all</c>.
+/// <c>views</c>, <c>edits</c>, <c>likes</c>, <c>uses</c> (docs/knowledge-base-extensions-plan.md §9), <c>title</c>, and <c>relevance</c>
+/// (the default while searching). <see cref="Period"/>
+/// for views, edits, likes and uses: <c>30d</c> (the default) or <c>all</c>.
 /// </summary>
 public sealed class KbPageQuery
 {
@@ -201,7 +235,11 @@ public sealed record KbPageListItem(
     int RecentViews,
     int Edits,
     int RecentEdits,
-    bool WrittenWithAi);
+    bool WrittenWithAi,
+    int Likes = 0,
+    int RecentLikes = 0,
+    int Uses = 0,
+    int RecentUses = 0);
 
 /// <summary>
 /// A page in the recent changes (docs/knowledge-base-extensions-plan.md §6), with its newest change: <see cref="Kind"/> is

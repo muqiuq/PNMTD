@@ -107,6 +107,19 @@ public class KbPageEntity
     public int Views { get; set; }
 
     /// <summary>
+    /// People who like the page (docs/knowledge-base-extensions-plan.md §9): moves with kb_page_likes, in the same transaction.
+    /// </summary>
+    [AuditIgnore]
+    public int Likes { get; set; }
+
+    /// <summary>Times it was used to solve a problem (§9): moves with kb_page_uses, in the same transaction.</summary>
+    [AuditIgnore]
+    public int Uses { get; set; }
+
+    [AuditIgnore]
+    public DateTime? LastUsedAt { get; set; }
+
+    /// <summary>
     /// Generated and stored by PostgreSQL with the <c>simple</c> configuration: A the title and tags, B the summary, C the
     /// plain text (§6.7). Never written by PNMTD.
     /// </summary>
@@ -288,6 +301,53 @@ public class KbPageViewEntity
     public DateOnly Day { get; set; }
 
     public int Views { get; set; }
+}
+
+/// <summary>
+/// A person likes a page (docs/knowledge-base-extensions-plan.md §9): once per person, undone by liking again. The person is a user
+/// id and their name at the time, without a foreign key, as authors are.
+/// </summary>
+[Table("kb_page_likes")]
+[NotAudited("a like: a reaction, not an operation")]
+public class KbPageLikeEntity
+{
+    /// <summary>What its notifications name, so unliking cancels them.</summary>
+    [Key]
+    public Guid Id { get; set; }
+
+    public Guid PageId { get; set; }
+
+    public Guid UserId { get; set; }
+
+    [MaxLength(200)]
+    public string UserName { get; set; } = "";
+
+    public DateTime At { get; set; }
+}
+
+/// <summary>
+/// A person just used the page to solve a problem (§9): an event, recorded again by the same person after
+/// <c>KnowledgeBase:UseRepeatHours</c>, with an optional note.
+/// </summary>
+[Table("kb_page_uses")]
+[NotAudited("a use: a reaction, not an operation")]
+public class KbPageUseEntity
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    public Guid PageId { get; set; }
+
+    public Guid UserId { get; set; }
+
+    [MaxLength(200)]
+    public string UserName { get; set; } = "";
+
+    public DateTime At { get; set; }
+
+    /// <summary>What it solved, at most 200 characters.</summary>
+    [MaxLength(200)]
+    public string? Note { get; set; }
 }
 
 /// <summary>When a person was last asked about AI tags for a page: not again within 24 hours (§7.2).</summary>

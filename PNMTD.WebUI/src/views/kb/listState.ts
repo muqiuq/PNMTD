@@ -5,7 +5,7 @@ import type { KbListQuery, KbStatus } from '@/api/kb'
  * The knowledge base list's state (docs/locations-knowledge-plan.md §6.6), kept in the URL so a list can be shared:
  * `/kb?tags=backup,zrh&sort=views`. Only what differs from the defaults is written.
  */
-export type KbSort = 'newest' | 'updated' | 'views' | 'edits' | 'title' | 'relevance'
+export type KbSort = 'newest' | 'updated' | 'views' | 'edits' | 'likes' | 'uses' | 'title' | 'relevance'
 export type KbPeriod = '30d' | 'all'
 
 export interface KbListState {
@@ -31,11 +31,17 @@ export const sortOptions: { label: string; value: KbSort; searching?: boolean }[
   { label: 'Recently updated', value: 'updated' },
   { label: 'Most viewed', value: 'views' },
   { label: 'Most edited', value: 'edits' },
+  { label: 'Most liked', value: 'likes' },
+  { label: 'Most used to solve a problem', value: 'uses' },
   { label: 'Title', value: 'title' },
   { label: 'Relevance', value: 'relevance', searching: true },
 ]
 
 const sorts = new Set<string>(sortOptions.map((s) => s.value))
+
+/** The orders that count over a period: 30 days or all time (docs/knowledge-base-extensions-plan.md §9). */
+export const periodSorts: readonly KbSort[] = ['views', 'edits', 'likes', 'uses']
+const hasPeriod = (sort: KbSort | null) => sort !== null && periodSorts.includes(sort)
 const statuses = new Set<string>(['Draft', 'Published', 'NeedsReview'])
 
 function one(value: LocationQuery[string]): string {
@@ -97,7 +103,7 @@ export function toQuery(state: KbListState): Record<string, string> {
   if (state.sensitive !== null) query.sensitive = String(state.sensitive)
   if (state.ai !== null) query.ai = String(state.ai)
   if (state.sort) query.sort = state.sort
-  if (state.period !== '30d' && (state.sort === 'views' || state.sort === 'edits')) query.period = state.period
+  if (state.period !== '30d' && hasPeriod(state.sort)) query.period = state.period
   if (state.page > 1) query.page = String(state.page)
   return query
 }
@@ -116,7 +122,7 @@ export function toApi(state: KbListState, pageSize = 50): KbListQuery {
     sensitive: state.sensitive ?? undefined,
     ai: state.ai ?? undefined,
     sort: state.sort === 'relevance' && !searching ? undefined : (state.sort ?? undefined),
-    period: state.sort === 'views' || state.sort === 'edits' ? state.period : undefined,
+    period: hasPeriod(state.sort) ? state.period : undefined,
     page: state.page,
     pageSize,
   }

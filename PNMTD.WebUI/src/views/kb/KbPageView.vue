@@ -22,6 +22,7 @@ import {
   kbStatusSeverity,
   type KbPage,
   type KbPageRequest,
+  type KbReactions,
 } from '@/api/kb'
 import ErrorState from '@/components/ErrorState.vue'
 import MarkdownView from '@/components/markdown/MarkdownView.vue'
@@ -94,6 +95,51 @@ async function save(patch: Partial<KbPageRequest>, success: string) {
     notify.error(e, 'Not saved')
   }
 }
+
+// --- likes and uses (docs/knowledge-base-extensions-plan.md §9): every reader's, as views are ------------------------
+const reactions = computed(() => page.value?.reactions)
+const reacting = ref(false)
+function keepReactions(r: KbReactions) {
+  const p = page.value!
+  queryClient.setQueryData(kbKeys.page(p.number), { ...p, reactions: r })
+  // The lists' counts and orders (most liked, most used) follow.
+  void queryClient.invalidateQueries({ queryKey: ['kb', 'list'] })
+}
+async function react(action: () => Promise<KbReactions>, success?: string) {
+  reacting.value = true
+  try {
+    const r = await run(action, { success })
+    if (r) keepReactions(r)
+  } finally {
+    reacting.value = false
+  }
+}
+const toggleLike = () => react(() => kbApi.like(page.value!.id, !reactions.value!.likedByMe))
+const recordUse = () => react(() => kbApi.use(page.value!.id), 'Recorded: you used it to solve a problem')
+/** The person's last use while it can still be undone: the bar under the header, for its note and Undo. */
+const justUsed = computed(() => (reactions.value?.myLastUse?.canUndo ? reactions.value.myLastUse : null))
+const note = ref('')
+watch(
+  () => justUsed.value?.id,
+  () => (note.value = justUsed.value?.note ?? ''),
+  { immediate: true },
+)
+const saveNote = () =>
+  react(() => kbApi.noteUse(page.value!.id, justUsed.value!.id, note.value.trim() || null), 'Note saved')
+const undoUse = () => react(() => kbApi.undoUse(page.value!.id, justUsed.value!.id), 'Use undone')
+const useTitle = computed(() => {
+  const again = reactions.value?.canUseAgainAt
+  return again
+    ? `You used it already; again after ${formatTime(again)}`
+    : 'Record that you just used this page to solve a problem'
+})
+const likesDialog = ref(false)
+const likers = useQuery({
+  queryKey: computed(() => ['kb', 'likes', page.value?.id]),
+  queryFn: () => kbApi.likes(page.value!.id),
+  enabled: likesDialog,
+})
+const plural = (n: number, one: string, many: string) => `${n.toLocaleString()} ${n === 1 ? one : many}`
 
 const attachments = computed(() => (page.value?.files ?? []).filter((f) => f.kind === 'Attachment'))
 const aiTags = computed(() => page.value?.tags.filter((t) => t.source === 'Ai').map((t) => t.name) ?? [])
@@ -289,6 +335,30 @@ const more = computed(() => {
           />
         </template>
         <template #actions>
+          <span class="reactions no-print">
+            <Button
+              :icon="reactions?.likedByMe ? 'pi pi-heart-fill' : 'pi pi-heart'"
+              :label="String(reactions?.likes ?? 0)"
+              size="small"
+              severity="secondary"
+              :outlined="!reactions?.likedByMe"
+              :disabled="archived || reacting"
+              :aria-label="reactions?.likedByMe ? 'Unlike' : 'Like'"
+              :aria-pressed="reactions?.likedByMe ?? false"
+              :title="reactions?.likedByMe ? 'You like it; click to undo' : 'Like it'"
+              @click="toggleLike"
+            />
+            <Button
+              icon="pi pi-check-circle"
+              :label="`Used to solve a problem · ${reactions?.uses ?? 0}`"
+              size="small"
+              severity="secondary"
+              outlined
+              :disabled="archived || reacting || !!reactions?.canUseAgainAt"
+              :title="useTitle"
+              @click="recordUse"
+            />
+          </span>
           <Button
             v-if="writable"
             label="Edit"
@@ -308,6 +378,28 @@ const more = computed(() => {
       </Message>
       <Message v-if="page.sensitive" severity="info" icon="pi pi-lock" class="no-print">
         Sensitive: never shown to AI or MCP.
+      </Message>
+      <Message v-if="justUsed" severity="success" icon="pi pi-check-circle" class="no-print used-bar">
+        <span class="used-line">
+          <span>You used it to solve a problem at {{ formatTime(justUsed.at) }}.</span>
+          <InputText
+            v-model="note"
+            size="small"
+            maxlength="200"
+            placeholder="What did it solve? (optional)"
+            aria-label="What it solved"
+            class="note-input"
+            @keydown.enter="saveNote"
+          />
+          <Button
+            label="Save note"
+            size="small"
+            text
+            :disabled="reacting || (note.trim() || null) === (justUsed.note ?? null)"
+            @click="saveNote"
+          />
+          <Button label="Undo" size="small" text severity="secondary" :disabled="reacting" @click="undoUse" />
+        </span>
       </Message>
       <Message v-for="e in page.editing" :key="e.name" severity="warn" icon="pi pi-users" class="no-print">
         {{ e.name }} is editing this page (since {{ formatTime(e.since) }}).
@@ -457,6 +549,21 @@ const more = computed(() => {
             </ul>
           </section>
 
+          <section v-if="page.reactions.recentUses.length" class="panel" aria-labelledby="kb-uses-title">
+            <div id="kb-uses-title" class="panel-header">Used to solve a problem</div>
+            <ul class="panel-body list" aria-label="Recent uses">
+              <li v-for="u in page.reactions.recentUses" :key="u.id" class="use">
+                <i class="pi pi-check-circle muted" aria-hidden="true" />
+                <span class="link-text">
+                  <span
+                    >{{ u.byName }} <span class="muted">· <RelativeTime :value="u.at" /></span
+                  ></span>
+                  <span v-if="u.note" class="muted detail">{{ u.note }}</span>
+                </span>
+              </li>
+            </ul>
+          </section>
+
           <section class="panel" aria-labelledby="kb-meta-title">
             <div id="kb-meta-title" class="panel-header">About this page</div>
             <dl class="panel-body facts">
@@ -482,6 +589,23 @@ const more = computed(() => {
               </dd>
               <dt>Views</dt>
               <dd>{{ page.views.toLocaleString() }}</dd>
+              <dt>Liked by</dt>
+              <dd>
+                <a v-if="page.reactions.likes" href="#" @click.prevent="likesDialog = true">{{
+                  plural(page.reactions.likes, 'person', 'people')
+                }}</a>
+                <span v-else class="muted">Nobody yet</span>
+              </dd>
+              <dt>Used to solve</dt>
+              <dd>
+                <template v-if="page.reactions.uses"
+                  >{{ plural(page.reactions.uses, 'time', 'times') }} by
+                  {{ plural(page.reactions.people, 'person', 'people')
+                  }}<span v-if="page.reactions.lastUsedAt" class="muted">
+                    · last <RelativeTime :value="page.reactions.lastUsedAt" /></span
+                ></template>
+                <span v-else class="muted">Not yet</span>
+              </dd>
               <dt>Sensitive</dt>
               <dd class="with-action">
                 <span :title="page.sensitive ? 'Never sent to AI, never shown to MCP' : undefined">{{
@@ -511,6 +635,16 @@ const more = computed(() => {
         </aside>
       </div>
 
+      <Dialog v-model:visible="likesDialog" modal header="Liked by" :style="{ width: '24rem' }">
+        <ul v-if="likers.data.value" class="list">
+          <li v-for="(l, i) in likers.data.value" :key="i">
+            <i class="pi pi-heart-fill muted" aria-hidden="true" />
+            <span>{{ l.byName }}</span>
+            <span class="muted detail"><RelativeTime :value="l.at" /></span>
+          </li>
+        </ul>
+        <ProgressSpinner v-else style="width: 24px; height: 24px" />
+      </Dialog>
       <AiTagsDialog v-model:visible="aiDialog" :page="page" @changed="(p) => store(p)" />
       <AiTagsDialog v-model:visible="unmarkDialog" :page="page" mode="unmark" @changed="(p) => store(p)" />
       <Dialog v-model:visible="deleting" modal :header="`Delete ${kbNumber(page.number)}?`" :style="{ width: '28rem' }">
@@ -643,6 +777,24 @@ const more = computed(() => {
   display: flex;
   justify-content: center;
   padding: var(--pnmt-space-6);
+}
+
+.reactions {
+  display: inline-flex;
+  gap: var(--pnmt-space-2);
+  margin-right: var(--pnmt-space-2);
+}
+
+.used-line {
+  display: flex;
+  align-items: center;
+  gap: var(--pnmt-space-2);
+  flex-wrap: wrap;
+}
+
+.note-input {
+  min-width: 16rem;
+  flex: 1;
 }
 
 .with-action {

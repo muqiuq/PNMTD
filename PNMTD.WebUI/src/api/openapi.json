@@ -13076,6 +13076,359 @@
         }
       }
     },
+    "/api/v1/kb/pages/{id}/like": {
+      "put": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbLikeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbLikeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbLikeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbReactions"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbReactions"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbReactions"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}/likes": {
+      "get": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbLikeItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbLikeItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KbLikeItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}/uses": {
+      "post": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbUseRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbUseRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbUseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbReactions"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbReactions"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbReactions"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfKbUseItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfKbUseItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfKbUseItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/pages/{id}/uses/{useId}": {
+      "put": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "useId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbUseRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbUseRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbUseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbReactions"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbReactions"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbReactions"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "useId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbReactions"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbReactions"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbReactions"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/kb/related": {
       "get": {
         "tags": [
@@ -42262,6 +42615,30 @@
           }
         }
       },
+      "KbLikeItem": {
+        "required": [
+          "byName",
+          "at"
+        ],
+        "type": "object",
+        "properties": {
+          "byName": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "KbLikeRequest": {
+        "type": "object",
+        "properties": {
+          "liked": {
+            "type": "boolean"
+          }
+        }
+      },
       "KbLinkItem": {
         "required": [
           "kind",
@@ -42348,7 +42725,8 @@
           "linksTo",
           "editing",
           "aiTags",
-          "writtenWithAi"
+          "writtenWithAi",
+          "reactions"
         ],
         "type": "object",
         "properties": {
@@ -42460,6 +42838,9 @@
           },
           "writtenWithAi": {
             "type": "boolean"
+          },
+          "reactions": {
+            "$ref": "#/components/schemas/KbReactions"
           }
         }
       },
@@ -42570,6 +42951,26 @@
           },
           "writtenWithAi": {
             "type": "boolean"
+          },
+          "likes": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "recentLikes": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "uses": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "recentUses": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
           }
         }
       },
@@ -42697,6 +43098,66 @@
           },
           "source": {
             "$ref": "#/components/schemas/KbTagSource"
+          }
+        }
+      },
+      "KbReactions": {
+        "required": [
+          "likes",
+          "likedByMe",
+          "uses",
+          "people",
+          "lastUsedAt",
+          "myLastUse",
+          "canUseAgainAt",
+          "recentUses"
+        ],
+        "type": "object",
+        "properties": {
+          "likes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "likedByMe": {
+            "type": "boolean"
+          },
+          "uses": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "people": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "myLastUse": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/KbUseItem"
+              }
+            ]
+          },
+          "canUseAgainAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "recentUses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbUseItem"
+            }
           }
         }
       },
@@ -43177,6 +43638,53 @@
           "Manual",
           "Ai"
         ]
+      },
+      "KbUseItem": {
+        "required": [
+          "id",
+          "byName",
+          "at",
+          "note",
+          "mine",
+          "canUndo"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "byName": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mine": {
+            "type": "boolean"
+          },
+          "canUndo": {
+            "type": "boolean"
+          }
+        }
+      },
+      "KbUseRequest": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       },
       "KeyFamily": {
         "enum": [
@@ -55651,6 +56159,35 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/KbPageListItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfKbUseItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbUseItem"
             }
           },
           "page": {
