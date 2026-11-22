@@ -14,12 +14,16 @@ namespace PNMTD.Api.V1;
 /// </summary>
 [Route("api/v1/kb")]
 [RequireRight(Area.KnowledgeBase, Level.View)]
-public sealed class KnowledgeBaseController(KbPageService pages, KbPageList lists, KbTags tags, KbAiTags aiTags) : V1ControllerBase
+public sealed class KnowledgeBaseController(KbPageService pages, KbPageList lists, KbTags tags, KbAiTags aiTags, KbChanges changes) : V1ControllerBase
 {
     /// <summary>The list and the content search (§6.6, §6.7).</summary>
     [HttpGet("pages")]
     public async Task<ActionResult<Paged<KbPageListItem>>> List([FromQuery] KbPageQuery query, CancellationToken ct) =>
         await lists.ListAsync(query, ct);
+
+    /// <summary>The recent changes on top of the list (docs/knowledge-base-extensions-plan.md §6): one per page, newest first.</summary>
+    [HttpGet("changes")]
+    public async Task<ActionResult<KbRecentChanges>> Changes(CancellationToken ct) => await changes.RecentAsync(ct);
 
     [HttpPost("pages")]
     [RequireRight(Area.KnowledgeBase, Level.Edit)]

@@ -29,6 +29,7 @@ import { useMedia } from '@/composables/useMedia'
 import { useSession } from '@/stores/session'
 import LinkPicker, { type LinkTarget } from './LinkPicker.vue'
 import { fromQuery, sortOptions, toApi, toggleTag, toQuery, type KbListState, type KbSort } from './listState'
+import RecentChanges from './RecentChanges.vue'
 import { hasMatch, snippetParts } from './snippet'
 import TagBrowser from './TagBrowser.vue'
 
@@ -36,6 +37,7 @@ import TagBrowser from './TagBrowser.vue'
  * The knowledge base (docs/locations-knowledge-plan.md §6.6, §6.7): newest first, or recently updated, most viewed and
  * most edited (30 days or all time), by title, by relevance while searching the content. Filters: tags (several narrow
  * it down), status, what a page links to (a location with its sub-locations), and archived pages. All of it in the URL.
+ * On top, on the plain list only, the recent changes (docs/knowledge-base-extensions-plan.md §6).
  */
 const route = useRoute()
 const router = useRouter()
@@ -164,6 +166,8 @@ function newPage() {
       </template>
     </PageHeader>
 
+    <RecentChanges v-if="!searching && !activeFilters && state.page === 1" />
+
     <FilterBar v-model:search="search" placeholder="Search the pages' content" :active="activeFilters">
       <Select
         v-model="sort"
@@ -199,6 +203,7 @@ function newPage() {
         :options="sensitiveOptions"
         option-label="label"
         option-value="value"
+        placeholder="Sensitive or not"
         size="small"
         aria-label="Sensitive"
         @update:model-value="(v: string) => update({ sensitive: asYesNo(v) })"
@@ -208,6 +213,7 @@ function newPage() {
         :options="aiOptions"
         option-label="label"
         option-value="value"
+        placeholder="AI or not"
         size="small"
         aria-label="Written with AI"
         @update:model-value="(v: string) => update({ ai: asYesNo(v) })"
@@ -260,7 +266,7 @@ function newPage() {
               : undefined
           "
         />
-        <ul v-else class="rows panel">
+        <ul v-else class="rows panel" aria-label="Pages">
           <li v-for="p in items" :key="p.id" :class="{ 'row-muted': p.archivedAt }">
             <div class="line">
               <span class="number mono">{{ kbNumber(p.number) }}</span>

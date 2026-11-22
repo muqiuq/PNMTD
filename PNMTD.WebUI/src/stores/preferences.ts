@@ -20,6 +20,8 @@ interface Stored {
   editorModes?: Partial<EditorModes>
   /** Column widths a person dragged, in px, per table and column (useColumnWidths). */
   tableWidths?: TableWidths
+  /** The knowledge base's recent changes folded (docs/knowledge-base-extensions-plan.md §6). */
+  kbRecentFolded?: boolean
 }
 
 export type TableWidths = Record<string, Record<string, number>>
@@ -50,8 +52,8 @@ function widthsOf(value: unknown): TableWidths {
 
 /**
  * Per-browser preferences (§5.3, §5.5): theme, the drawer as a rail and its folded groups, the dashboard's host view,
- * the Markdown editor's last mode for pages and for fields (docs/locations-knowledge-plan.md §5.4), and the widths of
- * columns a person dragged.
+ * the Markdown editor's last mode for pages and for fields (docs/locations-knowledge-plan.md §5.4), the widths of
+ * columns a person dragged, and whether the knowledge base's recent changes are folded.
  */
 export const usePreferences = defineStore('preferences', () => {
   const stored = read()
@@ -68,6 +70,7 @@ export const usePreferences = defineStore('preferences', () => {
     field: isMode(modes.field) ? modes.field : 'visual',
   })
   const tableWidths = ref<TableWidths>(widthsOf(stored.tableWidths))
+  const kbRecentFolded = ref(stored.kbRecentFolded === true)
   const systemDark = ref(false)
 
   // The editing page folds the drawer to its rail while it is open (docs/locations-knowledge-plan.md
@@ -104,7 +107,7 @@ export const usePreferences = defineStore('preferences', () => {
 
   watch([theme, systemDark], apply, { immediate: true })
   watch(
-    [theme, drawerCollapsed, navFolds, hostsView, editorModes, tableWidths],
+    [theme, drawerCollapsed, navFolds, hostsView, editorModes, tableWidths, kbRecentFolded],
     () =>
       localStorage.setItem(
         storageKey,
@@ -115,6 +118,7 @@ export const usePreferences = defineStore('preferences', () => {
           hostsView: hostsView.value,
           editorModes: editorModes.value,
           tableWidths: tableWidths.value,
+          kbRecentFolded: kbRecentFolded.value,
         }),
       ),
     { deep: true },
@@ -141,6 +145,7 @@ export const usePreferences = defineStore('preferences', () => {
     hostsView,
     editorModes,
     tableWidths,
+    kbRecentFolded,
     railHeld,
     holdRail,
     isDark,

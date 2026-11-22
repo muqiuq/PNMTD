@@ -14,6 +14,7 @@ public static class KnowledgeSetup
         services.AddScoped<KbRevisions>();
         services.AddScoped<KbPageService>();
         services.AddScoped<KbPageList>();
+        services.AddScoped<KbChanges>();
         services.AddScoped<KbTags>();
         services.AddScoped<KbAiTags>();
         services.AddSingleton<KbPresence>();

@@ -15,7 +15,8 @@ test.afterEach(() => expect(problems).toEqual([]))
 
 async function openPage(page: Page, title: string) {
   await page.goto('/pnmt-admin/kb')
-  await page.getByRole('link', { name: title, exact: true }).click()
+  // In the list of pages: the recent changes above it may name the same page.
+  await page.getByRole('list', { name: 'Pages' }).getByRole('link', { name: title, exact: true }).click()
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
 }
 

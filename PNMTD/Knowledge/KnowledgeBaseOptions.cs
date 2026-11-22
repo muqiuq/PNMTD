@@ -48,6 +48,12 @@ public sealed class KnowledgeBaseOptions
     /// <summary>How often, in percent, the AI question follows a saved edit (R12, §7.2).</summary>
     public int AiQuestionOnEditPercent { get; set; } = 10;
 
+    /// <summary>The recent changes on top of the knowledge base go back this many days (docs/knowledge-base-extensions-plan.md §6).</summary>
+    public int RecentChangesDays { get; set; } = 14;
+
+    /// <summary>At most this many pages in the recent changes, each with its newest change (§6).</summary>
+    public int RecentChangesMax { get; set; } = 10;
+
     /// <summary><see cref="BlockedExtensions"/> as a set: lower case, without dots.</summary>
     public IReadOnlySet<string> BlockedExtensionSet =>
         BlockedExtensions.Split([' ', ',', ';', '\t', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

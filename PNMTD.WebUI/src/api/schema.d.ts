@@ -9593,6 +9593,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/kb/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbRecentChanges"];
+                        "text/json": components["schemas"]["KbRecentChanges"];
+                        "text/plain": components["schemas"]["KbRecentChanges"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/kb/pages/{number}": {
         parameters: {
             query?: never;
@@ -24718,6 +24755,37 @@ export interface components {
         KbPageTag: {
             name: string;
             source: components["schemas"]["KbTagSource"];
+        };
+        KbRecentChange: {
+            /** Format: uuid */
+            pageId: string;
+            /** Format: int32 */
+            number: number;
+            title: string;
+            status: components["schemas"]["KbPageStatus"];
+            sensitive: boolean;
+            writtenWithAi: boolean;
+            /** Format: int32 */
+            revision: number;
+            kind: string;
+            detail: null | string;
+            /** Format: date-time */
+            at: string;
+            byName: string;
+            /** Format: int32 */
+            added: number;
+            /** Format: int32 */
+            removed: number;
+            note: null | string;
+            /** Format: int32 */
+            changes: number;
+            /** Format: int32 */
+            people: number;
+        };
+        KbRecentChanges: {
+            /** Format: int32 */
+            days: number;
+            items: components["schemas"]["KbRecentChange"][];
         };
         KbRedactRequest: {
             text?: string;

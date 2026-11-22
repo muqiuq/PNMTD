@@ -198,6 +198,33 @@ public sealed record KbPageListItem(
     int RecentEdits,
     bool WrittenWithAi);
 
+/// <summary>
+/// A page in the recent changes (docs/knowledge-base-extensions-plan.md §6), with its newest change: <see cref="Kind"/> is
+/// <c>created</c>, <c>edited</c>, <c>restored</c> or <c>status</c>; <see cref="Detail"/> the new status (<i>Draft → Published</i>)
+/// or the revision restored from (<i>from 4</i>). <see cref="Changes"/> and <see cref="People"/> count the page's changes in the
+/// period and who made them.
+/// </summary>
+public sealed record KbRecentChange(
+    Guid PageId,
+    int Number,
+    string Title,
+    KbPageStatus Status,
+    bool Sensitive,
+    bool WrittenWithAi,
+    int Revision,
+    string Kind,
+    string? Detail,
+    DateTime At,
+    string ByName,
+    int Added,
+    int Removed,
+    string? Note,
+    int Changes,
+    int People);
+
+/// <summary><c>GET /kb/changes</c> (§6): the period in days, and its changes.</summary>
+public sealed record KbRecentChanges(int Days, IReadOnlyList<KbRecentChange> Items);
+
 /// <summary>Pages linked to an object the panel's own links (§6.5): <i>via Zurich DC</i>, <i>via its hosts</i>.</summary>
 public sealed record KbRelatedGroup(KbLinkKind Kind, Guid? Id, string Name, IReadOnlyList<KbPageListItem> Pages);
 

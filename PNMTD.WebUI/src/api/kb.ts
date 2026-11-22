@@ -20,6 +20,7 @@ export type KbTag = S['KbTagItem']
 export type KbStatements = S['KbStatements']
 export type KbAiStatus = S['KbAiTagsStatus']
 export type KbRelatedGroup = S['KbRelatedGroup']
+export type KbRecentChange = S['KbRecentChange']
 
 /** The list's query (§6.6): what the URL holds, as the API takes it. */
 export interface KbListQuery {
@@ -40,6 +41,8 @@ export interface KbListQuery {
 
 export const kbApi = {
   list: (query: KbListQuery) => call(client.GET('/api/v1/kb/pages', { params: { query } })),
+  /** The recent changes on top of the list (docs/knowledge-base-extensions-plan.md §6). */
+  changes: () => call(client.GET('/api/v1/kb/changes')),
   get: (number: number) => call(client.GET('/api/v1/kb/pages/{number}', { params: { path: { number } } })),
   create: (body: KbPageRequest) => call(client.POST('/api/v1/kb/pages', { body })),
   update: (id: Id, body: KbPageRequest) =>
@@ -89,6 +92,7 @@ export const kbApi = {
 export const kbKeys = {
   all: ['kb'] as const,
   list: (query: KbListQuery) => ['kb', 'list', query] as const,
+  changes: ['kb', 'changes'] as const,
   page: (number: number) => ['kb', 'page', number] as const,
   revisions: (id: Id) => ['kb', 'revisions', id] as const,
   related: (query: { locationId?: Id; hostId?: Id; sensorId?: Id }) => ['kb', 'related', query] as const,

@@ -12226,6 +12226,35 @@
         }
       }
     },
+    "/api/v1/kb/changes": {
+      "get": {
+        "tags": [
+          "KnowledgeBase"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbRecentChanges"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbRecentChanges"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbRecentChanges"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/kb/pages/{number}": {
       "get": {
         "tags": [
@@ -42580,6 +42609,110 @@
           },
           "source": {
             "$ref": "#/components/schemas/KbTagSource"
+          }
+        }
+      },
+      "KbRecentChange": {
+        "required": [
+          "pageId",
+          "number",
+          "title",
+          "status",
+          "sensitive",
+          "writtenWithAi",
+          "revision",
+          "kind",
+          "detail",
+          "at",
+          "byName",
+          "added",
+          "removed",
+          "note",
+          "changes",
+          "people"
+        ],
+        "type": "object",
+        "properties": {
+          "pageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/KbPageStatus"
+          },
+          "sensitive": {
+            "type": "boolean"
+          },
+          "writtenWithAi": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "byName": {
+            "type": "string"
+          },
+          "added": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "removed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "changes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "people": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "KbRecentChanges": {
+        "required": [
+          "days",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KbRecentChange"
+            }
           }
         }
       },

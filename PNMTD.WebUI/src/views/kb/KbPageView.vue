@@ -407,7 +407,9 @@ const more = computed(() => {
               <dd>{{ page.views.toLocaleString() }}</dd>
               <dt>Sensitive</dt>
               <dd class="with-action">
-                <span>{{ page.sensitive ? 'Yes: never sent to AI or shown to MCP' : 'No' }}</span>
+                <span :title="page.sensitive ? 'Never sent to AI, never shown to MCP' : undefined">{{
+                  page.sensitive ? 'Yes' : 'No'
+                }}</span>
                 <Button
                   v-if="canWrite && !page.sensitive"
                   label="Mark…"
