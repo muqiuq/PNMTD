@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Plan, revision 2.** Nothing is built. Revision 2: **the review's answers applied** (§19): everything as recommended, except that **a link between two pages is mutual** (§7). Revision 1: the first plan |
+| Status | **Built: P0–P7, on master** (2026-11-22, §20 *As built*). Not released: the version isn't bumped and nothing is tagged. Revision 2: **the review's answers applied** (§19): everything as recommended, except that **a link between two pages is mutual** (§7). Revision 1: the first plan |
 | Date | 2026-11-21 |
 | Scope | docs/knowledge-base-feature-text.md:<ol><li>**Pages linked to each other**, and **a map** of pages, locations, hosts and sensors and how they are connected, sharing the network map's code and libraries (§7, §8).</li><li>**Likes** and ***Used to solve a problem***, each with a counter. The page's authors can be e-mailed about them, and each person chooses that in their settings. The settings and the sending are **general**, so other features can notify people the same way, and **the existing notification task sends them** (§9, §10).</li><li>**Recent changes** at the top of the knowledge base: at most 10, from the last 14 days (§6).</li><li>**A checkbox *Written mostly with AI*** (§5).</li><li>**The sensitive mark**, which exists but can hardly be found (§2.2), **made visible** (§4).</li></ol> |
 | Not in scope | Comments on pages, watching a page, e-mails about edits (they fit the catalog later, §10.7). Pushover for these notifications. Moving the lounge's switches into the new settings (§19, decision 10). Saved positions on the knowledge map, and dragging nodes there. A scale for "how much AI". Likes or uses over MCP. **Changing what *sensitive* means:** people, Viewers included, still read sensitive pages (docs/locations-knowledge-plan.md §14.1, decision 8). Permissions per page stay a non-goal |
@@ -821,6 +821,89 @@ As before: **few tests, where they protect something.**
 | 10 | The lounge's two switches | **They stay** where they are; they can become kinds later | §10.2, §10.7 |
 
 No questions are open.
+
+---
+
+## 20. As built
+
+**P0–P7 are on master** (2026-11-22), one or more commits per phase, P6 in two (the shared graph parts alone first). Where the code differs
+from the sections above, this section says so; the rest is as planned.
+
+### P0: the check
+
+- **PrimeIcons 7.0.0 has `pi-microchip-ai`, `pi-heart-fill` and `pi-check-circle`.** *Written with AI* uses `pi-microchip-ai`.
+
+### P1: the sensitive mark and *Written with AI*
+
+- As planned. *About this page* says *Sensitive: Yes* or *No*, with *Mark…* or *Unmark…*; the header's tag carries the explanation.
+- The list's two new filters read *Sensitive or not* and *AI or not*.
+- The editing page sends the switch and the checkbox only when they changed, so a save never undoes someone else's mark.
+
+### P2: recent changes
+
+- **`GET /kb/changes` returns `{ days, items }`**, so the panel's title follows `KnowledgeBase:RecentChangesDays`.
+- The panel and the list are named lists (*Recent changes*, *Pages*); the browser tests find a page's link in the list, since the panel may
+  name it too.
+- Its tests run on a fake clock a day after the newest revision in the shared database: other test classes' clocks run ahead.
+
+### P3: mutual page links
+
+- **No `KbPageDetail.RelatedPages`:** the UI takes the related pages from the page's links of kind `Page`, and the links in the text from
+  `LinksTo` and `LinkedFrom`, which existed. `KbLinkItem` gained `Number` and `Archived`.
+- **The picker for pages is in the *Related pages* panel;** the *Links* panel keeps locations, hosts and sensors. The editing page's
+  details offer all four.
+- **`KbRevisions.SameTextSinceAsync(db, page, current, revision)`** is static, for the AI handler's own context; `KbRevisionItem` gained
+  `LinksOnly`.
+- **A links-only revision doesn't move the page's `UpdatedAt`:** nobody edited it.
+- **The seed links ten pairs of pages**, on the same timeline as its edits, so its stale saves pass over the links-only revisions as §7.3
+  intends.
+- **Found and fixed:** a link added by a save was counted twice in its revision (*links +2 −0*) and stored twice in its snapshot: EF's
+  fix-up had already put the new row into the page's links before the explicit `Add`. Old revisions are read with each link once.
+- A save that still names a page deleted meanwhile is refused with 400, as for any deleted target.
+
+### P4: notifications to people
+
+- As planned. **`user_notifications.MessageId`** names the e-mail a row went out in; the daily limit counts those.
+- `UserNotificationSettings` also says whether PNMT sends them at all (`Enabled`). Saving one's contact details refreshes the panel.
+- A renderer registered later for a kind wins (the tests replace the knowledge base's with a fake).
+- The tests start each case from a clean queue, since other classes' likes in the shared database fall due on the same fake clock.
+
+### P5: likes and uses
+
+- **The service is `KbReactionService`;** `KbReactions` is the contract. Reading a page's reactions is a static query, so
+  `KbPageService` needs no notifications (the seed's own service container has none).
+- **`POST …/uses` answers 201; `PUT …/uses/{id}` sets one's own note within a day** (a pending e-mail takes it too); **`DELETE`** undoes
+  one's own use within 10 minutes. All `[NotAudited]`, as views are.
+- **List rows carry `Likes`, `RecentLikes`, `Uses` and `RecentUses`;** MCP calls the uses `usedToSolveAProblem`.
+- **Redacting reaches the uses' notes** and the details of e-mails not yet sent.
+- **The seed's likes and uses are written directly**, so seeding enqueues no e-mails.
+
+### P6: the knowledge map
+
+- **P6a, alone:** `components/graph/forceLayout.ts` (`layoutGraph`, a radius per node), `geometry.ts` (`edgePath`, `bendOf`, `boundsOf`)
+  and `focus.ts` (`parseFocus`, with numbered kinds for `page:42`). The network map uses them; `networkLayout.test.ts` and
+  `e2e/network-map.spec.ts` pass unchanged.
+- **The server (`KbMap`)** builds the graph in memory. *Downwards only to pages* follows from what is in it: only objects pages link to, and
+  what is above them. An object in focus without pages still brings its chain up to its site.
+- **The circles** take each node's top-level location only with *Circles for sites*; the groups come with every answer.
+- **Glyphs** are letters (KB, L, H, S), as the network map's are.
+
+### P7: the finish
+
+- The in-app documentation (*Markdown in PNMT*: *Sensitive*, and *Links, likes and the map*), docs/release-notes-1.20.md, README.md,
+  deploy/README.md (*Notifications to people*) and `deploy/.env.example`.
+- **Not done:** the version bump and the tag, which come with the release.
+
+### The checks
+
+**`./run-tests.sh` on the finished work:** every group green, *web* (Vitest 651 tests in 82 files, the build), *contract*, *deploy* (backup
+and restore), *upgrade* (v0.12.1 → 1.0, then every migration up to `KbReactions`), *e2e* (the whole browser suite, `knowledge-extensions.spec.ts`
+among it) and *shell*. In *dotnet*, one count needed its new row: *Task health* lists 21 background tasks now
+(`TasksAreOffWhenBackgroundTasksAreDisabled`); after that, 1,279 tests (5 skipped) in Europe/Zurich and America/New_York.
+
+**Known, outside this plan:** `SessionRulesTests.LastOnlineIsWhatTheGatesLetThrough` fails when it runs in the last 7 minutes before
+04:00 in PNMT's time zone. Its fake clock starts at the real time and jumps 7 minutes, across `Auth:ResetHour`, where the session needs the
+day's code and the request is refused. Starting its clock on a fixed time of day would end it.
 
 ---
 

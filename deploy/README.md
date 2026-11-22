@@ -446,6 +446,16 @@ Images and attachments of locations and knowledge base pages (docs/locations-kno
 - **They must not be changed, renamed or deleted from the host.** The daily check notices: the *File storage* sensor on the host *PNMT* writes 428 for missing or changed files, and pages show *File removed*. Files nobody uploaded are listed under *Admin → Knowledge base → Files* and never deleted by PNMT. To delete a file (an image that shows what it shouldn't), use *Delete* there: it leaves the disk at once.
 - **Space:** the folder's disk fills, not the database. *File storage* writes 428 below `KnowledgeBase__MinFreeMb` (1024) free, and *Admin → Knowledge base → Files* shows what takes the space. Unused uploads are deleted after a day, deleted files leave the disk 7 days later.
 
+## Notifications to people
+
+Since 1.20, the authors of a knowledge base page get an e-mail when someone likes it or records that it solved their problem (docs/knowledge-base-extensions-plan.md §10). It goes to the address on each person's account, through the `Smtp__*` settings, and appears in *Admin → Notification log* like every alert.
+
+- **Each person decides** under *Account → Notifications*; both are on by default. Without an address on the account nothing is sent.
+- **Batched:** the likes of a page within `UserNotifications__BatchMinutes` (15) go out as one e-mail; at most `UserNotifications__MaxPerUserDay` (20) a day per person.
+- **Sent by the notification task's second timer**, every `UserNotifications__IntervalSeconds` (30), with a guard of its own: a slow mail server for these never delays an alert. *System → Task health* shows it as *User notifications*. A failed e-mail is tried four more times (after 1, 5 and 30 minutes and 2 hours).
+- **A sensitive page** is named by its number only: an e-mail leaves PNMT.
+- **`UserNotifications__Enabled=false`** turns them off for everyone; the choices stay.
+
 ## What lives where
 
 | Where | Holds | Backed up by |

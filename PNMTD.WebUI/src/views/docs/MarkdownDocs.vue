@@ -234,7 +234,10 @@ const showFiles = computed(() =>
   has('files images attachments paste drop upload limits 2 MB 25 MB recompress WebP JPEG executables'),
 )
 const showSearch = computed(() => has('search syntax prefix phrase exclude or #tag tags global'))
-const showSensitive = computed(() => has('sensitive AI MCP lock'))
+const showSensitive = computed(() => has('sensitive AI MCP lock written with AI statements unmark'))
+const showKnowledge = computed(() =>
+  has('links related pages likes like used solve problem map knowledge map recent changes notifications e-mail'),
+)
 const showShortcuts = computed(() => shortcuts.some(([k, v]) => has(k!, v!)) || has('keyboard shortcuts'))
 const any = computed(
   () =>
@@ -244,6 +247,7 @@ const any = computed(
     visibleDiagrams.value.length > 0 ||
     showSearch.value ||
     showSensitive.value ||
+    showKnowledge.value ||
     showShortcuts.value,
 )
 
@@ -373,6 +377,37 @@ function onSave(_save: MarkdownSave) {
             first: no credentials, and no personal or confidential data. PNMT is not a password manager: when a text
             looks like it holds a password, saving warns.
           </p>
+          <p>
+            The switch is in the editing page's details, beside <strong>Written mostly with AI</strong>; a sensitive
+            page shows a <em>Sensitive</em> tag in its header and in <em>About this page</em>, and the list filters by
+            it. Unmarking takes the two statements, about the text being saved.
+          </p>
+        </article>
+
+        <article v-if="showKnowledge">
+          <h3>Links, likes and the map</h3>
+          <ul>
+            <li>
+              <strong>Related pages:</strong> link a page to another in its details or under <em>Related pages</em>. The
+              link is mutual: both pages show it, either removes it, and both histories say who linked them. Links in a
+              page's text are listed below, with their direction.
+            </li>
+            <li>
+              <strong>Recent changes</strong> on top of the knowledge base: the pages changed in the last 14 days, each
+              once with its newest change.
+            </li>
+            <li>
+              <i class="pi pi-heart" aria-label="like" /> <strong>Like</strong> a page, or record that you
+              <i class="pi pi-check-circle" aria-label="used" /> <strong>used it to solve a problem</strong>, with a
+              note if you like (again after 12 hours; <em>Undo</em> for 10 minutes). The page's authors get an e-mail,
+              which each person turns off under <em>Account → Notifications</em>.
+            </li>
+            <li>
+              <strong>The knowledge map</strong> (<em>Map</em> on the knowledge base, <em>Show on the knowledge map</em>
+              on a page or a location, host or sensor) draws pages, locations, hosts and sensors and how they are
+              connected.
+            </li>
+          </ul>
         </article>
       </div>
 
