@@ -182,8 +182,10 @@ public sealed class MonitoringApiTests
         // retention (docs/audit-redmine-zabbix-plan.md §3.8), Redmine's sync (§6.7), Zabbix's problems and hosts (§7.3), Cookie's
         // case book (docs/cookie-plan.md §19.3), the MCP tokens' expiry (docs/mcp-plan.md §4.3), the certificate checks
         // (docs/ssl-certificate-plan.md §5.2), the advanced sensors' evaluator (docs/advanced-sensor-plan.md §7.3), the
-        // connectors' worker (docs/connectors-plan.md §9.1), and the network map's schedule (docs/network-map-plan.md §7.3).
-        Assert.AreEqual(20, tasks.Count);
+        // connectors' worker (docs/connectors-plan.md §9.1), the network map's schedule (docs/network-map-plan.md §7.3), and the
+        // notification task's second timer for notifications to people (docs/knowledge-base-extensions-plan.md §10.5).
+        Assert.AreEqual(21, tasks.Count);
+        Assert.IsTrue(tasks.Any(t => t.Key == "last_user_notification_run" && t.IntervalSeconds == 30));
         Assert.IsTrue(tasks.All(t => t.State == "off"), string.Join(",", tasks.Select(t => t.State)));
         Assert.IsTrue(tasks.Any(t => t.Key == "last_heartbeat_task_run" && t.IntervalSeconds == 10));
     }
