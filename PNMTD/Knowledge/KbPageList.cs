@@ -226,7 +226,10 @@ public sealed class KbPageList(PnmtdDbContext db, LocationTree tree)
         (DateOnly.FromDateTime(Clock.LocalNow).AddDays(-(RecentDays - 1)), Clock.UtcNow.AddDays(-RecentDays));
 }
 
-/// <summary>Links as the UI shows them (§6.5): a location's path, a sensor's host, a host's location.</summary>
+/// <summary>
+/// Links as the UI shows them (§6.5): a location's path, a sensor's host, a host's location, a page's number with whether it is
+/// archived (docs/knowledge-base-extensions-plan.md §7).
+/// </summary>
 public static class KbLinkNames
 {
     public static async Task<IReadOnlyList<KbLinkItem>> ResolveAsync(PnmtdDbContext db, LocationTree tree, IReadOnlyList<KbLinkRef> links,
@@ -240,10 +243,13 @@ public static class KbLinkNames
         var locationIds = links.Where(l => l.Kind == KbLinkKind.Location).Select(l => l.Id).ToList();
         var hostIds = links.Where(l => l.Kind == KbLinkKind.Host).Select(l => l.Id).ToList();
         var sensorIds = links.Where(l => l.Kind == KbLinkKind.Sensor).Select(l => l.Id).ToList();
+        var pageIds = links.Where(l => l.Kind == KbLinkKind.Page).Select(l => l.Id).ToList();
         var hosts = hostIds.Count == 0 ? [] : await db.Hosts.AsNoTracking().Where(h => hostIds.Contains(h.Id))
             .Select(h => new { h.Id, h.Name, h.LocationId, h.Location }).ToListAsync(ct);
         var sensors = sensorIds.Count == 0 ? [] : await db.Sensors.AsNoTracking().Where(s => sensorIds.Contains(s.Id))
             .Select(s => new { s.Id, s.Name, Host = s.Parent.Name }).ToListAsync(ct);
+        var pages = pageIds.Count == 0 ? [] : await db.KbPages.AsNoTracking().Where(p => pageIds.Contains(p.Id))
+            .Select(p => new { p.Id, p.Number, p.Title, Archived = p.ArchivedAt != null }).ToListAsync(ct);
         var result = new List<KbLinkItem>();
         foreach (var id in locationIds)
         {
@@ -262,6 +268,12 @@ public static class KbLinkNames
             result.Add(sensors.FirstOrDefault(s => s.Id == id) is { } s
                 ? new KbLinkItem(KbLinkKind.Sensor, id, s.Name, s.Host)
                 : new KbLinkItem(KbLinkKind.Sensor, id, "deleted sensor", null, false));
+        }
+        foreach (var id in pageIds)
+        {
+            result.Add(pages.FirstOrDefault(p => p.Id == id) is { } p
+                ? new KbLinkItem(KbLinkKind.Page, id, p.Title, $"KB-{p.Number}", true, p.Number, p.Archived)
+                : new KbLinkItem(KbLinkKind.Page, id, "deleted page", null, false));
         }
         return result.OrderBy(l => l.Kind).ThenBy(l => l.Name, StringComparer.OrdinalIgnoreCase).ToList();
     }

@@ -188,6 +188,12 @@ public class KbRevisionEntity
 
     /// <summary>The save changed the title, summary or content: an edit for <i>most edited</i> (§6.6).</summary>
     public bool IsEdit { get; set; }
+
+    /// <summary>
+    /// Made on this page because a page link to it was made or removed on the other page (docs/knowledge-base-extensions-plan.md
+    /// §7.3): it changes nothing but the page links, so no revision check counts it.
+    /// </summary>
+    public bool LinksOnly { get; set; }
 }
 
 /// <summary>A tag (§6.4): 2–40 characters, lower case, unique.</summary>
@@ -234,8 +240,9 @@ public class KbPageTagEntity
 }
 
 /// <summary>
-/// A page's link to exactly one location, host or sensor (§6.5). The database cleans up when the target goes, through
-/// ExecuteDeleteAsync as well.
+/// A page's link to exactly one location, host, sensor or other page (§6.5). The database cleans up when the target goes,
+/// through ExecuteDeleteAsync as well. A link between two pages is mutual (docs/knowledge-base-extensions-plan.md §7.2): two
+/// mirrored rows, one on each page, written and deleted together by KbPageService.
 /// </summary>
 [Table("kb_links")]
 [Audited]
@@ -251,6 +258,9 @@ public class KbLinkEntity
     public Guid? HostId { get; set; }
 
     public Guid? SensorId { get; set; }
+
+    /// <summary>The other page of a mutual page link; its own row points back here.</summary>
+    public Guid? TargetPageId { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

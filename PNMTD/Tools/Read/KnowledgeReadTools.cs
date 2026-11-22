@@ -21,7 +21,9 @@ public static class KnowledgeReadTools
             Schema(Id("id", "The location's id")), Area.Locations, Level.View, ToolKind.Read, LocationAsync) { ForCookie = true },
         new("kb_search", "Search the knowledge base", "Knowledge base pages that contain the text: id, number, title, summary. Pages marked sensitive never appear.",
             Schema(Text("query", "Words to look for", true)), Area.KnowledgeBase, Level.View, ToolKind.Read, KbSearchAsync) { ForCookie = true },
-        new("kb_page", "A knowledge base page", "A knowledge base page's text. Pages marked sensitive are never given.",
+        new("kb_page", "A knowledge base page",
+            "A knowledge base page's text, whether it was written mostly with AI, and its related pages (linked with it, or by links in a text). " +
+            "Pages marked sensitive are never given.",
             Schema(Int("number", "The page's number", true)), Area.KnowledgeBase, Level.View, ToolKind.Read, KbPageAsync) { ForCookie = true },
         new("locations_list", "List locations",
             "Locations with their place in the tree (site, building, room …): id, name, path, parent, how many hosts. Filter by name or by parent. Paged.",
@@ -66,10 +68,23 @@ public static class KnowledgeReadTools
         var page = await MachineAccess.Pages(db).Where(p => p.Number == number && p.ArchivedAt == null)
             .Select(p => new { p.Id, p.Number, p.Title, p.PlainText, p.WrittenWithAi, p.UpdatedAt }).SingleOrDefaultAsync(ct) ?? throw ToolException.NotFound("page");
         ctx.Target("KbPage", page.Id, $"KB-{page.Number}");
+        // Related pages (docs/knowledge-base-extensions-plan.md §7.5): page links, then links in the text either way; only readable pages.
+        var linked = await MachineAccess.PageLinks(db).Where(l => l.PageId == page.Id).Select(l => l.TargetPageId!.Value).ToListAsync(ct);
+        var linksTo = await db.KbPageRefs.AsNoTracking().Where(r => r.FromPageId == page.Id).Select(r => r.ToNumber).ToListAsync(ct);
+        var linkedFrom = await db.KbPageRefs.AsNoTracking().Where(r => r.ToNumber == page.Number).Select(r => r.FromPageId).ToListAsync(ct);
+        var related = await MachineAccess.Pages(db)
+            .Where(p => p.ArchivedAt == null && p.Id != page.Id && (linked.Contains(p.Id) || linksTo.Contains(p.Number) || linkedFrom.Contains(p.Id)))
+            .OrderBy(p => p.Number).Take(30).Select(p => new { p.Id, p.Number, p.Title }).ToListAsync(ct);
         return new
         {
             page.Id, page.Number, Title = ctx.Untrusted("page title", page.Title, 200), Text = ctx.Untrusted("page", page.PlainText, 6000),
             page.WrittenWithAi, page.UpdatedAt, Url = ctx.Link($"kb/{page.Number}"),
+            Related = related.Select(p => new
+            {
+                p.Number, Title = ctx.Untrusted("page title", p.Title, 200),
+                How = linked.Contains(p.Id) ? "linked" : linksTo.Contains(p.Number) ? "linked in this page's text" : "links here in its text",
+                Url = ctx.Link($"kb/{p.Number}"),
+            }),
         };
     }
 

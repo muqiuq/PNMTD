@@ -98,3 +98,46 @@ test('the sensitive switch and Written with AI in the details, and the page on t
   await page.getByRole('button', { name: /Recent changes/ }).click()
   await expect(recent).toBeVisible()
 })
+
+async function openPage(page: Page, title: string) {
+  await page.goto('/pnmt-admin/kb')
+  await page.getByRole('list', { name: 'Pages' }).getByRole('link', { name: title, exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
+}
+
+test('a link between two pages is mutual: made on one, shown on both, in both histories, removed from the other', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signIn(page)
+  await openPage(page, 'Printer setup, 3rd floor')
+  const related = () => page.getByRole('list', { name: 'Related' })
+  await expect(page.getByText('Not linked with another page.')).toBeVisible()
+  await page.getByRole('combobox', { name: 'Link to a page' }).fill('Mail relay')
+  await page.getByRole('option', { name: /Mail relay and SPF/ }).click()
+  await expect(related().getByRole('link', { name: 'Mail relay and SPF' })).toBeVisible()
+  await shot(page, 'kbx-related-pages')
+
+  // The other page shows it too, and its history says who linked them.
+  await related().getByRole('link', { name: 'Mail relay and SPF' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Mail relay and SPF' })).toBeVisible()
+  await expect(related().getByRole('link', { name: 'Printer setup, 3rd floor' })).toBeVisible()
+  await page.getByRole('button', { name: 'More actions for the page' }).click()
+  await page.getByRole('menuitem', { name: 'History' }).click()
+  await expect(page.getByText(/Linked with KB-\d+/).first()).toBeVisible()
+  await shot(page, 'kbx-history-linked')
+  await page.goBack()
+  await expect(page.getByRole('heading', { level: 1, name: 'Mail relay and SPF' })).toBeVisible()
+
+  // Removed on this side: gone from both.
+  await related().getByRole('button', { name: 'Unlink Printer setup, 3rd floor' }).click()
+  await expect(page.getByText('Not linked with another page.')).toBeVisible()
+  await openPage(page, 'Printer setup, 3rd floor')
+  await expect(page.getByText('Not linked with another page.')).toBeVisible()
+
+  // The seed's links: the network overview with the firewall pair, the switch firmware and the rack.
+  await openPage(page, 'Network overview, Zurich DC')
+  for (const title of ['Firewall failover, fw-01 and fw-02', 'Core switch firmware update', 'Rack B4 layout']) {
+    await expect(related().getByRole('link', { name: title })).toBeVisible()
+  }
+})

@@ -18,6 +18,7 @@ public sealed record MachineLocationValue(Guid FieldId, string Key, string Label
 ///   (<c>ArchivedAt</c>). Their tags, links and summary are those of readable pages.</item>
 /// <item><b>Files</b> used by the current content of a readable page, or by a readable field's value.</item>
 /// <item><b>Location values</b> of fields not marked sensitive (nor archived), inherited ones included.</item>
+/// <item><b>Page links</b> whose two pages are both readable (docs/knowledge-base-extensions-plan.md §7.5).</item>
 /// </list>
 /// The tag task refuses a sensitive page twice: in the endpoint and here (§7.3).
 /// </summary>
@@ -25,6 +26,15 @@ public static class MachineAccess
 {
     /// <summary>The pages a machine may read, untracked.</summary>
     public static IQueryable<KbPageEntity> Pages(PnmtdDbContext db) => db.KbPages.AsNoTracking().Where(p => !p.Sensitive);
+
+    /// <summary>
+    /// The page links a machine may read, untracked: both pages readable, so a sensitive page never appears through a link from a
+    /// readable one. Each link is two rows, one per page.
+    /// </summary>
+    public static IQueryable<KbLinkEntity> PageLinks(PnmtdDbContext db) => db.KbLinks.AsNoTracking()
+        .Where(l => l.TargetPageId != null
+            && db.KbPages.Any(p => p.Id == l.PageId && !p.Sensitive)
+            && db.KbPages.Any(p => p.Id == l.TargetPageId && !p.Sensitive));
 
     /// <summary>
     /// The files a machine may read, untracked: not deleted, and referenced by the current content of a page that isn't

@@ -164,7 +164,8 @@ public sealed class KbAiTags(PnmtdDbContext db, KbRevisions revisions, IOptionsM
         {
             throw ApiException.Conflict(KbErrors.Archived, $"KB-{page.Number} is archived.");
         }
-        if (request.Revision != page.Revision)
+        // A links-only revision since then changes no text (docs/knowledge-base-extensions-plan.md §7.3).
+        if (!await KbRevisions.SameTextSinceAsync(db, page.Id, page.Revision, request.Revision, ct))
         {
             throw KbPageService.Conflict(page);
         }
@@ -303,7 +304,7 @@ public sealed partial class KbTagsHandler(IDbContextFactory<PnmtdDbContext> dbs,
             {
                 throw new AiWorkStaleException("The page is archived.");
             }
-            if (page.Revision != declaration.Revision)
+            if (!await KbRevisions.SameTextSinceAsync(db, page.Id, page.Revision, declaration.Revision, ct))
             {
                 throw new AiWorkStaleException("The page changed after the statements were made.");
             }
@@ -352,7 +353,7 @@ public sealed partial class KbTagsHandler(IDbContextFactory<PnmtdDbContext> dbs,
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         var revisions = new KbRevisions(db, accessor) { As = new KbActor(declaration.ByUserId, declaration.ByName) };
         var page = await revisions.LockAsync(pageId, ct);
-        if (page.Sensitive || page.ArchivedAt is not null || page.Revision != declaration.Revision)
+        if (page.Sensitive || page.ArchivedAt is not null || !await KbRevisions.SameTextSinceAsync(db, page.Id, page.Revision, declaration.Revision, ct))
         {
             throw new AiWorkStaleException("The page changed, or was marked sensitive or archived, during the scan.");
         }

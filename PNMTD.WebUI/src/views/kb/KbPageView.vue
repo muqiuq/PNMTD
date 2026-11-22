@@ -39,7 +39,8 @@ import RedminePanel from '@/views/redmine/RedminePanel.vue'
 
 /**
  * A page (docs/locations-knowledge-plan.md §6.1): its title, status, tags and a lock if sensitive; the content as read;
- * at the side its links, attachments, the pages linking here, and what PNMT knows. Users edit, archive and restore it,
+ * at the side its links, its related pages (mutual links, then links in the texts either way; docs/knowledge-base-extensions-plan.md
+ * §7), attachments, and what PNMT knows. Users edit, archive and restore it,
  * mark it sensitive, run AI tags, set its status and links; an Admin deletes it once archived. Opening it counts a view.
  */
 const route = useRoute()
@@ -104,6 +105,34 @@ function addLink(target: LinkTarget) {
     { links: [...(kbRequest(p).links ?? []), { kind: target.kind, id: target.id }] },
     `Linked to ${target.name}`,
   )
+}
+/** Links to locations, hosts and sensors; pages are related pages (docs/knowledge-base-extensions-plan.md §7). */
+const objectLinks = computed(() => (page.value?.links ?? []).filter((l) => l.kind !== 'Page'))
+const related = computed(() => (page.value?.links ?? []).filter((l) => l.kind === 'Page' && l.exists))
+/** Links in the text, either way, without the related pages; a page linked both ways shows once. */
+const inText = computed(() => {
+  const p = page.value
+  if (!p) return []
+  const skip = new Set(related.value.map((r) => r.number))
+  const rows = new Map<number, { number: number; title: string | null; to: boolean; from: boolean }>()
+  for (const r of p.linksTo) {
+    if (!skip.has(r.number) && !r.archived)
+      rows.set(r.number, { number: r.number, title: r.title ?? null, to: true, from: false })
+  }
+  for (const r of p.linkedFrom) {
+    if (skip.has(r.number)) continue
+    const row = rows.get(r.number)
+    if (row) row.from = true
+    else rows.set(r.number, { number: r.number, title: r.title ?? null, to: false, from: true })
+  }
+  return [...rows.values()].sort((a, b) => a.number - b.number)
+})
+function direction(r: { to: boolean; from: boolean }) {
+  return r.to && r.from
+    ? { icon: 'pi pi-arrows-h', title: 'Each text links to the other' }
+    : r.to
+      ? { icon: 'pi pi-arrow-right', title: "This page's text links to it" }
+      : { icon: 'pi pi-arrow-left', title: 'Its text links here' }
 }
 function removeLink(kind: string, id: string, name: string) {
   const p = page.value!
@@ -324,9 +353,9 @@ const more = computed(() => {
           <section class="panel" aria-labelledby="kb-links-title">
             <div id="kb-links-title" class="panel-header">Links</div>
             <div class="panel-body">
-              <p v-if="!page.links.length" class="muted none">Not linked to a location, host or sensor.</p>
+              <p v-if="!objectLinks.length" class="muted none">Not linked to a location, host or sensor.</p>
               <ul v-else class="list">
-                <li v-for="l in page.links" :key="`${l.kind}:${l.id}`">
+                <li v-for="l in objectLinks" :key="`${l.kind}:${l.id}`">
                   <i :class="kbLinkIcon[l.kind]" class="muted" aria-hidden="true" />
                   <span class="link-text">
                     <RouterLink v-if="l.exists" :to="kbLinkRoute(l)">{{ l.name }}</RouterLink>
@@ -345,7 +374,65 @@ const more = computed(() => {
                   />
                 </li>
               </ul>
-              <LinkPicker v-if="writable" class="picker" :exclude="page.links" @pick="addLink" />
+              <LinkPicker
+                v-if="writable"
+                class="picker"
+                :kinds="['Location', 'Host', 'Sensor']"
+                :exclude="page.links"
+                @pick="addLink"
+              />
+            </div>
+          </section>
+
+          <!-- Related pages (docs/knowledge-base-extensions-plan.md §7.1): mutual links, then links in the texts either way. -->
+          <section v-if="related.length || inText.length || writable" class="panel" aria-labelledby="kb-related-title">
+            <div id="kb-related-title" class="panel-header">Related pages</div>
+            <div class="panel-body">
+              <p v-if="!related.length" class="muted none">Not linked with another page.</p>
+              <ul v-else class="list" aria-label="Related">
+                <li v-for="r in related" :key="r.id" :class="{ 'row-muted': r.archived }">
+                  <i class="pi pi-book muted" aria-hidden="true" />
+                  <span class="link-text">
+                    <RouterLink :to="kbLinkRoute(r)">{{ r.name }}</RouterLink>
+                    <span class="muted detail">{{ r.detail }}<template v-if="r.archived"> · archived</template></span>
+                  </span>
+                  <Button
+                    v-if="writable && !r.archived"
+                    icon="pi pi-times"
+                    text
+                    rounded
+                    size="small"
+                    severity="secondary"
+                    :aria-label="`Unlink ${r.name}`"
+                    @click="removeLink('Page', r.id, r.name)"
+                  />
+                </li>
+              </ul>
+              <LinkPicker
+                v-if="writable"
+                class="picker"
+                :kinds="['Page']"
+                :exclude="[...page.links, { kind: 'Page', id: page.id }]"
+                @pick="addLink"
+              />
+              <template v-if="inText.length">
+                <div class="sub-title muted">In the text</div>
+                <ul class="list" aria-label="In the text">
+                  <li v-for="r in inText" :key="r.number">
+                    <i
+                      :class="direction(r).icon"
+                      class="muted"
+                      :title="direction(r).title"
+                      :aria-label="direction(r).title"
+                    />
+                    <span class="mono muted">{{ kbNumber(r.number) }}</span>
+                    <RouterLink v-if="r.title" :to="{ name: 'kb-page', params: { number: r.number } }">{{
+                      r.title
+                    }}</RouterLink>
+                    <span v-else class="muted">missing page</span>
+                  </li>
+                </ul>
+              </template>
             </div>
           </section>
 
@@ -366,16 +453,6 @@ const more = computed(() => {
                   <a :href="f.url" download>{{ f.name }}</a>
                   <span class="muted detail">{{ fileSize(f.size) }}</span>
                 </span>
-              </li>
-            </ul>
-          </section>
-
-          <section v-if="page.linkedFrom.length" class="panel" aria-labelledby="kb-from-title">
-            <div id="kb-from-title" class="panel-header">Linked from</div>
-            <ul class="panel-body list">
-              <li v-for="r in page.linkedFrom" :key="r.number">
-                <span class="mono muted">{{ kbNumber(r.number) }}</span>
-                <RouterLink :to="{ name: 'kb-page', params: { number: r.number } }">{{ r.title }}</RouterLink>
               </li>
             </ul>
           </section>
@@ -553,6 +630,13 @@ const more = computed(() => {
 
 .picker {
   margin-top: var(--pnmt-space-2);
+}
+
+.sub-title {
+  margin: var(--pnmt-space-3) 0 var(--pnmt-space-2);
+  font-size: 0.857rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .center {

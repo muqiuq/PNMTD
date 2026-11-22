@@ -24657,9 +24657,13 @@ export interface components {
             detail: null | string;
             /** @default true */
             exists: boolean;
+            /** Format: int32 */
+            number?: null | number;
+            /** @default false */
+            archived: boolean;
         };
         /** @enum {unknown} */
-        KbLinkKind: "Location" | "Host" | "Sensor";
+        KbLinkKind: "Location" | "Host" | "Sensor" | "Page";
         KbLinkRequest: {
             kind?: components["schemas"]["KbLinkKind"];
             /** Format: uuid */
@@ -24847,6 +24851,8 @@ export interface components {
             title: string;
             status: components["schemas"]["KbPageStatus"];
             via?: null | string;
+            /** @default false */
+            linksOnly: boolean;
         };
         KbSaveResult: {
             page: components["schemas"]["KbPageDetail"];

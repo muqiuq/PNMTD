@@ -399,11 +399,22 @@ internal static class DevSeedKnowledge
                 }, default));
                 pages[spec.Key] = created.Page;
             }
-            // Edits after every page exists, in the order they happened, so a page can link to one written after it.
-            var edits = PageSpecs().SelectMany(s => s.Edits.Select(e => (Spec: s, Edit: e))).OrderByDescending(x => x.Edit.DaysAgo);
-            foreach (var (spec, edit) in edits)
+            // Edits and page links after every page exists, in the order they happened, so a page can link to one written after it.
+            // A link comes after both its pages were written.
+            var specs = PageSpecs().ToDictionary(s => s.Key);
+            var timeline = PageSpecs().SelectMany(s => s.Edits.Select(e => (DaysAgo: e.DaysAgo, Spec: s, Edit: (Edit?)e, Link: ((string, string)?)null)))
+                .Concat(PageLinks.Select(l => (DaysAgo: Math.Min(l.DaysAgo, Math.Min(specs[l.From].DaysAgo, specs[l.To].DaysAgo) - 0.1), Spec: specs[l.From],
+                    Edit: (Edit?)null, Link: ((string, string)?)(l.From, l.To))))
+                .OrderByDescending(x => x.DaysAgo);
+            foreach (var (daysAgo, spec, step, link) in timeline)
             {
-                At(edit.DaysAgo);
+                At(daysAgo);
+                if (link is var (from, to))
+                {
+                    Link(from, to);
+                    continue;
+                }
+                var edit = step!;
                 var page = pages[spec.Key];
                 var saved = As(edit.By, sp => sp.GetRequiredService<KbPageService>().UpdateAsync(page.Id, new KbPageRequest
                 {
@@ -420,6 +431,30 @@ internal static class DevSeedKnowledge
                 pages[spec.Key] = As("philipp", sp => sp.GetRequiredService<KbPageService>().ArchiveAsync(pages[spec.Key].Id, true, default));
             }
         }
+
+        /// <summary>
+        /// A mutual link between pages (docs/knowledge-base-extensions-plan.md §7), made on its first page by Anna; the second gets its
+        /// links-only revision.
+        /// </summary>
+        private void Link(string from, string to)
+        {
+            var page = pages[from];
+            pages[from] = As("anna", sp => sp.GetRequiredService<KbPageService>().UpdateAsync(page.Id, new KbPageRequest
+            {
+                Title = page.Title, Summary = page.Summary, Content = page.Content, Tags = [.. page.Tags.Select(t => t.Name)], Status = page.Status,
+                Links = [.. page.Links.Select(l => new KbLinkRequest { Kind = l.Kind, Id = l.Id }), new KbLinkRequest { Kind = KbLinkKind.Page, Id = pages[to].Id }],
+                Revision = page.Revision, AcknowledgeCredentials = true,
+            }, default)).Page;
+            pages[to] = As("anna", sp => sp.GetRequiredService<KbPageService>().GetAsync(pages[to].Number, default));
+        }
+
+        /// <summary>The seed's page links: from, to, and how many days ago at most (after both pages were written).</summary>
+        private static readonly (string From, string To, double DaysAgo)[] PageLinks =
+        [
+            ("power", "ups-battery", 40), ("network", "firewall-ha", 35), ("network", "switch-firmware", 20), ("network", "rack", 30),
+            ("veeam-restore", "heartbeat", 25), ("heartbeat", "disk-full", 24), ("onboarding", "monitoring", 12), ("onboarding", "break-glass", 50),
+            ("certs", "dns-changes", 15), ("vpn", "wifi", 18),
+        ];
 
         /// <summary>Views (§6.6) per day over the last 30 days, and some older ones, so the 30 days and all time differ.</summary>
         private void Views()

@@ -135,7 +135,14 @@ onMounted(async () => {
       tags.value = p.tags.map((t) => ({ name: t.name, ai: t.source === 'Ai' }))
       links.value = p.links
         .filter((l) => l.exists)
-        .map((l) => ({ kind: l.kind, id: l.id, name: l.name, detail: l.detail ?? null }))
+        .map((l) => ({
+          kind: l.kind,
+          id: l.id,
+          name: l.name,
+          detail: l.detail ?? null,
+          number: l.number ?? null,
+          archived: l.archived ?? false,
+        }))
       sensitive.value = loadedSensitive.value = p.sensitive
       writtenWithAi.value = loadedAi.value = p.writtenWithAi
       startPresence(p.id)
@@ -204,6 +211,8 @@ function onTagKey(event: KeyboardEvent) {
     addTag(tagText.value)
   }
 }
+/** What the picker leaves out: what is linked already, and the page itself (docs/knowledge-base-extensions-plan.md §7). */
+const excluded = computed(() => [...links.value, ...(page.value ? [{ kind: 'Page' as const, id: page.value.id }] : [])])
 function pickLink(target: LinkTarget) {
   if (!links.value.some((l) => l.kind === target.kind && l.id === target.id)) links.value.push(target)
 }
@@ -465,11 +474,15 @@ const draftKey = computed(() => (page.value ? `kb:${page.value.id}` : 'kb:new'))
         <div class="field">
           <label>Links</label>
           <ul v-if="links.length" class="links">
-            <li v-for="l in links" :key="`${l.kind}:${l.id}`">
+            <li v-for="l in links" :key="`${l.kind}:${l.id}`" :class="{ 'row-muted': l.archived }">
               <i :class="kbLinkIcon[l.kind]" class="muted" aria-hidden="true" />
               <span class="ellipsis">{{ l.name }}</span>
               <span v-if="l.detail" class="muted ellipsis">{{ l.detail }}</span>
+              <span v-if="l.archived" class="muted" title="Its link can't change until the page is restored"
+                >archived</span
+              >
               <Button
+                v-if="!l.archived"
                 icon="pi pi-times"
                 text
                 rounded
@@ -480,7 +493,7 @@ const draftKey = computed(() => (page.value ? `kb:${page.value.id}` : 'kb:new'))
               />
             </li>
           </ul>
-          <LinkPicker :exclude="links" @pick="pickLink" />
+          <LinkPicker :exclude="excluded" @pick="pickLink" />
         </div>
         <div class="field wide flags">
           <div class="flag">

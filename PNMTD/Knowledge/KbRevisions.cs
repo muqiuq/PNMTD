@@ -30,6 +30,12 @@ public static class KbChangeKinds
 
     /// <summary>Written mostly with AI, <i>marked</i> or <i>unmarked</i> (docs/knowledge-base-extensions-plan.md §5).</summary>
     public const string WrittenWithAi = "writtenWithAi";
+
+    /// <summary>A links-only revision (§7.3): the other page linked to this one, <c>KB-42</c>.</summary>
+    public const string Linked = "linked";
+
+    /// <summary>A links-only revision: the other page removed its link to this one.</summary>
+    public const string Unlinked = "unlinked";
 }
 
 /// <summary>The statements of §7.2, as a declaration names them.</summary>
@@ -245,14 +251,71 @@ public sealed class KbRevisions(PnmtdDbContext db, IHttpContextAccessor accessor
     public static string TagsText(KbPageEntity page) =>
         string.Join(" ", page.Tags.Select(t => t.Tag?.Name).OfType<string>().Order(StringComparer.Ordinal));
 
-    public static IReadOnlyList<KbLinkRef> LinksOf(KbPageEntity page) => page.Links.Select(RefOf).OrderBy(l => l.Kind).ThenBy(l => l.Id).ToList();
+    public static IReadOnlyList<KbLinkRef> LinksOf(KbPageEntity page) => page.Links.Select(RefOf).Distinct().OrderBy(l => l.Kind).ThenBy(l => l.Id).ToList();
 
+    /// <summary>Each kind by its own column, with no fall-through: a row has exactly one (the check of four).</summary>
     public static KbLinkRef RefOf(KbLinkEntity l) => l.LocationId is { } location ? new KbLinkRef(KbLinkKind.Location, location)
-        : l.HostId is { } host ? new KbLinkRef(KbLinkKind.Host, host) : new KbLinkRef(KbLinkKind.Sensor, l.SensorId!.Value);
+        : l.HostId is { } host ? new KbLinkRef(KbLinkKind.Host, host)
+        : l.SensorId is { } sensor ? new KbLinkRef(KbLinkKind.Sensor, sensor)
+        : l.TargetPageId is { } target ? new KbLinkRef(KbLinkKind.Page, target)
+        : throw new InvalidOperationException($"The link {l.Id} has no target.");
+
+    /// <summary>
+    /// Whether a person who started from <paramref name="revision"/> still has the page's text (docs/knowledge-base-extensions-plan.md
+    /// §7.3): it is the current revision, or every revision after it is links-only. The save's conflict check, unmarking with the
+    /// statements and the AI scan's three checks ask this instead of comparing the numbers.
+    /// </summary>
+    public static async Task<bool> SameTextSinceAsync(PnmtdDbContext db, Guid pageId, int currentRevision, int? revision, CancellationToken ct) =>
+        revision == currentRevision
+        || (revision is { } from && from > 0 && from < currentRevision
+            && !await db.KbRevisions.AnyAsync(r => r.PageId == pageId && r.Number > from && !r.LinksOnly, ct));
+
+    /// <summary>The pages a revision of the page linked to: what a save that started from it saw.</summary>
+    public async Task<IReadOnlyList<Guid>> PageLinksAtAsync(Guid pageId, int revision, CancellationToken ct)
+    {
+        var json = await db.KbRevisions.AsNoTracking().Where(r => r.PageId == pageId && r.Number == revision).Select(r => r.Links).SingleOrDefaultAsync(ct);
+        return Links(json).Where(l => l.Kind == KbLinkKind.Page).Select(l => l.Id).ToList();
+    }
+
+    /// <summary>
+    /// A links-only revision (§7.3): the page as it is now, with <paramref name="change"/> as all it says. Its text and search are
+    /// unchanged, so nothing is derived again; it isn't an edit, and the page's <c>UpdatedAt</c> stays, since nobody edited it.
+    /// </summary>
+    public KbRevisionEntity CommitLinked(KbPageEntity page, KbChange change)
+    {
+        var after = KbSnapshot.Of(page);
+        var actor = Actor;
+        page.Revision++;
+        var revision = new KbRevisionEntity
+        {
+            Id = Guid.NewGuid(),
+            PageId = page.Id,
+            Number = page.Revision,
+            At = Clock.UtcNow,
+            ByUserId = actor.Id,
+            ByName = actor.Name,
+            Via = As is null && Mcp.McpPrincipal.IsMcp(accessor.HttpContext?.User) ? "mcp" : null,
+            Title = page.Title,
+            Summary = page.Summary,
+            Content = page.Content,
+            Tags = after.Tags.Select(t => t.Name).ToList(),
+            Status = page.Status,
+            Sensitive = page.Sensitive,
+            WrittenWithAi = page.WrittenWithAi,
+            Archived = page.ArchivedAt is not null,
+            Links = JsonSerializer.Serialize(after.Links, Json),
+            Changes = JsonSerializer.Serialize(new List<KbChange> { change }, Json),
+            IsEdit = false,
+            LinksOnly = true,
+        };
+        db.KbRevisions.Add(revision);
+        return revision;
+    }
 
     public static IReadOnlyList<KbChange> Changes(string json) => Read<List<KbChange>>(json) ?? [];
 
-    public static IReadOnlyList<KbLinkRef> Links(string? json) => Read<List<KbLinkRef>>(json) ?? [];
+    /// <summary>A revision's links, each once: revisions before 1.20 stored a link added by a save twice.</summary>
+    public static IReadOnlyList<KbLinkRef> Links(string? json) => Read<List<KbLinkRef>>(json)?.Distinct().ToList() ?? [];
 
     public static KbStoredDeclaration? Declaration(string? json) => Read<KbStoredDeclaration>(json);
 

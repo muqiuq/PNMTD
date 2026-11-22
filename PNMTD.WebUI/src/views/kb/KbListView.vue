@@ -219,7 +219,7 @@ function newPage() {
         @update:model-value="(v: string) => update({ ai: asYesNo(v) })"
       />
       <div class="link-filter">
-        <LinkPicker placeholder="Linked to…" @pick="pickLink" />
+        <LinkPicker placeholder="Linked to…" :kinds="['Location', 'Host', 'Sensor']" @pick="pickLink" />
       </div>
       <label class="archived">
         <Checkbox

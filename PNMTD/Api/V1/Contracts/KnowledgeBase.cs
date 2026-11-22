@@ -6,23 +6,28 @@ namespace PNMTD.Api.V1.Contracts;
 // The knowledge base (docs/locations-knowledge-plan.md §6, §7, §9): pages by number (GET) and by id (everything else),
 // their revisions, tags, links, views, who is editing, the lists and the content search, and the AI tags.
 
-/// <summary>What a page links to (§6.5): exactly one location, host or sensor.</summary>
+/// <summary>
+/// What a page links to (§6.5): exactly one location, host or sensor, or another page, mutually
+/// (docs/knowledge-base-extensions-plan.md §7).
+/// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<KbLinkKind>))]
 public enum KbLinkKind
 {
     Location,
     Host,
     Sensor,
+    Page,
 }
 
 /// <summary>A page's tag (§6.4): <c>Ai</c> shows a spark until a person confirms or removes it.</summary>
 public sealed record KbPageTag(string Name, KbTagSource Source);
 
 /// <summary>
-/// A link as the UI shows it: <see cref="Detail"/> is a location's path, a sensor's host, a host's location. A target
-/// that is gone (only in old revisions) has the name <i>deleted</i> and <see cref="Exists"/> false.
+/// A link as the UI shows it: <see cref="Detail"/> is a location's path, a sensor's host, a host's location, a page's
+/// <c>KB-12</c>. A target that is gone (only in old revisions) has the name <i>deleted</i> and <see cref="Exists"/> false.
+/// For a page, <see cref="Number"/> routes to it, and <see cref="Archived"/> says its link can't change until it is restored.
 /// </summary>
-public sealed record KbLinkItem(KbLinkKind Kind, Guid Id, string Name, string? Detail, bool Exists = true);
+public sealed record KbLinkItem(KbLinkKind Kind, Guid Id, string Name, string? Detail, bool Exists = true, int? Number = null, bool Archived = false);
 
 /// <summary>Another page by number: <see cref="Title"/> null for a missing page (§6.5).</summary>
 public sealed record KbPageRef(int Number, string? Title, bool Archived);
@@ -268,7 +273,8 @@ public sealed record KbRevisionItem(
     KbDeclaration? Declaration,
     string Title,
     KbPageStatus Status,
-    string? Via = null);
+    string? Via = null,
+    bool LinksOnly = false);
 
 /// <summary>A revision as it was: the snapshot, and the files its content uses.</summary>
 public sealed record KbRevisionDetail(

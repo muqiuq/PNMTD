@@ -945,16 +945,24 @@ namespace PNMTD.Data
             });
             modelBuilder.Entity<KbLinkEntity>(e =>
             {
-                e.ToTable(t => t.HasCheckConstraint("CK_kb_links_one_target",
-                    "num_nonnulls(\"LocationId\", \"HostId\", \"SensorId\") = 1"));
+                e.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_kb_links_one_target",
+                        "num_nonnulls(\"LocationId\", \"HostId\", \"SensorId\", \"TargetPageId\") = 1");
+                    // A page link joins two pages (docs/knowledge-base-extensions-plan.md §7).
+                    t.HasCheckConstraint("CK_kb_links_not_itself", "\"TargetPageId\" IS NULL OR \"TargetPageId\" <> \"PageId\"");
+                });
                 e.HasOne<LocationEntity>().WithMany().HasForeignKey(l => l.LocationId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne<HostEntity>().WithMany().HasForeignKey(l => l.HostId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(l => l.SensorId).OnDelete(DeleteBehavior.Cascade);
+                // Deleting either page removes both rows of their link: this one through its PageId, the mirror through this.
+                e.HasOne<KbPageEntity>().WithMany().HasForeignKey(l => l.TargetPageId).OnDelete(DeleteBehavior.Cascade);
                 // Once per page and target. The target leads, so the same indexes find a target's pages (GET /kb/related)
                 // and serve the cascades; the page's links have an index of their own.
                 e.HasIndex(l => new { l.LocationId, l.PageId }).IsUnique().HasFilter("\"LocationId\" IS NOT NULL");
                 e.HasIndex(l => new { l.HostId, l.PageId }).IsUnique().HasFilter("\"HostId\" IS NOT NULL");
                 e.HasIndex(l => new { l.SensorId, l.PageId }).IsUnique().HasFilter("\"SensorId\" IS NOT NULL");
+                e.HasIndex(l => new { l.TargetPageId, l.PageId }).IsUnique().HasFilter("\"TargetPageId\" IS NOT NULL");
                 e.HasIndex(l => l.PageId);
             });
             modelBuilder.Entity<KbPageRefEntity>(e =>

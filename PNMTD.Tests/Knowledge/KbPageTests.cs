@@ -610,6 +610,19 @@ public sealed class KbPageTests
         Assert.IsTrue(both.WrittenWithAi);
     }
 
+    [TestMethod]
+    public async Task A_link_added_by_a_save_counts_once_in_its_revision()
+    {
+        var host = await HostAsync();
+        var page = (await CreateAsync(Request("One link, counted once", "text", Unique("t")))).Page;
+        var saved = await SaveAsync(page, r => r.Links = [new KbLinkRequest { Kind = KbLinkKind.Host, Id = host }]);
+        Assert.HasCount(1, saved.Page.Links);
+        var revision = (await RevisionsAsync(page.Id))[0];
+        Assert.AreEqual("+1 −0", revision.Changes.Single(c => c.Kind == KbChangeKinds.Links).Text);
+        var stored = await (await viewer.GetAsync($"/api/v1/kb/pages/{page.Id}/revisions/{revision.Number}")).ReadAsync<KbRevisionDetail>();
+        Assert.HasCount(1, stored.Links, "the revision's snapshot holds the link once");
+    }
+
     // --- fixtures ------------------------------------------------------------------------------------------------------
 
     private static async Task<Paged<KbPageListItem>> ListAsync(string query) =>

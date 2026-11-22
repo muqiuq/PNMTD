@@ -4075,6 +4075,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<Guid?>("SensorId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("TargetPageId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PageId");
@@ -4091,9 +4094,15 @@ namespace PNMTD.Data.Migrations
                         .IsUnique()
                         .HasFilter("\"SensorId\" IS NOT NULL");
 
+                    b.HasIndex("TargetPageId", "PageId")
+                        .IsUnique()
+                        .HasFilter("\"TargetPageId\" IS NOT NULL");
+
                     b.ToTable("kb_links", t =>
                         {
-                            t.HasCheckConstraint("CK_kb_links_one_target", "num_nonnulls(\"LocationId\", \"HostId\", \"SensorId\") = 1");
+                            t.HasCheckConstraint("CK_kb_links_not_itself", "\"TargetPageId\" IS NULL OR \"TargetPageId\" <> \"PageId\"");
+
+                            t.HasCheckConstraint("CK_kb_links_one_target", "num_nonnulls(\"LocationId\", \"HostId\", \"SensorId\", \"TargetPageId\") = 1");
                         });
                 });
 
@@ -4295,6 +4304,9 @@ namespace PNMTD.Data.Migrations
 
                     b.Property<string>("Links")
                         .HasColumnType("jsonb");
+
+                    b.Property<bool>("LinksOnly")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Note")
                         .HasMaxLength(200)
@@ -9251,6 +9263,11 @@ namespace PNMTD.Data.Migrations
                     b.HasOne("PNMTD.Models.Db.SensorEntity", null)
                         .WithMany()
                         .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PNMTD.Models.Db.KbPageEntity", null)
+                        .WithMany()
+                        .HasForeignKey("TargetPageId")
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 

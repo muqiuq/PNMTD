@@ -113,7 +113,9 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         CheckCredentials(request, "", input.Content);
         var actor = revisions.Actor;
         var now = Clock.UtcNow;
+        var pageLinks = PageLinks(input);
         await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await LockInOrderAsync(pageLinks, ct);
         var page = new KbPageEntity
         {
             Id = Guid.NewGuid(), CreatedAt = now, CreatedBy = actor.Id, CreatedByName = actor.Name, UpdatedAt = now, UpdatedBy = actor.Id,
@@ -121,12 +123,16 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         };
         db.KbPages.Add(page);
         await ApplyAsync(page, input, ct);
+        var linked = await ApplyPageLinksAsync(page, pageLinks, [], ct);
         var marked = Marks(request);
         if (marked)
         {
             page.Sensitive = true;
         }
         await revisions.CommitAsync(page, null, input.Note, null, ct);
+        await db.SaveChangesAsync(ct);
+        // The other pages' links-only revisions name this page's number, which the first save gave it.
+        CommitLinked(page, linked);
         await db.SaveChangesAsync(ct);
         if (marked)
         {
@@ -148,10 +154,15 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         {
             throw ApiException.Invalid("revision", "The revision the edit started from.");
         }
+        // The page links the save started from (§7.3): its own are a change against them, and those it adds or removes are
+        // locked together with the page, in the order of their ids, so two saves linking the same pages can't deadlock.
+        var pageLinks = PageLinks(input);
+        var startedWith = await revisions.PageLinksAtAsync(id, request.Revision.Value, ct);
         await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await LockInOrderAsync([id, .. pageLinks.Except(startedWith), .. startedWith.Except(pageLinks)], ct);
         var page = await revisions.LockAsync(id, ct);
         ReadOnly(page);
-        if (request.Revision != page.Revision)
+        if (!await KbRevisions.SameTextSinceAsync(db, page.Id, page.Revision, request.Revision, ct))
         {
             throw Conflict(page);
         }
@@ -165,6 +176,7 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         }
         var before = KbSnapshot.Of(page);
         await ApplyAsync(page, input, ct);
+        var linked = await ApplyPageLinksAsync(page, pageLinks, startedWith, ct);
         if (marked || unmarked)
         {
             page.Sensitive = marked;
@@ -179,6 +191,7 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         var actor = revisions.Actor;
         var declaration = unmarked ? new KbStoredDeclaration(actor.Id, actor.Name, Clock.UtcNow, KbStatementNames.Both, page.Revision + 1) : null;
         var revision = await revisions.CommitAsync(page, before, input.Note, null, ct, declaration);
+        CommitLinked(page, linked);
         if (marked || unmarked)
         {
             AuditSensitivity(page, declaration);
@@ -228,7 +241,7 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         var missing = await MissingTargetsAsync(links, ct);
         if (missing > 0)
         {
-            throw ApiException.Invalid("links", missing == 1 ? "A linked location, host or sensor doesn't exist." : $"{missing} linked objects don't exist.");
+            throw ApiException.Invalid("links", missing == 1 ? "A linked location, host, sensor or page doesn't exist." : $"{missing} linked objects don't exist.");
         }
         var aiTags = r.AiTags?.Select(KbTags.Normalize).OfType<string>().ToHashSet(StringComparer.Ordinal);
         return new Input(title, summary, content, tags, aiTags, r.Status, links, note, r.WrittenWithAi);
@@ -239,13 +252,18 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
         var locations = links.Where(l => l.Kind == KbLinkKind.Location).Select(l => l.Id).ToList();
         var hosts = links.Where(l => l.Kind == KbLinkKind.Host).Select(l => l.Id).ToList();
         var sensors = links.Where(l => l.Kind == KbLinkKind.Sensor).Select(l => l.Id).ToList();
+        var pages = links.Where(l => l.Kind == KbLinkKind.Page).Select(l => l.Id).ToList();
         var found = (locations.Count == 0 ? 0 : await db.Locations.CountAsync(l => locations.Contains(l.Id), ct))
             + (hosts.Count == 0 ? 0 : await db.Hosts.CountAsync(h => hosts.Contains(h.Id), ct))
-            + (sensors.Count == 0 ? 0 : await db.Sensors.CountAsync(s => sensors.Contains(s.Id), ct));
+            + (sensors.Count == 0 ? 0 : await db.Sensors.CountAsync(s => sensors.Contains(s.Id), ct))
+            + (pages.Count == 0 ? 0 : await db.KbPages.CountAsync(p => pages.Contains(p.Id), ct));
         return links.Count - found;
     }
 
-    /// <summary>The request's fields on the page; tags and links as sets, kept rows keeping their source and time.</summary>
+    /// <summary>
+    /// The request's fields on the page; tags and links to locations, hosts and sensors as sets, kept rows keeping their source and
+    /// time. Page links are <see cref="ApplyPageLinksAsync"/>'s.
+    /// </summary>
     private async Task ApplyAsync(KbPageEntity page, Input input, CancellationToken ct)
     {
         var actor = revisions.Actor;
@@ -259,8 +277,8 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
             page.WrittenWithAi = writtenWithAi;
         }
         await SetTagsAsync(page, input.Tags, input.AiTags, actor, ct);
-        page.Links.RemoveAll(l => !input.Links.Contains(Ref(l)));
-        foreach (var link in input.Links.Where(l => page.Links.All(existing => Ref(existing) != l)).ToList())
+        page.Links.RemoveAll(l => l.TargetPageId is null && !input.Links.Contains(Ref(l)));
+        foreach (var link in input.Links.Where(l => l.Kind != KbLinkKind.Page && page.Links.All(existing => Ref(existing) != l)).ToList())
         {
             var entity = new KbLinkEntity
             {
@@ -269,9 +287,10 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
                 HostId = link.Kind == KbLinkKind.Host ? link.Id : null,
                 SensorId = link.Kind == KbLinkKind.Sensor ? link.Id : null,
             };
-            // Added explicitly: found through the collection, a row with its key set would be taken for an existing one.
+            // Added explicitly: found through the collection, a row with its key set would be taken for an existing one. Adding it
+            // puts it into the page's links already (EF's fix-up); a second Add counted it twice in the revision.
             db.KbLinks.Add(entity);
-            page.Links.Add(entity);
+            AddOnce(page.Links, entity);
         }
     }
 
@@ -299,6 +318,88 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
     }
 
     private static KbLinkRef Ref(KbLinkEntity l) => KbRevisions.RefOf(l);
+
+    private static void AddOnce(List<KbLinkEntity> links, KbLinkEntity link)
+    {
+        if (!links.Contains(link))
+        {
+            links.Add(link);
+        }
+    }
+
+    // --- page links, mutual (docs/knowledge-base-extensions-plan.md §7) -------------------------------------------------
+
+    /// <summary>A page link made (true) or removed (false) with the other page, for its links-only revision.</summary>
+    private sealed record PageLinkChange(KbPageEntity Other, bool Linked);
+
+    private static List<Guid> PageLinks(Input input) => input.Links.Where(l => l.Kind == KbLinkKind.Page).Select(l => l.Id).Distinct().ToList();
+
+    /// <summary>The pages' rows locked in the order of their ids, until the transaction ends: two saves can't wait on each other.</summary>
+    private async Task LockInOrderAsync(IEnumerable<Guid> ids, CancellationToken ct)
+    {
+        var ordered = ids.Distinct().ToArray();
+        if (ordered.Length > 0)
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($"""SELECT 1 FROM kb_pages WHERE "Id" = ANY({ordered}) ORDER BY "Id" FOR UPDATE""", ct);
+        }
+    }
+
+    /// <summary>
+    /// The save's page links as a change against those of the revision it started from (§7.3): those it added are made, those it
+    /// removed are removed, and a link the other page made meanwhile stays. Both rows of a link change together. A link to an
+    /// archived page can't change, since that page is read-only: it is kept, and a new one refused.
+    /// </summary>
+    private async Task<List<PageLinkChange>> ApplyPageLinksAsync(KbPageEntity page, IReadOnlyList<Guid> wanted, IReadOnlyList<Guid> startedWith,
+        CancellationToken ct)
+    {
+        var current = page.Links.Where(l => l.TargetPageId is not null).Select(l => l.TargetPageId!.Value).ToHashSet();
+        var changes = new List<PageLinkChange>();
+        var actor = revisions.Actor;
+        foreach (var target in wanted.Where(t => !startedWith.Contains(t) && !current.Contains(t)))
+        {
+            if (target == page.Id)
+            {
+                throw ApiException.Invalid("links", "A page can't link to itself.");
+            }
+            var other = await revisions.LockAsync(target, ct);
+            if (other.ArchivedAt is not null)
+            {
+                throw ApiException.Invalid("links", $"KB-{other.Number} is archived; restore it to link it.");
+            }
+            if (other.Links.Count >= MaxLinks)
+            {
+                throw ApiException.Invalid("links", $"KB-{other.Number} has {MaxLinks} links already.");
+            }
+            var now = Clock.UtcNow;
+            var mine = new KbLinkEntity { Id = Guid.NewGuid(), PageId = page.Id, TargetPageId = other.Id, CreatedAt = now, CreatedBy = actor.Id };
+            var theirs = new KbLinkEntity { Id = Guid.NewGuid(), PageId = other.Id, TargetPageId = page.Id, CreatedAt = now, CreatedBy = actor.Id };
+            db.KbLinks.AddRange(mine, theirs);
+            AddOnce(page.Links, mine);
+            AddOnce(other.Links, theirs);
+            changes.Add(new PageLinkChange(other, true));
+        }
+        foreach (var target in startedWith.Where(t => !wanted.Contains(t) && current.Contains(t)))
+        {
+            var other = await revisions.LockAsync(target, ct);
+            if (other.ArchivedAt is not null)
+            {
+                continue;
+            }
+            page.Links.RemoveAll(l => l.TargetPageId == other.Id);
+            other.Links.RemoveAll(l => l.TargetPageId == page.Id);
+            changes.Add(new PageLinkChange(other, false));
+        }
+        return changes;
+    }
+
+    /// <summary>The other pages' links-only revisions: <i>Linked with KB-42</i>, <i>Unlinked from KB-42</i>.</summary>
+    private void CommitLinked(KbPageEntity page, IEnumerable<PageLinkChange> changes)
+    {
+        foreach (var change in changes)
+        {
+            revisions.CommitLinked(change.Other, new KbChange(change.Linked ? KbChangeKinds.Linked : KbChangeKinds.Unlinked, $"KB-{page.Number}"));
+        }
+    }
 
     private static bool Differs(KbSnapshot before, KbSnapshot after) =>
         KbRevisions.Compare(before, after, before.Content == after.Content ? null : new LineDiffResult(0, 0, [])).Any();
@@ -445,10 +546,10 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
     {
         await ExistsAsync(id, ct);
         var rows = await db.KbRevisions.AsNoTracking().Where(r => r.PageId == id).OrderByDescending(r => r.Number)
-            .Select(r => new { r.Number, r.At, r.ByName, r.Note, r.Added, r.Removed, r.Changes, r.IsEdit, r.Declaration, r.Title, r.Status, r.Via })
+            .Select(r => new { r.Number, r.At, r.ByName, r.Note, r.Added, r.Removed, r.Changes, r.IsEdit, r.Declaration, r.Title, r.Status, r.Via, r.LinksOnly })
             .ToListAsync(ct);
         return rows.Select(r => new KbRevisionItem(r.Number, r.At, r.ByName, r.Note, r.Added, r.Removed, KbRevisions.Changes(r.Changes), r.IsEdit,
-            Declaration(r.Declaration), r.Title, r.Status, r.Via)).ToList();
+            Declaration(r.Declaration), r.Title, r.Status, r.Via, r.LinksOnly)).ToList();
     }
 
     public async Task<KbRevisionDetail> RevisionAsync(Guid id, int number, CancellationToken ct)
@@ -628,7 +729,8 @@ public sealed class KbPageService(PnmtdDbContext db, KbRevisions revisions, IHtt
             {
                 throw ApiException.Invalid("revision", "The revision the statements are for.");
             }
-            if (request.Revision != page.Revision)
+            // A links-only revision since then changes no text the statements are about (§7.3).
+            if (!await KbRevisions.SameTextSinceAsync(db, page.Id, page.Revision, request.Revision, ct))
             {
                 throw Conflict(page);
             }

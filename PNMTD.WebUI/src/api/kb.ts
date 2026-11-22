@@ -157,21 +157,29 @@ export const kbChangeLabel: Record<string, string> = {
   aiTags: 'AI tags',
   redacted: 'Redacted',
   writtenWithAi: 'Written with AI',
+  linked: 'Linked with',
+  unlinked: 'Unlinked from',
 }
 
 export const kbLinkIcon: Record<KbLinkKind, string> = {
   Location: 'pi pi-map-marker',
   Host: 'pi pi-server',
   Sensor: 'pi pi-wave-pulse',
+  Page: 'pi pi-book',
 }
 
-/** Where a link opens in the UI. */
-export function kbLinkRoute(link: { kind: KbLinkKind; id: string }) {
-  return link.kind === 'Location'
-    ? { name: 'location', params: { id: link.id } }
-    : link.kind === 'Host'
-      ? { name: 'host', params: { id: link.id } }
-      : { name: 'sensor', params: { id: link.id } }
+/** Where a link opens in the UI: a page by its number (docs/knowledge-base-extensions-plan.md §7). */
+export function kbLinkRoute(link: { kind: KbLinkKind; id: string; number?: number | null }) {
+  switch (link.kind) {
+    case 'Location':
+      return { name: 'location', params: { id: link.id } }
+    case 'Host':
+      return { name: 'host', params: { id: link.id } }
+    case 'Sensor':
+      return { name: 'sensor', params: { id: link.id } }
+    case 'Page':
+      return { name: 'kb-page', params: { number: link.number ?? 0 } }
+  }
 }
 
 /** A 422 looks_like_credential's line numbers, 0 for the title or summary; never the text (§7.3). */

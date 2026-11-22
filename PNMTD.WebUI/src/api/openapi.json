@@ -42214,6 +42214,17 @@
           "exists": {
             "type": "boolean",
             "default": true
+          },
+          "number": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "archived": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -42221,7 +42232,8 @@
         "enum": [
           "Location",
           "Host",
-          "Sensor"
+          "Sensor",
+          "Page"
         ]
       },
       "KbLinkRequest": {
@@ -42970,6 +42982,10 @@
               "null",
               "string"
             ]
+          },
+          "linksOnly": {
+            "type": "boolean",
+            "default": false
           }
         }
       },

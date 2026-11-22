@@ -165,6 +165,32 @@ public sealed class KbAiTests
     }
 
     [TestMethod]
+    public async Task A_link_from_another_page_doesnt_stop_a_scan_or_its_start()
+    {
+        var page = (await CreateAsync(KbPageTests.Request("Scanned while linked", "The UPS in cage B."))).Page;
+        answer = (_, _) => """{"tags":["linked-scan"]}""";
+        var response = await ScanAsync(page);
+        Assert.AreEqual(HttpStatusCode.Accepted, response.StatusCode);
+        var started = await response.ReadAsync<KbAiTagsStatus>();
+        // Another page links to it while the scan waits: a links-only revision (docs/knowledge-base-extensions-plan.md §7.3).
+        var other = KbPageTests.Request("Links to the scanned page", "x");
+        other.Links = [new KbLinkRequest { Kind = KbLinkKind.Page, Id = page.Id }];
+        await CreateAsync(other);
+        await app.Services.GetRequiredService<AiWorker>().DrainAsync(CancellationToken.None);
+        var status = await (await user.GetAsync($"/api/v1/kb/pages/{page.Id}/ai-tags/{started.WorkId}")).ReadAsync<KbAiTagsStatus>();
+        Assert.AreEqual(AiWorkState.Succeeded, status.State, status.Message);
+        CollectionAssert.AreEqual(new[] { "linked-scan" }, status.Added.ToArray());
+
+        // Starting one for a revision before a links-only revision is accepted too.
+        var read = await (await user.GetAsync($"/api/v1/kb/pages/{page.Number}")).ReadAsync<KbPageDetail>();
+        var linkedAgain = KbPageTests.Request("Links to it again", "y");
+        linkedAgain.Links = [new KbLinkRequest { Kind = KbLinkKind.Page, Id = page.Id }];
+        await CreateAsync(linkedAgain);
+        Assert.AreEqual(HttpStatusCode.Accepted, (await ScanAsync(read)).StatusCode);
+        await app.Services.GetRequiredService<AiWorker>().DrainAsync(CancellationToken.None);
+    }
+
+    [TestMethod]
     public async Task A_scan_runs_once_and_a_failure_is_the_end()
     {
         var page = (await CreateAsync(KbPageTests.Request("Fails once", "Text."))).Page;
