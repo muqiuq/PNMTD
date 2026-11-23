@@ -202,6 +202,13 @@ export const navigation: NavGroup[] = [
         inPlan: true,
       },
       {
+        label: 'Responsibilities',
+        icon: 'pi pi-briefcase',
+        to: '/admin/responsibilities',
+        name: 'responsibilities',
+        right: ['Responsibilities', 'View'],
+      },
+      {
         label: 'Location fields',
         icon: 'pi pi-list-check',
         to: '/admin/location-fields',

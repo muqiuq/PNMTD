@@ -327,6 +327,15 @@ public static class AuditEvents
     public const string NetworkPositionsSaved = "NetworkPositionsSaved";
     public const string NetworkPositionCleared = "NetworkPositionCleared";
     public const string NetworkPositionsReset = "NetworkPositionsReset";
+    // Responsibilities (docs/responsibilities-plan.md §12.2).
+    public const string ResponsibilityCreated = "ResponsibilityCreated";
+    public const string ResponsibilityChanged = "ResponsibilityChanged";
+    public const string ResponsibilityDeleted = "ResponsibilityDeleted";
+    public const string ResponsibilityLinked = "ResponsibilityLinked";
+    public const string ResponsibilityUnlinked = "ResponsibilityUnlinked";
+    public const string GlobalResponsibleChanged = "GlobalResponsibleChanged";
+    public const string ResponsibilityRedmineSaved = "ResponsibilityRedmineSaved";
+    public const string ResponsibilityRedmineDeleted = "ResponsibilityRedmineDeleted";
 }
 
 /// <summary>What an entry is about: its category on the page and in the filter (docs/audit-redmine-zabbix-plan.md §3.2).</summary>
@@ -334,6 +343,7 @@ public enum AuditCategory
 {
     Auth, Users, Hosts, Sensors, Notifications, Locations, Knowledge, Files, Udp, Mikrotik, WireGuard, Agents, SshKeys,
     Diagnostics, Dns, Mail, Ai, Decisions, System, Redmine, Zabbix, Cookie, Availability, Mcp, Certificates, Connectors, Network,
+    Responsibilities,
 }
 
 /// <summary>The colour of an event's tag.</summary>
@@ -384,6 +394,7 @@ public static class AuditTargets
     public const string NetworkScan = "NetworkScan";
     public const string NetworkRouterPosition = "NetworkRouterPosition";
     public const string OsAdvisorySource = "OsAdvisorySource";
+    public const string Responsibility = "Responsibility";
 }
 
 /// <summary>An event type of the catalog: its category, a label for people, the tone of its tag, what it is about.</summary>
@@ -532,6 +543,10 @@ public static class AuditCatalog
         Add(AuditCategory.Network, null, AuditEvents.NetworkMapSettingsChanged);
         Add(AuditCategory.Network, AuditTargets.NetworkRouterPosition, AuditEvents.NetworkPositionsSaved, AuditEvents.NetworkPositionCleared,
             AuditEvents.NetworkPositionsReset);
+        Add(AuditCategory.Responsibilities, AuditTargets.Responsibility, AuditEvents.ResponsibilityCreated, AuditEvents.ResponsibilityChanged,
+            AuditEvents.ResponsibilityDeleted, AuditEvents.ResponsibilityLinked, AuditEvents.ResponsibilityUnlinked,
+            AuditEvents.ResponsibilityRedmineSaved, AuditEvents.ResponsibilityRedmineDeleted);
+        Add(AuditCategory.Responsibilities, null, AuditEvents.GlobalResponsibleChanged);
     }
 
     public static IReadOnlyList<AuditEventInfo> All => Entries;

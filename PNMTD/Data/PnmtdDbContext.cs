@@ -197,6 +197,12 @@ namespace PNMTD.Data
         public DbSet<FileEntity> Files { get; set; }
         public DbSet<FileUseEntity> FileUses { get; set; }
 
+        // Responsibilities (docs/responsibilities-plan.md §10): who owns what, its links, the global people, the history.
+        public DbSet<ResponsibilityEntity> Responsibilities { get; set; }
+        public DbSet<ResponsibilityLinkEntity> ResponsibilityLinks { get; set; }
+        public DbSet<ResponsibilitySettingsEntity> ResponsibilitySettings { get; set; }
+        public DbSet<ResponsibilityHistoryEntity> ResponsibilityHistory { get; set; }
+
         // Cookie (docs/cookie-plan.md §19.2): its settings' versions, its state, the case book, the duties and the outbox.
         public DbSet<AvailabilityTypeEntity> AvailabilityTypes { get; set; }
         public DbSet<AvailabilityEntryEntity> AvailabilityEntries { get; set; }
@@ -783,6 +789,7 @@ namespace PNMTD.Data
             ConfigureKnowledgeBase(modelBuilder);
             ConfigureUserNotifications(modelBuilder);
             ConfigureFiles(modelBuilder);
+            ConfigureResponsibilities(modelBuilder);
             ConfigureCookie(modelBuilder);
             ConfigureAvailability(modelBuilder);
 
@@ -1057,19 +1064,74 @@ namespace PNMTD.Data
             });
             modelBuilder.Entity<FileUseEntity>(e =>
             {
-                e.ToTable(t => t.HasCheckConstraint("CK_file_uses_one_owner", "num_nonnulls(\"PageId\", \"LocationId\") = 1"));
+                e.ToTable(t => t.HasCheckConstraint("CK_file_uses_one_owner", "num_nonnulls(\"PageId\", \"LocationId\", \"ResponsibilityId\") = 1"));
                 e.HasOne<FileEntity>().WithMany().HasForeignKey(u => u.FileId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne<KbPageEntity>().WithMany().HasForeignKey(u => u.PageId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne<LocationEntity>().WithMany().HasForeignKey(u => u.LocationId).OnDelete(DeleteBehavior.Cascade);
+                // A responsibility's description (docs/responsibilities-plan.md §10.4).
+                e.HasOne<ResponsibilityEntity>().WithMany().HasForeignKey(u => u.ResponsibilityId).OnDelete(DeleteBehavior.Cascade);
                 // Once per file and owner. The owner leads: a page's attachments (§6.1) and the cascades; where a file is
                 // used, and whether at all, by FileId.
                 e.HasIndex(u => new { u.PageId, u.FileId }).IsUnique().HasFilter("\"PageId\" IS NOT NULL");
                 e.HasIndex(u => new { u.LocationId, u.FileId }).IsUnique().HasFilter("\"LocationId\" IS NOT NULL");
+                e.HasIndex(u => new { u.ResponsibilityId, u.FileId }).IsUnique().HasFilter("\"ResponsibilityId\" IS NOT NULL");
                 e.HasIndex(u => u.FileId);
             });
         }
 
         /// <summary>Cookie (docs/cookie-plan.md §19.2): enums as text, one open case per key, a duty once per case and key.</summary>
+        /// <summary>
+        /// Responsibilities (docs/responsibilities-plan.md §10): a deleted user's place becomes empty; a link goes with either
+        /// side; the settings are one row, inserted here.
+        /// </summary>
+        private static void ConfigureResponsibilities(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ResponsibilityEntity>(e =>
+            {
+                e.ToTable(t => t.HasCheckConstraint("CK_responsibilities_two_people",
+                    "\"ResponsibleId\" IS NULL OR \"DeputyId\" IS NULL OR \"ResponsibleId\" <> \"DeputyId\""));
+                e.HasIndex(r => r.NormalizedName).IsUnique();
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(r => r.ResponsibleId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(r => r.DeputyId).OnDelete(DeleteBehavior.SetNull);
+            });
+            modelBuilder.Entity<ResponsibilityLinkEntity>(e =>
+            {
+                e.ToTable(t => t.HasCheckConstraint("CK_responsibility_links_one_target", "num_nonnulls(\"PageId\", \"LocationId\", \"HostId\") = 1"));
+                e.HasOne<ResponsibilityEntity>().WithMany().HasForeignKey(l => l.ResponsibilityId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<KbPageEntity>().WithMany().HasForeignKey(l => l.PageId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<LocationEntity>().WithMany().HasForeignKey(l => l.LocationId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<HostEntity>().WithMany().HasForeignKey(l => l.HostId).OnDelete(DeleteBehavior.Cascade);
+                // Once per object and responsibility. The object leads, so the same indexes find an object's responsibilities
+                // (the panels, §8) and serve the cascades; a responsibility's links have an index of their own.
+                e.HasIndex(l => new { l.PageId, l.ResponsibilityId }).IsUnique().HasFilter("\"PageId\" IS NOT NULL");
+                e.HasIndex(l => new { l.LocationId, l.ResponsibilityId }).IsUnique().HasFilter("\"LocationId\" IS NOT NULL");
+                e.HasIndex(l => new { l.HostId, l.ResponsibilityId }).IsUnique().HasFilter("\"HostId\" IS NOT NULL");
+                e.HasIndex(l => l.ResponsibilityId);
+            });
+            modelBuilder.Entity<ResponsibilitySettingsEntity>(e =>
+            {
+                e.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_responsibility_settings_one_row", $"\"Id\" = {ResponsibilitySettingsEntity.SingletonId}");
+                    t.HasCheckConstraint("CK_responsibility_settings_two_people",
+                        "\"GlobalResponsibleId\" IS NULL OR \"GlobalDeputyId\" IS NULL OR \"GlobalResponsibleId\" <> \"GlobalDeputyId\"");
+                });
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(s => s.GlobalResponsibleId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(s => s.GlobalDeputyId).OnDelete(DeleteBehavior.SetNull);
+                // The row exists from the start, so a save is always an update (§5).
+                e.HasData(new ResponsibilitySettingsEntity
+                {
+                    Id = ResponsibilitySettingsEntity.SingletonId,
+                    UpdatedAt = new DateTime(2026, 11, 23, 0, 0, 0, DateTimeKind.Utc),
+                });
+            });
+            modelBuilder.Entity<ResponsibilityHistoryEntity>(e =>
+            {
+                e.HasOne<ResponsibilityEntity>().WithMany().HasForeignKey(h => h.ResponsibilityId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(h => new { h.ResponsibilityId, h.At });
+            });
+        }
+
         /// <summary>The availability plan (docs/cookie-plan.md §8.2): a cell per person and day, a row per day.</summary>
         private static void ConfigureAvailability(ModelBuilder modelBuilder)
         {

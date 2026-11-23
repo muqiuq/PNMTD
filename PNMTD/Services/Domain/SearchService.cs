@@ -27,30 +27,57 @@ public sealed partial class SearchService(PnmtdDbContext db, LocationTree locati
         {
             return new SearchResult([], [], [], await PagesByTagAsync(term.TrimStart('#').Trim().ToLowerInvariant(), limit, ct), tickets, []);
         }
-        var hosts = await db.Hosts.AsNoTracking()
-            .Where(h => EF.Functions.ILike(h.Name, pattern!, @"\") || (h.Location != null && EF.Functions.ILike(h.Location, pattern!, @"\")))
-            .OrderBy(h => h.Name)
-            .Take(limit)
-            .Select(h => new SearchHost(h.Id, h.Name, h.Location, h.Enabled))
-            .ToListAsync(ct);
+        var hosts = await HostsAsync(pattern!, limit, ct);
         var sensors = await db.Sensors.AsNoTracking()
             .Where(s => EF.Functions.ILike(s.Name, pattern!, @"\"))
             .OrderBy(s => s.Name).ThenBy(s => s.Parent.Name)
             .Take(limit)
             .Select(s => new SearchSensor(s.Id, s.Name, s.Type, s.ParentId, s.Parent.Name))
             .ToListAsync(ct);
+        return new SearchResult(hosts, sensors, await LocationsAsync(pattern!, limit, ct), await PagesAsync(term, pattern!, limit, ct), tickets,
+            await ZabbixHostsAsync(pattern!, limit, ct));
+    }
+
+    /// <summary>
+    /// Hosts, locations and pages only, found as <see cref="SearchAsync"/> finds them: what a responsibility links
+    /// (docs/responsibilities-plan.md §9.3), for those who manage responsibilities without Monitoring: View.
+    /// </summary>
+    public async Task<SearchResult> ObjectsAsync(string? q, int limit, CancellationToken ct)
+    {
+        var pattern = Text.Pattern(q);
+        new ApiValidator()
+            .Check(pattern is not null, "q", "What to search for.")
+            .Check(limit is >= 1 and <= 100, "limit", "Between 1 and 100.")
+            .ThrowIfInvalid();
+        var term = q!.Trim();
+        if (term.StartsWith('#'))
+        {
+            return new SearchResult([], [], [], await PagesByTagAsync(term.TrimStart('#').Trim().ToLowerInvariant(), limit, ct), [], []);
+        }
+        return new SearchResult(await HostsAsync(pattern!, limit, ct), [], await LocationsAsync(pattern!, limit, ct),
+            await PagesAsync(term, pattern!, limit, ct), [], []);
+    }
+
+    private async Task<IReadOnlyList<SearchHost>> HostsAsync(string pattern, int limit, CancellationToken ct) =>
+        await db.Hosts.AsNoTracking()
+            .Where(h => EF.Functions.ILike(h.Name, pattern, @"\") || (h.Location != null && EF.Functions.ILike(h.Location, pattern, @"\")))
+            .OrderBy(h => h.Name)
+            .Take(limit)
+            .Select(h => new SearchHost(h.Id, h.Name, h.Location, h.Enabled))
+            .ToListAsync(ct);
+
+    private async Task<IReadOnlyList<SearchLocation>> LocationsAsync(string pattern, int limit, CancellationToken ct)
+    {
         var tree = await locations.GetAsync(ct);
         var found = await db.Locations.AsNoTracking()
-            .Where(l => EF.Functions.ILike(l.Name, pattern!, @"\"))
+            .Where(l => EF.Functions.ILike(l.Name, pattern, @"\"))
             .Select(l => new { l.Id, l.Name, l.Description })
             .ToListAsync(ct);
-        var locationResults = found
+        return found
             .Select(l => new SearchLocation(l.Id, l.Name, tree.Path(l.Id) is { Length: > 0 } path ? path : l.Name, l.Description))
             .OrderBy(l => l.Path, StringComparer.OrdinalIgnoreCase)
             .Take(limit)
             .ToList();
-        return new SearchResult(hosts, sensors, locationResults, await PagesAsync(term, pattern!, limit, ct), tickets,
-            await ZabbixHostsAsync(pattern!, limit, ct));
     }
 
     /// <summary>Tickets, for Redmine's View: a number from PNMT's copy or Redmine itself, other text among the linked ones' subjects.</summary>

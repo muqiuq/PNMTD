@@ -31,15 +31,15 @@ public sealed class FileUsesTests
         db.AddRange(page, location, a, b, removed);
         await db.SaveChangesAsync();
 
-        var added = await FileUses.RecordAsync(db, [a.Id, a.Id, Guid.NewGuid(), removed.Id], page.Id, null, CancellationToken.None);
+        var added = await FileUses.RecordAsync(db, [a.Id, a.Id, Guid.NewGuid(), removed.Id], FileOwner.Page(page.Id), CancellationToken.None);
         CollectionAssert.AreEqual(new[] { a.Id, removed.Id }, added.ToArray());
         // Twice in one unit of work, before saving.
-        Assert.AreEqual(0, (await FileUses.RecordAsync(db, [a.Id], page.Id, null, CancellationToken.None)).Count);
+        Assert.AreEqual(0, (await FileUses.RecordAsync(db, [a.Id], FileOwner.Page(page.Id), CancellationToken.None)).Count);
         await db.SaveChangesAsync();
 
         // The next save references b only: a stays used, since old revisions keep it.
-        CollectionAssert.AreEqual(new[] { b.Id }, (await FileUses.RecordAsync(db, [b.Id, removed.Id], page.Id, null, CancellationToken.None)).ToArray());
-        CollectionAssert.AreEqual(new[] { a.Id }, (await FileUses.RecordAsync(db, [a.Id], null, location.Id, CancellationToken.None)).ToArray());
+        CollectionAssert.AreEqual(new[] { b.Id }, (await FileUses.RecordAsync(db, [b.Id, removed.Id], FileOwner.Page(page.Id), CancellationToken.None)).ToArray());
+        CollectionAssert.AreEqual(new[] { a.Id }, (await FileUses.RecordAsync(db, [a.Id], FileOwner.Location(location.Id), CancellationToken.None)).ToArray());
         await db.SaveChangesAsync();
 
         await using var check = NewDb();
@@ -47,8 +47,15 @@ public sealed class FileUsesTests
         Assert.AreEqual(4, uses.Count);
         Assert.AreEqual(3, uses.Count(u => u.PageId == page.Id));
         Assert.IsNull((await check.Files.SingleAsync(f => f.Id == removed.Id)).DeletedAt, "referenced again while still on disk");
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => FileUses.RecordAsync(check, [a.Id], page.Id, location.Id, CancellationToken.None));
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => FileUses.RecordAsync(check, [a.Id], null, null, CancellationToken.None));
+
+        // A responsibility's description is an owner of its own (docs/responsibilities-plan.md §10.4).
+        var responsibility = new ResponsibilityEntity { Id = Guid.NewGuid(), Name = "Uses", NormalizedName = $"USES {Guid.NewGuid()}", CreatedAt = Clock.UtcNow, UpdatedAt = Clock.UtcNow };
+        check.Responsibilities.Add(responsibility);
+        await check.SaveChangesAsync();
+        CollectionAssert.AreEqual(new[] { a.Id }, (await FileUses.RecordAsync(check, [a.Id], FileOwner.Responsibility(responsibility.Id), CancellationToken.None)).ToArray());
+        await check.SaveChangesAsync();
+        Assert.AreEqual(3, await check.FileUses.CountAsync(u => u.FileId == a.Id));
+        await check.Responsibilities.Where(r => r.Id == responsibility.Id).ExecuteDeleteAsync();
 
         // A use goes with its page.
         await check.KbPages.Where(p => p.Id == page.Id).ExecuteDeleteAsync();

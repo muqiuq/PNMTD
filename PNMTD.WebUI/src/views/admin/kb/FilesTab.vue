@@ -78,9 +78,11 @@ async function remove(item: FileAdminItem) {
 }
 
 function useTarget(u: Schemas['FileUseRef']) {
-  return u.kind === 'Page' && u.number !== null && u.number !== undefined
-    ? { name: 'kb-page', params: { number: u.number } }
-    : { name: 'location', params: { id: u.id } }
+  if (u.kind === 'Page' && u.number !== null && u.number !== undefined)
+    return { name: 'kb-page', params: { number: u.number } }
+  // A responsibility's description (docs/responsibilities-plan.md §10.4).
+  if (u.kind === 'Responsibility') return { name: 'responsibility', params: { id: u.id } }
+  return { name: 'location', params: { id: u.id } }
 }
 </script>
 

@@ -2,12 +2,15 @@
 import AutoComplete from 'primevue/autocomplete'
 import { computed, ref } from 'vue'
 import { kbLinkIcon, kbNumber, type KbLinkKind } from '@/api/kb'
+import type { Schemas } from '@/api/client'
 import { api } from '@/api/resources'
 
 /**
  * One picker for what a page links to (docs/locations-knowledge-plan.md §6.5): locations, hosts, sensors and other pages
  * (docs/knowledge-base-extensions-plan.md §7) through the global search. `kinds` narrows it, as the list's filter does to the
  * objects. Picking one emits it and clears the field; the list's filter, the page's panels and the editing page use it.
+ * `search` replaces the global search: a responsibility's links find their objects without Monitoring: View
+ * (docs/responsibilities-plan.md §9.3).
  */
 export interface LinkTarget {
   kind: KbLinkKind
@@ -25,8 +28,14 @@ const props = withDefaults(
     placeholder?: string
     exclude?: readonly { kind: KbLinkKind; id: string }[]
     kinds?: readonly KbLinkKind[]
+    search?: (q: string) => Promise<Schemas['SearchResult']>
   }>(),
-  { placeholder: undefined, exclude: () => [], kinds: () => ['Location', 'Host', 'Sensor', 'Page'] },
+  {
+    placeholder: undefined,
+    exclude: () => [],
+    kinds: () => ['Location', 'Host', 'Sensor', 'Page'],
+    search: undefined,
+  },
 )
 const what = computed(() => {
   const names = (['Page', 'Location', 'Host', 'Sensor'] as const)
@@ -51,7 +60,7 @@ async function complete(event: { query: string }) {
     suggestions.value = []
     return
   }
-  const result = await api.search(q, 8)
+  const result = props.search ? await props.search(q) : await api.search(q, 8)
   const found: Suggestion[] = [
     ...(result.pages ?? []).map((p) => ({
       kind: 'Page' as const,

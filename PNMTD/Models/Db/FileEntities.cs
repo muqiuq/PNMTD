@@ -72,8 +72,9 @@ public class FileEntity
 }
 
 /// <summary>
-/// A file referenced by a page's or a location's Markdown (exactly one of the two), recorded on each save (§5.5). A use
-/// lasts as long as its page or location, since their revisions and history keep the reference.
+/// A file referenced by a page's, a location's or a responsibility's Markdown (exactly one of them), recorded on each save
+/// (§5.5, docs/responsibilities-plan.md §10.4). A use lasts as long as its owner, since their revisions and history keep the
+/// reference.
 /// </summary>
 [Table("file_uses")]
 [NotAudited("which page or field uses a file: derived from their saves")]
@@ -87,6 +88,8 @@ public class FileUseEntity
     public Guid? PageId { get; set; }
 
     public Guid? LocationId { get; set; }
+
+    public Guid? ResponsibilityId { get; set; }
 
     public DateTime FirstUsedAt { get; set; }
 }

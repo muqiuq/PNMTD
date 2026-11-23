@@ -32,7 +32,7 @@ public sealed class FilesController(FileStore store, FileAdmin admin, UploadGuar
     /// <c>too_many_uploads</c>. No Consumes constraint: it would decide at routing, before authorization.
     /// </summary>
     [HttpPost]
-    [RequireAnyRight(Area.KnowledgeBase, Level.Edit, Area.Locations, Level.Edit)]
+    [RequireAnyRight(Area.KnowledgeBase, Level.Edit, Area.Locations, Level.Edit, Area.Responsibilities, Level.Manage)]
     [FileUploadLimit]
     [ProducesResponseType<FileItem>(StatusCodes.Status201Created)]
     [Audit(AuditEvents.FileUploaded)]
@@ -62,7 +62,7 @@ public sealed class FilesController(FileStore store, FileAdmin admin, UploadGuar
     /// The name is only there to be read; the id finds the file. 404 once it left the disk (<i>File removed</i>).
     /// </summary>
     [HttpGet("{id:guid}/{name}")]
-    [RequireAnyRight(Area.KnowledgeBase, Level.View, Area.Locations, Level.View)]
+    [RequireAnyRight(Area.KnowledgeBase, Level.View, Area.Locations, Level.View, Area.Responsibilities, Level.View)]
     [ProducesResponseType<FileContentResult>(StatusCodes.Status200OK, "application/octet-stream")]
     public async Task<IActionResult> Download(Guid id, string name, CancellationToken ct)
     {

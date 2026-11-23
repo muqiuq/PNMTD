@@ -142,6 +142,11 @@ public sealed class DevSeedTests
         Assert.IsTrue(await db.LocationValues.AnyAsync(v => v.Field!.Sensitive && v.Value != null));
         Assert.IsTrue(await db.LocationValues.AnyAsync(v => v.Field!.Inherited && db.Locations.Any(l => l.Id == v.LocationId && l.ParentId != null)),
             "an inherited field overridden");
+        // Responsibilities (docs/responsibilities-plan.md §14): three, Printers with nobody, their links, the global people.
+        Assert.AreEqual(3, await db.Responsibilities.CountAsync());
+        Assert.IsTrue(await db.Responsibilities.AnyAsync(r => r.Name == "Printers" && r.ResponsibleId == null && r.DeputyId == null));
+        Assert.AreEqual(14, await db.ResponsibilityLinks.CountAsync(), "eight of Network, four of Backup, two of Printers");
+        Assert.IsNotNull((await db.ResponsibilitySettings.SingleAsync()).GlobalResponsibleId);
         // About twenty pages: statuses, one sensitive and one archived, revisions with notes, links, views over the last 30 days.
         Assert.IsGreaterThanOrEqualTo(20, await db.KbPages.CountAsync());
         Assert.AreEqual(1, await db.KbPages.CountAsync(p => p.Sensitive));

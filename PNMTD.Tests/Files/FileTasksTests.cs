@@ -67,7 +67,7 @@ public sealed class FileTasksTests
         {
             var location = new LocationEntity { Id = Guid.NewGuid(), Name = "Zurich", NormalizedName = "zurich", CreatedAt = Clock.UtcNow, UpdatedAt = Clock.UtcNow };
             db.Locations.Add(location);
-            await FileUses.RecordAsync(db, [used.Id], null, location.Id, CancellationToken.None);
+            await FileUses.RecordAsync(db, [used.Id], FileOwner.Location(location.Id), CancellationToken.None);
             await db.SaveChangesAsync();
             var old = Clock.UtcNow.AddHours(-25);
             await db.Files.Where(f => f.Id == unused.Id || f.Id == used.Id).ExecuteUpdateAsync(u => u.SetProperty(f => f.CreatedAt, old));
@@ -125,7 +125,7 @@ public sealed class FileTasksTests
         // Then a save uses it again.
         await using (var save = app.NewDb())
         {
-            CollectionAssert.AreEqual(new[] { file.Id }, (await FileUses.RecordAsync(save, [file.Id], null, location.Id, CancellationToken.None)).ToArray());
+            CollectionAssert.AreEqual(new[] { file.Id }, (await FileUses.RecordAsync(save, [file.Id], FileOwner.Location(location.Id), CancellationToken.None)).ToArray());
             await save.SaveChangesAsync();
         }
         Assert.IsFalse(await cleanup.RemoveIfStillDueAsync(db, stale, Clock.UtcNow.AddDays(-7), CancellationToken.None));
@@ -144,7 +144,7 @@ public sealed class FileTasksTests
         Assert.IsTrue(await app.Services.GetRequiredService<FileCleanupTask>().RemoveIfStillDueAsync(db, stale, Clock.UtcNow.AddDays(-7), CancellationToken.None));
         Assert.IsFalse(File.Exists(path));
         await using var save = app.NewDb();
-        Assert.AreEqual(0, (await FileUses.RecordAsync(save, [file.Id], null, location.Id, CancellationToken.None)).Count);
+        Assert.AreEqual(0, (await FileUses.RecordAsync(save, [file.Id], FileOwner.Location(location.Id), CancellationToken.None)).Count);
         await save.SaveChangesAsync();
         Assert.IsFalse(await save.FileUses.AnyAsync(u => u.FileId == file.Id));
     }

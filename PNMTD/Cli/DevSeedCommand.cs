@@ -86,6 +86,11 @@ internal static class DevSeedCommand
         {
             Console.WriteLine(DevSeedLounge.Seed(loungeDb, Clock.UtcNow));
         }
+        // Responsibilities (docs/responsibilities-plan.md §14): three, one with nobody, and the global people.
+        using (var responsibilitiesDb = database())
+        {
+            Console.WriteLine(DevSeedResponsibilities.Seed(responsibilitiesDb, Clock.UtcNow));
+        }
         return 0;
     }
 

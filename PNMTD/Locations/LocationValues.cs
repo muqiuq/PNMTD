@@ -228,7 +228,7 @@ public sealed partial class LocationValues(PnmtdDbContext db, LocationTree tree,
             });
             if (field.Type == LocationFieldType.Markdown && json is not null)
             {
-                await FileUses.RecordAsync(db, MarkdownText.Read(ReadString(json) ?? "").FileIds, null, locationId, ct);
+                await FileUses.RecordAsync(db, MarkdownText.Read(ReadString(json) ?? "").FileIds, FileOwner.Location(locationId), ct);
             }
             await db.SaveChangesAsync(ct);
         }
@@ -242,7 +242,7 @@ public sealed partial class LocationValues(PnmtdDbContext db, LocationTree tree,
     /// answer 422 <c>looks_like_credential</c> with their numbers and kinds, never the text. It doesn't block: the save
     /// that acknowledges it goes through.
     /// </summary>
-    private static void CheckCredentials(string? text, string? before)
+    internal static void CheckCredentials(string? text, string? before)
     {
         var findings = SecretScanner.Scan(text);
         if (findings.Count == 0)

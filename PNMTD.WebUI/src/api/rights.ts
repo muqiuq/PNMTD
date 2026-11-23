@@ -44,6 +44,8 @@ export const levelOrder: Record<Area, readonly Level[]> = {
   NetworkMap: ['View', 'Details', 'Edit', 'Manage'],
   // docs/lounge-plan.md §3.1: writing in the lounge; reading it needs no right.
   Lounge: ['Use'],
+  // docs/responsibilities-plan.md §12.1: information only; Manage changes them and sets the global people.
+  Responsibilities: ['View', 'Manage'],
 }
 
 /** Admin → Cookie: its Redmine tab is Redmine: Manage's, every other tab Cookie: Manage's. */

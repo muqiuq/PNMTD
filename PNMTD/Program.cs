@@ -117,6 +117,8 @@ public partial class Program
         // Cookie, the assistant (docs/cookie-plan.md §19).
         PNMTD.Cookie.CookieSetup.AddCookie(builder.Services, builder.Configuration);
         PNMTD.Availability.AvailabilitySetup.AddAvailability(builder.Services);
+        // Responsibilities (docs/responsibilities-plan.md): who owns what; information only.
+        PNMTD.Responsibilities.ResponsibilitiesSetup.AddResponsibilities(builder.Services);
         // The MCP server (docs/mcp-plan.md §5), mapped only with Mcp__Enabled=true.
         PNMTD.Mcp.McpSetup.AddPnmtdMcp(builder.Services, builder.Configuration);
         // 3rd Party Connectors (docs/connectors-plan.md): /connector/v1, the worker, the admin API.

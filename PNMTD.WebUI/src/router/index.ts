@@ -425,6 +425,28 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/availability/AvailabilityView.vue'),
     meta: { title: 'Availability plan' },
   },
+  // Responsibilities (docs/responsibilities-plan.md §9.1): who owns what; information only.
+  {
+    path: '/admin/responsibilities/:tab(list|redmine)?',
+    name: 'responsibilities',
+    component: () => import('@/views/admin/responsibilities/ResponsibilitiesView.vue'),
+    meta: { title: 'Responsibilities', right: ['Responsibilities', 'View'] },
+  },
+  {
+    path: '/admin/responsibilities/:id([0-9a-f-]{36})',
+    name: 'responsibility',
+    component: () => import('@/views/admin/responsibilities/ResponsibilityView.vue'),
+    props: true,
+    meta: { title: 'Responsibility', right: ['Responsibilities', 'View'] },
+  },
+  {
+    // The long description on the editing page, as a knowledge base page's (docs/responsibilities-plan.md §9.4).
+    path: '/admin/responsibilities/:id([0-9a-f-]{36})/edit',
+    name: 'responsibility-edit',
+    component: () => import('@/views/admin/responsibilities/ResponsibilityEditView.vue'),
+    props: true,
+    meta: { title: 'Edit responsibility', right: ['Responsibilities', 'Manage'] },
+  },
   {
     path: '/admin/location-fields',
     name: 'location-fields',

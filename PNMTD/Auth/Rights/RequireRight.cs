@@ -16,10 +16,23 @@ public sealed class RequireRightAttribute(Area area, Level level) : AuthorizeAtt
     public Level Level { get; } = level;
 }
 
-/// <summary>Either of two rights: an upload serves the knowledge base and locations alike (§5.2).</summary>
+/// <summary>
+/// Any of two or three rights: an upload serves the knowledge base, locations and responsibilities alike (§5.2,
+/// docs/responsibilities-plan.md §12.1).
+/// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public sealed class RequireAnyRightAttribute(Area area, Level level, Area otherArea, Level otherLevel)
-    : AuthorizeAttribute(RightPolicies.Name([(area, level), (otherArea, otherLevel)]));
+public sealed class RequireAnyRightAttribute : AuthorizeAttribute
+{
+    public RequireAnyRightAttribute(Area area, Level level, Area otherArea, Level otherLevel)
+        : base(RightPolicies.Name([(area, level), (otherArea, otherLevel)]))
+    {
+    }
+
+    public RequireAnyRightAttribute(Area area, Level level, Area secondArea, Level secondLevel, Area thirdArea, Level thirdLevel)
+        : base(RightPolicies.Name([(area, level), (secondArea, secondLevel), (thirdArea, thirdLevel)]))
+    {
+    }
+}
 
 /// <summary>Only the admin flag: users, groups and the flag itself (§5.1).</summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]

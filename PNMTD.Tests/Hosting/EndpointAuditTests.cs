@@ -580,6 +580,21 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/location-fields/{id:guid}/archive"] = ("Locations:Manage", Roles.Admin),
         ["POST /api/v1/location-fields/{id:guid}/restore"] = ("Locations:Manage", Roles.Admin),
         ["DELETE /api/v1/location-fields/{id:guid}"] = ("Locations:Manage", Roles.Admin),
+        // Responsibilities (docs/responsibilities-plan.md §11): a new area, which no former role holds.
+        ["GET /api/v1/responsibilities"] = ("Responsibilities:View", Roles.Admin),
+        ["GET /api/v1/responsibilities/{id:guid}"] = ("Responsibilities:View", Roles.Admin),
+        ["POST /api/v1/responsibilities"] = ("Responsibilities:Manage", Roles.Admin),
+        ["PUT /api/v1/responsibilities/{id:guid}"] = ("Responsibilities:Manage", Roles.Admin),
+        ["DELETE /api/v1/responsibilities/{id:guid}"] = ("Responsibilities:Manage", Roles.Admin),
+        ["POST /api/v1/responsibilities/{id:guid}/links"] = ("Responsibilities:Manage", Roles.Admin),
+        ["DELETE /api/v1/responsibilities/{id:guid}/links/{linkId:guid}"] = ("Responsibilities:Manage", Roles.Admin),
+        ["GET /api/v1/responsibilities/{id:guid}/history"] = ("Responsibilities:View", Roles.Admin),
+        ["GET /api/v1/responsibilities/{id:guid}/history/{rowId:guid}"] = ("Responsibilities:View", Roles.Admin),
+        ["PUT /api/v1/responsibilities/global"] = ("Responsibilities:Manage", Roles.Admin),
+        ["GET /api/v1/responsibilities/people"] = ("Responsibilities:Manage", Roles.Admin),
+        ["GET /api/v1/responsibilities/targets"] = ("Responsibilities:Manage", Roles.Admin),
+        ["PUT /api/v1/responsibilities/{id:guid}/description"] = ("Responsibilities:Manage", Roles.Admin),
+        ["POST /api/v1/responsibilities/{id:guid}/history/{rowId:guid}/restore"] = ("Responsibilities:Manage", Roles.Admin),
         // The knowledge base (docs/locations-knowledge-plan.md §8.1, §9): every role reads and counts a view; Users write, mark
         // sensitive and run AI tags; Admins delete archived pages, redact, and rename and delete tags.
         ["GET /api/v1/kb/pages"] = ("KnowledgeBase:View", Roles.Viewer),
@@ -612,8 +627,9 @@ public sealed class EndpointAuditTests
         ["PUT /api/v1/kb/tags/{id:guid}"] = ("KnowledgeBase:Manage", Roles.Admin),
         ["DELETE /api/v1/kb/tags/{id:guid}"] = ("KnowledgeBase:Manage", Roles.Admin),
         // Uploaded files (docs/locations-knowledge-plan.md §9): uploading is a write, reading every role's, the overview and deleting the Admin's.
-        ["POST /api/v1/files"] = ("KnowledgeBase:Edit|Locations:Edit", Roles.User),
-        ["GET /api/v1/files/{id:guid}/{name}"] = ("KnowledgeBase:View|Locations:View", Roles.Viewer),
+        // A responsibility's description has images and files too (docs/responsibilities-plan.md §12.1).
+        ["POST /api/v1/files"] = ("KnowledgeBase:Edit|Locations:Edit|Responsibilities:Manage", Roles.User),
+        ["GET /api/v1/files/{id:guid}/{name}"] = ("KnowledgeBase:View|Locations:View|Responsibilities:View", Roles.Viewer),
         ["GET /api/v1/files"] = ("KnowledgeBase:Manage", Roles.Admin),
         ["DELETE /api/v1/files/{id:guid}"] = ("KnowledgeBase:Manage", Roles.Admin),
         // 3rd Party Connectors (docs/connectors-plan.md §11): a rights area of its own, granted to no group by the update.

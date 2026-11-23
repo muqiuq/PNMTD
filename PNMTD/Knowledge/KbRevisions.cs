@@ -125,7 +125,7 @@ public sealed class KbRevisions(PnmtdDbContext db, IHttpContextAccessor accessor
         page.PlainText = facts.PlainText;
         page.TagsText = TagsText(page);
         await RefsAsync(page, facts.PageNumbers, ct);
-        var filesAdded = await FileUses.RecordAsync(db, facts.FileIds, page.Id, null, ct);
+        var filesAdded = await FileUses.RecordAsync(db, facts.FileIds, FileOwner.Page(page.Id), ct);
         var diff = before is null || before.Content != after.Content ? LineDiff.Compare(before?.Content ?? "", after.Content) : null;
         var changes = Compare(before, after, diff).ToList();
         if (filesAdded.Count > 0)

@@ -4024,6 +4024,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<Guid?>("PageId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ResponsibilityId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("FileId");
@@ -4036,9 +4039,13 @@ namespace PNMTD.Data.Migrations
                         .IsUnique()
                         .HasFilter("\"PageId\" IS NOT NULL");
 
+                    b.HasIndex("ResponsibilityId", "FileId")
+                        .IsUnique()
+                        .HasFilter("\"ResponsibilityId\" IS NOT NULL");
+
                     b.ToTable("file_uses", t =>
                         {
-                            t.HasCheckConstraint("CK_file_uses_one_owner", "num_nonnulls(\"PageId\", \"LocationId\") = 1");
+                            t.HasCheckConstraint("CK_file_uses_one_owner", "num_nonnulls(\"PageId\", \"LocationId\", \"ResponsibilityId\") = 1");
                         });
                 });
 
@@ -7645,6 +7652,210 @@ namespace PNMTD.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.ResponsibilityEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("DeputyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PlainText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ResponsibleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UpdatedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeputyId");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.HasIndex("ResponsibleId");
+
+                    b.ToTable("responsibilities", t =>
+                        {
+                            t.HasCheckConstraint("CK_responsibilities_two_people", "\"ResponsibleId\" IS NULL OR \"DeputyId\" IS NULL OR \"ResponsibleId\" <> \"DeputyId\"");
+                        });
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ResponsibilityHistoryEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ByName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("ByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NewValue")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OldValue")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ResponsibilityId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResponsibilityId", "At");
+
+                    b.ToTable("responsibility_history");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ResponsibilityLinkEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("HostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ResponsibilityId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResponsibilityId");
+
+                    b.HasIndex("HostId", "ResponsibilityId")
+                        .IsUnique()
+                        .HasFilter("\"HostId\" IS NOT NULL");
+
+                    b.HasIndex("LocationId", "ResponsibilityId")
+                        .IsUnique()
+                        .HasFilter("\"LocationId\" IS NOT NULL");
+
+                    b.HasIndex("PageId", "ResponsibilityId")
+                        .IsUnique()
+                        .HasFilter("\"PageId\" IS NOT NULL");
+
+                    b.ToTable("responsibility_links", t =>
+                        {
+                            t.HasCheckConstraint("CK_responsibility_links_one_target", "num_nonnulls(\"PageId\", \"LocationId\", \"HostId\") = 1");
+                        });
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ResponsibilitySettingsEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("GlobalDeputyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("GlobalResponsibleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UpdatedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GlobalDeputyId");
+
+                    b.HasIndex("GlobalResponsibleId");
+
+                    b.ToTable("responsibility_settings", t =>
+                        {
+                            t.HasCheckConstraint("CK_responsibility_settings_one_row", "\"Id\" = 1");
+
+                            t.HasCheckConstraint("CK_responsibility_settings_two_people", "\"GlobalResponsibleId\" IS NULL OR \"GlobalDeputyId\" IS NULL OR \"GlobalResponsibleId\" <> \"GlobalDeputyId\"");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            UpdatedAt = new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc)
+                        });
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.SensorEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -9498,6 +9709,11 @@ namespace PNMTD.Data.Migrations
                         .WithMany()
                         .HasForeignKey("PageId")
                         .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PNMTD.Models.Db.ResponsibilityEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ResponsibilityId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.GroupRightEntity", b =>
@@ -10044,6 +10260,65 @@ namespace PNMTD.Data.Migrations
                         .WithMany()
                         .HasForeignKey("SensorId")
                         .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ResponsibilityEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("DeputyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ResponsibleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ResponsibilityHistoryEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.ResponsibilityEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ResponsibilityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ResponsibilityLinkEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.HostEntity", null)
+                        .WithMany()
+                        .HasForeignKey("HostId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PNMTD.Models.Db.LocationEntity", null)
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PNMTD.Models.Db.KbPageEntity", null)
+                        .WithMany()
+                        .HasForeignKey("PageId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PNMTD.Models.Db.ResponsibilityEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ResponsibilityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ResponsibilitySettingsEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("GlobalDeputyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("GlobalResponsibleId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.SensorEntity", b =>
