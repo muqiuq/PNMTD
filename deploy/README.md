@@ -103,7 +103,7 @@ A **new PostgreSQL major version** means `./backup.sh`, the new image in `docker
 
 ## Behind a reverse proxy
 
-- **Path prefixes:** forward every path unchanged, with no prefix stripped or added. The app needs `/event/`, `/read/`, `/api/` and `/pnmt-admin/` at the root of its host.
+- **Path prefixes:** forward every path unchanged, with no prefix stripped or added. The app needs `/event/`, `/read/`, `/api/` and `/pnmt-admin/` at the root of its host, and `/pnmt-board/` for boards.
 - **Settings:**
   - Set `Proxy=docker` in `.env` if the proxy runs in a Docker network, or else set it to the proxy's address. Without it, lockout, the audit log and the connectors' networks see the proxy's address instead of the client's.
   - `Proxy` takes a list too, comma-separated, of `docker`, addresses and networks (`Proxy=docker,10.0.0.5`). Each entry is checked at the start, and a bad one stops it with a message naming the entry.
@@ -341,6 +341,25 @@ A connector lets an outside system (a ticketing system, a shop's back office, a 
   | `Connectors__IdempotencyHours` | `24` | How long an `Idempotency-Key` answers its first call. |
   | `Connectors__QuietMinutes` | `60` | 433 → 233 after this long without another refusal of those kinds. |
   | `Connectors__KeepCalls` | `100000` | The newest calls kept, with their runs; active calls always. At 100 000 calls with small outputs a few hundred MB; large outputs (up to 1 MiB each) are what grows. |
+
+## Boards
+
+A board is a monitoring dashboard for a wall, at a URL of its own: `https://pnmt.example.com/pnmt-board/<token>` (docs/boards-plan.md). They are set up under *Boards* in the admin UI.
+
+- **Its own path:** everything of a board is under `/pnmt-board/`: the board app's files and its data (`/pnmt-board/api/`). A reverse proxy can pass `/pnmt-board/` without `/pnmt-admin/` and `/api/`, so that the screens reach the boards and the admin UI stays internal, or the other way round. Nothing else is needed for a board.
+- **Who opens it:** anyone with the URL, from the board's networks (IPv4 and IPv6; none means from anywhere), and a signed-in PNMT user from any address, in the browser they signed in with. The session belongs to the host name: screens that open the boards at another name than the admin UI's are judged by the networks only. Don't sign in to PNMT in a wall's browser.
+- **The networks are only as good as `Proxy`:** behind a reverse proxy, without `Proxy` every screen seems to come from the proxy (see *Behind a reverse proxy*). A board's *Access* tab shows the address PNMT sees for your browser.
+- **The URL:** its token is shown again on the board's *Access* tab (each display in the audit log), with a QR code for a TV, and *Renew URL* stops the old one at once. Its copy for display is under Data Protection in the `pnmtd-keys` volume: a restore without that volume leaves the URL working, but it can't be shown: renew it then. `Boards__BaseUrl` names the address the screens use when it isn't `PublicBaseUrl`.
+- **Who sets them up:** the rights area *Boards*, which the update gives no group: *View* sees boards and their preview, *Manage* changes them and shows their URLs. Adding a Redmine or Zabbix element needs that area's right too.
+- **Kiosk browsers:** the board keeps the screen awake where the browser allows it (HTTPS), hides the cursor, and toggles full screen on `F`. Chromium's `--kiosk --noerrdialogs --disable-session-crashed-bubble <url>` opens it full screen at start. After an update of PNMT, the screens reload themselves within a minute.
+- **Zabbix's history of problems** (the board's *Latest Zabbix problems*) comes from the poll, which asks for the problems resolved within Zabbix's *Display OK triggers for* (*Administration → General → Trigger displaying options*, 5 minutes by default). Keep it longer than `Zabbix__PollSeconds`, or recoveries are only estimated. What opened and closed while PNMT was down isn't seen. `Zabbix__HistoryDays` (7) keeps resolved problems.
+- **The settings,** all optional:
+
+  | Setting | Default | |
+  |---|---|---|
+  | `Boards__Enabled` | `true` | `false`: all of `/pnmt-board` answers 404. |
+  | `Boards__BaseUrl` | empty | The address screens open boards at, when it isn't `PublicBaseUrl`. |
+  | `Boards__RequestsPerMinute` | `120` | Requests per address and minute on `/pnmt-board/api`; ten unknown URLs within 10 minutes block an address for 10 minutes. |
 
 ## AI (optional)
 
