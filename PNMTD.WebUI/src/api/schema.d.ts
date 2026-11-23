@@ -17993,6 +17993,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/responsibilities/linked": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    host?: string;
+                    location?: string;
+                    page?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResponsibilityRef"][];
+                        "text/json": components["schemas"]["ResponsibilityRef"][];
+                        "text/plain": components["schemas"]["ResponsibilityRef"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/responsibilities/{id}/history": {
         parameters: {
             query?: never;
@@ -30576,6 +30617,17 @@ export interface components {
             projects: components["schemas"]["RedmineCombinationProject"][];
             trackers: components["schemas"]["RedmineNamed"][];
             error: null | string;
+        };
+        ResponsibilityRef: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            summary: null | string;
+            responsible: null | components["schemas"]["ResponsibilityPerson"];
+            deputy: null | components["schemas"]["ResponsibilityPerson"];
+            globalStandsIn: boolean;
+            globalResponsible: null | components["schemas"]["ResponsibilityPerson"];
+            globalDeputy: null | components["schemas"]["ResponsibilityPerson"];
         };
         ResponsibilityRequest: {
             name?: null | string;

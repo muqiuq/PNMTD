@@ -159,6 +159,36 @@ public sealed class ResponsibilityQueries(PnmtdDbContext db, LocationTree tree, 
         return files.Select(FileNames.Item).ToList();
     }
 
+    /// <summary>
+    /// The responsibilities that link this page, location or host (§8), by name: only its own links, nothing inherited
+    /// (decision 6). Empty when none does, and the panel then shows nothing.
+    /// </summary>
+    public async Task<IReadOnlyList<ResponsibilityRef>> LinkedAsync(KbLinkKind kind, Guid id, CancellationToken ct)
+    {
+        var links = db.ResponsibilityLinks.AsNoTracking();
+        var ids = kind switch
+        {
+            KbLinkKind.Page => links.Where(l => l.PageId == id),
+            KbLinkKind.Location => links.Where(l => l.LocationId == id),
+            _ => links.Where(l => l.HostId == id),
+        };
+        var rows = await db.Responsibilities.AsNoTracking().Where(r => ids.Any(l => l.ResponsibilityId == r.Id)).OrderBy(r => r.NormalizedName)
+            .Select(r => new { r.Id, r.Name, r.Summary, r.ResponsibleId, r.DeputyId }).ToListAsync(ct);
+        if (rows.Count == 0)
+        {
+            return [];
+        }
+        var global = await GlobalAsync(ct);
+        var people = await PeopleAsync(rows.SelectMany(r => new[] { r.ResponsibleId, r.DeputyId }), ct);
+        return rows.Select(r =>
+            {
+                var responsible = Person(people, r.ResponsibleId);
+                var deputy = Person(people, r.DeputyId);
+                return new ResponsibilityRef(r.Id, r.Name, r.Summary, responsible, deputy, StandsIn(responsible, deputy), global.Responsible, global.Deputy);
+            })
+            .ToList();
+    }
+
     /// <summary>Its links as a page's links show them (<see cref="KbLinkNames"/>): locations, hosts, then pages, each by name.</summary>
     public async Task<IReadOnlyList<ResponsibilityLinkItem>> LinksAsync(Guid id, CancellationToken ct)
     {

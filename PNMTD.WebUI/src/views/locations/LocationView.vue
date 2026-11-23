@@ -18,6 +18,7 @@ import { downloadText, fileSlug } from '@/format/markdown'
 import { useSession } from '@/stores/session'
 import HostsPanel from '@/views/dashboard/HostsPanel.vue'
 import KbPanel from '@/views/kb/KbPanel.vue'
+import ResponsibilitiesPanel from '@/views/responsibilities/ResponsibilitiesPanel.vue'
 import RedminePanel from '@/views/redmine/RedminePanel.vue'
 import { useRelated } from '@/views/redmine/useRelated'
 import AddHostsDialog from './AddHostsDialog.vue'
@@ -295,6 +296,8 @@ async function fillIn() {
               />
             </template>
           </HostsPanel>
+          <!-- Responsibilities that link this location, only when one does (docs/responsibilities-plan.md §8). -->
+          <ResponsibilitiesPanel :location-id="location.id" />
           <!-- The knowledge base: the pages linked to the location, at most 10, with All pages… (§3.4, §6.5). -->
           <KbPanel :location-id="location.id" :name="location.name" :limit="10" own-only />
           <RedminePanel :location-id="location.id" :name="location.name" :path="`/locations/${location.id}`" own-only />

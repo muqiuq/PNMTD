@@ -68,6 +68,9 @@ export const responsibilitiesApi = {
         params: { path: { id, combinationId } },
       }),
     ),
+  /** The responsibilities that link one host, location or page, for its panel (docs/responsibilities-plan.md §8). */
+  linked: (query: { host?: Id; location?: Id; page?: Id }) =>
+    call(client.GET('/api/v1/responsibilities/linked', { params: { query } })),
   /** Pages, locations and hosts by name, for the link picker, without Monitoring: View. */
   targets: (q: string) => call(client.GET('/api/v1/responsibilities/targets', { params: { query: { q } } })),
 }
@@ -80,6 +83,7 @@ export const responsibilityKeys = {
   history: (id: Id, page: number) => ['responsibilities', 'history', id, page] as const,
   people: ['responsibilities', 'people'] as const,
   redmine: ['responsibilities', 'redmine'] as const,
+  linked: (query: { host?: Id; location?: Id; page?: Id }) => ['responsibilities', 'linked', query] as const,
   combinations: (query: { project?: number; responsibility?: Id; user?: Id }) =>
     ['responsibilities', 'combinations', query] as const,
 }
@@ -103,7 +107,7 @@ export function personLabel(person: ResponsibilityPerson | null | undefined): st
  * Who answers for a responsibility (§5): its people, or the global people standing in when neither of its own is set and
  * active. Never "the responsible" alone: that word is the availability plan's (docs/responsibilities-plan.md §2.2).
  */
-export function standsInLabel(global: ResponsibilityGlobal): string {
+export function standsInLabel(global: Pick<ResponsibilityGlobal, 'responsible' | 'deputy'>): string {
   const { responsible, deputy } = global
   if (responsible && deputy)
     return `Global responsible stands in: ${personLabel(responsible)}, deputy ${personLabel(deputy)}`

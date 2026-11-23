@@ -28,6 +28,7 @@ import { importanceOptions } from '@/views/notifications/importance'
 import AddServerDialog from '@/views/admin/servers/AddServerDialog.vue'
 import HostLocationField from '@/views/locations/HostLocationField.vue'
 import KbPanel from '@/views/kb/KbPanel.vue'
+import ResponsibilitiesPanel from '@/views/responsibilities/ResponsibilitiesPanel.vue'
 import RedminePanel from '@/views/redmine/RedminePanel.vue'
 import CookieNotesPanel from '@/views/cookie/CookieNotesPanel.vue'
 import { useCookieNotes } from '@/views/cookie/cookieNotes'
@@ -226,6 +227,8 @@ const more = computed(() => [
               </dd>
             </dl>
           </section>
+          <!-- Responsibilities that link this host, only when one does (docs/responsibilities-plan.md §8). -->
+          <ResponsibilitiesPanel :host-id="host.id" />
           <CookieNotesPanel
             :notes="cookieNotes.notes.value"
             :can-remove="cookieNotes.canRemove.value"

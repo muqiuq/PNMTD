@@ -596,6 +596,7 @@ public sealed class EndpointAuditTests
         ["PUT /api/v1/responsibilities/{id:guid}/description"] = ("Responsibilities:Manage", Roles.Admin),
         ["POST /api/v1/responsibilities/{id:guid}/history/{rowId:guid}/restore"] = ("Responsibilities:Manage", Roles.Admin),
         ["GET /api/v1/responsibilities/redmine"] = ("Responsibilities:Manage", Roles.Admin),
+        ["GET /api/v1/responsibilities/linked"] = ("Responsibilities:View", Roles.Admin),
         ["GET /api/v1/responsibilities/redmine/combinations"] = ("Responsibilities:View", Roles.Admin),
         ["POST /api/v1/responsibilities/{id:guid}/redmine"] = ("Responsibilities:Manage", Roles.Admin),
         ["PUT /api/v1/responsibilities/{id:guid}/redmine/{combinationId:guid}"] = ("Responsibilities:Manage", Roles.Admin),

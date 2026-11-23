@@ -22747,6 +22747,70 @@
         }
       }
     },
+    "/api/v1/responsibilities/linked": {
+      "get": {
+        "tags": [
+          "Responsibilities"
+        ],
+        "parameters": [
+          {
+            "name": "host",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResponsibilityRef"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResponsibilityRef"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResponsibilityRef"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/responsibilities/{id}/history": {
       "get": {
         "tags": [
@@ -61674,6 +61738,77 @@
             "type": [
               "null",
               "string"
+            ]
+          }
+        }
+      },
+      "ResponsibilityRef": {
+        "required": [
+          "id",
+          "name",
+          "summary",
+          "responsible",
+          "deputy",
+          "globalStandsIn",
+          "globalResponsible",
+          "globalDeputy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "responsible": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponsibilityPerson"
+              }
+            ]
+          },
+          "deputy": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponsibilityPerson"
+              }
+            ]
+          },
+          "globalStandsIn": {
+            "type": "boolean"
+          },
+          "globalResponsible": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponsibilityPerson"
+              }
+            ]
+          },
+          "globalDeputy": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponsibilityPerson"
+              }
             ]
           }
         }

@@ -37,6 +37,7 @@ import { useSession } from '@/stores/session'
 import AiTagsDialog from './AiTagsDialog.vue'
 import LinkPicker, { type LinkTarget } from './LinkPicker.vue'
 import RedminePanel from '@/views/redmine/RedminePanel.vue'
+import ResponsibilitiesPanel from '@/views/responsibilities/ResponsibilitiesPanel.vue'
 
 /**
  * A page (docs/locations-knowledge-plan.md §6.1): its title, status, tags and a lock if sensitive; the content as read;
@@ -480,6 +481,9 @@ const more = computed(() => {
               />
             </div>
           </section>
+
+          <!-- Responsibilities that link this page, only when one does (docs/responsibilities-plan.md §8). -->
+          <ResponsibilitiesPanel :page-id="page.id" />
 
           <!-- Related pages (docs/knowledge-base-extensions-plan.md §7.1): mutual links, then links in the texts either way. -->
           <section v-if="related.length || inText.length || writable" class="panel" aria-labelledby="kb-related-title">

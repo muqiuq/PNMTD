@@ -239,6 +239,30 @@ public sealed class ResponsibilitiesApiTests
     }
 
     [TestMethod]
+    public async Task OnlyALinkedObjectShowsItsResponsibilitiesNothingIsInherited()
+    {
+        var anna = await UserAsync("Anna Linked");
+        var network = await CreateAsync(V1.Unique("A-Network"), anna);
+        var backup = await CreateAsync(V1.Unique("B-Backup"));
+        var site = await LocationsApiTests.CreateAsync(admin, V1.Unique("Basel"));
+        var inSite = await V1.CreateHostAsync(admin, V1.Unique("fw"));
+        await admin.PutJsonAsync("/api/v1/hosts/location", new { ids = new[] { inSite.Id }, locationId = site.Id });
+        await manager.PostJsonAsync($"/api/v1/responsibilities/{network.Id}/links", new { kind = "Location", id = site.Id });
+        await manager.PostJsonAsync($"/api/v1/responsibilities/{backup.Id}/links", new { kind = "Location", id = site.Id });
+
+        var onSite = await (await reader.GetAsync($"/api/v1/responsibilities/linked?location={site.Id}")).ReadAsync<List<ResponsibilityRef>>();
+        CollectionAssert.AreEqual(new[] { network.Id, backup.Id }, onSite.Select(r => r.Id).ToArray(), "by name");
+        Assert.AreEqual("Anna Linked", onSite[0].Responsible!.Name);
+        Assert.IsTrue(onSite[1].GlobalStandsIn);
+
+        var onHost = await (await reader.GetAsync($"/api/v1/responsibilities/linked?host={inSite.Id}")).ReadAsync<List<ResponsibilityRef>>();
+        Assert.AreEqual(0, onHost.Count, "a host in a linked location isn't linked");
+        using var two = await reader.GetAsync($"/api/v1/responsibilities/linked?host={inSite.Id}&location={site.Id}");
+        Assert.AreEqual(HttpStatusCode.BadRequest, two.StatusCode);
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await app.Client(Roles.Viewer).GetAsync($"/api/v1/responsibilities/linked?host={inSite.Id}")).StatusCode);
+    }
+
+    [TestMethod]
     public async Task EveryChangeWritesAHistoryRowAndAnAuditEntry()
     {
         var anna = await UserAsync("Anna History");

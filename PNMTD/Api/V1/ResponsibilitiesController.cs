@@ -69,6 +69,20 @@ public sealed class ResponsibilitiesController(ResponsibilityQueries queries, Re
     [Audit(AuditEvents.ResponsibilityUnlinked)]
     public async Task<ResponsibilityDetail> Unlink(Guid id, Guid linkId, CancellationToken ct) => await responsibilities.UnlinkAsync(id, linkId, ct);
 
+    /// <summary>
+    /// The responsibilities that link one host, location or page (exactly one of the three), for its panel: its own links only,
+    /// and an empty list when none does.
+    /// </summary>
+    [HttpGet("linked")]
+    public async Task<IReadOnlyList<ResponsibilityRef>> Linked([FromQuery] Guid? host, [FromQuery] Guid? location, [FromQuery] Guid? page,
+        CancellationToken ct)
+    {
+        new ApiValidator().Check(new[] { host, location, page }.Count(x => x is not null) == 1, "host", "One host, location or page.").ThrowIfInvalid();
+        return host is { } h ? await queries.LinkedAsync(KbLinkKind.Host, h, ct)
+            : location is { } l ? await queries.LinkedAsync(KbLinkKind.Location, l, ct)
+            : await queries.LinkedAsync(KbLinkKind.Page, page!.Value, ct);
+    }
+
     /// <summary>Its history, newest first; a description's texts come with the row.</summary>
     [HttpGet("{id:guid}/history")]
     public async Task<Paged<ResponsibilityHistoryItem>> History(Guid id, [FromQuery] PageQuery query, CancellationToken ct) =>
