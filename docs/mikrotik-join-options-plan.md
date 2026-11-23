@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Built on 1.21.0: J1 to J5** (§9, as built, not released yet), with the recommended answers to the four questions of §8. Revision 2 (2026-11-23): checked against the code at 1.20.1.<ul><li>The acknowledgement follows the one for OS updates (docs/linux-os-updates-plan.md §6.5), except for the expiry: a reason, one audit entry per difference, removal per difference, and acknowledged differences greyed out in the list (§3).</li><li>Network scans and objects left behind (§2.3).</li></ul>Revision 1: 2026-11-19 |
+| Status | **Built: J1 to J5** (§9, as built). Released in 1.22.0, with the recommended answers to the four questions of §8. Revision 2 (2026-11-23): checked against the code at 1.20.1.<ul><li>The acknowledgement follows the one for OS updates (docs/linux-os-updates-plan.md §6.5), except for the expiry: a reason, one audit entry per difference, removal per difference, and acknowledged differences greyed out in the list (§3).</li><li>Network scans and objects left behind (§2.3).</li></ul>Revision 1: 2026-11-19 |
 | Date | 2026-11-23 |
 | Scope | The MikroTik join script (docs/mikrotik-plan.md §4.3) and "script outdated" (§3.3): the Setup tab, the status strip, the Routers tab and the overview. |
 | Goals | <ol><li>Per router, a join script **without firewall rules**.</li><li>Per router, a join script **without remove commands**.</li><li>**Acknowledge** that a router differs from its join script on purpose. The warning goes away until something else differs.</li></ol> |
