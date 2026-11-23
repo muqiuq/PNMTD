@@ -87,7 +87,12 @@ async function testZabbix() {
         </dd>
         <template v-if="zabbixResult">
           <dt>Sees</dt>
-          <dd>{{ zabbixResult.hosts }} hosts, {{ zabbixResult.problems }} open problems</dd>
+          <dd>
+            {{ zabbixResult.hosts }} hosts, {{ zabbixResult.problems }} open problems<template
+              v-if="zabbixResult.hidden"
+              >, {{ zabbixResult.hidden }} hidden as in Zabbix</template
+            >
+          </dd>
           <template v-if="zabbixResult.notFound.length">
             <dt>Not found</dt>
             <dd class="error">{{ zabbixResult.notFound.join(', ') }}</dd>

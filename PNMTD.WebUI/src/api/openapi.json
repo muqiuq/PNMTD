@@ -71124,6 +71124,7 @@
           "categories",
           "hosts",
           "suppressed",
+          "hidden",
           "dashboardUrl",
           "groups"
         ],
@@ -71173,6 +71174,10 @@
             "type": "integer",
             "format": "int32"
           },
+          "hidden": {
+            "type": "integer",
+            "format": "int32"
+          },
           "dashboardUrl": {
             "type": "string"
           },
@@ -71204,6 +71209,7 @@
           "version",
           "hosts",
           "problems",
+          "hidden",
           "hostGroups",
           "notFound"
         ],
@@ -71217,6 +71223,10 @@
             "format": "int32"
           },
           "problems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hidden": {
             "type": "integer",
             "format": "int32"
           },

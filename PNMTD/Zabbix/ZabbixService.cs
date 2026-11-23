@@ -114,7 +114,7 @@ public sealed class ZabbixService(PnmtdDbContext db, ZabbixClient client, Zabbix
         var groupNames = (await db.ZabbixHosts.AsNoTracking().Where(h => h.GoneAt == null).Select(h => h.Groups).ToListAsync(ct))
             .SelectMany(g => g).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase).ToList();
         return new ZabbixSummary(state.AsOf, Stale(state), state.Error, key, tagNames, severities, rows, await HostCountsAsync(ct),
-            all.Count(p => p.Suppressed), Links.Dashboard, groupNames);
+            all.Count(p => p.Suppressed), state.Hidden, Links.Dashboard, groupNames);
     }
 
     private static int Worst(IReadOnlyList<int> counts)
@@ -516,6 +516,6 @@ public sealed class ZabbixService(PnmtdDbContext db, ZabbixClient client, Zabbix
         }
         var hosts = await db.ZabbixHosts.CountAsync(h => h.GoneAt == null, ct);
         var found = O.HostGroupList.Where(n => !scope.NotFound.Contains(n, StringComparer.OrdinalIgnoreCase)).ToList();
-        return new ZabbixTestResult(version.ToString(), hosts, snapshot.Current.Problems.Count, found, scope.NotFound);
+        return new ZabbixTestResult(version.ToString(), hosts, snapshot.Current.Problems.Count, snapshot.Current.Hidden, found, scope.NotFound);
     }
 }

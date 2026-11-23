@@ -753,6 +753,8 @@ R4 asks for links and ticket information in the right places:
 
 A host that disappears from Zabbix (or from the token's view) is marked *gone* in the mirror, and removed a week later unless attached.
 
+**The snapshot holds only the problems Zabbix shows** (docs/zabbix-hidden-problems-plan.md, from 1.22.1): the poll also asks `trigger.get` with `monitored` and `skipDependent`, as Zabbix's frontend does, and leaves out the problems of disabled triggers, hosts and items and of dependent triggers.
+
 ### 7.4 The Zabbix page: overview
 
 **`/zabbix`, *Zabbix* in the drawer's *Integrations*, with tabs *Overview*, *Problems*, *Hosts*.**

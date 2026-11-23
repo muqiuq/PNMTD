@@ -4,7 +4,10 @@ using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using PNMTD.Dev;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using PNMTD.Api.V1.Contracts;
+using PNMTD.Lib.Helper;
 using PNMTD.Lib.Models;
 using PNMTD.Models.Db;
 using PNMTD.Services.Events;
@@ -14,7 +17,8 @@ namespace PNMTD.Tests.Zabbix;
 
 /// <summary>
 /// Zabbix in PNMT (docs/audit-redmine-zabbix-plan.md §7, §12), against a fake that answers as Zabbix 6.0, 7.0 and 8.0 did
-/// in Z0, with Zabbix__HostGroups set to "PNMT Servers": the core switch (PNMT Network) and its problem are not PNMT's.
+/// in Z0, with Zabbix__HostGroups set to "PNMT Servers": the core switch (PNMT Network) and its problem are not PNMT's. Four
+/// more problems, written by hand, are ones Zabbix hides (docs/zabbix-hidden-problems-plan.md §7): PNMT hides them too.
 /// </summary>
 [TestClass]
 [DoNotParallelize]
@@ -77,9 +81,11 @@ public sealed class ZabbixTests
     {
         zabbix.Down = false;
         zabbix.RefuseToken = false;
+        zabbix.Broken = null;
         zabbix.Load(version);
         app.Services.GetRequiredService<ZabbixClient>().ForgetVersion();
         app.Services.GetRequiredService<ZabbixSnapshot>().Clear();
+        app.Services.GetRequiredService<ZabbixPoller>().Forget();
         await using var db = app.NewDb();
         await db.Sensors.Where(x => x.Type == PNMTD.Lib.Models.Enum.SensorType.ZABBIX).ExecuteDeleteAsync();
         await db.ZabbixHosts.ExecuteDeleteAsync();
@@ -330,6 +336,177 @@ public sealed class ZabbixTests
         await using var db = app.NewDb();
         var entry = await db.AuditLog.OrderByDescending(e => e.CreatedAt).FirstAsync(e => e.EventType == "ZabbixTested");
         StringAssert.Contains(entry.Detail, "4 hosts");
+    }
+
+    // --- problems Zabbix hides (docs/zabbix-hidden-problems-plan.md) -----------------------------------------------------
+
+    /// <summary>The recorded problems in PNMT's host groups; the core switch's isn't PNMT's.</summary>
+    private static readonly string[] Recorded = ["/var is 95 % full", "High CPU load", "Replication lag above 60 s"];
+
+    /// <summary>The hand-written ones Zabbix hides: a disabled trigger, host and item, and a trigger depending on the core switch's.</summary>
+    private static readonly string[] HiddenInZabbix = ["Free inodes on / below 10 %", "Backup older than 2 days", "Fan speed too low", "HTTP service is down"];
+
+    private static ZabbixSnapshot.State Snapshot => app.Services.GetRequiredService<ZabbixSnapshot>().Current;
+
+    private static string[] Shown() => [.. Snapshot.Problems.Select(p => p.Name)];
+
+    private static JsonNode Trigger(string description) =>
+        zabbix.Triggers.Single(t => t!["description"]!.GetValue<string>() == description)!;
+
+    private static string TriggerId(string description) => Trigger(description)["triggerid"]!.GetValue<string>();
+
+    /// <summary>The trigger ids the last poll asked for.</summary>
+    private static string[] AskedFor() =>
+        [.. Calls().Last(c => c.Method == "trigger.get").Params["triggerids"]!.AsArray().Select(id => id!.GetValue<string>())];
+
+    private static ZabbixOptions Options => app.Services.GetRequiredService<IOptionsMonitor<ZabbixOptions>>().CurrentValue;
+
+    [TestMethod]
+    [DataRow("60")]
+    [DataRow("70")]
+    [DataRow("80")]
+    public async Task ProblemsZabbixHidesStayOutOfPnmt(string version)
+    {
+        await UseVersion(version);
+        var summary = await (await user.GetAsync("/api/v1/zabbix/summary?suppressed=true")).ReadAsync<ZabbixSummary>();
+        Assert.AreEqual(4, summary.Hidden, "a disabled trigger, host and item, and a dependent trigger");
+        Assert.AreEqual(Recorded.Length, summary.Severities.Sum(s => s.Count));
+        Assert.AreEqual(0, summary.Severities.Single(s => s.Severity == ZabbixSeverity.Disaster).Count, "the dependent trigger's is hidden");
+        Assert.AreEqual(Recorded.Length, summary.Categories.Single().Total, "PNMT Servers without old01's: it is disabled");
+        var call = Calls().Last(c => c.Method == "trigger.get");
+        Assert.IsTrue(call.Params["monitored"]!.GetValue<bool>());
+        Assert.IsTrue(call.Params["skipDependent"]!.GetValue<bool>());
+
+        var problems = await (await user.GetAsync("/api/v1/zabbix/problems?suppressed=true")).ReadAsync<Paged<ZabbixProblemItem>>();
+        CollectionAssert.AreEquivalent(Recorded, problems.Items.Select(p => p.Name).ToArray());
+        var hosts = await (await user.GetAsync("/api/v1/zabbix/hosts")).ReadAsync<Paged<ZabbixHostItem>>();
+        Assert.AreEqual(2, hosts.Items.Single(h => h.TechnicalName == "web01.example.com").Problems);
+        Assert.AreEqual(0, hosts.Items.Single(h => h.TechnicalName == "old01").Problems);
+        var page = await (await user.GetAsync($"/api/v1/zabbix/hosts/{zabbix.HostId("web01.example.com")}")).ReadAsync<ZabbixHostDetail>();
+        CollectionAssert.AreEquivalent(new[] { "/var is 95 % full", "High CPU load" }, page.Problems.Select(p => p.Name).ToArray());
+
+        var test = await (await admin.PostAsync("/api/v1/zabbix/test", null)).ReadAsync<ZabbixTestResult>();
+        Assert.AreEqual((Recorded.Length, 4), (test.Problems, test.Hidden));
+        await using var db = app.NewDb();
+        var entry = await db.AuditLog.OrderByDescending(e => e.CreatedAt).FirstAsync(e => e.EventType == "ZabbixTested");
+        StringAssert.Contains(entry.Detail, "3 problems, 4 hidden as in Zabbix");
+    }
+
+    [TestMethod]
+    public async Task ShownTriggersEveryPollHiddenOnesHourly()
+    {
+        // In the past, on a whole second: the hour passes without a row in the future.
+        var time = new FakeTimeProvider(DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.AddHours(-3).ToUnixTimeSeconds()));
+        Clock.Provider = time;
+        try
+        {
+            await PollAsync();
+            Assert.AreEqual(Recorded.Length + HiddenInZabbix.Length, AskedFor().Length, "the first poll asks for every trigger");
+            await PollAsync();
+            CollectionAssert.AreEquivalent(Recorded.Select(TriggerId).ToArray(), AskedFor(), "then the shown ones");
+
+            Trigger("High CPU load")["status"] = "1";
+            await PollAsync();
+            CollectionAssert.DoesNotContain(Shown(), "High CPU load", "disabled: hidden at the next poll");
+            Assert.AreEqual(5, Snapshot.Hidden);
+
+            Trigger("Free inodes on / below 10 %")["status"] = "0";
+            time.Advance(TimeSpan.FromMinutes(59));
+            await PollAsync();
+            CollectionAssert.DoesNotContain(AskedFor(), TriggerId("Free inodes on / below 10 %"));
+            CollectionAssert.DoesNotContain(Shown(), "Free inodes on / below 10 %", "enabled again, but its hour isn't up");
+
+            time.Advance(TimeSpan.FromMinutes(1));
+            await PollAsync();
+            CollectionAssert.Contains(Shown(), "Free inodes on / below 10 %", "asked again after an hour");
+            CollectionAssert.DoesNotContain(Shown(), "High CPU load", "asked again too, still disabled");
+            Assert.AreEqual(4, Snapshot.Hidden);
+        }
+        finally
+        {
+            Clock.Provider = TimeProvider.System;
+        }
+    }
+
+    [TestMethod]
+    public async Task ANewProblemOfAHiddenTriggerIsCheckedAtOnce()
+    {
+        await PollAsync();
+        var trigger = Trigger("Free inodes on / below 10 %");
+        trigger["status"] = "0";
+        await PollAsync();
+        CollectionAssert.DoesNotContain(Shown(), "Free inodes on / below 10 %", "nothing new: its hour isn't up");
+
+        var again = JsonNode.Parse(zabbix.Problems.Single(p => p!["objectid"]!.GetValue<string>() == trigger["triggerid"]!.GetValue<string>())!.ToJsonString())!;
+        again["eventid"] = "990001";
+        zabbix.Problems.Insert(0, again);
+        await PollAsync();
+        Assert.AreEqual(2, Shown().Count(n => n == "Free inodes on / below 10 %"), "a new event: its trigger asked at once, both its problems shown");
+    }
+
+    [TestMethod]
+    public async Task TheRulesCanBeSwitchedOff()
+    {
+        var poller = app.Services.GetRequiredService<ZabbixPoller>();
+        try
+        {
+            Options.HideUnmonitored = false;
+            Options.HideDependent = false;
+            await PollAsync();
+            CollectionAssert.AreEquivalent(Recorded.Concat(HiddenInZabbix).ToArray(), Shown());
+            Assert.AreEqual(0, Snapshot.Hidden);
+            var call = Calls().Last(c => c.Method == "trigger.get");
+            Assert.IsFalse(call.Params.ContainsKey("monitored") || call.Params.ContainsKey("skipDependent"));
+
+            Options.HideDependent = true;
+            poller.Forget();
+            await PollAsync();
+            CollectionAssert.DoesNotContain(Shown(), "HTTP service is down");
+            Assert.AreEqual(1, Snapshot.Hidden, "only the dependent trigger's");
+        }
+        finally
+        {
+            Options.HideUnmonitored = true;
+            Options.HideDependent = true;
+        }
+    }
+
+    [TestMethod]
+    public async Task ASensorDoesntCountHiddenProblems()
+    {
+        await (await user.GetAsync("/api/v1/zabbix/hosts")).ReadAsync<Paged<ZabbixHostItem>>();
+        var host = await CreateHostAsync($"zx-{Guid.NewGuid():N}"[..20]);
+        var web01 = long.Parse(zabbix.HostId("web01.example.com"));
+        var created = await user.PostAsJsonAsync("/api/v1/sensors", new { hostId = host.Id, type = "ZABBIX", name = "Web 01", zabbix = new { zabbixHostId = web01 } });
+        Assert.AreEqual(HttpStatusCode.Created, created.StatusCode, await created.Content.ReadAsStringAsync());
+        var sensor = await created.ReadAsync<SensorDetail>();
+        Assert.AreEqual("2 problems: High: /var is 95 % full; Average: High CPU load", (await EventsAsync(sensor.Id)).Single().Message,
+            "not the disabled trigger's, the disabled item's or the dependent trigger's, all High or worse");
+
+        Trigger("/var is 95 % full")["status"] = "1";
+        Trigger("High CPU load")["status"] = "1";
+        await PollAsync();
+        var events = await EventsAsync(sensor.Id);
+        Assert.AreEqual(2, events.Count);
+        Assert.AreEqual((PNMTStatusCodes.ZABBIX_OK, "No problems at Average or above"), (events[^1].Code, events[^1].Message));
+    }
+
+    [TestMethod]
+    public async Task AFailedTriggerCheckKeepsTheSnapshot()
+    {
+        await PollAsync();
+        var before = Snapshot;
+        Trigger("High CPU load")["status"] = "1";
+        zabbix.Broken = "trigger.get";
+        await PollAsync();
+        Assert.AreSame(before.Problems, Snapshot.Problems, "the last problems, kept");
+        Assert.AreEqual(before.AsOf, Snapshot.AsOf);
+        StringAssert.Contains(Snapshot.Error, "SQL statement execution has failed");
+
+        zabbix.Broken = null;
+        await PollAsync();
+        Assert.IsNull(Snapshot.Error);
+        CollectionAssert.DoesNotContain(Shown(), "High CPU load", "the next poll asks again");
     }
 
     // --- the Zabbix sensor (§7.7, §7.8) ----------------------------------------------------------------------------------

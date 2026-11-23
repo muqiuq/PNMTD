@@ -10,7 +10,9 @@ namespace PNMTD.Dev;
 /// Zabbix 6.0, 7.0 or 8.0 did in Z0 (one set of
 /// fixtures each): the token only where the version takes it (6.0 the request's auth field, 7.0 either, 8.0 the Bearer
 /// header), apiinfo.version only without it, host groups under the key the version uses, the role's allow list, and the
-/// filters PNMT sends (groupids, hostids, eventids, triggerids, search). It records every request; it can be down.
+/// filters PNMT sends (groupids, hostids, eventids, triggerids, search, monitored, skipDependent). It records every request;
+/// it can be down. Each version also has four problems Zabbix hides, written by hand (docs/zabbix-hidden-problems-plan.md §7.1):
+/// a disabled trigger, a disabled host, a disabled item, and a trigger depending on the core switch's.
 /// </summary>
 public sealed class FakeZabbix : HttpMessageHandler
 {
@@ -35,6 +37,9 @@ public sealed class FakeZabbix : HttpMessageHandler
 
     /// <summary>As if the token were deleted or expired.</summary>
     public bool RefuseToken { get; set; }
+
+    /// <summary>A method that fails with Zabbix's application error, as when its database goes away between two calls.</summary>
+    public string? Broken { get; set; }
 
     /// <summary>"60", "70" or "80".</summary>
     public string Version { get; private set; } = "70";
@@ -126,12 +131,16 @@ public sealed class FakeZabbix : HttpMessageHandler
         {
             return Error(Version == "60" ? -32602 : -32500, Version == "60" ? "Invalid params." : "Application error.", $"No permissions to call \"{method}\".");
         }
+        if (method == Broken)
+        {
+            return Error(-32500, "Application error.", "SQL statement execution has failed.");
+        }
         return Result(method switch
         {
             "hostgroup.get" => HostGroupGet(p),
             "host.get" => HostGet(p),
             "problem.get" => ProblemGet(p),
-            "trigger.get" => new JsonArray(Triggers.Where(t => In(p, "triggerids", t!["triggerid"])).Select(Clone).ToArray()),
+            "trigger.get" => TriggerGet(p),
             _ => ItemGet(p),
         });
     }
@@ -198,6 +207,34 @@ public sealed class FakeZabbix : HttpMessageHandler
             return (JsonNode)copy;
         }).ToArray());
     }
+
+    /// <summary>
+    /// The flags PNMT sends as Zabbix's frontend does (docs/zabbix-hidden-problems-plan.md §7.1): <c>monitored</c> (the
+    /// trigger, its hosts and its items enabled) and <c>skipDependent</c> (no trigger it depends on, up the chain, monitored
+    /// and with an open problem). The fixtures' disabled trigger and item and the dependency were written by hand, not
+    /// recorded in Z0.
+    /// </summary>
+    private JsonArray TriggerGet(JsonObject p) => new(Triggers
+        .Where(t => In(p, "triggerids", t!["triggerid"]))
+        .Where(t => p["monitored"] is null || Monitored(t!))
+        .Where(t => p["skipDependent"] is null || !Dependent(t!, []))
+        .Select(Clone).ToArray());
+
+    private static bool Enabled(JsonNode? node) => (node?["status"]?.GetValue<string>() ?? "0") == "0";
+
+    private JsonNode? Trigger(string id) => Triggers.FirstOrDefault(t => t!["triggerid"]!.GetValue<string>() == id);
+
+    private bool Monitored(JsonNode trigger) =>
+        Enabled(trigger)
+        && (trigger["hosts"] as JsonArray ?? []).All(h => Hosts.FirstOrDefault(x => x!["hostid"]!.GetValue<string>() == h!["hostid"]!.GetValue<string>()) is { } host
+            && Enabled(host))
+        && (trigger["items"] as JsonArray ?? []).All(Enabled);
+
+    /// <summary>A trigger depended on that isn't monitored counts for nothing, nor do the ones above it.</summary>
+    private bool Dependent(JsonNode trigger, HashSet<string> seen) =>
+        (trigger["dependencies"] as JsonArray ?? []).Select(d => d!["triggerid"]!.GetValue<string>()).Where(seen.Add).Select(Trigger)
+            .Any(up => up is not null && Monitored(up)
+                && (Problems.Any(x => x!["objectid"]!.GetValue<string>() == up["triggerid"]!.GetValue<string>()) || Dependent(up, seen)));
 
     private JsonArray ItemGet(JsonObject p)
     {

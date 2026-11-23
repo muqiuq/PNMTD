@@ -24,7 +24,8 @@ public static class IntegrationReadTools
             ForCookie = true, OpenWorld = true, Available = RedmineReadable,
         },
         new("zabbix_problems", "Zabbix's problems",
-            "Zabbix's open problems, the most severe first, for one Zabbix host or all: name, severity, since, acknowledged, host.",
+            "Zabbix's open problems, the most severe first, for one Zabbix host or all: name, severity, since, acknowledged, host. " +
+            "As Zabbix shows them: hidden counts those of disabled triggers, hosts or items and of dependent triggers, which are left out.",
             Schema(Int("zabbixHostId", "One Zabbix host's id; all when left out")), Area.Zabbix, Level.View, ToolKind.Read, ZabbixAsync)
         {
             ForCookie = true, Available = ZabbixAvailable,
@@ -103,7 +104,7 @@ public static class IntegrationReadTools
                 Hosts = p.Hosts.Select(x => new { ZabbixHostId = ZabbixPoller.Int(x.Hostid), x.Name }),
             }).ToList();
         ctx.Summary = $"{problems.Count} Zabbix problems";
-        return Task.FromResult<object>(new { snapshot.AsOf, snapshot.Error, Problems = problems });
+        return Task.FromResult<object>(new { snapshot.AsOf, snapshot.Error, snapshot.Hidden, Problems = problems });
     }
 
     private static async Task<object> AvailabilityAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)

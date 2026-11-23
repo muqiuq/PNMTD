@@ -56,6 +56,74 @@
           "name": "Core switch"
         }
       ]
+    },
+    {
+      "triggerid": "25231",
+      "description": "Free inodes on / below 10 %",
+      "priority": "4",
+      "comments": "",
+      "url": "",
+      "hosts": [
+        {
+          "hostid": "10683",
+          "host": "web01.example.com",
+          "name": "Web 01"
+        }
+      ],
+      "status": "1"
+    },
+    {
+      "triggerid": "25232",
+      "description": "Backup older than 2 days",
+      "priority": "4",
+      "comments": "",
+      "url": "",
+      "hosts": [
+        {
+          "hostid": "10687",
+          "host": "old01",
+          "name": "old01"
+        }
+      ]
+    },
+    {
+      "triggerid": "25233",
+      "description": "Fan speed too low",
+      "priority": "4",
+      "comments": "",
+      "url": "",
+      "hosts": [
+        {
+          "hostid": "10683",
+          "host": "web01.example.com",
+          "name": "Web 01"
+        }
+      ],
+      "items": [
+        {
+          "itemid": "99001",
+          "status": "1"
+        }
+      ]
+    },
+    {
+      "triggerid": "25234",
+      "description": "HTTP service is down",
+      "priority": "5",
+      "comments": "",
+      "url": "",
+      "hosts": [
+        {
+          "hostid": "10683",
+          "host": "web01.example.com",
+          "name": "Web 01"
+        }
+      ],
+      "dependencies": [
+        {
+          "triggerid": "25230"
+        }
+      ]
     }
   ],
   "id": 1

@@ -318,9 +318,17 @@ const tabs = computed(() => [
             </RouterLink>
           </section>
           <div class="bar">
-            <label class="switch"
-              ><ToggleSwitch v-model="withSuppressed" /> Count suppressed ({{ s.suppressed }})</label
-            >
+            <span class="bar-start">
+              <label class="switch"
+                ><ToggleSwitch v-model="withSuppressed" /> Count suppressed ({{ s.suppressed }})</label
+              >
+              <span
+                v-if="s.hidden"
+                class="muted"
+                title="Their trigger, host or item is disabled in Zabbix, or the trigger depends on one in problem. Zabbix doesn't show them either."
+                >{{ s.hidden }} hidden as in Zabbix</span
+              >
+            </span>
             <span :class="asOfStale ? 'stale' : 'muted'" :title="s.asOf ? formatAbsolute(s.asOf) : ''">
               As of {{ s.asOf ? formatTime(s.asOf) : '–' }}
             </span>
@@ -815,6 +823,13 @@ const tabs = computed(() => [
 .bar {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: var(--pnmt-space-3);
+  flex-wrap: wrap;
+}
+
+.bar-start {
+  display: flex;
   align-items: center;
   gap: var(--pnmt-space-3);
   flex-wrap: wrap;

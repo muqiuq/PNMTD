@@ -29,11 +29,12 @@ public sealed record ZabbixHostCounts(int Total, int Monitored, int Disabled, in
 /// <summary>
 /// <c>GET /zabbix/summary?category=group|tag:&lt;name&gt;&amp;suppressed=</c> (§7.4): tiles per severity, the matrix by
 /// category, the tags the open problems carry, the hosts, from the snapshot as of <see cref="AsOf"/>; the mirror's host
-/// groups, for the filters.
+/// groups, for the filters. <see cref="Hidden"/>: the open problems Zabbix hides too, in no count
+/// (docs/zabbix-hidden-problems-plan.md §3.7).
 /// </summary>
 public sealed record ZabbixSummary(DateTime? AsOf, bool Stale, string? Error, string Category, IReadOnlyList<string> TagNames,
     IReadOnlyList<ZabbixSeverityCount> Severities, IReadOnlyList<ZabbixCategoryRow> Categories, ZabbixHostCounts Hosts, int Suppressed,
-    string DashboardUrl, IReadOnlyList<string> Groups);
+    int Hidden, string DashboardUrl, IReadOnlyList<string> Groups);
 
 /// <summary>A Zabbix host named in a problem.</summary>
 public sealed record ZabbixHostRef(long Id, string Name);
@@ -116,8 +117,8 @@ public sealed record ZabbixHostDetail(ZabbixHostItem Host, string? Description, 
 /// <summary>An item's latest value (§7.6), with its graph in Zabbix.</summary>
 public sealed record ZabbixItemItem(string Id, string Name, string Key, string? Value, string? Units, DateTime? At, string? Error, string GraphUrl);
 
-/// <summary><c>POST /zabbix/test</c>: the version, what the token sees, the host groups found and not found.</summary>
-public sealed record ZabbixTestResult(string Version, int Hosts, int Problems, IReadOnlyList<string> HostGroups, IReadOnlyList<string> NotFound);
+/// <summary><c>POST /zabbix/test</c>: the version, what the token sees (the problems shown and those hidden as in Zabbix), the host groups found and not found.</summary>
+public sealed record ZabbixTestResult(string Version, int Hosts, int Problems, int Hidden, IReadOnlyList<string> HostGroups, IReadOnlyList<string> NotFound);
 
 /// <summary>
 /// A ZABBIX sensor's settings (§7.7): its Zabbix host (fixed once attached), the severity it fails from (default

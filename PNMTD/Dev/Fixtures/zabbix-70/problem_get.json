@@ -2,6 +2,150 @@
   "jsonrpc": "2.0",
   "result": [
     {
+      "eventid": "31",
+      "source": "0",
+      "object": "0",
+      "objectid": "25234",
+      "clock": "1794666995",
+      "ns": "676236547",
+      "r_eventid": "0",
+      "r_clock": "0",
+      "r_ns": "0",
+      "correlationid": "0",
+      "userid": "0",
+      "name": "HTTP service is down",
+      "acknowledged": "0",
+      "severity": "5",
+      "cause_eventid": "0",
+      "suppressed": "0",
+      "acknowledges": [],
+      "opdata": "",
+      "suppression_data": [],
+      "tags": [
+        {
+          "tag": "class",
+          "value": "os"
+        },
+        {
+          "tag": "component",
+          "value": "http"
+        },
+        {
+          "tag": "scope",
+          "value": "availability"
+        }
+      ],
+      "urls": []
+    },
+    {
+      "eventid": "30",
+      "source": "0",
+      "object": "0",
+      "objectid": "25233",
+      "clock": "1794666995",
+      "ns": "676236547",
+      "r_eventid": "0",
+      "r_clock": "0",
+      "r_ns": "0",
+      "correlationid": "0",
+      "userid": "0",
+      "name": "Fan speed too low",
+      "acknowledged": "0",
+      "severity": "4",
+      "cause_eventid": "0",
+      "suppressed": "0",
+      "acknowledges": [],
+      "opdata": "",
+      "suppression_data": [],
+      "tags": [
+        {
+          "tag": "class",
+          "value": "os"
+        },
+        {
+          "tag": "component",
+          "value": "hardware"
+        },
+        {
+          "tag": "scope",
+          "value": "availability"
+        }
+      ],
+      "urls": []
+    },
+    {
+      "eventid": "29",
+      "source": "0",
+      "object": "0",
+      "objectid": "25232",
+      "clock": "1794666995",
+      "ns": "676236547",
+      "r_eventid": "0",
+      "r_clock": "0",
+      "r_ns": "0",
+      "correlationid": "0",
+      "userid": "0",
+      "name": "Backup older than 2 days",
+      "acknowledged": "0",
+      "severity": "4",
+      "cause_eventid": "0",
+      "suppressed": "0",
+      "acknowledges": [],
+      "opdata": "",
+      "suppression_data": [],
+      "tags": [
+        {
+          "tag": "class",
+          "value": "os"
+        },
+        {
+          "tag": "component",
+          "value": "backup"
+        },
+        {
+          "tag": "scope",
+          "value": "availability"
+        }
+      ],
+      "urls": []
+    },
+    {
+      "eventid": "28",
+      "source": "0",
+      "object": "0",
+      "objectid": "25231",
+      "clock": "1794666995",
+      "ns": "676236547",
+      "r_eventid": "0",
+      "r_clock": "0",
+      "r_ns": "0",
+      "correlationid": "0",
+      "userid": "0",
+      "name": "Free inodes on / below 10 %",
+      "acknowledged": "0",
+      "severity": "4",
+      "cause_eventid": "0",
+      "suppressed": "0",
+      "acknowledges": [],
+      "opdata": "",
+      "suppression_data": [],
+      "tags": [
+        {
+          "tag": "class",
+          "value": "os"
+        },
+        {
+          "tag": "component",
+          "value": "storage"
+        },
+        {
+          "tag": "scope",
+          "value": "capacity"
+        }
+      ],
+      "urls": []
+    },
+    {
       "eventid": "27",
       "source": "0",
       "object": "0",

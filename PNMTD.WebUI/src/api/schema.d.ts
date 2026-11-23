@@ -32922,6 +32922,8 @@ export interface components {
             hosts: components["schemas"]["ZabbixHostCounts"];
             /** Format: int32 */
             suppressed: number;
+            /** Format: int32 */
+            hidden: number;
             dashboardUrl: string;
             groups: string[];
         };
@@ -32935,6 +32937,8 @@ export interface components {
             hosts: number;
             /** Format: int32 */
             problems: number;
+            /** Format: int32 */
+            hidden: number;
             hostGroups: string[];
             notFound: string[];
         };

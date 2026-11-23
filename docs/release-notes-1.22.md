@@ -28,9 +28,28 @@
 - **The Routers tab and the overview count differences as the *Setup* tab does.** Before, they never counted a WireGuard-only router's
   differences, and none of the tunnel's.
 
+## 1.22.1
+
+- **Zabbix: problems Zabbix hides are hidden in PNMT too.** Disabling a trigger doesn't close its open problem in Zabbix; Zabbix's
+  *Problems* leaves it out, but PNMT showed it, counted it, and failed the Zabbix sensor of its host with it. PNMT now asks Zabbix
+  which of the problems' triggers its frontend would show (docs/zabbix-hidden-problems-plan.md), and leaves out the problems of a
+  disabled trigger, host or item, and of a trigger that depends on another one in problem: in the lists, the counts, the host pages,
+  the Zabbix sensors, Cookie's case book, the lounge and the MCP tool. The overview says how many (*4 hidden as in Zabbix*), and so
+  does *Test* under *System health → Integrations*.
+  - **A disabled trigger's problem goes within a minute:** the shown problems' triggers are asked again every poll. A hidden one's
+    trigger is asked again every hour (`Zabbix__HiddenRecheckMinutes`), or at once when it has a new problem. So a problem whose
+    trigger is enabled again while it is still open, or a dependent problem whose master trigger resolved, can take up to an hour
+    to come back.
+  - **The first poll after the update** turns Zabbix sensors that failed only because of hidden problems back to OK, with their
+    notifications, and closes Cookie's cases that held only hidden problems.
+  - **The load:** one more `trigger.get` per poll for every 500 open problems, asking for ids and hosts only. It was already on the
+    PNMT role's allow list.
+- **Updating from 1.22.0:** `./update.sh --tag v1.22.1`. No migration. Optional settings: `Zabbix__HideUnmonitored`,
+  `Zabbix__HideDependent` (both `true`) and `Zabbix__HiddenRecheckMinutes` (60), see `.env.example` and deploy/README.md, *Zabbix*.
+
 ## Updating from 1.21
 
-In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.22.0`. It takes a backup first.
+In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.22.1`. It takes a backup first.
 
 - **One migration runs at the start:** `MikrotikJoinOptions` adds three columns to the routers' table. Existing routers start with both
   options on, so their next script is as before.

@@ -76,6 +76,7 @@ public sealed class ZabbixController(ZabbixService zabbix, ZabbixSensorService s
     {
         var result = await zabbix.TestAsync(ct);
         AuditLog.Summary($"Zabbix {result.Version}; {result.Hosts} hosts, {result.Problems} problems"
+            + (result.Hidden > 0 ? $", {result.Hidden} hidden as in Zabbix" : "")
             + (result.HostGroups.Count > 0 ? $"; groups {string.Join(", ", result.HostGroups)}" : "")
             + (result.NotFound.Count > 0 ? $"; not found: {string.Join(", ", result.NotFound)}" : ""));
         return result;
