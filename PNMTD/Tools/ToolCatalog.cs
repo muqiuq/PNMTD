@@ -16,6 +16,7 @@ public static class ToolCatalog
         .. SelfTools.All,
         .. MonitoringReadTools.All,
         .. KnowledgeReadTools.All,
+        .. ResponsibilityReadTools.All,
         .. IntegrationReadTools.All,
         .. OperationsReadTools.All,
         .. AccessReadTools.All,

@@ -83,10 +83,12 @@ public sealed class McpToolsTests
         Assert.IsTrue(all.Where(t => t.Area is { } a && !t.CookieOnly).All(t => McpRights.Ceiling.ContainsKey(t.Area!.Value)), "every area is within MCP's ceiling");
         Assert.IsTrue(all.Where(t => t.CookieOnly).All(t => t.ForCookie), "a tool only for Cookie is Cookie's");
         Assert.IsTrue(all.Where(t => t.ForCookie).All(t => t.Kind == ToolKind.Read), "Cookie only reads");
-        // The access watch (docs/cookie-access-plan.md §5.2) added four: logins, PNMT's sign-ins (Cookie's only), a profile, an account everywhere.
+        // The access watch (docs/cookie-access-plan.md §5.2) added four: logins, PNMT's sign-ins (Cookie's only), a profile, an account everywhere;
+        // responsibilities (docs/responsibilities-plan.md §7) two.
         CollectionAssert.AreEquivalent(new[] { "cases_list", "case_get", "hosts_search", "host_get", "sensor_events", "location_get", "kb_search", "kb_page",
-            "ticket_get", "zabbix_problems", "availability_get", "logins_list", "pnmt_signins", "access_profile", "account_logins" },
-            all.Where(t => t.ForCookie).Select(t => t.Name).ToList(), "Cookie keeps its fifteen");
+            "ticket_get", "zabbix_problems", "availability_get", "logins_list", "pnmt_signins", "access_profile", "account_logins",
+            "responsibilities_list", "responsibility_get" },
+            all.Where(t => t.ForCookie).Select(t => t.Name).ToList(), "Cookie keeps its seventeen");
         foreach (var tool in all)
         {
             Assert.AreEqual("object", tool.InputSchema["type"]!.GetValue<string>(), tool.Name);

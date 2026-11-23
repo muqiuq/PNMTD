@@ -28,6 +28,8 @@ public static class McpRights
         [Area.Certificates] = Level.Edit,
         // docs/network-map-plan.md §10.2: connections, suggestions and assignments; scans of many routers and the schedule stay in the UI.
         [Area.NetworkMap] = Level.Edit,
+        // docs/responsibilities-plan.md §7.2: reading them; changing them stays in the UI.
+        [Area.Responsibilities] = Level.View,
     };
 
     /// <summary>
@@ -46,6 +48,7 @@ public static class McpRights
         [Area.Availability] = Level.View,
         [Area.Certificates] = Level.View,
         [Area.NetworkMap] = Level.Details,
+        [Area.Responsibilities] = Level.View,
     };
 
     public static UserRights For(UserRights user, McpTokenKind kind)
