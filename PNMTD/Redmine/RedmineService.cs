@@ -112,10 +112,11 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineWorker worker, IOpt
         CheckProject(lookups, project);
         var (o, freshness) = await worker.ReadAsync<OverviewData>(worker.Overview(project), RedmineLane.Interactive, Who(), ct);
         return new RedmineOverview(freshness, O.StaleDays,
-            new RedmineOverviewTiles(o.Open, o.Urgent.TotalCount, o.Unassigned.TotalCount, o.Overdue.TotalCount, o.Stale.Total),
+            new RedmineOverviewTiles(o.Open, o.Urgent.TotalCount, o.Unassigned.TotalCount, o.Overdue.TotalCount, o.Stale.Total, o.ReceivedToday,
+                o.SolvedToday, o.ReceivedYesterday, o.SolvedYesterday),
             await ItemsAsync(o.Urgent.Issues, ct), await ItemsAsync(o.Unassigned.Issues, ct), await ItemsAsync(o.Overdue.Issues, ct),
             await ProblemTicketsAsync(project, lookups, ct), await ItemsAsync(o.Stale.Issues.Take(10).ToList(), ct, o.Stale.LastChange),
-            await ItemsAsync(o.Recent.Issues, ct));
+            await ItemsAsync(o.Recent.Issues, ct), await ItemsAsync(o.Newest?.Issues ?? [], ct));
     }
 
     /// <summary>
@@ -180,9 +181,10 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineWorker worker, IOpt
     /// <summary>Open tickets linked to a failing sensor, its host or the host's location, from PNMT's copy (§6.3).</summary>
     private async Task<IReadOnlyList<RedmineIssueItem>> ProblemTicketsAsync(int? project, RedmineLookups lookups, CancellationToken ct)
     {
-        var problems = (await ProblemsAsync(ct)).Select(p => p.Ticket).Where(t => project is null || t.ProjectId == project || lookups.Allowed.Contains(t.ProjectId))
-            .DistinctBy(t => t.Id).Take(10).ToList();
-        return problems;
+        // A project's view keeps its own tickets and its subprojects' (as the lists do), not every configured project's
+        // (docs/boards-plan.md §2.6).
+        var projects = worker.ProjectsOf(lookups, project);
+        return (await ProblemsAsync(ct)).Select(p => p.Ticket).Where(t => projects.Contains(t.ProjectId)).DistinctBy(t => t.Id).Take(10).ToList();
     }
 
     /// <summary>For every failing sensor (the dashboard's problems), its first open linked ticket: the sensor's, its host's, its location's.</summary>
@@ -616,7 +618,7 @@ public sealed class RedmineService(PnmtdDbContext db, RedmineWorker worker, IOpt
         var counts = await LinkCountsAsync(issues.Select(i => i.Id).ToList(), ct);
         return issues.Select(i => new RedmineIssueItem(i.Id, i.Project.Id, i.Project.Name ?? "", i.Tracker?.Name, i.Status.Name, i.Status.IsClosed,
             i.Priority?.Name, i.Subject, i.AssignedTo?.Name, lastChange is not null && lastChange.TryGetValue(i.Id, out var at) ? at : Clock.AsUtc(i.UpdatedOn),
-            i.DueDate, IssueUrl(i.Id), counts.GetValueOrDefault(i.Id))).ToList();
+            i.DueDate, IssueUrl(i.Id), counts.GetValueOrDefault(i.Id), Clock.AsUtc(i.CreatedOn), i.IsPrivate)).ToList();
     }
 
     private RedmineIssueItem Item(RedmineIssueEntity i, int links) => new(i.IssueId, i.ProjectId, i.ProjectName, i.TrackerName, i.StatusName, i.IsClosed,

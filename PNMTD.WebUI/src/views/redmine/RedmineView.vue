@@ -73,6 +73,21 @@ const tiles = computed(() => {
   if (!t) return []
   return [
     { key: 'open', label: 'Open', value: t.open, to: toSearch({}) },
+    // docs/boards-plan.md §7.4: today and yesterday in PNMT's time zone; solved is a closed status.
+    {
+      key: 'received',
+      label: 'Received today',
+      value: t.receivedToday,
+      sub: `yesterday ${t.receivedYesterday}`,
+      to: toSearch({ received: 'today', status: 'all', sort: '-created' }),
+    },
+    {
+      key: 'solved',
+      label: 'Solved today',
+      value: t.solvedToday,
+      sub: `yesterday ${t.solvedYesterday}`,
+      to: toSearch({ solved: 'today', status: 'closed' }),
+    },
     {
       key: 'urgent',
       label: 'Urgent',
@@ -138,6 +153,21 @@ const assignee = ref<string | null>(fromQuery('assignee') || null)
 const overdue = ref(fromQuery('overdue') === 'true')
 const linked = ref(fromQuery('linked') === 'true')
 const stale = ref(fromQuery('stale') === 'true')
+type Day = 'today' | 'yesterday'
+const dayOf = (k: string): Day | undefined =>
+  ['today', 'yesterday'].includes(fromQuery(k)) ? (fromQuery(k) as Day) : undefined
+/** Received or solved today or yesterday (the tiles' filter): "received-today", or null for any day. */
+const day = ref<string | null>(
+  dayOf('received') ? `received-${dayOf('received')}` : dayOf('solved') ? `solved-${dayOf('solved')}` : null,
+)
+const days = [
+  { value: 'received-today', label: 'Received today' },
+  { value: 'received-yesterday', label: 'Received yesterday' },
+  { value: 'solved-today', label: 'Solved today' },
+  { value: 'solved-yesterday', label: 'Solved yesterday' },
+]
+const dayFilter = (kind: 'received' | 'solved'): Day | undefined =>
+  day.value?.startsWith(`${kind}-`) ? (day.value.slice(kind.length + 1) as Day) : undefined
 const staleLabel = computed(() => (o.value ? `No update for ${o.value.staleDays} days` : 'No recent update'))
 const filters = computed<RedmineFilters>(() => ({
   project: project.value ?? undefined,
@@ -148,8 +178,10 @@ const filters = computed<RedmineFilters>(() => ({
   overdue: overdue.value || undefined,
   linked: linked.value || undefined,
   stale: stale.value || undefined,
+  received: dayFilter('received'),
+  solved: dayFilter('solved'),
 }))
-watch([project, statusFilter, tracker, priority, assignee, overdue, linked, stale], () =>
+watch([project, statusFilter, tracker, priority, assignee, overdue, linked, stale, day], () =>
   router.replace({
     query: {
       ...route.query,
@@ -161,6 +193,8 @@ watch([project, statusFilter, tracker, priority, assignee, overdue, linked, stal
       overdue: overdue.value ? 'true' : undefined,
       linked: linked.value ? 'true' : undefined,
       stale: stale.value ? 'true' : undefined,
+      received: dayFilter('received'),
+      solved: dayFilter('solved'),
       page: undefined,
     },
   }),
@@ -171,7 +205,8 @@ const active = computed(
     (statusFilter.value === 'open' ? 0 : 1) +
     (overdue.value ? 1 : 0) +
     (linked.value ? 1 : 0) +
-    (stale.value ? 1 : 0),
+    (stale.value ? 1 : 0) +
+    (day.value ? 1 : 0),
 )
 const searchRefreshing = ref(false)
 const table = useServerTable<S['RedmineIssueItem'], S['RedmineSearchPage']>({
@@ -203,6 +238,7 @@ function readQuery() {
   overdue.value = fromQuery('overdue') === 'true'
   linked.value = fromQuery('linked') === 'true'
   stale.value = fromQuery('stale') === 'true'
+  day.value = dayOf('received') ? `received-${dayOf('received')}` : dayOf('solved') ? `solved-${dayOf('solved')}` : null
   table.sort.value = fromQuery('sort') || '-updated'
   table.search.value = fromQuery('q')
   table.page.value = Number(fromQuery('page')) || 1
@@ -312,6 +348,7 @@ const configError = computed(() =>
             <RouterLink v-for="t in tiles" :key="t.key" :to="t.to" class="tile" :class="t.tone">
               <span class="big">{{ t.value }}</span>
               <span class="muted">{{ t.label }}</span>
+              <span v-if="t.sub" class="muted sub">{{ t.sub }}</span>
             </RouterLink>
           </section>
           <div class="lists">
@@ -385,6 +422,17 @@ const configError = computed(() =>
             <label class="switch"><ToggleSwitch v-model="overdue" /> Overdue</label>
             <label class="switch"><ToggleSwitch v-model="linked" /> Linked in PNMT</label>
             <label class="switch"><ToggleSwitch v-model="stale" /> {{ staleLabel }}</label>
+            <Select
+              v-model="day"
+              :options="days"
+              option-label="label"
+              option-value="value"
+              placeholder="Any day"
+              show-clear
+              size="small"
+              class="small-filter"
+              aria-label="Received or solved"
+            />
             <Select
               v-model="table.sort.value"
               :options="sorts"
@@ -500,6 +548,10 @@ const configError = computed(() =>
 .tile .big {
   font-size: 1.5rem;
   font-weight: 600;
+}
+
+.tile .sub {
+  font-size: 0.8rem;
 }
 
 .tile.fail .big {

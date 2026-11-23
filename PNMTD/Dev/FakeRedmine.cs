@@ -251,6 +251,13 @@ public sealed class FakeRedmine : HttpMessageHandler
                         ? issues.Where(i => string.CompareOrdinal(i["updated_on"]!.GetValue<string>()[..10], values[0]) >= 0)
                         : issues.Where(i => string.CompareOrdinal(i["updated_on"]!.GetValue<string>()[..10], values[0]) <= 0);
                     break;
+                case "created_on" or "closed_on":
+                    // Timestamps as PNMT sends them (docs/boards-plan.md §7.4): from one instant, or between two, both included.
+                    var from = Instant(values[0]);
+                    var until = op == "><" && values.Count > 1 ? Instant(values[1]) : DateTime.MaxValue;
+                    var name = field;
+                    issues = issues.Where(i => i[name]?.GetValue<string>() is { } at && Instant(at) is var t && t >= from && t <= until);
+                    break;
                 case "last_updated_by":
                     // The user of the newest journal, as Redmine 3.4 and later filter it.
                     issues = issues.Where(i => i["journals"]?.AsArray().LastOrDefault()?["user"]?["id"]?.ToString() is { } user && values.Contains(user));
@@ -272,6 +279,8 @@ public sealed class FakeRedmine : HttpMessageHandler
             ? issues.OrderByDescending(i => i["updated_on"]!.GetValue<string>())
             : sort == "updated_on"
                 ? issues.OrderBy(i => i["updated_on"]!.GetValue<string>())
+            : sort.StartsWith("created_on:desc", StringComparison.Ordinal)
+                ? issues.OrderByDescending(i => Instant(i["created_on"]!.GetValue<string>())).ThenByDescending(Id)
             : sort.StartsWith("priority:desc", StringComparison.Ordinal)
                 ? issues.OrderByDescending(i => i["priority"]!["id"]!.GetValue<int>())
                 : issues.OrderByDescending(Id);
@@ -286,6 +295,10 @@ public sealed class FakeRedmine : HttpMessageHandler
     }
 
     private static int Id(JsonObject issue) => issue["id"]!.GetValue<int>();
+
+    /// <summary>"2026-11-23T08:00:00Z", or a date as its midnight in UTC.</summary>
+    private static DateTime Instant(string value) => DateTime.Parse(value, System.Globalization.CultureInfo.InvariantCulture,
+        System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal);
 
     private static JsonObject Project(int id, string name, string identifier, int? parent)
     {

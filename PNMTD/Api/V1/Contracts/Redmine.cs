@@ -28,13 +28,14 @@ public sealed record RedmineLookupsItem(IReadOnlyList<RedmineProjectItem> Projec
 
 /// <summary>A ticket in a list: number, what it is, who has it, and how many links it has in PNMT.</summary>
 public sealed record RedmineIssueItem(int Id, int ProjectId, string ProjectName, string? Tracker, string Status, bool IsClosed, string? Priority,
-    string Subject, string? AssignedTo, DateTime UpdatedOn, string? DueDate, string Url, int Links);
+    string Subject, string? AssignedTo, DateTime UpdatedOn, string? DueDate, string Url, int Links, DateTime? CreatedOn = null, bool IsPrivate = false);
 
 /// <summary>
 /// <c>GET /redmine/issues</c>: <c>search</c> (subject, description, notes; a number opens it), the configured projects or
 /// one of them, status (open by default, closed, all), tracker, priority, assignee (an id, or "none"), overdue, only
-/// tickets linked in PNMT, only open tickets without a change for <c>Redmine__StaleDays</c> (Cookie's notes don't count). Sort:
-/// updated (default), created, priority, id; with "-" for ascending.
+/// tickets linked in PNMT, only open tickets without a change for <c>Redmine__StaleDays</c> (Cookie's notes don't count), tickets
+/// received or solved today or yesterday in PNMT's time zone. Sort: updated, created, priority, id; with "-" for descending, newest or
+/// highest first ("-updated" is the default).
 /// </summary>
 public sealed class RedmineQuery : PageQuery
 {
@@ -54,14 +55,25 @@ public sealed class RedmineQuery : PageQuery
 
     /// <summary>Open tickets nobody but Cookie changed for <c>Redmine__StaleDays</c>: the overview's tile.</summary>
     public bool Stale { get; set; }
+
+    /// <summary><c>today</c> or <c>yesterday</c>: tickets created then, in PNMT's time zone (docs/boards-plan.md §7.4).</summary>
+    public string? Received { get; set; }
+
+    /// <summary><c>today</c> or <c>yesterday</c>: tickets closed then, with a closed status now.</summary>
+    public string? Solved { get; set; }
 }
 
 /// <summary><c>GET /redmine/overview</c> (§6.3): the most important tickets, from the worker's snapshot, and how old it is.</summary>
 public sealed record RedmineOverview(RedmineFreshness Freshness, int StaleDays, RedmineOverviewTiles Tiles, IReadOnlyList<RedmineIssueItem> Urgent,
     IReadOnlyList<RedmineIssueItem> Unassigned, IReadOnlyList<RedmineIssueItem> Overdue, IReadOnlyList<RedmineIssueItem> Problems,
-    IReadOnlyList<RedmineIssueItem> Stale, IReadOnlyList<RedmineIssueItem> Recent);
+    IReadOnlyList<RedmineIssueItem> Stale, IReadOnlyList<RedmineIssueItem> Recent, IReadOnlyList<RedmineIssueItem> Newest);
 
-public sealed record RedmineOverviewTiles(int Open, int Urgent, int Unassigned, int Overdue, int Stale);
+/// <summary>
+/// The overview's counts. Received and solved count today and yesterday in PNMT's time zone (docs/boards-plan.md §7.4): every ticket
+/// created then, and every ticket closed then that has a closed status now.
+/// </summary>
+public sealed record RedmineOverviewTiles(int Open, int Urgent, int Unassigned, int Overdue, int Stale, int ReceivedToday, int SolvedToday,
+    int ReceivedYesterday, int SolvedYesterday);
 
 /// <summary>A text of Redmine's, ready for the UI: Markdown for <c>MarkdownView</c>, or plain text.</summary>
 public sealed record RedmineText(string Format, string Text);

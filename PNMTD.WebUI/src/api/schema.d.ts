@@ -17450,6 +17450,8 @@ export interface paths {
                     overdue?: boolean;
                     linked?: boolean;
                     stale?: boolean;
+                    received?: string;
+                    solved?: string;
                     page?: number;
                     pageSize?: number;
                     sort?: string;
@@ -17543,6 +17545,8 @@ export interface paths {
                     overdue?: boolean;
                     linked?: boolean;
                     stale?: boolean;
+                    received?: string;
+                    solved?: string;
                     page?: number;
                     pageSize?: number;
                     sort?: string;
@@ -30314,6 +30318,10 @@ export interface components {
             url: string;
             /** Format: int32 */
             links: number;
+            /** Format: date-time */
+            createdOn?: null | string;
+            /** @default false */
+            isPrivate: boolean;
         };
         RedmineJobItem: {
             /** Format: uuid */
@@ -30439,6 +30447,7 @@ export interface components {
             problems: components["schemas"]["RedmineIssueItem"][];
             stale: components["schemas"]["RedmineIssueItem"][];
             recent: components["schemas"]["RedmineIssueItem"][];
+            newest: components["schemas"]["RedmineIssueItem"][];
         };
         RedmineOverviewTiles: {
             /** Format: int32 */
@@ -30451,6 +30460,14 @@ export interface components {
             overdue: number;
             /** Format: int32 */
             stale: number;
+            /** Format: int32 */
+            receivedToday: number;
+            /** Format: int32 */
+            solvedToday: number;
+            /** Format: int32 */
+            receivedYesterday: number;
+            /** Format: int32 */
+            solvedYesterday: number;
         };
         RedminePriorityItem: {
             /** Format: int32 */

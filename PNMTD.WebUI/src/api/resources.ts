@@ -1350,6 +1350,10 @@ export interface RedmineFilters {
   linked?: boolean
   /** Open tickets nobody but Cookie changed for Redmine__StaleDays. */
   stale?: boolean
+  /** Tickets created today or yesterday in PNMT's time zone (docs/boards-plan.md §7.4). */
+  received?: 'today' | 'yesterday'
+  /** Tickets closed today or yesterday that have a closed status now. */
+  solved?: 'today' | 'yesterday'
 }
 
 /**

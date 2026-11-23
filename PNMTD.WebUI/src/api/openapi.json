@@ -21993,6 +21993,20 @@
             }
           },
           {
+            "name": "received",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "solved",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "schema": {
@@ -22165,6 +22179,20 @@
             "in": "query",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "received",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "solved",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -60284,6 +60312,17 @@
           "links": {
             "type": "integer",
             "format": "int32"
+          },
+          "createdOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "isPrivate": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -60748,7 +60787,8 @@
           "overdue",
           "problems",
           "stale",
-          "recent"
+          "recent",
+          "newest"
         ],
         "type": "object",
         "properties": {
@@ -60797,6 +60837,12 @@
             "items": {
               "$ref": "#/components/schemas/RedmineIssueItem"
             }
+          },
+          "newest": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RedmineIssueItem"
+            }
           }
         }
       },
@@ -60806,7 +60852,11 @@
           "urgent",
           "unassigned",
           "overdue",
-          "stale"
+          "stale",
+          "receivedToday",
+          "solvedToday",
+          "receivedYesterday",
+          "solvedYesterday"
         ],
         "type": "object",
         "properties": {
@@ -60827,6 +60877,22 @@
             "format": "int32"
           },
           "stale": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "receivedToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "solvedToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "receivedYesterday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "solvedYesterday": {
             "type": "integer",
             "format": "int32"
           }

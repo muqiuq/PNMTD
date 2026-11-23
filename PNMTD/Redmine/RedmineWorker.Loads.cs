@@ -10,7 +10,12 @@ using PNMTD.Models.Db;
 namespace PNMTD.Redmine;
 
 /// <summary>The overview's Redmine part (§6.3): the counts and lists, the stale tickets; PNMT's links are added when it is read.</summary>
-internal sealed record OverviewData(int Open, RmIssues Urgent, RmIssues Unassigned, RmIssues Overdue, StaleTickets Stale, RmIssues Recent);
+/// <summary>
+/// The overview (§6.3): the open count, the lists, and the tickets received and solved today and yesterday in PNMT's time zone
+/// (docs/boards-plan.md §7.4), with the newest tickets.
+/// </summary>
+internal sealed record OverviewData(int Open, RmIssues Urgent, RmIssues Unassigned, RmIssues Overdue, StaleTickets Stale, RmIssues Recent,
+    int ReceivedToday = 0, int SolvedToday = 0, int ReceivedYesterday = 0, int SolvedYesterday = 0, RmIssues? Newest = null);
 
 /// <summary>A ticket in full, and the tickets it relates to that PNMT may show.</summary>
 internal sealed record IssueData(RmIssue Issue, IReadOnlyDictionary<int, RmIssue> Related);
@@ -50,7 +55,8 @@ public sealed partial class RedmineWorker
     /// <summary>A search's key: every filter, the text, the order and the page (§3.2).</summary>
     public static string SearchKey(RedmineQuery q) => "search:" + string.Join("|",
         $"project={q.Project}", $"status={q.Status ?? "open"}", $"tracker={q.Tracker}", $"priority={q.Priority}", $"assignee={q.Assignee}",
-        $"overdue={q.Overdue}", $"linked={q.Linked}", $"stale={q.Stale}", $"sort={q.Sort}", $"page={Math.Max(1, q.Page)}",
+        $"overdue={q.Overdue}", $"linked={q.Linked}", $"stale={q.Stale}", $"received={q.Received}", $"solved={q.Solved}", $"sort={q.Sort}",
+        $"page={Math.Max(1, q.Page)}",
         $"size={Math.Clamp(q.PageSize, 1, 100)}", $"q={q.Search?.Trim()}");
 
     internal RedmineSnapshot LookupsSnapshot => Define(LookupsKey, "lookups", async calls => await LoadLookupsAsync(calls), pinned: true, maxAge: LookupsFor);
@@ -95,7 +101,8 @@ public sealed partial class RedmineWorker
     private static RedmineQuery Copy(RedmineQuery q) => new()
     {
         Project = q.Project, Status = q.Status, Tracker = q.Tracker, Priority = q.Priority, Assignee = q.Assignee, Overdue = q.Overdue, Linked = q.Linked,
-        Stale = q.Stale, Sort = q.Sort, Search = q.Search, Page = Math.Max(1, q.Page), PageSize = Math.Clamp(q.PageSize, 1, 100),
+        Stale = q.Stale, Received = q.Received, Solved = q.Solved, Sort = q.Sort, Search = q.Search, Page = Math.Max(1, q.Page),
+        PageSize = Math.Clamp(q.PageSize, 1, 100),
     };
 
     /// <summary>The lookups for a caller outside a job, read through the queue if there are none yet.</summary>
@@ -264,10 +271,22 @@ public sealed partial class RedmineWorker
         var unassigned = List("unassigned", q => q.Filter("assigned_to_id", "!*"), "created_on");
         var overdue = List("overdue", q => q.Filter("due_date", "<=", Yesterday()), "due_date");
         var recent = List("recently updated", _ => { }, "updated_on:desc", status: "all");
+        // Today and yesterday in PNMT's time zone (docs/boards-plan.md §7.4), sent as UTC timestamps: a date alone would be read in
+        // the time zone of Redmine's API user. Solved is a closed status; a reopened ticket keeps closed_on, so the status drops it.
+        var (today, yesterday) = Days();
+        var receivedToday = List("received today", q => q.Filter("created_on", ">=", Stamp(today)), "id:desc", 1, "all");
+        var solvedToday = List("solved today", q => q.Filter("closed_on", ">=", Stamp(today)), "id:desc", 1, "closed");
+        var receivedYesterday = List("received yesterday", q => q.Filter("created_on", "><", Stamp(yesterday), Stamp(today.AddSeconds(-1))),
+            "id:desc", 1, "all");
+        var solvedYesterday = List("solved yesterday", q => q.Filter("closed_on", "><", Stamp(yesterday), Stamp(today.AddSeconds(-1))),
+            "id:desc", 1, "closed");
+        var newest = List("newest", _ => { }, "created_on:desc", 20, "all");
         var stale = LoadStaleAsync(calls, project);
-        await Task.WhenAll(open, urgent, unassigned, overdue, recent, stale);
+        await Task.WhenAll(open, urgent, unassigned, overdue, recent, stale, receivedToday, solvedToday, receivedYesterday, solvedYesterday, newest);
         Store(Stale(project), stale.Result);
-        return new OverviewData(open.Result.TotalCount, urgent.Result, unassigned.Result, overdue.Result, stale.Result, recent.Result);
+        return new OverviewData(open.Result.TotalCount, urgent.Result, unassigned.Result, overdue.Result, stale.Result, recent.Result,
+            receivedToday.Result.TotalCount, solvedToday.Result.TotalCount, receivedYesterday.Result.TotalCount, solvedYesterday.Result.TotalCount,
+            newest.Result);
     }
 
     // --- no change for StaleDays, Cookie's notes not counted ----------------------------------------------------------------
@@ -440,6 +459,30 @@ public sealed partial class RedmineWorker
         {
             q.Filter("due_date", "<=", Yesterday());
         }
+        // The Redmine tab's tiles received and solved today or yesterday (docs/boards-plan.md §7.4): the tickets they count.
+        if (query.Received is "today" or "yesterday" || query.Solved is "today" or "yesterday")
+        {
+            var (today, yesterday) = Days();
+            void Day(string field, string day)
+            {
+                if (day == "today")
+                {
+                    q.Filter(field, ">=", Stamp(today));
+                }
+                else
+                {
+                    q.Filter(field, "><", Stamp(yesterday), Stamp(today.AddSeconds(-1)));
+                }
+            }
+            if (query.Received is { } received)
+            {
+                Day("created_on", received);
+            }
+            if (query.Solved is { } solved)
+            {
+                Day("closed_on", solved);
+            }
+        }
         if (text is { Length: > 0 })
         {
             q.Filter("any_searchable", "~", text);
@@ -531,18 +574,26 @@ public sealed partial class RedmineWorker
     internal RedmineQueryString Filters(RedmineLookups lookups, int? project, string status)
     {
         var q = new RedmineQueryString();
-        IEnumerable<int> projects = lookups.Allowed;
-        if (project is { } one)
-        {
-            if (!lookups.Allowed.Contains(one))
-            {
-                throw ApiException.Invalid("project", "Not one of PNMT's Redmine projects.");
-            }
-            projects = O.IncludeSubprojects ? lookups.Projects.Where(p => p.Id == one || IsWithin(lookups, p, one)).Select(p => p.Id) : [one];
-        }
-        q.Equal("project_id", [.. projects]);
+        q.Equal("project_id", [.. ProjectsOf(lookups, project)]);
         q.Filter("status_id", status switch { "closed" => "c", "all" => "*", _ => "o" });
         return q;
+    }
+
+    /// <summary>
+    /// The projects a view covers: every configured one, or one of them with its subprojects when <c>IncludeSubprojects</c> is on.
+    /// 400 for a project PNMT doesn't read.
+    /// </summary>
+    internal IReadOnlySet<int> ProjectsOf(RedmineLookups lookups, int? project)
+    {
+        if (project is not { } one)
+        {
+            return lookups.Allowed.ToHashSet();
+        }
+        if (!lookups.Allowed.Contains(one))
+        {
+            throw ApiException.Invalid("project", "Not one of PNMT's Redmine projects.");
+        }
+        return O.IncludeSubprojects ? lookups.Projects.Where(p => p.Id == one || IsWithin(lookups, p, one)).Select(p => p.Id).ToHashSet() : new HashSet<int> { one };
     }
 
     private static bool IsWithin(RedmineLookups l, RmProject p, int ancestor)
@@ -569,7 +620,18 @@ public sealed partial class RedmineWorker
         _ => "updated_on:desc",
     };
 
-    private static string Yesterday() => DateOnly.FromDateTime(Clock.UtcNow).AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    /// <summary>Yesterday's date in PNMT's time zone (TZ): a due date is a date, and overdue is due before today where PNMT is.</summary>
+    private static string Yesterday() => DateOnly.FromDateTime(Clock.LocalNow).AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    /// <summary>The start of today and of yesterday in PNMT's time zone, as UTC instants (dates counted, not 24-hour steps).</summary>
+    internal static (DateTime Today, DateTime Yesterday) Days()
+    {
+        var today = DateOnly.FromDateTime(Clock.LocalNow);
+        return (Clock.ToUtc(today.ToDateTime(TimeOnly.MinValue)), Clock.ToUtc(today.AddDays(-1).ToDateTime(TimeOnly.MinValue)));
+    }
+
+    /// <summary>A UTC instant as Redmine's filters take it: 2026-11-23T23:00:00Z.</summary>
+    private static string Stamp(DateTime utc) => Clock.AsUtc(utc).ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
 }
 
 /// <summary>Redmine's query string, its filter syntax included (f[]=status_id&amp;op[status_id]=o&amp;v[status_id][]=…).</summary>
