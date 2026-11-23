@@ -218,6 +218,110 @@ public sealed class RouterOsTests
         StringAssert.Contains(script, "/user ssh-keys remove [find where user=\"pnmt\"]");
     }
 
+    // --- the join script's options (docs/mikrotik-join-options-plan.md §2) -------------------------------
+
+    /// <summary>With both options on, the script is the one M0 to M3 tested on real routers, byte for byte (§2.1).</summary>
+    [TestMethod]
+    public void Default_options_keep_the_tested_script()
+    {
+        var cases = new (string File, JoinScriptSettings Settings)[]
+        {
+            ("direct-ssh.rsc", Settings(MikrotikMode.DirectSsh)),
+            ("direct-ssh-anywhere.rsc", Settings(MikrotikMode.DirectSsh) with { UserAddress = null, Diagnostics = true }),
+            ("wireguard-ssh.rsc", Settings(MikrotikMode.WireGuardSsh)),
+            ("wireguard-ssh-all.rsc", Settings(MikrotikMode.WireGuardSsh) with { ManagementAccess = true, Diagnostics = true, IncludeSecrets = true }),
+            ("wireguard-only.rsc", Settings(MikrotikMode.WireGuardOnly)),
+            ("wireguard-only-management.rsc", Settings(MikrotikMode.WireGuardOnly) with { ManagementAccess = true }),
+        };
+        foreach (var (file, settings) in cases)
+        {
+            var golden = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Mikrotik", "join", file)).ReplaceLineEndings("\n");
+            Assert.AreEqual(golden, JoinScript.Build(settings).ReplaceLineEndings("\n"), file);
+        }
+    }
+
+    [TestMethod]
+    public void Without_firewall_rules_the_filter_list_is_left_alone()
+    {
+        var script = JoinScript.Build(Settings(MikrotikMode.WireGuardSsh) with { ManagementAccess = true, Firewall = false });
+        var commands = script.Split('\n').Where(l => !l.StartsWith('#')).ToList();
+        Assert.IsFalse(commands.Any(l => l.Contains("/ip firewall", StringComparison.Ordinal)), string.Join('\n', commands.Where(l => l.Contains("firewall"))));
+        StringAssert.Contains(script, "# Options: no firewall rules.");
+        StringAssert.Contains(script, "# /ip firewall filter add chain=input in-interface=pnmt src-address=10.253.0.1 protocol=tcp dst-port=22 action=accept\n");
+        StringAssert.Contains(script, "# /ip firewall filter add chain=input in-interface=pnmt src-address=10.253.0.2 protocol=tcp dst-port=22,8291,80,443 action=accept\n");
+        // The rest is as before: the old objects go, the tunnel and the user come.
+        StringAssert.Contains(script, "/ip route remove [find where comment~\"^pnmt:\"]");
+        StringAssert.Contains(script, "/interface wireguard add name=pnmt");
+        AssertSafeToRepeat(script);
+
+        // Where the script has no rules, the option means nothing: PNMT's old rules are removed as always.
+        foreach (var settings in new[] { Settings(MikrotikMode.DirectSsh), Settings(MikrotikMode.WireGuardOnly) })
+        {
+            Assert.AreEqual(JoinScript.Build(settings), JoinScript.Build(settings with { Firewall = false }), settings.Mode.ToString());
+        }
+        Assert.IsTrue(JoinScript.HasFirewallRules(MikrotikMode.WireGuardSsh, false));
+        Assert.IsTrue(JoinScript.HasFirewallRules(MikrotikMode.WireGuardOnly, true));
+        Assert.IsFalse(JoinScript.HasFirewallRules(MikrotikMode.WireGuardOnly, false));
+        Assert.IsFalse(JoinScript.HasFirewallRules(MikrotikMode.DirectSsh, true));
+    }
+
+    [TestMethod]
+    public void Without_removals_everything_is_added_or_set()
+    {
+        foreach (var mode in Enum.GetValues<MikrotikMode>())
+        {
+            var settings = Settings(mode) with { Removals = false, ManagementAccess = mode != MikrotikMode.DirectSsh, Diagnostics = true };
+            var script = JoinScript.Build(settings);
+            var commands = script.Split('\n', StringSplitOptions.RemoveEmptyEntries).Where(l => !l.StartsWith('#')).ToList();
+            // Only the script's own key file is removed (open question 1).
+            var removals = string.Join('\n', commands).Split(" remove ").Length - 1;
+            var keyFile = string.Join('\n', commands).Split("/file remove [find name=\"pnmt-1.pub\"]").Length - 1;
+            Assert.AreEqual(removals, keyFile, $"{mode}: {script}");
+            // Every add has its set: nothing can fail with "already exists". The key is imported once (J1: 7.13 imports it again).
+            foreach (var line in commands.Where(l => l.Contains(" add ", StringComparison.Ordinal) && !l.Contains("/user ssh-keys import", StringComparison.Ordinal)))
+            {
+                StringAssert.StartsWith(line, "{ :local i [", $"{mode}: {line}");
+                StringAssert.Contains(line, " } else={ ", $"{mode}: {line}");
+            }
+            if (mode.UsesSsh())
+            {
+                var import = commands.Single(l => l.Contains("/user ssh-keys import", StringComparison.Ordinal));
+                StringAssert.StartsWith(import, "{ :local have 0; :do { :set have ($have + [:len [[:parse \":return [/user ssh-keys find where user=\\\"pnmt\\\" and key-owner=\\\"pnmt-abc123@pnmt.example.com\\\"]\"]]]) } on-error={}; ");
+                StringAssert.Contains(import, "and info=\\\"pnmt-abc123@pnmt.example.com\\\"]");
+                StringAssert.Contains(import, ":if ($have = 0) do={ /file remove");
+            }
+            StringAssert.Contains(script, "# Options: no removals.");
+            StringAssert.Contains(script, "It removes nothing: it adds what is missing");
+            foreach (var line in commands)
+            {
+                Assert.AreEqual(line.Count(c => c == '{'), line.Count(c => c == '}'), line);
+            }
+            if (mode.UsesSsh())
+            {
+                StringAssert.Contains(script, "else={ /user group set $i policy=ssh,read,test comment=\"pnmt:7f3a\" }");
+                var address = mode == MikrotikMode.DirectSsh ? "192.0.2.10/32" : "10.253.0.1/32";
+                StringAssert.Contains(script, $"else={{ /user set $i group=pnmt-read address={address} comment=\"pnmt:7f3a\" }}");
+                var setUser = commands.Single(l => l.Contains("/user find where name=\"pnmt\"", StringComparison.Ordinal)).Split("else={")[1];
+                Assert.IsFalse(setUser.Contains("password", StringComparison.Ordinal), "the password is never set again");
+                StringAssert.Contains(script, "/user ssh-keys import user=pnmt public-key-file=\"pnmt-1.pub\"");
+            }
+            if (mode.UsesWireGuard())
+            {
+                StringAssert.Contains(script, "else={ /interface wireguard set $i mtu=1420 private-key=\"UGsL4e17bQnWs1rb8vOGl/gGTpPHz1aec5UTmTqv+Xw=\" comment=\"pnmt:7f3a\" }");
+                StringAssert.Contains(script, "else={ /interface wireguard peers set [:pick $i 0] public-key=\"gNbcvXPEr5wWdZ+bMYMkU5FdB+LYzuD7RFDhvQIW3w4=\"");
+                StringAssert.Contains(script, "[/ip firewall filter find where chain=input and in-interface=\"pnmt\" and src-address=\"10.253.0.2\" and comment~\"^pnmt:\"]");
+                StringAssert.Contains(script, "/ip firewall filter move [find where comment=\"pnmt:7f3a\"]");
+            }
+        }
+        // Without a source address, an existing user's restriction is cleared.
+        StringAssert.Contains(JoinScript.Build(Settings(MikrotikMode.DirectSsh) with { Removals = false, UserAddress = null }),
+            "else={ /user set $i group=pnmt-read address=\"\" comment=\"pnmt:7f3a\" }");
+        // Both options off: neither removals nor rules.
+        var bare = JoinScript.Build(Settings(MikrotikMode.WireGuardSsh) with { Removals = false, Firewall = false });
+        StringAssert.Contains(bare, "# Options: no firewall rules, no removals.");
+        Assert.IsFalse(bare.Split('\n').Any(l => !l.StartsWith('#') && l.Contains("/ip firewall", StringComparison.Ordinal)));
+    }
+
     /// <summary>What M0 found pasting the script again on 7.13 and 7.25.1.</summary>
     private static void AssertSafeToRepeat(string script)
     {

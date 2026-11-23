@@ -368,6 +368,9 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/sensors/{id:guid}/mikrotik/backups/{backupId:guid}/download"] = ("Monitoring:Edit", Roles.User),
         ["DELETE /api/v1/sensors/{id:guid}/mikrotik/backups/{backupId:guid}"] = ("Mikrotik:Manage", Roles.Admin),
         ["POST /api/v1/sensors/{id:guid}/mikrotik/regenerate-keys"] = ("Monitoring:Edit", Roles.User),
+        // Acknowledged differences (docs/mikrotik-join-options-plan.md §3.4): CanWrite; the Admin settings' differences are checked inside.
+        ["POST /api/v1/sensors/{id:guid}/mikrotik/differences/acknowledge"] = ("Monitoring:Edit", Roles.User),
+        ["DELETE /api/v1/sensors/{id:guid}/mikrotik/differences/{differenceId}/acknowledgement"] = ("Monitoring:Edit", Roles.User),
         ["GET /api/v1/wireguard/status"] = ("Mikrotik:Manage", Roles.Admin),
         ["GET /api/v1/wireguard/network"] = ("Mikrotik:Manage", Roles.Admin),
         ["PUT /api/v1/wireguard/network"] = ("Mikrotik:Manage", Roles.Admin),

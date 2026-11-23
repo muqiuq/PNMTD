@@ -17677,6 +17677,20 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "firewall",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "removals",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -17736,6 +17750,114 @@
               "text/plain": {
                 "schema": {
                   "$ref": "#/components/schemas/MikrotikScript"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/mikrotik/differences/acknowledge": {
+      "post": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikDifferenceAcknowledgeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikDifferenceAcknowledgeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MikrotikDifferenceAcknowledgeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sensors/{id}/mikrotik/differences/{differenceId}/acknowledgement": {
+      "delete": {
+        "tags": [
+          "SensorMikrotik"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "differenceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MikrotikRouterDetail"
                 }
               }
             }
@@ -50906,6 +51028,47 @@
           }
         }
       },
+      "MikrotikDifferenceAcknowledgement": {
+        "required": [
+          "byName",
+          "reason",
+          "at"
+        ],
+        "type": "object",
+        "properties": {
+          "byName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MikrotikDifferenceAcknowledgeRequest": {
+        "required": [
+          "ids",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
       "MikrotikDiffHunk": {
         "required": [
           "oldStart",
@@ -51742,7 +51905,9 @@
           "lastErrorCode",
           "scriptOutdated",
           "scriptDifferences",
-          "warnings"
+          "warnings",
+          "scriptOptions",
+          "differences"
         ],
         "type": "object",
         "properties": {
@@ -51933,6 +52098,15 @@
               "type": "string"
             }
           },
+          "scriptOptions": {
+            "$ref": "#/components/schemas/MikrotikScriptOptions"
+          },
+          "differences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MikrotikScriptDifference"
+            }
+          },
           "lastExportAt": {
             "type": [
               "null",
@@ -52083,6 +52257,61 @@
             "items": {
               "type": "string"
             }
+          },
+          "options": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MikrotikScriptOptions"
+              }
+            ]
+          }
+        }
+      },
+      "MikrotikScriptDifference": {
+        "required": [
+          "id",
+          "text",
+          "admin",
+          "acknowledgement"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "admin": {
+            "type": "boolean"
+          },
+          "acknowledgement": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MikrotikDifferenceAcknowledgement"
+              }
+            ]
+          }
+        }
+      },
+      "MikrotikScriptOptions": {
+        "required": [
+          "firewall",
+          "removals"
+        ],
+        "type": "object",
+        "properties": {
+          "firewall": {
+            "type": "boolean"
+          },
+          "removals": {
+            "type": "boolean"
           }
         }
       },

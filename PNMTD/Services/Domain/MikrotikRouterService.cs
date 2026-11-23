@@ -216,6 +216,7 @@ public sealed class MikrotikRouterService(
         var installation = await keys.GetAsync(ct);
         var latest = await LatestAsync(ct);
         var wg = await WireGuardAsync(router, ct);
+        var retired = await RetiredKeysAsync(ct);
         var backups = db.MikrotikBackups.AsNoTracking().Where(b => b.SensorId == sensorId);
         var count = await backups.CountAsync(ct);
         var newest = await backups.OrderByDescending(b => b.Number).Select(b => new MikrotikBackupEntity
@@ -224,7 +225,7 @@ public sealed class MikrotikRouterService(
             RouterOsVersion = b.RouterOsVersion, Size = b.Size, LineCount = b.LineCount, LinesAdded = b.LinesAdded, LinesRemoved = b.LinesRemoved,
             IncludesSecrets = b.IncludesSecrets, Encrypted = b.Encrypted, EncryptedWith = b.EncryptedWith,
         }).FirstOrDefaultAsync(ct);
-        return Detail(router, installation, latest, wg) with
+        return Detail(router, installation, latest, wg, retired) with
         {
             LastExportAt = UdpViews.NullableUtc(router.LastExportAt),
             BackupFailures = router.BackupFailures,
@@ -258,12 +259,37 @@ public sealed class MikrotikRouterService(
         return new WgContext(settings, peer, status);
     }
 
+    /// <summary>
+    /// The WireGuard context of many routers at once, for the fleet and the overview (docs/mikrotik-join-options-plan.md §3.5): the
+    /// network once, the peers in one query. Without the status, which only the detail shows.
+    /// </summary>
+    private async Task<Func<MikrotikRouterEntity, WgContext?>> WireGuardContextsAsync(IReadOnlyCollection<MikrotikRouterEntity> routers, CancellationToken ct)
+    {
+        if (!wireGuard.Enabled || !routers.Any(r => r.Mode.UsesWireGuard()))
+        {
+            return _ => null;
+        }
+        var settings = await wireGuard.SettingsAsync(db, ct);
+        var ids = routers.Where(r => r.Mode.UsesWireGuard() && r.WgPeerId is not null).Select(r => r.WgPeerId!.Value).ToList();
+        var peers = await db.WgPeers.AsNoTracking().Where(p => ids.Contains(p.Id)).ToDictionaryAsync(p => p.Id, ct);
+        return r => r.Mode.UsesWireGuard() ? new WgContext(settings, r.WgPeerId is { } id ? peers.GetValueOrDefault(id) : null, null) : null;
+    }
+
+    /// <summary>The comments of PNMTD's retired SSH keys: a router that still has one gets the difference <c>retired-key</c>.</summary>
+    private async Task<IReadOnlyCollection<string>> RetiredKeysAsync(CancellationToken ct) =>
+        (await db.MikrotikSshKeys.AsNoTracking().Where(k => k.RetiredAt != null).Select(k => k.Comment).ToListAsync(ct)).ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>The router's differences now, with everything they are compared with: for acknowledging and removing acknowledgements.</summary>
+    private async Task<IReadOnlyList<ScriptDifference>> DifferencesAsync(MikrotikRouterEntity router, CancellationToken ct) =>
+        Differences(router, Reading(router), await keys.GetAsync(ct), await WireGuardAsync(router, ct), await RetiredKeysAsync(ct));
+
     private MikrotikRouterDetail Detail(MikrotikRouterEntity r, MikrotikInstallation installation, IReadOnlyDictionary<string, LatestVersion> latest,
-        WgContext? wg = null)
+        WgContext? wg, IReadOnlyCollection<string> retiredKeys)
     {
         var reading = Reading(r);
         var latestVersion = r.Channel is { } ch && latest.TryGetValue(ch, out var l) ? l.Version : null;
-        var differences = Differences(r, reading, installation, wg);
+        var matched = ScriptDifferences.Match(Differences(r, reading, installation, wg, retiredKeys), ScriptDifferences.Read(r.AcknowledgedDifferences));
+        var open = matched.Where(m => m.Acknowledgement is null).Select(m => m.Difference.Text).ToList();
         var warnings = new List<string>();
         if (r.Mode == MikrotikMode.DirectSsh && r.PnmtSourceAddress is null)
         {
@@ -292,7 +318,9 @@ public sealed class MikrotikRouterService(
                 reading.FreeStorage, reading.TotalStorage, reading.WriteSectorsTotal, reading.BadBlocks,
                 reading.Uptime is { } u ? (long)u.TotalSeconds : null),
             UdpViews.NullableUtc(r.LastPollAt), UdpViews.NullableUtc(r.LastSuccessAt), UdpViews.NullableUtc(r.FailingSince), r.LastError, r.LastErrorCode,
-            differences.Count > 0, differences, warnings);
+            open.Count > 0, open, warnings, new MikrotikScriptOptions(r.ScriptFirewall, r.ScriptRemovals),
+            matched.Select(m => new MikrotikScriptDifference(m.Difference.Id, m.Difference.Text, m.Difference.Admin,
+                m.Acknowledgement is { } a ? new MikrotikDifferenceAcknowledgement(a.ByName, a.Reason, Clock.AsUtc(a.At)) : null)).ToList());
     }
 
     /// <summary>The worst security fix each router is behind (docs/ai-operations-plan.md §10.4).</summary>
@@ -341,20 +369,22 @@ public sealed class MikrotikRouterService(
 
     /// <summary>
     /// What the router has that its current join script would change (§3.3): the group's policies, PNMTD's
-    /// current key, and in the WireGuard modes the tunnel's settings, as the poll read them. A router in
-    /// WireGuard only mode has no login: its script is outdated when the settings changed after it was
-    /// last shown. Empty until there is something to compare.
+    /// current key and its retired ones, and in the WireGuard modes the tunnel's settings, as the poll read them.
+    /// A router in WireGuard only mode has no login: its script is outdated when the settings changed after it
+    /// was last shown. Empty until there is something to compare. Keyed, with the router's side and PNMT's, so an
+    /// acknowledgement covers each exactly as it was seen (docs/mikrotik-join-options-plan.md §3.2). Without PNMT's
+    /// firewall rules, the firewall isn't compared (§2.4).
     /// </summary>
-    internal static IReadOnlyList<string> Differences(MikrotikRouterEntity r, RouterReading? reading, MikrotikInstallation installation,
-        WgContext? wg = null)
+    internal static IReadOnlyList<ScriptDifference> Differences(MikrotikRouterEntity r, RouterReading? reading, MikrotikInstallation installation,
+        WgContext? wg = null, IReadOnlyCollection<string>? retiredKeys = null)
     {
-        var list = new List<string>();
+        var list = new List<ScriptDifference>();
         if (r.Mode == MikrotikMode.WireGuardOnly && wg?.Peer is { } onlyPeer && r.ScriptGeneratedAt is { } shown)
         {
             var changed = new[] { wg.Settings.ScriptSettingsChangedAt, r.ScriptChangedAt, onlyPeer.KeysCreatedAt }.Max();
             if (changed > shown)
             {
-                list.Add("The settings or keys changed after the join script was last shown: paste the new one.");
+                list.Add(new("settings-changed", "The settings or keys changed after the join script was last shown: paste the new one.", Stamp(shown), Stamp(changed)));
             }
             return list;
         }
@@ -362,46 +392,76 @@ public sealed class MikrotikRouterService(
         {
             return [];
         }
+        // What only a removal fixes says so when the script removes nothing (§2.4).
+        const string removesNothing = " The join script removes nothing:";
         if (wg?.Peer is { } peer)
         {
             var t = reading.WireGuard;
             var s = wg.Settings;
             if (t is null)
             {
-                list.Add("The router has no PNMT tunnel interface.");
+                list.Add(new("no-tunnel", "The router has no PNMT tunnel interface.", "", peer.PublicKey));
             }
             else
             {
-                if (t.PublicKey != peer.PublicKey) list.Add("The router's tunnel key is not its current one: the keys were regenerated.");
-                if (t.PeerPublicKey != s.GatewayPublicKey) list.Add("The router's peer is not this gateway.");
+                if (t.PublicKey != peer.PublicKey)
+                    list.Add(new("tunnel-key", "The router's tunnel key is not its current one: the keys were regenerated.", t.PublicKey ?? "", peer.PublicKey));
+                if (t.PeerPublicKey != s.GatewayPublicKey)
+                    list.Add(new("peer-key", "The router's peer is not this gateway.", t.PeerPublicKey ?? "", s.GatewayPublicKey));
                 if (s.ExternalHost is not null && !string.Equals(t.EndpointAddress, s.ExternalHost, StringComparison.OrdinalIgnoreCase))
-                    list.Add($"The router dials {t.EndpointAddress}; the endpoint is now {s.ExternalHost}.");
-                if (t.EndpointPort != s.ExternalPort) list.Add($"The router dials port {t.EndpointPort}; the endpoint's port is now {s.ExternalPort}.");
-                if (t.Keepalive is { } k && (int)k.TotalSeconds != s.KeepaliveSeconds) list.Add($"The keepalive is {(int)k.TotalSeconds} s; it is now {s.KeepaliveSeconds} s.");
-                if (t.Mtu != s.Mtu) list.Add($"The tunnel's MTU is {t.Mtu}; it is now {s.Mtu}.");
+                    list.Add(new("endpoint-host", $"The router dials {t.EndpointAddress}; the endpoint is now {s.ExternalHost}.",
+                        (t.EndpointAddress ?? "").ToLowerInvariant(), s.ExternalHost.ToLowerInvariant()));
+                if (t.EndpointPort != s.ExternalPort)
+                    list.Add(new("endpoint-port", $"The router dials port {t.EndpointPort}; the endpoint's port is now {s.ExternalPort}.", Number(t.EndpointPort), Number(s.ExternalPort)));
+                if (t.Keepalive is { } k && (int)k.TotalSeconds != s.KeepaliveSeconds)
+                    list.Add(new("keepalive", $"The keepalive is {(int)k.TotalSeconds} s; it is now {s.KeepaliveSeconds} s.", Number((int)k.TotalSeconds), Number(s.KeepaliveSeconds)));
+                if (t.Mtu != s.Mtu)
+                    list.Add(new("mtu", $"The tunnel's MTU is {t.Mtu}; it is now {s.Mtu}.", Number(t.Mtu), Number(s.Mtu)));
             }
             var management = reading.FirewallRules.Any(f => f.SourceAddress == s.Plan.AccessAddress.ToString());
-            if (management != r.ManagementAccess)
+            if (r.ScriptFirewall && management != r.ManagementAccess)
             {
-                list.Add(r.ManagementAccess ? "Management access is on, but the router lacks its firewall rule." : "The router still accepts custom tunnels on its management ports.");
+                list.Add(new("management-rule", r.ManagementAccess ? "Management access is on, but the router lacks its firewall rule."
+                    : "The router still accepts custom tunnels on its management ports." +
+                        (r.ScriptRemovals ? "" : removesNothing + " remove the rule by hand, or acknowledge it."),
+                    management ? "rule" : "no rule", r.ManagementAccess ? "on" : "off"));
             }
         }
         var policies = reading.GroupPolicies;
         if (r.IncludeSecrets != policies.Contains("sensitive"))
         {
-            list.Add(r.IncludeSecrets ? "Secrets in exports are on, but the group pnmt-read lacks the policy sensitive." : "The group pnmt-read still has the policy sensitive.");
+            list.Add(new("policy-sensitive", r.IncludeSecrets ? "Secrets in exports are on, but the group pnmt-read lacks the policy sensitive." : "The group pnmt-read still has the policy sensitive.",
+                policies.Contains("sensitive") ? "has" : "lacks", r.IncludeSecrets ? "on" : "off"));
         }
         if (r.Diagnostics != policies.Contains("test"))
         {
-            list.Add(r.Diagnostics ? "Diagnostics are on, but the group pnmt-read lacks the policy test." : "The group pnmt-read still has the policy test.");
+            list.Add(new("policy-test", r.Diagnostics ? "Diagnostics are on, but the group pnmt-read lacks the policy test." : "The group pnmt-read still has the policy test.",
+                policies.Contains("test") ? "has" : "lacks", r.Diagnostics ? "on" : "off"));
         }
+        var owners = string.Join(",", reading.SshKeyOwners.Order(StringComparer.Ordinal));
         var current = installation.Current;
         if (reading.SshKeyOwners.Count > 0 && !reading.SshKeyOwners.Contains(current.Comment))
         {
-            list.Add("The router does not have PNMTD's current SSH key.");
+            list.Add(new("ssh-key", "The router does not have PNMTD's current SSH key.", owners, current.Comment));
+        }
+        // Retired keys stay with PNMTD (their private half too): a router that still trusts one should not (§2.3).
+        var retired = reading.SshKeyOwners.Where(o => retiredKeys?.Contains(o) == true).Distinct().Order(StringComparer.Ordinal).ToList();
+        if (retired.Count > 0)
+        {
+            var (named, them) = retired.Count == 1 ? ($"PNMTD's retired SSH key {retired[0]}", "it") : ($"PNMTD's retired SSH keys {string.Join(", ", retired)}", "them");
+            list.Add(new("retired-key", r.ScriptRemovals
+                ? $"The router still accepts {named}: paste the new join script, which removes {them}."
+                : $"The router still accepts {named}.{removesNothing} remove {them} by hand in /user ssh-keys, or acknowledge {them}.",
+                string.Join(",", retired), ""));
         }
         return list;
     }
+
+    private static string Number(int? value) => value?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "";
+
+    /// <summary>To the second: PostgreSQL keeps microseconds, the clock ticks in 100 ns, and an id must stay the same after a save.</summary>
+    private static string Stamp(DateTime value) =>
+        new DateTime(value.Ticks - value.Ticks % TimeSpan.TicksPerSecond).ToString("yyyy-MM-ddTHH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
 
     internal static bool UpdateAvailable(string? installed, string? latest) =>
         RouterOsVersion.TryParse(installed, out var i) && RouterOsVersion.TryParse(latest, out var l) && l > i;
@@ -414,8 +474,11 @@ public sealed class MikrotikRouterService(
 
     // --- the router's own endpoints ------------------------------------------------------------------
 
-    /// <summary>The join script (§4.3) or the removal script (§4.6). Viewing a join script is audit-logged: in the WireGuard modes it holds a private key.</summary>
-    public async Task<MikrotikScript> ScriptAsync(Guid sensorId, bool removal, CancellationToken ct)
+    /// <summary>
+    /// The join script (§4.3) or the removal script (§4.6). Viewing a join script is audit-logged: in the WireGuard modes it holds a private key.
+    /// Its options (docs/mikrotik-join-options-plan.md §2): left out, the router's; the ones used are stored with <c>ScriptGeneratedAt</c>.
+    /// </summary>
+    public async Task<MikrotikScript> ScriptAsync(Guid sensorId, bool removal, bool? firewall, bool? removals, CancellationToken ct)
     {
         var router = await db.MikrotikRouters.Include(r => r.Sensor).SingleOrDefaultAsync(r => r.SensorId == sensorId, ct)
             ?? throw ApiException.NotFound("MikroTik router");
@@ -471,16 +534,98 @@ public sealed class MikrotikRouterService(
             IncludeSecrets = router.IncludeSecrets,
             Diagnostics = router.Diagnostics,
             ManagementAccess = router.ManagementAccess,
+            Firewall = firewall ?? router.ScriptFirewall,
+            Removals = removals ?? router.ScriptRemovals,
         };
         if (settings.UserAddress is null)
         {
             notes.Add("Without PNMTD's source address the user pnmt may log in from anywhere, with PNMTD's key only.");
         }
-        UdpViews.Audit(db, accessor, AuditEvents.MikrotikJoinScriptViewed, $"router {name}: join script ({router.Mode.Label()})");
+        // The option means something only where the script has rules (§2.1).
+        var noRules = !settings.Firewall && JoinScript.HasFirewallRules(router.Mode, router.ManagementAccess);
+        if (noRules)
+        {
+            notes.Add(router.Mode == MikrotikMode.WireGuardSsh
+                ? "Without firewall rules, PNMTD logs in only if the router's input chain lets it through the tunnel: MikroTik's default configuration " +
+                  "drops what doesn't come from the interface list LAN. Allow it as the script's comments show, or add the interface pnmt to LAN."
+                : "Without firewall rules, custom tunnels reach the router only if its input chain lets them through: allow them as the script's comments show.");
+        }
+        if (!settings.Removals)
+        {
+            notes.Add("Without removals, what an earlier script created and this one doesn't need stays on the router: the old SSH key after a rotation, " +
+                "the tunnel after a switch to Direct SSH, the management rule after management access was turned off. The Setup tab lists what differs.");
+        }
+        var options = (noRules ? ", without firewall rules" : "") + (settings.Removals ? "" : ", without removals");
+        UdpViews.Audit(db, accessor, AuditEvents.MikrotikJoinScriptViewed, $"router {name}: join script ({router.Mode.Label()}{options})");
         router.ScriptGeneratedAt = now;
+        router.ScriptFirewall = settings.Firewall;
+        router.ScriptRemovals = settings.Removals;
         await db.SaveChangesAsync(ct);
-        return new MikrotikScript(JoinScript.Build(settings), "pnmt-join.rsc", router.Mode, now, notes);
+        return new MikrotikScript(JoinScript.Build(settings), "pnmt-join.rsc", router.Mode, now, notes, new MikrotikScriptOptions(settings.Firewall, settings.Removals));
     }
+
+    // --- acknowledged differences (docs/mikrotik-join-options-plan.md §3) -------------------------------------------------
+
+    /// <summary>
+    /// Differences acknowledged as intended, with a reason: as OS updates' findings are (docs/linux-os-updates-plan.md §6.5), without an
+    /// expiry, because each covers a difference exactly as it was seen. Ids no longer current are left out: only what is still as the
+    /// person saw it is acknowledged. One audit entry per difference.
+    /// </summary>
+    public async Task<MikrotikRouterDetail> AcknowledgeAsync(Guid sensorId, MikrotikDifferenceAcknowledgeRequest request, CancellationToken ct)
+    {
+        var reason = request.Reason?.Trim() ?? "";
+        new ApiValidator()
+            .Check(request.Ids is { Count: > 0 and <= 500 }, "ids", "One or more differences of this router.")
+            .Check(reason.Length is > 0 and <= ScriptDifferences.MaxReason, "reason", $"A reason is required, at most {ScriptDifferences.MaxReason} characters.")
+            .ThrowIfInvalid();
+        var router = await db.MikrotikRouters.Include(r => r.Sensor).SingleOrDefaultAsync(r => r.SensorId == sensorId, ct)
+            ?? throw ApiException.NotFound("MikroTik router");
+        var current = await DifferencesAsync(router, ct);
+        var chosen = current.Where(d => request.Ids.Contains(d.Id)).ToList();
+        if (chosen.Any(d => d.Admin) && !IsAdmin())
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, ApiErrorCodes.ForbiddenRole, AdminOnly);
+        }
+        var (userId, userName) = UdpViews.User(accessor);
+        var now = Clock.UtcNow;
+        // What no longer matches anything goes now (§3.1); what is acknowledged again gets the new reason.
+        var kept = ScriptDifferences.Read(router.AcknowledgedDifferences).Where(a => current.Any(d => d.Id == a.Id) && chosen.All(c => c.Id != a.Id));
+        var added = chosen.Select(d => new DifferenceAcknowledgement(d.Id, now, userId, Agents.Cuts.CutOrNull(userName, 200), reason));
+        router.AcknowledgedDifferences = ScriptDifferences.Write([.. kept, .. added]);
+        var target = AuditTarget.Sensor(sensorId, router.Sensor.Name, router.Sensor.ParentId);
+        foreach (var d in chosen)
+        {
+            UdpViews.Audit(db, accessor, AuditEvents.MikrotikDifferenceAcknowledged, $"router {router.Sensor.Name}: \"{d.Text}\" acknowledged: {reason}", target);
+        }
+        await db.SaveChangesAsync(ct);
+        return (await DetailAsync(sensorId, ct))!;
+    }
+
+    /// <summary>Removes an acknowledgement: the difference is open again. One that doesn't exist changes nothing, as for OS updates.</summary>
+    public async Task<MikrotikRouterDetail> UnacknowledgeAsync(Guid sensorId, string differenceId, CancellationToken ct)
+    {
+        var router = await db.MikrotikRouters.Include(r => r.Sensor).SingleOrDefaultAsync(r => r.SensorId == sensorId, ct)
+            ?? throw ApiException.NotFound("MikroTik router");
+        var acknowledgements = ScriptDifferences.Read(router.AcknowledgedDifferences);
+        if (acknowledgements.FirstOrDefault(a => a.Id == differenceId) is not { } acknowledgement)
+        {
+            return (await DetailAsync(sensorId, ct))!;
+        }
+        if (ScriptDifferences.IsAdmin(differenceId) && !IsAdmin())
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, ApiErrorCodes.ForbiddenRole, AdminOnly);
+        }
+        var current = await DifferencesAsync(router, ct);
+        var text = current.FirstOrDefault(d => d.Id == differenceId)?.Text ?? differenceId.Split(':')[0];
+        router.AcknowledgedDifferences = ScriptDifferences.Write(acknowledgements.Where(a => a.Id != differenceId && current.Any(d => d.Id == a.Id)).ToList());
+        UdpViews.Audit(db, accessor, AuditEvents.MikrotikDifferenceAcknowledgementEnded,
+            $"router {router.Sensor.Name}: the acknowledgement of \"{text}\" by {acknowledgement.ByName ?? "someone"} removed",
+            AuditTarget.Sensor(sensorId, router.Sensor.Name, router.Sensor.ParentId));
+        await db.SaveChangesAsync(ct);
+        return (await DetailAsync(sensorId, ct))!;
+    }
+
+    private const string AdminOnly = "Only an Admin can acknowledge a difference in the policies, the management rule or a retired key, as only an Admin can change them.";
 
     /// <summary>"192.0.2.10" → "192.0.2.10/32"; a network stays as it is.</summary>
     internal static string? SourceNetwork(string? source)
@@ -564,6 +709,8 @@ public sealed class MikrotikRouterService(
         var installation = await keys.GetAsync(ct);
         var latest = await LatestAsync(ct);
         var fixes = await SecurityFixesAsync(ct);
+        var wg = await WireGuardContextsAsync(routers, ct);
+        var retired = await RetiredKeysAsync(ct);
         var items = routers
             .Where(r => snapshot.Sensors.ContainsKey(r.SensorId))
             .Select(r =>
@@ -573,7 +720,7 @@ public sealed class MikrotikRouterService(
                 return new MikrotikFleetItem(r.SensorId, s.Info.Name, new Ref(s.Info.HostId, s.Info.HostName), s.Info.Enabled, r.Mode, r.SetupState,
                     s.State, s.LastCode, s.LastMessage, r.Address, r.Identity, r.Model ?? r.BoardName, r.SerialNumber, r.Version, r.Channel, latestVersion,
                     UpdateAvailable(r.Version, latestVersion), r.FirmwareCurrent, r.FirmwareUpgrade, UdpViews.NullableUtc(r.BootedAt),
-                    UdpViews.NullableUtc(r.LastSuccessAt), r.LastError, Differences(r, Reading(r), installation).Count > 0, r.BackupIntervalHours,
+                    UdpViews.NullableUtc(r.LastSuccessAt), r.LastError, OpenDifferences(r, installation, wg(r), retired) > 0, r.BackupIntervalHours,
                     r.EncryptBackups, Reading(r)?.FreeStorage, r.UpdateMethod, r.UpdateCheckStorage, LowStorage(Reading(r)), fixes.GetValueOrDefault(r.SensorId));
             })
             .Where(i => query.Mode is not { } m || i.Mode == m)
@@ -602,6 +749,8 @@ public sealed class MikrotikRouterService(
         var settings = await db.MikrotikSettings.AsNoTracking().SingleOrDefaultAsync(s => s.Id == MikrotikSettingsEntity.SingletonId, ct);
         var latest = VersionCatalog.Read(settings?.LatestVersions);
         var routers = await db.MikrotikRouters.AsNoTracking().ToListAsync(ct);
+        var wg = await WireGuardContextsAsync(routers, ct);
+        var retired = await RetiredKeysAsync(ct);
         var o = options.CurrentValue;
         return new MikrotikStatus(o.Enabled, installation.Tag, installation.Instance,
             (await db.MikrotikSshKeys.AsNoTracking().OrderByDescending(k => k.CreatedAt).ToListAsync(ct))
@@ -614,8 +763,15 @@ public sealed class MikrotikRouterService(
             routers.Where(r => r.Version is not null).GroupBy(r => r.Version!)
                 .OrderByDescending(g => RouterOsVersion.TryParse(g.Key, out var v) ? v : null).Select(g => new MikrotikCount(g.Key, g.Count())).ToList(),
             routers.Count(r => r.Channel is { } ch && latest.TryGetValue(ch, out var l) && UpdateAvailable(r.Version, l.Version)),
-            routers.Count(r => Differences(r, Reading(r), installation).Count > 0));
+            routers.Count(r => OpenDifferences(r, installation, wg(r), retired) > 0));
     }
+
+    /// <summary>
+    /// What "script outdated" counts in the fleet and the overview: the open differences, compared with everything the Setup tab
+    /// compares with, so the three agree (docs/mikrotik-join-options-plan.md §3.5).
+    /// </summary>
+    private static int OpenDifferences(MikrotikRouterEntity r, MikrotikInstallation installation, WgContext? wg, IReadOnlyCollection<string> retiredKeys) =>
+        ScriptDifferences.Open(Differences(r, Reading(r), installation, wg, retiredKeys), r.AcknowledgedDifferences).Count;
 
     // --- PNMTD's SSH key (§4.2) ---------------------------------------------------------------------
 

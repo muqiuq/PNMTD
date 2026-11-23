@@ -90,6 +90,23 @@ public class MikrotikRouterEntity
     /// <summary>When the join script was last shown: in WireGuard only mode, the only clue to what the router has (§3.3).</summary>
     public DateTime? ScriptGeneratedAt { get; set; }
 
+    /// <summary>
+    /// The join script was last shown with PNMT's firewall rules (docs/mikrotik-join-options-plan.md §2.2): off, the router's
+    /// firewall is the admin's, and the comparison leaves it out.
+    /// </summary>
+    public bool ScriptFirewall { get; set; } = true;
+
+    /// <summary>The join script was last shown with the removal of what an earlier script created (§2.3); off, it adds or sets.</summary>
+    public bool ScriptRemovals { get; set; } = true;
+
+    /// <summary>
+    /// The differences people acknowledged as intended (§3), as JSON: <see cref="Mikrotik.DifferenceAcknowledgement"/>s. Each covers
+    /// a difference exactly as it was seen. The audit log records each one as an event of its own.
+    /// </summary>
+    [Column(TypeName = "jsonb")]
+    [AuditIgnore]
+    public string? AcknowledgedDifferences { get; set; }
+
     // --- the host key (§4.4) -------------------------------------------------------------------------
 
     [AuditPlain("the router's public host key")]

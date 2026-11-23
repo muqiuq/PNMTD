@@ -336,7 +336,18 @@ export const api = {
 
   mikrotik: {
     // --- a router (docs/mikrotik-plan.md §10): CanWrite, accepting a host key Admin -------------
-    joinScript: (id: Id) => call(client.GET('/api/v1/sensors/{id}/mikrotik/join-script', { params: { path: { id } } })),
+    /** The options (docs/mikrotik-join-options-plan.md §2) left out are the router's own, those it was last shown with. */
+    joinScript: (id: Id, options: Partial<S['MikrotikScriptOptions']> = {}) =>
+      call(client.GET('/api/v1/sensors/{id}/mikrotik/join-script', { params: { path: { id }, query: options } })),
+    // --- differences acknowledged as intended (docs/mikrotik-join-options-plan.md §3): CanWrite, the Admin settings' Admin ---------
+    acknowledgeDifferences: (id: Id, body: S['MikrotikDifferenceAcknowledgeRequest']) =>
+      call(client.POST('/api/v1/sensors/{id}/mikrotik/differences/acknowledge', { params: { path: { id } }, body })),
+    unacknowledgeDifference: (id: Id, differenceId: string) =>
+      call(
+        client.DELETE('/api/v1/sensors/{id}/mikrotik/differences/{differenceId}/acknowledgement', {
+          params: { path: { id, differenceId } },
+        }),
+      ),
     removalScript: (id: Id) =>
       call(client.GET('/api/v1/sensors/{id}/mikrotik/removal-script', { params: { path: { id } } })),
     poll: (id: Id) => call(client.POST('/api/v1/sensors/{id}/mikrotik/poll', { params: { path: { id } } })),

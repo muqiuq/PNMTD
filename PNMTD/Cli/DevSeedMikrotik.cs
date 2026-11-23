@@ -109,6 +109,12 @@ internal static class DevSeedMikrotik
         Export(db, stGallen, stGallenPlan, now.AddDays(-5), MikrotikBackupTrigger.Schedule, Config(stGallenPlan, winbox: true, dns: "1.1.1.1,8.8.8.8"));
         Event(db, stGallen, now.AddDays(-5), PNMTStatusCodes.MIKROTIK_CONFIG_CHANGED, "Configuration changed: +1 −1 lines (version 3)");
 
+        // basel differs from its join script (docs/mikrotik-join-options-plan.md §3): Diagnostics went on a week ago, and the
+        // new script was never pasted, so its group lacks test. A difference to acknowledge.
+        var basel = routers.Single(r => r.Plan.Host == "office-basel-gw").Router;
+        basel.Diagnostics = true;
+        basel.ScriptChangedAt = now.AddDays(-7);
+
         SeedUpdate(db, routers.Single(r => r.Plan.Host == "office-geneva-gw"), now, random);
         SeedCommands(db, routers, now);
         db.SaveChanges();

@@ -5800,6 +5800,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<Guid>("SensorId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AcknowledgedDifferences")
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("ActiveUsers")
                         .HasColumnType("text");
 
@@ -5933,8 +5936,14 @@ namespace PNMTD.Data.Migrations
                     b.Property<DateTime>("ScriptChangedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("ScriptFirewall")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("ScriptGeneratedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("ScriptRemovals")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("SerialNumber")
                         .HasColumnType("text");

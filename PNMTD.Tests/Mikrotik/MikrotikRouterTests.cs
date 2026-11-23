@@ -354,6 +354,141 @@ public sealed class MikrotikRouterTests
         CollectionAssert.Contains(updated.Mikrotik!.ScriptDifferences.ToList(), "Diagnostics are on, but the group pnmt-read lacks the policy test.");
     }
 
+    // --- the join script's options and acknowledged differences (docs/mikrotik-join-options-plan.md) -----------------------
+
+    private static async Task<MikrotikRouterDetail> DetailAsync(Guid id) =>
+        (await (await user.GetAsync($"/api/v1/sensors/{id}")).ReadAsync<SensorDetail>()).Mikrotik!;
+
+    private static Task<HttpResponseMessage> AcknowledgeAsync(HttpClient client, Guid id, string reason, params string[] ids) =>
+        client.PostJsonAsync($"/api/v1/sensors/{id}/mikrotik/differences/acknowledge", new MikrotikDifferenceAcknowledgeRequest(ids, reason));
+
+    private static Task<HttpResponseMessage> UnacknowledgeAsync(HttpClient client, Guid id, string differenceId) =>
+        client.DeleteAsync($"/api/v1/sensors/{id}/mikrotik/differences/{Uri.EscapeDataString(differenceId)}/acknowledgement");
+
+    private static async Task<List<AuditLogItem>> AuditAsync(string type, string name) =>
+        (await (await admin.GetAsync($"/api/v1/audit-log?type={type}&pageSize=200")).ReadAsync<Paged<AuditLogItem>>())
+            .Items.Where(i => i.Detail?.Contains($"router {name}:", StringComparison.Ordinal) == true).ToList();
+
+    [TestMethod]
+    public async Task The_join_scripts_options_are_kept_with_the_router()
+    {
+        var sensor = await CreateAsync("192.0.2.40");
+        Assert.AreEqual(new MikrotikScriptOptions(true, true), sensor.Mikrotik!.ScriptOptions);
+        var script = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/join-script?removals=false")).ReadAsync<MikrotikScript>();
+        Assert.AreEqual(new MikrotikScriptOptions(true, false), script.Options);
+        StringAssert.Contains(script.Script, "# Options: no removals.");
+        Assert.IsFalse(script.Script.Contains("/user remove", StringComparison.Ordinal));
+        Assert.IsTrue(script.Notes.Any(n => n.StartsWith("Without removals", StringComparison.Ordinal)), string.Join("; ", script.Notes));
+
+        // Left out, the router's own: those it was last shown with.
+        var again = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/join-script")).ReadAsync<MikrotikScript>();
+        Assert.AreEqual(new MikrotikScriptOptions(true, false), again.Options);
+        Assert.AreEqual(new MikrotikScriptOptions(true, false), (await DetailAsync(sensor.Id)).ScriptOptions);
+        Assert.IsTrue((await AuditAsync(AuditEvents.MikrotikJoinScriptViewed, sensor.Name)).Any(i => i.Detail!.EndsWith("join script (Direct SSH, without removals)", StringComparison.Ordinal)));
+
+        // Direct SSH has no rules: the option means nothing there, and the audit doesn't name it.
+        var noRules = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/join-script?firewall=false&removals=true")).ReadAsync<MikrotikScript>();
+        Assert.IsFalse(noRules.Script.Contains("# Options", StringComparison.Ordinal));
+        StringAssert.Contains(noRules.Script, "/ip firewall filter remove [find where comment~\"^pnmt:\"]");
+        Assert.IsTrue((await AuditAsync(AuditEvents.MikrotikJoinScriptViewed, sensor.Name)).Any(i => i.Detail!.EndsWith("join script (Direct SSH)", StringComparison.Ordinal)));
+
+        // The removal script has no options.
+        var removal = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/removal-script")).ReadAsync<MikrotikScript>();
+        Assert.IsNull(removal.Options);
+    }
+
+    [TestMethod]
+    public async Task Differences_are_acknowledged_with_a_reason_until_they_change()
+    {
+        var sensor = await CreateAsync("192.0.2.41");
+        var router = FakeRouter.From("7.25.1");
+        routers.Add("192.0.2.41", router);
+        await PollAsync(sensor.Id);
+        var key = (await DetailAsync(sensor.Id)).Differences.Single(d => d.Text == "The router does not have PNMTD's current SSH key.");
+        Assert.IsFalse(key.Admin);
+        Assert.IsNull(key.Acknowledgement);
+
+        // A reason is required.
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await AcknowledgeAsync(user, sensor.Id, "  ", key.Id)).StatusCode);
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await AcknowledgeAsync(user, sensor.Id, "x", [])).StatusCode);
+
+        var acknowledged = await (await AcknowledgeAsync(user, sensor.Id, "This router keeps the key of its old installation", key.Id)).ReadAsync<MikrotikRouterDetail>();
+        Assert.IsFalse(acknowledged.ScriptOutdated);
+        Assert.AreEqual(0, acknowledged.ScriptDifferences.Count);
+        var shown = acknowledged.Differences.Single(d => d.Id == key.Id);
+        Assert.AreEqual("This router keeps the key of its old installation", shown.Acknowledgement!.Reason);
+        Assert.IsNotNull(shown.Acknowledgement.ByName);
+        var fleet = await (await admin.GetAsync("/api/v1/mikrotik/routers?search=192.0.2.41")).ReadAsync<Paged<MikrotikFleetItem>>();
+        Assert.IsFalse(fleet.Items.Single().ScriptOutdated, "the fleet leaves acknowledged differences out too");
+        Assert.AreEqual(0, (await (await admin.GetAsync("/api/v1/mikrotik/routers?search=192.0.2.41&scriptOutdated=true")).ReadAsync<Paged<MikrotikFleetItem>>()).TotalCount);
+
+        // What the router has changes: a new difference, and the warning is back.
+        router.KeyOwners("pnmt-other@elsewhere");
+        await PollAsync(sensor.Id);
+        var changed = await DetailAsync(sensor.Id);
+        Assert.IsTrue(changed.ScriptOutdated);
+        var keyNow = changed.Differences.Single(d => d.Text == "The router does not have PNMTD's current SSH key.");
+        Assert.AreNotEqual(key.Id, keyNow.Id);
+        Assert.IsNull(keyNow.Acknowledgement);
+
+        // Diagnostics are an Admin's: so is acknowledging that the group lacks test, and removing that acknowledgement.
+        var request = new SensorRequest
+        {
+            HostId = hostId, Type = SensorType.MIKROTIK, Name = sensor.Name, Interval = 300, GracePeriod = 600,
+            Mikrotik = new MikrotikRouterRequest { Mode = MikrotikMode.DirectSsh, Address = "192.0.2.41", SourceAddress = "192.0.2.10", Diagnostics = true },
+        };
+        var test = (await (await admin.PutJsonAsync($"/api/v1/sensors/{sensor.Id}", request)).ReadAsync<SensorDetail>()).Mikrotik!.Differences
+            .Single(d => d.Text == "Diagnostics are on, but the group pnmt-read lacks the policy test.");
+        Assert.IsTrue(test.Admin);
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await AcknowledgeAsync(user, sensor.Id, "No pings from PNMT", test.Id)).StatusCode);
+        var both = await (await AcknowledgeAsync(admin, sensor.Id, "A lab router", test.Id, keyNow.Id)).ReadAsync<MikrotikRouterDetail>();
+        Assert.IsFalse(both.ScriptOutdated);
+        Assert.AreEqual(3, (await AuditAsync(AuditEvents.MikrotikDifferenceAcknowledged, sensor.Name)).Count, "one entry per difference");
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await UnacknowledgeAsync(user, sensor.Id, test.Id)).StatusCode);
+
+        // Removing an acknowledgement brings the warning back; removing one that isn't there changes nothing.
+        var removed = await (await UnacknowledgeAsync(admin, sensor.Id, test.Id)).ReadAsync<MikrotikRouterDetail>();
+        Assert.IsTrue(removed.ScriptOutdated);
+        CollectionAssert.AreEqual(new[] { test.Text }, removed.ScriptDifferences.ToArray());
+        var unchanged = await (await UnacknowledgeAsync(user, sensor.Id, keyNow.Id + "0")).ReadAsync<MikrotikRouterDetail>();
+        Assert.IsTrue(unchanged.ScriptOutdated);
+        var ended = await AuditAsync(AuditEvents.MikrotikDifferenceAcknowledgementEnded, sensor.Name);
+        Assert.AreEqual(1, ended.Count);
+        StringAssert.Contains(ended[0].Detail, "lacks the policy test.\" by ");
+    }
+
+    [TestMethod]
+    public async Task A_router_that_still_trusts_a_retired_key_differs()
+    {
+        var comment = $"pnmt-retired-{Guid.NewGuid():N}@test";
+        await using (var db = app.NewDb())
+        {
+            // In the past, so no other class's "newest key" sees it (the run's database is shared).
+            db.MikrotikSshKeys.Add(new MikrotikSshKeyEntity
+            {
+                Id = Guid.NewGuid(), PublicKey = SshKeys.GenerateEd25519(comment).PublicLine, Comment = comment, PrivateKeyProtected = "",
+                CreatedAt = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc), RetiredAt = new DateTime(2020, 2, 1, 0, 0, 0, DateTimeKind.Utc),
+            });
+            await db.SaveChangesAsync();
+        }
+        var sensor = await CreateAsync("192.0.2.42");
+        var router = FakeRouter.From("7.25.1");
+        var installation = await app.Services.GetRequiredService<MikrotikKeyStore>().GetAsync(CancellationToken.None);
+        router.KeyOwners(installation.Current.Comment, comment);
+        routers.Add("192.0.2.42", router);
+        await PollAsync(sensor.Id);
+        var retired = (await DetailAsync(sensor.Id)).Differences.Single(d => d.Id.StartsWith("retired-key:", StringComparison.Ordinal));
+        Assert.AreEqual($"The router still accepts PNMTD's retired SSH key {comment}: paste the new join script, which removes it.", retired.Text);
+        Assert.IsTrue(retired.Admin);
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await AcknowledgeAsync(user, sensor.Id, "Later", retired.Id)).StatusCode);
+
+        // Without removals the script won't take it away: the text says so, and the id stays, so an acknowledgement still covers it.
+        await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/join-script?removals=false");
+        var byHand = (await DetailAsync(sensor.Id)).Differences.Single(d => d.Id == retired.Id);
+        StringAssert.Contains(byHand.Text, "The join script removes nothing: remove it by hand in /user ssh-keys, or acknowledge it.");
+        Assert.IsFalse((await (await AcknowledgeAsync(admin, sensor.Id, "Removed at the next visit", retired.Id)).ReadAsync<MikrotikRouterDetail>()).ScriptOutdated);
+    }
+
     [TestMethod]
     public async Task The_admin_page_lists_the_fleet_and_the_status()
     {
@@ -434,6 +569,25 @@ public sealed class MikrotikRouterTests
         {
             var json = JsonNode.Parse(Output)!;
             json["group"]![0]!["policy"] = new JsonArray(policies.Select(p => (JsonNode)JsonValue.Create(p)!).ToArray());
+            Output = json.ToJsonString();
+        }
+
+        /// <summary>The user pnmt's SSH keys, by their comments, as the poll reads them (7.25.1 calls the comment info).</summary>
+        public void KeyOwners(params string[] owners)
+        {
+            var json = JsonNode.Parse(Output)!;
+            json["keys"] = new JsonArray(owners.Select(o => (JsonNode)new JsonObject { ["info"] = o, ["user"] = "pnmt", ["key-type"] = "ed25519" }).ToArray());
+            Output = json.ToJsonString();
+        }
+
+        /// <summary>PNMT's firewall rules on the router: one accept rule per source address.</summary>
+        public void FirewallSources(params string[] sources)
+        {
+            var json = JsonNode.Parse(Output)!;
+            json["firewall"] = new JsonArray(sources.Select(s => (JsonNode)new JsonObject
+            {
+                ["action"] = "accept", ["chain"] = "input", ["comment"] = "pnmt:test", ["dst-port"] = "22", ["src-address"] = s,
+            }).ToArray());
             Output = json.ToJsonString();
         }
 

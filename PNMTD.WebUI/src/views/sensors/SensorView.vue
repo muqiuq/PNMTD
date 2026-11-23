@@ -564,7 +564,7 @@ const more = computed(() =>
         <TabNav :items="tabs" :active="tab" label="Node pages" />
       </template>
       <template v-else-if="isMikrotik">
-        <MikrotikStatusStrip :sensor="sensor" />
+        <MikrotikStatusStrip :sensor="sensor" :can-write="canWrite" :is-admin="isAdmin" />
         <TabNav :items="mikrotikTabs" :active="tab" label="Router pages" />
       </template>
       <template v-else-if="isAgent">

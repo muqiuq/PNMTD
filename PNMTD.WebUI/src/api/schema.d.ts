@@ -14092,7 +14092,10 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    firewall?: boolean;
+                    removals?: boolean;
+                };
                 header?: never;
                 path: {
                     id: string;
@@ -14156,6 +14159,91 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/mikrotik/differences/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MikrotikDifferenceAcknowledgeRequest"];
+                    "text/json": components["schemas"]["MikrotikDifferenceAcknowledgeRequest"];
+                    "application/*+json": components["schemas"]["MikrotikDifferenceAcknowledgeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikRouterDetail"];
+                        "text/json": components["schemas"]["MikrotikRouterDetail"];
+                        "text/plain": components["schemas"]["MikrotikRouterDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{id}/mikrotik/differences/{differenceId}/acknowledgement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    differenceId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MikrotikRouterDetail"];
+                        "text/json": components["schemas"]["MikrotikRouterDetail"];
+                        "text/plain": components["schemas"]["MikrotikRouterDetail"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -27767,6 +27855,16 @@ export interface components {
             /** Format: int32 */
             count: number;
         };
+        MikrotikDifferenceAcknowledgement: {
+            byName: null | string;
+            reason: string;
+            /** Format: date-time */
+            at: string;
+        };
+        MikrotikDifferenceAcknowledgeRequest: {
+            ids: string[];
+            reason: string;
+        };
         MikrotikDiffHunk: {
             /** Format: int32 */
             oldStart: number;
@@ -28002,6 +28100,8 @@ export interface components {
             scriptOutdated: boolean;
             scriptDifferences: string[];
             warnings: string[];
+            scriptOptions: components["schemas"]["MikrotikScriptOptions"];
+            differences: components["schemas"]["MikrotikScriptDifference"][];
             /** Format: date-time */
             lastExportAt?: null | string;
             /**
@@ -28048,6 +28148,17 @@ export interface components {
             /** Format: date-time */
             generatedAt: string;
             notes: string[];
+            options?: null | components["schemas"]["MikrotikScriptOptions"];
+        };
+        MikrotikScriptDifference: {
+            id: string;
+            text: string;
+            admin: boolean;
+            acknowledgement: null | components["schemas"]["MikrotikDifferenceAcknowledgement"];
+        };
+        MikrotikScriptOptions: {
+            firewall: boolean;
+            removals: boolean;
         };
         /** @enum {unknown} */
         MikrotikSetupState: "AwaitingRouter" | "TunnelUp" | "Ready" | "NeedsAttention";

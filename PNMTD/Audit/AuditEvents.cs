@@ -64,6 +64,9 @@ public static class AuditEvents
     public const string MikrotikBackupKeySet = "MikrotikBackupKeySet";
     public const string MikrotikBackupKeyRetired = "MikrotikBackupKeyRetired";
     public const string MikrotikBackupEncryptionChanged = "MikrotikBackupEncryptionChanged";
+    // A difference between a router and its join script acknowledged as intended, and the acknowledgement removed (docs/mikrotik-join-options-plan.md §3).
+    public const string MikrotikDifferenceAcknowledged = "MikrotikDifferenceAcknowledged";
+    public const string MikrotikDifferenceAcknowledgementEnded = "MikrotikDifferenceAcknowledgementEnded";
 
     // The WireGuard network (docs/mikrotik-plan.md §9.6).
     public const string WireGuardNetworkChanged = "WireGuardNetworkChanged";
@@ -441,7 +444,8 @@ public static class AuditCatalog
         Add(AuditCategory.Udp, AuditTargets.OtaJob, AuditEvents.UdpUpdateStarted, AuditEvents.UdpUpdateCancelled);
         Add(AuditCategory.Mikrotik, AuditTargets.Sensor, AuditEvents.MikrotikJoinScriptViewed, AuditEvents.MikrotikHostKeyAccepted,
             AuditEvents.MikrotikSecretsChanged, AuditEvents.MikrotikManagementAccessChanged, AuditEvents.MikrotikDiagnosticsChanged,
-            AuditEvents.MikrotikBackupDownloaded, AuditEvents.MikrotikBackupDeleted, AuditEvents.MikrotikBackupEncryptionChanged);
+            AuditEvents.MikrotikBackupDownloaded, AuditEvents.MikrotikBackupDeleted, AuditEvents.MikrotikBackupEncryptionChanged,
+            AuditEvents.MikrotikDifferenceAcknowledged, AuditEvents.MikrotikDifferenceAcknowledgementEnded);
         Add(AuditCategory.Mikrotik, AuditTargets.MikrotikJob, AuditEvents.MikrotikUpdateStarted, AuditEvents.MikrotikUpdateCancelled);
         Add(AuditCategory.Mikrotik, AuditTargets.MikrotikCommand, AuditEvents.MikrotikCommandStarted, AuditEvents.MikrotikCommandCancelled,
             AuditEvents.MikrotikCommandRedacted);

@@ -197,6 +197,64 @@ public sealed class WireGuardRouterTests
             string.Join("; ", detail.Mikrotik.ScriptDifferences));
     }
 
+    /// <summary>Without PNMT's firewall rules, the router's firewall is the admin's and isn't compared (docs/mikrotik-join-options-plan.md §2.2, §2.4).</summary>
+    [TestMethod]
+    public async Task Without_firewall_rules_the_firewall_is_not_compared()
+    {
+        var sensor = await CreateAsync(MikrotikMode.WireGuardSsh, "own firewall");
+        var peer = await PeerAsync(sensor.Id);
+        var router = FakeRouter.From("7.25.1");
+        // The access address of the network in effect: another test of this class may have changed the prefix.
+        await using (var db = app.NewDb())
+        {
+            var network = await app.Services.GetRequiredService<WireGuardNetwork>().SettingsAsync(db, CancellationToken.None);
+            router.FirewallSources(network.Plan.ServerAddress.ToString(), network.Plan.AccessAddress.ToString());
+        }
+        routers.Add(peer.Address, router);
+        await GatewayAsync(up: true, peer.Id, handshake: Clock.UtcNow.AddSeconds(-20));
+        Assert.IsTrue((await PollAsync(sensor.Id)).Succeeded);
+        const string stillAccepts = "The router still accepts custom tunnels on its management ports.";
+        var detail = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}")).ReadAsync<SensorDetail>();
+        CollectionAssert.Contains(detail.Mikrotik!.ScriptDifferences.ToList(), stillAccepts);
+        Assert.IsTrue(detail.Mikrotik.Differences.Single(d => d.Text == stillAccepts).Admin);
+
+        var script = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/join-script?firewall=false")).ReadAsync<MikrotikScript>();
+        Assert.AreEqual(new MikrotikScriptOptions(false, true), script.Options);
+        StringAssert.Contains(script.Script, "# Options: no firewall rules.");
+        Assert.IsFalse(script.Script.Split('\n').Any(l => !l.StartsWith('#') && l.Contains("/ip firewall", StringComparison.Ordinal)));
+        Assert.IsTrue(script.Notes.Any(n => n.Contains("interface list LAN", StringComparison.Ordinal)), string.Join("; ", script.Notes));
+        var without = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}")).ReadAsync<SensorDetail>();
+        Assert.IsFalse(without.Mikrotik!.ScriptDifferences.Contains(stillAccepts), string.Join("; ", without.Mikrotik.ScriptDifferences));
+
+        // Without removals as well, the text says that only a hand removes the rule.
+        await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/join-script?firewall=true&removals=false");
+        var byHand = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}")).ReadAsync<SensorDetail>();
+        CollectionAssert.Contains(byHand.Mikrotik!.ScriptDifferences.ToList(),
+            stillAccepts + " The join script removes nothing: remove the rule by hand, or acknowledge it.");
+    }
+
+    /// <summary>The fleet and the overview compare with everything the Setup tab compares with (docs/mikrotik-join-options-plan.md §3.5).</summary>
+    [TestMethod]
+    public async Task The_fleet_counts_what_the_Setup_tab_shows()
+    {
+        var sensor = await CreateAsync(MikrotikMode.WireGuardOnly, $"fleet {Guid.NewGuid():N}");
+        await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/join-script");
+        Assert.AreEqual(HttpStatusCode.OK, (await user.PostAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/regenerate-keys", null)).StatusCode);
+        var detail = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}")).ReadAsync<SensorDetail>();
+        Assert.IsTrue(detail.Mikrotik!.ScriptOutdated, "new keys after the script was shown");
+        var fleet = await (await admin.GetAsync($"/api/v1/mikrotik/routers?search={Uri.EscapeDataString(sensor.Name)}")).ReadAsync<Paged<MikrotikFleetItem>>();
+        Assert.IsTrue(fleet.Items.Single().ScriptOutdated, "before, the fleet compared WireGuard only routers with nothing");
+        var outdated = (await (await admin.GetAsync("/api/v1/mikrotik/status")).ReadAsync<MikrotikStatus>()).ScriptsOutdated;
+
+        var difference = detail.Mikrotik.Differences.Single();
+        Assert.IsFalse(difference.Admin);
+        await (await user.PostJsonAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/differences/acknowledge",
+            new MikrotikDifferenceAcknowledgeRequest([difference.Id], "The router gets its new keys at the next visit"))).ReadAsync<MikrotikRouterDetail>();
+        fleet = await (await admin.GetAsync($"/api/v1/mikrotik/routers?search={Uri.EscapeDataString(sensor.Name)}")).ReadAsync<Paged<MikrotikFleetItem>>();
+        Assert.IsFalse(fleet.Items.Single().ScriptOutdated);
+        Assert.AreEqual(outdated - 1, (await (await admin.GetAsync("/api/v1/mikrotik/status")).ReadAsync<MikrotikStatus>()).ScriptsOutdated);
+    }
+
     [TestMethod]
     public async Task Network_settings_are_validated_and_a_new_prefix_needs_confirming()
     {

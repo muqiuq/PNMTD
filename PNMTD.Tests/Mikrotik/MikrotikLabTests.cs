@@ -104,6 +104,23 @@ public sealed class MikrotikLabTests
                 Assert.IsTrue(await events.Events.AnyAsync(e => e.SensorId == sensor.Id && e.Code == PNMTStatusCodes.MIKROTIK_CONFIG_CHANGED), name);
             }
 
+            // Without removals (docs/mikrotik-join-options-plan.md §2.3, J2): pasted twice over what the first script created, it sets
+            // what it finds and fails nowhere, the user keeps one key, and PNMT logs in with no difference. Then the defaults again.
+            foreach (var removals in new[] { "false", "false", "true" })
+            {
+                var again = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/join-script?removals={removals}")).ReadAsync<MikrotikScript>();
+                Assert.AreEqual(removals == "true", again.Options!.Removals);
+                await File.WriteAllTextAsync(file, again.Script);
+                var imported = Lab("import", name, file);
+                StringAssert.Contains(imported, "PNMT: the user pnmt is ready.", $"{name}, removals={removals}: {imported}");
+                CollectionAssert.AreEqual(Array.Empty<string>(), RouterErrors(imported), $"{name}, removals={removals}");
+                Assert.AreEqual("1", Lab("ssh", name, ":put [:len [/user ssh-keys find where user=\"pnmt\"]]").Trim(), $"{name}, removals={removals}: one key");
+                var polled = await app.Services.GetRequiredService<RouterPollService>().PollAsync(sensor.Id, wait: true, CancellationToken.None);
+                Assert.IsTrue(polled.Succeeded, $"{name}, removals={removals}: {polled.Message}");
+                var compared = (await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}")).ReadAsync<SensorDetail>()).Mikrotik!;
+                Assert.IsFalse(compared.ScriptOutdated, $"{name}, removals={removals}: {string.Join("; ", compared.ScriptDifferences)}");
+            }
+
             // The removal script leaves nothing behind, and PNMT's login is gone.
             var removal = await (await user.GetAsync($"/api/v1/sensors/{sensor.Id}/mikrotik/removal-script")).ReadAsync<MikrotikScript>();
             await File.WriteAllTextAsync(file, removal.Script);
@@ -112,6 +129,13 @@ public sealed class MikrotikLabTests
             Assert.AreEqual(PNMTStatusCodes.MIKROTIK_ACCESS_DENIED, after.Code, $"{name}: {after.Message}");
         }
     }
+
+    /// <summary>RouterOS's complaints in a verbose import: its own lines, not the script's, which it echoes.</summary>
+    private static string[] RouterErrors(string output) => output.Split('\n').Select(l => l.Trim())
+        .Where(l => l.StartsWith("failure", StringComparison.Ordinal) || l.StartsWith("expected ", StringComparison.Ordinal)
+            || l.StartsWith("bad command", StringComparison.Ordinal) || l.StartsWith("syntax error", StringComparison.Ordinal)
+            || l.StartsWith("no such item", StringComparison.Ordinal) || l.StartsWith("input does not match", StringComparison.Ordinal))
+        .ToArray();
 
     private static string Lab(params string[] args)
     {

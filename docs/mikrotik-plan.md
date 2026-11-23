@@ -368,13 +368,18 @@ A custom tunnel is a WireGuard peer that is not a router. It is typically a tech
 
 | Part | WireGuard + SSH | WireGuard only | Direct SSH |
 |---|---|---|---|
-| Removing what an earlier paste created | ✓ | ✓ | ✓ |
+| Removing what an earlier paste created (unless the option is off, below) | ✓ | ✓ | ✓ |
 | WireGuard interface **with the private key**, the peer, the address and the route | ✓ | ✓ | – |
 | Firewall: SSH from the server address | ✓ | – | – (a commented example) |
 | Firewall: management ports from the access address, with management access | ✓ | ✓ | – |
 | The `pnmt` group, user and SSH key (`address` = the server address, or PNMTD's source address) | ✓ | – | ✓ |
 | `sensitive` in the group, with *Include secrets* (§6.6) | ✓ | – | ✓ |
 | `test` in the group, with *Diagnostics* (§8.4) | ✓ | – | ✓ |
+
+**Two options** (docs/mikrotik-join-options-plan.md §2), in the Setup tab next to the script, both on by default. Each router keeps the ones its script was last shown with, and with both on the script is exactly the one above:
+
+- ***Firewall rules*** (WireGuard + SSH, and WireGuard only with management access): off, the script leaves the filter list alone. It adds, removes and moves no rule, and shows the rules as comments, and the comparison leaves the firewall out.
+- ***Remove what an earlier script created***: off, the script removes nothing. It adds what is missing and sets what is there, found by name or by its comment, and imports PNMTD's key only if the user doesn't have it yet. What it no longer needs stays on the router.
 
 **Rules:**
 
@@ -385,7 +390,7 @@ A custom tunnel is a WireGuard peer that is not a router. It is typically a tech
   - *Regenerate keys* (CanWrite) makes every earlier copy useless (§3.2).
 
   §4.4 covers what someone with a copy could do.
-- **It is safe to paste again.** It first removes everything with its own comment, then creates everything anew, so it also **repairs** a router and **applies changes**: a new mode, endpoint, keepalive, MTU, management access, secrets, diagnostics or SSH key. Only objects whose comment starts with `pnmt:` are removed: this installation's, and those of an earlier PNMT installation, so a router can move between installations (§13.1). M0 confirmed the order of removal and that `gateway=pnmt` works as an interface route; `place-before=0` fails on an empty filter list, so the rules are added and then moved to the top.
+- **It is safe to paste again.** It first removes everything with its own comment, then creates everything anew, so it also **repairs** a router and **applies changes**: a new mode, endpoint, keepalive, MTU, management access, secrets, diagnostics or SSH key. Only objects whose comment starts with `pnmt:` are removed: this installation's, and those of an earlier PNMT installation, so a router can move between installations (§13.1). M0 confirmed the order of removal and that `gateway=pnmt` works as an interface route; `place-before=0` fails on an empty filter list, so the rules are added and then moved to the top. Without removals, it sets instead (J1 on 7.13 and 7.25.1, docs/mikrotik-join-options-plan.md §2.3).
 - **It checks before it changes anything else.** If `/ip service ssh` is disabled, uses another port, or is limited to certain addresses, the script tells the admin and adjusts only what PNMT needs. PNMTD reads the SSH port at the first login *(M0)*.
 - **The listen port** only has to be free, because the router dials out. Since 7.14, two WireGuard interfaces cannot share one, so the script takes the first free port from 13231 up.
 - **Strings are quoted** by RouterOS's rules: names, comments and the endpoint. A test covers it (§14).
@@ -1047,7 +1052,7 @@ The OpenAPI document and the generated UI types (`openapi.json`, `schema.d.ts`) 
 
   WireGuard only shows the tunnel alone.
 - **Tabs with their own routes**, as UDP nodes have: `/sensors/:id/{events,setup,backups,updates,commands}`. The SSH modes have all five; WireGuard only has Events and Setup.
-  - **Setup:** the steps with their live state (*waiting for the router → tunnel up → logged in → ready*), and the join script with *Copy* and *Download .rsc*, hidden until *Show* is clicked, because it holds a key. A banner appears when the script is outdated, saying what changed. Below: the host key with identity and serial number, *Regenerate keys*, and the removal script.
+  - **Setup:** the steps with their live state (*waiting for the router → tunnel up → logged in → ready*), and the join script with *Copy* and *Download .rsc*, hidden until *Show* is clicked, because it holds a key. A banner appears when the script is outdated, saying what changed. A difference that is intended can be acknowledged there, or from the status strip, with a reason; it then stays in the list, greyed out, until what it covers changes (docs/mikrotik-join-options-plan.md §3). Next to the script, its two options (§4.3). Below: the host key with identity and serial number, *Regenerate keys*, and the removal script.
   - **Backups:** the versions (time, trigger, version, +/− lines, size, a secrets badge, binary or export). *View*, *Diff with the previous*, a diff between any two selected versions, and *Download*. *Back up now* (CanWrite).
   - **Updates:** installed, latest for the channel, the changelog, and the firmware. *Update…* (Admin) opens a dialog that asks for the channel, the username and the password, and sets the options. It shows the router's identity and serial number, what will happen, and the expected downtime. Below it, the job history, each job with its log as a timeline (like `CommandLogTimeline`).
   - **Commands:** a monospace editor for the text, *Run as* (`pnmt`; or an admin, for Admins, with the username and password), the timeout, the options, and *Run*. The result follows below it: the outcome, the duration, the output with *Copy* and *Download .txt*, and with backups before and after, their diff. Then the router's history, with *Run again*, and *Redact* for Admins. The editor hints at `count=` for ping, `once` for monitors and `:execute` for reboots, and warns when the text touches PNMT's objects (§8.2).

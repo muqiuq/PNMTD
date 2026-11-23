@@ -36,18 +36,38 @@ public sealed class SensorMikrotikController(MikrotikRouterService routers, Mikr
 
     /// <summary>
     /// The join script (§4.3): pasted into the router's terminal, or imported as a .rsc file. In the
-    /// WireGuard modes it holds the router's private key; every view is audit-logged.
+    /// WireGuard modes it holds the router's private key; every view is audit-logged. Its options
+    /// (docs/mikrotik-join-options-plan.md §2): PNMT's firewall rules and the removals, each left out for
+    /// the router's own, which are the ones it was last shown with; the ones used are kept.
     /// </summary>
     [HttpGet("join-script")]
     [RequireRight(Area.Monitoring, Level.Edit)]
-    public async Task<ActionResult<MikrotikScript>> JoinScript(Guid id, CancellationToken ct) =>
-        await routers.ScriptAsync(id, removal: false, ct);
+    public async Task<ActionResult<MikrotikScript>> JoinScript(Guid id, [FromQuery] bool? firewall, [FromQuery] bool? removals, CancellationToken ct) =>
+        await routers.ScriptAsync(id, removal: false, firewall, removals, ct);
 
     /// <summary>The script that removes everything PNMT created on the router (§4.6).</summary>
     [HttpGet("removal-script")]
     [RequireRight(Area.Monitoring, Level.Edit)]
     public async Task<ActionResult<MikrotikScript>> RemovalScript(Guid id, CancellationToken ct) =>
-        await routers.ScriptAsync(id, removal: true, ct);
+        await routers.ScriptAsync(id, removal: true, null, null, ct);
+
+    /// <summary>
+    /// Acknowledges differences between the router and its join script as intended, with a reason (docs/mikrotik-join-options-plan.md §3):
+    /// the warning goes until what they cover changes. Those about the policies, the management rule and retired keys need an Admin. One
+    /// audit entry each.
+    /// </summary>
+    [HttpPost("differences/acknowledge")]
+    [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.MikrotikDifferenceAcknowledged)]
+    public async Task<ActionResult<MikrotikRouterDetail>> AcknowledgeDifferences(Guid id, MikrotikDifferenceAcknowledgeRequest request, CancellationToken ct) =>
+        await routers.AcknowledgeAsync(id, request, ct);
+
+    /// <summary>Removes a difference's acknowledgement: the warning returns while the difference is there.</summary>
+    [HttpDelete("differences/{differenceId}/acknowledgement")]
+    [RequireRight(Area.Monitoring, Level.Edit)]
+    [Audit(AuditEvents.MikrotikDifferenceAcknowledgementEnded)]
+    public async Task<ActionResult<MikrotikRouterDetail>> UnacknowledgeDifference(Guid id, string differenceId, CancellationToken ct) =>
+        await routers.UnacknowledgeAsync(id, differenceId, ct);
 
     /// <summary>Polls the router now, and answers when the poll is done.</summary>
     [HttpPost("poll")]

@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import Button from 'primevue/button'
 import Message from 'primevue/message'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { S } from '@/api/resources'
 import RelativeTime from '@/components/RelativeTime.vue'
+import AcknowledgeDifferencesDialog from './AcknowledgeDifferencesDialog.vue'
 import { formatDuration, formatPercent } from '@/format'
 import { formatBytes } from '@/format/bytes'
 import { nextBackupAt } from './backupSchedule'
@@ -12,9 +14,14 @@ import { modeLabel } from './mikrotikDraft'
 /**
  * A router at a glance (docs/mikrotik-plan.md §11.1): RouterOS and its channel with an available
  * update, the model and serial number, uptime, CPU, memory, storage, firmware, the last poll and
- * the last error, and the server's warnings.
+ * the last error, and the server's warnings. A difference from the join script can be acknowledged
+ * as intended here too (docs/mikrotik-join-options-plan.md §4.2): the dialog lists what the strip doesn't.
  */
-const props = defineProps<{ sensor: S['SensorDetail'] }>()
+const props = withDefaults(defineProps<{ sensor: S['SensorDetail']; canWrite?: boolean; isAdmin?: boolean }>(), {
+  canWrite: false,
+  isAdmin: false,
+})
+const acknowledging = ref(false)
 const m = computed(() => props.sensor.mikrotik!)
 const nextBackup = computed(() => nextBackupAt(m.value.lastExportAt, m.value.backupIntervalHours))
 const r = computed(() => m.value.resources)
@@ -136,8 +143,22 @@ const uptime = computed(() => (r.value?.uptimeSeconds != null ? formatDuration(r
       <Message v-if="m.scriptOutdated" severity="warn" :closable="false" size="small">
         The router's setup differs from its join script:
         <RouterLink :to="{ name: 'sensor', params: { id: sensor.id, tab: 'setup' } }">paste the new script</RouterLink>.
+        <Button
+          v-if="canWrite"
+          label="Acknowledge…"
+          size="small"
+          text
+          class="acknowledge"
+          @click="acknowledging = true"
+        />
       </Message>
     </div>
+    <AcknowledgeDifferencesDialog
+      v-if="canWrite"
+      v-model:visible="acknowledging"
+      :sensor="sensor"
+      :is-admin="isAdmin"
+    />
   </section>
 </template>
 
@@ -196,6 +217,11 @@ const uptime = computed(() => (r.value?.uptimeSeconds != null ? formatDuration(r
   .stats {
     gap: var(--pnmt-space-2) var(--pnmt-space-4);
   }
+}
+
+.acknowledge {
+  margin-left: var(--pnmt-space-2);
+  padding-block: 0;
 }
 
 .lock {

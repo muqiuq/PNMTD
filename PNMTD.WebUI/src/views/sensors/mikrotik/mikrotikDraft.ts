@@ -131,3 +131,32 @@ export function changeHints(m: S['MikrotikRouterDetail'], d: MikrotikDraft): str
   }
   return hints
 }
+
+// --- the join script's options and acknowledged differences (docs/mikrotik-join-options-plan.md) -------------------
+
+type ScriptRouter = Pick<S['MikrotikRouterDetail'], 'mode' | 'managementAccess'>
+type Difference = S['MikrotikScriptDifference']
+
+/** Whether the router's join script has firewall rules, so that its option Firewall rules means anything (§2.1). */
+export const scriptHasRules = (m: ScriptRouter) =>
+  m.mode === 'WireGuardSsh' || (m.mode === 'WireGuardOnly' && m.managementAccess)
+
+/** What PNMT's firewall rules let through, for the option's hint. */
+export function rulesHint(m: ScriptRouter): string {
+  const what =
+    m.mode === 'WireGuardSsh'
+      ? m.managementAccess
+        ? "PNMTD's SSH and custom tunnels' management ports"
+        : "PNMTD's SSH"
+      : "custom tunnels' management ports"
+  return `Accepts ${what} on the interface pnmt, first in the filter list.`
+}
+
+/** The differences no acknowledgement covers: the warning's (§3.4). */
+export const openDifferences = (differences: Difference[]) => differences.filter((d) => !d.acknowledgement)
+
+/** Those acknowledged as intended: greyed out in the Setup tab, with who, when and why. */
+export const acknowledgedDifferences = (differences: Difference[]) => differences.filter((d) => !!d.acknowledgement)
+
+/** Who may acknowledge a difference, or remove its acknowledgement: CanWrite, and for the Admin settings' an Admin (§3.1). */
+export const mayAcknowledge = (d: Difference, isAdmin: boolean) => !d.admin || isAdmin

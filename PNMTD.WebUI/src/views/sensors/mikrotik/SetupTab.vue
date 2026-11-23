@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useQueryClient } from '@tanstack/vue-query'
 import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
 import Message from 'primevue/message'
 import { computed, ref, watch } from 'vue'
 import { api, keys, type S } from '@/api/resources'
@@ -8,12 +9,21 @@ import CopyField from '@/components/CopyField.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { useActions } from '@/composables/useActions'
 import { useSession } from '@/stores/session'
-import { modeLabel } from './mikrotikDraft'
+import AcknowledgeDifferencesDialog from './AcknowledgeDifferencesDialog.vue'
+import {
+  acknowledgedDifferences,
+  mayAcknowledge,
+  modeLabel,
+  openDifferences,
+  rulesHint,
+  scriptHasRules,
+} from './mikrotikDraft'
 
 /**
  * A router's Setup tab (docs/mikrotik-plan.md §11.1): the steps with their live state, the join
  * script (hidden until asked for: viewing it is audit-logged, and in the WireGuard modes it holds a
- * key), the host key with the router's identity, poll now, and the removal script.
+ * key), the host key with the router's identity, poll now, and the removal script. The join script's
+ * options, and the differences acknowledged as intended (docs/mikrotik-join-options-plan.md §4).
  */
 const props = defineProps<{ sensor: S['SensorDetail']; canWrite: boolean; isAdmin: boolean }>()
 const emit = defineEmits<{ edit: [] }>()
@@ -33,13 +43,23 @@ async function scan() {
 const m = computed(() => props.sensor.mikrotik!)
 const script = ref<S['MikrotikScript'] | null>(null)
 const removal = ref<S['MikrotikScript'] | null>(null)
+// The join script's options (§2): the router's own, those it was last shown with, until changed here.
+const firewall = ref(true)
+const removals = ref(true)
 watch(
   () => props.sensor.id,
   () => {
     script.value = null
     removal.value = null
+    firewall.value = m.value.scriptOptions.firewall
+    removals.value = m.value.scriptOptions.removals
   },
+  { immediate: true },
 )
+const hasRules = computed(() => scriptHasRules(m.value))
+const open = computed(() => openDifferences(m.value.differences))
+const acknowledged = computed(() => acknowledgedDifferences(m.value.differences))
+const acknowledging = ref(false)
 
 type Step = { key: string; label: string; state: 'done' | 'current' | 'todo' | 'failed'; detail?: string }
 const steps = computed<Step[]>(() => {
@@ -79,8 +99,34 @@ const steps = computed<Step[]>(() => {
   return list
 })
 
+/** Each view is audit-logged and keeps its options with the router, which changes what is compared: the detail follows. */
 async function show() {
-  script.value = (await run(() => api.mikrotik.joinScript(props.sensor.id), { failure: 'No join script' })) ?? null
+  const shown = await run(() => api.mikrotik.joinScript(props.sensor.id, options()), {
+    failure: 'No join script',
+    invalidate: [keys.sensor(props.sensor.id), keys.mikrotik],
+  })
+  if (shown) script.value = shown
+}
+
+/** Firewall rules only where the script has them; elsewhere the router's own stays as it is. */
+const options = (): Partial<S['MikrotikScriptOptions']> =>
+  hasRules.value ? { firewall: firewall.value, removals: removals.value } : { removals: removals.value }
+
+/** A changed option while the script is shown: the script with it, another view (the panel says each is recorded). */
+async function changed() {
+  if (script.value) await show()
+}
+
+async function unacknowledge(d: S['MikrotikScriptDifference']) {
+  if (
+    !(await ask('Remove the acknowledgement?', `The warning comes back while the router differs: ${d.text}`, 'Remove'))
+  )
+    return
+  const detail = await run(() => api.mikrotik.unacknowledgeDifference(props.sensor.id, d.id), {
+    success: 'Acknowledgement removed',
+    invalidate: [keys.mikrotik],
+  })
+  if (detail) queryClient.setQueryData(keys.sensor(props.sensor.id), { ...props.sensor, mikrotik: detail })
 }
 
 async function showRemoval() {
@@ -176,14 +222,45 @@ async function accept() {
             </div>
           </li>
         </ol>
-        <Message v-if="m.scriptOutdated" severity="warn" :closable="false" size="small">
+        <Message v-if="open.length" severity="warn" :closable="false" size="small">
           <div>The router differs from its join script; paste the script again to apply it:</div>
           <ul class="differences">
-            <li v-for="d in m.scriptDifferences" :key="d">{{ d }}</li>
+            <li v-for="d in open" :key="d.id">{{ d.text }}</li>
           </ul>
+          <Button
+            v-if="canWrite"
+            label="Acknowledge…"
+            icon="pi pi-check"
+            size="small"
+            text
+            class="acknowledge"
+            @click="acknowledging = true"
+          />
         </Message>
+        <div v-if="acknowledged.length" class="acknowledged">
+          <div class="muted small">Acknowledged differences</div>
+          <ul>
+            <li v-for="d in acknowledged" :key="d.id">
+              <div>{{ d.text }}</div>
+              <div class="small muted">
+                Acknowledged<template v-if="d.acknowledgement!.byName"> by {{ d.acknowledgement!.byName }}</template
+                >{{ ' ' }}<RelativeTime :value="d.acknowledgement!.at" />:
+                <span class="reason">{{ d.acknowledgement!.reason }}</span>
+              </div>
+              <Button
+                v-if="canWrite && mayAcknowledge(d, isAdmin)"
+                label="Remove acknowledgement"
+                size="small"
+                text
+                severity="secondary"
+                @click="unacknowledge(d)"
+              />
+            </li>
+          </ul>
+        </div>
       </div>
     </section>
+    <AcknowledgeDifferencesDialog v-model:visible="acknowledging" :sensor="sensor" :is-admin="isAdmin" />
 
     <section v-if="canWrite" class="panel" aria-labelledby="script-title">
       <div id="script-title" class="panel-header">Join script</div>
@@ -193,6 +270,30 @@ async function accept() {
           <code>pnmt-join.rsc</code> and run <code>/import file-name=pnmt-join.rsc</code>. It creates the user pnmt,
           which may read but not change anything, and can be pasted again: it replaces what it created before.
         </p>
+        <div class="options">
+          <template v-if="hasRules">
+            <div class="option">
+              <Checkbox v-model="firewall" input-id="join-firewall" binary @update:model-value="changed" />
+              <label for="join-firewall">Firewall rules</label>
+            </div>
+            <small v-if="firewall" class="muted hint">{{ rulesHint(m) }}</small>
+            <Message v-else severity="warn" :closable="false" size="small" class="hint">
+              The script leaves the filter list alone: it adds, removes and moves no rule, and shows the rules as
+              comments. Allow what PNMT needs yourself; the Setup tab no longer compares the firewall.
+            </Message>
+          </template>
+          <div class="option">
+            <Checkbox v-model="removals" input-id="join-removals" binary @update:model-value="changed" />
+            <label for="join-removals">Remove what an earlier script created</label>
+          </div>
+          <small v-if="removals" class="muted hint"
+            >Pasting it again replaces what PNMT created (comment pnmt:…).</small
+          >
+          <Message v-else severity="info" :closable="false" size="small" class="hint">
+            The script removes nothing: it adds what is missing and updates what is there. What it no longer needs stays
+            on the router, and the Setup tab lists it.
+          </Message>
+        </div>
         <Button v-if="!script" label="Show join script" icon="pi pi-eye" :loading="busy" @click="show" />
         <template v-else>
           <pre class="script" aria-label="Join script">{{ script.script }}</pre>
@@ -371,6 +472,48 @@ async function accept() {
 .differences {
   margin: var(--pnmt-space-1) 0 0;
   padding-left: var(--pnmt-space-4);
+}
+
+.acknowledge {
+  margin-top: var(--pnmt-space-1);
+}
+
+.acknowledged {
+  margin-top: var(--pnmt-space-2);
+}
+
+.acknowledged ul {
+  list-style: none;
+  margin: var(--pnmt-space-1) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-2);
+}
+
+.acknowledged li {
+  color: var(--pnmt-muted);
+}
+
+.reason {
+  white-space: pre-wrap;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-1);
+  width: 100%;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--pnmt-space-2);
+}
+
+.hint {
+  margin-left: calc(1.25rem + var(--pnmt-space-2));
 }
 
 .script-body {

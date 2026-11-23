@@ -107,6 +107,55 @@ test('a viewer sees a router, but neither its commands nor its script', async ({
   await expect(page.getByRole('button', { name: 'Show join script' })).toHaveCount(0)
 })
 
+// docs/mikrotik-join-options-plan.md §4: basel's Diagnostics are on, but its group lacks test (the seed). The join script
+// without removals, and the difference acknowledged with a reason, greyed out, and shown again.
+test("the join script's options, and a difference acknowledged as intended", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await signIn(page)
+  await openRouter(page, 'office-basel-gw')
+  const status = page.getByRole('region', { name: 'Router status' })
+  await expect(status).toContainText("The router's setup differs from its join script")
+  await expect(tab(page, 'Setup').locator('.badge')).toHaveText('!')
+  await tab(page, 'Setup').click()
+
+  // Direct SSH has no firewall rules, so no such option; without removals the script adds or sets, and says so.
+  await expect(page.getByLabel('Firewall rules')).toHaveCount(0)
+  const removals = page.getByLabel('Remove what an earlier script created')
+  await removals.uncheck()
+  await expect(page.getByText('The script removes nothing')).toBeVisible()
+  await page.getByRole('button', { name: 'Show join script' }).click()
+  const script = page.locator('pre[aria-label="Join script"]')
+  await expect(script).toContainText('# Options: no removals.')
+  await expect(script).not.toContainText('/user remove')
+  // Changed while it is shown, the script follows.
+  await removals.check()
+  await expect(script).toContainText('/user remove [find where comment~"^pnmt:"]')
+
+  const warning = page.getByText('The router differs from its join script')
+  await expect(warning).toBeVisible()
+  await page
+    .getByRole('region', { name: /^Setup/ })
+    .getByRole('button', { name: 'Acknowledge…' })
+    .click()
+  const dialog = page.getByRole('dialog', { name: 'Acknowledge a difference' })
+  await expect(dialog).toContainText('Diagnostics are on, but the group pnmt-read lacks the policy test.')
+  await expect(dialog.getByRole('button', { name: 'Acknowledge', exact: true })).toBeDisabled()
+  await dialog.getByLabel('Reason').fill('No pings from PNMT on this router')
+  await dialog.getByRole('button', { name: 'Acknowledge', exact: true }).click()
+  await expect(warning).toHaveCount(0)
+  await expect(page.getByText('Acknowledged differences')).toBeVisible()
+  await expect(page.getByText('No pings from PNMT on this router')).toBeVisible()
+  await expect(status).not.toContainText('differs from its join script')
+  await expect(tab(page, 'Setup').locator('.badge')).toHaveCount(0)
+  await shot(page, 'mikrotik-acknowledged')
+
+  // Its acknowledgement removed, the warning is back.
+  await page.getByRole('button', { name: 'Remove acknowledgement' }).click()
+  await page.getByRole('button', { name: 'Remove', exact: true }).click()
+  await expect(warning).toBeVisible()
+  await expect(tab(page, 'Setup').locator('.badge')).toHaveText('!')
+})
+
 test('a new router through Add router on a host made right there, with its join script', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
   await signIn(page)

@@ -25,6 +25,10 @@ internal static class MikrotikCommand
           mikrotik backup <name|id> [--print]   back the configuration up now (a version only if it changed);
                                                 --print writes the newest stored export to standard output
           mikrotik script <name|id> [--removal] print the join script (audit-logged), or the removal script
+                [--firewall | --no-firewall] [--removals | --no-removals]
+                                                the join script with or without PNMT's firewall rules, and with or
+                                                without removing what an earlier script created; left out, the
+                                                router's own (those it was last shown with), which are then kept
           mikrotik accept-host-key <name|id>    accept the host key the router presented instead of the pinned one
           mikrotik versions                     fetch the newest RouterOS version of each channel now
           mikrotik run <name|id>… (--command <text> | --file <script.rsc>) [--admin <user> --password-stdin]
@@ -158,9 +162,16 @@ internal static class MikrotikCommand
     private static int Script(IServiceProvider sp, string name, CommandLine.Options o)
     {
         var removal = o.Flag("--removal");
+        // docs/mikrotik-join-options-plan.md §2.5.
+        bool? firewall = o.Flag("--firewall") ? true : o.Flag("--no-firewall") ? false : null;
+        bool? removals = o.Flag("--removals") ? true : o.Flag("--no-removals") ? false : null;
         o.EnsureAllUsed();
+        if (removal && (firewall is not null || removals is not null))
+        {
+            throw new CommandLineException("The removal script has no options: it removes everything a join script created.");
+        }
         var id = Resolve(sp, name);
-        var script = sp.GetRequiredService<MikrotikRouterService>().ScriptAsync(id, removal, CancellationToken.None).GetAwaiter().GetResult();
+        var script = sp.GetRequiredService<MikrotikRouterService>().ScriptAsync(id, removal, firewall, removals, CancellationToken.None).GetAwaiter().GetResult();
         Console.Write(script.Script);
         foreach (var note in script.Notes)
         {

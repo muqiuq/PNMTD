@@ -74,6 +74,8 @@ public sealed record MikrotikRouterDetail(
     bool ScriptOutdated,
     IReadOnlyList<string> ScriptDifferences,
     IReadOnlyList<string> Warnings,
+    MikrotikScriptOptions ScriptOptions,
+    IReadOnlyList<MikrotikScriptDifference> Differences,
     DateTime? LastExportAt = null,
     int BackupFailures = 0,
     string? LastBackupError = null,
@@ -114,8 +116,27 @@ public sealed record MikrotikResources(
     string? BadBlocks,
     long? UptimeSeconds);
 
-/// <summary>A join or removal script (§4.3, §4.6), as text, with the file name for <c>/import</c>.</summary>
-public sealed record MikrotikScript(string Script, string FileName, MikrotikMode Mode, DateTime GeneratedAt, IReadOnlyList<string> Notes);
+/// <summary>A join or removal script (§4.3, §4.6), as text, with the file name for <c>/import</c>; a join script with its options.</summary>
+public sealed record MikrotikScript(string Script, string FileName, MikrotikMode Mode, DateTime GeneratedAt, IReadOnlyList<string> Notes,
+    MikrotikScriptOptions? Options = null);
+
+/// <summary>
+/// The join script's options (docs/mikrotik-join-options-plan.md §2): PNMT's firewall rules, and the removal of what an earlier
+/// script created. Both on is the script as it always was. Remembered per router with the script they were last shown with.
+/// </summary>
+public sealed record MikrotikScriptOptions(bool Firewall, bool Removals);
+
+/// <summary>
+/// A difference between the router and its join script (§3.2), open or acknowledged. <see cref="Admin"/>: about a setting only an
+/// Admin may change (the policies, the management rule, a retired key), so only an Admin may acknowledge it.
+/// </summary>
+public sealed record MikrotikScriptDifference(string Id, string Text, bool Admin, MikrotikDifferenceAcknowledgement? Acknowledgement);
+
+/// <summary>Who acknowledged a difference as intended, why and when (§3.1). It lasts until what it covers changes.</summary>
+public sealed record MikrotikDifferenceAcknowledgement(string? ByName, string Reason, DateTime At);
+
+/// <summary>Acknowledging differences of one router (§3.4): their ids as the detail lists them, and the reason (required).</summary>
+public sealed record MikrotikDifferenceAcknowledgeRequest(IReadOnlyList<string> Ids, string Reason);
 
 /// <summary>A row of the admin page's routers (§11.2).</summary>
 public sealed record MikrotikFleetItem(
