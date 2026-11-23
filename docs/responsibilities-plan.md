@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Plan, revision 2.** Nothing is built. Revision 2 applies **the review's answers** (§17). Revision 1 was the first plan |
+| Status | **Built: P1–P6, on master** (2026-11-23, §19 *As built*). For 1.21.0; not tagged yet. Revision 2 applied **the review's answers** (§18). Revision 1 was the first plan |
 | Date | 2026-11-23 |
 | Scope | A new page, ***Admin → Responsibilities***:<ol><li>**Responsibilities**, each with:<ul><li>a name, a short description, and a long description in Markdown, **edited like a knowledge base page**, with images, files and page links (§4);</li><li>a responsible and a deputy, each a PNMT user;</li><li>links to knowledge base pages, locations and hosts.</li></ul></li><li>**The global responsible and the global deputy.** They own whatever no responsibility covers, and stand in for a responsibility that has nobody (§5).</li><li>**Redmine combinations, optional.** A responsibility can list Redmine projects with a tracker, or with every tracker. Each names the user who handles it (§6).</li><li>**Shown where linked.** A panel on a host, a location or a page that a responsibility links (§8).</li><li>**MCP and Cookie read them,** read-only (§7).</li></ol> |
 | Not in scope | <ul><li>**Telling anyone anything.** Responsibilities are information only (decision 5). Notification rules, Cookie's duties, the away watch and the access watch keep choosing their recipients as today. §13 names where they could hook in later.</li><li>**Who works today.** Responsibilities don't read the availability plan (decision 4). The availability plan itself stays as it is.</li><li>**Inheritance.** A host in a linked location shows nothing (decision 6).</li><li>**Anything per ticket.** No ticket is matched, nothing is shown on a ticket, and no assignee is set in Redmine.</li><li>Groups as the responsible or the deputy (decision 9).</li><li>Sensors as link targets.</li><li>Writes over MCP.</li><li>Reading which trackers a Redmine project has enabled.</li><li>Permissions per responsibility.</li><li>Archiving (decision 12).</li></ul> |
@@ -687,6 +687,60 @@ As before: **few tests, where they protect something.**
 - **A linked object's panel comes with the object's own response,** not a request of its own, so it only appears when there is something to show.
 
 No questions are open.
+
+---
+
+## 19. As built
+
+**P1–P6 are on master** (2026-11-23), in five commits. Where the code differs from the sections above, this section says so; the rest
+is as planned.
+
+### P1 and P2: the page, the global people, links, and the description
+
+- **One commit for both** (`d885800`), not one each. P2's model change was made while P1's full run was building, so that run didn't
+  count; P1 and P2 share the service, the contracts, the page and the model snapshot, so they were tested and committed together rather
+  than split by hand into a state that was never run.
+- **The description is restored from *before* a change** (§10.5), as a location's history restores a value: the history dialog shows the
+  text before and after, and *Restore the text from before* saves the earlier one as a change of its own.
+- **`SearchService.ObjectsAsync`** finds the link picker's pages, locations and hosts as the global search does, without sensors, tickets
+  or Zabbix, for `GET /responsibilities/targets`.
+- **`RequireAnyRight` has a constructor for three rights**, used by the upload and the download of files.
+- **`FileUses.RecordAsync` takes a `FileOwner`** (page, location or responsibility) instead of two nullable ids.
+- **The editing page's *Link to a page…*** searches through `GET /responsibilities/targets`, so it needs no *Monitoring: View* either.
+
+### P3: Redmine combinations
+
+- **Names come from the worker's cached lookups** (`RedmineWorker.CachedLookups`, new), which never waits or asks Redmine; the dialog
+  and saves read the lookups through the queue as the Cookie tab does.
+- **A save that needs Redmine's lookups while Redmine can't be reached** answers 503 `redmine_unreachable`. A change that keeps the
+  project and tracker doesn't need them.
+- **A move to another responsibility** writes a history row on both, and its audit entry names both, so both histories show it.
+
+### P4: the panels
+
+- **The panels have an endpoint of their own,** `GET /responsibilities/linked?host|location|page`, instead of a new field on the details
+  of hosts, locations and pages (§8, §11). Those contracts are used by MCP, Cookie and many pages; the panel asks only for those with
+  *Responsibilities: View*, and still renders nothing without a link.
+
+### P5: MCP and Cookie
+
+- **People's names go through the tool's masker** (`ctx.Privacy.Mask`), as `availability_get` does: Cookie knows them as it knows people
+  elsewhere, MCP sees them as they are.
+- **The description is given as plain text** (`MarkdownText.Read(…).PlainText`, at most 6,000 characters), as `kb_page` gives a page.
+
+### P6: the finish
+
+- The documentation page (*Responsibilities*, next to the availability plan's), docs/release-notes-1.21.md, the README's features.
+
+### The checks
+
+- **`./run-tests.sh --only web,dotnet` green after each commit:** typecheck, lint, Prettier, Vitest and the build; the .NET tests in
+  Europe/Zurich and America/New_York; no pending model changes.
+- **New tests:** `ResponsibilitiesApiTests`, `ResponsibilityRedmineTests` (against the fake Redmine), `ResponsibilityToolsTests`, and
+  `responsibilities.test.ts`; `FileUsesTests`, `EndpointAuditTests`, `GroupsTests`, `McpToolsTests` and `DevSeedTests` extended.
+- **The e2e group** (`./run-tests.sh --only e2e`) green after P6, with the new page in `e2e/pages.spec.ts`.
+- **Not run here:** the contract, deploy and upgrade groups. The sensor API isn't touched; the three migrations only add tables and one
+  null column.
 
 ---
 
