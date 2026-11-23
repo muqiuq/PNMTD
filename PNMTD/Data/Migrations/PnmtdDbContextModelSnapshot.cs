@@ -9262,6 +9262,57 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("zabbix_hosts");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.ZabbixProblemHistoryEntity", b =>
+                {
+                    b.Property<long>("EventId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.PrimitiveCollection<List<long>>("HostIds")
+                        .IsRequired()
+                        .HasColumnType("bigint[]");
+
+                    b.PrimitiveCollection<List<string>>("HostNames")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ResolvedFrom")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Suppressed")
+                        .HasColumnType("boolean");
+
+                    b.Property<long>("TriggerId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("EventId");
+
+                    b.HasIndex("ResolvedAt");
+
+                    b.HasIndex("StartedAt");
+
+                    b.ToTable("zabbix_problem_history");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.ZabbixSensorEntity", b =>
                 {
                     b.Property<Guid>("SensorId")

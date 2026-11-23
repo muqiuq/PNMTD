@@ -131,7 +131,8 @@ public sealed class ZabbixHealth(SystemSensors systemSensors, ILogger<ZabbixHeal
 /// ZABBIX sensors' state. A failure keeps the snapshot and writes no sensor event (§7.7); it goes to the system sensor.
 /// </summary>
 public sealed class ZabbixPoller(ZabbixClient client, ZabbixGroups groups, ZabbixSnapshot snapshot, ZabbixHealth health,
-    ZabbixSensors sensors, IServiceScopeFactory scopes, IOptionsMonitor<ZabbixOptions> options, ILogger<ZabbixPoller> logger) : BackgroundService
+    ZabbixSensors sensors, ZabbixHistory history, IServiceScopeFactory scopes, IOptionsMonitor<ZabbixOptions> options, ILogger<ZabbixPoller> logger)
+    : BackgroundService
 {
     public const int MaxProblems = 10_000;
 
@@ -203,10 +204,12 @@ public sealed class ZabbixPoller(ZabbixClient client, ZabbixGroups groups, Zabbi
             {
                 var p = new Dictionary<string, object?>
                 {
-                    ["output"] = new[] { "eventid", "objectid", "name", "severity", "clock", "acknowledged", "suppressed", "opdata" },
+                    ["output"] = new[] { "eventid", "objectid", "name", "severity", "clock", "acknowledged", "suppressed", "opdata", "r_eventid", "r_clock" },
                     ["selectTags"] = new[] { "tag", "value" },
                     ["selectAcknowledges"] = new[] { "acknowledgeid" },
-                    ["recent"] = false,
+                    // The open problems and those resolved within Zabbix's "Display OK triggers for", with their recovery: the
+                    // boards' history (docs/boards-plan.md §7.5). The snapshot keeps only the open ones, as before.
+                    ["recent"] = true,
                     ["sortfield"] = new[] { "eventid" },
                     ["sortorder"] = "DESC",
                     ["limit"] = MaxProblems,
@@ -218,11 +221,16 @@ public sealed class ZabbixPoller(ZabbixClient client, ZabbixGroups groups, Zabbi
                 problems = await client.CallAsync<List<ZxProblem>>("problem.get", p, ct);
             }
             var checks = await CheckTriggersAsync(problems, ct);
-            var shown = problems.Where(x => checks[x.Objectid].Shown).Select(x => Map(x, checks[x.Objectid].Hosts)).ToList();
+            var open = problems.Where(x => !x.Resolved).ToList();
+            var shown = open.Where(x => checks[x.Objectid].Shown).Select(x => Map(x, checks[x.Objectid].Hosts)).ToList();
             // Only a poll that got this far keeps what it learned: after a failed one the triggers are as they were.
             triggers = checks;
             seenEvents = problems.Select(x => x.Eventid).ToHashSet();
-            snapshot.Replace(shown, problems.Count - shown.Count, Clock.UtcNow);
+            var now = Clock.UtcNow;
+            snapshot.Replace(shown, open.Count - shown.Count, now);
+            await history.RecordAsync(problems.Where(x => checks[x.Objectid].Shown).Select(x => new ZabbixHistory.Seen(Int(x.Eventid), Int(x.Objectid), x.Name,
+                Severity(x.Severity), x.Suppressed == "1", checks[x.Objectid].Hosts, DateTime.UnixEpoch.AddSeconds(Int(x.Clock)),
+                x.Resolved ? DateTime.UnixEpoch.AddSeconds(Int(x.RClock)) : null)).ToList(), now, ct);
             await using (var s = scopes.CreateAsyncScope())
             {
                 s.ServiceProvider.GetRequiredService<PnmtdDbContext>().UpdateKeyValueTimestampToNow(KeyValueKeyEnums.LAST_ZABBIX_POLL);

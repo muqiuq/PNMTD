@@ -44,6 +44,11 @@ public sealed class ZabbixOptions
     /// <summary>How often a hidden problem's trigger is asked again; at least 1. The shown ones are asked every poll.</summary>
     public int HiddenRecheckMinutes { get; set; } = 60;
 
+    /// <summary>
+    /// How long resolved problems stay in <c>zabbix_problem_history</c> (docs/boards-plan.md §7.5): the boards' history of problems.
+    /// </summary>
+    public int HistoryDays { get; set; } = 7;
+
     /// <summary>A Zabbix with a certificate of its own (self-signed): the SHA-256 of the one PNMT accepts besides valid ones.</summary>
     public string? CertificateSha256 { get; set; }
 

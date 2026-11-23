@@ -24,8 +24,17 @@ public sealed record ZxHost(string Hostid, string Host, string Name, string Stat
 
 public sealed record ZxAcknowledge(string Acknowledgeid, string Userid, string Clock, string? Message, string Action);
 
+/// <summary>
+/// A problem as <c>problem.get</c> returns it. With <c>recent</c>, also one resolved within Zabbix's <i>Display OK triggers for</i>:
+/// <see cref="REventid"/> is its recovery event ("0" while open), <see cref="RClock"/> its time (docs/boards-plan.md §7.5).
+/// </summary>
 public sealed record ZxProblem(string Eventid, string Objectid, string Name, string Severity, string Clock, string Acknowledged, string? Suppressed,
-    string? Opdata, List<ZxTag>? Tags, List<ZxAcknowledge>? Acknowledges);
+    string? Opdata, List<ZxTag>? Tags, List<ZxAcknowledge>? Acknowledges,
+    [property: JsonPropertyName("r_eventid")] string? REventid = null,
+    [property: JsonPropertyName("r_clock")] string? RClock = null)
+{
+    public bool Resolved => REventid is { Length: > 0 } r && r != "0";
+}
 
 public sealed record ZxTriggerHost(string Hostid, string Host, string Name);
 

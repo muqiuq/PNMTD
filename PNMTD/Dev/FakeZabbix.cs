@@ -185,7 +185,10 @@ public sealed class FakeZabbix : HttpMessageHandler
 
     private JsonArray ProblemGet(JsonObject p)
     {
-        var problems = Problems.Where(x => In(p, "eventids", x!["eventid"])).Where(x =>
+        // recent: also the problems resolved lately (r_eventid not "0"), as Zabbix returns them within "Display OK triggers for".
+        var recent = p["recent"] is JsonValue r && r.TryGetValue<bool>(out var flag) && flag;
+        var problems = Problems.Where(x => In(p, "eventids", x!["eventid"]))
+            .Where(x => recent || (x!["r_eventid"]?.GetValue<string>() ?? "0") == "0").Where(x =>
         {
             if (p["groupids"] is not JsonArray)
             {

@@ -48,6 +48,8 @@ namespace PNMTD.Data
         // Zabbix (docs/audit-redmine-zabbix-plan.md §7.3): the hosts' mirror.
         public DbSet<ZabbixHostEntity> ZabbixHosts { get; set; }
         public DbSet<ZabbixSensorEntity> ZabbixSensors { get; set; }
+        // The boards' history of Zabbix's problems (docs/boards-plan.md §7.5).
+        public DbSet<ZabbixProblemHistoryEntity> ZabbixProblemHistory { get; set; }
 
         // SSL certificate sensors (docs/ssl-certificate-plan.md §4): their settings and state, the certificates seen, the private CAs.
         public DbSet<CertificateSensorEntity> CertificateSensors { get; set; }
@@ -791,6 +793,11 @@ namespace PNMTD.Data
             ConfigureUserNotifications(modelBuilder);
             ConfigureFiles(modelBuilder);
             ConfigureResponsibilities(modelBuilder);
+            modelBuilder.Entity<ZabbixProblemHistoryEntity>(e =>
+            {
+                e.HasIndex(h => h.StartedAt);
+                e.HasIndex(h => h.ResolvedAt);
+            });
             ConfigureCookie(modelBuilder);
             ConfigureAvailability(modelBuilder);
 

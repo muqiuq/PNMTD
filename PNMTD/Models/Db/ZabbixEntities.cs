@@ -93,3 +93,45 @@ public class ZabbixSensorEntity
     [AuditIgnore]
     public DateTime Created { get; set; }
 }
+
+/// <summary>
+/// A problem the poll saw (docs/boards-plan.md §7.5, §11.2): open, or resolved at the time Zabbix gave, or, when its recovery wasn't
+/// seen (PNMT was down, or it became hidden), between its last sighting and the poll that missed it. Only problems Zabbix shows. Kept
+/// Zabbix__HistoryDays after they were resolved.
+/// </summary>
+[Table("zabbix_problem_history")]
+[NotAudited("a copy of Zabbix's problems, written by the poll")]
+public class ZabbixProblemHistoryEntity
+{
+    /// <summary>Zabbix's eventid.</summary>
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.None)]
+    public long EventId { get; set; }
+
+    public long TriggerId { get; set; }
+
+    [MaxLength(2048)]
+    public string Name { get; set; } = "";
+
+    public ZabbixSeverity Severity { get; set; }
+
+    /// <summary>In maintenance at its last sighting.</summary>
+    public bool Suppressed { get; set; }
+
+    /// <summary>The trigger's hosts: Zabbix's hostids, and their visible names in the same order.</summary>
+    public List<long> HostIds { get; set; } = [];
+
+    public List<string> HostNames { get; set; } = [];
+
+    public DateTime StartedAt { get; set; }
+
+    /// <summary>Null while open.</summary>
+    public DateTime? ResolvedAt { get; set; }
+
+    /// <summary>Only for an estimate: the last poll that saw it open. The recovery lies between this and <see cref="ResolvedAt"/>.</summary>
+    public DateTime? ResolvedFrom { get; set; }
+
+    public DateTime FirstSeenAt { get; set; }
+
+    public DateTime LastSeenAt { get; set; }
+}

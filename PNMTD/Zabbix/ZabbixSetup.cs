@@ -18,6 +18,7 @@ public static class ZabbixSetup
         services.AddSingleton<ZabbixGroups>();
         services.AddSingleton<ZabbixSnapshot>();
         services.AddSingleton<ZabbixHealth>();
+        services.AddSingleton<ZabbixHistory>();
         services.AddSingleton<ZabbixPoller>();
         services.AddSingleton<ZabbixHostSync>();
         services.AddSingleton<ZabbixSensors>();
