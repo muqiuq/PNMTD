@@ -91,6 +91,11 @@ internal static class DevSeedCommand
         {
             Console.WriteLine(DevSeedResponsibilities.Seed(responsibilitiesDb, Clock.UtcNow));
         }
+        // Boards (docs/boards-plan.md §15): NOC from anywhere, Helpdesk TV from private networks only.
+        using (var boardsDb = database())
+        {
+            Console.WriteLine(DevSeedBoards.Seed(boardsDb, settings, Clock.UtcNow));
+        }
         return 0;
     }
 

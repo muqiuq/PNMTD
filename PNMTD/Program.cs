@@ -62,7 +62,9 @@ public partial class Program
         // The v1 document only; written at build time to PNMTD.WebUI/src/api/openapi.json (§3.7).
         builder.Services.AddOpenApi("v1", o =>
         {
-            o.ShouldInclude = d => d.RelativePath?.StartsWith("api/v1/", StringComparison.Ordinal) == true;
+            // And the board app's two endpoints (docs/boards-plan.md §12.2), whose types it uses.
+            o.ShouldInclude = d => d.RelativePath?.StartsWith("api/v1/", StringComparison.Ordinal) == true
+                || d.RelativePath?.StartsWith("pnmt-board/api/", StringComparison.Ordinal) == true;
             // Query parameters in camelCase, as the JSON (?page=2&pageSize=50&hostId=…). Binding
             // ignores case, so this only names them in the document the UI's types come from.
             o.AddOperationTransformer((operation, _, _) =>
@@ -72,6 +74,24 @@ public partial class Program
                     if (parameter.In == Microsoft.OpenApi.ParameterLocation.Query && parameter.Name is { Length: > 0 } name)
                     {
                         parameter.Name = System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(name);
+                    }
+                }
+                return Task.CompletedTask;
+            });
+            // An enum's shared schema is made from its first use: when that is a nullable property, null joined the enum, and with it
+            // every use of the type in the UI's generated types. A property's own oneOf says whether it may be null; the enum never does.
+            o.AddSchemaTransformer((schema, context, _) =>
+            {
+                var type = Nullable.GetUnderlyingType(context.JsonTypeInfo.Type) ?? context.JsonTypeInfo.Type;
+                if (type.IsEnum && schema.Enum is { Count: > 0 } values)
+                {
+                    foreach (var value in values.Where(v => v is null || v.GetValueKind() == System.Text.Json.JsonValueKind.Null).ToList())
+                    {
+                        values.Remove(value);
+                    }
+                    if (schema.Type is { } t && t.HasFlag(Microsoft.OpenApi.JsonSchemaType.Null))
+                    {
+                        schema.Type = t & ~Microsoft.OpenApi.JsonSchemaType.Null;
                     }
                 }
                 return Task.CompletedTask;
@@ -123,6 +143,8 @@ public partial class Program
         PNMTD.Mcp.McpSetup.AddPnmtdMcp(builder.Services, builder.Configuration);
         // 3rd Party Connectors (docs/connectors-plan.md): /connector/v1, the worker, the admin API.
         PNMTD.Connectors.ConnectorSetup.AddConnectors(builder.Services, builder.Configuration);
+        // Boards (docs/boards-plan.md): monitoring dashboards for a wall, at /pnmt-board/<token>.
+        PNMTD.Boards.BoardsSetup.AddBoards(builder.Services, builder.Configuration);
 
         // The build writes the OpenAPI document by starting the host without a database (GetDocument.Insider).
         var documentBuild = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
@@ -239,6 +261,7 @@ public partial class Program
         PNMTD.Advanced.AdvancedSetup.UseReportDecompression(app); // /report only (docs/advanced-sensor-plan.md §4.2)
         app.UseApiErrors();                // ProblemDetails, on /api only
         app.UseWebUiFiles();               // /pnmt-admin/** files, anonymous
+        app.UseBoardFiles();               // /pnmt-board/** files, anonymous (docs/boards-plan.md §4.2)
         app.UseRouting();
         app.UsePlainNotFound();            // no endpoint: empty 404; routing's 405: empty, with Allow
         app.UseRateLimiter();              // the login endpoints only
@@ -270,6 +293,8 @@ public partial class Program
         PNMTD.Advanced.AdvancedSetup.MapReportEndpoints(app); // /report, /report/{token}
         app.MapPnmtdMcp();                 // /mcp, with Mcp__Enabled=true (docs/mcp-plan.md §5)
         app.MapConnectorEndpoints();       // /connector/v1 (docs/connectors-plan.md §4.1)
+        PNMTD.Boards.BoardEndpoints.MapBoardEndpoints(app); // /pnmt-board/api, by a board's token (docs/boards-plan.md §12.2)
+        app.MapBoardApp();                 // the board app's shell and its deep links
         PNMTD.Connectors.ConnectorSetup.StartConnectorWorker(app.Services);
         app.MapWebUi();                    // SPA deep links, /api 404s
 

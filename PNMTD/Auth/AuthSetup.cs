@@ -84,7 +84,24 @@ public static class AuthSetup
                 };
                 options.Events.OnRedirectToLogout = _ => Task.CompletedTask;
                 options.Events.OnRedirectToReturnUrl = _ => Task.CompletedTask;
-                options.Events.OnValidatePrincipal = SessionCache.ValidateAsync;
+                // A board polls for as long as it hangs on a wall: its requests never renew a session (docs/boards-plan.md §4.2), or a
+                // signed-in browser there would stay signed in for good.
+                options.Events.OnValidatePrincipal = async context =>
+                {
+                    await SessionCache.ValidateAsync(context);
+                    if (Boards.BoardPaths.IsBoardPath(context.Request.Path))
+                    {
+                        context.ShouldRenew = false;
+                    }
+                };
+                options.Events.OnCheckSlidingExpiration = context =>
+                {
+                    if (Boards.BoardPaths.IsBoardPath(context.Request.Path))
+                    {
+                        context.ShouldRenew = false;
+                    }
+                    return Task.CompletedTask;
+                };
             });
 
         services.Configure<AuthOptions>(configuration.GetSection(AuthOptions.Section));

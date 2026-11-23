@@ -5,7 +5,8 @@
 #
 #   ./start.sh                     build and (re)start: http://localhost:7327/pnmt-admin/
 #   WEB=dev ./start.sh             also Vite with HMR: http://localhost:5173/pnmt-admin/, edits of
-#                                  PNMTD.WebUI are live (/api, /event and /read go to the app)
+#                                  PNMTD.WebUI are live (/api, /event and /read go to the app); the board app
+#                                  likewise on http://localhost:5174/pnmt-board/<token> (BOARD_WEB_PORT)
 #   SEED=1 ./start.sh              on an empty database: demo data (50 hosts, 300 sensors, 90 days, locations and
 #                                  knowledge base pages, their files in FILES_DIR)
 #   LEGACY_DIR=~/pnmt/pnmtd-data ./start.sh
@@ -67,6 +68,7 @@ WG_NAME="${WG_NAME:-${NAME}-wg}"
 WG_PORT="${WG_PORT:-51820}"
 WG_EXTERNAL_HOST="${WG_EXTERNAL_HOST:-$(hostname)}"
 WEB_PORT="${WEB_PORT:-5173}"
+BOARD_WEB_PORT="${BOARD_WEB_PORT:-5174}"
 WEB_MODULES_VOLUME="${WEB_MODULES_VOLUME:-pnmtd-web-node-modules}"
 NPM_CACHE="${NPM_CACHE:-pnmtd-npm-cache}"
 NODE_IMAGE="${NODE_IMAGE:-docker.io/library/node:24-slim}"
@@ -121,7 +123,7 @@ fi
 
 # Something else publishing a port would stop the app at the very end: said here, before the build.
 ports=("$PORT" "$UDP_PORT")
-[[ "$WEB" == dev ]] && ports+=("$WEB_PORT")
+[[ "$WEB" == dev ]] && ports+=("$WEB_PORT" "$BOARD_WEB_PORT")
 for port in "${ports[@]}"; do
   holder=$("$ENGINE" ps --format '{{.Names}} {{.Ports}}' \
     | awk -v port=":${port}->" -v app="$NAME" -v web="$WEB_NAME" '$1 != app && $1 != web && index($0, port) { print $1; exit }')
@@ -204,7 +206,9 @@ seeded=0
 if [[ "$SEED" != "0" && "$imported" == "0" ]]; then
   if [[ "$hosts" == "0" ]]; then
     echo "Seeding demo data…"
-    pnmtd -e ASPNETCORE_ENVIRONMENT=Development -v "${files_abs}:/var/lib/pnmtd/files" "$IMAGE" dev seed >"$scratch/seed.log" 2>&1 \
+    # The app's key ring too: the seed's connector keys and board URLs (docs/boards-plan.md §5.1) can then be shown again.
+    pnmtd -e ASPNETCORE_ENVIRONMENT=Development -v "${files_abs}:/var/lib/pnmtd/files" -v "${KEYS_VOLUME}:/var/lib/pnmtd/keys" \
+      "$IMAGE" dev seed >"$scratch/seed.log" 2>&1 \
       || { cat "$scratch/seed.log" >&2; die "The seed failed."; }
     seeded=1
   else
@@ -280,17 +284,20 @@ start_web() {
   echo "Starting ${WEB_NAME} (Vite)…"
   "$ENGINE" rm -f "$WEB_NAME" >/dev/null 2>&1 || true
   # shellcheck disable=SC2016 # expanded in the container
-  "$ENGINE" run -d --name "$WEB_NAME" --network "$NETWORK" -p "${WEB_PORT}:5173" \
+  "$ENGINE" run -d --name "$WEB_NAME" --network "$NETWORK" -p "${WEB_PORT}:5173" -p "${BOARD_WEB_PORT}:5174" \
     -e NPM_CONFIG_UPDATE_NOTIFIER=false -e NPM_CONFIG_FUND=false -e NPM_CONFIG_AUDIT=false \
     -e "PNMTD_API_URL=http://${NAME}:8080" \
     -v "$PWD/PNMTD.WebUI:/web" -v "${WEB_MODULES_VOLUME}:/web/node_modules" -v "${NPM_CACHE}:/root/.npm" \
-    -v "$PWD/tools/vite-dev.config.mjs:/pnmtd/vite-dev.config.mjs:ro" -w /web \
+    -v "$PWD/tools/vite-dev.config.mjs:/pnmtd/vite-dev.config.mjs:ro" -v "$PWD/tools/vite-board-dev.config.mjs:/pnmtd/vite-board-dev.config.mjs:ro" -w /web \
     "$NODE_IMAGE" sh -c '
       if ! cmp -s package-lock.json node_modules/.installed-lock; then
         find node_modules -mindepth 1 -maxdepth 1 -exec rm -rf {} +
         npm ci --ignore-scripts --loglevel=error && cp package-lock.json node_modules/.installed-lock || exit 1
       fi
-      mkdir -p node_modules/.pnmtd-dev && cp /pnmtd/vite-dev.config.mjs node_modules/.pnmtd-dev/vite.config.mjs || exit 1
+      mkdir -p node_modules/.pnmtd-dev && cp /pnmtd/vite-dev.config.mjs node_modules/.pnmtd-dev/vite.config.mjs \
+        && cp /pnmtd/vite-board-dev.config.mjs node_modules/.pnmtd-dev/vite-board.config.mjs || exit 1
+      # The board app (docs/boards-plan.md §4.3) beside the admin UI, in the same container.
+      node_modules/.bin/vite --config node_modules/.pnmtd-dev/vite-board.config.mjs --host 0.0.0.0 --port 5174 --strictPort &
       exec node_modules/.bin/vite --config node_modules/.pnmtd-dev/vite.config.mjs --host 0.0.0.0 --port 5173 --strictPort' >/dev/null
   for _ in $(seq 1 240); do
     if curl -fsS -o /dev/null "http://localhost:${WEB_PORT}/pnmt-admin/" 2>/dev/null; then return 0; fi
@@ -313,6 +320,7 @@ echo "────────────────────────�
 echo "PNMTD running on http://localhost:${PORT}/pnmt-admin/  (Development)"
 if [[ "$WEB" == dev ]]; then
   echo "Vite (HMR):  http://localhost:${WEB_PORT}/pnmt-admin/  (edits of PNMTD.WebUI are live)"
+  echo "             http://localhost:${BOARD_WEB_PORT}/pnmt-board/<token>  (the board app; a board's URL is on its Access tab)"
 fi
 echo "Sensor API:  http://localhost:${PORT}/event/<write token>/200/hello"
 echo "             http://localhost:${PORT}/read/<read token>/json"

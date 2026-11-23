@@ -133,7 +133,8 @@ describe('visibleNavigation', () => {
     const overview = visibleNavigation(() => false).find((g) => g.label === 'Overview')
     expect(overview?.items.map((i) => i.name)).toEqual(['dashboard', 'lounge'])
     const all = visibleNavigation(() => true).find((g) => g.label === 'Overview')
-    expect(all?.items.map((i) => i.name)).toEqual(['dashboard', 'decisions', 'events', 'cookie', 'lounge'])
+    // Boards (docs/boards-plan.md §10.1) after the dashboard, with Boards: View.
+    expect(all?.items.map((i) => i.name)).toEqual(['dashboard', 'boards', 'decisions', 'events', 'cookie', 'lounge'])
     expect(navigation.flatMap((g) => g.items).find((i) => i.name === 'lounge')?.right).toBeUndefined()
   })
 

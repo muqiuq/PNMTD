@@ -58,6 +58,19 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'Dashboard' },
   },
   {
+    // Boards (docs/boards-plan.md §10.1): the list, and a board's page, which takes the whole window.
+    path: '/boards',
+    name: 'boards',
+    component: () => import('@/views/boards/BoardsView.vue'),
+    meta: { title: 'Boards', right: ['Boards', 'View'] },
+  },
+  {
+    path: '/boards/:id([0-9a-f-]{36})/:tab(layout|bar|look|access)?',
+    name: 'board',
+    component: () => import('@/views/boards/BoardEditView.vue'),
+    meta: { title: 'Board', right: ['Boards', 'View'] },
+  },
+  {
     path: '/hosts',
     name: 'hosts',
     component: () => import('@/views/hosts/HostsView.vue'),

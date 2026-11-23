@@ -1,0 +1,649 @@
+/*
+ * The boards' themes (docs/boards-plan.md §9), ported from panag (PLAN.md §4.9, public/css/themes.css): panag's colours, fonts and
+ * decorations on the board's own variables, scoped on [data-board-theme] of a board's root (and of a picker tile's preview), so that a
+ * theme never dresses the admin UI. Default and Dark mode use PNMT's blue where panag has PANAG red. A theme may move a status colour's
+ * shade, never its hue family; every status also has a word or symbol (registry.ts holds the status colours the tests check).
+ * Decoration stays in CSS: no theme changes a text. SVG decorations are data URIs (the CSP allows img-src data:).
+ */
+
+/* --- the picker's tiles (§9.1): a strip, a panel with two lines and an accent block, no text --------------------------------- */
+.board.board-theme-preview {
+  display: block;
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--board-border);
+  border-radius: var(--board-radius);
+  font-size: 10px;
+}
+
+.board-theme-preview .board-theme-strip {
+  display: block;
+  min-height: 1.25rem;
+  padding: 0;
+}
+
+.board-theme-preview .board-theme-card {
+  display: block;
+  margin: 0.5rem;
+  padding: 0.5rem;
+}
+
+.board-theme-line {
+  display: block;
+  height: 0.35rem;
+  margin-bottom: 0.35rem;
+  border-radius: 1rem;
+  background: var(--board-text);
+}
+
+.board-theme-highlight {
+  width: 60%;
+  background: var(--board-highlight);
+}
+
+.board-theme-accent {
+  display: block;
+  width: 45%;
+  height: 0.9rem;
+  border-radius: var(--board-radius);
+  background: var(--board-accent);
+}
+
+/* ===== Default: PNMT blue on light grey (board.css holds its values) ========================================================== */
+
+/* ===== Dark mode ============================================================================================================== */
+.board[data-board-theme='dark'] {
+  --board-bg: #16191d;
+  --board-top: #2b4480;
+  --board-top-text: #fff;
+  --board-panel: #212529;
+  --board-text: #dee2e6;
+  --board-muted: #adb5bd;
+  --board-border: #495057;
+  --board-shadow: none;
+  --board-accent: #8aa0d8;
+  --board-accent-text: #0b1220;
+  --board-highlight: #6ea8fe;
+  --board-ok-soft: rgb(25 135 84 / 25%);
+  --board-warn-soft: rgb(255 193 7 / 22%);
+  --board-fail-soft: rgb(220 53 69 / 25%);
+  --board-unknown-soft: #343a40;
+  color-scheme: dark;
+}
+
+/* ===== High contrast: black on white, strong borders (WCAG AAA) =============================================================== */
+.board[data-board-theme='high-contrast'] {
+  --board-bg: #fff;
+  --board-top: #000;
+  --board-top-text: #fff;
+  --board-panel: #fff;
+  --board-text: #000;
+  --board-muted: #333;
+  --board-border: #000;
+  --board-border-width: 2px;
+  --board-shadow: none;
+  --board-accent: #000;
+  --board-accent-text: #fff;
+  --board-highlight: #0000c8;
+  --board-ok: #0b5a1c;
+  --board-ok-on: #fff;
+  --board-warn: #ffc107;
+  --board-warn-on: #000;
+  --board-fail: #a30000;
+  --board-fail-on: #fff;
+  --board-unknown: #333;
+  --board-unknown-on: #fff;
+  --board-unknown-soft: #e6e6e6;
+  --board-sev-5: #8b0000;
+  --board-sev-4: #9a3412;
+  --board-sev-3: #7c4a03;
+  --board-sev-2: #5c4b00;
+  --board-sev-1: #1e3a8a;
+  --board-sev-0: #374151;
+  --board-sev-on: #fff;
+}
+
+/* ===== High contrast dark: white and yellow on black (WCAG AAA) =============================================================== */
+.board[data-board-theme='high-contrast-dark'] {
+  --board-bg: #000;
+  --board-top: #000;
+  --board-top-text: #fff;
+  --board-panel: #000;
+  --board-text: #fff;
+  --board-muted: #e6e6e6;
+  --board-border: #fff;
+  --board-border-width: 2px;
+  --board-shadow: none;
+  --board-accent: #ff0;
+  --board-accent-text: #000;
+  --board-highlight: #ff0;
+  --board-ok: #7dff8a;
+  --board-ok-on: #000;
+  --board-warn: #ffd60a;
+  --board-warn-on: #000;
+  --board-fail: #ff8a8a;
+  --board-fail-on: #000;
+  --board-unknown: #e6e6e6;
+  --board-unknown-on: #000;
+  --board-unknown-soft: #222;
+  --board-sev-5: #ff8a8a;
+  --board-sev-4: #ffb27a;
+  --board-sev-3: #ffd27a;
+  --board-sev-2: #fff27a;
+  --board-sev-1: #9ab8ff;
+  --board-sev-0: #d0d7de;
+  --board-sev-on: #000;
+  color-scheme: dark;
+}
+
+[data-board-theme='high-contrast-dark'] .board-header,
+[data-board-theme='high-contrast'] .board-header {
+  border-bottom: 2px solid var(--board-border);
+}
+
+/* ===== Slay: violet glam with a pride stripe ✨ ================================================================================ */
+.board[data-board-theme='slay'] {
+  --board-bg: #f7f0ff;
+  --board-top: #5a189a;
+  --board-top-text: #fff;
+  --board-panel: #fff;
+  --board-text: #2a1240;
+  --board-muted: #5e4a73;
+  --board-border: #dcc6f2;
+  --board-radius: 0.6rem;
+  --board-accent: #7b2cbf;
+  --board-accent-text: #fff;
+  --board-highlight: #6a1b9a;
+  --board-pride: linear-gradient(
+    90deg,
+    #e40303 16.6%,
+    #ff8c00 16.6% 33.3%,
+    #ffed00 33.3% 50%,
+    #008026 50% 66.6%,
+    #24408e 66.6% 83.3%,
+    #732982 83.3%
+  );
+}
+
+[data-board-theme='slay'] .board-header {
+  background-image: linear-gradient(120deg, #3c096c, #5a189a 50%, #7b2cbf);
+}
+
+[data-board-theme='slay'] .board-header,
+[data-board-theme='slay'] .board-bar {
+  position: relative;
+}
+
+[data-board-theme='slay'] .board-header::after,
+[data-board-theme='slay'] .board-bar::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 0.25em;
+  background: var(--board-pride);
+}
+
+.board-theme-preview[data-board-theme='slay'] .board-theme-strip::after {
+  height: 3px;
+}
+
+[data-board-theme='slay'] .board-title::after {
+  content: ' ✨' / '';
+  display: inline-block;
+  animation: board-twinkle 2.4s ease-in-out infinite;
+}
+
+@keyframes board-twinkle {
+  50% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+}
+
+[data-board-theme='slay'] .board-badge,
+[data-board-theme='slay'] .board-theme-accent {
+  border-radius: 50rem;
+  background-image: linear-gradient(135deg, #8a3fd1, #5a189a);
+}
+
+/* ===== Switzerland: Swiss red and white, Helvetica, flat and strict ============================================================ */
+.board[data-board-theme='switzerland'] {
+  --board-bg: #fff;
+  --board-top: #e60000;
+  --board-top-text: #fff;
+  --board-panel: #fff;
+  --board-text: #111;
+  --board-muted: #555;
+  --board-border: #cfcfcf;
+  --board-radius: 0;
+  --board-shadow: none;
+  --board-accent: #000;
+  --board-accent-text: #fff;
+  --board-highlight: #c80000;
+  --board-fail: #c80000;
+  --board-font: 'Helvetica Neue', Helvetica, Arial, 'Nimbus Sans', 'Liberation Sans', sans-serif;
+  --board-swiss-flag: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3e%3cpath fill='%23f00' d='M0 0h32v32H0z'/%3e%3cpath fill='%23fff' d='M13 6h6v7h7v6h-7v7h-6v-7H6v-6h7z'/%3e%3c/svg%3e");
+}
+
+[data-board-theme='switzerland'] .board-title::before,
+.board-theme-preview[data-board-theme='switzerland'] .board-theme-strip::before {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.45em;
+  vertical-align: -0.12em;
+  background: var(--board-swiss-flag) center / contain no-repeat;
+  outline: 1px solid #fff;
+}
+
+.board-theme-preview[data-board-theme='switzerland'] .board-theme-strip::before {
+  margin: 0.2rem 0.3rem;
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+/* ===== Terminal: green on black, monospace, $ prompts ========================================================================= */
+.board[data-board-theme='terminal'] {
+  --board-bg: #000;
+  --board-top: #000;
+  --board-top-text: #33ff33;
+  --board-panel: #000;
+  --board-text: #33ff33;
+  --board-muted: #1fbf1f;
+  --board-border: #1a7a1a;
+  --board-radius: 0;
+  --board-shadow: none;
+  --board-accent: #33ff33;
+  --board-accent-text: #000;
+  --board-highlight: #a6ff8f;
+  --board-ok: #33ff33;
+  --board-ok-on: #000;
+  --board-warn: #ffcc00;
+  --board-warn-on: #000;
+  --board-fail: #ff5555;
+  --board-fail-on: #000;
+  --board-unknown: #1fbf1f;
+  --board-unknown-on: #000;
+  --board-unknown-soft: #062406;
+  --board-font:
+    ui-monospace, 'SF Mono', SFMono-Regular, Menlo, 'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace;
+  --board-mono: var(--board-font);
+  color-scheme: dark;
+}
+
+/* Scanlines over the whole board, which no click meets. */
+.board[data-board-theme='terminal']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 0 0 / 18%) 2px 3px);
+}
+
+[data-board-theme='terminal'] .board-header {
+  border-bottom: 1px solid var(--board-border);
+}
+
+[data-board-theme='terminal'] .board-title,
+[data-board-theme='terminal'] .board-element-title {
+  text-shadow: 0 0 6px rgb(51 255 51 / 45%);
+  text-transform: none;
+}
+
+[data-board-theme='terminal'] .board-element-title .board-title-text::before {
+  content: '$ ' / '';
+}
+
+[data-board-theme='terminal'] .board-title::before {
+  content: 'root@pnmt:~$ ' / '';
+  opacity: 0.75;
+}
+
+[data-board-theme='terminal'] .board-title::after {
+  content: '█' / '';
+  margin-left: 0.15em;
+  animation: board-blink 1.1s steps(1) infinite;
+}
+
+@keyframes board-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+[data-board-theme='terminal'] .board-bar .board-title::before,
+[data-board-theme='terminal'] .board-bar .board-title::after {
+  text-shadow: none;
+}
+
+/* ===== Brasil: verde, amarelo e azul ========================================================================================== */
+.board[data-board-theme='brasil'] {
+  --board-bg: #f4fbf6;
+  --board-top: #00843d;
+  --board-top-text: #fff;
+  --board-panel: #fff;
+  --board-text: #1e2b38;
+  --board-muted: #4a5a52;
+  --board-border: #c7dfcf;
+  --board-accent: #002776;
+  --board-accent-text: #fff;
+  --board-highlight: #0a3d91;
+  --board-ok: #00702b;
+  --board-ok-on: #fff;
+  --board-warn: #ffdf00;
+  --board-warn-on: #000;
+  --board-fail: #c8102e;
+  --board-fail-on: #fff;
+  --board-brasil-flag: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 20'%3e%3cpath fill='%23009c3b' d='M0 0h28v20H0z'/%3e%3cpath fill='%23ffdf00' d='M14 2.2 25.6 10 14 17.8 2.4 10z'/%3e%3ccircle cx='14' cy='10' r='4.6' fill='%23002776'/%3e%3cpath d='M9.6 9q4.6-1.3 8.8 1.6' fill='none' stroke='%23fff' stroke-width='.9'/%3e%3c/svg%3e");
+}
+
+[data-board-theme='brasil'] .board-header {
+  background-image: linear-gradient(90deg, #006b2b, #00843d);
+}
+
+[data-board-theme='brasil'] .board-title::after {
+  content: '';
+  display: inline-block;
+  width: 1.4em;
+  height: 1em;
+  margin-left: 0.45em;
+  vertical-align: -0.12em;
+  background: var(--board-brasil-flag) center / contain no-repeat;
+}
+
+/* ===== Atomic age: 1950s retro-futurism, teal, mustard and starbursts ========================================================= */
+.board[data-board-theme='atomic-age'] {
+  --board-bg: #f7efdc;
+  --board-top: #0e5e66;
+  --board-top-text: #fff7e6;
+  --board-panel: #fffaf0;
+  --board-text: #2b2118;
+  --board-muted: #5e4a3a;
+  --board-border: #d9c49a;
+  --board-radius: 0.75rem;
+  --board-accent: #b8401f;
+  --board-accent-text: #fffaf0;
+  --board-highlight: #0b5c5e;
+  --board-ok: #4f7a28;
+  --board-ok-on: #fff;
+  --board-warn: #e8a33d;
+  --board-warn-on: #000;
+  --board-fail: #a8361a;
+  --board-fail-on: #fff;
+  --board-heading-font: Futura, 'Futura PT', 'Century Gothic', 'Avenir Next', 'URW Gothic', 'Trebuchet MS', sans-serif;
+  --board-atom: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-12 -12 24 24'%3e%3cg fill='none' stroke='%23ffd27a' stroke-width='1.3'%3e%3cellipse rx='10.5' ry='4'/%3e%3cellipse rx='10.5' ry='4' transform='rotate(60)'/%3e%3cellipse rx='10.5' ry='4' transform='rotate(-60)'/%3e%3c/g%3e%3ccircle r='2.3' fill='%23ff8a5c'/%3e%3c/svg%3e");
+  --board-starbursts: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3e%3cpolygon transform='translate(46 52)' fill='%23e8a33d' fill-opacity='.45' points='0 -12 .6 -1.5 3.5 -3.5 1.5 -.6 12 0 1.5 .6 3.5 3.5 .6 1.5 0 12 -.6 1.5 -3.5 3.5 -1.5 .6 -12 0 -1.5 -.6 -3.5 -3.5 -.6 -1.5'/%3e%3cpolygon transform='translate(165 150) scale(.7)' fill='%230e5e66' fill-opacity='.3' points='0 -12 .6 -1.5 3.5 -3.5 1.5 -.6 12 0 1.5 .6 3.5 3.5 .6 1.5 0 12 -.6 1.5 -3.5 3.5 -1.5 .6 -12 0 -1.5 -.6 -3.5 -3.5 -.6 -1.5'/%3e%3ccircle cx='130' cy='40' r='3' fill='%23b8401f' fill-opacity='.3'/%3e%3c/svg%3e");
+  background-image: var(--board-starbursts);
+}
+
+[data-board-theme='atomic-age'] .board-title::after {
+  content: '';
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  margin-left: 0.4em;
+  vertical-align: -0.2em;
+  background: var(--board-atom) center / contain no-repeat;
+  animation: board-spin 14s linear infinite;
+}
+
+@keyframes board-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== WTF: Comic Sans, clashing neon, wonky cards =========================================================================== */
+.board[data-board-theme='wtf'] {
+  --board-bg: #fff0f8;
+  --board-top: #ffe600;
+  --board-top-text: #000;
+  --board-panel: #fff;
+  --board-text: #1a1a1a;
+  --board-muted: #4a4a4a;
+  --board-border: #000;
+  --board-border-width: 2px;
+  --board-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --board-accent: #39ff14;
+  --board-accent-text: #000;
+  --board-highlight: #6a00f4;
+  --board-ok: #007a33;
+  --board-ok-on: #fff;
+  --board-warn: #ffe600;
+  --board-warn-on: #000;
+  --board-fail: #d00000;
+  --board-fail-on: #fff;
+  --board-font: 'Comic Sans MS', 'Comic Sans', 'Comic Neue', 'Chalkboard SE', 'Comic Relief', cursive;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    #fff0f8 0 30px,
+    #f0fff4 30px 60px,
+    #fffbe0 60px 90px,
+    #eef4ff 90px 120px
+  );
+}
+
+[data-board-theme='wtf'] .board-header {
+  background-image: linear-gradient(90deg, #ff00aa, #ffe600 30%, #39ff14 55%, #00e5ff 80%, #c77dff);
+}
+
+[data-board-theme='wtf'] .board-element {
+  box-shadow: 4px 4px 0 #ff00aa;
+  transform: rotate(-0.5deg);
+}
+
+[data-board-theme='wtf'] .board-column:nth-child(even) .board-element {
+  transform: rotate(0.4deg);
+}
+
+[data-board-theme='wtf'] .board-element-title {
+  transform: rotate(-1.5deg);
+  text-transform: none;
+}
+
+[data-board-theme='wtf'] .board-title::after {
+  content: ' ?!' / '';
+  font-weight: 900;
+  color: #ff00aa;
+  text-shadow: 1px 1px 0 #000;
+}
+
+/* ===== SUSE Linux: pine and jungle green on fog grey ========================================================================== */
+.board[data-board-theme='suse'] {
+  --board-bg: #efefef;
+  --board-top: #0c322c;
+  --board-top-text: #fff;
+  --board-panel: #fff;
+  --board-text: #0c322c;
+  --board-muted: #4d5c57;
+  --board-border: #cfd8d5;
+  --board-radius: 0.5rem;
+  --board-accent: #30ba78;
+  --board-accent-text: #0c322c;
+  --board-highlight: #0a6640;
+  --board-ok: #0a6640;
+  --board-ok-on: #fff;
+}
+
+[data-board-theme='suse'] .board-header {
+  border-bottom: 2px solid #30ba78;
+}
+
+/* ===== Windows 95: teal desktop, grey bevelled windows, navy title bars ======================================================== */
+.board[data-board-theme='win95'] {
+  --board-bg: #008585;
+  --board-top: #c0c0c0;
+  --board-top-text: #000;
+  --board-panel: #c0c0c0;
+  --board-text: #000;
+  --board-muted: #222;
+  --board-border: #808080;
+  --board-radius: 0;
+  --board-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+  --board-accent: #000080;
+  --board-accent-text: #fff;
+  --board-highlight: #000080;
+  --board-ok: #006400;
+  --board-ok-on: #fff;
+  --board-fail: #800000;
+  --board-fail-on: #fff;
+  --board-unknown-soft: #dfdfdf;
+  --board-font: 'MS Sans Serif', 'Microsoft Sans Serif', 'Pixelated MS Sans Serif', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+[data-board-theme='win95'] .board-element {
+  border: none;
+  padding: 3px;
+}
+
+[data-board-theme='win95'] .board-header {
+  box-shadow: var(--board-shadow);
+}
+
+[data-board-theme='win95'] .board-element-title {
+  justify-content: space-between;
+  padding: 0.2em 0.4em;
+  background: #000080;
+  color: #fff;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+[data-board-theme='win95'] .board-element-title::after {
+  content: '';
+  flex: 0 0 auto;
+  width: 3.6em;
+  height: 1em;
+  background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 14'%3e%3cg fill='%23c0c0c0' stroke='%23000'%3e%3crect x='.5' y='.5' width='15' height='13'/%3e%3crect x='16.5' y='.5' width='15' height='13'/%3e%3crect x='34.5' y='.5' width='15' height='13'/%3e%3c/g%3e%3cpath d='M4 10h7M20 3.5h7v7h-7zM20 4.5h7M38.5 3.5l7 7M45.5 3.5l-7 7' stroke='%23000' stroke-width='1.5' fill='none'/%3e%3c/svg%3e")
+    center / contain no-repeat;
+}
+
+.board-theme-preview[data-board-theme='win95'] .board-theme-card {
+  box-shadow:
+    inset 0 0.45rem #000080,
+    var(--board-shadow);
+  padding-top: 0.8rem;
+}
+
+/* ===== Windows XP: blue title bars, green start button, beige windows ========================================================== */
+.board[data-board-theme='winxp'] {
+  --board-bg: #b4d2f5;
+  --board-top: #2459d2;
+  --board-top-text: #fff;
+  --board-panel: #ece9d8;
+  --board-text: #000;
+  --board-muted: #444;
+  --board-border: #0831d9;
+  --board-radius: 0.5rem 0.5rem 0.2rem 0.2rem;
+  --board-accent: #1e7b1e;
+  --board-accent-text: #fff;
+  --board-highlight: #0b3d91;
+  --board-fail: #a00000;
+  --board-fail-on: #fff;
+  --board-font: Tahoma, 'Trebuchet MS', Verdana, 'DejaVu Sans', sans-serif;
+  --board-xp-title: linear-gradient(180deg, #0a5be8, #2c7cf6 15%, #0d5fe9 55%, #0a50d6 90%, #0846c4);
+  background-image: linear-gradient(180deg, #d6e6fb, #9ec5f2);
+}
+
+[data-board-theme='winxp'] .board-header {
+  background-image: linear-gradient(180deg, #1f4fc4, #2a64d9 12%, #2459d2 50%, #1f4fc4 90%, #1941a5);
+}
+
+[data-board-theme='winxp'] .board-element-title {
+  padding: 0.3em 0.6em;
+  background-image: var(--board-xp-title);
+  color: #fff;
+  text-transform: none;
+  letter-spacing: 0;
+  text-shadow: 1px 1px 0 #0a246a;
+}
+
+.board-theme-preview[data-board-theme='winxp'] .board-theme-card {
+  box-shadow: inset 0 0.45rem #0a5be8;
+  padding-top: 0.8rem;
+}
+
+/* ===== Ubuntu: aubergine and orange =========================================================================================== */
+.board[data-board-theme='ubuntu'] {
+  --board-bg: #f7f7f7;
+  --board-top: #4c0f34;
+  --board-top-text: #fff;
+  --board-panel: #fff;
+  --board-text: #2b2b2b;
+  --board-muted: #5e5e5e;
+  --board-border: #d9d9d9;
+  --board-radius: 0.5rem;
+  --board-accent: #c34113;
+  --board-accent-text: #fff;
+  --board-highlight: #772953;
+  --board-font: Ubuntu, 'Ubuntu Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+[data-board-theme='ubuntu'] .board-header {
+  background-image: linear-gradient(90deg, #2c001e, #4c0f34 60%, #77216f);
+  border-bottom: 2px solid #c34113;
+}
+
+/* ===== Amiga: Workbench blue, white and orange; failures as Guru Meditation ===================================================== */
+.board[data-board-theme='amiga'] {
+  --board-bg: #0055aa;
+  --board-top: #fff;
+  --board-top-text: #0055aa;
+  --board-panel: #0055aa;
+  --board-text: #fff;
+  --board-muted: #cfe0ff;
+  --board-border: #fff;
+  --board-radius: 0;
+  --board-shadow: none;
+  --board-accent: #ff8800;
+  --board-accent-text: #000;
+  --board-highlight: #ffd9a8;
+  --board-ok: #a6f5b0;
+  --board-ok-on: #000;
+  --board-warn: #ffd27a;
+  --board-warn-on: #000;
+  --board-fail: #000;
+  --board-fail-on: #ff3030;
+  --board-unknown: #cfe0ff;
+  --board-unknown-on: #000;
+  --board-unknown-soft: #004a94;
+  --board-font: 'Topaz a600a v1.0', 'Topaz New', 'Amiga Topaz', ui-monospace, Menlo, 'DejaVu Sans Mono', monospace;
+  --board-mono: var(--board-font);
+  color-scheme: dark;
+}
+
+[data-board-theme='amiga'] .board-header {
+  border-bottom: 2px solid #000022;
+}
+
+[data-board-theme='amiga'] .board-element-title {
+  margin: 3px 3px 0;
+  background: #fff;
+  color: #0055aa;
+  text-transform: none;
+}
+
+/* A red bar and a failing tile are a Guru Meditation: a black box in a red frame that blinks once a second. */
+[data-board-theme='amiga'] .board-bar[data-colour='Red'],
+[data-board-theme='amiga'] .board-tile[data-tone='fail'] {
+  border: 0.18em solid #ff3030;
+  animation: board-guru 1s steps(1) infinite;
+}
+
+@keyframes board-guru {
+  50% {
+    border-color: #000;
+  }
+}
+
+.board-theme-preview[data-board-theme='amiga'] .board-theme-strip {
+  border-bottom: 2px solid #000022;
+}
+
+.board-theme-preview[data-board-theme='amiga'] .board-theme-card {
+  border-color: #fff;
+  box-shadow: inset 0 0.45rem #fff;
+}

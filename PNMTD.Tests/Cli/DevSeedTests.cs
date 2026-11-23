@@ -148,6 +148,11 @@ public sealed class DevSeedTests
         Assert.AreEqual(14, await db.ResponsibilityLinks.CountAsync(), "eight of Network, four of Backup, two of Printers");
         Assert.IsNotNull((await db.ResponsibilitySettings.SingleAsync()).GlobalResponsibleId);
         Assert.AreEqual(2, await db.ResponsibilityRedmine.CountAsync(c => c.UserId != null), "Network's and Printers' Redmine projects");
+        // Boards (docs/boards-plan.md §15): NOC from anywhere, Helpdesk TV from private networks only; layouts that read back.
+        var boards = await db.Boards.AsNoTracking().OrderBy(b => b.Name).ToListAsync();
+        CollectionAssert.AreEqual(new[] { "Helpdesk TV", "NOC" }, boards.Select(b => b.Name).ToArray());
+        Assert.AreEqual("[]", boards.Single(b => b.Name == "NOC").Networks);
+        Assert.IsTrue(boards.All(b => PNMTD.Boards.BoardLayouts.Elements(PNMTD.Boards.BoardLayouts.Read(b.Layout)).Any()));
         // About twenty pages: statuses, one sensitive and one archived, revisions with notes, links, views over the last 30 days.
         Assert.IsGreaterThanOrEqualTo(20, await db.KbPages.CountAsync());
         Assert.AreEqual(1, await db.KbPages.CountAsync(p => p.Sensitive));

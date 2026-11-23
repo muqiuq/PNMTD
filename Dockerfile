@@ -4,7 +4,7 @@
 # publishes one portable, framework-dependent build that runs on amd64 and arm64 alike, restored
 # in locked mode from the committed lock files. A multi-arch image compiles nothing under emulation.
 
-# --- 1. the web UI (PNMTD.WebUI → dist/, served under /pnmt-admin) -------------------------------
+# --- 1. the web UI (PNMTD.WebUI → dist/, served under /pnmt-admin; and the board app → dist-board/, under /pnmt-board) ----
 # Node runs here, or in the containers of start.sh, run-tests.sh and tools/npm.sh: never on a host.
 # Node 24 (LTS) on Debian rather than Alpine: musl's resolver fails a whole lookup when Podman's DNS
 # answers AAAA with SERVFAIL. npm ci installs exactly the lock file, without install scripts. The
@@ -33,6 +33,8 @@ COPY PNMTD.Lib/ PNMTD.Lib/
 # The connectors' API reference (docs/connectors-plan.md §15), embedded: the Documentation tab shows the same text as the repository.
 COPY docs/connectors-api.md docs/
 COPY --from=web /web/dist PNMTD/wwwroot/pnmt-admin/
+# The board app (docs/boards-plan.md §4.3): a bundle of its own, so that a proxy can pass /pnmt-board/ without the admin UI.
+COPY --from=web /web/dist-board PNMTD/wwwroot/pnmt-board/
 # The restore brought everything the publish needs; the publish, where the analyzers and source
 # generators run, gets no network either (§7.1).
 RUN --network=none dotnet publish PNMTD/PNMTD.csproj -c Release -o /app --no-restore -p:UseAppHost=false \

@@ -85,7 +85,7 @@ public static class ApiSetup
     /// 403, routing's 405) become ProblemDetails. The sensor API keeps its empty bodies.
     /// </summary>
     public static IApplicationBuilder UseApiErrors(this IApplicationBuilder app) =>
-        app.UseWhen(c => ApiPaths.IsApi(c.Request.Path), api =>
+        app.UseWhen(c => ApiPaths.IsApi(c.Request.Path) || Boards.BoardPaths.IsApi(c.Request.Path), api =>
         {
             // Logged as well: the client only learns that something failed.
             api.UseExceptionHandler(new ExceptionHandlerOptions { SuppressDiagnosticsCallback = _ => false });

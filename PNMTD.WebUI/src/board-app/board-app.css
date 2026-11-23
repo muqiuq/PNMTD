@@ -1,0 +1,53 @@
+/* The board app's page (docs/boards-plan.md §6.4): the board fills the window; the cursor hides on a wall. */
+html,
+body,
+#board {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #16191d;
+  color: #dee2e6;
+  font-family:
+    'Inter Variable',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+
+body.board-cursor-hidden,
+body.board-cursor-hidden * {
+  cursor: none !important;
+}
+
+.board-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  height: 100%;
+  padding: 2em;
+  text-align: center;
+  font-size: clamp(16px, 2.2vh, 40px);
+}
+
+.board-message h1 {
+  margin: 0;
+  font-size: 2em;
+}
+
+.board-message p {
+  margin: 0;
+  max-width: 40em;
+}
+
+.board-message .address {
+  font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+}
+
+.board-message .again {
+  opacity: 0.6;
+}

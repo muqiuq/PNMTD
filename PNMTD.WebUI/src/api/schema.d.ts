@@ -4,6 +4,38 @@
  */
 
 export interface paths {
+    "/pnmt-board/api/view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BoardView"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pnmt-board/api/lounge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BoardLounge"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cookie/access/cases/{id}": {
         parameters: {
             query?: never;
@@ -4440,6 +4472,469 @@ export interface paths {
                 };
             };
         };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/boards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardItem"][];
+                        "text/json": components["schemas"]["BoardItem"][];
+                        "text/plain": components["schemas"]["BoardItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BoardCreateRequest"];
+                    "text/json": components["schemas"]["BoardCreateRequest"];
+                    "application/*+json": components["schemas"]["BoardCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardDetail"];
+                        "text/json": components["schemas"]["BoardDetail"];
+                        "text/plain": components["schemas"]["BoardDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/boards/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardDetail"];
+                        "text/json": components["schemas"]["BoardDetail"];
+                        "text/plain": components["schemas"]["BoardDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BoardRequest"];
+                    "text/json": components["schemas"]["BoardRequest"];
+                    "application/*+json": components["schemas"]["BoardRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardDetail"];
+                        "text/json": components["schemas"]["BoardDetail"];
+                        "text/plain": components["schemas"]["BoardDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/boards/{id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardDetail"];
+                        "text/json": components["schemas"]["BoardDetail"];
+                        "text/plain": components["schemas"]["BoardDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/boards/{id}/url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardUrl"];
+                        "text/json": components["schemas"]["BoardUrl"];
+                        "text/plain": components["schemas"]["BoardUrl"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/boards/{id}/url/renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardUrl"];
+                        "text/json": components["schemas"]["BoardUrl"];
+                        "text/plain": components["schemas"]["BoardUrl"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/boards/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BoardPreviewRequest"];
+                    "text/json": components["schemas"]["BoardPreviewRequest"];
+                    "application/*+json": components["schemas"]["BoardPreviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardView"];
+                        "text/json": components["schemas"]["BoardView"];
+                        "text/plain": components["schemas"]["BoardView"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/boards/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardCatalog"];
+                        "text/json": components["schemas"]["BoardCatalog"];
+                        "text/plain": components["schemas"]["BoardCatalog"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/boards/catalog/targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardTargetOption"][];
+                        "text/json": components["schemas"]["BoardTargetOption"][];
+                        "text/plain": components["schemas"]["BoardTargetOption"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/boards/catalog/names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    id?: string[];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardTargetOption"][];
+                        "text/json": components["schemas"]["BoardTargetOption"][];
+                        "text/plain": components["schemas"]["BoardTargetOption"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/boards/address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardAddress"];
+                        "text/json": components["schemas"]["BoardAddress"];
+                        "text/plain": components["schemas"]["BoardAddress"];
+                    };
+                };
+            };
+        };
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -22788,7 +23283,7 @@ export interface components {
         /** @enum {unknown} */
         AdvancedQuantifier: "All" | "Any" | "None";
         /** @enum {unknown} */
-        AdvancedReason: "Missing" | "WrongKind" | "Timeout" | "TooManyMatches" | null;
+        AdvancedReason: "Missing" | "WrongKind" | "Timeout" | "TooManyMatches";
         AdvancedReportDetail: {
             report: components["schemas"]["AdvancedReportItem"];
             body: null | string;
@@ -22799,7 +23294,7 @@ export interface components {
             previousId: null | string;
         };
         /** @enum {unknown} */
-        AdvancedReportError: "NotJson" | "NotObject" | "TooLarge" | "TooDeep" | "DuplicateKey" | "Internal" | null;
+        AdvancedReportError: "NotJson" | "NotObject" | "TooLarge" | "TooDeep" | "DuplicateKey" | "Internal";
         AdvancedReportItem: {
             /** Format: uuid */
             id: string;
@@ -23066,7 +23561,7 @@ export interface components {
         /** @enum {unknown} */
         AgentDownloadState: "Here" | "Fetching" | "Failed" | "NotFetched";
         /** @enum {unknown} */
-        AgentFileSource: "GitHub" | "Upload" | "Folder" | null;
+        AgentFileSource: "GitHub" | "Upload" | "Folder";
         AgentJoinTokenCreated: {
             item: components["schemas"]["AgentJoinTokenItem"];
             token: string;
@@ -23635,13 +24130,13 @@ export interface components {
             removalsHash: string;
         };
         /** @enum {unknown} */
-        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors" | "NetworkMap" | "Lounge" | "Responsibilities";
+        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors" | "NetworkMap" | "Lounge" | "Responsibilities" | "Boards";
         /** @enum {unknown} */
         AssignMode: "Add" | "Remove";
         /** @enum {unknown} */
         AuditActor: "User" | "Cli" | "Agent" | "System" | "Cookie" | "Mcp" | "Connector";
         /** @enum {unknown} */
-        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors" | "Network" | "Responsibilities";
+        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors" | "Network" | "Responsibilities" | "Boards";
         AuditChange: {
             object: null | string;
             field: string;
@@ -23914,6 +24409,489 @@ export interface components {
             volume: string;
             protection: string;
             conversion: null | string;
+        };
+        BoardAddress: {
+            address: null | string;
+            hint: null | string;
+            proxySet: boolean;
+        };
+        BoardBar: {
+            show: boolean;
+            position: components["schemas"]["BoardBarPosition"];
+            size: components["schemas"]["BoardBarSize"];
+            greenText: null | string;
+            flash: boolean;
+            rules: components["schemas"]["BoardRule"][];
+        };
+        BoardBarPart: {
+            colour: components["schemas"]["BoardColour"];
+            text: string;
+        };
+        /** @enum {unknown} */
+        BoardBarPosition: "Top" | "Bottom";
+        /** @enum {unknown} */
+        BoardBarSize: "Small" | "Medium" | "Large";
+        BoardBarView: {
+            colour: components["schemas"]["BoardColour"];
+            text: string;
+            /** Format: date-time */
+            since: null | string;
+            parts: components["schemas"]["BoardBarPart"][];
+        };
+        BoardCatalog: {
+            types: components["schemas"]["BoardCatalogType"][];
+            metrics: components["schemas"]["BoardCatalogMetric"][];
+            themes: string[];
+            locations: components["schemas"]["BoardLocationOption"][];
+            redmineProjects: components["schemas"]["BoardProjectOption"][];
+            zabbixGroups: string[];
+            timeZone: string;
+        };
+        BoardCatalogMetric: {
+            metric: components["schemas"]["BoardMetric"];
+            name: string;
+            filters: string;
+            available: boolean;
+            reason: null | string;
+        };
+        BoardCatalogType: {
+            type: components["schemas"]["BoardElementType"];
+            group: string;
+            name: string;
+            line: string;
+            icon: string;
+            available: boolean;
+            reason: null | string;
+        };
+        BoardCertificate: {
+            host: string;
+            sensor: string;
+            name: null | string;
+            /** Format: date-time */
+            notAfter: string;
+            /** Format: int32 */
+            days: number;
+        };
+        BoardChangeRow: {
+            /** Format: date-time */
+            at: string;
+            host: string;
+            sensor: string;
+            success: boolean;
+            message: null | string;
+        };
+        /** @enum {unknown} */
+        BoardColour: "Green" | "Yellow" | "Red" | "Grey";
+        BoardColumn: {
+            /** Format: int32 */
+            width: number;
+            elements: components["schemas"]["BoardElement"][];
+        };
+        BoardCreateRequest: {
+            name: string;
+            description?: null | string;
+            /** Format: int32 */
+            columns?: number;
+            from?: null | string;
+            /** Format: uuid */
+            copyOf?: null | string;
+        };
+        /** @enum {unknown} */
+        BoardDataState: "Ok" | "Unavailable" | "NotConfigured" | "Withheld";
+        BoardDetail: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            enabled: boolean;
+            tokenHint: null | string;
+            networks: components["schemas"]["BoardNetworkItem"][];
+            anywhere: boolean;
+            layout: components["schemas"]["BoardLayout"];
+            /** Format: int32 */
+            revision: number;
+            seen: components["schemas"]["BoardSeen"];
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: null | string;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedByName: null | string;
+        };
+        BoardElement: {
+            id: string;
+            type: components["schemas"]["BoardElementType"];
+            title: null | string;
+            showTitle: boolean;
+            /** Format: int32 */
+            height: null | number;
+            settings: components["schemas"]["BoardElementSettings"];
+        };
+        BoardElementData: {
+            id: string;
+            type: components["schemas"]["BoardElementType"];
+            state: components["schemas"]["BoardDataState"];
+            message?: null | string;
+            /** Format: date-time */
+            asOf?: null | string;
+            colour?: null | components["schemas"]["BoardColour"];
+            /**
+             * Format: int32
+             * @default 0
+             */
+            more: number;
+            counts?: null | components["schemas"]["BoardSensorCounts"];
+            sensors?: null | components["schemas"]["BoardSensorRow"][];
+            tiles?: null | components["schemas"]["BoardTile"][];
+            hosts?: null | components["schemas"]["BoardHostRow"][];
+            changes?: null | components["schemas"]["BoardChangeRow"][];
+            uplink?: null | components["schemas"]["BoardUplink"];
+            redmine?: null | components["schemas"]["BoardRedmine"];
+            tickets?: null | components["schemas"]["BoardTicket"][];
+            number?: null | components["schemas"]["BoardNumber"];
+            zabbix?: null | components["schemas"]["BoardZabbix"];
+            problems?: null | components["schemas"]["BoardProblem"][];
+            lounge?: null | components["schemas"]["BoardLounge"];
+            note?: null | string;
+            onDuty?: null | components["schemas"]["BoardOnDuty"];
+            certificates?: null | components["schemas"]["BoardCertificate"][];
+        };
+        BoardElementSettings: {
+            /** Format: int32 */
+            rows?: null | number;
+            importance?: null | components["schemas"]["Importance"];
+            /** Format: uuid */
+            locationId?: null | string;
+            /** @default false */
+            messages: boolean;
+            /** @default false */
+            ignored: boolean;
+            /** @default false */
+            onlyProblems: boolean;
+            /** @default false */
+            tiles: boolean;
+            targets?: null | components["schemas"]["BoardTarget"][];
+            /** Format: int32 */
+            perRow?: null | number;
+            /** Format: int32 */
+            projectId?: null | number;
+            /** @default true */
+            subjects: boolean;
+            redmineTiles?: null | components["schemas"]["BoardRedmineTile"][];
+            redmineLists?: null | components["schemas"]["BoardRedmineList"][];
+            /** Format: int32 */
+            newMinutes?: null | number;
+            /** @default false */
+            yesterday: boolean;
+            /** Format: int32 */
+            yellow?: null | number;
+            /** Format: int32 */
+            red?: null | number;
+            severity?: null | components["schemas"]["ZabbixSeverity"];
+            groups?: null | string[];
+            /** @default false */
+            suppressed: boolean;
+            /** Format: int32 */
+            windowHours?: null | number;
+            /** @default true */
+            comments: boolean;
+            /** @default false */
+            seconds: boolean;
+            /** @default true */
+            date: boolean;
+            zones?: null | components["schemas"]["BoardZone"][];
+            text?: null | string;
+            /** @default false */
+            center: boolean;
+            /** @default false */
+            large: boolean;
+            /** Format: int32 */
+            days?: null | number;
+        };
+        /** @enum {unknown} */
+        BoardElementType: "RedmineOverview" | "RedmineNewest" | "RedmineReceived" | "RedmineSolved" | "ZabbixCount" | "ZabbixHistory" | "Lounge" | "SensorSummary" | "FailingSensors" | "StatusTiles" | "HostBars" | "RecentChanges" | "Uplink" | "Clock" | "Note" | "OnDuty" | "Certificates";
+        BoardHeader: {
+            showTitle: boolean;
+            title: null | string;
+            clock: boolean;
+            date: boolean;
+            seconds: boolean;
+        };
+        BoardHostRow: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            state: components["schemas"]["HostState"];
+            /** Format: int32 */
+            failing: number;
+            /** Format: double */
+            uptime30Days: null | number;
+            days: components["schemas"]["UptimeSeries"];
+        };
+        BoardItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            enabled: boolean;
+            /** Format: int32 */
+            columns: number;
+            /** Format: int32 */
+            elements: number;
+            theme: string;
+            /** Format: int32 */
+            networks: number;
+            anywhere: boolean;
+            /** Format: date-time */
+            lastSeenAt: null | string;
+            /** Format: int32 */
+            screensNow: number;
+        };
+        BoardLayout: {
+            /** Format: int32 */
+            schemaVersion: number;
+            /** Format: int32 */
+            refreshSeconds: number;
+            look: components["schemas"]["BoardLook"];
+            header: components["schemas"]["BoardHeader"];
+            bar: components["schemas"]["BoardBar"];
+            columns: components["schemas"]["BoardColumn"][];
+        };
+        BoardLocationOption: {
+            /** Format: uuid */
+            id: string;
+            path: string;
+        };
+        BoardLook: {
+            theme: string;
+            fit: boolean;
+            /** Format: int32 */
+            textScale: number;
+            motion: boolean;
+            people: components["schemas"]["BoardPeople"];
+        };
+        BoardLounge: {
+            lines: components["schemas"]["BoardLoungeLine"][];
+            typing: null | string;
+            cookieName: string;
+        };
+        BoardLoungeLine: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            at: string;
+            from: string;
+            kind: string;
+            author: null | string;
+            authorColor: null | string;
+            authorCode: null | string;
+            text: string;
+            /** Format: int64 */
+            onId: null | number;
+            important: boolean;
+        };
+        /** @enum {unknown} */
+        BoardMetric: "SensorsFailing" | "HostsFailing" | "UplinkDown" | "LateTasks" | "DnsMismatches" | "ZabbixProblems" | "RedmineOpen" | "RedmineUrgent" | "RedmineUnassigned" | "RedmineOverdue" | "RedmineLinkedToProblem" | "RedmineReceivedToday" | "CertificatesExpiring";
+        BoardNetworkItem: {
+            cidr: string;
+            label: null | string;
+            inside: null | string;
+        };
+        BoardNetworkRequest: {
+            cidr: string;
+            label: null | string;
+        };
+        BoardNumber: {
+            /** Format: int32 */
+            value: number;
+            /** Format: int32 */
+            yesterday: null | number;
+        };
+        BoardOnDuty: {
+            people: string[];
+            as: string;
+            closed: boolean;
+        };
+        /** @enum {unknown} */
+        BoardPeople: "Names" | "Initials" | "Hidden";
+        BoardPreviewRequest: {
+            layout: components["schemas"]["BoardLayout"];
+            name?: null | string;
+        };
+        BoardProblem: {
+            eventId: string;
+            severity: components["schemas"]["ZabbixSeverity"];
+            host: string;
+            name: string;
+            /** Format: date-time */
+            started: string;
+            /** Format: date-time */
+            resolved: null | string;
+            /** Format: date-time */
+            resolvedFrom: null | string;
+        };
+        BoardProjectOption: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: int32 */
+            parentId: null | number;
+        };
+        BoardRedmine: {
+            tiles: components["schemas"]["BoardRedmineTileValue"][];
+            lists: components["schemas"]["BoardRedmineListValue"][];
+        };
+        /** @enum {unknown} */
+        BoardRedmineList: "Urgent" | "Unassigned" | "Overdue" | "LinkedToProblem";
+        BoardRedmineListValue: {
+            list: components["schemas"]["BoardRedmineList"];
+            title: string;
+            tickets: components["schemas"]["BoardTicket"][];
+        };
+        /** @enum {unknown} */
+        BoardRedmineTile: "Open" | "Urgent" | "Unassigned" | "Overdue" | "Stale" | "ReceivedToday" | "SolvedToday";
+        BoardRedmineTileValue: {
+            tile: components["schemas"]["BoardRedmineTile"];
+            label: string;
+            /** Format: int32 */
+            value: number;
+            tone: null | string;
+        };
+        BoardRequest: {
+            name: string;
+            description?: null | string;
+            enabled?: boolean;
+            networks?: null | components["schemas"]["BoardNetworkRequest"][];
+            layout: components["schemas"]["BoardLayout"];
+            /** Format: int32 */
+            revision?: number;
+        };
+        BoardRule: {
+            metric: components["schemas"]["BoardMetric"];
+            colour: components["schemas"]["BoardColour"];
+            /** Format: int32 */
+            atLeast: number;
+            label: null | string;
+            filter?: null | components["schemas"]["BoardRuleFilter"];
+        };
+        BoardRuleFilter: {
+            importance?: null | components["schemas"]["Importance"];
+            /** Format: uuid */
+            locationId?: null | string;
+            severity?: null | components["schemas"]["ZabbixSeverity"];
+            groups?: null | string[];
+            /** @default false */
+            suppressed: boolean;
+            /** Format: int32 */
+            projectId?: null | number;
+            /** Format: int32 */
+            days?: null | number;
+        };
+        BoardSeen: {
+            /** Format: date-time */
+            at: null | string;
+            address: null | string;
+            agent: null | string;
+            /** Format: int32 */
+            screensNow: number;
+        };
+        BoardSensorCounts: {
+            /** Format: int32 */
+            ok: number;
+            /** Format: int32 */
+            failing: number;
+            /** Format: int32 */
+            noData: number;
+            /** Format: int32 */
+            ignored: number;
+            /** Format: int32 */
+            disabled: number;
+        };
+        BoardSensorRow: {
+            /** Format: uuid */
+            id: string;
+            host: string;
+            sensor: string;
+            importance: components["schemas"]["Importance"];
+            /** Format: date-time */
+            since: null | string;
+            message: null | string;
+        };
+        BoardSeverityCount: {
+            severity: components["schemas"]["ZabbixSeverity"];
+            /** Format: int32 */
+            count: number;
+        };
+        BoardTarget: {
+            kind: components["schemas"]["BoardTargetKind"];
+            /** Format: uuid */
+            id: string;
+        };
+        /** @enum {unknown} */
+        BoardTargetKind: "Host" | "Sensor";
+        BoardTargetOption: {
+            kind: components["schemas"]["BoardTargetKind"];
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        BoardTicket: {
+            /** Format: int32 */
+            id: number;
+            tracker: null | string;
+            subject: null | string;
+            project: string;
+            status: null | string;
+            priority: null | string;
+            assignedTo: null | string;
+            /** Format: date-time */
+            createdOn: null | string;
+            /** Format: date-time */
+            updatedOn: string;
+            new: boolean;
+            private: boolean;
+        };
+        BoardTile: {
+            kind: components["schemas"]["BoardTargetKind"];
+            /** Format: uuid */
+            id: string;
+            name: string;
+            state: components["schemas"]["BoardTileState"];
+            /** Format: date-time */
+            since: null | string;
+        };
+        /** @enum {unknown} */
+        BoardTileState: "Ok" | "Failing" | "NoData" | "Off" | "Missing";
+        BoardUplink: {
+            configured: boolean;
+            up: boolean;
+            /** Format: date-time */
+            since: null | string;
+            /** Format: date-time */
+            lastRun: null | string;
+        };
+        BoardUrl: {
+            url: string;
+        };
+        BoardView: {
+            name: string;
+            layout: components["schemas"]["BoardLayout"];
+            bar: components["schemas"]["BoardBarView"];
+            elements: components["schemas"]["BoardElementData"][];
+            /** Format: date-time */
+            generatedAt: string;
+            timeZone: string;
+            appVersion: string;
+        };
+        BoardZabbix: {
+            /** Format: int32 */
+            total: number;
+            severities: components["schemas"]["BoardSeverityCount"][];
+            worst: null | components["schemas"]["ZabbixSeverity"];
+        };
+        BoardZone: {
+            zone: string;
+            label: string;
         };
         CaKey: {
             source: string;
@@ -24222,7 +25200,7 @@ export interface components {
             newPassword?: null | string;
         };
         /** @enum {unknown} */
-        Confidence: "Low" | "Medium" | "High" | null;
+        Confidence: "Low" | "Medium" | "High";
         /** @enum {unknown} */
         ConnectionMedium: "BaseT" | "Dac" | "Aoc" | "FiberMmf" | "FiberSmf" | "Wifi" | "WireGuard" | "Tunnel" | "VirtualMachine" | "Other";
         ConnectorAccountOption: {
@@ -25584,7 +26562,7 @@ export interface components {
         /** @enum {unknown} */
         DiagnosticMode: "Scheduled" | "Manual";
         /** @enum {unknown} */
-        DiagnosticOutcome: "Pass" | "Fail" | "Error" | null;
+        DiagnosticOutcome: "Pass" | "Fail" | "Error";
         DiagnosticRunDetail: {
             run: components["schemas"]["DiagnosticRunItem"];
             results: components["schemas"]["DiagnosticCheckResult"][];
@@ -26922,7 +27900,7 @@ export interface components {
             exists: boolean;
         };
         /** @enum {unknown} */
-        LocationFieldType: "Markdown" | "Text" | "Number" | "YesNo" | "Date" | "Choice" | "Choices" | "Link" | "Email" | "Phone" | "User" | "Host" | null;
+        LocationFieldType: "Markdown" | "Text" | "Number" | "YesNo" | "Date" | "Choice" | "Choices" | "Link" | "Email" | "Phone" | "User" | "Host";
         LocationFromTextItem: {
             text?: null | string;
             /** Format: uuid */
@@ -27616,7 +28594,7 @@ export interface components {
             days: components["schemas"]["McpDay"][];
         };
         /** @enum {unknown} */
-        McpTokenEnd: "Off" | "Expired" | "Regenerated" | "Stamp" | "Strikes" | "Admin" | "UserInactive" | "TotpOff" | null;
+        McpTokenEnd: "Off" | "Expired" | "Regenerated" | "Stamp" | "Strikes" | "Admin" | "UserInactive" | "TotpOff";
         McpTokenIssued: {
             token: components["schemas"]["McpTokenItem"];
             value: null | string;
@@ -28612,7 +29590,7 @@ export interface components {
             durationMs: null | number;
         };
         /** @enum {unknown} */
-        NetworkScanItemState: "Queued" | "Running" | "Succeeded" | "Failed" | "Skipped" | "Cancelled" | null;
+        NetworkScanItemState: "Queued" | "Running" | "Succeeded" | "Failed" | "Skipped" | "Cancelled";
         NetworkScanRequest: {
             scope?: components["schemas"]["NetworkScanScope"];
             /** Format: uuid */
@@ -29046,7 +30024,7 @@ export interface components {
             days: number;
         };
         /** @enum {unknown} */
-        OsFindingRating: "Important" | "HighRisk" | null;
+        OsFindingRating: "Important" | "HighRisk";
         OsFindingReason: {
             kind: string;
             high: boolean;
@@ -30124,6 +31102,14 @@ export interface components {
         };
         /** @enum {unknown} */
         PortRole: "Edge" | "ToRouter" | "ToNeighbor" | "Virtual";
+        ProblemDetails: {
+            type?: null | string;
+            title?: null | string;
+            /** Format: int32 */
+            status?: null | number;
+            detail?: null | string;
+            instance?: null | string;
+        };
         ProblemHost: {
             /** Format: uuid */
             id: string;
@@ -30604,7 +31590,7 @@ export interface components {
             parseError: null | string;
         };
         /** @enum {unknown} */
-        ReleaseSeverity: "Normal" | "Important" | "Critical" | null;
+        ReleaseSeverity: "Normal" | "Important" | "Critical";
         RemoteAccessSection: {
             features: components["schemas"]["RemoteFeature"][];
             summary: string;
@@ -31823,7 +32809,7 @@ export interface components {
         /** @enum {unknown} */
         UdpCommandState: "Queued" | "Sent" | "Completed" | "Failed" | "Expired" | "Cancelled";
         /** @enum {unknown} */
-        UdpDirection: "Up" | "Down" | null;
+        UdpDirection: "Up" | "Down";
         UdpExample: {
             title: string;
             description: string;
@@ -32328,7 +33314,7 @@ export interface components {
             endpoints: number[];
         };
         /** @enum {unknown} */
-        UplinkOutcome: "Ok" | "HttpStatus" | "Timeout" | "ConnectError" | "Dns" | "Tls" | "BadAnswer" | "BadSignature" | null;
+        UplinkOutcome: "Ok" | "HttpStatus" | "Timeout" | "ConnectError" | "Dns" | "Tls" | "BadAnswer" | "BadSignature";
         UplinkOverview: {
             configured: boolean;
             up: boolean;
@@ -32974,4 +33960,81 @@ export interface components {
     pathItems: never;
 }
 export type $defs = Record<string, never>;
-export type operations = Record<string, never>;
+export interface operations {
+    BoardView: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoardView"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    BoardLounge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoardElementData"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+}

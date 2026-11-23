@@ -10,7 +10,7 @@ namespace PNMTD.Auth.Rights;
 public enum Area
 {
     Monitoring, Commands, Mail, Decisions, Locations, KnowledgeBase, Redmine, Zabbix, UdpNodes, Mikrotik, Servers, SshKeys,
-    Diagnostics, Ai, System, AuditLog, Cookie, Availability, Mcp, Certificates, Connectors, NetworkMap, Lounge, Responsibilities,
+    Diagnostics, Ai, System, AuditLog, Cookie, Availability, Mcp, Certificates, Connectors, NetworkMap, Lounge, Responsibilities, Boards,
 }
 
 /// <summary>
@@ -100,6 +100,10 @@ public static class RightsCatalog
         new(Area.Responsibilities, "Responsibilities", [
             (Level.View, "The responsibilities, their people, links and Redmine combinations, and the panels on linked hosts, locations and pages. Also over MCP and for Cookie."),
             (Level.Manage, "View, plus creating, changing and deleting responsibilities, their links and Redmine combinations, and setting the global responsible and deputy.")]),
+        // docs/boards-plan.md §13.1: a board shows what its elements show to whoever holds its URL; adding an element also needs its area's right.
+        new(Area.Boards, "Boards", [
+            (Level.View, "The boards, their layout, status bar, look and preview. Not their URLs."),
+            (Level.Manage, "View, plus creating, changing and deleting boards, with their elements, status bar, look and networks; showing and renewing their URLs. Adding an element also needs its area's right.")]),
     ];
 
     private static readonly Dictionary<Area, AreaInfo> ByArea = Areas.ToDictionary(a => a.Area);

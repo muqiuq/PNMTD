@@ -56,6 +56,12 @@ public sealed class EndpointAuditTests
         "GET /connector/v1/{slug}",
         "GET /connector/v1/{slug}/tickets/{ticket}",
         "GET /connector/v1",
+        // Boards (docs/boards-plan.md §5.2, §12.2): the shell holds no data; the data needs a board's token, then its networks or a session.
+        "GET /pnmt-board/api/view",
+        "GET /pnmt-board/api/lounge",
+        "* /pnmt-board/api/{**rest}",
+        "GET /pnmt-board/{**path:nonfile}",
+        "HEAD /pnmt-board/{**path:nonfile}",
     ];
 
     /// <summary>
@@ -604,6 +610,20 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/responsibilities/{id:guid}/redmine"] = ("Responsibilities:Manage", Roles.Admin),
         ["PUT /api/v1/responsibilities/{id:guid}/redmine/{combinationId:guid}"] = ("Responsibilities:Manage", Roles.Admin),
         ["DELETE /api/v1/responsibilities/{id:guid}/redmine/{combinationId:guid}"] = ("Responsibilities:Manage", Roles.Admin),
+        // Boards (docs/boards-plan.md §12.1): a new area, which no former role holds. Adding an element also needs its area's right (§7.2).
+        ["GET /api/v1/boards"] = ("Boards:View", Roles.Admin),
+        ["GET /api/v1/boards/{id:guid}"] = ("Boards:View", Roles.Admin),
+        ["POST /api/v1/boards"] = ("Boards:Manage", Roles.Admin),
+        ["PUT /api/v1/boards/{id:guid}"] = ("Boards:Manage", Roles.Admin),
+        ["POST /api/v1/boards/{id:guid}/duplicate"] = ("Boards:Manage", Roles.Admin),
+        ["DELETE /api/v1/boards/{id:guid}"] = ("Boards:Manage", Roles.Admin),
+        ["GET /api/v1/boards/{id:guid}/url"] = ("Boards:Manage", Roles.Admin),
+        ["POST /api/v1/boards/{id:guid}/url/renew"] = ("Boards:Manage", Roles.Admin),
+        ["POST /api/v1/boards/preview"] = ("Boards:View", Roles.Admin),
+        ["GET /api/v1/boards/catalog"] = ("Boards:View", Roles.Admin),
+        ["GET /api/v1/boards/catalog/targets"] = ("Boards:View&Boards:Manage&Monitoring:View", Roles.Admin),
+        ["GET /api/v1/boards/catalog/names"] = ("Boards:View&Monitoring:View", Roles.Admin),
+        ["GET /api/v1/boards/address"] = ("Boards:View", Roles.Admin),
         // The knowledge base (docs/locations-knowledge-plan.md §8.1, §9): every role reads and counts a view; Users write, mark
         // sensitive and run AI tags; Admins delete archived pages, redact, and rename and delete tags.
         ["GET /api/v1/kb/pages"] = ("KnowledgeBase:View", Roles.Viewer),

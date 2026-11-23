@@ -11,7 +11,7 @@ import { anyAddress, networkHint } from './connectorFormat'
  * /128; host bits are refused with the network they belong to; from anywhere is 0.0.0.0/0 and ::/0, entered on purpose and warned of.
  */
 const networks = defineModel<S['ConnectorNetworkRequest'][]>({ required: true })
-defineProps<{ inside?: (string | null)[] }>()
+defineProps<{ inside?: (string | null)[]; anyMessage?: string }>()
 const any = computed(() => anyAddress(networks.value))
 function add() {
   networks.value = [...networks.value, { cidr: '', label: null }]
@@ -37,7 +37,7 @@ function remove(i: number) {
     </div>
     <Button label="Add a network" icon="pi pi-plus" size="small" text @click="add" />
     <Message v-if="any" severity="warn" :closable="false" size="small">
-      Any address: the key alone lets a call in. Prefer the networks the caller really calls from.
+      {{ anyMessage ?? 'Any address: the key alone lets a call in. Prefer the networks the caller really calls from.' }}
     </Message>
   </div>
 </template>

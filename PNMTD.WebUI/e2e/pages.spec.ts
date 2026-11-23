@@ -36,6 +36,8 @@ const pages: [string, string, string][] = [
   ['/admin/availability', 'Availability plan', 'availability'],
   // docs/responsibilities-plan.md §9.1: the list (Responsibilities: View, which admins hold).
   ['/admin/responsibilities', 'Responsibilities', 'responsibilities'],
+  // docs/boards-plan.md §10.2: the boards, with the seed's two.
+  ['/boards', 'Boards', 'boards'],
   // docs/connectors-plan.md §13.1: the area opens on Calls; its other tabs.
   ['/connectors', '3rd Party Connectors', 'connectors-calls'],
   ['/connectors/connectors', '3rd Party Connectors', 'connectors-list'],

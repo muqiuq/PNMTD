@@ -203,7 +203,7 @@ internal static class DevSeedConnectors
     }
 
     /// <summary>The app's key ring when the seed can write to it (the container), so the keys can be shown; otherwise one in memory.</summary>
-    private static IDataProtectionProvider Protection(IConfiguration configuration)
+    internal static IDataProtectionProvider Protection(IConfiguration configuration)
     {
         try
         {

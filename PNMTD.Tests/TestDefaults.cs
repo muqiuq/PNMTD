@@ -60,6 +60,8 @@ public static class TestDefaults
     /// <summary>A stand-in for the UI build: index.html and one hashed asset under pnmt-admin/.</summary>
     public static string WebRoot { get; private set; } = null!;
 
+    public const string BoardIndexHtml = "<!doctype html><html><head><meta name=\"robots\" content=\"noindex\"><script type=\"module\" src=\"/pnmt-board/assets/board-7c1e.js\"></script></head><body><div id=\"board\"></div></body></html>";
+
     public const string IndexHtml = "<!doctype html><html><head><script type=\"module\" src=\"/pnmt-admin/assets/app-3f9a.js\"></script></head><body><div id=\"app\"></div></body></html>";
 
     private static string CreateWebRoot(string scratch)
@@ -68,6 +70,10 @@ public static class TestDefaults
         Directory.CreateDirectory(Path.Combine(root, "pnmt-admin", "assets"));
         File.WriteAllText(Path.Combine(root, "pnmt-admin", "index.html"), IndexHtml);
         File.WriteAllText(Path.Combine(root, "pnmt-admin", "assets", "app-3f9a.js"), "console.log('pnmt');");
+        // The board app (docs/boards-plan.md §4.2): its shell and one asset.
+        Directory.CreateDirectory(Path.Combine(root, "pnmt-board", "assets"));
+        File.WriteAllText(Path.Combine(root, "pnmt-board", "index.html"), BoardIndexHtml);
+        File.WriteAllText(Path.Combine(root, "pnmt-board", "assets", "board-7c1e.js"), "console.log('board');");
         return root;
     }
 

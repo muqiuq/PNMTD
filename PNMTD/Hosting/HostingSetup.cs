@@ -74,8 +74,10 @@ public static class HostingSetup
         app.Use((context, next) =>
         {
             var path = context.Request.Path;
-            var isUi = path.StartsWithSegments(WebUi.BasePath);
-            var isApi = ApiPaths.IsApi(path);
+            // The board app is a UI of its own, its data an API (docs/boards-plan.md §4.2); neither is for search engines.
+            var isBoard = Boards.BoardPaths.IsBoardPath(path);
+            var isApi = ApiPaths.IsApi(path) || Boards.BoardPaths.IsApi(path);
+            var isUi = path.StartsWithSegments(WebUi.BasePath) || (isBoard && !isApi);
             if (isUi || isApi)
             {
                 context.Response.OnStarting(() =>
@@ -88,6 +90,10 @@ public static class HostingSetup
                     headers["Cross-Origin-Resource-Policy"] = "same-origin";
                     headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
                     headers.ContentSecurityPolicy = isUi ? UiCsp : ApiCsp;
+                    if (isBoard)
+                    {
+                        headers["X-Robots-Tag"] = "noindex, nofollow";
+                    }
                     if (isApi && !headers.ContainsKey("Cache-Control"))
                     {
                         headers.CacheControl = "no-store";

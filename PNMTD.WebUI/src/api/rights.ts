@@ -46,6 +46,8 @@ export const levelOrder: Record<Area, readonly Level[]> = {
   Lounge: ['Use'],
   // docs/responsibilities-plan.md §12.1: information only; Manage changes them and sets the global people.
   Responsibilities: ['View', 'Manage'],
+  // docs/boards-plan.md §13.1: Manage changes boards and shows their URLs; adding an element also needs its area's right.
+  Boards: ['View', 'Manage'],
 }
 
 /** Admin → Cookie: its Redmine tab is Redmine: Manage's, every other tab Cookie: Manage's. */

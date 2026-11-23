@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vue-tsc --noEmit && vite build && vite build -c vite.board.config.ts",
+    "dev:board": "vite -c vite.board.config.ts",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint . --max-warnings 0",

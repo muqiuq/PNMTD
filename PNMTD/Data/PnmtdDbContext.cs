@@ -205,6 +205,8 @@ namespace PNMTD.Data
         public DbSet<ResponsibilitySettingsEntity> ResponsibilitySettings { get; set; }
         public DbSet<ResponsibilityHistoryEntity> ResponsibilityHistory { get; set; }
         public DbSet<ResponsibilityRedmineEntity> ResponsibilityRedmine { get; set; }
+        // Boards (docs/boards-plan.md §11): monitoring dashboards for a wall, at /pnmt-board/<token>.
+        public DbSet<BoardEntity> Boards { get; set; }
 
         // Cookie (docs/cookie-plan.md §19.2): its settings' versions, its state, the case book, the duties and the outbox.
         public DbSet<AvailabilityTypeEntity> AvailabilityTypes { get; set; }
@@ -793,6 +795,11 @@ namespace PNMTD.Data
             ConfigureUserNotifications(modelBuilder);
             ConfigureFiles(modelBuilder);
             ConfigureResponsibilities(modelBuilder);
+            modelBuilder.Entity<BoardEntity>(e =>
+            {
+                e.HasIndex(b => b.NormalizedName).IsUnique();
+                e.HasIndex(b => b.TokenHash).IsUnique();
+            });
             modelBuilder.Entity<ZabbixProblemHistoryEntity>(e =>
             {
                 e.HasIndex(h => h.StartedAt);
