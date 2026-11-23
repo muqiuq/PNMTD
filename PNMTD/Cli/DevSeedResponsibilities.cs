@@ -8,10 +8,17 @@ namespace PNMTD.Cli;
 /// <summary>
 /// The seed's responsibilities (docs/responsibilities-plan.md §14): <i>Network</i> with Anna Muster and Ben Keller, <i>Backup</i>
 /// with Ben Keller alone, and <i>Printers</i> with nobody, so that the global people stand in; their links to hosts, locations and
-/// a page; the global responsible (the first admin) and deputy (Anna Muster). On an empty table only.
+/// a page; the global responsible (the first admin) and deputy (Anna Muster); and two Redmine combinations, by the fake
+/// Redmine's ids (PNMTD.Dev.FakeRedmine: Network is 3, IT Support's subproject Printers is 2). On an empty table only.
 /// </summary>
 internal static class DevSeedResponsibilities
 {
+    private static readonly (string Responsibility, int ProjectId, string Project, int? TrackerId, string? Tracker, string User, string? Note)[] Combinations =
+    [
+        ("Network", 3, "Network", null, null, "anna", null),
+        ("Printers", 2, "Printers", null, null, "ben", "Until Printers has a responsible of its own"),
+    ];
+
     private static readonly (string Name, string Summary, string? Responsible, string? Deputy, string[] Hosts, string[] Locations, string[] Pages,
         string Description)[] Plan =
     [
@@ -54,6 +61,7 @@ internal static class DevSeedResponsibilities
         var pages = db.KbPages.AsNoTracking().Select(p => new { p.Id, p.Title }).ToList();
         var by = admin?.DisplayName ?? "PNMT";
         var links = 0;
+        var created = new Dictionary<string, Guid>(StringComparer.Ordinal);
         foreach (var (name, summary, responsible, deputy, hostNames, locationNames, pageTitles, description) in Plan)
         {
             var at = now.AddDays(-20);
@@ -64,6 +72,7 @@ internal static class DevSeedResponsibilities
                 CreatedAt = at, CreatedBy = admin?.Id, CreatedByName = by, UpdatedAt = at, UpdatedBy = admin?.Id, UpdatedByName = by,
             };
             db.Responsibilities.Add(r);
+            created[name] = r.Id;
             db.ResponsibilityHistory.Add(new ResponsibilityHistoryEntity
             {
                 Id = Guid.NewGuid(), ResponsibilityId = r.Id, At = at, ByUserId = admin?.Id, ByName = by, Kind = ResponsibilityHistoryKind.Created,
@@ -96,6 +105,16 @@ internal static class DevSeedResponsibilities
                 Link(page.Id, null, null);
             }
         }
+        foreach (var (responsibility, projectId, project, trackerId, tracker, user, note) in Combinations)
+        {
+            var at = now.AddDays(-19);
+            db.ResponsibilityRedmine.Add(new ResponsibilityRedmineEntity
+            {
+                Id = Guid.NewGuid(), ResponsibilityId = created[responsibility], ProjectId = projectId, ProjectName = project, TrackerId = trackerId,
+                TrackerName = tracker, UserId = User(user), Note = note, CreatedAt = at, CreatedBy = admin?.Id, CreatedByName = by, UpdatedAt = at,
+                UpdatedBy = admin?.Id, UpdatedByName = by,
+            });
+        }
         if (db.ResponsibilitySettings.SingleOrDefault(s => s.Id == ResponsibilitySettingsEntity.SingletonId) is { } settings)
         {
             settings.GlobalResponsibleId = admin?.Id;
@@ -105,6 +124,6 @@ internal static class DevSeedResponsibilities
             settings.UpdatedByName = by;
         }
         db.SaveChanges();
-        return $"Seeded {Plan.Length} responsibilities with {links} links, and the global responsible and deputy.";
+        return $"Seeded {Plan.Length} responsibilities with {links} links and {Combinations.Length} Redmine combinations, and the global responsible and deputy.";
     }
 }

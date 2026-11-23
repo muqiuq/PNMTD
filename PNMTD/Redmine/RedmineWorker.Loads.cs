@@ -107,6 +107,12 @@ public sealed partial class RedmineWorker
 
     public RedmineFreshness LookupsFreshness() => Freshness(LookupsSnapshot);
 
+    /// <summary>
+    /// The lookups as last read, without waiting or asking Redmine: null before the first read. For lists that only refresh
+    /// names and mark what PNMT no longer reads (docs/responsibilities-plan.md §6.2).
+    /// </summary>
+    public RedmineLookups? CachedLookups() => LookupsSnapshot.Value as RedmineLookups;
+
     // --- the lookups -------------------------------------------------------------------------------------------------------
 
     private async Task<RedmineLookups> LoadLookupsAsync(RedmineCalls calls)

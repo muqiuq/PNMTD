@@ -25,10 +25,11 @@ public sealed record ResponsibilityItem(
     bool GlobalStandsIn,
     bool Attention,
     int Links,
+    int Combinations,
     DateTime UpdatedAt);
 
-/// <summary>The page's list, with the global people on top (§9.2).</summary>
-public sealed record ResponsibilityList(ResponsibilityGlobal Global, IReadOnlyList<ResponsibilityItem> Items);
+/// <summary>The page's list, with the global people on top (§9.2). Without Redmine configured, no combination counts.</summary>
+public sealed record ResponsibilityList(ResponsibilityGlobal Global, IReadOnlyList<ResponsibilityItem> Items, bool RedmineConfigured);
 
 /// <summary>A responsibility's link: the object as a page's links show it (<see cref="KbLinkItem"/>), and the link's own id.</summary>
 public sealed record ResponsibilityLinkItem(Guid LinkId, KbLinkKind Kind, Guid Id, string Name, string? Detail, bool Exists, int? Number, bool Archived);
@@ -50,6 +51,8 @@ public sealed record ResponsibilityDetail(
     ResponsibilityGlobal Global,
     IReadOnlyList<ResponsibilityLinkItem> Links,
     IReadOnlyList<FileItem> Files,
+    bool RedmineConfigured,
+    IReadOnlyList<RedmineCombinationItem> Redmine,
     DateTime CreatedAt,
     string? CreatedByName,
     DateTime UpdatedAt,
@@ -115,6 +118,53 @@ public sealed record ResponsibilityHistoryItem(Guid Id, DateTime At, string ByNa
 public sealed record ResponsibilityHistoryDetail(Guid Id, DateTime At, string ByName, Models.Db.ResponsibilityHistoryKind Kind, string? Detail,
     string? OldValue, string? NewValue);
 
+/// <summary>
+/// A Redmine project and a tracker (null: every tracker), listed on a responsibility with the user who handles it (§6). Names are
+/// Redmine's current ones where PNMT has its lookups, else those copied at the last save. <see cref="Warning"/>: <i>Not a project
+/// PNMT reads</i>, <i>Unknown tracker #7</i>. <see cref="User"/> null: the user was removed.
+/// </summary>
+public sealed record RedmineCombinationItem(
+    Guid Id,
+    Guid ResponsibilityId,
+    string ResponsibilityName,
+    int ProjectId,
+    string ProjectName,
+    string ProjectPath,
+    int? TrackerId,
+    string? TrackerName,
+    ResponsibilityPerson? User,
+    bool UserRedmineLinked,
+    string? Note,
+    string? Warning,
+    DateTime UpdatedAt);
+
+/// <summary>Every combination (§9.5), ordered by project path, then every tracker first, then the tracker's name.</summary>
+public sealed record RedmineCombinationList(IReadOnlyList<RedmineCombinationItem> Items);
+
+/// <summary>A Redmine project PNMT reads, for the picker: its path through its parents ("IT Support › Printers").</summary>
+public sealed record RedmineCombinationProject(int Id, string Name, int? ParentId, string Path, int Depth);
+
+/// <summary>What the combination dialog picks from (§6.2), from the worker's lookups; <see cref="Error"/> when Redmine can't be read.</summary>
+public sealed record ResponsibilityRedmineLookups(bool Configured, IReadOnlyList<RedmineCombinationProject> Projects, IReadOnlyList<RedmineNamed> Trackers,
+    string? Error);
+
+/// <summary>
+/// A combination (§6.1): a project PNMT reads, a tracker or none (every tracker), an active user, a note. On a change,
+/// <see cref="ResponsibilityId"/> moves it to another responsibility.
+/// </summary>
+public sealed class RedmineCombinationRequest
+{
+    public int? ProjectId { get; init; }
+
+    public int? TrackerId { get; init; }
+
+    public Guid? UserId { get; init; }
+
+    public string? Note { get; init; }
+
+    public Guid? ResponsibilityId { get; init; }
+}
+
 /// <summary>The error codes of responsibilities (§11).</summary>
 public static class ResponsibilityErrors
 {
@@ -123,4 +173,5 @@ public static class ResponsibilityErrors
     public const string TooManyLinks = "too_many_links";
     public const string DuplicateCombination = "duplicate_combination";
     public const string RedmineNotConfigured = "redmine_not_configured";
+    public const string RedmineUnreachable = "redmine_unreachable";
 }

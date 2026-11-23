@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using PNMTD.Api;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Data;
@@ -6,6 +7,7 @@ using PNMTD.Files;
 using PNMTD.Knowledge;
 using PNMTD.Locations;
 using PNMTD.Models.Db;
+using PNMTD.Redmine;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Responsibilities;
@@ -14,8 +16,11 @@ namespace PNMTD.Responsibilities;
 /// What responsibilities say (docs/responsibilities-plan.md §10.6): the list, one in full, and the global people. The page,
 /// the panels of linked objects and the tools for MCP and Cookie read through here. Nothing here depends on HTTP.
 /// </summary>
-public sealed class ResponsibilityQueries(PnmtdDbContext db, LocationTree tree)
+public sealed class ResponsibilityQueries(PnmtdDbContext db, LocationTree tree, RedmineWorker redmine, IOptionsMonitor<RedmineOptions> redmineOptions)
 {
+    /// <summary>Whether the Redmine parts are shown at all (§6.1): without Redmine configured, combinations stay but aren't shown.</summary>
+    public bool RedmineConfigured => redmineOptions.CurrentValue.Enabled;
+
     public async Task<ResponsibilityGlobal> GlobalAsync(CancellationToken ct)
     {
         var settings = await SettingsAsync(ct);
@@ -43,19 +48,24 @@ public sealed class ResponsibilityQueries(PnmtdDbContext db, LocationTree tree)
             {
                 r.Id, r.Name, r.Summary, r.ResponsibleId, r.DeputyId, r.UpdatedAt,
                 Links = db.ResponsibilityLinks.Count(l => l.ResponsibilityId == r.Id),
+                Combinations = db.ResponsibilityRedmine.Count(c => c.ResponsibilityId == r.Id),
+                // A combination whose user was removed or deactivated (§6.5).
+                Unhandled = db.ResponsibilityRedmine.Any(c => c.ResponsibilityId == r.Id
+                    && (c.UserId == null || !db.Users.Any(u => u.Id == c.UserId && u.IsActive))),
             })
             .ToListAsync(ct);
         var people = await PeopleAsync(rows.SelectMany(r => new[] { r.ResponsibleId, r.DeputyId }), ct);
+        var withRedmine = RedmineConfigured;
         var items = rows.Select(r =>
             {
                 var responsible = Person(people, r.ResponsibleId);
                 var deputy = Person(people, r.DeputyId);
                 return new ResponsibilityItem(r.Id, r.Name, r.Summary, responsible, deputy, StandsIn(responsible, deputy),
-                    NeedsAttention(responsible, deputy), r.Links, r.UpdatedAt);
+                    NeedsAttention(responsible, deputy) || (withRedmine && r.Unhandled), r.Links, withRedmine ? r.Combinations : 0, r.UpdatedAt);
             })
             .Where(i => !attention || i.Attention)
             .ToList();
-        return new ResponsibilityList(await GlobalAsync(ct), items);
+        return new ResponsibilityList(await GlobalAsync(ct), items, withRedmine);
     }
 
     public async Task<ResponsibilityDetail> GetAsync(Guid id, CancellationToken ct)
@@ -64,9 +74,77 @@ public sealed class ResponsibilityQueries(PnmtdDbContext db, LocationTree tree)
         var people = await PeopleAsync([r.ResponsibleId, r.DeputyId], ct);
         var responsible = Person(people, r.ResponsibleId);
         var deputy = Person(people, r.DeputyId);
+        var combinations = RedmineConfigured ? await CombinationsAsync(id, null, null, ct) : [];
         return new ResponsibilityDetail(r.Id, r.Name, r.Summary, r.Description, r.Revision, responsible, deputy, StandsIn(responsible, deputy),
-            NeedsAttention(responsible, deputy), await GlobalAsync(ct), await LinksAsync(id, ct), await FilesAsync(r.Description, ct), r.CreatedAt,
-            r.CreatedByName, r.UpdatedAt, r.UpdatedByName);
+            NeedsAttention(responsible, deputy) || combinations.Any(c => c.User is not { Active: true }), await GlobalAsync(ct),
+            await LinksAsync(id, ct), await FilesAsync(r.Description, ct), RedmineConfigured, combinations, r.CreatedAt, r.CreatedByName,
+            r.UpdatedAt, r.UpdatedByName);
+    }
+
+    /// <summary>
+    /// Redmine combinations (§6, §9.5): one responsibility's, or all of them, by project, responsibility or user. Names come from
+    /// the worker's lookups where it has them (never asking Redmine), else the copies of the last save.
+    /// </summary>
+    public async Task<IReadOnlyList<RedmineCombinationItem>> CombinationsAsync(Guid? responsibilityId, int? project, Guid? user, CancellationToken ct)
+    {
+        var query = db.ResponsibilityRedmine.AsNoTracking();
+        if (responsibilityId is { } r)
+        {
+            query = query.Where(c => c.ResponsibilityId == r);
+        }
+        if (project is { } p)
+        {
+            query = query.Where(c => c.ProjectId == p);
+        }
+        if (user is { } u)
+        {
+            query = query.Where(c => c.UserId == u);
+        }
+        var rows = await (from c in query join x in db.Responsibilities on c.ResponsibilityId equals x.Id select new { Row = c, x.Name }).ToListAsync(ct);
+        var people = await PeopleAsync(rows.Select(x => x.Row.UserId), ct);
+        var ids = people.Keys.ToList();
+        var linked = ids.Count == 0 ? [] : await db.Users.AsNoTracking().Where(x => ids.Contains(x.Id) && x.RedmineUserId != null).Select(x => x.Id).ToListAsync(ct);
+        var lookups = redmine.CachedLookups();
+        var projects = lookups is null ? new Dictionary<int, RedmineCombinationProject>() : ProjectsOf(lookups).ToDictionary(x => x.Id);
+        return rows.Select(x =>
+            {
+                var c = x.Row;
+                var known = projects.GetValueOrDefault(c.ProjectId);
+                var tracker = c.TrackerId is { } t ? lookups?.Trackers.FirstOrDefault(k => k.Id == t) : null;
+                var warning = lookups is null ? null
+                    : known is null || !lookups.Allowed.Contains(c.ProjectId) ? "Not a project PNMT reads"
+                    : c.TrackerId is { } missing && tracker is null ? $"Unknown tracker #{missing}"
+                    : null;
+                return new RedmineCombinationItem(c.Id, c.ResponsibilityId, x.Name, c.ProjectId, known?.Name ?? c.ProjectName,
+                    known?.Path ?? c.ProjectName, c.TrackerId, tracker?.Name ?? c.TrackerName, Person(people, c.UserId),
+                    c.UserId is { } id && linked.Contains(id), c.Note, warning, c.UpdatedAt);
+            })
+            .OrderBy(i => i.ProjectPath, StringComparer.OrdinalIgnoreCase).ThenBy(i => i.ProjectId)
+            .ThenBy(i => i.TrackerId is null ? 0 : 1).ThenBy(i => i.TrackerName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>The projects PNMT reads, each with its path through its parents among them.</summary>
+    internal static IReadOnlyList<RedmineCombinationProject> ProjectsOf(RedmineLookups lookups)
+    {
+        var allowed = lookups.Projects.Where(p => lookups.Allowed.Contains(p.Id)).ToDictionary(p => p.Id);
+        (string Path, int Depth) PathOf(RmProject p)
+        {
+            var names = new List<string> { p.Name };
+            var seen = new HashSet<int> { p.Id };
+            for (var parent = p.Parent?.Id; parent is { } id && allowed.TryGetValue(id, out var up) && seen.Add(id); parent = up.Parent?.Id)
+            {
+                names.Insert(0, up.Name);
+            }
+            return (string.Join(" › ", names), names.Count - 1);
+        }
+        return allowed.Values.Select(p =>
+            {
+                var (path, depth) = PathOf(p);
+                return new RedmineCombinationProject(p.Id, p.Name, p.Parent?.Id, path, depth);
+            })
+            .OrderBy(p => p.Path, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     /// <summary>The files the description references (§10.4), for attachment chips.</summary>

@@ -122,6 +122,52 @@ public class ResponsibilitySettingsEntity
     public string? UpdatedByName { get; set; }
 }
 
+/// <summary>
+/// A Redmine project with a tracker, or with every tracker (<see cref="TrackerId"/> null), listed on a responsibility, with the
+/// user who handles it there (§6). It says who handles that kind of ticket; it touches no ticket. By Redmine id, with the names
+/// copied for when Redmine can't be reached. Once per project and tracker, across all responsibilities.
+/// </summary>
+[Table("responsibility_redmine")]
+[NotAudited("each change is ResponsibilityRedmineSaved or ResponsibilityRedmineDeleted, naming the project, tracker and user")]
+public class ResponsibilityRedmineEntity
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    public Guid ResponsibilityId { get; set; }
+
+    public int ProjectId { get; set; }
+
+    [MaxLength(255)]
+    public string ProjectName { get; set; } = "";
+
+    /// <summary>Null: every tracker of the project.</summary>
+    public int? TrackerId { get; set; }
+
+    [MaxLength(255)]
+    public string? TrackerName { get; set; }
+
+    /// <summary>Required by the API; a deleted user leaves nobody (SET NULL).</summary>
+    public Guid? UserId { get; set; }
+
+    [MaxLength(200)]
+    public string? Note { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public Guid? CreatedBy { get; set; }
+
+    [MaxLength(200)]
+    public string? CreatedByName { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
+
+    public Guid? UpdatedBy { get; set; }
+
+    [MaxLength(200)]
+    public string? UpdatedByName { get; set; }
+}
+
 /// <summary>What a responsibility's history row records (§10.5). Stored as its number: append, never reorder.</summary>
 [JsonConverter(typeof(JsonStringEnumConverter<ResponsibilityHistoryKind>))]
 public enum ResponsibilityHistoryKind

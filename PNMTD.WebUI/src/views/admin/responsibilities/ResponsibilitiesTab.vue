@@ -127,6 +127,9 @@ const open = (r: ResponsibilityItem) => router.push({ name: 'responsibility', pa
       <Column header="Links" style="width: 5rem">
         <template #body="{ data }">{{ data.links }}</template>
       </Column>
+      <Column v-if="list.data.value?.redmineConfigured" header="Redmine" style="width: 6rem">
+        <template #body="{ data }">{{ data.combinations }}</template>
+      </Column>
       <template #empty>
         <EmptyState
           v-if="filtered"

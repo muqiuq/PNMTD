@@ -8,10 +8,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '@/api/client'
 import { kbLinkIcon, kbLinkRoute } from '@/api/kb'
 import {
+  combinationLabel,
   personLabel,
   responsibilitiesApi,
   responsibilityKeys,
   standsInLabel,
+  type RedmineCombination,
   type ResponsibilityLink,
 } from '@/api/responsibilities'
 import ErrorState from '@/components/ErrorState.vue'
@@ -21,6 +23,7 @@ import TabNav from '@/components/TabNav.vue'
 import { useActions } from '@/composables/useActions'
 import { useSession } from '@/stores/session'
 import LinkPicker, { type LinkTarget } from '@/views/kb/LinkPicker.vue'
+import CombinationDialog from './CombinationDialog.vue'
 import PersonPicker from './PersonPicker.vue'
 import ResponsibilityHistory from './ResponsibilityHistory.vue'
 
@@ -119,11 +122,31 @@ const removeLink = (link: ResponsibilityLink) =>
     invalidate: [responsibilityKeys.all],
   })
 
+// --- Redmine combinations (§6) -----------------------------------------------------------------------------------------
+const editingCombination = ref(false)
+const combination = ref<RedmineCombination | null>(null)
+function openCombination(c: RedmineCombination | null) {
+  combination.value = c
+  editingCombination.value = true
+}
+async function removeCombination(c: RedmineCombination) {
+  if (!(await ask(`Remove ${combinationLabel(c)}?`, `It is removed from ${r.value!.name}.`, 'Remove'))) return
+  await run(() => responsibilitiesApi.removeCombination(props.id, c.id), {
+    success: `${combinationLabel(c)} removed`,
+    failure: 'Not removed',
+    invalidate: [responsibilityKeys.all],
+  })
+}
+
 // --- delete -------------------------------------------------------------------------------------------------------------
+const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 async function remove() {
   const value = r.value!
-  const links = value.links.length
-  const what = links === 0 ? 'It links nothing.' : `${links} ${links === 1 ? 'link is' : 'links are'} removed with it.`
+  const parts = [
+    value.links.length ? count(value.links.length, 'link', 'links') : null,
+    value.redmine.length ? count(value.redmine.length, 'Redmine combination', 'Redmine combinations') : null,
+  ].filter(Boolean)
+  const what = parts.length === 0 ? 'It links nothing.' : `Removed with it: ${parts.join(' and ')}.`
   if (!(await ask(`Delete ${value.name}?`, `${what} The audit log keeps what it was.`, 'Delete responsibility'))) return
   if (
     await done(() => responsibilitiesApi.remove(props.id), {
@@ -282,15 +305,70 @@ async function remove() {
               />
             </div>
           </section>
+
+          <section v-if="r.redmineConfigured" class="panel" aria-labelledby="redmine-title">
+            <div class="panel-header with-action">
+              <span id="redmine-title">Redmine</span>
+              <Button
+                v-if="manage"
+                label="Add…"
+                icon="pi pi-plus"
+                size="small"
+                text
+                data-test="add-combination"
+                @click="openCombination(null)"
+              />
+            </div>
+            <div class="panel-body">
+              <p v-if="!r.redmine.length" class="muted none">No Redmine project or tracker listed.</p>
+              <ul v-else class="list">
+                <li v-for="c in r.redmine" :key="c.id">
+                  <i class="pi pi-ticket muted" aria-hidden="true" />
+                  <span class="link-text">
+                    <a v-if="manage" href="#" @click.prevent="openCombination(c)">{{ combinationLabel(c) }}</a>
+                    <span v-else>{{ combinationLabel(c) }}</span>
+                    <span class="muted detail">
+                      <span v-if="!c.user" class="warn">Nobody (user removed)</span>
+                      <span v-else :class="{ warn: !c.user.active }">{{ personLabel(c.user) }}</span>
+                      <template v-if="c.note"> · {{ c.note }}</template>
+                    </span>
+                    <span v-if="c.warning" class="warn detail"
+                      ><i class="pi pi-exclamation-triangle" aria-hidden="true" /> {{ c.warning }}</span
+                    >
+                  </span>
+                  <Button
+                    v-if="manage"
+                    icon="pi pi-times"
+                    text
+                    rounded
+                    size="small"
+                    severity="secondary"
+                    :aria-label="`Remove ${combinationLabel(c)}`"
+                    @click="removeCombination(c)"
+                  />
+                </li>
+              </ul>
+            </div>
+          </section>
         </div>
       </div>
 
       <ResponsibilityHistory v-else :id="id" :manage="manage" />
+      <CombinationDialog
+        v-model:visible="editingCombination"
+        :combination="combination"
+        :responsibility-id="id"
+        fixed
+      />
     </template>
   </div>
 </template>
 
 <style scoped>
+.warn {
+  color: var(--pnmt-warn);
+}
+
 .with-action {
   display: flex;
   align-items: center;

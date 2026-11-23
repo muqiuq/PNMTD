@@ -7814,6 +7814,71 @@ namespace PNMTD.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.ResponsibilityRedmineEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProjectName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("ResponsibilityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("TrackerId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TrackerName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UpdatedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResponsibilityId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ProjectId", "TrackerId")
+                        .IsUnique();
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ProjectId", "TrackerId"), false);
+
+                    b.ToTable("responsibility_redmine");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.ResponsibilitySettingsEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -10306,6 +10371,20 @@ namespace PNMTD.Data.Migrations
                         .HasForeignKey("ResponsibilityId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ResponsibilityRedmineEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.ResponsibilityEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ResponsibilityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PNMTD.Models.Db.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.ResponsibilitySettingsEntity", b =>

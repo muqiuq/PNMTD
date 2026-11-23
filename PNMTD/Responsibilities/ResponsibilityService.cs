@@ -9,6 +9,7 @@ using PNMTD.Knowledge;
 using PNMTD.Lib.Helper;
 using PNMTD.Locations;
 using PNMTD.Models.Db;
+using PNMTD.Redmine;
 using PNMTD.Services.Domain;
 
 namespace PNMTD.Responsibilities;
@@ -18,7 +19,7 @@ namespace PNMTD.Responsibilities;
 /// pickers' lists. Each change writes a history row and is in the audit log. Information only: nothing is sent to anyone.
 /// </summary>
 public sealed class ResponsibilityService(PnmtdDbContext db, ResponsibilityQueries queries, SearchService search, LocationTree tree,
-    IOptionsMonitor<KnowledgeBaseOptions> options, IHttpContextAccessor accessor)
+    IOptionsMonitor<KnowledgeBaseOptions> options, IServiceProvider services, IHttpContextAccessor accessor)
 {
     /// <summary>A responsibility links at most this many pages, locations and hosts (§4.1).</summary>
     public const int MaxLinks = 200;
@@ -98,9 +99,11 @@ public sealed class ResponsibilityService(PnmtdDbContext db, ResponsibilityQueri
     {
         var r = await db.Responsibilities.SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw ApiException.NotFound("Responsibility");
         var links = await db.ResponsibilityLinks.CountAsync(l => l.ResponsibilityId == id, ct);
+        var combinations = await db.ResponsibilityRedmine.CountAsync(c => c.ResponsibilityId == id, ct);
         var people = await queries.PeopleAsync([r.ResponsibleId, r.DeputyId], ct);
         AuditLog.Target(Target(r));
-        AuditLog.Summary($"{r.Name} deleted with {Count(links, "link")}; it named {PeopleText(people, r.ResponsibleId, r.DeputyId)}");
+        AuditLog.Summary($"{r.Name} deleted with {Count(links, "link")} and {Count(combinations, "Redmine combination")}; it named "
+            + PeopleText(people, r.ResponsibleId, r.DeputyId));
         db.Responsibilities.Remove(r);
         await db.SaveChangesAsync(ct);
     }
@@ -273,6 +276,193 @@ public sealed class ResponsibilityService(PnmtdDbContext db, ResponsibilityQueri
         await db.SaveChangesAsync(ct);
         return await queries.GetAsync(id, ct);
     }
+
+    // --- Redmine combinations (§6) ------------------------------------------------------------------------------------
+
+    /// <summary>What the dialog picks from: the projects PNMT reads and Redmine's trackers, through the worker's lookups.</summary>
+    public async Task<ResponsibilityRedmineLookups> RedmineLookupsAsync(CancellationToken ct)
+    {
+        if (!queries.RedmineConfigured)
+        {
+            return new ResponsibilityRedmineLookups(false, [], [], null);
+        }
+        try
+        {
+            var lookups = await services.GetRequiredService<RedmineService>().LookupsAsync(ct);
+            return new ResponsibilityRedmineLookups(true, ResponsibilityQueries.ProjectsOf(lookups),
+                lookups.Trackers.Select(t => new RedmineNamed(t.Id, t.Name ?? $"#{t.Id}")).OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase).ToList(), null);
+        }
+        catch (RedmineException e)
+        {
+            return new ResponsibilityRedmineLookups(true, [], [], e.Message);
+        }
+        catch (ApiException e) when (e.Status == StatusCodes.Status504GatewayTimeout)
+        {
+            return new ResponsibilityRedmineLookups(true, [], [], e.Message);
+        }
+    }
+
+    public async Task<RedmineCombinationList> CombinationsAsync(int? project, Guid? responsibility, Guid? user, CancellationToken ct)
+    {
+        RequireRedmine();
+        return new RedmineCombinationList(await queries.CombinationsAsync(responsibility, project, user, ct));
+    }
+
+    /// <summary>A Redmine project and tracker on this responsibility, with who handles it (§6.1): once across all of them.</summary>
+    public async Task<ResponsibilityDetail> AddCombinationAsync(Guid id, RedmineCombinationRequest request, CancellationToken ct)
+    {
+        RequireRedmine();
+        var r = await db.Responsibilities.SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw ApiException.NotFound("Responsibility");
+        var (project, tracker, user, note) = await ValidateCombinationAsync(request, null, ct);
+        var by = LocationActor.Of(accessor);
+        var now = Clock.UtcNow;
+        var c = new ResponsibilityRedmineEntity
+        {
+            Id = Guid.NewGuid(), ResponsibilityId = id, ProjectId = project.Id, ProjectName = project.Name, TrackerId = tracker?.Id,
+            TrackerName = tracker?.Name, UserId = user.Id, Note = note, CreatedAt = now, CreatedBy = by.Id, CreatedByName = by.Name,
+            UpdatedAt = now, UpdatedBy = by.Id, UpdatedByName = by.Name,
+        };
+        db.ResponsibilityRedmine.Add(c);
+        var what = $"{Combination(project.Path, tracker?.Name)}: {user.Name}";
+        History(id, now, by, ResponsibilityHistoryKind.RedmineAdded, what);
+        Touch(r, now, by);
+        AuditLog.Record(db, AuditEvents.ResponsibilityRedmineSaved, $"{r.Name}: added {what}", AuditWho.From(accessor), Target(r));
+        await db.SaveChangesAsync(ct);
+        return await queries.GetAsync(id, ct);
+    }
+
+    /// <summary>A change: its project, tracker, user or note, or the responsibility it is on (<c>responsibilityId</c>).</summary>
+    public async Task<ResponsibilityDetail> UpdateCombinationAsync(Guid id, Guid combinationId, RedmineCombinationRequest request, CancellationToken ct)
+    {
+        RequireRedmine();
+        var c = await db.ResponsibilityRedmine.SingleOrDefaultAsync(x => x.Id == combinationId && x.ResponsibilityId == id, ct)
+            ?? throw ApiException.NotFound("Redmine combination");
+        var from = await db.Responsibilities.SingleAsync(x => x.Id == id, ct);
+        var to = request.ResponsibilityId is { } other && other != id
+            ? await db.Responsibilities.SingleOrDefaultAsync(x => x.Id == other, ct) ?? throw ApiException.Invalid("responsibilityId", "No such responsibility.")
+            : from;
+        var (project, tracker, user, note) = await ValidateCombinationAsync(request, c, ct);
+        var people = await queries.PeopleAsync([c.UserId], ct);
+        var before = $"{Combination(c.ProjectName, c.TrackerName)}: {NameOf(people, c.UserId)}{(c.Note is null ? "" : $" ({c.Note})")}";
+        var after = $"{Combination(project.Path, tracker?.Name)}: {user.Name}{(note is null ? "" : $" ({note})")}";
+        var by = LocationActor.Of(accessor);
+        var now = Clock.UtcNow;
+        c.ProjectId = project.Id;
+        c.ProjectName = project.Name;
+        c.TrackerId = tracker?.Id;
+        c.TrackerName = tracker?.Name;
+        c.UserId = user.Id;
+        c.Note = note;
+        c.ResponsibilityId = to.Id;
+        c.UpdatedAt = now;
+        c.UpdatedBy = by.Id;
+        c.UpdatedByName = by.Name;
+        if (to.Id != from.Id)
+        {
+            History(from.Id, now, by, ResponsibilityHistoryKind.RedmineRemoved, $"{before}, moved to {to.Name}");
+            History(to.Id, now, by, ResponsibilityHistoryKind.RedmineAdded, $"{after}, moved from {from.Name}");
+            Touch(from, now, by);
+        }
+        else
+        {
+            History(to.Id, now, by, ResponsibilityHistoryKind.RedmineChanged, $"{before} → {after}");
+        }
+        Touch(to, now, by);
+        AuditLog.Record(db, AuditEvents.ResponsibilityRedmineSaved,
+            to.Id == from.Id ? $"{to.Name}: {before} → {after}" : $"{from.Name}: {before}, moved to {to.Name}: {after}", AuditWho.From(accessor),
+            AuditTarget.Of(AuditTargets.Responsibility, to.Id, to.Name, from.Id));
+        await db.SaveChangesAsync(ct);
+        return await queries.GetAsync(to.Id, ct);
+    }
+
+    public async Task<ResponsibilityDetail> DeleteCombinationAsync(Guid id, Guid combinationId, CancellationToken ct)
+    {
+        var c = await db.ResponsibilityRedmine.SingleOrDefaultAsync(x => x.Id == combinationId && x.ResponsibilityId == id, ct)
+            ?? throw ApiException.NotFound("Redmine combination");
+        var r = await db.Responsibilities.SingleAsync(x => x.Id == id, ct);
+        var people = await queries.PeopleAsync([c.UserId], ct);
+        var what = $"{Combination(c.ProjectName, c.TrackerName)}: {NameOf(people, c.UserId)}";
+        var by = LocationActor.Of(accessor);
+        var now = Clock.UtcNow;
+        db.ResponsibilityRedmine.Remove(c);
+        History(id, now, by, ResponsibilityHistoryKind.RedmineRemoved, what);
+        Touch(r, now, by);
+        AuditLog.Record(db, AuditEvents.ResponsibilityRedmineDeleted, $"{r.Name}: removed {what}", AuditWho.From(accessor), Target(r));
+        await db.SaveChangesAsync(ct);
+        return await queries.GetAsync(id, ct);
+    }
+
+    private void RequireRedmine()
+    {
+        if (!queries.RedmineConfigured)
+        {
+            throw new ApiException(StatusCodes.Status404NotFound, ResponsibilityErrors.RedmineNotConfigured, "Redmine isn't configured.");
+        }
+    }
+
+    /// <summary>
+    /// A project PNMT reads, a tracker of Redmine's (or none), an active user, a short note; once per project and tracker. An
+    /// unchanged project, tracker or user is kept as it is, even when Redmine no longer knows it or the user was deactivated.
+    /// </summary>
+    private async Task<(RedmineCombinationProject Project, RedmineNamed? Tracker, ResponsibilityPerson User, string? Note)> ValidateCombinationAsync(
+        RedmineCombinationRequest request, ResponsibilityRedmineEntity? current, CancellationToken ct)
+    {
+        var note = Text.Trimmed(request.Note);
+        var v = new ApiValidator()
+            .Check(request.ProjectId is not null, "projectId", "A project.")
+            .Check(request.UserId is not null, "userId", "Who handles it.")
+            .Check(note is null || note.Length <= 200, "note", "At most 200 characters.")
+            .Check(note is null || (!note.Contains('\n') && !note.Contains('\r')), "note", "One line.");
+        v.ThrowIfInvalid();
+        var keepProject = current is not null && current.ProjectId == request.ProjectId;
+        var keepTracker = current is not null && current.TrackerId == request.TrackerId;
+        RedmineLookups? lookups = null;
+        if (!keepProject || !keepTracker)
+        {
+            try
+            {
+                lookups = await services.GetRequiredService<RedmineService>().LookupsAsync(ct);
+            }
+            catch (RedmineException e)
+            {
+                throw new ApiException(StatusCodes.Status503ServiceUnavailable, ResponsibilityErrors.RedmineUnreachable,
+                    $"Redmine can't be reached: projects and trackers can't be listed right now. {e.Message}");
+            }
+        }
+        var projects = lookups is null ? [] : ResponsibilityQueries.ProjectsOf(lookups);
+        var project = keepProject
+            ? projects.FirstOrDefault(p => p.Id == current!.ProjectId) ?? new RedmineCombinationProject(current!.ProjectId, current.ProjectName, null, current.ProjectName, 0)
+            : projects.FirstOrDefault(p => p.Id == request.ProjectId);
+        RedmineNamed? tracker = null;
+        if (request.TrackerId is { } trackerId)
+        {
+            tracker = keepTracker
+                ? lookups?.Trackers.Where(t => t.Id == trackerId).Select(t => new RedmineNamed(t.Id, t.Name ?? $"#{t.Id}")).FirstOrDefault()
+                    ?? new RedmineNamed(trackerId, current!.TrackerName ?? $"#{trackerId}")
+                : lookups!.Trackers.Where(t => t.Id == trackerId).Select(t => new RedmineNamed(t.Id, t.Name ?? $"#{t.Id}")).FirstOrDefault();
+            v.Check(tracker is not null, "trackerId", "Not one of Redmine's trackers.");
+        }
+        v.Check(project is not null, "projectId", "Not one of PNMT's Redmine projects.");
+        var userId = request.UserId!.Value;
+        var user = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => new ResponsibilityPerson(u.Id, u.DisplayName, u.IsActive))
+            .SingleOrDefaultAsync(ct);
+        v.Check(user is not null && (user.Active || current?.UserId == userId), "userId", "An active user.");
+        v.ThrowIfInvalid();
+        var other = await (from c in db.ResponsibilityRedmine
+                           where c.ProjectId == project!.Id && c.TrackerId == request.TrackerId && c.Id != (current == null ? Guid.Empty : current.Id)
+                           join r in db.Responsibilities on c.ResponsibilityId equals r.Id
+                           join u in db.Users on c.UserId equals u.Id into users
+                           from u in users.DefaultIfEmpty()
+                           select new { r.Name, User = u == null ? null : u.DisplayName }).FirstOrDefaultAsync(ct);
+        if (other is not null)
+        {
+            throw ApiException.Conflict(ResponsibilityErrors.DuplicateCombination,
+                $"{Combination(project!.Path, tracker?.Name)} is already listed on {other.Name}, with {other.User ?? "nobody"}.");
+        }
+        return (project!, tracker, user!, note);
+    }
+
+    private static string Combination(string project, string? tracker) => $"{project} · {tracker ?? "every tracker"}";
 
     public async Task<Paged<ResponsibilityHistoryItem>> HistoryAsync(Guid id, PageQuery query, CancellationToken ct)
     {

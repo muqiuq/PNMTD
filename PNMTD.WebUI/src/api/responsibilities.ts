@@ -18,6 +18,9 @@ export type ResponsibilityRequest = S['ResponsibilityRequest']
 export type ResponsibilityHistoryItem = S['ResponsibilityHistoryItem']
 export type ResponsibilityHistoryKind = S['ResponsibilityHistoryKind']
 export type ResponsibilityPersonOption = S['ResponsibilityPersonOption']
+export type RedmineCombination = S['RedmineCombinationItem']
+export type RedmineCombinationRequest = S['RedmineCombinationRequest']
+export type RedmineCombinationProject = S['RedmineCombinationProject']
 
 export const responsibilitiesApi = {
   list: (query: { q?: string; attention?: boolean } = {}) =>
@@ -46,6 +49,25 @@ export const responsibilitiesApi = {
   setGlobal: (responsibleId: Id | null, deputyId: Id | null) =>
     call(client.PUT('/api/v1/responsibilities/global', { body: { responsibleId, deputyId } })),
   people: () => call(client.GET('/api/v1/responsibilities/people')),
+  /** The projects PNMT reads and Redmine's trackers, for the combination dialog (docs/responsibilities-plan.md §6.2). */
+  redmine: () => call(client.GET('/api/v1/responsibilities/redmine')),
+  combinations: (query: { project?: number; responsibility?: Id; user?: Id } = {}) =>
+    call(client.GET('/api/v1/responsibilities/redmine/combinations', { params: { query } })),
+  addCombination: (id: Id, body: RedmineCombinationRequest) =>
+    call(client.POST('/api/v1/responsibilities/{id}/redmine', { params: { path: { id } }, body })),
+  updateCombination: (id: Id, combinationId: Id, body: RedmineCombinationRequest) =>
+    call(
+      client.PUT('/api/v1/responsibilities/{id}/redmine/{combinationId}', {
+        params: { path: { id, combinationId } },
+        body,
+      }),
+    ),
+  removeCombination: (id: Id, combinationId: Id) =>
+    call(
+      client.DELETE('/api/v1/responsibilities/{id}/redmine/{combinationId}', {
+        params: { path: { id, combinationId } },
+      }),
+    ),
   /** Pages, locations and hosts by name, for the link picker, without Monitoring: View. */
   targets: (q: string) => call(client.GET('/api/v1/responsibilities/targets', { params: { query: { q } } })),
 }
@@ -57,6 +79,18 @@ export const responsibilityKeys = {
   one: (id: Id) => ['responsibilities', 'one', id] as const,
   history: (id: Id, page: number) => ['responsibilities', 'history', id, page] as const,
   people: ['responsibilities', 'people'] as const,
+  redmine: ['responsibilities', 'redmine'] as const,
+  combinations: (query: { project?: number; responsibility?: Id; user?: Id }) =>
+    ['responsibilities', 'combinations', query] as const,
+}
+
+/** "IT Support › Printers · every tracker". */
+export function combinationLabel(c: {
+  projectPath: string
+  trackerName?: string | null
+  trackerId?: number | null
+}): string {
+  return `${c.projectPath} · ${c.trackerId == null ? 'every tracker' : (c.trackerName ?? `#${c.trackerId}`)}`
 }
 
 /** A person as the page shows them: their name, *inactive* when deactivated, *nobody* without one. */

@@ -18160,6 +18160,199 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/responsibilities/redmine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResponsibilityRedmineLookups"];
+                        "text/json": components["schemas"]["ResponsibilityRedmineLookups"];
+                        "text/plain": components["schemas"]["ResponsibilityRedmineLookups"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/responsibilities/redmine/combinations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    project?: number;
+                    responsibility?: string;
+                    user?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RedmineCombinationList"];
+                        "text/json": components["schemas"]["RedmineCombinationList"];
+                        "text/plain": components["schemas"]["RedmineCombinationList"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/responsibilities/{id}/redmine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RedmineCombinationRequest"];
+                    "text/json": components["schemas"]["RedmineCombinationRequest"];
+                    "application/*+json": components["schemas"]["RedmineCombinationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResponsibilityDetail"];
+                        "text/json": components["schemas"]["ResponsibilityDetail"];
+                        "text/plain": components["schemas"]["ResponsibilityDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/responsibilities/{id}/redmine/{combinationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    combinationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RedmineCombinationRequest"];
+                    "text/json": components["schemas"]["RedmineCombinationRequest"];
+                    "application/*+json": components["schemas"]["RedmineCombinationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResponsibilityDetail"];
+                        "text/json": components["schemas"]["ResponsibilityDetail"];
+                        "text/plain": components["schemas"]["ResponsibilityDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    combinationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResponsibilityDetail"];
+                        "text/json": components["schemas"]["ResponsibilityDetail"];
+                        "text/plain": components["schemas"]["ResponsibilityDetail"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/responsibilities/people": {
         parameters: {
             query?: never;
@@ -29862,6 +30055,50 @@ export interface components {
             old: null | string;
             new: null | string;
         };
+        RedmineCombinationItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            responsibilityId: string;
+            responsibilityName: string;
+            /** Format: int32 */
+            projectId: number;
+            projectName: string;
+            projectPath: string;
+            /** Format: int32 */
+            trackerId: null | number;
+            trackerName: null | string;
+            user: null | components["schemas"]["ResponsibilityPerson"];
+            userRedmineLinked: boolean;
+            note: null | string;
+            warning: null | string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        RedmineCombinationList: {
+            items: components["schemas"]["RedmineCombinationItem"][];
+        };
+        RedmineCombinationProject: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: int32 */
+            parentId: null | number;
+            path: string;
+            /** Format: int32 */
+            depth: number;
+        };
+        RedmineCombinationRequest: {
+            /** Format: int32 */
+            projectId?: null | number;
+            /** Format: int32 */
+            trackerId?: null | number;
+            /** Format: uuid */
+            userId?: null | string;
+            note?: null | string;
+            /** Format: uuid */
+            responsibilityId?: null | string;
+        };
         RedmineFieldItem: {
             name: string;
             value: string;
@@ -30235,6 +30472,8 @@ export interface components {
             global: components["schemas"]["ResponsibilityGlobal"];
             links: components["schemas"]["ResponsibilityLinkItem"][];
             files: components["schemas"]["FileItem"][];
+            redmineConfigured: boolean;
+            redmine: components["schemas"]["RedmineCombinationItem"][];
             /** Format: date-time */
             createdAt: string;
             createdByName: null | string;
@@ -30288,6 +30527,8 @@ export interface components {
             attention: boolean;
             /** Format: int32 */
             links: number;
+            /** Format: int32 */
+            combinations: number;
             /** Format: date-time */
             updatedAt: string;
         };
@@ -30312,6 +30553,7 @@ export interface components {
         ResponsibilityList: {
             global: components["schemas"]["ResponsibilityGlobal"];
             items: components["schemas"]["ResponsibilityItem"][];
+            redmineConfigured: boolean;
         };
         ResponsibilityPeople: {
             users: components["schemas"]["ResponsibilityPersonOption"][];
@@ -30328,6 +30570,12 @@ export interface components {
             name: string;
             username: string;
             redmineLinked: boolean;
+        };
+        ResponsibilityRedmineLookups: {
+            configured: boolean;
+            projects: components["schemas"]["RedmineCombinationProject"][];
+            trackers: components["schemas"]["RedmineNamed"][];
+            error: null | string;
         };
         ResponsibilityRequest: {
             name?: null | string;

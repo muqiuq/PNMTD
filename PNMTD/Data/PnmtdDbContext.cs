@@ -202,6 +202,7 @@ namespace PNMTD.Data
         public DbSet<ResponsibilityLinkEntity> ResponsibilityLinks { get; set; }
         public DbSet<ResponsibilitySettingsEntity> ResponsibilitySettings { get; set; }
         public DbSet<ResponsibilityHistoryEntity> ResponsibilityHistory { get; set; }
+        public DbSet<ResponsibilityRedmineEntity> ResponsibilityRedmine { get; set; }
 
         // Cookie (docs/cookie-plan.md §19.2): its settings' versions, its state, the case book, the duties and the outbox.
         public DbSet<AvailabilityTypeEntity> AvailabilityTypes { get; set; }
@@ -1129,6 +1130,15 @@ namespace PNMTD.Data
             {
                 e.HasOne<ResponsibilityEntity>().WithMany().HasForeignKey(h => h.ResponsibilityId).OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(h => new { h.ResponsibilityId, h.At });
+            });
+            // Redmine combinations (docs/responsibilities-plan.md §6): once per project and tracker, every tracker (null) included.
+            modelBuilder.Entity<ResponsibilityRedmineEntity>(e =>
+            {
+                e.HasOne<ResponsibilityEntity>().WithMany().HasForeignKey(c => c.ResponsibilityId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(c => new { c.ProjectId, c.TrackerId }).IsUnique().AreNullsDistinct(false);
+                e.HasIndex(c => c.ResponsibilityId);
+                e.HasIndex(c => c.UserId);
             });
         }
 

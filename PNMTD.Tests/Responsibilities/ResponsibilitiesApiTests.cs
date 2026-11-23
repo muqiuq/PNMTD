@@ -94,6 +94,15 @@ public sealed class ResponsibilitiesApiTests
         Assert.AreEqual(HttpStatusCode.Forbidden, (await reader.GetAsync("/api/v1/responsibilities/people")).StatusCode);
         Assert.AreEqual(HttpStatusCode.Forbidden, (await app.Client(Roles.User).GetAsync("/api/v1/responsibilities")).StatusCode,
             "no former role holds the new area");
+
+        // Without Redmine configured, its parts aren't there (docs/responsibilities-plan.md §6.1).
+        Assert.IsFalse(list.RedmineConfigured);
+        Assert.AreEqual(0, (await (await reader.GetAsync($"/api/v1/responsibilities/{r.Id}")).ReadAsync<ResponsibilityDetail>()).Redmine.Count);
+        using var combinations = await reader.GetAsync("/api/v1/responsibilities/redmine/combinations");
+        Assert.AreEqual(ResponsibilityErrors.RedmineNotConfigured, await V1.CodeOf(combinations));
+        using var add = await manager.PostJsonAsync($"/api/v1/responsibilities/{r.Id}/redmine", new { projectId = 1, userId = TestUsers.Viewer });
+        Assert.AreEqual(HttpStatusCode.NotFound, add.StatusCode);
+        Assert.IsFalse((await (await manager.GetAsync("/api/v1/responsibilities/redmine")).ReadAsync<ResponsibilityRedmineLookups>()).Configured);
     }
 
     [TestMethod]

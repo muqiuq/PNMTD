@@ -91,6 +91,35 @@ public sealed class ResponsibilitiesController(ResponsibilityQueries queries, Re
     public async Task<ResponsibilityGlobal> Global(ResponsibilityGlobalRequest request, CancellationToken ct) =>
         await responsibilities.SetGlobalAsync(request, ct);
 
+    /// <summary>The projects PNMT reads and Redmine's trackers, for the combination dialog; <c>error</c> when Redmine can't be read.</summary>
+    [HttpGet("redmine")]
+    [RequireRight(Area.Responsibilities, Level.Manage)]
+    public async Task<ResponsibilityRedmineLookups> RedmineLookups(CancellationToken ct) => await responsibilities.RedmineLookupsAsync(ct);
+
+    /// <summary>Every Redmine combination, by project, responsibility or user; 404 <c>redmine_not_configured</c> without Redmine.</summary>
+    [HttpGet("redmine/combinations")]
+    public async Task<RedmineCombinationList> Combinations([FromQuery] int? project, [FromQuery] Guid? responsibility, [FromQuery] Guid? user,
+        CancellationToken ct) => await responsibilities.CombinationsAsync(project, responsibility, user, ct);
+
+    /// <summary>A Redmine project and tracker on this responsibility, with who handles it: 409 <c>duplicate_combination</c>.</summary>
+    [HttpPost("{id:guid}/redmine")]
+    [RequireRight(Area.Responsibilities, Level.Manage)]
+    [Audit(AuditEvents.ResponsibilityRedmineSaved)]
+    public async Task<ResponsibilityDetail> AddCombination(Guid id, RedmineCombinationRequest request, CancellationToken ct) =>
+        await responsibilities.AddCombinationAsync(id, request, ct);
+
+    [HttpPut("{id:guid}/redmine/{combinationId:guid}")]
+    [RequireRight(Area.Responsibilities, Level.Manage)]
+    [Audit(AuditEvents.ResponsibilityRedmineSaved)]
+    public async Task<ResponsibilityDetail> UpdateCombination(Guid id, Guid combinationId, RedmineCombinationRequest request, CancellationToken ct) =>
+        await responsibilities.UpdateCombinationAsync(id, combinationId, request, ct);
+
+    [HttpDelete("{id:guid}/redmine/{combinationId:guid}")]
+    [RequireRight(Area.Responsibilities, Level.Manage)]
+    [Audit(AuditEvents.ResponsibilityRedmineDeleted)]
+    public async Task<ResponsibilityDetail> DeleteCombination(Guid id, Guid combinationId, CancellationToken ct) =>
+        await responsibilities.DeleteCombinationAsync(id, combinationId, ct);
+
     /// <summary>The active users a responsibility can name, never their contact details.</summary>
     [HttpGet("people")]
     [RequireRight(Area.Responsibilities, Level.Manage)]
