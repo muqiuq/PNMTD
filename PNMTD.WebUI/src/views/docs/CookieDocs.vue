@@ -11,7 +11,7 @@ const has = (...texts: string[]) => {
   return !q || texts.some((t) => t.toLowerCase().includes(q))
 }
 const cookieText =
-  'cookie assistant ai case book cases deadlines tickets first answer update duties reminders escalation outbox held back limits ' +
+  'cookie assistant ai case book cases deadlines tickets first answer update duties reminders escalation outbox held back limits ceilings away vacation absence comment links redmine user ' +
   'dashboard card summary window trace chat rights use instruct manage admin start stop run privacy placeholders person email phone ' +
   'budget Cookie__Enabled Cookie__BudgetUsd Redmine__WriteApiKey working hours prompts comment stop go on stopped ' +
   'contact details account pushover key send a test redmine user availability plan responsible fallback ' +
@@ -156,22 +156,37 @@ const show = computed(() => has(cookieText))
         <li>
           <strong>Admin → Cookie</strong> (Cookie: Manage): Start, Stop and Run now, the last rounds, the budget, what
           Cookie did today, the duties and the outbox; who Cookie is and its prompts, each with its default; the
-          instructions for each kind of case; the watched Redmine projects with their escalation groups; the actions'
-          levels, the duties and the output limits; mute and suppress; the lessons; the models, Seraph's and the big
-          brother's too; and Cookie's group, whose rights it reads with, never the admin flag. Every save is a version
-          that can be viewed and rolled back. Cookie itself can't reach any of it. The working hours and holidays are in
-          the availability plan's settings.
+          instructions for each kind of case; the actions' levels, the duties and the output limits; mute and suppress;
+          the lessons; the models, Seraph's and the big brother's too; and Cookie's group, whose rights it reads with,
+          never the admin flag. Every save is a version that can be viewed and rolled back. Cookie itself can't reach
+          any of it. The working hours and holidays are in the availability plan's settings.
+        </li>
+        <li>
+          <strong>Admin → Cookie → Redmine</strong> has a right of its own, <em>Redmine: Manage</em> (Cookie: Manage
+          alone doesn't show it): the watched projects with their deadlines, staff roles, statuses that stop the clock
+          and escalation groups; Cookie's tickets; the away watch's settings; and which Redmine user each PNMT user is.
+          A link is picked from Redmine's users by id, so a rename in Redmine keeps it; until someone links a person,
+          their tickets are found by the name. The duties' switches stay on Actions; the tab shows them.
+        </li>
+        <li>
+          <strong>While someone is away</strong> (the away watch, a duty switched on under Actions): when someone
+          comments on a ticket whose assignee is on vacation, holiday or compensation in the availability plan, Cookie
+          judges whether someone should act before they are back. If so, code tells the responsible of the day or a
+          chosen person, as set on the Redmine tab, in working hours and once per ticket in 4 hours. Without Cookie's
+          verdict (stopped, too late, or a comment that tries to instruct an AI), it is told marked <em>not judged</em>,
+          or only recorded. Nothing is written to the ticket.
         </li>
         <li>
           <strong>Who gets what</strong> follows the availability plan: a ticket's reminder goes to its assignee (found
-          by the Redmine user on their PNMT user), or to the project's escalation group when nobody is assigned or the
-          assignee doesn't work that day; a missed deadline also reaches whoever is responsible that day. Important
-          messages go by e-mail, urgent ones by Pushover too, and only in working hours.
+          by the Redmine user linked to their PNMT user, else by the name), or to the project's escalation group when
+          nobody is assigned or the assignee doesn't work that day; a missed deadline also reaches whoever is
+          responsible that day. Important messages go by e-mail, urgent ones by Pushover too, and only in working hours.
         </li>
         <li>
           <strong>Your contact details</strong> are on <em>Account</em>: your e-mail address and Pushover user key, each
-          with <em>Send a test</em>. Admins set them under Admin → Users too, and only admins set the Redmine user. The
-          notification rules keep their own recipients.
+          with <em>Send a test</em>. Admins set them under Admin → Users too. Your Redmine user is linked on Admin →
+          Cookie → Redmine (Redmine: Manage); Account shows whether it is. The notification rules keep their own
+          recipients.
         </li>
         <li>
           <strong>Cookie is stopped until an admin starts it</strong>; after a restart it resumes. Stopped, the case
@@ -180,7 +195,8 @@ const show = computed(() => has(cookieText))
         <li>
           <strong>Every duty starts off</strong>: reminders, escalations, the ticket after 2 days and the closing note
           send nothing until an admin switches them on (Admin → Cookie → Actions). The output limits hold back what goes
-          over them; an admin can send it from the outbox.
+          over them; an admin can send it from the outbox. Each limit goes at most to its ceiling, which the server's
+          <code>.env</code> sets (<code>Cookie__Ceilings__*</code>), so a web login can't raise it.
           <strong>Tickets and notes in Redmine need <code>Redmine__WriteApiKey</code></strong
           >; without it, reminders go by e-mail and Pushover only.
         </li>

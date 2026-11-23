@@ -24,7 +24,7 @@ public sealed class Instructions(IDbContextFactory<PnmtdDbContext> dbs)
     public static readonly IReadOnlyList<string> Kinds = ["mute", "suppress", "note"];
     public static readonly IReadOnlyList<string> MuteScopes = ["host", "sensor", "location", "case"];
     public static readonly IReadOnlyList<string> SuppressScopes = ["channel", "sensor-type", "case-kind"];
-    public static readonly IReadOnlyList<string> Channels = ["pushover", "email", "ticket", "redmine-note", "access"];
+    public static readonly IReadOnlyList<string> Channels = ["pushover", "email", "ticket", "redmine-note", "access", "away"];
 
     public async Task<List<CookieInstructionEntity>> ActiveAsync(CancellationToken ct)
     {
@@ -41,6 +41,8 @@ public sealed class Instructions(IDbContextFactory<PnmtdDbContext> dbs)
         CookieActionKind.Email or CookieActionKind.LoungeEmail => "email",
         CookieActionKind.Ticket => "ticket",
         CookieActionKind.PrivateNote or CookieActionKind.PublicAnswer => "redmine-note",
+        // The away watch's notice (docs/cookie-redmine-tab-plan.md §6.4): mute of the case, or a suppress of the channel "away".
+        CookieActionKind.AwayNotice => "away",
         _ => null,
     };
 
@@ -136,7 +138,7 @@ public sealed class Instructions(IDbContextFactory<PnmtdDbContext> dbs)
         {
             v.Check(SuppressScopes.Contains(d.Scope), "scope", "channel, sensor-type or case-kind.");
             v.Check(!string.IsNullOrWhiteSpace(d.Value) && d.Value.Trim().Length <= 100, "value", "What is suppressed.");
-            v.Check(d.Scope != "channel" || Channels.Contains(d.Value?.Trim().ToLowerInvariant() ?? ""), "value", "pushover, email, ticket, redmine-note or access.");
+            v.Check(d.Scope != "channel" || Channels.Contains(d.Value?.Trim().ToLowerInvariant() ?? ""), "value", "pushover, email, ticket, redmine-note, access or away.");
             v.Check(d.Scope != "case-kind" || d.Value?.Trim().ToLowerInvariant() is "problem" or "ticket", "value", "problem or ticket.");
         }
         else

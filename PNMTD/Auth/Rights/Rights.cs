@@ -49,7 +49,8 @@ public static class RightsCatalog
             (Level.Manage, "Deleting pages and files, redacting, tags, Admin → Knowledge base.")]),
         new(Area.Redmine, "Redmine", [
             (Level.View, "The Redmine page, tickets, their panels and chips."),
-            (Level.Link, "Linking and unlinking tickets.")]),
+            (Level.Link, "Linking and unlinking tickets."),
+            (Level.Manage, "Link, plus Admin → Cookie → Redmine: the watched projects with their deadlines, staff roles, statuses that stop the clock and escalation groups, Cookie's tickets, the away watch's settings, and which Redmine user each PNMT user is.")]),
         new(Area.Zabbix, "Zabbix", [
             (Level.View, "The overview, problems, hosts and host pages."),
             (Level.Details, "Inventory and acknowledgement messages, which name people.")]),

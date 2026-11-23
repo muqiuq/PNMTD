@@ -44,6 +44,9 @@ public sealed class CookieOptions
     /// <summary>The most tokens an answer may have, per call (§13.3, <c>Cookie__Tokens__*</c>): the reasoning counts too.</summary>
     public CookieTokenOptions Tokens { get; set; } = new();
 
+    /// <summary>How far Admin → Cookie → Actions may set each output limit (<c>Cookie__Ceilings__*</c>).</summary>
+    public CookieCeilingOptions Ceilings { get; set; } = new();
+
     public bool PrivacyOff => string.Equals(Privacy, "Off", StringComparison.OrdinalIgnoreCase);
 }
 
@@ -117,6 +120,59 @@ public sealed class CookieTokenOptions
     public int LoungeNight { get; set; } = 4000;
 
     public int LoungeReview { get; set; } = 2000;
+
+    /// <summary>The away watch (docs/cookie-redmine-tab-plan.md §6.4): judging the comments on one ticket while its assignee is away.</summary>
+    public int AwayComment { get; set; } = 3000;
+}
+
+/// <summary>
+/// The output limits' ceilings (docs/cookie-redmine-tab-plan.md §13): how far Admin → Cookie → Actions may set each limit, and
+/// what it counts as at most when it is used. In .env, so a web login can't raise them; without a line, the ceiling that was in
+/// code before 1.20 (<see cref="OutputLimits.DefaultCeilings"/>). A ceiling below 0 counts as 0.
+/// </summary>
+public sealed class CookieCeilingOptions
+{
+    private static readonly OutputLimits Defaults = OutputLimits.DefaultCeilings;
+
+    public int PushoverPerPersonDay { get; set; } = Defaults.PushoverPerPersonDay;
+
+    public int PushoverPerPersonHour { get; set; } = Defaults.PushoverPerPersonHour;
+
+    public int EmailPerPersonDay { get; set; } = Defaults.EmailPerPersonDay;
+
+    public int MessagesPerDay { get; set; } = Defaults.MessagesPerDay;
+
+    public int TicketsPerDay { get; set; } = Defaults.TicketsPerDay;
+
+    public int NotesPerTicketDay { get; set; } = Defaults.NotesPerTicketDay;
+
+    public int RedmineNotesPerDay { get; set; } = Defaults.RedmineNotesPerDay;
+
+    public int PublicAnswersPerDay { get; set; } = Defaults.PublicAnswersPerDay;
+
+    public int ObjectNotesPerDay { get; set; } = Defaults.ObjectNotesPerDay;
+
+    public int BigBrotherPerDay { get; set; } = Defaults.BigBrotherPerDay;
+
+    public int BigBrotherPerCaseDay { get; set; } = Defaults.BigBrotherPerCaseDay;
+
+    public int MaxNotesPerObject { get; set; } = Defaults.MaxNotesPerObject;
+
+    public int AwayNoticesPerDay { get; set; } = Defaults.AwayNoticesPerDay;
+
+    public int AwayNoticesPerPersonDay { get; set; } = Defaults.AwayNoticesPerPersonDay;
+
+    /// <summary>The ceilings as a set of limits, each 0 or more.</summary>
+    public OutputLimits ToLimits() => new(
+        Floor(PushoverPerPersonDay), Floor(PushoverPerPersonHour), Floor(EmailPerPersonDay), Floor(MessagesPerDay), Floor(TicketsPerDay),
+        Floor(NotesPerTicketDay), Floor(RedmineNotesPerDay), Floor(PublicAnswersPerDay), Floor(ObjectNotesPerDay), Floor(BigBrotherPerDay),
+        Floor(BigBrotherPerCaseDay), Floor(MaxNotesPerObject), Floor(AwayNoticesPerDay), Floor(AwayNoticesPerPersonDay));
+
+    /// <summary>The keys set below 0, for the warning at startup.</summary>
+    public IReadOnlyList<string> Negative() =>
+        [.. GetType().GetProperties().Where(p => p.PropertyType == typeof(int) && (int)p.GetValue(this)! < 0).Select(p => $"Cookie__Ceilings__{p.Name}")];
+
+    private static int Floor(int value) => Math.Max(0, value);
 }
 
 /// <summary>Cookie's services (docs/cookie-plan.md §19.3).</summary>
@@ -140,6 +196,7 @@ public static class CookieSetup
         services.AddSingleton<CookieLoop>();
         services.AddSingleton<Summaries>();
         services.AddScoped<CookieService>();
+        services.AddScoped<RedmineLinkService>();
         services.AddScoped<CookieObjectNoteService>();
         // Cookie acts (package nine point five, §21): instructions, Seraph, the executor and the inbox's kinds.
         services.AddSingleton<Instructions>();
@@ -160,6 +217,11 @@ public static class CookieSetup
         services.AddSingleton<Access.AccessJudge>();
         services.AddSingleton<Access.AccessWatchTask>();
         services.AddScoped<Access.AccessService>();
+        // The away watch (docs/cookie-redmine-tab-plan.md §6).
+        services.AddSingleton<Away.AwayWatch>();
+        services.AddSingleton<Away.AwayNotices>();
+        services.AddSingleton<Away.AwayWatchTask>();
+        services.AddSingleton<Away.AwayJudge>();
         // The lounge (docs/lounge-plan.md §13): its own loop, signals, ground, voices, night and tools; its API.
         services.AddSingleton<Lounge.LoungeSignals>();
         services.AddSingleton<Lounge.LoungeGround>();

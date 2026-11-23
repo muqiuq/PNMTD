@@ -228,6 +228,7 @@ namespace PNMTD.Data
 
         // The access watch (docs/cookie-access-plan.md §10.1)
         public DbSet<AccessReviewEntity> AccessReviews { get; set; }
+        public DbSet<CookieAwayCommentEntity> CookieAwayComments { get; set; }
         public DbSet<AccessKnownEntity> AccessKnown { get; set; }
 
         // The MCP server (docs/mcp-plan.md §11.1)
@@ -277,6 +278,8 @@ namespace PNMTD.Data
 
             modelBuilder.Entity<UserEntity>().HasIndex(u => u.NormalizedUsername).IsUnique();
             modelBuilder.Entity<UserEntity>().HasIndex(u => u.ShortCode).IsUnique();
+            // One person per Redmine user (docs/cookie-redmine-tab-plan.md §4.1); unlinked ones are null, which PostgreSQL never counts as equal.
+            modelBuilder.Entity<UserEntity>().HasIndex(u => u.RedmineUserId).IsUnique();
             // Zabbix's hosts (docs/audit-redmine-zabbix-plan.md §7.3): found by their names.
             modelBuilder.Entity<ZabbixHostEntity>(e =>
             {
@@ -604,6 +607,15 @@ namespace PNMTD.Data
                 e.HasIndex(l => new { l.SensorId, l.User, l.At });
                 // Its signals across targets: a source's failures and fan-out.
                 e.HasIndex(l => new { l.SourceAddress, l.At });
+            });
+            // The away watch's comments (docs/cookie-redmine-tab-plan.md §7): one row per journal, going with its case.
+            modelBuilder.Entity<CookieAwayCommentEntity>(e =>
+            {
+                e.Property(a => a.State).HasConversion<string>().HasMaxLength(16);
+                e.HasOne<CookieCaseEntity>().WithMany().HasForeignKey(a => a.CaseId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(a => a.JournalId).IsUnique();
+                e.HasIndex(a => new { a.State, a.CreatedAt });
+                e.HasIndex(a => new { a.IssueId, a.NotifiedAt });
             });
             modelBuilder.Entity<AccessReviewEntity>(e =>
             {

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { holds, type Level } from '@/api/rights'
+import { holds, meets, type Area, type Level, type Right } from '@/api/rights'
 import { navigation, visibleNavigation } from './navigation'
 
 describe('visibleNavigation', () => {
   const names = (groups: ReturnType<typeof visibleNavigation>) => groups.flatMap((g) => g.items.map((i) => i.name))
+  /** A reader without the admin flag whose levels are those the predicate accepts. */
+  const by = (accepts: (area: Area, level: Level) => boolean) => (r: Right) => r !== 'admin' && meets(r, false, accepts)
 
   it('shows an integration only while it is configured, and with its right (§10.1)', () => {
     expect(
@@ -25,7 +27,7 @@ describe('visibleNavigation', () => {
     expect(
       names(
         visibleNavigation(
-          (r) => r !== 'admin' && r[0] !== 'Redmine',
+          by((area) => area !== 'Redmine'),
           () => true,
         ),
       ),
@@ -35,7 +37,7 @@ describe('visibleNavigation', () => {
   it('drops a group without entries', () => {
     // Without Redmine and Zabbix configured, and without the connectors' right (docs/connectors-plan.md §13.1).
     const groups = visibleNavigation(
-      (r) => r === 'admin' || r[0] !== 'Connectors',
+      (r) => r === 'admin' || meets(r, false, (area) => area !== 'Connectors'),
       () => false,
     )
     expect(groups.map((g) => g.label)).not.toContain('Integrations')
@@ -43,7 +45,7 @@ describe('visibleNavigation', () => {
 
   it("shows 3rd Party Connectors in Integrations with the connectors' View, configured or not (docs/connectors-plan.md §13.1)", () => {
     const view = visibleNavigation(
-      (r) => r !== 'admin' && holds(false, { Connectors: 'View' }, r[0], r[1]),
+      by((area, level) => holds(false, { Connectors: 'View' }, area, level)),
       () => false,
     )
     expect(view.find((g) => g.label === 'Integrations')?.items.map((i) => i.name)).toEqual(['connectors'])
@@ -89,32 +91,39 @@ describe('visibleNavigation', () => {
   })
 
   it('shows the network map with its View (docs/network-map-plan.md §8.1)', () => {
-    expect(names(visibleNavigation((r) => r !== 'admin' && r[0] === 'NetworkMap' && r[1] === 'View'))).toEqual([
+    expect(names(visibleNavigation(by((area, level) => area === 'NetworkMap' && level === 'View')))).toEqual([
       'dashboard',
       'lounge',
       'network-map',
     ])
-    expect(names(visibleNavigation((r) => r !== 'admin' && r[0] === 'Monitoring'))).not.toContain('network-map')
+    expect(names(visibleNavigation(by((area) => area === 'Monitoring')))).not.toContain('network-map')
   })
 
   it("shows Cookie's window with Cookie's Use and Admin → Cookie only with its Manage (docs/cookie-plan.md §10.1)", () => {
-    const use = names(visibleNavigation((r) => r !== 'admin' && r[0] === 'Cookie' && r[1] === 'Use'))
+    const use = names(visibleNavigation(by((area, level) => area === 'Cookie' && level === 'Use')))
     expect(use).toEqual(['dashboard', 'cookie', 'lounge'])
-    const manage = names(visibleNavigation((r) => r !== 'admin' && r[0] === 'Cookie'))
+    const manage = names(visibleNavigation(by((area) => area === 'Cookie')))
     expect(manage).toEqual(['dashboard', 'cookie', 'lounge', 'cookie-admin'])
+    // Redmine: Manage opens Admin → Cookie for its Redmine tab (docs/cookie-redmine-tab-plan.md §3.2), not Cookie's window.
+    const redmine = names(visibleNavigation(by((area, level) => holds(false, { Redmine: 'Manage' }, area, level))))
+    expect(redmine).toContain('cookie-admin')
+    expect(redmine).not.toContain('cookie')
+    expect(names(visibleNavigation(by((area, level) => holds(false, { Redmine: 'Link' }, area, level))))).not.toContain(
+      'cookie-admin',
+    )
   })
 
   it('shows the availability plan with its View, and to everyone in the plan without a right (docs/cookie-plan.md §9.4)', () => {
     const none = () => false
     expect(names(visibleNavigation(none))).toEqual(['dashboard', 'lounge'])
     expect(names(visibleNavigation(none, () => true, [], true))).toEqual(['dashboard', 'lounge', 'availability'])
-    const view = names(visibleNavigation((r) => r !== 'admin' && r[0] === 'Availability'))
+    const view = names(visibleNavigation(by((area) => area === 'Availability')))
     expect(view).toEqual(['dashboard', 'lounge', 'availability'])
   })
 
   it('shows Admin → Certificates with Certificates: Manage only (docs/ssl-certificate-plan.md §8.5)', () => {
     const as = (level: Level) =>
-      names(visibleNavigation((r) => r !== 'admin' && holds(false, { Certificates: level }, r[0], r[1])))
+      names(visibleNavigation(by((area, l) => holds(false, { Certificates: level }, area, l))))
     expect(as('View')).not.toContain('certificates')
     expect(as('Edit')).not.toContain('certificates')
     expect(as('Manage')).toEqual(['dashboard', 'lounge', 'certificates'])

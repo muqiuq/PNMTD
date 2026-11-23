@@ -71,7 +71,7 @@ public sealed class CookieLoopTests
 
     private static async Task Save<T>(string section, T value)
     {
-        using var response = await admin.PutAsync($"/api/v1/cookie/admin/settings/{section}",
+        using var response = await admin.PutAsync(V1.CookieSettingsPath(section),
             new StringContent(JsonSerializer.Serialize(value, CookieSettings.Json), System.Text.Encoding.UTF8, "application/json"));
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, await response.Content.ReadAsStringAsync());
     }

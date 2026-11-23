@@ -52,7 +52,7 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
         {
             return null;
         }
-        var limits = (await settings.GetAsync<ActionSettings>(ct)).Limits;
+        var limits = await settings.LimitsAsync(ct);
         var today = Clock.ToUtc(Clock.LocalNow.Date);
         var hour = Clock.UtcNow.AddHours(-1);
         var sent = db.CookieOutbox.AsNoTracking().Where(o => o.CreatedAt >= today && (o.State == CookieOutboxState.Sent || o.State == CookieOutboxState.Simulated));
@@ -88,6 +88,20 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
                 if (await mine.CountAsync(o => o.CreatedAt >= hour, ct) >= access.PerContactHour)
                 {
                     return $"access notices per contact: {access.PerContactHour} an hour";
+                }
+                break;
+            }
+            case CookieChannel.AwayEmail or CookieChannel.AwayPushover:
+            {
+                // The away watch's own limits (docs/cookie-redmine-tab-plan.md §6.8): its e-mails and Pushover messages a day, and per person.
+                var away = sent.Where(o => o.Channel == CookieChannel.AwayEmail || o.Channel == CookieChannel.AwayPushover);
+                if (await away.CountAsync(ct) >= limits.AwayNoticesPerDay)
+                {
+                    return $"away notices: {limits.AwayNoticesPerDay} a day";
+                }
+                if (await away.CountAsync(o => o.UserId == r.UserId, ct) >= limits.AwayNoticesPerPersonDay)
+                {
+                    return $"away notices per person: {limits.AwayNoticesPerPersonDay} a day";
                 }
                 break;
             }
@@ -181,8 +195,8 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
         var person = row.UserId is { } u ? await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == u, ct) : null;
         var address = row.Channel switch
         {
-            CookieChannel.Email or CookieChannel.AccessEmail or CookieChannel.WasThisYou or CookieChannel.LoungeEmail => person?.Email,
-            CookieChannel.Pushover or CookieChannel.AccessPushover => person?.PushoverKey,
+            CookieChannel.Email or CookieChannel.AccessEmail or CookieChannel.WasThisYou or CookieChannel.LoungeEmail or CookieChannel.AwayEmail => person?.Email,
+            CookieChannel.Pushover or CookieChannel.AccessPushover or CookieChannel.AwayPushover => person?.PushoverKey,
             _ => null,
         };
         var redmineSettings = await settings.GetAsync<CookieRedmineSettings>(ct);
@@ -206,9 +220,9 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
             switch (r.Channel)
             {
                 case CookieChannel.Email or CookieChannel.Pushover or CookieChannel.AccessEmail or CookieChannel.AccessPushover or CookieChannel.WasThisYou
-                    or CookieChannel.LoungeEmail:
+                    or CookieChannel.LoungeEmail or CookieChannel.AwayEmail or CookieChannel.AwayPushover:
                 {
-                    var pushover = r.Channel is CookieChannel.Pushover or CookieChannel.AccessPushover;
+                    var pushover = r.Channel is CookieChannel.Pushover or CookieChannel.AccessPushover or CookieChannel.AwayPushover;
                     if (string.IsNullOrWhiteSpace(r.Address))
                     {
                         row.State = CookieOutboxState.Failed;
@@ -322,6 +336,8 @@ public sealed class Outbox(IDbContextFactory<PnmtdDbContext> dbs, CookieSettings
         CookieChannel.AccessPushover => "Access Pushover",
         CookieChannel.WasThisYou => "Was this you?",
         CookieChannel.LoungeEmail => "Lounge e-mail",
+        CookieChannel.AwayEmail => "Away e-mail",
+        CookieChannel.AwayPushover => "Away Pushover",
         _ => channel.ToString(),
     };
 }

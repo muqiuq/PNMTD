@@ -1,4 +1,5 @@
 import type { S } from '@/api/resources'
+import type { Right } from '@/api/rights'
 
 /** Helpers of Admin → Cookie (docs/cookie-plan.md §9.3) that hold no state. */
 
@@ -64,6 +65,7 @@ export const actionKeys = [
   'objectNote',
   'mailEvent',
   'accessNotice',
+  'awayNotice',
 ] as const
 
 export type ActionKey = (typeof actionKeys)[number]
@@ -82,6 +84,8 @@ export const actionDefaults: Record<ActionKey, S['ActionRule']> = {
   objectNote: { level: 'Auto', minConfidence: 0.7 },
   mailEvent: { level: 'Auto', minConfidence: 0.7 },
   accessNotice: { level: 'Auto', minConfidence: 0.6 },
+  // docs/cookie-redmine-tab-plan.md §6.4: Auto, since a person in the loop holds an important comment until they look.
+  awayNotice: { level: 'Auto', minConfidence: 0.7 },
 }
 
 /** Every action with a rule, the defaults for any the settings lack. */
@@ -96,3 +100,108 @@ export function normalizeLevels(levels: S['ActionLevels'] | undefined): Required
     ]),
   ) as Required<S['ActionLevels']>
 }
+
+/** A tab of Admin → Cookie and the right it needs (docs/cookie-redmine-tab-plan.md §3.2). */
+export interface CookieAdminTab {
+  key: string
+  label: string
+  right: Right
+}
+
+const tab = (key: string, label: string, right: Right = ['Cookie', 'Manage']): CookieAdminTab => ({ key, label, right })
+
+/** Every tab, in order: the Redmine tab is Redmine: Manage's, every other Cookie: Manage's. */
+export const cookieAdminTabs: readonly CookieAdminTab[] = [
+  tab('overview', 'Overview'),
+  tab('identity', 'Identity'),
+  tab('cases', 'Cases'),
+  tab('redmine', 'Redmine', ['Redmine', 'Manage']),
+  tab('actions', 'Actions'),
+  tab('access', 'Access'),
+  tab('lounge', 'Lounge'),
+  tab('instructions', 'Mute, suppress'),
+  tab('lessons', 'Lessons'),
+  tab('models', 'Models'),
+  tab('rights', 'Rights'),
+]
+
+/** The tab shown for the one asked for: it, if the reader may see it; else the first they may see. */
+export function shownTab(asked: string | null, allowed: readonly CookieAdminTab[]): string {
+  return allowed.some((t) => t.key === asked) ? asked! : (allowed[0]?.key ?? 'overview')
+}
+
+/** A Redmine link's state (docs/cookie-redmine-tab-plan.md §4.3), as the links panel names it. */
+export type RedmineLinkState = S['RedmineLinkState']
+
+export const linkStateLabel: Record<RedmineLinkState, string> = {
+  Linked: 'linked',
+  LinkedUnknown: 'linked, unknown to Redmine',
+  Matches: 'matches by name',
+  Several: 'several match',
+  NoMatch: 'no match',
+  NotSet: 'not set',
+}
+
+/** What each state means for the person's reminders. */
+export const linkStateMeaning: Record<RedmineLinkState, string> = {
+  Linked: 'Found by the Redmine user’s id, whatever Redmine calls them.',
+  LinkedUnknown:
+    'No member or watched ticket names this id (left the projects, or deleted): the name is tried instead.',
+  Matches: 'Found by the name. Link pins it by id, so a rename in Redmine keeps it.',
+  Several: 'Two or more Redmine users have this name: the reminders reach this person only once one is picked.',
+  NoMatch: 'No Redmine user has this name: the reminders go to the escalation group or whoever is responsible.',
+  NotSet: 'No Redmine user: the reminders for their tickets go to the escalation group or whoever is responsible.',
+}
+
+export const linkStateSeverity = (state: RedmineLinkState): 'success' | 'info' | 'warn' | 'danger' | 'secondary' =>
+  state === 'Linked'
+    ? 'success'
+    : state === 'Matches'
+      ? 'info'
+      : state === 'NoMatch'
+        ? 'danger'
+        : state === 'NotSet'
+          ? 'secondary'
+          : 'warn'
+
+/** A row the panel's "Problems only" keeps: anything but a link Redmine knows, and two people with one Redmine user. */
+export const isLinkProblem = (row: Pick<S['RedmineLinkRow'], 'state' | 'shared'>): boolean =>
+  row.state !== 'Linked' || row.shared
+
+/** The Redmine user a row's picker starts with: the linked one, or the one match. */
+export const pickedFor = (row: Pick<S['RedmineLinkRow'], 'redmineUserId' | 'candidates'>): number | null =>
+  row.redmineUserId ?? (row.candidates.length === 1 ? row.candidates[0]!.id : null)
+
+/** What came of a comment while away (docs/cookie-redmine-tab-plan.md §6), as the list names it. */
+export const awayStateLabel: Record<S['AwayCommentState'], string> = {
+  Pending: 'waits for Cookie',
+  Withheld: 'withheld',
+  Waiting: 'to be told',
+  Notified: 'told',
+  Joined: 'told with another',
+  NotImportant: 'not important',
+  Recorded: 'recorded',
+  Nobody: 'nobody to tell',
+  Back: 'back, not sent',
+  Expired: 'expired',
+  Off: 'off',
+}
+
+export const awayStateSeverity = (
+  state: S['AwayCommentState'],
+): 'success' | 'info' | 'warn' | 'danger' | 'secondary' =>
+  state === 'Notified' || state === 'Joined'
+    ? 'success'
+    : state === 'Pending' || state === 'Waiting'
+      ? 'info'
+      : state === 'Withheld' || state === 'Nobody' || state === 'Expired'
+        ? 'warn'
+        : 'secondary'
+
+/** Cookie's verdict in a few words: the importance and how sure, or why there is none. */
+export const awayVerdict = (row: Pick<S['CookieAwayCommentItem'], 'importance' | 'confidence' | 'judgedBy'>): string =>
+  row.importance
+    ? `${row.importance}${row.confidence != null ? `, ${Math.round(row.confidence * 100)} % sure` : ''}`
+    : row.judgedBy === 'code'
+      ? 'not judged'
+      : '–'

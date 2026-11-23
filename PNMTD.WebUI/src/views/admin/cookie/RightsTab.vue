@@ -43,7 +43,8 @@ const rights = computed(() => Object.entries(chosen.value?.rights ?? {}))
       <div class="panel-body form">
         <p class="intro">
           Cookie reads with this group's rights, and never with the admin flag. In a chat it reads with the lower of the
-          group's rights and the asker's. Without a group, Cookie pauses.
+          group's rights and the asker's. Without a group, Cookie pauses. Nothing Cookie does needs Redmine: Manage
+          (Admin → Cookie → Redmine), so giving it to this group changes nothing for Cookie.
         </p>
         <div class="field">
           <label for="rights-group">Group</label>

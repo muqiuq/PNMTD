@@ -150,8 +150,9 @@ public sealed class CookieAdminController(CookieService cookie) : V1ControllerBa
     [HttpGet("prompts/preview")]
     public async Task<CookiePromptPreview> Preview([FromQuery] string key, CancellationToken ct) => await cookie.PreviewAsync(key, ct);
 
+    /// <summary>Every section; the Redmine section only for <i>Redmine: Manage</i> (docs/cookie-redmine-tab-plan.md §3.2).</summary>
     [HttpGet("settings")]
-    public async Task<CookieAllSettings> Settings(CancellationToken ct) => await cookie.SettingsAsync(ct);
+    public async Task<CookieAllSettings> Settings(CancellationToken ct) => await cookie.SettingsAsync(User, ct);
 
     /// <summary>What went out, and what a limit held back (§6.1).</summary>
     [HttpGet("outbox")]
@@ -164,12 +165,6 @@ public sealed class CookieAdminController(CookieService cookie) : V1ControllerBa
     [HttpGet("defaults")]
     public CookieDefaults Defaults() => cookie.Defaults();
 
-    [HttpGet("people")]
-    public async Task<CookiePeople> People(CancellationToken ct) => await cookie.PeopleAsync(ct);
-
-    [HttpGet("redmine")]
-    public async Task<CookieRedmineLookups> Redmine(CancellationToken ct) => await cookie.RedmineLookupsAsync(ct);
-
     [HttpPut("settings/identity")]
     [Audit(AuditEvents.CookieSettingsChanged)]
     public async Task<CookieSaved> SaveIdentity(IdentitySettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);
@@ -181,10 +176,6 @@ public sealed class CookieAdminController(CookieService cookie) : V1ControllerBa
     [HttpPut("settings/cases")]
     [Audit(AuditEvents.CookieSettingsChanged)]
     public async Task<CookieSaved> SaveCases(CaseSettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);
-
-    [HttpPut("settings/redmine")]
-    [Audit(AuditEvents.CookieSettingsChanged)]
-    public async Task<CookieSaved> SaveRedmine(CookieRedmineSettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);
 
     [HttpPut("settings/actions")]
     [Audit(AuditEvents.CookieSettingsChanged)]
@@ -220,13 +211,84 @@ public sealed class CookieAdminController(CookieService cookie) : V1ControllerBa
     [Audit(AuditEvents.CookieSettingsChanged)]
     public async Task<CookieSaved> SaveRights(CookieRightsSettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);
 
+    /// <summary>A section's history; the Redmine section's is on <see cref="CookieRedmineAdminController"/>.</summary>
     [HttpGet("settings/{section}/versions")]
-    public async Task<IReadOnlyList<CookieSettingsVersion>> Versions(string section, CancellationToken ct) => await cookie.VersionsAsync(section, ct);
+    public async Task<IReadOnlyList<CookieSettingsVersion>> Versions(string section, CancellationToken ct) =>
+        await cookie.VersionsAsync(CookieService.NotRedmine(section), ct);
 
     [HttpGet("settings/{section}/versions/{version:int}")]
-    public async Task<JsonElement> Version(string section, int version, CancellationToken ct) => await cookie.VersionAsync(section, version, ct);
+    public async Task<JsonElement> Version(string section, int version, CancellationToken ct) =>
+        await cookie.VersionAsync(CookieService.NotRedmine(section), version, ct);
 
     [HttpPost("settings/{section}/rollback/{version:int}")]
     [Audit(AuditEvents.CookieSettingsRolledBack)]
-    public async Task<CookieSaved> Rollback(string section, int version, CancellationToken ct) => await cookie.RollbackAsync(section, version, User, ct);
+    public async Task<CookieSaved> Rollback(string section, int version, CancellationToken ct) =>
+        await cookie.RollbackAsync(CookieService.NotRedmine(section), version, User, ct);
+}
+
+/// <summary>
+/// What Admin → Cookie's pickers list (PNMT's users and groups; Redmine's projects, roles, statuses and trackers): for
+/// <i>Cookie: Manage</i>, and for the Redmine tab's <i>Redmine: Manage</i> (docs/cookie-redmine-tab-plan.md §3.2).
+/// </summary>
+[Route("api/v1/cookie/admin")]
+[RequireAnyRight(Area.Cookie, Level.Manage, Area.Redmine, Level.Manage)]
+public sealed class CookieAdminPickersController(CookieService cookie) : V1ControllerBase
+{
+    [HttpGet("people")]
+    public async Task<CookiePeople> People(CancellationToken ct) => await cookie.PeopleAsync(ct);
+
+    [HttpGet("redmine")]
+    public async Task<CookieRedmineLookups> Redmine(CancellationToken ct) => await cookie.RedmineLookupsAsync(ct);
+}
+
+/// <summary>
+/// Admin → Cookie → Redmine (docs/cookie-redmine-tab-plan.md §3, §8): <i>Redmine: Manage</i>, not <i>Cookie: Manage</i>. The
+/// watched projects and their deadlines, Cookie's tickets, and the section's history; the duties' switches stay on Actions,
+/// and are given here read only.
+/// </summary>
+[Route("api/v1/cookie/admin/redmine")]
+[RequireRight(Area.Redmine, Level.Manage)]
+public sealed class CookieRedmineAdminController(CookieService cookie, RedmineLinkService links) : V1ControllerBase
+{
+    [HttpGet("settings")]
+    public async Task<CookieRedmineAdminSettings> Settings(CancellationToken ct) => await cookie.RedmineSettingsAsync(ct);
+
+    [HttpPut("settings")]
+    [Audit(AuditEvents.CookieSettingsChanged)]
+    public async Task<CookieSaved> Save(CookieRedmineSettings value, CancellationToken ct) => await cookie.SaveAsync(value, User, ct);
+
+    [HttpGet("settings/versions")]
+    public async Task<IReadOnlyList<CookieSettingsVersion>> Versions(CancellationToken ct) =>
+        await cookie.VersionsAsync(CookieRedmineSettings.Section, ct);
+
+    [HttpGet("settings/versions/{version:int}")]
+    public async Task<JsonElement> Version(int version, CancellationToken ct) => await cookie.VersionAsync(CookieRedmineSettings.Section, version, ct);
+
+    [HttpPost("settings/rollback/{version:int}")]
+    [Audit(AuditEvents.CookieSettingsRolledBack)]
+    public async Task<CookieSaved> Rollback(int version, CancellationToken ct) =>
+        await cookie.RollbackAsync(CookieRedmineSettings.Section, version, User, ct);
+
+    /// <summary>A newly watched project's deadlines.</summary>
+    [HttpGet("defaults")]
+    public WatchedProject Defaults() => WatchedProject.Default(0);
+
+    /// <summary>Which Redmine user each active PNMT user is (§4.3), and the Redmine users without one.</summary>
+    [HttpGet("links")]
+    public async Task<RedmineLinksView> Links(CancellationToken ct) => await links.ViewAsync(User, ct);
+
+    /// <summary>Links a user to a Redmine user PNMT knows, or unlinks them (null).</summary>
+    [HttpPut("links/{userId:guid}")]
+    [Audit(AuditEvents.RedmineUserLinkChanged)]
+    public async Task<RedmineLinkRow> Link(Guid userId, RedmineUserLinkRequest request, CancellationToken ct) =>
+        await links.LinkAsync(userId, request.RedmineUserId, User, ct);
+
+    /// <summary>The away watch's comments, newest first, 50 a page (§9).</summary>
+    [HttpGet("away")]
+    public async Task<Paged<CookieAwayCommentItem>> Away([FromQuery] int page, CancellationToken ct) => await links.AwayAsync(page, ct);
+
+    /// <summary>Every user whose name is exactly one Redmine user's, linked by that id.</summary>
+    [HttpPost("links/exact")]
+    [Audit(AuditEvents.RedmineUserLinkChanged)]
+    public async Task<RedmineLinkedCount> LinkExact(CancellationToken ct) => await links.LinkExactAsync(User, ct);
 }

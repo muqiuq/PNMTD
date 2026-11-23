@@ -31,6 +31,7 @@ export const decisionKinds = [
   'access',
   'access-notice',
   'lounge-email',
+  'away-notice',
 ] as const
 
 const kindLabels: Record<string, string> = {
@@ -48,6 +49,7 @@ const kindLabels: Record<string, string> = {
   access: 'Access verdict',
   'access-notice': 'Access notice',
   'lounge-email': 'Lounge e-mail',
+  'away-notice': 'Away notice',
 }
 
 export const decisionKindLabel = (kind: string) => kindLabels[kind] ?? kind
@@ -139,7 +141,7 @@ export const instructionKinds: { value: InstructionKind; label: string }[] = [
 
 export const muteScopes = ['host', 'sensor', 'location', 'case'] as const
 export const suppressScopes = ['channel', 'sensor-type', 'case-kind'] as const
-export const suppressChannels = ['pushover', 'email', 'ticket', 'redmine-note', 'access'] as const
+export const suppressChannels = ['pushover', 'email', 'ticket', 'redmine-note', 'access', 'away'] as const
 export const suppressCaseKinds = ['problem', 'ticket'] as const
 
 export type InstructionScope = (typeof muteScopes)[number] | (typeof suppressScopes)[number]
@@ -162,6 +164,7 @@ const channelLabels: Record<string, string> = {
   ticket: 'New tickets',
   'redmine-note': 'Notes on tickets',
   access: 'Access notices',
+  away: 'Away notices',
 }
 
 export const suppressChannelLabel = (channel: string) => channelLabels[channel] ?? channel

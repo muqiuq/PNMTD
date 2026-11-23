@@ -5,7 +5,7 @@ import { useSession } from '@/stores/session'
 import type { Option } from './cookieAdmin'
 
 /**
- * What Admin → Cookie's pickers list: PNMT's users and groups (GET admin/people, for Cookie's Manage), and the hosts and
+ * What Admin → Cookie's pickers list: PNMT's users and groups (GET admin/people, for Cookie's or Redmine's Manage), and the hosts and
  * servers (Monitoring's View; without it, a text field). A chosen user or group that no longer exists shows as removed.
  */
 function usePeople() {

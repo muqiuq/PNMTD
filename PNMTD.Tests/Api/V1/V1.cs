@@ -12,6 +12,10 @@ internal static class V1
 {
     public static string Unique(string prefix) => $"{prefix}-{Guid.NewGuid():N}"[..Math.Min(prefix.Length + 13, 60)];
 
+    /// <summary>Where a section of Admin → Cookie is saved: the Redmine section has its own controller (docs/cookie-redmine-tab-plan.md §3.2).</summary>
+    public static string CookieSettingsPath(string section) =>
+        section == "redmine" ? "/api/v1/cookie/admin/redmine/settings" : $"/api/v1/cookie/admin/settings/{section}";
+
     public static async Task<HostDetail> CreateHostAsync(HttpClient client, string? name = null, bool enabled = true)
     {
         using var response = await client.PostJsonAsync("/api/v1/hosts", new { name = name ?? Unique("host"), location = "lab", enabled });

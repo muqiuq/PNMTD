@@ -8613,64 +8613,6 @@
         }
       }
     },
-    "/api/v1/cookie/admin/people": {
-      "get": {
-        "tags": [
-          "CookieAdmin"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookiePeople"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookiePeople"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookiePeople"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/cookie/admin/redmine": {
-      "get": {
-        "tags": [
-          "CookieAdmin"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookieRedmineLookups"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookieRedmineLookups"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookieRedmineLookups"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/cookie/admin/settings/identity": {
       "put": {
         "tags": [
@@ -8789,55 +8731,6 @@
             "application/*+json": {
               "schema": {
                 "$ref": "#/components/schemas/CaseSettings"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookieSaved"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookieSaved"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CookieSaved"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/cookie/admin/settings/redmine": {
-      "put": {
-        "tags": [
-          "CookieAdmin"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CookieRedmineSettings"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CookieRedmineSettings"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CookieRedmineSettings"
               }
             }
           },
@@ -9383,6 +9276,444 @@
               "text/plain": {
                 "schema": {
                   "$ref": "#/components/schemas/CookieSaved"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/people": {
+      "get": {
+        "tags": [
+          "CookieAdminPickers"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookiePeople"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookiePeople"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookiePeople"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/redmine": {
+      "get": {
+        "tags": [
+          "CookieAdminPickers"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieRedmineLookups"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieRedmineLookups"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieRedmineLookups"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/redmine/settings": {
+      "get": {
+        "tags": [
+          "CookieRedmineAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieRedmineAdminSettings"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieRedmineAdminSettings"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieRedmineAdminSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "CookieRedmineAdmin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieRedmineSettings"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieRedmineSettings"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CookieRedmineSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieSaved"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieSaved"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieSaved"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/redmine/settings/versions": {
+      "get": {
+        "tags": [
+          "CookieRedmineAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CookieSettingsVersion"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CookieSettingsVersion"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CookieSettingsVersion"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/redmine/settings/versions/{version}": {
+      "get": {
+        "tags": [
+          "CookieRedmineAdmin"
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonElement"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonElement"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonElement"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/redmine/settings/rollback/{version}": {
+      "post": {
+        "tags": [
+          "CookieRedmineAdmin"
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieSaved"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieSaved"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookieSaved"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/redmine/defaults": {
+      "get": {
+        "tags": [
+          "CookieRedmineAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchedProject"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchedProject"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchedProject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/redmine/links": {
+      "get": {
+        "tags": [
+          "CookieRedmineAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedmineLinksView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedmineLinksView"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedmineLinksView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/redmine/links/{userId}": {
+      "put": {
+        "tags": [
+          "CookieRedmineAdmin"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedmineUserLinkRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedmineUserLinkRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedmineUserLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedmineLinkRow"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedmineLinkRow"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedmineLinkRow"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/redmine/away": {
+      "get": {
+        "tags": [
+          "CookieRedmineAdmin"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfCookieAwayCommentItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfCookieAwayCommentItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedOfCookieAwayCommentItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cookie/admin/redmine/links/exact": {
+      "post": {
+        "tags": [
+          "CookieRedmineAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedmineLinkedCount"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedmineLinkedCount"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedmineLinkedCount"
                 }
               }
             }
@@ -28180,6 +28511,13 @@
               "null",
               "string"
             ]
+          },
+          "redmineUserId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -28236,6 +28574,9 @@
             "$ref": "#/components/schemas/ActionRule"
           },
           "accessNotice": {
+            "$ref": "#/components/schemas/ActionRule"
+          },
+          "awayNotice": {
             "$ref": "#/components/schemas/ActionRule"
           }
         }
@@ -33433,6 +33774,63 @@
           }
         }
       },
+      "AwayCommentState": {
+        "enum": [
+          "Pending",
+          "Withheld",
+          "Waiting",
+          "Notified",
+          "Joined",
+          "NotImportant",
+          "Recorded",
+          "Nobody",
+          "Back",
+          "Expired",
+          "Off"
+        ]
+      },
+      "AwayRecipient": {
+        "enum": [
+          "Responsible",
+          "Person"
+        ]
+      },
+      "AwayWatchSettings": {
+        "type": "object",
+        "properties": {
+          "awayFlags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityFlag"
+            }
+          },
+          "privateNotes": {
+            "type": "boolean"
+          },
+          "recipient": {
+            "$ref": "#/components/schemas/AwayRecipient"
+          },
+          "personId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "pushover": {
+            "type": "boolean"
+          },
+          "withoutVerdict": {
+            "$ref": "#/components/schemas/AwayWithoutVerdict"
+          }
+        }
+      },
+      "AwayWithoutVerdict": {
+        "enum": [
+          "Tell",
+          "Record"
+        ]
+      },
       "BatteryInfo": {
         "required": [
           "name",
@@ -37287,7 +37685,14 @@
             "$ref": "#/components/schemas/CaseSettings"
           },
           "redmine": {
-            "$ref": "#/components/schemas/CookieRedmineSettings"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CookieRedmineSettings"
+              }
+            ]
           },
           "actions": {
             "$ref": "#/components/schemas/ActionSettings"
@@ -37306,6 +37711,125 @@
           },
           "lounge": {
             "$ref": "#/components/schemas/LoungeSettings"
+          }
+        }
+      },
+      "CookieAwayCommentItem": {
+        "required": [
+          "id",
+          "caseId",
+          "issueId",
+          "title",
+          "assignee",
+          "awayUntil",
+          "authorName",
+          "isPrivate",
+          "commentAt",
+          "text",
+          "state",
+          "importance",
+          "confidence",
+          "reason",
+          "judgedBy",
+          "notifiedAt",
+          "recipients",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "caseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "issueId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "awayUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "authorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isPrivate": {
+            "type": "boolean"
+          },
+          "commentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/AwayCommentState"
+          },
+          "importance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "confidence": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "judgedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "notifiedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "recipients": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -37578,7 +38102,9 @@
           "AccessEmail",
           "AccessPushover",
           "WasThisYou",
-          "LoungeEmail"
+          "LoungeEmail",
+          "AwayEmail",
+          "AwayPushover"
         ]
       },
       "CookieDecisionItem": {
@@ -38504,6 +39030,25 @@
           }
         }
       },
+      "CookieRedmineAdminSettings": {
+        "required": [
+          "redmine",
+          "duties",
+          "awayNotice"
+        ],
+        "type": "object",
+        "properties": {
+          "redmine": {
+            "$ref": "#/components/schemas/CookieRedmineSettings"
+          },
+          "duties": {
+            "$ref": "#/components/schemas/DutySwitches"
+          },
+          "awayNotice": {
+            "$ref": "#/components/schemas/ActionRule"
+          }
+        }
+      },
       "CookieRedmineLookups": {
         "required": [
           "configured",
@@ -38583,6 +39128,9 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "away": {
+            "$ref": "#/components/schemas/AwayWatchSettings"
           }
         }
       },
@@ -41004,6 +41552,10 @@
             "default": false
           },
           "closingNote": {
+            "type": "boolean",
+            "default": false
+          },
+          "awayComments": {
             "type": "boolean",
             "default": false
           }
@@ -55518,6 +56070,16 @@
             "type": "integer",
             "format": "int32",
             "default": 20
+          },
+          "awayNoticesPerDay": {
+            "type": "integer",
+            "format": "int32",
+            "default": 20
+          },
+          "awayNoticesPerPersonDay": {
+            "type": "integer",
+            "format": "int32",
+            "default": 10
           }
         }
       },
@@ -56055,6 +56617,35 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ConnectorItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedOfCookieAwayCommentItem": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CookieAwayCommentItem"
             }
           },
           "page": {
@@ -57459,6 +58050,13 @@
             "items": {
               "type": "string"
             }
+          },
+          "redmineUserId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -58383,6 +58981,18 @@
           "Background"
         ]
       },
+      "RedmineLinkedCount": {
+        "required": [
+          "linked"
+        ],
+        "type": "object",
+        "properties": {
+          "linked": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "RedmineLinkedTicket": {
         "required": [
           "linkId",
@@ -58514,6 +59124,141 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "RedmineLinkRow": {
+        "required": [
+          "userId",
+          "name",
+          "inPlan",
+          "redmineUserId",
+          "redmineName",
+          "state",
+          "redmineNow",
+          "candidates",
+          "openTickets",
+          "shared"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "inPlan": {
+            "type": "boolean"
+          },
+          "redmineUserId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "redmineName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/RedmineLinkState"
+          },
+          "redmineNow": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RedmineNamed"
+            }
+          },
+          "openTickets": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "shared": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RedmineLinkState": {
+        "enum": [
+          "Linked",
+          "LinkedUnknown",
+          "Matches",
+          "Several",
+          "NoMatch",
+          "NotSet"
+        ]
+      },
+      "RedmineLinksView": {
+        "required": [
+          "configured",
+          "readAt",
+          "reading",
+          "error",
+          "forbidden",
+          "rows",
+          "unlinked",
+          "redmineUsers",
+          "groups"
+        ],
+        "type": "object",
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "readAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "reading": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "forbidden": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RedmineLinkRow"
+            }
+          },
+          "unlinked": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RedmineUnlinkedRow"
+            }
+          },
+          "redmineUsers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RedmineUserItem"
+            }
+          },
+          "groups": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -59023,6 +59768,71 @@
           },
           "text": {
             "type": "string"
+          }
+        }
+      },
+      "RedmineUnlinkedRow": {
+        "required": [
+          "id",
+          "name",
+          "openTickets",
+          "staff"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "openTickets": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "staff": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RedmineUserItem": {
+        "required": [
+          "id",
+          "name",
+          "member",
+          "openTickets"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "member": {
+            "type": "boolean"
+          },
+          "openTickets": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "RedmineUserLinkRequest": {
+        "required": [
+          "redmineUserId"
+        ],
+        "type": "object",
+        "properties": {
+          "redmineUserId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -68470,6 +69280,12 @@
     },
     {
       "name": "CookieAdmin"
+    },
+    {
+      "name": "CookieAdminPickers"
+    },
+    {
+      "name": "CookieRedmineAdmin"
     },
     {
       "name": "Debug"

@@ -2467,6 +2467,100 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("connector_scripts");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.CookieAwayCommentEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid>("AssigneeUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("AuthorRedmineId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly?>("AwayUntil")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CommentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<double?>("Confidence")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DecisionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Importance")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<bool>("IsPrivate")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("IssueId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("JournalId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("JudgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("JudgedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime?>("NotifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Recipients")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Text")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId");
+
+                    b.HasIndex("JournalId")
+                        .IsUnique();
+
+                    b.HasIndex("IssueId", "NotifiedAt");
+
+                    b.HasIndex("State", "CreatedAt");
+
+                    b.ToTable("cookie_away_comments");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.CookieCaseEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2579,6 +2673,9 @@ namespace PNMTD.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
+
+                    b.Property<int?>("LastJournalId")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("LastStaffUpdateAt")
                         .HasColumnType("timestamp with time zone");
@@ -8462,6 +8559,9 @@ namespace PNMTD.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<int?>("RedmineUserId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("SecurityStamp")
                         .IsRequired()
                         .HasColumnType("text");
@@ -8490,6 +8590,9 @@ namespace PNMTD.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedUsername")
+                        .IsUnique();
+
+                    b.HasIndex("RedmineUserId")
                         .IsUnique();
 
                     b.HasIndex("ShortCode")
@@ -9220,6 +9323,15 @@ namespace PNMTD.Data.Migrations
                     b.HasOne("PNMTD.Models.Db.ConnectorEntity", null)
                         .WithOne("Script")
                         .HasForeignKey("PNMTD.Models.Db.ConnectorScriptEntity", "ConnectorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.CookieAwayCommentEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.CookieCaseEntity", null)
+                        .WithMany()
+                        .HasForeignKey("CaseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

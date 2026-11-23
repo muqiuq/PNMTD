@@ -169,9 +169,15 @@ async function test(channel: Channel) {
       <dl class="facts">
         <dt>Redmine user</dt>
         <dd>
-          <span v-if="c?.redmineName">{{ c.redmineName }}</span>
+          <template v-if="c?.redmineName"
+            >{{ c.redmineName
+            }}<template v-if="c.redmineUserId != null"> (#{{ c.redmineUserId }}), <strong>linked</strong></template
+            ><span v-else class="muted">, not linked</span></template
+          >
           <span v-else class="muted">not set</span>
-          <div class="muted small">Set by an admin: whose tickets' reminders you get.</div>
+          <div class="muted small">
+            Whose tickets' reminders you get. Linked by someone with Redmine: Manage; until then, found by the name.
+          </div>
         </dd>
         <dt>Availability plan</dt>
         <dd>

@@ -70,6 +70,11 @@ const actions: { key: ActionKey; label: string; text: string }[] = [
     label: 'Access notice',
     text: "Tells the contacts set under Access about an unusual login, as its verdict's row says. Auto is the safe choice: Propose holds a break-in in the inbox until someone looks. Below the minimum confidence a verdict goes one lower. Code's notice for strong signals goes out whatever the level.",
   },
+  {
+    key: 'awayNotice',
+    label: 'Away notice',
+    text: "Tells whom the Redmine tab names about a comment Cookie found important on a ticket whose assignee is away. Off: Cookie doesn't judge, and code tells each comment marked not judged, or only records it, as set there. Cookie's group needs Redmine: View.",
+  },
 ]
 const levels: { label: string; value: S['ActionLevel'] }[] = [
   { label: 'Off', value: 'Off' },
@@ -80,7 +85,7 @@ const levels: { label: string; value: S['ActionLevel'] }[] = [
 const rule = (key: ActionKey): S['ActionRule'] => s.draft.value!.levels[key]!
 
 type Switch = keyof S['DutySwitches']
-const duties: { key: Switch; kind: DutyKind; text: string }[] = [
+const duties: { key: Switch; kind?: DutyKind; label?: string; text: string }[] = [
   {
     key: 'firstAnswerReminder',
     kind: 'FirstAnswerReminder',
@@ -100,6 +105,12 @@ const duties: { key: Switch; kind: DutyKind; text: string }[] = [
     key: 'updateMissed',
     kind: 'UpdateMissed',
     text: 'When an update is overdue (by default after 14 days), the assignee, the escalation group and whoever is responsible are told.',
+  },
+  {
+    // docs/cookie-redmine-tab-plan.md §6: switched with the ticket duties; what it does is set on the Redmine tab.
+    key: 'awayComments',
+    label: 'Comments while the assignee is away',
+    text: "When someone comments on a ticket whose assignee is away (vacation, holiday or compensation in the availability plan), Cookie judges whether it is important. If it is, the responsible of the day or a chosen person is told. Who is told, and what happens without Cookie's verdict, is set under Redmine.",
   },
   {
     key: 'problemTicket',
@@ -127,8 +138,19 @@ const limits: { key: Limit; label: string }[] = [
   { key: 'maxNotesPerObject', label: 'Notes on one host or sensor' },
   { key: 'bigBrotherPerDay', label: 'Big brother calls, a day' },
   { key: 'bigBrotherPerCaseDay', label: 'Big brother calls per case, a day' },
+  { key: 'awayNoticesPerDay', label: 'Away notices, a day' },
+  { key: 'awayNoticesPerPersonDay', label: 'Away notices per person, a day' },
 ]
 const placed = (f: string) => f.startsWith('limits.') || f.startsWith('levels.')
+/**
+ * A limit saved above its ceiling (docs/cookie-redmine-tab-plan.md §13): the ceilings are in the server's .env, and one lowered
+ * there, or a rollback, can leave a saved value above it. The ceiling is what counts; the tab saves once the value is lowered.
+ */
+const aboveCeiling = (key: Limit): number | null => {
+  const ceiling = defaults.data.value?.ceilings[key]
+  const value = s.draft.value?.limits[key]
+  return ceiling != null && value != null && value > ceiling ? ceiling : null
+}
 </script>
 
 <template>
@@ -260,7 +282,7 @@ const placed = (f: string) => f.startsWith('limits.') || f.startsWith('levels.')
           <div v-for="d in duties" :key="d.key" class="duty">
             <ToggleSwitch v-model="s.draft.value.duties[d.key]" :input-id="`duty-${d.key}`" />
             <div>
-              <label :for="`duty-${d.key}`" class="label">{{ dutyLabel[d.kind] }}</label>
+              <label :for="`duty-${d.key}`" class="label">{{ d.kind ? dutyLabel[d.kind] : d.label }}</label>
               <div class="muted small">{{ d.text }}</div>
             </div>
           </div>
@@ -284,7 +306,7 @@ const placed = (f: string) => f.startsWith('limits.') || f.startsWith('levels.')
           <p class="muted small intro">
             Counted before anything goes out, for Cookie and PNMT's duties alike. What would go over a limit isn't sent:
             it is held back in the outbox, and the Overview shows it, where an admin can send it. Each limit goes up to
-            a ceiling only a new release raises.
+            its ceiling, which the server's .env sets (Cookie__Ceilings__*).
           </p>
           <div class="limits">
             <div v-for="lim in limits" :key="lim.key" class="field">
@@ -299,6 +321,10 @@ const placed = (f: string) => f.startsWith('limits.') || f.startsWith('levels.')
                 :invalid="!!s.error(`limits.${lim.key}`)"
               />
               <small v-if="s.error(`limits.${lim.key}`)" class="field-error">{{ s.error(`limits.${lim.key}`) }}</small>
+              <small v-else-if="aboveCeiling(lim.key) != null" class="small warn-text">
+                Above the ceiling of {{ aboveCeiling(lim.key) }} in .env: {{ aboveCeiling(lim.key) }} counts. Lower it
+                to save.
+              </small>
               <small v-else-if="defaults.data.value" class="field-hint">
                 Default {{ defaults.data.value.limits[lim.key] }}, at most {{ defaults.data.value.ceilings[lim.key] }}.
               </small>

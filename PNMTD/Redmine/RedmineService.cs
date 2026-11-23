@@ -11,6 +11,19 @@ using PNMTD.Services.Domain;
 
 namespace PNMTD.Redmine;
 
+/// <summary>A Redmine user as the memberships show them (docs/cookie-redmine-tab-plan.md §4.2): their projects and roles there.</summary>
+public sealed record RedminePerson(int Id, string Name, IReadOnlyList<RedmineMembershipOf> Memberships);
+
+/// <summary>One project's roles of a Redmine user.</summary>
+public sealed record RedmineMembershipOf(int ProjectId, IReadOnlyList<int> RoleIds);
+
+/// <summary>
+/// Redmine's users, as PNMT can know them without an admin key (docs/cookie-redmine-tab-plan.md §4.2): the members of every project
+/// PNMT shows, every page; and the groups among them, which can't be linked. <see cref="Forbidden"/> names the projects whose
+/// members the key may not see.
+/// </summary>
+public sealed record RedminePeople(IReadOnlyList<RedminePerson> Users, IReadOnlyList<RmRef> Groups, IReadOnlyList<string> Forbidden);
+
 /// <summary>What PNMT knows of Redmine's setup: the projects it shows (with their subprojects), and the names it needs.</summary>
 public sealed record RedmineLookups(IReadOnlyList<RmProject> Projects, IReadOnlySet<int> Allowed, IReadOnlyList<string> NotFound,
     IReadOnlyList<RmStatus> Statuses, IReadOnlyList<RmRef> Trackers, IReadOnlyList<RmPriority> Priorities, IReadOnlyList<RmRef> Members);

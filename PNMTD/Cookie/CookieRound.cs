@@ -53,6 +53,7 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
         var reading = await integrations.ReadAsync(ct);
         var models = await settings.GetAsync<ModelSettings>(ct);
         var cases = await settings.GetAsync<CaseSettings>(ct);
+        var redmine = await settings.GetAsync<CookieRedmineSettings>(ct);
         var now = Clock.UtcNow;
         await using var db = await dbs.CreateDbContextAsync(ct);
         var runtime = await CaseBook.RuntimeAsync(db, ct);
@@ -95,6 +96,20 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             toolCalls += access.ToolCalls;
             cost += access.Cost;
             mailsMore |= access.More;
+
+            // 0d. Comments while a ticket's assignee is away (docs/cookie-redmine-tab-plan.md §6.4), with Cookie's group's right to read tickets.
+            if (rights.Has(Auth.Rights.Area.Redmine, Auth.Rights.Level.View))
+            {
+                var away = await services.GetRequiredService<Away.AwayJudge>().RunAsync(round.Id, rights, p,
+                    (caseId, title, body) => trace.Add(caseId, "away", title, body, ["Redmine"]), ct);
+                calls += away.Calls;
+                cost += away.Cost;
+                mailsMore |= away.More;
+            }
+            else if (await db.CookieAwayComments.AnyAsync(a => a.State == AwayCommentState.Pending, ct))
+            {
+                trace.Add(null, "away", "Comments wait", "Comments while an assignee is away wait: Cookie's group needs Redmine: View.", ["Redmine"]);
+            }
 
             // 1. The brief: open cases Cookie may see, those that changed or are due in full, the rest as one line each.
             // An access case is judged in its own step; here only when a person asked for a ticket or the big brother (§7).
@@ -222,6 +237,14 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                     ["elapsed"] = c.TicketCreatedAt is { } created ? $"{calendar.WorkingTimeBetween(created, now).TotalHours:0.#}" : "?",
                     ["status"] = c.StatusName ?? "?", ["escalation_group"] = "the project's escalation group", ["ticket_project"] = "Cookie's ticket project",
                 };
+                if (c.Kind == CookieCaseKind.Ticket)
+                {
+                    // Its own project's deadlines and its real days without an update (docs/cookie-redmine-tab-plan.md §5).
+                    foreach (var (name, value) in CookieBrain.TicketValues(c, redmine, now))
+                    {
+                        caseValues[name] = value;
+                    }
+                }
                 var instructions = CookieBrain.WithMissing(await brain.InstructionsAsync(c, kind, members, manyAtOnce, caseValues, ct), reading);
                 var context = new ToolContext(services, rights, p);
                 context.Areas.UnionWith(c.Areas);
@@ -712,7 +735,7 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
             }
             list.Add(role);
         }
-        if (await Recipients.AssigneeAsync(db, c.AssigneeName, ct) is { } assignee)
+        if (await Recipients.AssigneeAsync(db, c.AssigneeId, c.AssigneeName, ct) is { } assignee)
         {
             Add(assignee.Id, "assignee");
         }

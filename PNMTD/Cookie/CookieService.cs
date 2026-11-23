@@ -471,7 +471,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         var values = await brain.ValuesAsync(ct);
         foreach (var name in new[] { "brief", "cases", "state", "reader", "last_visit", "reader_profile", "working_hours_state", "max_cases", "count", "days",
             "age", "summary", "elapsed", "status", "escalation_group", "ticket_project", "asker", "asker_rights", "rule_name", "rule_purpose", "case",
-            "question", "proposal", "evidence", "ratings" })
+            "question", "proposal", "evidence", "ratings", "first_answer_reminder_hours", "update_reminder_days", "days_without_update", "assignee", "away_until" })
         {
             values.TryAdd(name, $"[{name.Replace('_', ' ')}]");
         }
@@ -767,9 +767,10 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
             o.SentByName);
     }
 
-    public async Task<CookieAllSettings> SettingsAsync(CancellationToken ct) => new(
+    /// <summary>Every section; the Redmine section only for <i>Redmine: Manage</i> (docs/cookie-redmine-tab-plan.md §3.2).</summary>
+    public async Task<CookieAllSettings> SettingsAsync(ClaimsPrincipal user, CancellationToken ct) => new(
         await settings.GetAsync<IdentitySettings>(ct), await settings.GetAsync<PromptSettings>(ct), await settings.GetAsync<CaseSettings>(ct),
-        await settings.GetAsync<CookieRedmineSettings>(ct),
+        user.Has(Area.Redmine, Level.Manage) ? await settings.GetAsync<CookieRedmineSettings>(ct) : null,
         await settings.GetAsync<ActionSettings>(ct), await settings.GetAsync<ModelSettings>(ct), await settings.GetAsync<CookieRightsSettings>(ct),
         await settings.GetAsync<LessonSettings>(ct), await settings.GetAsync<Access.AccessSettings>(ct), await settings.GetAsync<Lounge.LoungeSettings>(ct));
 
@@ -821,7 +822,7 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
         return new(
             CookiePrompts.Defaults.Select(p => new CookiePromptItem(p.Key, p.Value.Label, p.Value.UsedFor, p.Value.Text, CookiePrompts.Required(p.Key))).ToList(),
             CookiePrompts.CaseKinds.Select(p => new CookiePromptItem(p.Key, p.Value.Label, p.Value.UsedFor, p.Value.Text, [])).ToList(),
-            OutputLimits.Ceilings, new OutputLimits(), WatchedProject.Default(0),
+            settings.Ceilings, new OutputLimits(), WatchedProject.Default(0),
             new CookieEnvDefaults(o.Enabled, o.Privacy, o.Model, o.Providers, o.Zdr, o.MinQuantization, o.BudgetUsd, o.SeraphModel, o.SeraphProviders,
                 o.BigBrother.Primary.Model, o.BigBrother.Backup.Model, o.BigBrother.BudgetUsd));
     }
@@ -874,8 +875,20 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
                 var groups = r.Projects.Where(p => p.EscalationGroupId is not null).Select(p => p.EscalationGroupId!.Value).Distinct().ToList();
                 var known = await db.Groups.Where(g => groups.Contains(g.Id)).Select(g => g.Id).ToListAsync(ct);
                 v.Check(groups.All(known.Contains), "projects", "An escalation group that doesn't exist.");
+                if (r.Away.PersonId is { } person)
+                {
+                    // The away watch's chosen person (docs/cookie-redmine-tab-plan.md §7): an active user.
+                    v.Check(await db.Users.AnyAsync(u => u.Id == person && u.IsActive, ct), "away.personId", "No such active user.");
+                }
                 break;
             }
+            case ActionSettings actions:
+                // The ceilings are in .env (docs/cookie-redmine-tab-plan.md §13).
+                foreach (var (name, ceiling) in actions.Limits.Above(settings.Ceilings))
+                {
+                    v.Check(false, $"limits.{JsonNamingPolicy.CamelCase.ConvertName(name)}", $"0 to {ceiling}.");
+                }
+                break;
             case CookieRightsSettings { GroupId: { } groupId }:
                 v.Check(await db.Groups.AnyAsync(g => g.Id == groupId, ct), "groupId", "No such group.");
                 break;
@@ -903,6 +916,16 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
 
     private static string Known(string section) =>
         CookieSettings.Sections.Contains(section) ? section : throw ApiException.NotFound("Section");
+
+    /// <summary>The generic history refuses the Redmine section: it is <i>Redmine: Manage</i>'s (docs/cookie-redmine-tab-plan.md §3.2).</summary>
+    public static string NotRedmine(string section) => section == CookieRedmineSettings.Section ? throw ApiException.NotFound("Section") : section;
+
+    /// <summary>The Redmine tab's section, with the duties' switches and the away notice's level read only: Actions sets them (§6).</summary>
+    public async Task<CookieRedmineAdminSettings> RedmineSettingsAsync(CancellationToken ct)
+    {
+        var actions = await settings.GetAsync<ActionSettings>(ct);
+        return new(await settings.GetAsync<CookieRedmineSettings>(ct), actions.Duties, actions.Levels.AwayNotice);
+    }
 
     public static string Label(string section) => section switch
     {

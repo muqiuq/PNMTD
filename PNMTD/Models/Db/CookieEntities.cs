@@ -24,9 +24,10 @@ public enum CookieDutyState { Due, Done, HeldBack, Off, NotPossible, Failed, Sto
 
 /// <summary>
 /// How something left PNMT (docs/cookie-plan.md §6.1). The access watch's own (docs/cookie-access-plan.md §6) have limits of their
-/// own: its notices by e-mail and Pushover, and <i>Was this you?</i>. So has the lounge's e-mail (docs/lounge-plan.md §8.2).
+/// own: its notices by e-mail and Pushover, and <i>Was this you?</i>. So has the lounge's e-mail (docs/lounge-plan.md §8.2), and the
+/// away watch's notices by e-mail and Pushover (docs/cookie-redmine-tab-plan.md §6.6).
 /// </summary>
-public enum CookieChannel { Email, Pushover, RedmineNote, RedminePrivateNote, RedmineTicket, AccessEmail, AccessPushover, WasThisYou, LoungeEmail }
+public enum CookieChannel { Email, Pushover, RedmineNote, RedminePrivateNote, RedmineTicket, AccessEmail, AccessPushover, WasThisYou, LoungeEmail, AwayEmail, AwayPushover }
 
 public enum CookieOutboxState { Sent, HeldBack, Failed, Simulated }
 
@@ -232,6 +233,12 @@ public class CookieCaseEntity
     public DateTime? FirstAnswerAt { get; set; }
 
     public DateTime? LastStaffUpdateAt { get; set; }
+
+    /// <summary>
+    /// The newest journal the case book saw (docs/cookie-redmine-tab-plan.md §6.2): the away watch looks only at newer ones. Set when
+    /// the case is first seen, and kept current whether the watch is on or off, so switching it on judges nothing old.
+    /// </summary>
+    public int? LastJournalId { get; set; }
 
     /// <summary>The ticket opened for a problem case (§7.1).</summary>
     public int? OwnIssueId { get; set; }

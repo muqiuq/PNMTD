@@ -106,9 +106,18 @@ public class UserEntity
     [AuditSecret]
     public string? PushoverKey { get; set; }
 
-    /// <summary>The name Redmine shows on tickets: how an assignee is found. Only admins set it.</summary>
+    /// <summary>
+    /// The name Redmine shows on tickets. Without <see cref="RedmineUserId"/>, how an assignee is found; with it, the name Redmine
+    /// had when the person was linked, refreshed by each check. Admins set it on the profile, which clears the link.
+    /// </summary>
     [MaxLength(200)]
     public string? RedmineName { get; set; }
+
+    /// <summary>
+    /// The Redmine user this person is, by id (docs/cookie-redmine-tab-plan.md §4.1): picked from Redmine's users on Admin → Cookie
+    /// → Redmine, never typed; a rename in Redmine keeps it. At most one person per Redmine user.
+    /// </summary>
+    public int? RedmineUserId { get; set; }
 
     /// <summary>
     /// The person's accounts on servers and routers (docs/cookie-access-plan.md §5.3): <c>CONTOSO\jdoe</c>, <c>jdoe</c>. The access

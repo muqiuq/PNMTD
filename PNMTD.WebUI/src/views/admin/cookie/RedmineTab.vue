@@ -1,28 +1,81 @@
 <script setup lang="ts">
+import { useQuery } from '@tanstack/vue-query'
 import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
 import MultiSelect from 'primevue/multiselect'
 import ProgressSpinner from 'primevue/progressspinner'
 import Select from 'primevue/select'
+import SelectButton from 'primevue/selectbutton'
+import Tag from 'primevue/tag'
+import ToggleSwitch from 'primevue/toggleswitch'
 import { computed, ref } from 'vue'
+import { api, keys, type S } from '@/api/resources'
 import ErrorState from '@/components/ErrorState.vue'
+import { useSession } from '@/stores/session'
 import { withUnknown, type Option } from './cookieAdmin'
+import RedmineAwayList from './RedmineAwayList.vue'
+import RedmineLinksPanel from './RedmineLinksPanel.vue'
 import SectionActions from './SectionActions.vue'
 import SettingsHistory from './SettingsHistory.vue'
-import { useGroupOptions } from './usePickers'
-import { useCookieDefaults, useRedmineLookups, useSection } from './useSection'
+import { useGroupOptions, useUserOptions } from './usePickers'
+import { useRedmineDefaults, useRedmineLookups, useRedmineSection } from './useSection'
 
 /**
  * Redmine (docs/cookie-plan.md §7.2, §9.3): the watched projects, each with its deadlines, the roles that count as
  * staff, the statuses that stop the clock and its escalation group; and where the tickets for unresolved problems go
- * (§7.1). Writing to Redmine needs Redmine__WriteApiKey.
+ * (§7.1). Writing to Redmine needs Redmine__WriteApiKey. Redmine: Manage's, through its own endpoints
+ * (docs/cookie-redmine-tab-plan.md §3.2); the duties these deadlines drive are switched on Actions, and shown here.
  */
-const s = useSection('redmine')
+const s = useRedmineSection()
 const lookups = useRedmineLookups()
 const l = computed(() => lookups.data.value)
 const groups = useGroupOptions()
-const defaults = useCookieDefaults()
+const defaults = useRedmineDefaults()
+const session = useSession()
+
+/** The ticket duties' switches, read only: Actions → PNMT's duties, under Cookie: Manage. */
+const ticketDuties = computed(() => {
+  const d = s.duties.value
+  if (!d) return []
+  return [
+    { label: 'First-answer reminder', on: d.firstAnswerReminder },
+    { label: 'First answer missed', on: d.firstAnswerMissed },
+    { label: 'Update reminder', on: d.updateReminder },
+    { label: 'Update missed', on: d.updateMissed },
+  ]
+})
+const canSwitch = computed(() => session.can('Cookie', 'Manage'))
+
+/** The away watch (docs/cookie-redmine-tab-plan.md §6): switched on Actions, set up here. */
+const users = useUserOptions()
+const awayOn = computed(() => s.duties.value?.awayComments ?? false)
+const noticeOff = computed(() => s.awayNotice.value?.level === 'Off')
+const personOptions = computed(() => withUnknown(users.options.value, [s.draft.value?.away?.personId], users.unknown))
+const absences: { value: S['AvailabilityFlag']; label: string }[] = [
+  { value: 'Vacation', label: 'Vacation' },
+  { value: 'Holiday', label: 'Holiday' },
+  { value: 'Compensation', label: 'Compensation' },
+]
+const recipientOptions: { label: string; value: S['AwayRecipient'] }[] = [
+  { label: 'The responsible of the day', value: 'Responsible' },
+  { label: 'A chosen person', value: 'Person' },
+]
+const verdictOptions: { label: string; value: S['AwayWithoutVerdict'] }[] = [
+  { label: 'Tell, marked not judged', value: 'Tell' },
+  { label: 'Record only', value: 'Record' },
+]
+/** The links panel's check, shared by its query key: whether anyone in the plan can be found as an assignee at all. */
+const links = useQuery({
+  queryKey: [...keys.cookie, 'admin', 'redmine', 'links'],
+  queryFn: api.cookie.redmineAdmin.links,
+})
+const nobodyLinked = computed(
+  () =>
+    !!links.data.value &&
+    !links.data.value.rows.some((r) => r.inPlan && (r.state === 'Linked' || r.state === 'Matches')),
+)
 
 const named = (list: { id: number; name: string }[] | undefined, chosen: number[], what: string): Option<number>[] =>
   withUnknown(
@@ -67,7 +120,7 @@ const addable = computed(() =>
 )
 /** A project newly watched starts with the server's default deadlines (WatchedProject.Default). */
 function addProject(projectId: number | null) {
-  const fresh = defaults.data.value?.newProject
+  const fresh = defaults.data.value
   if (projectId === null || !s.draft.value || !fresh) return
   s.draft.value.projects.push({
     ...fresh,
@@ -80,7 +133,7 @@ function addProject(projectId: number | null) {
 function removeProject(projectId: number) {
   if (s.draft.value) s.draft.value.projects = s.draft.value.projects.filter((p) => p.projectId !== projectId)
 }
-const placed = (f: string) => f.startsWith('projects.')
+const placed = (f: string) => f.startsWith('projects.') || f.startsWith('away.')
 </script>
 
 <template>
@@ -136,7 +189,18 @@ const placed = (f: string) => f.startsWith('projects.')
         <div class="panel-body body">
           <p class="muted small intro">
             Every ticket in a watched project needs a first answer by staff within its working hours, and an update
-            every so many days. With no staff roles chosen, everyone but the ticket's author counts as staff.
+            every so many days. With no staff roles chosen, everyone but the ticket's author counts as staff. The
+            working hours and holidays are the availability plan's settings; Cookie is told each ticket's own project's
+            deadlines.
+          </p>
+          <p v-if="ticketDuties.length" class="muted small intro duties">
+            The reminders and escalations at these deadlines:
+            <template v-for="(d, i) in ticketDuties" :key="d.label"
+              >{{ i ? ', ' : '' }}{{ d.label.toLowerCase() }} <strong>{{ d.on ? 'on' : 'off' }}</strong></template
+            >. They are switched on
+            <RouterLink v-if="canSwitch" :to="{ name: 'cookie-admin', params: { tab: 'actions' } }"
+              >under Actions → PNMT's duties</RouterLink
+            ><template v-else>under Actions → PNMT's duties, by someone with Cookie: Manage</template>.
           </p>
           <p v-if="!s.draft.value.projects.length" class="muted">No project is watched.</p>
           <div v-for="p in s.draft.value.projects" :key="p.projectId" class="project">
@@ -293,6 +357,110 @@ const placed = (f: string) => f.startsWith('projects.')
         </div>
       </section>
 
+      <section v-if="s.draft.value.away" class="panel" aria-labelledby="redmine-away-title">
+        <div id="redmine-away-title" class="panel-header">
+          While someone is away
+          <Tag :value="awayOn ? 'On' : 'Off'" :severity="awayOn ? 'success' : 'secondary'" class="end" />
+        </div>
+        <div class="panel-body body">
+          <p class="muted small intro">
+            When someone comments on a ticket whose assignee is away in the availability plan, Cookie judges from the
+            comment whether someone should act before they are back. If so, code tells whom you choose here, in working
+            hours, at most once per ticket in 4 hours; nobody is told once the assignee is back. Cookie's verdicts need
+            Cookie running; the case book reads the tickets every 5 minutes.
+          </p>
+          <Message v-if="!awayOn" severity="info" :closable="false" size="small">
+            Off: it is switched on
+            <RouterLink v-if="canSwitch" :to="{ name: 'cookie-admin', params: { tab: 'actions' } }"
+              >under Actions → PNMT's duties</RouterLink
+            ><template v-else>under Actions → PNMT's duties, by someone with Cookie: Manage</template>. What is set here
+            can be saved while it is off.
+          </Message>
+          <Message v-if="noticeOff" severity="warn" :closable="false" size="small">
+            Cookie's away notice is Off (Actions): Cookie judges nothing, and every comment is handled as without a
+            verdict.
+          </Message>
+          <Message v-if="nobodyLinked" severity="warn" :closable="false" size="small">
+            Nobody in the availability plan is linked to a Redmine user (below), so no assignee can be found away.
+          </Message>
+          <div class="form-grid">
+            <div class="field">
+              <span class="label">Away means</span>
+              <div class="inline">
+                <span v-for="a in absences" :key="a.value" class="check">
+                  <Checkbox v-model="s.draft.value.away.awayFlags" :input-id="`away-${a.value}`" :value="a.value" />
+                  <label :for="`away-${a.value}`">{{ a.label }}</label>
+                </span>
+              </div>
+              <small v-if="s.error('away.awayFlags')" class="field-error">{{ s.error('away.awayFlags') }}</small>
+              <small v-else class="field-hint"
+                >The checkboxes of a day's type in the plan. A default day off and a closed day never count.</small
+              >
+            </div>
+            <div class="field">
+              <span class="label">Who is told</span>
+              <SelectButton
+                v-model="s.draft.value.away.recipient"
+                :options="recipientOptions"
+                option-label="label"
+                option-value="value"
+                :allow-empty="false"
+                size="small"
+                aria-label="Who is told"
+              />
+              <small class="field-hint">
+                {{
+                  s.draft.value.away.recipient === 'Person'
+                    ? 'The chosen person, if they work today; otherwise the responsible of the day.'
+                    : 'Whoever the plan makes responsible now; when that is nobody, the chosen person, if they work today.'
+                }}
+                Never the away assignee, nor whoever wrote the comment.
+              </small>
+            </div>
+            <div class="field">
+              <label for="away-person">The chosen person</label>
+              <Select
+                v-model="s.draft.value.away.personId"
+                input-id="away-person"
+                :options="personOptions"
+                option-label="label"
+                option-value="value"
+                filter
+                show-clear
+                size="small"
+                placeholder="Nobody"
+                :invalid="!!s.error('away.personId')"
+              />
+              <small v-if="s.error('away.personId')" class="field-error">{{ s.error('away.personId') }}</small>
+            </div>
+            <div class="field">
+              <span class="label">Without Cookie's verdict</span>
+              <SelectButton
+                v-model="s.draft.value.away.withoutVerdict"
+                :options="verdictOptions"
+                option-label="label"
+                option-value="value"
+                :allow-empty="false"
+                size="small"
+                aria-label="Without Cookie's verdict"
+              />
+              <small class="field-hint"
+                >Cookie stopped or paused, no verdict within 30 minutes, or a comment that looks like it tries to
+                instruct an AI.</small
+              >
+            </div>
+            <div class="field switch-field">
+              <ToggleSwitch v-model="s.draft.value.away.privateNotes" input-id="away-private" />
+              <label for="away-private">Private notes too</label>
+            </div>
+            <div class="field switch-field">
+              <ToggleSwitch v-model="s.draft.value.away.pushover" input-id="away-pushover" />
+              <label for="away-pushover">Pushover too</label>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <SectionActions
         :busy="s.busy.value"
         :dirty="s.dirty.value"
@@ -302,6 +470,9 @@ const placed = (f: string) => f.startsWith('projects.')
         @reset="s.reset()"
       />
       <SettingsHistory section="redmine" title="the Redmine settings" @rolled-back="s.reload()" />
+
+      <RedmineAwayList />
+      <RedmineLinksPanel />
     </template>
   </div>
 </template>
@@ -369,5 +540,21 @@ const placed = (f: string) => f.startsWith('projects.')
 
 .small {
   font-size: 0.857rem;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pnmt-space-1);
+}
+
+.switch-field {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--pnmt-space-2);
+}
+
+.label {
+  font-weight: 600;
 }
 </style>

@@ -88,6 +88,8 @@ export const channels: S['CookieChannel'][] = [
   'AccessPushover',
   'WasThisYou',
   'LoungeEmail',
+  'AwayEmail',
+  'AwayPushover',
 ]
 
 export const channelLabel: Record<S['CookieChannel'], string> = {
@@ -100,6 +102,8 @@ export const channelLabel: Record<S['CookieChannel'], string> = {
   AccessPushover: 'Access Pushover',
   WasThisYou: 'Was this you?',
   LoungeEmail: 'Lounge e-mail',
+  AwayEmail: 'Away e-mail',
+  AwayPushover: 'Away Pushover',
 }
 
 export const channelName = (c: S['CookieChannel']) => channelLabel[c] ?? c

@@ -17,16 +17,12 @@ namespace PNMTD.Cookie;
 /// </summary>
 public static class Recipients
 {
-    /// <summary>The active PNMT user whose Redmine user is <paramref name="assigneeName"/>.</summary>
-    public static async Task<UserEntity?> AssigneeAsync(PnmtdDbContext db, string? assigneeName, CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(assigneeName))
-        {
-            return null;
-        }
-        var name = assigneeName.Trim().ToLowerInvariant();
-        return await db.Users.AsNoTracking().Where(u => u.IsActive && u.RedmineName != null && u.RedmineName.ToLower() == name).FirstOrDefaultAsync(ct);
-    }
+    /// <summary>
+    /// The active PNMT user a ticket's assignee is (docs/cookie-redmine-tab-plan.md §4.4): linked by the Redmine user's id first,
+    /// else the one user with the assignee's name.
+    /// </summary>
+    public static Task<UserEntity?> AssigneeAsync(PnmtdDbContext db, int? assigneeId, string? assigneeName, CancellationToken ct) =>
+        RedmineLinks.UserOfAsync(db, assigneeId, assigneeName, ct);
 
     /// <summary>
     /// The people a ticket's duty names (§8.3): a reminder goes to the assignee, or to the escalation group when nobody is
@@ -226,7 +222,7 @@ public sealed class DutyRunner(IDbContextFactory<PnmtdDbContext> dbs, CookieSett
         }
 
         // Who the duty names (§8.3): the assignee, the escalation group, whoever the plan makes responsible.
-        var assignee = await Recipients.AssigneeAsync(db, c.AssigneeName, ct);
+        var assignee = await Recipients.AssigneeAsync(db, c.AssigneeId, c.AssigneeName, ct);
         var group = project.EscalationGroupId is { } g ? (await MembersAsync(db, [g], ct)).GetValueOrDefault(g) ?? [] : [];
         var today = DateOnly.FromDateTime(Clock.LocalNow);
         var snapshot = await plan.DayAsync(today, ct, [.. group, .. assignee is null ? Array.Empty<Guid>() : [assignee.Id]]);

@@ -65,16 +65,17 @@ public sealed class BigBrother(IDbContextFactory<PnmtdDbContext> dbs, CookieMode
         {
             return "The big brother is off on Admin → Cookie → Actions.";
         }
+        var limits = await settings.LimitsAsync(ct);
         await using var db = await dbs.CreateDbContextAsync(ct);
         var today = Clock.ToUtc(Clock.LocalNow.Date);
         var calls = db.CookieDecisions.AsNoTracking().Where(d => d.Kind == Kind && d.At >= today && d.Outcome != "refused");
-        if (await calls.CountAsync(ct) >= actions.Limits.BigBrotherPerDay)
+        if (await calls.CountAsync(ct) >= limits.BigBrotherPerDay)
         {
-            return $"The big brother: {actions.Limits.BigBrotherPerDay} calls a day.";
+            return $"The big brother: {limits.BigBrotherPerDay} calls a day.";
         }
-        if (await calls.CountAsync(d => d.CaseId == c.Id, ct) >= actions.Limits.BigBrotherPerCaseDay)
+        if (await calls.CountAsync(d => d.CaseId == c.Id, ct) >= limits.BigBrotherPerCaseDay)
         {
-            return $"The big brother: {actions.Limits.BigBrotherPerCaseDay} calls a day per case.";
+            return $"The big brother: {limits.BigBrotherPerCaseDay} calls a day per case.";
         }
         var members = JsonSerializer.Deserialize<List<CaseMember>>(c.Members, CookieSettings.Json) ?? [];
         if (Instructions.Blocks(await instructions.ActiveAsync(ct), CookieActionKind.HandToPerson, c, members, bigBrother: true) is { } muted)

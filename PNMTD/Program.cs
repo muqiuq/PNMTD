@@ -185,6 +185,8 @@ public partial class Program
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.CookieDailyTask>());
             // The access watch (docs/cookie-access-plan.md §6.5): PNMT's sign-ins, code's notice, the waiting notices, with Cookie:Enabled=true.
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.Access.AccessWatchTask>());
+            // The away watch (docs/cookie-redmine-tab-plan.md §6.7): comments nobody judged, the notices that are due, with Cookie:Enabled=true.
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Cookie.Away.AwayWatchTask>());
             // The availability plan stays filled for the next 365 days (docs/cookie-plan.md §8.2).
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Availability.AvailabilityFillTask>());
             // The connectors' worker on its timer (docs/connectors-plan.md §9.1); nudges wake it in any case.

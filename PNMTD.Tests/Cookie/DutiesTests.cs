@@ -341,7 +341,7 @@ public sealed class DutiesTests
 
     private static async Task<int> SaveAsync<T>(string section, T value)
     {
-        using var response = await admin.PutAsJsonAsync($"/api/v1/cookie/admin/settings/{section}", value, CookieSettings.Json);
+        using var response = await admin.PutAsJsonAsync(V1.CookieSettingsPath(section), value, CookieSettings.Json);
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, await response.Content.ReadAsStringAsync());
         return (await response.ReadAsync<CookieSaved>()).Version;
     }

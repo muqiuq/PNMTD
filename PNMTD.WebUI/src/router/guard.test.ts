@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SessionFlags } from '@/api/auth'
-import { holds, type Area, type Level, type Right } from '@/api/rights'
+import { holds, meets, type Area, type Level, type Right } from '@/api/rights'
 import { decide, nextAfterSignIn, safeReturnUrl } from './guard'
 
 type Who = 'admin' | Partial<Record<Area, Level>>
@@ -23,7 +23,7 @@ const as = (who: Who | null, f?: Partial<SessionFlags>) => ({
   signedIn: who !== null,
   flags: who ? flags(f) : null,
   allows: (right: Right) =>
-    who !== null && (who === 'admin' || (right !== 'admin' && holds(false, who, right[0], right[1]))),
+    who !== null && (who === 'admin' || meets(right, false, (area, level) => holds(false, who, area, level))),
 })
 const to = (name: string, fullPath: string, extra: { public?: boolean; right?: Right } = {}) => ({
   name,

@@ -45,6 +45,12 @@ public sealed class FakeRedmine : HttpMessageHandler
 
     public bool RefuseKey { get; set; }
 
+    /// <summary>
+    /// A project's members, by project id, as Redmine's memberships list them ({"user": …} or {"group": …}, with "roles"); a project
+    /// not named here answers with the recorded memberships.json. Paged by offset and limit, as Redmine pages them.
+    /// </summary>
+    public Dictionary<int, List<JsonObject>> Members { get; } = [];
+
     /// <summary>The tickets, by number: those recorded in R0, and one of Printers, the subproject.</summary>
     public Dictionary<int, JsonObject> Issues { get; } = Load();
 
@@ -112,7 +118,8 @@ public sealed class FakeRedmine : HttpMessageHandler
             }),
             "/trackers.json" => File("trackers.json"),
             "/enumerations/issue_priorities.json" => File("priorities.json"),
-            var p when p.StartsWith("/projects/", StringComparison.Ordinal) && p.EndsWith("/memberships.json", StringComparison.Ordinal) => File("memberships.json"),
+            var p when p.StartsWith("/projects/", StringComparison.Ordinal) && p.EndsWith("/memberships.json", StringComparison.Ordinal) =>
+                MembershipsOf(int.TryParse(p[10..^17], out var projectId) ? projectId : 0, query),
             "/issues.json" => List(query),
             var p when p.StartsWith("/issues/", StringComparison.Ordinal) && p.EndsWith(".json", StringComparison.Ordinal) => One(int.Parse(p[8..^5])),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound),
@@ -175,6 +182,28 @@ public sealed class FakeRedmine : HttpMessageHandler
             return File("issue_full.json");
         }
         return Issues.TryGetValue(id, out var issue) ? Json(new JsonObject { ["issue"] = JsonNode.Parse(issue.ToJsonString()) }) : new HttpResponseMessage(HttpStatusCode.NotFound);
+    }
+
+    /// <summary>A project's memberships, paged as Redmine pages them; the recorded ones for a project not in <see cref="Members"/>.</summary>
+    private HttpResponseMessage MembershipsOf(int projectId, List<(string Key, string Value)> q)
+    {
+        List<JsonObject> all;
+        lock (Members)
+        {
+            if (!Members.TryGetValue(projectId, out var members))
+            {
+                return File("memberships.json");
+            }
+            all = [.. members.Select(m => JsonNode.Parse(m.ToJsonString())!.AsObject())];
+        }
+        var plain = q.GroupBy(p => p.Key).ToDictionary(g => g.Key, g => g.First().Value);
+        var offset = plain.TryGetValue("offset", out var o) ? int.Parse(o, System.Globalization.CultureInfo.InvariantCulture) : 0;
+        var limit = plain.TryGetValue("limit", out var l) ? int.Parse(l, System.Globalization.CultureInfo.InvariantCulture) : 25;
+        return Json(new JsonObject
+        {
+            ["memberships"] = new JsonArray([.. all.Skip(offset).Take(limit)]),
+            ["total_count"] = all.Count, ["offset"] = offset, ["limit"] = limit,
+        });
     }
 
     /// <summary>Redmine's issue list: the filters PNMT uses (f[], op[], v[]; issue_id; sort; offset; limit).</summary>

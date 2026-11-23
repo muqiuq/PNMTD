@@ -26,7 +26,7 @@ public sealed record CaseBookResult(int Opened, int Changed, int Closed, int Ope
 /// </summary>
 public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScopeFactory scopes, CookieSettings settings, ZabbixSnapshot zabbix,
     RedmineWorker redmine, IOptionsMonitor<RedmineOptions> redmineOptions, IMemoryCache cache, CookieSignals signals,
-    PNMTD.Availability.AvailabilityPlan plan, CookieIntegrations integrations, ILogger<CaseBook> logger)
+    PNMTD.Availability.AvailabilityPlan plan, CookieIntegrations integrations, Away.AwayWatch away, ILogger<CaseBook> logger)
 {
     public const int MaxTicketPages = 10;
     public static readonly TimeSpan StaffFor = TimeSpan.FromHours(1);
@@ -82,9 +82,10 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
         await db.SaveChangesAsync(ct);
         // What is available follows this run's reads (docs/cookie-fallback-plan.md §3): the tools' lists see it at once.
         await integrations.ReadAsync(ct);
-        if (counts.Opened + counts.Changed + counts.Closed + counts.DutiesDue > 0)
+        if (counts.Opened + counts.Changed + counts.Closed + counts.DutiesDue + counts.AwayComments > 0)
         {
-            signals.Raise($"case book: {counts.Opened} opened, {counts.Changed} changed, {counts.Closed} closed, {counts.DutiesDue} due");
+            signals.Raise($"case book: {counts.Opened} opened, {counts.Changed} changed, {counts.Closed} closed, {counts.DutiesDue} due"
+                + (counts.AwayComments > 0 ? $", {counts.AwayComments} comments while away" : ""));
         }
         var open = await db.CookieCases.CountAsync(c => c.Open, ct);
         return new CaseBookResult(counts.Opened, counts.Changed, counts.Closed, open, ticketsRead, error);
@@ -111,6 +112,9 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
         public int Changed;
         public int Closed;
         public int DutiesDue;
+
+        /// <summary>Comments while the assignee is away, for Cookie to judge (docs/cookie-redmine-tab-plan.md §6.3).</summary>
+        public int AwayComments;
     }
 
     // --- Problems: a case per host -----------------------------------------------------------------------------------
@@ -316,6 +320,8 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
     {
         var lookups = await service.LookupsAsync(ct, RedmineLane.Background);
         var watched = redmineSettings.Projects.Where(p => lookups.Allowed.Contains(p.ProjectId)).ToDictionary(p => p.ProjectId);
+        // The away watch looks at the journals read here (docs/cookie-redmine-tab-plan.md §6.3).
+        var awayRun = await away.StartAsync(redmine, calls, ct);
         var open = await db.CookieCases.Where(c => c.Open && c.Kind == CookieCaseKind.Ticket).ToListAsync(ct);
         var byIssue = open.Where(c => c.IssueId is not null).ToDictionary(c => c.IssueId!.Value);
         var seen = new HashSet<int>();
@@ -402,6 +408,7 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
                 c.LastStaffUpdateAt = clock.LastStaffUpdateAt;
                 c.Importance = PriorityImportance(full.Priority?.Id, lookups.Priorities);
                 c.ChangedAt = now;
+                await away.SeeAsync(awayRun, db, c, full, isNew, now, ct);
             }
         }
 
@@ -413,7 +420,10 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
             {
                 try
                 {
-                    var issue = (await calls.GetAsync<RmIssueEnvelope>($"/issues/{c.IssueId}.json", $"#{c.IssueId}, no longer listed")).Issue;
+                    // With its journals while the away watch is on: a comment that closes the ticket counts too (§6.2).
+                    var issue = (await calls.GetAsync<RmIssueEnvelope>($"/issues/{c.IssueId}.json{(awayRun.On ? "?include=journals" : "")}",
+                        $"#{c.IssueId}, no longer listed")).Issue;
+                    await away.SeeAsync(awayRun, db, c, issue, false, now, ct);
                     why = issue.Status.IsClosed ? $"Closed in Redmine ({issue.Status.Name})." : watched.ContainsKey(issue.Project.Id) ? "" : "Moved to a project that isn't watched.";
                 }
                 catch (RedmineException e) when (e.Failure is RedmineFailure.NotFound or RedmineFailure.Forbidden)
@@ -431,6 +441,7 @@ public sealed class CaseBook(IDbContextFactory<PnmtdDbContext> dbs, IServiceScop
             Entry(db, c.Id, now, "closed", why);
             counts.Closed++;
         }
+        counts.AwayComments += awayRun.Found;
     }
 
     /// <summary>The project's members with a staff role (§7.2), cached for an hour; null when no role is set.</summary>
@@ -717,6 +728,11 @@ public sealed class CaseBookTask(CaseBook book, DutyRunner duties, IOptionsMonit
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        foreach (var key in options.CurrentValue.Ceilings.Negative())
+        {
+            // docs/cookie-redmine-tab-plan.md §13: a ceiling below 0 counts as 0.
+            logger.LogWarning("{Key} is below 0 and counts as 0: whatever that limit counts is held back.", key);
+        }
         await Task.Delay(TimeSpan.FromSeconds(20), stoppingToken);
         var ticketsAt = DateTime.MinValue;
         while (!stoppingToken.IsCancellationRequested)

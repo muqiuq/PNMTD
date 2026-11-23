@@ -62,12 +62,16 @@ public sealed partial class Summaries(IDbContextFactory<PnmtdDbContext> dbs, Coo
         await using var db = await dbs.CreateDbContextAsync(ct);
         var open = (await db.CookieCases.AsNoTracking().Where(c => c.Open && c.Kind != CookieCaseKind.Request).ToListAsync(ct))
             .Where(c => CookieAccess.CanSee(reader, c.Areas)).ToList();
-        // "Needs you" (§8.5): the tickets assigned to the reader, and the open problems while the reader is responsible today.
-        var redmineName = (await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.RedmineName).FirstOrDefaultAsync(ct))?.Trim();
+        // "Needs you" (§8.5): the tickets assigned to the reader, and the open problems while the reader is responsible today. The
+        // reader's tickets are those of their Redmine user's id; without a link, of their name (docs/cookie-redmine-tab-plan.md §4.4).
+        var me = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => new { u.RedmineUserId, u.RedmineName }).FirstOrDefaultAsync(ct);
+        var redmineId = me?.RedmineUserId;
+        var redmineName = me?.RedmineName?.Trim();
         var today = DateOnly.FromDateTime(Clock.LocalNow);
         var responsible = (await plan.DayAsync(today, ct)).ResponsibleOn(today).UserIds.Contains(userId);
         bool NeedsYou(CookieCaseEntity c) => c.StoppedAt is null
-            && ((redmineName is { Length: > 0 } && string.Equals(c.AssigneeName?.Trim(), redmineName, StringComparison.OrdinalIgnoreCase))
+            && ((redmineId is { } id ? c.AssigneeId == id
+                    : redmineName is { Length: > 0 } && string.Equals(c.AssigneeName?.Trim(), redmineName, StringComparison.OrdinalIgnoreCase))
                 || (responsible && c.Kind == CookieCaseKind.Problem));
         var ordered = open.OrderByDescending(NeedsYou).ThenByDescending(c => c.Importance).ThenByDescending(c => c.ChangedAt).Take(MaxCases).ToList();
 

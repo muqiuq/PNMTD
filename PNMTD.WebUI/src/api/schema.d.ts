@@ -6921,80 +6921,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/cookie/admin/people": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CookiePeople"];
-                        "text/json": components["schemas"]["CookiePeople"];
-                        "text/plain": components["schemas"]["CookiePeople"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cookie/admin/redmine": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CookieRedmineLookups"];
-                        "text/json": components["schemas"]["CookieRedmineLookups"];
-                        "text/plain": components["schemas"]["CookieRedmineLookups"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/cookie/admin/settings/identity": {
         parameters: {
             query?: never;
@@ -7101,49 +7027,6 @@ export interface paths {
                     "application/json": components["schemas"]["CaseSettings"];
                     "text/json": components["schemas"]["CaseSettings"];
                     "application/*+json": components["schemas"]["CaseSettings"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["CookieSaved"];
-                        "text/json": components["schemas"]["CookieSaved"];
-                        "text/plain": components["schemas"]["CookieSaved"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cookie/admin/settings/redmine": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["CookieRedmineSettings"];
-                    "text/json": components["schemas"]["CookieRedmineSettings"];
-                    "application/*+json": components["schemas"]["CookieRedmineSettings"];
                 };
             };
             responses: {
@@ -7598,6 +7481,454 @@ export interface paths {
                         "application/json": components["schemas"]["CookieSaved"];
                         "text/json": components["schemas"]["CookieSaved"];
                         "text/plain": components["schemas"]["CookieSaved"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookiePeople"];
+                        "text/json": components["schemas"]["CookiePeople"];
+                        "text/plain": components["schemas"]["CookiePeople"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/redmine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieRedmineLookups"];
+                        "text/json": components["schemas"]["CookieRedmineLookups"];
+                        "text/plain": components["schemas"]["CookieRedmineLookups"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/redmine/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieRedmineAdminSettings"];
+                        "text/json": components["schemas"]["CookieRedmineAdminSettings"];
+                        "text/plain": components["schemas"]["CookieRedmineAdminSettings"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CookieRedmineSettings"];
+                    "text/json": components["schemas"]["CookieRedmineSettings"];
+                    "application/*+json": components["schemas"]["CookieRedmineSettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSaved"];
+                        "text/json": components["schemas"]["CookieSaved"];
+                        "text/plain": components["schemas"]["CookieSaved"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/redmine/settings/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSettingsVersion"][];
+                        "text/json": components["schemas"]["CookieSettingsVersion"][];
+                        "text/plain": components["schemas"]["CookieSettingsVersion"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/redmine/settings/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    version: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JsonElement"];
+                        "text/json": components["schemas"]["JsonElement"];
+                        "text/plain": components["schemas"]["JsonElement"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/redmine/settings/rollback/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    version: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CookieSaved"];
+                        "text/json": components["schemas"]["CookieSaved"];
+                        "text/plain": components["schemas"]["CookieSaved"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/redmine/defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WatchedProject"];
+                        "text/json": components["schemas"]["WatchedProject"];
+                        "text/plain": components["schemas"]["WatchedProject"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/redmine/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RedmineLinksView"];
+                        "text/json": components["schemas"]["RedmineLinksView"];
+                        "text/plain": components["schemas"]["RedmineLinksView"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/redmine/links/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RedmineUserLinkRequest"];
+                    "text/json": components["schemas"]["RedmineUserLinkRequest"];
+                    "application/*+json": components["schemas"]["RedmineUserLinkRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RedmineLinkRow"];
+                        "text/json": components["schemas"]["RedmineLinkRow"];
+                        "text/plain": components["schemas"]["RedmineLinkRow"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/redmine/away": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfCookieAwayCommentItem"];
+                        "text/json": components["schemas"]["PagedOfCookieAwayCommentItem"];
+                        "text/plain": components["schemas"]["PagedOfCookieAwayCommentItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cookie/admin/redmine/links/exact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RedmineLinkedCount"];
+                        "text/json": components["schemas"]["RedmineLinkedCount"];
+                        "text/plain": components["schemas"]["RedmineLinkedCount"];
                     };
                 };
             };
@@ -21470,6 +21801,8 @@ export interface components {
             inPlan: boolean;
             shortCode: null | string;
             color: null | string;
+            /** Format: int32 */
+            redmineUserId?: null | number;
         };
         AccountContactRequest: {
             email: null | string;
@@ -21486,6 +21819,7 @@ export interface components {
             objectNote?: components["schemas"]["ActionRule"];
             mailEvent?: components["schemas"]["ActionRule"];
             accessNotice?: components["schemas"]["ActionRule"];
+            awayNotice?: components["schemas"]["ActionRule"];
         };
         ActionRule: {
             level: components["schemas"]["ActionLevel"];
@@ -22702,6 +23036,21 @@ export interface components {
             retired: boolean;
             works: boolean;
         };
+        /** @enum {unknown} */
+        AwayCommentState: "Pending" | "Withheld" | "Waiting" | "Notified" | "Joined" | "NotImportant" | "Recorded" | "Nobody" | "Back" | "Expired" | "Off";
+        /** @enum {unknown} */
+        AwayRecipient: "Responsible" | "Person";
+        AwayWatchSettings: {
+            awayFlags?: components["schemas"]["AvailabilityFlag"][];
+            privateNotes?: boolean;
+            recipient?: components["schemas"]["AwayRecipient"];
+            /** Format: uuid */
+            personId?: null | string;
+            pushover?: boolean;
+            withoutVerdict?: components["schemas"]["AwayWithoutVerdict"];
+        };
+        /** @enum {unknown} */
+        AwayWithoutVerdict: "Tell" | "Record";
         BatteryInfo: {
             name: string;
             /** Format: int32 */
@@ -23606,13 +23955,40 @@ export interface components {
             identity: components["schemas"]["IdentitySettings"];
             prompts: components["schemas"]["PromptSettings"];
             cases: components["schemas"]["CaseSettings"];
-            redmine: components["schemas"]["CookieRedmineSettings"];
+            redmine: null | components["schemas"]["CookieRedmineSettings"];
             actions: components["schemas"]["ActionSettings"];
             models: components["schemas"]["ModelSettings"];
             rights: components["schemas"]["CookieRightsSettings"];
             lessons: components["schemas"]["LessonSettings"];
             access: components["schemas"]["AccessSettings"];
             lounge: components["schemas"]["LoungeSettings"];
+        };
+        CookieAwayCommentItem: {
+            /** Format: int64 */
+            id: number;
+            /** Format: uuid */
+            caseId: string;
+            /** Format: int32 */
+            issueId: number;
+            title: string;
+            assignee: null | string;
+            /** Format: date */
+            awayUntil: null | string;
+            authorName: null | string;
+            isPrivate: boolean;
+            /** Format: date-time */
+            commentAt: string;
+            text: null | string;
+            state: components["schemas"]["AwayCommentState"];
+            importance: null | string;
+            /** Format: double */
+            confidence: null | number;
+            reason: null | string;
+            judgedBy: null | string;
+            /** Format: date-time */
+            notifiedAt: null | string;
+            recipients: null | string;
+            detail: null | string;
         };
         CookieBudgetItem: {
             /** Format: double */
@@ -23676,7 +24052,7 @@ export interface components {
             title: string;
         };
         /** @enum {unknown} */
-        CookieChannel: "Email" | "Pushover" | "RedmineNote" | "RedminePrivateNote" | "RedmineTicket" | "AccessEmail" | "AccessPushover" | "WasThisYou" | "LoungeEmail";
+        CookieChannel: "Email" | "Pushover" | "RedmineNote" | "RedminePrivateNote" | "RedmineTicket" | "AccessEmail" | "AccessPushover" | "WasThisYou" | "LoungeEmail" | "AwayEmail" | "AwayPushover";
         CookieDecisionItem: {
             /** Format: int64 */
             id: number;
@@ -23916,6 +24292,11 @@ export interface components {
             rating: null | string;
             comment: null | string;
         };
+        CookieRedmineAdminSettings: {
+            redmine: components["schemas"]["CookieRedmineSettings"];
+            duties: components["schemas"]["DutySwitches"];
+            awayNotice: components["schemas"]["ActionRule"];
+        };
         CookieRedmineLookups: {
             configured: boolean;
             writable: boolean;
@@ -23932,6 +24313,7 @@ export interface components {
             ticketProjectId?: null | number;
             /** Format: int32 */
             ticketTrackerId?: null | number;
+            away?: components["schemas"]["AwayWatchSettings"];
         };
         CookieRightsSettings: {
             /** Format: uuid */
@@ -24539,6 +24921,8 @@ export interface components {
             problemTicket: boolean;
             /** @default false */
             closingNote: boolean;
+            /** @default false */
+            awayComments: boolean;
         };
         EncryptedVolume: {
             device: string;
@@ -28201,6 +28585,16 @@ export interface components {
              * @default 20
              */
             maxNotesPerObject: number;
+            /**
+             * Format: int32
+             * @default 20
+             */
+            awayNoticesPerDay: number;
+            /**
+             * Format: int32
+             * @default 10
+             */
+            awayNoticesPerPersonDay: number;
         };
         /** @enum {unknown} */
         OverallState: "AllFine" | "Info" | "Warning" | "Alert";
@@ -28356,6 +28750,15 @@ export interface components {
         };
         PagedOfConnectorItem: {
             items: components["schemas"]["ConnectorItem"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfCookieAwayCommentItem: {
+            items: components["schemas"]["CookieAwayCommentItem"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */
@@ -28777,6 +29180,8 @@ export interface components {
             /** Format: int32 */
             planOrder: number;
             serverAccounts?: null | string[];
+            /** Format: int32 */
+            redmineUserId?: null | number;
         };
         PingParameters: {
             target: string;
@@ -29014,6 +29419,10 @@ export interface components {
         };
         /** @enum {unknown} */
         RedmineLane: "Button" | "Write" | "Interactive" | "Background";
+        RedmineLinkedCount: {
+            /** Format: int32 */
+            linked: number;
+        };
         RedmineLinkedTicket: {
             /** Format: uuid */
             linkId: string;
@@ -29051,6 +29460,36 @@ export interface components {
             /** Format: uuid */
             sensorId?: null | string;
             note?: null | string;
+        };
+        RedmineLinkRow: {
+            /** Format: uuid */
+            userId: string;
+            name: string;
+            inPlan: boolean;
+            /** Format: int32 */
+            redmineUserId: null | number;
+            redmineName: null | string;
+            state: components["schemas"]["RedmineLinkState"];
+            redmineNow: null | string;
+            candidates: components["schemas"]["RedmineNamed"][];
+            /** Format: int32 */
+            openTickets: number;
+            shared: boolean;
+        };
+        /** @enum {unknown} */
+        RedmineLinkState: "Linked" | "LinkedUnknown" | "Matches" | "Several" | "NoMatch" | "NotSet";
+        RedmineLinksView: {
+            configured: boolean;
+            /** Format: date-time */
+            readAt: null | string;
+            reading: boolean;
+            error: null | string;
+            forbidden: string[];
+            rows: components["schemas"]["RedmineLinkRow"][];
+            unlinked: components["schemas"]["RedmineUnlinkedRow"][];
+            redmineUsers: components["schemas"]["RedmineUserItem"][];
+            /** Format: int32 */
+            groups: number;
         };
         RedmineLookupsItem: {
             projects: components["schemas"]["RedmineProjectItem"][];
@@ -29179,6 +29618,26 @@ export interface components {
         RedmineText: {
             format: string;
             text: string;
+        };
+        RedmineUnlinkedRow: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: int32 */
+            openTickets: number;
+            staff: boolean;
+        };
+        RedmineUserItem: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            member: boolean;
+            /** Format: int32 */
+            openTickets: number;
+        };
+        RedmineUserLinkRequest: {
+            /** Format: int32 */
+            redmineUserId: null | number;
         };
         Ref: {
             /** Format: uuid */

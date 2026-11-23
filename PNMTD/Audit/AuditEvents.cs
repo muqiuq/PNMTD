@@ -150,6 +150,9 @@ public static class AuditEvents
     public const string RedmineLinkRemoved = "RedmineLinkRemoved";
     public const string RedmineTested = "RedmineTested";
 
+    /// <summary>A PNMT user linked to a Redmine user, or unlinked (docs/cookie-redmine-tab-plan.md §4.1).</summary>
+    public const string RedmineUserLinkChanged = "RedmineUserLinkChanged";
+
     // Cookie (docs/cookie-plan.md §9.3, §19): its configuration, start and stop, and what it sends.
     public const string CookieSettingsChanged = "CookieSettingsChanged";
     public const string CookieSettingsRolledBack = "CookieSettingsRolledBack";
@@ -461,6 +464,7 @@ public static class AuditCatalog
         Add(AuditCategory.Knowledge, AuditTargets.KbTag, AuditEvents.KbTagDeleted);
         Add(AuditCategory.Hosts, AuditTargets.Host, AuditEvents.HostCreated, AuditEvents.HostUpdated, AuditEvents.HostDeleted);
         Add(AuditCategory.Redmine, AuditTargets.RedmineTicket, AuditEvents.RedmineLinkAdded, AuditEvents.RedmineLinkChanged, AuditEvents.RedmineLinkRemoved);
+        Add(AuditCategory.Redmine, AuditTargets.User, AuditEvents.RedmineUserLinkChanged);
         Add(AuditCategory.Redmine, null, AuditEvents.RedmineTested);
         Add(AuditCategory.Zabbix, AuditTargets.ZabbixHost, AuditEvents.ZabbixHostsAttached);
         Add(AuditCategory.Certificates, AuditTargets.Sensor, AuditEvents.CertificateAccepted);

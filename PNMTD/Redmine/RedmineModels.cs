@@ -68,7 +68,8 @@ public sealed record RmTrackers(IReadOnlyList<RmRef> Trackers);
 
 public sealed record RmPriorities([property: JsonPropertyName("issue_priorities")] IReadOnlyList<RmPriority> IssuePriorities);
 
-public sealed record RmMembership(RmRef? User, RmRef? Project = null, IReadOnlyList<RmRef>? Roles = null);
+/// <summary>A project's member: a user, or a group (which has no user, and can't be a PNMT user's Redmine user).</summary>
+public sealed record RmMembership(RmRef? User, RmRef? Project = null, IReadOnlyList<RmRef>? Roles = null, RmRef? Group = null);
 
 public sealed record RmMemberships(IReadOnlyList<RmMembership> Memberships, [property: JsonPropertyName("total_count")] int TotalCount);
 

@@ -21,6 +21,37 @@ export interface ListQuery {
 
 type Id = string
 
+/**
+ * Admin → Cookie → Redmine (docs/cookie-redmine-tab-plan.md §3.2, §8): Redmine: Manage's own endpoints, not Cookie:
+ * Manage's. The section's save and history go here; the generic ones below send "redmine" here too.
+ */
+const cookieRedmineAdmin = {
+  /** The section, and the duties' switches read only (they are switched on Actions). */
+  settings: () => call(client.GET('/api/v1/cookie/admin/redmine/settings')),
+  save: (body: S['CookieRedmineSettings']) => call(client.PUT('/api/v1/cookie/admin/redmine/settings', { body })),
+  versions: () => call(client.GET('/api/v1/cookie/admin/redmine/settings/versions')),
+  version: (version: number) =>
+    call(client.GET('/api/v1/cookie/admin/redmine/settings/versions/{version}', { params: { path: { version } } })),
+  rollback: (version: number) =>
+    call(client.POST('/api/v1/cookie/admin/redmine/settings/rollback/{version}', { params: { path: { version } } })),
+  /** A newly watched project's deadlines. */
+  defaults: () => call(client.GET('/api/v1/cookie/admin/redmine/defaults')),
+  /** Which Redmine user each active user is (§4.3), and the Redmine users without one. */
+  links: () => call(client.GET('/api/v1/cookie/admin/redmine/links')),
+  /** A link to a Redmine user PNMT knows, by id; null unlinks (the name goes too). */
+  link: (userId: Id, redmineUserId: number | null) =>
+    call(
+      client.PUT('/api/v1/cookie/admin/redmine/links/{userId}', {
+        params: { path: { userId } },
+        body: { redmineUserId },
+      }),
+    ),
+  /** Every user whose name is exactly one Redmine user's, linked by that id. */
+  linkExact: () => call(client.POST('/api/v1/cookie/admin/redmine/links/exact')),
+  /** The away watch's comments, newest first, 50 a page (docs/cookie-redmine-tab-plan.md §9). */
+  away: (page: number) => call(client.GET('/api/v1/cookie/admin/redmine/away', { params: { query: { page } } })),
+}
+
 export const api = {
   /** `fresh`: *Refresh* waits for a new build; the polls take the server's last one at once. */
   dashboard: (fresh = false) =>
@@ -573,7 +604,7 @@ export const api = {
     rounds: () => call(client.GET('/api/v1/cookie/admin/rounds')),
     /** A prompt as the model receives it: a prompt's key, or "case:" and a kind of case's key. */
     preview: (key: string) => call(client.GET('/api/v1/cookie/admin/prompts/preview', { params: { query: { key } } })),
-    /** The users and groups Admin → Cookie names, for Cookie's Manage (Admin → Users is admins' only). */
+    /** The users and groups Admin → Cookie names, for Cookie's or Redmine's Manage (Admin → Users is admins' only). */
     people: () => call(client.GET('/api/v1/cookie/admin/people')),
     settings: () => call(client.GET('/api/v1/cookie/admin/settings')),
     defaults: () => call(client.GET('/api/v1/cookie/admin/defaults')),
@@ -584,8 +615,7 @@ export const api = {
       identity: (body: S['IdentitySettings']) => call(client.PUT('/api/v1/cookie/admin/settings/identity', { body })),
       prompts: (body: S['PromptSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/prompts', { body })),
       cases: (body: S['CaseSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/cases', { body })),
-      redmine: (body: S['CookieRedmineSettings']) =>
-        call(client.PUT('/api/v1/cookie/admin/settings/redmine', { body })),
+      redmine: cookieRedmineAdmin.save,
       actions: (body: S['ActionSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/actions', { body })),
       models: (body: S['ModelSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/models', { body })),
       rights: (body: S['CookieRightsSettings']) => call(client.PUT('/api/v1/cookie/admin/settings/rights', { body })),
@@ -599,21 +629,28 @@ export const api = {
     createInstruction: (body: S['CookieInstructionRequest']) =>
       call(client.POST('/api/v1/cookie/admin/instructions', { body })),
     versions: (section: string) =>
-      call(client.GET('/api/v1/cookie/admin/settings/{section}/versions', { params: { path: { section } } })),
+      section === 'redmine'
+        ? cookieRedmineAdmin.versions()
+        : call(client.GET('/api/v1/cookie/admin/settings/{section}/versions', { params: { path: { section } } })),
     /** A version's values as saved: raw JSON. */
     version: (section: string, version: number) =>
-      call(
-        client.GET('/api/v1/cookie/admin/settings/{section}/versions/{version}', {
-          params: { path: { section, version } },
-        }),
-      ),
+      section === 'redmine'
+        ? cookieRedmineAdmin.version(version)
+        : call(
+            client.GET('/api/v1/cookie/admin/settings/{section}/versions/{version}', {
+              params: { path: { section, version } },
+            }),
+          ),
     /** The old version's values, saved as a new version. */
     rollback: (section: string, version: number) =>
-      call(
-        client.POST('/api/v1/cookie/admin/settings/{section}/rollback/{version}', {
-          params: { path: { section, version } },
-        }),
-      ),
+      section === 'redmine'
+        ? cookieRedmineAdmin.rollback(version)
+        : call(
+            client.POST('/api/v1/cookie/admin/settings/{section}/rollback/{version}', {
+              params: { path: { section, version } },
+            }),
+          ),
+    redmineAdmin: cookieRedmineAdmin,
     outbox: (query: ListQuery & { state?: S['CookieOutboxState']; channel?: S['CookieChannel'] }) =>
       call(client.GET('/api/v1/cookie/admin/outbox', { params: { query } })),
     /** What a limit held back, sent now (409 for anything else). */

@@ -114,8 +114,13 @@ async function save() {
       <label for="up-redmine">Redmine user</label>
       <InputText id="up-redmine" v-model="contact.redmineName" maxlength="200" :invalid="!!errors.redmineName" />
       <small v-if="errors.redmineName" class="field-error">{{ errors.redmineName }}</small>
+      <small v-else-if="profile.data.value?.redmineUserId != null" class="field-hint"
+        >Linked to Redmine user #{{ profile.data.value.redmineUserId }} on Admin → Cookie → Redmine: their tickets'
+        reminders reach this person, whatever the name. Changing the name here removes the link.</small
+      >
       <small v-else class="field-hint"
-        >The name Redmine shows on tickets: how an assignee is found, and whose reminders they get.</small
+        >The name Redmine shows on tickets: how an assignee is found, and whose reminders they get. Not linked: someone
+        with Redmine: Manage links it on Admin → Cookie → Redmine.</small
       >
     </div>
     <div v-if="accountsShown" class="field">

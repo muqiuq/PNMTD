@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import type { Right } from '@/api/rights'
+import { cookieAdminRight, type Right } from '@/api/rights'
 import { useSession } from '@/stores/session'
 import { decide } from './guard'
 
@@ -403,11 +403,13 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'AI', right: ['Ai', 'Manage'] },
   },
   {
-    // Admin → Cookie (docs/cookie-plan.md §9.3, §21.5): one tab per section, each versioned; and mute and suppress.
+    // Admin → Cookie (docs/cookie-plan.md §9.3, §21.5): one tab per section, each versioned; and mute and suppress. The
+    // Redmine tab is Redmine: Manage's, the others Cookie: Manage's (docs/cookie-redmine-tab-plan.md §3.2): the page opens
+    // for either, and shows the tabs the reader may see.
     path: '/admin/cookie/:tab(overview|identity|cases|redmine|actions|access|lounge|instructions|lessons|models|rights)?',
     name: 'cookie-admin',
     component: () => import('@/views/admin/cookie/CookieAdminView.vue'),
-    meta: { title: 'Cookie', right: ['Cookie', 'Manage'] },
+    meta: { title: 'Cookie', right: cookieAdminRight },
   },
   {
     // Revision 7 moved the working hours to the availability plan's settings, and the contacts to the user.

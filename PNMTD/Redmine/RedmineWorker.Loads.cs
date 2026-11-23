@@ -55,6 +55,16 @@ public sealed partial class RedmineWorker
 
     internal RedmineSnapshot LookupsSnapshot => Define(LookupsKey, "lookups", async calls => await LoadLookupsAsync(calls), pinned: true, maxAge: LookupsFor);
 
+    public const string PeopleKey = "people";
+
+    /// <summary>Redmine's users from the memberships (docs/cookie-redmine-tab-plan.md §4.2): read when the Redmine tab asks, kept an hour.</summary>
+    internal RedmineSnapshot PeopleSnapshot => Define(PeopleKey, "members of every project", async calls => await LoadPeopleAsync(calls),
+        maxAge: TimeSpan.FromHours(1));
+
+    /// <summary>Redmine's users, and how fresh they are; read through the queue if there are none yet.</summary>
+    public async Task<(RedminePeople Value, RedmineFreshness Freshness)> PeopleAsync(RedmineLane lane, string askedBy, CancellationToken ct) =>
+        await ReadAsync<RedminePeople>(PeopleSnapshot, lane, askedBy, ct);
+
     /// <summary>The two snapshots that are always kept: the lookups and the overview of all projects (§4.1).</summary>
     private void Pinned()
     {
@@ -168,6 +178,64 @@ public sealed partial class RedmineWorker
             members.Values.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList());
     }
 
+    // --- Redmine's users --------------------------------------------------------------------------------------------------
+
+    /// <summary>At most this many memberships per project: 20 pages.</summary>
+    private const int MaxMembershipsPerProject = 2000;
+
+    private async Task<RedminePeople> LoadPeopleAsync(RedmineCalls calls)
+    {
+        var lookups = await LookupsAsync(calls);
+        var users = new Dictionary<int, (string Name, Dictionary<int, HashSet<int>> Roles)>();
+        var groups = new Dictionary<int, RmRef>();
+        var forbidden = new List<string>();
+        foreach (var projectId in lookups.Allowed.Order())
+        {
+            for (var offset = 0; offset < MaxMembershipsPerProject; offset += 100)
+            {
+                RmMemberships page;
+                try
+                {
+                    page = await calls.GetAsync<RmMemberships>($"/projects/{projectId}/memberships.json?limit=100&offset={offset}", $"members of project {projectId}");
+                }
+                catch (RedmineException e) when (e.Failure == RedmineFailure.Forbidden)
+                {
+                    forbidden.Add(lookups.Projects.FirstOrDefault(p => p.Id == projectId)?.Name ?? $"#{projectId}");
+                    break;
+                }
+                foreach (var m in page.Memberships)
+                {
+                    if (m.User is { } u)
+                    {
+                        if (!users.TryGetValue(u.Id, out var known))
+                        {
+                            known = (u.Name ?? $"#{u.Id}", []);
+                            users[u.Id] = known;
+                        }
+                        if (!known.Roles.TryGetValue(projectId, out var roles))
+                        {
+                            known.Roles[projectId] = roles = [];
+                        }
+                        roles.UnionWith((m.Roles ?? []).Select(r => r.Id));
+                    }
+                    else if (m.Group is { } g)
+                    {
+                        groups[g.Id] = g;
+                    }
+                }
+                if (page.Memberships.Count < 100 || offset + 100 >= page.TotalCount)
+                {
+                    break;
+                }
+            }
+        }
+        return new RedminePeople(
+            [.. users.Select(u => new RedminePerson(u.Key, u.Value.Name,
+                    [.. u.Value.Roles.OrderBy(r => r.Key).Select(r => new RedmineMembershipOf(r.Key, [.. r.Value.Order()]))]))
+                .OrderBy(u => u.Name, StringComparer.OrdinalIgnoreCase)],
+            [.. groups.Values.OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase)], forbidden);
+    }
+
     // --- the overview ------------------------------------------------------------------------------------------------------
 
     private async Task<OverviewData> LoadOverviewAsync(RedmineCalls calls, int? project)
@@ -265,7 +333,7 @@ public sealed partial class RedmineWorker
     }
 
     /// <summary>The Redmine user Cookie writes as (<c>Redmine__WriteApiKey</c>), for an hour; null without a write key, or when Redmine doesn't say.</summary>
-    private async Task<int?> CookieUserIdAsync(RedmineCalls calls)
+    internal async Task<int?> CookieUserIdAsync(RedmineCalls calls)
     {
         if (!O.CanWrite)
         {

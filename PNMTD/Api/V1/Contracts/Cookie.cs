@@ -175,12 +175,54 @@ public sealed record CookieIntegrationItem(string State, string? Reason, DateTim
 /// <summary>How the duties of one kind ended in the last 7 days.</summary>
 public sealed record CookieDutyCount(CookieDutyKind Kind, bool On, int Due, int Done, int HeldBack, int Off, int Failed);
 
-/// <summary>Every section of Admin → Cookie, as in force.</summary>
+/// <summary>A PNMT user's Redmine user and how it stands (docs/cookie-redmine-tab-plan.md §4.3).</summary>
+/// <param name="RedmineNow">The Redmine user's name now: the linked one's, or the one match's.</param>
+/// <param name="Candidates">The Redmine users the name matches: one for <i>Matches</i>, more for <i>Several</i>.</param>
+/// <param name="OpenTickets">The open watched tickets assigned to the linked or matching Redmine user.</param>
+/// <param name="Shared">Another active user has the same Redmine user, or the same name without a link.</param>
+public sealed record RedmineLinkRow(Guid UserId, string Name, bool InPlan, int? RedmineUserId, string? RedmineName, RedmineLinkState State,
+    string? RedmineNow, IReadOnlyList<RedmineNamed> Candidates, int OpenTickets, bool Shared);
+
+/// <summary>A Redmine user no PNMT user is, with open watched tickets or a staff role: their reminders go to the escalation group.</summary>
+public sealed record RedmineUnlinkedRow(int Id, string Name, int OpenTickets, bool Staff);
+
+/// <summary>A Redmine user the link's picker offers: a member of a project PNMT shows, or someone on a watched ticket.</summary>
+public sealed record RedmineUserItem(int Id, string Name, bool Member, int OpenTickets);
+
+/// <summary>
+/// The links' check (docs/cookie-redmine-tab-plan.md §4.3): each active user's row, the Redmine users without a PNMT user, the
+/// Redmine users to pick from, and how fresh Redmine's members are (<see cref="ReadAt"/>, kept an hour).
+/// </summary>
+/// <param name="Forbidden">The projects whose members Redmine's key may not see.</param>
+/// <param name="Groups">The Redmine groups among the members: they can't be linked.</param>
+public sealed record RedmineLinksView(bool Configured, DateTime? ReadAt, bool Reading, string? Error, IReadOnlyList<string> Forbidden,
+    IReadOnlyList<RedmineLinkRow> Rows, IReadOnlyList<RedmineUnlinkedRow> Unlinked, IReadOnlyList<RedmineUserItem> RedmineUsers, int Groups);
+
+/// <summary>A link: the Redmine user's id, or null to unlink.</summary>
+public sealed record RedmineUserLinkRequest(int? RedmineUserId);
+
+public sealed record RedmineLinkedCount(int Linked);
+
+/// <summary>
+/// A comment while the ticket's assignee was away (docs/cookie-redmine-tab-plan.md §9): the ticket, who is away and until when, the
+/// comment, Cookie's verdict (or none), and whom it told. <see cref="Text"/> is gone after 30 days.
+/// </summary>
+public sealed record CookieAwayCommentItem(long Id, Guid CaseId, int IssueId, string Title, string? Assignee, DateOnly? AwayUntil, string? AuthorName,
+    bool IsPrivate, DateTime CommentAt, string? Text, AwayCommentState State, string? Importance, double? Confidence, string? Reason, string? JudgedBy,
+    DateTime? NotifiedAt, string? Recipients, string? Detail);
+
+/// <summary>
+/// Admin → Cookie → Redmine's section, and read only what Actions sets for it (docs/cookie-redmine-tab-plan.md §8): the duties' switches,
+/// and the level of Cookie's away notice.
+/// </summary>
+public sealed record CookieRedmineAdminSettings(CookieRedmineSettings Redmine, DutySwitches Duties, ActionRule AwayNotice);
+
+/// <summary>Every section of Admin → Cookie, as in force; <see cref="Redmine"/> only for <i>Redmine: Manage</i>.</summary>
 public sealed record CookieAllSettings(
     IdentitySettings Identity,
     PromptSettings Prompts,
     CaseSettings Cases,
-    CookieRedmineSettings Redmine,
+    CookieRedmineSettings? Redmine,
     ActionSettings Actions,
     ModelSettings Models,
     CookieRightsSettings Rights,

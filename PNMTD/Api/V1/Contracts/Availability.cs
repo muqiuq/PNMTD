@@ -117,8 +117,12 @@ public sealed record AvailabilityPeopleItem(
 /// <summary><c>PUT /availability/people/{id}</c>: a person's place in the plan.</summary>
 public sealed record AvailabilityPersonRequest(bool InPlan, string? ShortCode, string? Color, IReadOnlyList<DefaultDay>? DefaultWeek, int PlanOrder);
 
-/// <summary><c>GET /account/contact</c>: one's own contact details, and how the plan shows one (set by others).</summary>
-public sealed record AccountContactItem(string? Email, string? PushoverKey, string? RedmineName, bool InPlan, string? ShortCode, string? Color);
+/// <summary>
+/// <c>GET /account/contact</c>: one's own contact details, and how the plan shows one (set by others). <see cref="RedmineUserId"/>:
+/// linked to that Redmine user (docs/cookie-redmine-tab-plan.md §4.4); null, found by the name, if at all.
+/// </summary>
+public sealed record AccountContactItem(string? Email, string? PushoverKey, string? RedmineName, bool InPlan, string? ShortCode, string? Color,
+    int? RedmineUserId = null);
 
 /// <summary><c>PUT /account/contact</c>: one's own e-mail address and Pushover key.</summary>
 public sealed record AccountContactRequest(string? Email, string? PushoverKey);

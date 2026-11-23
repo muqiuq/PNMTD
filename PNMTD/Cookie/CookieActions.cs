@@ -8,7 +8,7 @@ namespace PNMTD.Cookie;
 /// watch's contacts about an unusual login (docs/cookie-access-plan.md §6.4); its recipients come from the settings, never the model.
 /// <see cref="LoungeEmail"/>: a light e-mail from the lounge (docs/lounge-plan.md §8.2), with a level and limits of its own.
 /// </summary>
-public enum CookieActionKind { Pushover, Email, Ticket, PrivateNote, PublicAnswer, ObjectNote, MailEvent, HandToPerson, AccessNotice, LoungeEmail }
+public enum CookieActionKind { Pushover, Email, Ticket, PrivateNote, PublicAnswer, ObjectNote, MailEvent, HandToPerson, AccessNotice, LoungeEmail, AwayNotice }
 
 /// <summary>
 /// A proposal at the end of a case's work (§21.1): the action, its targets as ids from the brief or the tools (never an
@@ -36,10 +36,17 @@ public sealed record MailEventPayload(Guid MailId, Guid RuleId, Guid SensorId, i
 public sealed record AccessNoticePayload(Guid CaseId, string Verdict, bool Strong);
 
 /// <summary>
-/// What the decision log keeps of a proposal: the action, and for a mail its event, for an access notice its case and verdict, for a lounge
-/// e-mail the voice that wrote it (docs/lounge-plan.md §8.2).
+/// An away notice's comments (docs/cookie-redmine-tab-plan.md §6.4): code found them and names whom to tell; the model gave the verdict
+/// and the reason only.
 /// </summary>
-public sealed record CookieProposal(ProposedAction Action, MailEventPayload? Mail = null, AccessNoticePayload? Access = null, string? LoungeVoice = null);
+public sealed record AwayNoticePayload(Guid CaseId, int IssueId, IReadOnlyList<long> CommentIds);
+
+/// <summary>
+/// What the decision log keeps of a proposal: the action, and for a mail its event, for an access notice its case and verdict, for a lounge
+/// e-mail the voice that wrote it (docs/lounge-plan.md §8.2), for an away notice its comments.
+/// </summary>
+public sealed record CookieProposal(ProposedAction Action, MailEventPayload? Mail = null, AccessNoticePayload? Access = null, string? LoungeVoice = null,
+    AwayNoticePayload? Away = null);
 
 public enum SeraphVerdictKind { Approve, Revise, Reject, Ask }
 

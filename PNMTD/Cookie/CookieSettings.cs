@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using PNMTD.Api;
 using PNMTD.Data;
 using PNMTD.Lib.Helper;
@@ -138,6 +139,9 @@ public sealed record CookieRedmineSettings : ICookieSection
 
     public int? TicketTrackerId { get; init; }
 
+    /// <summary>The away watch's settings (docs/cookie-redmine-tab-plan.md §6); its switch is <see cref="DutySwitches.AwayComments"/>.</summary>
+    public AwayWatchSettings Away { get; init; } = new();
+
     public WatchedProject? Of(int projectId) => Projects.FirstOrDefault(p => p.ProjectId == projectId);
 
     public void Validate(ApiValidator v)
@@ -151,7 +155,41 @@ public sealed record CookieRedmineSettings : ICookieSection
             v.Check(p.UpdateDays is >= 1 and <= 365, field, "Updates: 1 to 365 days.");
             v.Check(p.UpdateReminderDays >= 1 && p.UpdateReminderDays < p.UpdateDays, field, "The reminder comes before the deadline.");
         }
+        v.Check(Away.AwayFlags.Count > 0, "away.awayFlags", "At least one: vacation, holiday or compensation.");
+        v.Check(Away.AwayFlags.All(AwayWatchSettings.Allowed.Contains), "away.awayFlags", "Vacation, holiday or compensation.");
+        v.Check(Away.Recipient != AwayRecipient.Person || Away.PersonId is not null, "away.personId", "Choose the person.");
     }
+}
+
+/// <summary>Who an important comment goes to (docs/cookie-redmine-tab-plan.md §6.5); each stands in for the other when it is nobody.</summary>
+public enum AwayRecipient { Responsible, Person }
+
+/// <summary>A comment Cookie couldn't judge (§6.7): told, marked <i>not judged</i>, or only recorded.</summary>
+public enum AwayWithoutVerdict { Tell, Record }
+
+/// <summary>
+/// The away watch (docs/cookie-redmine-tab-plan.md §6): someone comments on a ticket whose assignee is away in the availability plan;
+/// Cookie judges whether it is important; code tells the responsible of the day or a chosen person. Switched on with the duties.
+/// </summary>
+public sealed record AwayWatchSettings
+{
+    /// <summary>The checkboxes of a type that make a day an absence (§6.1); a default day off and a closed day never do.</summary>
+    public static readonly IReadOnlyList<AvailabilityFlag> Allowed = [AvailabilityFlag.Vacation, AvailabilityFlag.Holiday, AvailabilityFlag.Compensation];
+
+    public List<AvailabilityFlag> AwayFlags { get; init; } = [.. Allowed];
+
+    /// <summary>Private notes count as comments too.</summary>
+    public bool PrivateNotes { get; init; } = true;
+
+    public AwayRecipient Recipient { get; init; } = AwayRecipient.Responsible;
+
+    /// <summary>The chosen person: the recipient, or the stand-in for the responsible.</summary>
+    public Guid? PersonId { get; init; }
+
+    /// <summary>Pushover as well as e-mail.</summary>
+    public bool Pushover { get; init; }
+
+    public AwayWithoutVerdict WithoutVerdict { get; init; } = AwayWithoutVerdict.Tell;
 }
 
 /// <summary>The code's duties (§19.1): each off until an admin turns it on.</summary>
@@ -161,7 +199,8 @@ public sealed record DutySwitches(
     bool UpdateReminder = false,
     bool UpdateMissed = false,
     bool ProblemTicket = false,
-    bool ClosingNote = false)
+    bool ClosingNote = false,
+    bool AwayComments = false)
 {
     public bool On(CookieDutyKind kind) => kind switch
     {
@@ -175,7 +214,10 @@ public sealed record DutySwitches(
     };
 }
 
-/// <summary>The output limits of §6.1: what may go out, per day (and per hour for Pushover), up to <see cref="Ceilings"/>.</summary>
+/// <summary>
+/// The output limits of §6.1: what may go out, per day (and per hour for Pushover), each up to its ceiling in .env
+/// (<see cref="CookieCeilingOptions"/>, docs/cookie-redmine-tab-plan.md §13).
+/// </summary>
 public sealed record OutputLimits(
     int PushoverPerPersonDay = 3,
     int PushoverPerPersonHour = 1,
@@ -188,10 +230,29 @@ public sealed record OutputLimits(
     int ObjectNotesPerDay = 50,
     int BigBrotherPerDay = 10,
     int BigBrotherPerCaseDay = 2,
-    int MaxNotesPerObject = 20)
+    int MaxNotesPerObject = 20,
+    int AwayNoticesPerDay = 20,
+    int AwayNoticesPerPersonDay = 10)
 {
-    /// <summary>The ceilings in code: only a new release raises them.</summary>
-    public static readonly OutputLimits Ceilings = new(10, 5, 50, 200, 20, 10, 200, 50, 200, 30, 5, 100);
+    /// <summary>The ceilings without a <c>Cookie__Ceilings__*</c> line: those that were in code before 1.20.</summary>
+    public static readonly OutputLimits DefaultCeilings = new(10, 5, 50, 200, 20, 10, 200, 50, 200, 30, 5, 100, 100, 50);
+
+    /// <summary>
+    /// Each limit as it counts: at most its ceiling. A saved value above a ceiling lowered in .env, or one a rollback brought back,
+    /// counts as the ceiling (§13.2).
+    /// </summary>
+    public OutputLimits Within(OutputLimits ceilings) => new(
+        Math.Min(PushoverPerPersonDay, ceilings.PushoverPerPersonDay), Math.Min(PushoverPerPersonHour, ceilings.PushoverPerPersonHour),
+        Math.Min(EmailPerPersonDay, ceilings.EmailPerPersonDay), Math.Min(MessagesPerDay, ceilings.MessagesPerDay), Math.Min(TicketsPerDay, ceilings.TicketsPerDay),
+        Math.Min(NotesPerTicketDay, ceilings.NotesPerTicketDay), Math.Min(RedmineNotesPerDay, ceilings.RedmineNotesPerDay),
+        Math.Min(PublicAnswersPerDay, ceilings.PublicAnswersPerDay), Math.Min(ObjectNotesPerDay, ceilings.ObjectNotesPerDay),
+        Math.Min(BigBrotherPerDay, ceilings.BigBrotherPerDay), Math.Min(BigBrotherPerCaseDay, ceilings.BigBrotherPerCaseDay),
+        Math.Min(MaxNotesPerObject, ceilings.MaxNotesPerObject), Math.Min(AwayNoticesPerDay, ceilings.AwayNoticesPerDay),
+        Math.Min(AwayNoticesPerPersonDay, ceilings.AwayNoticesPerPersonDay));
+
+    /// <summary>The limits whose value is above its ceiling, with that ceiling (for the check on save).</summary>
+    public IEnumerable<(string Name, int Ceiling)> Above(OutputLimits ceilings) => GetType().GetProperties().Where(p => p.PropertyType == typeof(int))
+        .Select(p => (p.Name, Value: (int)p.GetValue(this)!, Ceiling: (int)p.GetValue(ceilings)!)).Where(x => x.Value > x.Ceiling).Select(x => (x.Name, x.Ceiling));
 }
 
 /// <summary>An action's level (§6): never, through a person, or on Seraph's approval.</summary>
@@ -226,6 +287,12 @@ public sealed record ActionLevels
     /// </summary>
     public ActionRule AccessNotice { get; init; } = new(ActionLevel.Auto, 0.6);
 
+    /// <summary>
+    /// The away watch's notice (docs/cookie-redmine-tab-plan.md §6.4): <i>Auto</i>, since a person in the loop would hold an important
+    /// comment back until they look. <i>Off</i>: Cookie judges nothing, and code tells as without a verdict.
+    /// </summary>
+    public ActionRule AwayNotice { get; init; } = new(ActionLevel.Auto, 0.7);
+
     public ActionRule Of(CookieActionKind kind) => kind switch
     {
         CookieActionKind.Pushover => Pushover,
@@ -236,6 +303,7 @@ public sealed record ActionLevels
         CookieActionKind.ObjectNote => ObjectNote,
         CookieActionKind.MailEvent => MailEvent,
         CookieActionKind.AccessNotice => AccessNotice,
+        CookieActionKind.AwayNotice => AwayNotice,
         _ => new ActionRule(ActionLevel.Propose, 0),
     };
 }
@@ -271,12 +339,11 @@ public sealed record ActionSettings : ICookieSection
             v.Check(rule.MinConfidence is >= 0 and <= 1, $"levels.{JsonNamingPolicy.CamelCase.ConvertName(kind.ToString())}", "A confidence of 0 to 1.");
         }
         v.Check(SeraphVetoConfidence is >= 0.5 and <= 1, "seraphVetoConfidence", "A confidence of 0.5 to 1.");
+        // The ceilings are in .env (docs/cookie-redmine-tab-plan.md §13): CookieService checks them on save, and every reader caps by them.
         var values = Limits.GetType().GetProperties().Where(p => p.PropertyType == typeof(int));
         foreach (var p in values)
         {
-            var value = (int)p.GetValue(Limits)!;
-            var ceiling = (int)p.GetValue(OutputLimits.Ceilings)!;
-            v.Check(value >= 0 && value <= ceiling, $"limits.{JsonNamingPolicy.CamelCase.ConvertName(p.Name)}", $"0 to {ceiling}.");
+            v.Check((int)p.GetValue(Limits)! >= 0, $"limits.{JsonNamingPolicy.CamelCase.ConvertName(p.Name)}", "0 or more.");
         }
     }
 }
@@ -391,7 +458,7 @@ public sealed record CookieSettingsVersion(int Version, DateTime ChangedAt, stri
 /// The sections of Admin → Cookie (docs/cookie-plan.md §9.3, §19.3): the newest version of each, or its defaults; every save a
 /// new version; a rollback saves an old version again. Cookie's tools can't reach them (§13.1).
 /// </summary>
-public sealed class CookieSettings(IDbContextFactory<PnmtdDbContext> dbs, IMemoryCache cache)
+public sealed class CookieSettings(IDbContextFactory<PnmtdDbContext> dbs, IMemoryCache cache, IOptionsMonitor<CookieOptions> options)
 {
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
@@ -405,6 +472,12 @@ public sealed class CookieSettings(IDbContextFactory<PnmtdDbContext> dbs, IMemor
     ];
 
     private static string Key(string section) => $"cookie-settings:{section}";
+
+    /// <summary>The ceilings from .env (docs/cookie-redmine-tab-plan.md §13).</summary>
+    public OutputLimits Ceilings => options.CurrentValue.Ceilings.ToLimits();
+
+    /// <summary>The output limits as they count: the saved ones, each at most its ceiling. Every reader of a limit uses this.</summary>
+    public async Task<OutputLimits> LimitsAsync(CancellationToken ct) => (await GetAsync<ActionSettings>(ct)).Limits.Within(Ceilings);
 
     public async Task<T> GetAsync<T>(CancellationToken ct) where T : class, ICookieSection, new() =>
         (await cache.GetOrCreateAsync(Key(T.Section), async e =>

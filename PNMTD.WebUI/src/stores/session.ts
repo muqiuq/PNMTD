@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { authApi, type CurrentUser, type SessionFlags, type SystemInfo } from '@/api/auth'
 import { ApiError } from '@/api/client'
-import { holds, type Area, type Level, type Right } from '@/api/rights'
+import { holds, meets, type Area, type Level, type Right } from '@/api/rights'
 import { clearBackupKey } from '@/composables/useBackupKey'
 
 /**
@@ -28,7 +28,7 @@ export const useSession = defineStore('session', () => {
 
   /** A route's, a drawer entry's or a button's right. */
   function allows(right: Right): boolean {
-    return right === 'admin' ? isAdmin.value : can(right[0], right[1])
+    return meets(right, isAdmin.value, can)
   }
 
   function set(next: CurrentUser | null, nextFlags: SessionFlags | null) {

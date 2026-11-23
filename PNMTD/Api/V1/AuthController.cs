@@ -249,7 +249,7 @@ public sealed class AccountController(UserAccounts accounts, TwoFactorService tw
     public async Task<AccountContactItem> Contact(CancellationToken ct)
     {
         var u = await accounts.GetAsync(User.UserId() ?? throw ApiException.NotFound("User"), ct);
-        return new AccountContactItem(u.Email, u.PushoverKey, u.RedmineName, u.InPlan, u.ShortCode, u.Color);
+        return new AccountContactItem(u.Email, u.PushoverKey, u.RedmineName, u.InPlan, u.ShortCode, u.Color, u.RedmineUserId);
     }
 
     /// <summary>One's own e-mail address and Pushover key. The Redmine user is set by admins.</summary>
@@ -265,7 +265,7 @@ public sealed class AccountController(UserAccounts accounts, TwoFactorService tw
         u.Email = People.Clean(request.Email, 254);
         u.PushoverKey = People.Clean(request.PushoverKey, 30);
         await db.SaveChangesAsync(ct);
-        return new AccountContactItem(u.Email, u.PushoverKey, u.RedmineName, u.InPlan, u.ShortCode, u.Color);
+        return new AccountContactItem(u.Email, u.PushoverKey, u.RedmineName, u.InPlan, u.ShortCode, u.Color, u.RedmineUserId);
     }
 
     /// <summary><i>Send a test</i>: a message to one's own address or key, by e-mail or Pushover.</summary>
@@ -420,7 +420,13 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
         v.Check((request.RedmineName ?? "").Trim().Length <= 200, "redmineName", "At most 200 characters.");
         u.Email = People.Clean(request.Email, 254);
         u.PushoverKey = People.Clean(request.PushoverKey, 30);
-        u.RedmineName = People.Clean(request.RedmineName, 200);
+        var redmineName = People.Clean(request.RedmineName, 200);
+        if (redmineName != u.RedmineName)
+        {
+            // A typed name is no link (docs/cookie-redmine-tab-plan.md §4.1): links are picked on Admin → Cookie → Redmine.
+            u.RedmineUserId = null;
+        }
+        u.RedmineName = redmineName;
         // The access watch (docs/cookie-access-plan.md §5.3): left as they are when the request doesn't name them.
         if (request.ServerAccounts is not null)
         {

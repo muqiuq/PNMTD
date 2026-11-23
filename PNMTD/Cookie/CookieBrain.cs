@@ -198,16 +198,18 @@ public sealed class CookieBrain(CookieSettings settings, Instructions instructio
         var instructionText = p.Mask(Instructions.PromptText(await instructions.ActiveAsync(ct)));
         var lessonText = active.Count > 0 ? p.Mask(string.Join("\n", active.Select(l => $"- {l.Text}"))) : "None yet.";
         await p.SaveAsync(ct);
+        // A saved prompt that still says {first_answer_hours} gets the first project's, as before; a ticket case gets its own (TicketValues).
         var first = redmine.Projects.FirstOrDefault() ?? WatchedProject.Default(0);
         return new Dictionary<string, string>
         {
+            ["ticket_deadlines"] = TicketDeadlines(redmine.Projects),
             ["name"] = identity.Name,
             ["creator"] = identity.Creator,
             ["organisation"] = string.IsNullOrWhiteSpace(identity.Organisation) ? "your organisation" : identity.Organisation,
             // The tone shipped until 1.6 counts as not chosen: an installation that saved it gets today's default.
             ["tone"] = identity.Tone == IdentitySettings.ToneUntil16 ? new IdentitySettings().Tone : identity.Tone,
             ["language"] = identity.Language,
-            ["first_answer_hours"] = first.FirstAnswerHours.ToString("0.#", CultureInfo.InvariantCulture),
+            ["first_answer_hours"] = Hours(first.FirstAnswerHours),
             ["update_days"] = first.UpdateDays.ToString(CultureInfo.InvariantCulture),
             // Mute, suppress and instructions (§10.3), and the lessons (§11).
             ["instructions"] = instructionText,
@@ -216,6 +218,44 @@ public sealed class CookieBrain(CookieSettings settings, Instructions instructio
             ["now"] = Clock.LocalNow.ToString("dddd yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
         };
     }
+
+    /// <summary>
+    /// The goals' ticket deadlines (docs/cookie-redmine-tab-plan.md §5): one project's numbers, or each project's when the watched
+    /// projects differ, since a single number would be wrong for some of their tickets.
+    /// </summary>
+    public static string TicketDeadlines(IReadOnlyList<WatchedProject> projects)
+    {
+        var deadlines = projects.Select(p => (p.FirstAnswerHours, p.UpdateDays)).Distinct().ToList();
+        if (deadlines.Count > 1)
+        {
+            return "a first answer and updates within the deadlines of their project, which each ticket's case gives";
+        }
+        var (hours, days) = deadlines.Count == 1 ? deadlines[0] : (WatchedProject.Default(0).FirstAnswerHours, WatchedProject.Default(0).UpdateDays);
+        return $"a first answer within {Hours(hours)} working hours, and an update at least every {days.ToString(CultureInfo.InvariantCulture)} days";
+    }
+
+    /// <summary>
+    /// A ticket case's values (docs/cookie-redmine-tab-plan.md §5): its own project's deadlines, and the calendar days since staff last
+    /// moved it, counted from where code's update duties start (CaseRules.TicketDuties). <c>days</c> is the same number, for a saved
+    /// instruction that still says "no update for {days} days".
+    /// </summary>
+    public static Dictionary<string, string> TicketValues(CookieCaseEntity c, CookieRedmineSettings redmine, DateTime now)
+    {
+        var project = (c.ProjectId is { } id ? redmine.Of(id) : null) ?? WatchedProject.Default(c.ProjectId ?? 0);
+        var since = c.LastStaffUpdateAt ?? c.FirstAnswerAt ?? c.TicketCreatedAt;
+        var days = (since is { } s ? Math.Max(0, (int)Math.Floor((now - s).TotalDays)) : 0).ToString(CultureInfo.InvariantCulture);
+        return new Dictionary<string, string>
+        {
+            ["first_answer_hours"] = Hours(project.FirstAnswerHours),
+            ["first_answer_reminder_hours"] = Hours(project.FirstAnswerReminderHours),
+            ["update_days"] = project.UpdateDays.ToString(CultureInfo.InvariantCulture),
+            ["update_reminder_days"] = project.UpdateReminderDays.ToString(CultureInfo.InvariantCulture),
+            ["days_without_update"] = days,
+            ["days"] = days,
+        };
+    }
+
+    private static string Hours(double hours) => hours.ToString("0.#", CultureInfo.InvariantCulture);
 
     /// <summary>Prompts 1 to 3: who Cookie is, its goals, its rules.</summary>
     public async Task<string> BaseAsync(IReadOnlyDictionary<string, string> values, CancellationToken ct) => string.Join("\n\n",

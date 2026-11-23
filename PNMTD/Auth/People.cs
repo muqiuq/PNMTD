@@ -13,7 +13,10 @@ namespace PNMTD.Auth;
 /// <summary>One weekday of a person's default week (docs/cookie-plan.md §8.1): whether they usually work, and with which type.</summary>
 public sealed record DefaultDay(DayOfWeek Day, bool Works, Guid? TypeId = null);
 
-/// <summary>A person's contact details and their place in the availability plan (docs/cookie-plan.md §8.1).</summary>
+/// <summary>
+/// A person's contact details and their place in the availability plan (docs/cookie-plan.md §8.1). <see cref="RedmineUserId"/>: the
+/// Redmine user they are linked to on Admin → Cookie → Redmine (docs/cookie-redmine-tab-plan.md §4.1), read only here.
+/// </summary>
 public sealed record PersonProfile(
     string? Email,
     string? PushoverKey,
@@ -23,7 +26,8 @@ public sealed record PersonProfile(
     string? Color,
     IReadOnlyList<DefaultDay> DefaultWeek,
     int PlanOrder,
-    IReadOnlyList<string>? ServerAccounts = null);
+    IReadOnlyList<string>? ServerAccounts = null,
+    int? RedmineUserId = null);
 
 /// <summary>
 /// What belongs to a person (docs/cookie-plan.md §8.1, revision 7): the e-mail address, the Pushover key and the Redmine user,
@@ -66,7 +70,8 @@ public static partial class People
     }
 
     public static PersonProfile Of(UserEntity u) =>
-        new(u.Email, u.PushoverKey, u.RedmineName, u.InPlan, u.ShortCode, u.Color, WeekOf(u.DefaultWeek), u.PlanOrder, u.ServerAccounts);
+        new(u.Email, u.PushoverKey, u.RedmineName, u.InPlan, u.ShortCode, u.Color, WeekOf(u.DefaultWeek), u.PlanOrder, u.ServerAccounts,
+            u.RedmineUserId);
 
     /// <summary>
     /// The person's accounts on servers and routers (docs/cookie-access-plan.md §5.3), cleaned: trimmed, each once, at most 20 of at

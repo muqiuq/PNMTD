@@ -386,6 +386,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         CookieActionKind.MailEvent => "Mail rule event",
         CookieActionKind.AccessNotice => "Access notice",
         CookieActionKind.LoungeEmail => "Lounge e-mail",
+        CookieActionKind.AwayNotice => "Away notice",
         _ => "For a person",
     };
 
@@ -542,7 +543,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                 {
                     return ("No host or sensor with that id.", null);
                 }
-                var cap = (await settings.GetAsync<ActionSettings>(ct)).Limits.MaxNotesPerObject;
+                var cap = (await settings.LimitsAsync(ct)).MaxNotesPerObject;
                 var count = await CookieObjectNotes.CountAsync(db, id, ct);
                 if (count >= cap)
                 {
@@ -564,6 +565,20 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                     return ("An access notice needs a verdict above normal.", null);
                 }
                 return (null, $"access:{c.Id}:{access.Verdict}");
+            }
+            case CookieActionKind.AwayNotice:
+            {
+                // Whom to tell is the settings', never the model's (docs/cookie-redmine-tab-plan.md §6.5): the proposal names its comments only.
+                if (p.Away is not { CommentIds.Count: > 0 } away || c is null || c.Id != away.CaseId || c.Kind != CookieCaseKind.Ticket)
+                {
+                    return ("An away notice is for its own ticket's comments.", null);
+                }
+                var ids = away.CommentIds.ToList();
+                if (await db.CookieAwayComments.CountAsync(x => ids.Contains(x.Id) && x.CaseId == c.Id && x.State == AwayCommentState.Pending, ct) != ids.Count)
+                {
+                    return ("These comments aren't waiting for a verdict any more.", null);
+                }
+                return (null, $"away:{away.IssueId}:{ids.Min()}");
             }
             default:
                 // One thing per case waits for a person at a time.
@@ -604,6 +619,16 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         {
             text.AppendLine(CultureInfo.InvariantCulture, $"The verdict, held to the signals by code: {access.Verdict}; a strong signal: {(access.Strong ? "yes" : "no")}.");
             text.AppendLine(await Access.AccessJudge.EvidenceAsync(db, access.CaseId, privacy, ct));
+        }
+        if (p.Away is { } away)
+        {
+            // The comments as Cookie read them (docs/cookie-redmine-tab-plan.md §6.4): outside text.
+            var ids = away.CommentIds.ToList();
+            foreach (var x in await db.CookieAwayComments.AsNoTracking().Where(x => ids.Contains(x.Id)).OrderBy(x => x.JournalId).ToListAsync(ct))
+            {
+                text.AppendLine(CultureInfo.InvariantCulture, $"A comment by {privacy.Mask(x.AuthorName)} at {x.CommentAt:u}, the assignee away " +
+                    $"{Away.AwayRules.Until(x.AwayUntil)}: <untrusted source=\"redmine-comment\">{privacy.Mask(InputSanitizer.Clean(x.Text, 2000).Text)}</untrusted>");
+            }
         }
         if (p.Mail is { } mail && await db.MailLogs.AsNoTracking().SingleOrDefaultAsync(m => m.Id == mail.MailId, ct) is { } log)
         {
@@ -706,6 +731,23 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                 case CookieActionKind.MailEvent:
                     await MailEventAsync(db, log, p.Mail!, ct);
                     break;
+                case CookieActionKind.AwayNotice:
+                {
+                    // Code tells whom the settings name, in working hours, once per ticket within 4 hours (§6.5 to §6.8).
+                    var away = p.Away!;
+                    var ids = away.CommentIds.ToList();
+                    var rows = await db.CookieAwayComments.Where(x => ids.Contains(x.Id) && x.State == AwayCommentState.Pending).ToListAsync(ct);
+                    foreach (var row in rows)
+                    {
+                        Away.AwayNotices.ToTell(row, "cookie", "high", a.Confidence, privacy.Unmask(a.Reason), Clock.UtcNow, log.Id > 0 ? log.Id : row.DecisionId);
+                    }
+                    await db.SaveChangesAsync(ct);
+                    var told = await services.GetRequiredService<Away.AwayNotices>().SendDueAsync(ct);
+                    log.Outcome = rows.Count > 0 ? "done" : "failed";
+                    log.Detail = rows.Count == 0 ? "The comments weren't waiting any more."
+                        : told > 0 ? "Told whom the settings name; the comments show who." : "Waits for working hours, or for the ticket's next notice.";
+                    break;
+                }
                 case CookieActionKind.AccessNotice:
                 {
                     var access = p.Access!;
@@ -748,7 +790,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
     /// </summary>
     private async Task ObjectNoteAsync(PnmtdDbContext db, CookieDecisionEntity log, Guid id, string body, CancellationToken ct)
     {
-        var limit = (await settings.GetAsync<ActionSettings>(ct)).Limits.ObjectNotesPerDay;
+        var limit = (await settings.LimitsAsync(ct)).ObjectNotesPerDay;
         var today = Clock.ToUtc(Clock.LocalNow.Date);
         if (await db.CookieDecisions.CountAsync(d => d.Kind == "object-note" && d.Outcome == "done" && d.At >= today, ct) >= limit)
         {

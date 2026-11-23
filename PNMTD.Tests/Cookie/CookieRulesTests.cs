@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using PNMTD.Cookie;
 using PNMTD.Lib.Helper;
 using PNMTD.Lib.Models.Enum;
@@ -130,14 +131,44 @@ public sealed class CookieRulesTests
     }
 
     [TestMethod]
-    public void The_limits_stop_at_the_ceilings_in_code()
+    public void The_limits_count_at_most_their_ceilings_from_env()
     {
+        // docs/cookie-redmine-tab-plan.md §13: the ceilings are in .env; Validate keeps 0 or more, CookieService checks the ceilings.
         var v = new PNMTD.Api.ApiValidator();
-        new ActionSettings { Limits = new OutputLimits(PushoverPerPersonDay: 11) }.Validate(v);
-        Assert.IsTrue(v.HasErrors, "11 Pushover messages a day is above the ceiling of 10");
+        new ActionSettings { Limits = new OutputLimits(PushoverPerPersonDay: -1) }.Validate(v);
+        Assert.IsTrue(v.HasErrors, "below 0");
         var ok = new PNMTD.Api.ApiValidator();
-        new ActionSettings { Limits = OutputLimits.Ceilings }.Validate(ok);
-        Assert.IsFalse(ok.HasErrors);
+        new ActionSettings { Limits = new OutputLimits(PushoverPerPersonDay: 500) }.Validate(ok);
+        Assert.IsFalse(ok.HasErrors, "the ceiling isn't Validate's any more");
+        var ceilings = new CookieCeilingOptions().ToLimits();
+        Assert.AreEqual(OutputLimits.DefaultCeilings, ceilings, "without .env, the ceilings that were in code");
+        Assert.AreEqual(("PushoverPerPersonDay", 10), new OutputLimits(PushoverPerPersonDay: 11).Above(ceilings).Single());
+        Assert.IsFalse(OutputLimits.DefaultCeilings.Above(ceilings).Any());
+
+        // Each limit is capped by its own ceiling: a field Within forgot would keep its 1000.
+        var fields = typeof(OutputLimits).GetProperties().Where(p => p.PropertyType == typeof(int)).ToList();
+        var high = new OutputLimits(1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000);
+        var distinct = new OutputLimits(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
+        Assert.AreEqual(14, fields.Count, "a new limit needs its ceiling in CookieCeilingOptions and in Within");
+        var capped = high.Within(distinct);
+        foreach (var p in fields)
+        {
+            Assert.AreEqual(p.GetValue(distinct), p.GetValue(capped), p.Name);
+        }
+        Assert.AreEqual(new OutputLimits(), new OutputLimits().Within(ceilings), "the defaults are below the ceilings");
+
+        // A ceiling below 0 counts as 0, and is named for the warning at startup.
+        var negative = new CookieCeilingOptions { TicketsPerDay = -3 };
+        Assert.AreEqual(0, negative.ToLimits().TicketsPerDay);
+        CollectionAssert.AreEqual(new[] { "Cookie__Ceilings__TicketsPerDay" }, negative.Negative().ToArray());
+        // The keys bind from .env as Cookie__Ceilings__<limit> (Cookie:Ceilings:<limit> in configuration).
+        var bound = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Cookie:Ceilings:TicketsPerDay"] = "3" }).Build()
+            .GetSection(CookieOptions.SectionName).Get<CookieOptions>()!;
+        Assert.AreEqual(3, bound.Ceilings.TicketsPerDay);
+        Assert.AreEqual(OutputLimits.DefaultCeilings.MessagesPerDay, bound.Ceilings.MessagesPerDay, "a missing key keeps its default");
+        var cookieProps = typeof(CookieCeilingOptions).GetProperties().Where(p => p.PropertyType == typeof(int)).Select(p => p.Name);
+        CollectionAssert.AreEquivalent(fields.Select(p => p.Name).ToArray(), cookieProps.ToArray(), "one key per limit, named like it");
         Assert.IsTrue(new DutySwitches().GetType().GetProperties().All(p => p.GetValue(new DutySwitches()) is false), "every duty starts off");
         // Seraph's veto on an order (docs/cookie-powers-plan.md §6.1): 0.5 to 1, 0.9 by default.
         var veto = new PNMTD.Api.ApiValidator();
@@ -156,8 +187,8 @@ public sealed class CookieRulesTests
                 StringAssert.Contains(prompt.Text, required, key);
             }
         }
-        // Eleven since the lounge's raised cases (docs/lounge-plan.md §17.6).
-        Assert.AreEqual(11, CookiePrompts.CaseKinds.Count);
+        // Eleven since the lounge's raised cases (docs/lounge-plan.md §17.6), twelve with the away watch (docs/cookie-redmine-tab-plan.md §6.4).
+        Assert.AreEqual(12, CookiePrompts.CaseKinds.Count);
         foreach (var key in new[] { "loungeRules", "loungeCookie", "loungeSeraph", "loungeScene", "loungeNight" })
         {
             Assert.IsTrue(CookiePrompts.Defaults.ContainsKey(key) && CookiePrompts.IsLounge(key), key);
@@ -165,5 +196,48 @@ public sealed class CookieRulesTests
         CollectionAssert.AreEqual(new[] { "{ground}", "{direction}" }, CookiePrompts.Required("loungeScene").ToArray());
         Assert.IsFalse(CookiePrompts.Defaults.Keys.Where(k => !k.StartsWith("lounge", StringComparison.Ordinal)).Any(CookiePrompts.IsLounge));
         Assert.AreEqual("Hi Cookie, {unknown}", CookiePrompts.Fill("Hi {name}, {unknown}", new Dictionary<string, string> { ["name"] = "Cookie" }));
+    }
+
+    [TestMethod]
+    public void A_ticket_case_gets_its_own_projects_deadlines_and_its_real_days_without_an_update()
+    {
+        // The regression of docs/cookie-redmine-tab-plan.md §1.3: every ticket got the first project's deadlines and "7 days".
+        var redmine = new CookieRedmineSettings
+        {
+            Projects = [WatchedProject.Default(1), WatchedProject.Default(2) with { FirstAnswerHours = 8, FirstAnswerReminderHours = 6.5, UpdateDays = 30, UpdateReminderDays = 25 }],
+        };
+        var now = new DateTime(2026, 11, 23, 10, 0, 0, DateTimeKind.Utc);
+        var second = new CookieCaseEntity
+        {
+            Kind = CookieCaseKind.Ticket, ProjectId = 2, TicketCreatedAt = now.AddDays(-40), FirstAnswerAt = now.AddDays(-39), LastStaffUpdateAt = now.AddDays(-11.5),
+        };
+        var values = CookieBrain.TicketValues(second, redmine, now);
+        Assert.AreEqual("8", values["first_answer_hours"]);
+        Assert.AreEqual("6.5", values["first_answer_reminder_hours"]);
+        Assert.AreEqual("30", values["update_days"]);
+        Assert.AreEqual("25", values["update_reminder_days"]);
+        Assert.AreEqual("11", values["days_without_update"], "whole calendar days since staff last moved it");
+        Assert.AreEqual("11", values["days"], "a saved instruction that still says {days}");
+        StringAssert.Contains(CookiePrompts.Fill(CookiePrompts.CaseKinds["noUpdate"].Text, values), "no update by staff for 11 days");
+
+        var first = CookieBrain.TicketValues(new CookieCaseEntity { Kind = CookieCaseKind.Ticket, ProjectId = 1, TicketCreatedAt = now.AddDays(-3) }, redmine, now);
+        Assert.AreEqual("4", first["first_answer_hours"]);
+        Assert.AreEqual("3", first["days_without_update"], "without an answer, from when it came in");
+        var unwatched = CookieBrain.TicketValues(new CookieCaseEntity { Kind = CookieCaseKind.Ticket, ProjectId = 9 }, redmine, now);
+        Assert.AreEqual("14", unwatched["update_days"], "a project no longer watched: the defaults");
+        Assert.AreEqual("0", unwatched["days_without_update"]);
+    }
+
+    [TestMethod]
+    public void The_goals_name_the_deadlines_only_when_every_watched_project_shares_them()
+    {
+        Assert.AreEqual("a first answer within 4 working hours, and an update at least every 14 days", CookieBrain.TicketDeadlines([]));
+        Assert.AreEqual("a first answer within 2.5 working hours, and an update at least every 7 days",
+            CookieBrain.TicketDeadlines([WatchedProject.Default(1) with { FirstAnswerHours = 2.5, FirstAnswerReminderHours = 2, UpdateDays = 7, UpdateReminderDays = 5 }]));
+        Assert.AreEqual("a first answer within 4 working hours, and an update at least every 14 days",
+            CookieBrain.TicketDeadlines([WatchedProject.Default(1), WatchedProject.Default(2) with { EscalationGroupId = Guid.NewGuid() }]), "the same numbers");
+        StringAssert.StartsWith(CookieBrain.TicketDeadlines([WatchedProject.Default(1), WatchedProject.Default(2) with { UpdateDays = 30 }]),
+            "a first answer and updates within the deadlines of their project");
+        StringAssert.Contains(CookiePrompts.Defaults["goals"].Text, "{ticket_deadlines}");
     }
 }
