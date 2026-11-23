@@ -43,7 +43,7 @@ internal sealed class UdpTestHarness : IDisposable
         Admin = App.Client(global::PNMTD.Tests.Roles.Admin);
         var state = App.Services.GetRequiredService<UdpListenerState>();
         var deadline = DateTime.UtcNow.AddSeconds(10);
-        while (!state.Listening && DateTime.UtcNow < deadline)
+        while (!(state.Listening && state.Port is not null) && DateTime.UtcNow < deadline)
         {
             Thread.Sleep(20);
         }

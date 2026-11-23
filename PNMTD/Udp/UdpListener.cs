@@ -41,8 +41,9 @@ public sealed class UdpListenerState
     internal void Bound(int port, Func<int> depth)
     {
         Enabled = true;
-        Listening = true;
+        // The port first: a reader that sees Listening also sees the port (the tests wait for Listening, then read Port).
         Port = port;
+        Listening = true;
         Error = null;
         Since = Clock.UtcNow;
         queueDepth = depth;
