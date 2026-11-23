@@ -40,6 +40,42 @@ export function formatDay(value: string | Date): string {
   return dateOnly.format(date)
 }
 
+/** The day (local midnight) if it exists: not 31.11. or 29.2.2027. */
+function existingDay(year: number, month: number, day: number): Date | null {
+  const date = new Date(year, month - 1, day)
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day ? date : null
+}
+
+/**
+ * A day typed by hand (docs/fill-again-typed-days-plan.md §3.2): 3.11.2027 or 03.11.2027; 3.11.27 for 2027; 3.11. or
+ * 3.11 for the next 3 November on or after today; 2027-11-03. Null when the text isn't a day that exists.
+ */
+export function parseDay(text: string, today: Date): Date | null {
+  const typed = text.trim()
+  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(typed)
+  if (iso) {
+    return existingDay(Number(iso[1]), Number(iso[2]), Number(iso[3]))
+  }
+  const dotted = /^(\d{1,2})\.(\d{1,2})(?:\.(\d{4}|\d{2})?)?$/.exec(typed)
+  if (!dotted) {
+    return null
+  }
+  const day = Number(dotted[1])
+  const month = Number(dotted[2])
+  if (dotted[3]) {
+    return existingDay(dotted[3].length === 2 ? 2000 + Number(dotted[3]) : Number(dotted[3]), month, day)
+  }
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  // This year's, or a later one's: 29.2. may be up to four years on.
+  for (let year = start.getFullYear(); year <= start.getFullYear() + 4; year++) {
+    const date = existingDay(year, month, day)
+    if (date && date >= start) {
+      return date
+    }
+  }
+  return null
+}
+
 /** "3 d 4 h", "2 h 14 min", "5 min", "40 s": the two largest units, seconds only below a minute. */
 export function formatDuration(ms: number): string {
   const seconds = Math.max(0, Math.round(ms / 1000))

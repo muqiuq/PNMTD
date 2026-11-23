@@ -1,5 +1,7 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Time.Testing;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
 using PNMTD.Lib.Helper;
@@ -28,6 +30,21 @@ public sealed class MonitoringApiTests
 
     [ClassCleanup]
     public static void Stop() => app.Dispose();
+
+    [TestCleanup]
+    public void Thaw() => Clock.Provider = TimeProvider.System;
+
+    /// <summary>
+    /// A fake clock on a whole second, a day after every event there is: the other classes leave sensors whose state
+    /// changed minutes ago (or, under their fake clocks, later), and the dashboard shows only the newest changes.
+    /// </summary>
+    private static async Task AfterEveryEventAsync()
+    {
+        await using var db = app.NewDb();
+        var newest = await db.Events.MaxAsync(e => (DateTime?)e.Created) ?? DateTime.UtcNow;
+        var after = new DateTimeOffset(Clock.AsUtc(newest > DateTime.UtcNow ? newest : DateTime.UtcNow)).AddDays(1);
+        Clock.Provider = new FakeTimeProvider(new DateTimeOffset(after.UtcTicks - after.UtcTicks % TimeSpan.TicksPerSecond, TimeSpan.Zero));
+    }
 
     [TestMethod]
     public async Task EventsFilterByHostStatusTimeAndText()
@@ -82,6 +99,8 @@ public sealed class MonitoringApiTests
         var failing = await V1.CreateSensorAsync(user, host.Id, name: "backup");
         var ok = await V1.CreateSensorAsync(user, host.Id, name: "web");
         var ignored = await V1.CreateSensorAsync(user, host.Id, name: "flappy", ignore: true);
+        // Its change two hours ago is then among the dashboard's newest, whichever classes ran before.
+        await AfterEveryEventAsync();
         var now = Clock.UtcNow;
         V1.AddEvents(app, failing.Id, (now.AddHours(-26), 200, "ok"), (now.AddHours(-2), 475, "93 % used"), (now.AddMinutes(-1), 475, "94 % used"));
         V1.AddEvents(app, ok.Id, (now.AddHours(-1), 200, "ok"));

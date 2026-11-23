@@ -9,6 +9,7 @@ import {
   daysBetween,
   exactCode,
   fallbackWarning,
+  fillDaysErrors,
   formatPlanDate,
   fullWeek,
   inSelection,
@@ -233,5 +234,35 @@ describe("a person's default week (docs/cookie-plan.md §8.1)", () => {
     expect(week[0]).toEqual({ day: 'Monday', works: true, typeId: null })
     expect(week[4]).toEqual({ day: 'Friday', works: true, typeId: 'home' })
     expect(week[6]).toEqual({ day: 'Sunday', works: false, typeId: null })
+  })
+})
+
+describe('the days of Fill again (docs/fill-again-typed-days-plan.md §3.4)', () => {
+  const today = '2026-11-23'
+  const at = (day: string | null, unread: string | null = null) => ({ day, unread })
+
+  it('takes today to the 365th day, and one day as both', () => {
+    expect(fillDaysErrors(at('2026-11-23'), at('2027-11-22'), today)).toEqual({})
+    expect(fillDaysErrors(at('2027-03-01'), at('2027-03-01'), today)).toEqual({})
+  })
+
+  it('says why a day is refused, in the words of the server', () => {
+    expect(fillDaysErrors(at(null, '3.13.2027'), at('2027-11-22'), today)).toEqual({
+      from: `"3.13.2027" isn't a day: type 3.11.2027, 3.11.27 or 3.11.`,
+    })
+    expect(fillDaysErrors(at('2026-11-23'), at(null), today)).toEqual({ to: 'A day, please.' })
+    expect(fillDaysErrors(at('2026-11-22'), at('2026-11-30'), today)).toEqual({ from: 'From today on.' })
+    expect(fillDaysErrors(at('2026-11-23'), at('2027-11-23'), today)).toEqual({
+      to: 'At most 365 days ahead: until 22.11.2027.',
+    })
+    expect(fillDaysErrors(at('2027-03-02'), at('2027-03-01'), today)).toEqual({ to: 'Not before From.' })
+  })
+
+  it('names each field on its own, and the order only when both are days', () => {
+    expect(fillDaysErrors(at('2026-11-01'), at('2028-01-01'), today)).toEqual({
+      from: 'From today on.',
+      to: 'At most 365 days ahead: until 22.11.2027.',
+    })
+    expect(fillDaysErrors(at(null), at('2027-01-01'), today)).toEqual({ from: 'A day, please.' })
   })
 })

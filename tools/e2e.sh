@@ -42,12 +42,13 @@ export ENGINE NAME="$E2E_NAME" DB_NAME="${E2E_NAME}-db" NETWORK="$E2E_NAME" PG_V
 
 # Settings of their own: start.sh adds the generated passwords. The tests sign in more often than
 # the login rate limit allows from one address (10 a minute), and post reports to an Advanced sensor faster than one
-# in 5 seconds; the .NET tests cover both limits.
+# in 5 seconds; the .NET tests cover both limits. MikroTik's servers are not asked, neither for advisories nor for the
+# newest RouterOS: the tests expect the seed's versions, and a real release (7.25.2) made every router "behind on updates".
 mkdir -p .tmpcheck
 export ENV_FILE="$PWD/.tmpcheck/${E2E_NAME}.env"
 (umask 077 && printf '%s\n' 'Auth__LoginRateLimit__PermitLimit=1000' \
   'Ai__Enabled=true' 'Ai__ApiKey=e2e-no-provider' 'Ai__BaseUrl=http://127.0.0.1:9/api/v1' 'Ai__Guard__Url=http://127.0.0.1:9/api/alpha/decisions' \
-  'Ai__Mail__Enabled=false' 'Mikrotik__Advisories__Enabled=false' 'Cookie__Enabled=true' 'Mcp__Enabled=true' \
+  'Ai__Mail__Enabled=false' 'Mikrotik__Advisories__Enabled=false' 'Mikrotik__VersionCheck__Enabled=false' 'Cookie__Enabled=true' 'Mcp__Enabled=true' \
   'Advanced__MinSecondsBetweenReports=0' >"$ENV_FILE")
 FAKES="${E2E_FAKES:-$([[ -z "${E2E_ENV:-}" ]] && echo 1 || echo 0)}"
 FAKES_NAME="${E2E_NAME}-fakes"

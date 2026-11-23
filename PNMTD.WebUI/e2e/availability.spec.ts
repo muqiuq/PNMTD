@@ -117,6 +117,61 @@ test('the availability plan: the table, a cell set to HOME, People and Settings'
   expect(problems).toEqual([])
 })
 
+test('Fill again: the days typed, read and checked before anything is sent', async ({ page }) => {
+  // docs/fill-again-typed-days-plan.md §3: far ahead, so the first test's HOME stays as it is.
+  const problems = collectProblems(page)
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signIn(page)
+  const plan = (await json(page, '/api/v1/availability/plan')) as Plan
+  const add = (iso: string, n: number) =>
+    new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10)
+  /** 2027-11-03 as the field writes it: 3.11.2027. */
+  const field = (iso: string) => `${Number(iso.slice(8, 10))}.${Number(iso.slice(5, 7))}.${iso.slice(0, 4)}`
+  const last = add(plan.today, 364)
+  const first = add(plan.today, 300)
+  const second = add(first, 1)
+
+  await page.goto('/pnmt-admin/admin/availability')
+  await page.getByRole('button', { name: 'Fill again…' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Fill again' })
+  const from = dialog.getByLabel('From', { exact: true })
+  const to = dialog.getByLabel('To', { exact: true })
+  await expect(from).toHaveValue(field(plan.today))
+  await expect(to).toHaveValue(field(last))
+  await expect(dialog).toContainText(new RegExp(`until ${dotted(last)}\\.`))
+
+  // A day that doesn't exist: said under the field, which is empty.
+  await from.fill('31.4.')
+  await from.press('Tab')
+  await expect(dialog).toContainText(`"31.4." isn't a day: type 3.11.2027, 3.11.27 or 3.11.`)
+  await expect(from).toHaveValue('')
+
+  // The past.
+  await from.fill(field(add(plan.today, -1)))
+  await from.press('Tab')
+  await expect(dialog).toContainText('From today on.')
+
+  // Without a year: the next one, written out.
+  await from.fill(`${Number(first.slice(8, 10))}.${Number(first.slice(5, 7))}.`)
+  await from.press('Tab')
+  await expect(from).toHaveValue(field(first))
+  await expect(dialog.locator('.field-error')).toHaveCount(0)
+
+  // To before From: Enter keeps the dialog open and says why.
+  await to.fill(field(add(first, -1)))
+  await to.press('Enter')
+  await expect(dialog).toContainText('Not before From.')
+  await shot(page, 'availability-fill-again')
+
+  // Two digits for the year, then Enter at once: what is shown is sent.
+  const sent = page.waitForRequest((r) => r.method() === 'POST' && r.url().endsWith('/api/v1/availability/fill'))
+  await to.fill(`${Number(second.slice(8, 10))}.${Number(second.slice(5, 7))}.${second.slice(2, 4)}`)
+  await to.press('Enter')
+  expect((await sent).postDataJSON()).toMatchObject({ again: true, from: first, to: second })
+  await expect(dialog).toHaveCount(0)
+  expect(problems).toEqual([])
+})
+
 test('a viewer outside the plan has no menu entry, and the page says why', async ({ page }) => {
   const problems = collectProblems(page)
   await page.setViewportSize({ width: 1440, height: 900 })

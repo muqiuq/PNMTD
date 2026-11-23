@@ -43,6 +43,48 @@ export function formatPlanDate(iso: string): string {
   return `${d}.${m}.${y}`
 }
 
+/** A day field of *Fill again*: the day read from it (yyyy-MM-dd), and the text that could not be read as one. */
+export interface FillDay {
+  day: string | null
+  unread: string | null
+}
+
+/** The forms a day can be typed in, for the hint and the message (docs/fill-again-typed-days-plan.md §3.2). */
+export const typedDayForms = '3.11.2027, 3.11.27 or 3.11.'
+
+/**
+ * What is wrong with the days of *Fill again* (docs/fill-again-typed-days-plan.md §3.4), in the words of the server's
+ * check: from today on, at most fillDays ahead, the last day not before the first.
+ */
+export function fillDaysErrors(from: FillDay, to: FillDay, today: string): { from?: string; to?: string } {
+  const last = addDays(today, fillDays - 1)
+  const check = (f: FillDay): string | undefined => {
+    if (f.unread !== null) {
+      return `"${f.unread}" isn't a day: type ${typedDayForms}`
+    }
+    if (f.day === null) {
+      return 'A day, please.'
+    }
+    if (f.day < today) {
+      return 'From today on.'
+    }
+    if (f.day > last) {
+      return `At most ${fillDays} days ahead: until ${formatPlanDate(last)}.`
+    }
+    return undefined
+  }
+  const errors: { from?: string; to?: string } = {}
+  const fromError = check(from)
+  const toError = check(to) ?? (from.day !== null && to.day! < from.day ? 'Not before From.' : undefined)
+  if (fromError) {
+    errors.from = fromError
+  }
+  if (toError) {
+    errors.to = toError
+  }
+  return errors
+}
+
 /** The chunk before the first day loaded, and the one after the last. */
 export const before = (from: string, n = chunkDays) => ({ from: addDays(from, -n), to: addDays(from, -1) })
 export const after = (to: string, n = chunkDays) => ({ from: addDays(to, 1), to: addDays(to, n) })

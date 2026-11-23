@@ -71,9 +71,23 @@
 - **Two users with the same Redmine name:** either one got the ticket's reminders, by chance. Now neither does until one is linked; the
   reminders go to the escalation group meanwhile.
 
+## 1.20.1
+
+- ***Fill again* takes typed days.** The availability plan's *Fill again…* asks for the days in two fields, **From** and **To**, each with
+  its calendar as before, and each can be typed into: `3.11.2027`, `3.11.27`, `2027-11-03`, or `3.11.` for the next 3 November. A day that
+  doesn't exist, lies in the past or beyond the 365 days, or a *To* before *From* is said under its field, and nothing is sent until both
+  days are right. Enter sends the days as shown.
+- **A test of the dashboard failed in the full run.** Its sensor's change, two hours earlier, was missing from the dashboard's 15 newest
+  changes. The other tests leave sensors behind whose state changed minutes earlier. Its clock now starts a day after every event in the
+  database. Nothing changes in the running app.
+- **A browser test of the MikroTik page failed after RouterOS 7.25.2 came out.** The test stack asked MikroTik's update server for the
+  newest version, so every seeded router was *behind on updates*, not only Geneva. The test stack no longer asks (`tools/e2e.sh`), as it
+  already did for the advisories. Nothing changes in the running app.
+- **Updating from 1.20.0:** `./update.sh --tag v1.20.1`. No migration, nothing to configure.
+
 ## Updating from 1.19
 
-In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.20.0`. It takes a backup first.
+In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.20.1`. It takes a backup first.
 
 - **Six migrations run at the start:** `KbSensitiveAndAi`, `KbPageLinks`, `UserNotifications` and `KbReactions` add columns with defaults
   (every existing page: not written with AI, no likes or uses) and new tables; `kb_links` takes a fourth kind of target. `RedmineLinks` adds
