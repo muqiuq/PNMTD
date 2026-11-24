@@ -65,12 +65,28 @@ step() {
   fi
 }
 
+# Playwright's failed tests from its list reporter: each one's title, its error (Expected, Received, …), the line that
+# failed and where; without the call log, the code around it and the attachments. Nothing for a log without one.
+playwright_failures() {
+  awk '
+    /^  [0-9]+\) \[/ { block = 1; head = 1; lines = 0; sub(/^ +/, ""); sub(/ +$/, ""); if (n++) print ""; print; next }
+    !block { next }
+    /^ +Call log:/ { head = 0; next }
+    /^ +> +[0-9]+ \|/ { sub(/^ +/, ""); print; next }
+    /^ +at .*:[0-9]+:[0-9]+$/ { sub(/^ +/, ""); print; block = 0; next }
+    /^ +[0-9]+ \|/ || /^ +\|/ { head = 0; next }
+    head && NF && lines < 25 { sub(/^ +/, ""); print; lines++ }
+  ' "$1"
+  grep -E '^  [0-9]+ (failed|flaky|passed)' "$1" | sed 's/^ *//'
+}
+
 # On GitHub Actions, a failed step's reason as an annotation on the run's page: from the FAIL: line
-# the test scripts end with, else the log's last lines.
+# the test scripts end with, else Playwright's failed tests with their errors, else the log's last lines.
 annotate() {
   [[ "${GITHUB_ACTIONS:-}" == "true" ]] || return 0
   local name="$1" log="$2" reason
   reason="$(sed -n '/^FAIL/,$p' "$log")"
+  grep -qE '^  [0-9]+\) \[' "$log" && [[ -z "$reason" ]] && reason="$(playwright_failures "$log")"
   [[ -n "$reason" ]] || reason="$(tail -5 "$log")"
   reason="${reason//'%'/%25}"; reason="${reason//$'\r'/}"; reason="${reason//$'\n'/%0A}"
   name="${name//'%'/%25}"; name="${name//:/%3A}"; name="${name//,/%2C}"
