@@ -93,7 +93,7 @@ app_image() {
   local image="${PNMTD_IMAGE:-}" tag="${PNMTD_IMAGE_TAG:-}"
   [[ -n "$image" ]] || image="$(env_value PNMTD_IMAGE)"
   [[ -n "$tag" ]] || tag="$(env_value PNMTD_IMAGE_TAG)"
-  echo "${image:-uisach/pnmtd}:${tag:-v1.24.0}"
+  echo "${image:-uisach/pnmtd}:${tag:-v1.24.1}"
 }
 
 # The uploaded files' folder (docs/locations-knowledge-plan.md §8.5): a folder on this host, mounted at FILES_MOUNT. Like

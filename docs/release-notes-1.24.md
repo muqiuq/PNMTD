@@ -49,9 +49,19 @@
 - **Board clocks are 24-hour by default,** also on boards made with 1.23: an English browser showed "10:35 PM" before. *Look → Time*
   puts 12-hour back.
 
+## 1.24.1
+
+- ***Fill again* keeps the days typed.** The dialog opens with the cursor in *From*, and a calendar opens from its button (or ↓),
+  no longer when its field gets the focus. An open calendar, or the dialog when it finished opening, could take the focus away while
+  a day was typed: the text was lost, and the field kept its old day.
+- **The build's check of the npm registry's signatures** tries again with an empty npm cache when the registry fails to answer. The
+  registry had answered one package's attestations with "OK" instead of JSON, and npm had kept that answer for its retries.
+- **A failed browser test's error** is in the build's annotation on GitHub, not only its name.
+- **Updating from 1.24.0:** `./update.sh --tag v1.24.1`. No migration, nothing to configure.
+
 ## Updating from 1.23
 
-In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.24.0`. It takes a backup first.
+In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.24.1`. It takes a backup first.
 
 - **Two migrations run at the start:** `BoardImages` lets a board use files as pages do (a column on `file_uses`), and `BoardMessages`
   adds a table. Nothing existing changes.
