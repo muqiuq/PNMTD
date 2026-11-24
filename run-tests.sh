@@ -93,11 +93,28 @@ web_holder() {
 }
 in_web() { web_holder && "$ENGINE" exec -w /tmp/web "$WEB_HOLDER" "$@"; }
 
+# npm audit signatures, up to three times when the registry fails to answer: on 2026-11-24 it returned
+# "OK" instead of JSON for one package's attestations (FETCH_ERROR), and the next run passed. A missing
+# or invalid signature is npm's verdict, not a registry error: it fails at once.
+audit_signatures() {
+  local try out
+  for try in 1 2 3; do
+    out="$(in_web npm audit signatures 2>&1)" && { printf '%s\n' "$out"; return 0; }
+    printf '%s\n' "$out"
+    grep -qE 'code (FETCH_ERROR|E429|E5[0-9][0-9]|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN)' <<<"$out" || return 1
+    if [[ $try -lt 3 ]]; then
+      echo "a registry error, again in $(( try * 15 )) s"
+      sleep $(( try * 15 ))
+    fi
+  done
+  return 1
+}
+
 group_web() {
   echo "web"
   step "npm packages: pinned, npmjs.org, open-source licences" in_node node tools/check-npm-packages.mjs
   step "npm ci (locked, no install scripts)" in_web npm ci --ignore-scripts --loglevel=error
-  step "npm registry signatures and provenance" in_web npm audit signatures
+  step "npm registry signatures and provenance" audit_signatures
   step "API types generated from openapi.json" in_web npm run --silent check:api
   step "typecheck (vue-tsc)" in_web npm run --silent typecheck
   step "lint (ESLint)" in_web npm run --silent lint
