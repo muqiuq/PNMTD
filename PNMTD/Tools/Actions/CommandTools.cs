@@ -28,7 +28,9 @@ public static class CommandTools
         new("udp_command_get", "A UDP command", "One UDP command: its state, attempts, the result's status and bytes (hex), and its log.",
             Schema(Id("sensorId", "The UDP sensor"), Id("commandId", "The command")), Area.Monitoring, Level.View, ToolKind.Read, UdpCommandAsync),
         new("router_get", "A MikroTik router",
-            "A MikroTik router: its state, RouterOS and firmware versions, resources, last poll and error, its latest backup, and whether an update is there.",
+            "A MikroTik router: its state, RouterOS and firmware versions, resources, last poll and error, its latest backup, whether an update is " +
+            "there (router_changelog says what it brings), and the differences between the router and its join script, with their acknowledgements " +
+            "(router_difference_acknowledge).",
             Schema(Id("sensorId", "The MIKROTIK sensor")), Area.Monitoring, Level.View, ToolKind.Read, RouterAsync),
         new("certificate_get", "An SSL certificate",
             "An SSL certificate sensor (docs/ssl-certificate-plan.md §9): its endpoint, trust and rules, its state, the current certificate's main " +
@@ -65,6 +67,12 @@ public static class CommandTools
                 Int("timeoutSeconds", "Per router"), Bool("backupBeforeAndAfter", "A backup before and after, to see what changed"),
                 Bool("oneAtATime", "Router after router, stopping at the first failure")),
             Area.Commands, Level.Run, ToolKind.Action, MikrotikRunAsync) { AuditEvents = [AuditEvents.MikrotikCommandStarted], Destructive = true },
+        // docs/mcp-extensions-plan.md §4: one's own only, as a token is never an admin.
+        new("mikrotik_command_cancel", "Cancel a RouterOS command",
+            "Cancels a RouterOS command you started (mikrotik_command_run) while it is queued or running. Once it has run, only its export after is " +
+            "left, which isn't cancelled.",
+            Schema(Id("id", "The command, as mikrotik_commands_list or mikrotik_command_get name it")),
+            Area.Commands, Level.Run, ToolKind.Action, MikrotikCancelAsync) { AuditEvents = [AuditEvents.MikrotikCommandCancelled], Idempotent = true },
         // docs/network-map-plan.md §10.2: as a poll, one router; scans of many routers stay in the UI.
         new("network_scan_router", "Scan a router for the network map",
             "Queues a scan of one MikroTik router's interfaces, MAC table, neighbors, ARP and leases, read only as PNMT's own user. Routers are scanned " +
@@ -118,13 +126,20 @@ public static class CommandTools
         return new { Command = Command(ctx, command), Log = log.Select(l => new { l.Created, l.Kind, l.Direction }) };
     }
 
-    private static object Router(ToolContext ctx, Guid sensorId, MikrotikRouterDetail r) => new
+    /// <summary>What the router tools say of a router; with its join-script differences (docs/mcp-extensions-plan.md §4).</summary>
+    internal static object Router(ToolContext ctx, Guid sensorId, MikrotikRouterDetail r) => new
     {
         SensorId = sensorId, r.Mode, r.SetupState, r.Address, r.Identity, r.Model, r.BoardName, r.Version, r.Channel, r.LatestVersion, r.UpdateAvailable,
         r.SecurityFix, r.FirmwareCurrent, r.FirmwareUpgrade, r.BootedAt, r.Resources, r.LastPollAt, r.LastSuccessAt, r.FailingSince,
         LastError = ctx.UntrustedOrNull("router error", r.LastError, 500), r.Warnings, r.LastExportAt, r.BackupCount, r.BackupFailures, r.LowStorage,
         LatestBackup = r.LatestBackup is { } b ? new { b.Id, b.CreatedAt, b.Kind, b.IncludesSecrets } : null,
         Tunnel = r.Tunnel is { } t ? new { t.Up, t.LatestHandshake, t.GatewayUp } : null,
+        // The texts name what the router has (interfaces, groups): its own words, scanned.
+        Differences = ToolSafety.Scanned(r.Differences.Select(d => new
+        {
+            d.Id, d.Text, AdminOnly = d.Admin,
+            Acknowledged = d.Acknowledgement is { } a ? new { a.ByName, a.Reason, a.At } : null,
+        })),
         Url = ctx.Link($"sensors/{sensorId}"),
     };
 
@@ -327,6 +342,17 @@ public static class CommandTools
             created.BatchId, Jobs = created.Jobs.Select(j => new { j.Id, j.SensorId, j.RouterName, j.State }), created.Refused,
             Next = "Ask mikrotik_command_get with batchId for the results.",
         };
+    }
+
+    private static async Task<object> MikrotikCancelAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
+    {
+        var id = IdOf(args);
+        var commands = ctx.Services.GetRequiredService<MikrotikCommandService>();
+        await commands.CancelAsync(id, ct);
+        var item = (await commands.GetAsync(id, ct)).Command;
+        ctx.Target("MikrotikCommand", id, item.RouterName);
+        ctx.Summary = $"cancelled a RouterOS command on {item.RouterName}";
+        return new { item.Id, item.BatchId, item.SensorId, item.RouterName, item.State, item.Step };
     }
 
     private static async Task<object> CollectAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)

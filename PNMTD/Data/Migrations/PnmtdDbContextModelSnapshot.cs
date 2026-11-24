@@ -7941,6 +7941,10 @@ namespace PNMTD.Data.Migrations
                     b.Property<Guid>("ResponsibilityId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Via")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ResponsibilityId", "At");

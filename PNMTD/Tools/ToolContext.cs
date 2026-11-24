@@ -141,6 +141,18 @@ public readonly record struct Paging(int Limit, int Offset)
 
     /// <summary>A page of a list that is all in memory.</summary>
     public ToolPage<T> Slice<T>(IReadOnlyList<T> all) => Of([.. all.Skip(Offset).Take(Limit + 1)], all.Count);
+
+    /// <summary>A service's query for this page: its page size is the limit, so the cursor's offset falls on a whole page.</summary>
+    public T Query<T>(T query) where T : Api.V1.Contracts.PageQuery
+    {
+        query.Page = Offset / Limit + 1;
+        query.PageSize = Limit;
+        return query;
+    }
+
+    /// <summary>A service's page as a tool's, with the cursor of the next one.</summary>
+    public static ToolPage<TOut> Of<TIn, TOut>(Api.V1.Contracts.Paged<TIn> page, Func<TIn, TOut> map) =>
+        new([.. page.Items.Select(map)], page.Page * page.PageSize < page.TotalCount ? Cursor(page.Page * page.PageSize) : null, page.TotalCount);
 }
 
 /// <summary>A page of a list.</summary>

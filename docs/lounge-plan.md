@@ -902,6 +902,7 @@ what a ticket or a message said.
 - **D13. One call per message, on each voice's own model** (§4.1), instead of one call writing a scene. That costs about three times as many calls, but makes two real voices. Recommended: one per message.
 - **D14. The read tools minus the access watch's and the mails',** always, whatever the group allows (§8.3). Recommended: yes.
 - **D15. No MCP tools** for the lounge in this version. Recommended: none. Reading the room over MCP can come later as a read tool.
+  - *The read tool came (docs/mcp-extensions-plan.md §9.3, 2026-11-24): `lounge_read`, with no right, as reading the lounge. Writing stays out.*
 - **D16. Seraph's coffee persona stays as it is.** Making the coffee sentence use the lounge's character would unify Seraph, but belongs to docs/cookie-coffee-plan.md. Recommended: leave it for that plan.
 - **D17. Comments are seen by everyone; there are no hidden stage directions** (§9.3). A whisper only the voices see would let anyone steer them behind the readers' backs. If directions are wanted, they could come later for *Cookie: Manage* only, and still be shown. Recommended: visible comments only.
 - **D18. A comment brings the next scene forward** to 2 to 10 minutes, within the hourly cap (§5.2), instead of waiting for the rhythm's next scene. Waiting would be cheaper on a busy day, but a comment that sits unread for half an hour feels ignored. Recommended: forward.

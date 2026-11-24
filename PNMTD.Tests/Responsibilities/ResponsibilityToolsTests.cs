@@ -108,10 +108,15 @@ public sealed class ResponsibilityToolsTests
         foreach (var kind in new[] { McpTokenKind.Read, McpTokenKind.Write })
         {
             var capped = McpRights.For(user, kind);
-            Assert.AreEqual(Level.View, capped.Levels[Area.Responsibilities], "Manage never reaches a token");
-            CollectionAssert.IsSubsetOf(new[] { "responsibilities_list", "responsibility_get" },
-                ToolCatalog.ForMcp(capped, kind).Select(t => t.Name).ToList());
+            // docs/mcp-extensions-plan.md §8.1: the read & write token edits (never Manage: deleting, the global people); the read-only one reads.
+            Assert.AreEqual(kind == McpTokenKind.Write ? Level.Edit : Level.View, capped.Levels[Area.Responsibilities], "Manage never reaches a token");
+            var names = ToolCatalog.ForMcp(capped, kind).Select(t => t.Name).ToList();
+            CollectionAssert.IsSubsetOf(new[] { "responsibilities_list", "responsibility_get" }, names);
+            var writes = new[] { "responsibility_create", "responsibility_update", "responsibility_link", "responsibility_redmine", "responsibility_options" };
+            Assert.AreEqual(kind == McpTokenKind.Write, writes.All(names.Contains), $"{kind}: the tools that change them");
         }
+        Assert.IsFalse(CookieTools.For(new UserRights(true, new Dictionary<Area, Level>())).Any(t => t.Name is "responsibility_create" or "responsibility_update"),
+            "Cookie still only reads them");
     }
 
     [TestMethod]

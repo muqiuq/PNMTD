@@ -154,7 +154,10 @@ public static class McpCalls
             Mcp = new McpCallInfo(caller.User.Id, caller.User.Username, caller.Token.Id, caller.Token.Kind, BaseUrl(http), http.TraceIdentifier),
         };
         var db = services.GetRequiredService<PnmtdDbContext>();
-        var scope = spec.Writes ? AuditScope.Begin(spec.AuditEvents, AuditWho.From(http), $"MCP {spec.Name}", http.TraceIdentifier, null) : null;
+        // A write the endpoint doesn't audit (ToolSpec.NotAudited) has no scope: the MCP log has its call.
+        var scope = spec.Writes && spec.AuditEvents.Count > 0
+            ? AuditScope.Begin(spec.AuditEvents, AuditWho.From(http), $"MCP {spec.Name}", http.TraceIdentifier, null)
+            : null;
         object? result = null;
         (int Status, string Code, string Message, IReadOnlyDictionary<string, object?>? Extensions)? failure = null;
         try

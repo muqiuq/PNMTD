@@ -884,6 +884,7 @@ In the existing style. The OpenAPI file and `schema.d.ts` are regenerated.
 - **No migration grants it.** Admins hold it at once.
 - **The web UI:** `levelOrder` in `api/rights.ts` gains the area. `GroupsTests`' count of areas goes from 24 to 25.
 - **MCP:** nothing. The ceiling stays without *Boards*.
+  - *Since docs/mcp-extensions-plan.md §9 (2026-11-24): `boards_list` and `board_get` (never a board's URL), and messages; the ceiling has *Boards: Message*.*
 - **Elements:** §7.2.
 - **The board app:** §5. The URL is the right.
 
@@ -988,7 +989,7 @@ As before: **few tests, where they protect something.**
 | **Links** on a board to Redmine, Zabbix and PNMT | For boards on laptops, not walls |
 | **More elements:** advanced sensors' charts, Cookie's open cases, OS updates waiting, MikroTik updates, the knowledge base's recent changes, the certificate and connector alarms | Each a source and a component |
 | **Themes for the admin UI,** per user | §9.5 |
-| **MCP tools** to list boards | Not needed now |
+| **MCP tools** to list boards | Not needed now; built in docs/mcp-extensions-plan.md §9 |
 | **Export and import** of a board's layout as JSON | |
 | **Burn-in protection** for OLED screens: a slow shift of a few pixels | |
 

@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import Paginator from 'primevue/paginator'
+import Tag from 'primevue/tag'
 import { computed, ref } from 'vue'
 import {
   historyKindLabel,
@@ -21,7 +22,7 @@ import { formatAbsolute } from '@/format'
  * A responsibility's history (docs/responsibilities-plan.md §10.5), newest first: who changed what. A description's change
  * shows the text before and after it, and its text from before can be restored, as a location's value can: a change of its own.
  */
-const props = defineProps<{ id: string; manage: boolean }>()
+const props = defineProps<{ id: string; edit: boolean }>()
 const { run, ask, notify } = useActions()
 
 const pageSize = 50
@@ -78,6 +79,7 @@ async function restore() {
         <div class="what">
           <span class="strong">{{ historyKindLabel[row.kind] }}</span>
           <span v-if="row.detail" class="muted detail">{{ row.detail }}</span>
+          <Tag v-if="row.via === 'mcp'" value="via MCP" severity="secondary" />
         </div>
         <div class="when muted">
           {{ row.byName }} · <span :title="formatAbsolute(row.at)"><RelativeTime :value="row.at" /></span>
@@ -117,7 +119,7 @@ async function restore() {
         </div>
       </div>
     </template>
-    <template v-if="manage" #footer>
+    <template v-if="edit" #footer>
       <Button label="Restore the text from before" icon="pi pi-undo" severity="secondary" @click="restore" />
     </template>
   </Dialog>

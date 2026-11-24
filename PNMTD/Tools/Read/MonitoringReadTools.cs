@@ -272,6 +272,16 @@ public static class MonitoringReadTools
             }
         }
         ctx.Summary = $"advanced sensor {name}";
+        return AdvancedView(ctx, id, name, d, body);
+    }
+
+    /// <summary>
+    /// What the tools say of an Advanced sensor (docs/advanced-sensor-plan.md §11): the verdict, each rule and field with its id and latest
+    /// outcome, the latest report's headline. Also the answer of every change to its rules and fields (docs/mcp-extensions-plan.md §7).
+    /// </summary>
+    internal static object AdvancedView(ToolContext ctx, Guid id, string name, PNMTD.Api.V1.Contracts.AdvancedSensorDetail d, string? body)
+    {
+        string? Untrusted(string source, string? text, int max = 500) => ctx.UntrustedOrNull(source, ToolSafety.WithoutCredentials(text), max);
         return new
         {
             SensorId = id,
@@ -285,13 +295,13 @@ public static class MonitoringReadTools
             Pending = d.Pending,
             Rules = d.Rules.Select(r => new
             {
-                r.Name, Condition = Untrusted("advanced sensor rule", r.Condition), r.Severity, r.Enabled, Outcome = r.Last?.Outcome, Reason = r.Last?.Reason,
+                r.Id, r.Name, Condition = Untrusted("advanced sensor rule", r.Condition), r.Severity, r.Enabled, Outcome = r.Last?.Outcome, Reason = r.Last?.Reason,
                 Actual = r.Last is { Actual.Count: > 0 } last
                     ? Untrusted("advanced sensor value", string.Join("; ", last.Actual.Select(a => $"{a.Path} = {a.Value}")), 1000)
                     : null,
                 r.FailingSince, Note = Untrusted("advanced sensor rule note", r.Note),
             }).ToList(),
-            Fields = d.Fields.Select(f => new { f.Name, f.Path, f.Unit, Value = Untrusted("advanced sensor value", f.Value?.GetRawText(), 300) }).ToList(),
+            Fields = d.Fields.Select(f => new { f.Id, f.Name, f.Path, f.Unit, Value = Untrusted("advanced sensor value", f.Value?.GetRawText(), 300) }).ToList(),
             Latest = d.Latest is { } l ? new
             {
                 l.ReceivedAt, l.LastReceivedAt, l.Repeats, l.Valid, Error = Untrusted("advanced sensor report", l.Error),

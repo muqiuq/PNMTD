@@ -97,9 +97,11 @@ public static class RightsCatalog
         new(Area.Lounge, "Lounge", [
             (Level.Use, "Writing in the lounge: messages and comments to Cookie and Seraph, which everyone reads. Reading the lounge needs no right.")]),
         // docs/responsibilities-plan.md §12.1: information only; nothing is sent to the people it names.
+        // docs/mcp-extensions-plan.md §8.1: Edit, so that MCP (never Manage) can create and change them.
         new(Area.Responsibilities, "Responsibilities", [
             (Level.View, "The responsibilities, their people, links and Redmine combinations, and the panels on linked hosts, locations and pages. Also over MCP and for Cookie."),
-            (Level.Manage, "View, plus creating, changing and deleting responsibilities, their links and Redmine combinations, and setting the global responsible and deputy.")]),
+            (Level.Edit, "View, plus creating and changing responsibilities: their name, descriptions, responsible and deputy, links and Redmine combinations. Also over MCP."),
+            (Level.Manage, "Edit, plus deleting responsibilities and setting the global responsible and deputy.")]),
         // docs/boards-plan.md §13.1: a board shows what its elements show to whoever holds its URL; adding an element also needs its area's right.
         new(Area.Boards, "Boards", [
             (Level.View, "The boards, their layout, status bar, look and preview. Not their URLs."),

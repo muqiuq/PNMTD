@@ -1156,6 +1156,9 @@ None at the moment.
 - **Tool results keep umlauts and "…" unescaped** (`JavaScriptEncoder.UnsafeRelaxedJsonEscaping`): they are JSON inside JSON-RPC or a model's message, never HTML; escaped text costs a model tokens. Cookie's tools get the same.
 - **Cookie's eleven tools aren't paged** (§6.3): their results stay as Cookie was built with; the budget shortens them without breaking the JSON.
 
+### 19.2a Extended
+*Extended on 2026-11-24 by docs/mcp-extensions-plan.md: 30 more tools (125 in all), MikroTik routers and each type's own settings in `sensor_create` and `sensor_update`, responsibilities with the new level* Edit, *boards and their messages, the lounge.*
+
 ### 19.3 Not built yet
 
 - **Real clients** (§15 M0): Claude Code, VS Code and the MCP Inspector against a running PNMT through nginx. The protocol is tested with the SDK's own client against the test server; how a client shows a 401 or 403 is still to see.

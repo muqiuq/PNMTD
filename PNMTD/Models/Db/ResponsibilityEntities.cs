@@ -213,4 +213,8 @@ public class ResponsibilityHistoryEntity
     /// <summary>What the row says, for people: "Anna Muster → Carla Rossi", "host sw-core-01".</summary>
     [MaxLength(2000)]
     public string? Detail { get; set; }
+
+    /// <summary>"mcp" for a change made over MCP (docs/mcp-extensions-plan.md §8.2), as a page's revision says it; null otherwise.</summary>
+    [MaxLength(16)]
+    public string? Via { get; set; }
 }

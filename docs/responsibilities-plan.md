@@ -111,7 +111,7 @@
 | R6 | **All of it is on one new page, reached by an entry in the drawer's *Admin* group** |
 | R7 | **A linked host, location or page shows its responsibilities** |
 | R8 | **Every change is in the audit log,** and an overwritten description can be restored |
-| R9 | **MCP and Cookie read responsibilities,** and never change them |
+| R9 | **MCP and Cookie read responsibilities,** and never change them. *Since docs/mcp-extensions-plan.md §8 (2026-11-24): MCP creates and changes them with the new level* Edit; *Cookie still only reads* |
 | R10 | **Nothing that exists changes behaviour:** alerts, Cookie's duties, the availability plan, files, rights (§14) |
 
 ---
@@ -674,8 +674,8 @@ As before: **few tests, where they protect something.**
 | 7 | Images and files in the description? | **Like the knowledge base:** the page editor with uploads and page links, the page's size limit and credentials check, and the files recorded as a page's are | §4.1, §9.4, §10.4 |
 | 8 | A history of the description? | **Yes:** old and new text per save, with *Restore* | §10.5 |
 | 9 | Groups as the responsible or the deputy? | **No, users** | §4.1 |
-| 10 | Rights | **A new area, *Responsibilities*, with *View* and *Manage*,** granted by no migration | §12.1 |
-| 11 | MCP and Cookie? | **Both, read-only:** `responsibilities_list` and `responsibility_get` | §7 |
+| 10 | Rights | **A new area, *Responsibilities*, with *View* and *Manage*,** granted by no migration. *Edit between them since docs/mcp-extensions-plan.md §8.1* | §12.1 |
+| 11 | MCP and Cookie? | **Both, read-only:** `responsibilities_list` and `responsibility_get`. *MCP edits them since docs/mcp-extensions-plan.md §8* | §7 |
 | 12 | Deleting | **Delete,** at once, with a confirmation | §4.3 |
 
 **Decided along with these, for the next review:**

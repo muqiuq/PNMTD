@@ -11,7 +11,7 @@ public static class McpRights
 {
     /// <summary>
     /// The most the read-write token gets per area. The areas that aren't here (UDP nodes, MikroTik &amp; WireGuard, Servers,
-    /// SSH keys, Diagnostics, AI, System, Audit log, MCP, Decisions) are PNMT's settings and admin pages, or approvals.
+    /// SSH keys, Diagnostics, AI, System, Audit log, MCP, Decisions, Connectors, Lounge) are PNMT's settings and admin pages, or approvals.
     /// </summary>
     public static readonly IReadOnlyDictionary<Area, Level> Ceiling = new Dictionary<Area, Level>
     {
@@ -28,8 +28,10 @@ public static class McpRights
         [Area.Certificates] = Level.Edit,
         // docs/network-map-plan.md §10.2: connections, suggestions and assignments; scans of many routers and the schedule stay in the UI.
         [Area.NetworkMap] = Level.Edit,
-        // docs/responsibilities-plan.md §7.2: reading them; changing them stays in the UI.
-        [Area.Responsibilities] = Level.View,
+        // docs/responsibilities-plan.md §7.2: reading them; docs/mcp-extensions-plan.md §8: creating and changing them (Edit), never deleting.
+        [Area.Responsibilities] = Level.Edit,
+        // docs/mcp-extensions-plan.md §9: the boards without their URLs, and messages to them.
+        [Area.Boards] = Level.Message,
     };
 
     /// <summary>
@@ -49,6 +51,7 @@ public static class McpRights
         [Area.Certificates] = Level.View,
         [Area.NetworkMap] = Level.Details,
         [Area.Responsibilities] = Level.View,
+        [Area.Boards] = Level.View,
     };
 
     public static UserRights For(UserRights user, McpTokenKind kind)

@@ -978,6 +978,7 @@ The structural limits are constants: depth 32, 50 rules, 30 fields with 10 of th
 - **Rules as child sensors,** for notifications and uptime per rule.
 - **AI-suggested rules** from the latest report, as a decision, screened, and never for data that names people.
 - **A rule-writing tool** for MCP and Cookie, once rules proposed by an AI have a review step.
+  - *Built for MCP without a review step (docs/mcp-extensions-plan.md §7, 2026-11-24): `advanced_rules_change` and `advanced_fields_change`, whose answer is the latest report judged again. Cookie still doesn't write rules.*
 - **Computed values** (`disk.free_gb / disk.total_gb`), and OR groups.
 - **JSON Schema as a rule:** *the report matches this schema*.
 - **The global search** over the latest reports' values.

@@ -13,6 +13,8 @@ import ResponsibilitiesTab from './ResponsibilitiesTab.vue'
  */
 const route = useRoute()
 const session = useSession()
+// Edit creates and changes them; Manage also sets the global people (docs/mcp-extensions-plan.md §8.1).
+const edit = computed(() => session.can('Responsibilities', 'Edit'))
 const manage = computed(() => session.can('Responsibilities', 'Manage'))
 const item = (key: string, label: string) => ({ key, label, to: { name: 'responsibilities', params: { tab: key } } })
 // The Redmine tab only while Redmine is configured (§6.1); combinations made before stay and come back with it.
@@ -30,7 +32,7 @@ const tab = computed(() => {
   <div class="page">
     <PageHeader title="Responsibilities" :crumbs="[{ label: 'Admin' }]" />
     <TabNav v-if="tabs.length > 1" :items="tabs" :active="tab" label="Responsibilities" />
-    <ResponsibilitiesTab v-if="tab === 'list'" :manage="manage" />
-    <RedmineTab v-else-if="tab === 'redmine'" :manage="manage" />
+    <ResponsibilitiesTab v-if="tab === 'list'" :edit="edit" :manage="manage" />
+    <RedmineTab v-else-if="tab === 'redmine'" :edit="edit" />
   </div>
 </template>

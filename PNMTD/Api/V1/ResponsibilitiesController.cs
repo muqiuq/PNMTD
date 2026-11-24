@@ -22,7 +22,7 @@ public sealed class ResponsibilitiesController(ResponsibilityQueries queries, Re
     public async Task<ResponsibilityDetail> Get(Guid id, CancellationToken ct) => await queries.GetAsync(id, ct);
 
     [HttpPost]
-    [RequireRight(Area.Responsibilities, Level.Manage)]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
     [Audit(AuditEvents.ResponsibilityCreated)]
     public async Task<ActionResult<ResponsibilityDetail>> Create(ResponsibilityRequest request, CancellationToken ct)
     {
@@ -32,7 +32,7 @@ public sealed class ResponsibilitiesController(ResponsibilityQueries queries, Re
 
     /// <summary>The whole form: name, short description, responsible and deputy (null meaning nobody).</summary>
     [HttpPut("{id:guid}")]
-    [RequireRight(Area.Responsibilities, Level.Manage)]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
     [Audit(AuditEvents.ResponsibilityChanged)]
     public async Task<ResponsibilityDetail> Update(Guid id, ResponsibilityRequest request, CancellationToken ct) =>
         await responsibilities.UpdateAsync(id, request, ct);
@@ -52,20 +52,20 @@ public sealed class ResponsibilitiesController(ResponsibilityQueries queries, Re
     /// <c>looks_like_credential</c> unless acknowledged.
     /// </summary>
     [HttpPut("{id:guid}/description")]
-    [RequireRight(Area.Responsibilities, Level.Manage)]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
     [Audit(AuditEvents.ResponsibilityChanged)]
     public async Task<ResponsibilityDetail> Description(Guid id, ResponsibilityDescriptionRequest request, CancellationToken ct) =>
         await responsibilities.SetDescriptionAsync(id, request, ct);
 
     /// <summary>A link to a page, a location or a host: 409 <c>already_linked</c>, 409 <c>too_many_links</c>.</summary>
     [HttpPost("{id:guid}/links")]
-    [RequireRight(Area.Responsibilities, Level.Manage)]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
     [Audit(AuditEvents.ResponsibilityLinked)]
     public async Task<ResponsibilityDetail> Link(Guid id, ResponsibilityLinkRequest request, CancellationToken ct) =>
         await responsibilities.LinkAsync(id, request, ct);
 
     [HttpDelete("{id:guid}/links/{linkId:guid}")]
-    [RequireRight(Area.Responsibilities, Level.Manage)]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
     [Audit(AuditEvents.ResponsibilityUnlinked)]
     public async Task<ResponsibilityDetail> Unlink(Guid id, Guid linkId, CancellationToken ct) => await responsibilities.UnlinkAsync(id, linkId, ct);
 
@@ -94,7 +94,7 @@ public sealed class ResponsibilitiesController(ResponsibilityQueries queries, Re
 
     /// <summary>The description from before a change in the history: a new save of its own.</summary>
     [HttpPost("{id:guid}/history/{rowId:guid}/restore")]
-    [RequireRight(Area.Responsibilities, Level.Manage)]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
     [Audit(AuditEvents.ResponsibilityChanged)]
     public async Task<ResponsibilityDetail> Restore(Guid id, Guid rowId, CancellationToken ct) => await responsibilities.RestoreAsync(id, rowId, ct);
 
@@ -107,7 +107,7 @@ public sealed class ResponsibilitiesController(ResponsibilityQueries queries, Re
 
     /// <summary>The projects PNMT reads and Redmine's trackers, for the combination dialog; <c>error</c> when Redmine can't be read.</summary>
     [HttpGet("redmine")]
-    [RequireRight(Area.Responsibilities, Level.Manage)]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
     public async Task<ResponsibilityRedmineLookups> RedmineLookups(CancellationToken ct) => await responsibilities.RedmineLookupsAsync(ct);
 
     /// <summary>Every Redmine combination, by project, responsibility or user; 404 <c>redmine_not_configured</c> without Redmine.</summary>
@@ -117,30 +117,30 @@ public sealed class ResponsibilitiesController(ResponsibilityQueries queries, Re
 
     /// <summary>A Redmine project and tracker on this responsibility, with who handles it: 409 <c>duplicate_combination</c>.</summary>
     [HttpPost("{id:guid}/redmine")]
-    [RequireRight(Area.Responsibilities, Level.Manage)]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
     [Audit(AuditEvents.ResponsibilityRedmineSaved)]
     public async Task<ResponsibilityDetail> AddCombination(Guid id, RedmineCombinationRequest request, CancellationToken ct) =>
         await responsibilities.AddCombinationAsync(id, request, ct);
 
     [HttpPut("{id:guid}/redmine/{combinationId:guid}")]
-    [RequireRight(Area.Responsibilities, Level.Manage)]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
     [Audit(AuditEvents.ResponsibilityRedmineSaved)]
     public async Task<ResponsibilityDetail> UpdateCombination(Guid id, Guid combinationId, RedmineCombinationRequest request, CancellationToken ct) =>
         await responsibilities.UpdateCombinationAsync(id, combinationId, request, ct);
 
     [HttpDelete("{id:guid}/redmine/{combinationId:guid}")]
-    [RequireRight(Area.Responsibilities, Level.Manage)]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
     [Audit(AuditEvents.ResponsibilityRedmineDeleted)]
     public async Task<ResponsibilityDetail> DeleteCombination(Guid id, Guid combinationId, CancellationToken ct) =>
         await responsibilities.DeleteCombinationAsync(id, combinationId, ct);
 
     /// <summary>The active users a responsibility can name, never their contact details.</summary>
     [HttpGet("people")]
-    [RequireRight(Area.Responsibilities, Level.Manage)]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
     public async Task<ResponsibilityPeople> People(CancellationToken ct) => await responsibilities.PeopleAsync(ct);
 
     /// <summary>Pages, locations and hosts by name, for the link picker: names only, as the links show them.</summary>
     [HttpGet("targets")]
-    [RequireRight(Area.Responsibilities, Level.Manage)]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
     public async Task<SearchResult> Targets([FromQuery] string? q, CancellationToken ct) => await responsibilities.TargetsAsync(q, ct);
 }

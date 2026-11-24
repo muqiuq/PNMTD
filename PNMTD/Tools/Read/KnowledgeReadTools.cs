@@ -35,7 +35,28 @@ public static class KnowledgeReadTools
             "A location's information fields (contacts, access, notes …), its own and those inherited from above, its child locations, and the pages " +
             "linked to it. Fields and pages marked sensitive never appear.",
             Schema(Id("id", "The location's id")), Area.Locations, Level.View, ToolKind.Read, LocationDetailsAsync),
+        // docs/mcp-extensions-plan.md §5: the knowledge base's Recent changes, without what machines don't see.
+        new("kb_changes", "Recent changes in the knowledge base",
+            "The knowledge base's recent changes, newest first, one per page: what kind (created, edited, restored, status), who, when, how many lines " +
+            "were added and removed, and how many changes and people since. Pages marked sensitive never appear.",
+            Schema(), Area.KnowledgeBase, Level.View, ToolKind.Read, ChangesAsync),
     ];
+
+    private static async Task<object> ChangesAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
+    {
+        var recent = await ctx.Services.GetRequiredService<KbChanges>().RecentAsync(ct);
+        var items = recent.Items.Where(c => !c.Sensitive).ToList();
+        ctx.Summary = $"{items.Count} recent changes in the knowledge base";
+        return new
+        {
+            recent.Days,
+            Changes = items.Select(c => new
+            {
+                c.Number, c.Title, Status = c.Status.ToString(), c.WrittenWithAi, c.Revision, c.Kind, c.Detail, c.At, By = c.ByName, c.Added, c.Removed,
+                Note = ctx.UntrustedOrNull("revision note", c.Note, 500), c.Changes, c.People, Url = ctx.Link($"kb/{c.Number}"),
+            }),
+        };
+    }
 
     private static async Task<object> LocationAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
     {

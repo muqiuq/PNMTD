@@ -472,12 +472,12 @@ public sealed class ResponsibilityService(PnmtdDbContext db, ResponsibilityQueri
         }
         return await Paging.PageAsync(db.ResponsibilityHistory.AsNoTracking().Where(h => h.ResponsibilityId == id)
             .OrderByDescending(h => h.At).ThenByDescending(h => h.Kind)
-            .Select(h => new ResponsibilityHistoryItem(h.Id, h.At, h.ByName, h.Kind, h.Detail)), query, ct);
+            .Select(h => new ResponsibilityHistoryItem(h.Id, h.At, h.ByName, h.Kind, h.Detail, h.Via)), query, ct);
     }
 
     public async Task<ResponsibilityHistoryDetail> HistoryRowAsync(Guid id, Guid rowId, CancellationToken ct) =>
         await db.ResponsibilityHistory.AsNoTracking().Where(h => h.Id == rowId && h.ResponsibilityId == id)
-            .Select(h => new ResponsibilityHistoryDetail(h.Id, h.At, h.ByName, h.Kind, h.Detail, h.OldValue, h.NewValue))
+            .Select(h => new ResponsibilityHistoryDetail(h.Id, h.At, h.ByName, h.Kind, h.Detail, h.OldValue, h.NewValue, h.Via))
             .SingleOrDefaultAsync(ct) ?? throw ApiException.NotFound("History row");
 
     /// <summary>Whom a responsibility can name: the active users (§11), never their contact details.</summary>
@@ -551,6 +551,7 @@ public sealed class ResponsibilityService(PnmtdDbContext db, ResponsibilityQueri
         {
             Id = Guid.NewGuid(), ResponsibilityId = id, At = at, ByUserId = by.Id, ByName = by.Name, Kind = kind,
             Detail = detail is null ? null : Agents.Cuts.Cut(detail, 2000), OldValue = oldValue, NewValue = newValue,
+            Via = Mcp.McpPrincipal.IsMcp(accessor.HttpContext?.User) ? "mcp" : null,
         });
 
     private static void Touch(ResponsibilityEntity r, DateTime now, LocationActor by)

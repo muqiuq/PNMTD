@@ -105,6 +105,32 @@ public sealed class ResponsibilitiesApiTests
         Assert.IsFalse((await (await manager.GetAsync("/api/v1/responsibilities/redmine")).ReadAsync<ResponsibilityRedmineLookups>()).Configured);
     }
 
+    /// <summary>docs/mcp-extensions-plan.md §8.1: Edit creates and changes; deleting and the global people stay Manage's.</summary>
+    [TestMethod]
+    public async Task EditChangesButOnlyManageDeletesAndSetsTheGlobalPeople()
+    {
+        var editor = app.ClientWithRights("Responsibilities:Edit");
+        using var created = await editor.PostJsonAsync("/api/v1/responsibilities", new { name = V1.Unique("Printers") });
+        Assert.AreEqual(HttpStatusCode.Created, created.StatusCode, await created.Content.ReadAsStringAsync());
+        var r = await created.ReadAsync<ResponsibilityDetail>();
+        using (var changed = await editor.PutJsonAsync($"/api/v1/responsibilities/{r.Id}", new { name = r.Name, summary = "Every printer" }))
+        {
+            Assert.AreEqual(HttpStatusCode.OK, changed.StatusCode);
+        }
+        using (var described = await editor.PutJsonAsync($"/api/v1/responsibilities/{r.Id}/description", new { content = "# Printers\n\nThe toner.", revision = r.Revision }))
+        {
+            Assert.AreEqual(HttpStatusCode.OK, described.StatusCode, await described.Content.ReadAsStringAsync());
+        }
+        Assert.AreEqual(HttpStatusCode.OK, (await editor.GetAsync("/api/v1/responsibilities/people")).StatusCode);
+
+        using var global = await editor.PutJsonAsync("/api/v1/responsibilities/global", new { responsibleId = (Guid?)null, deputyId = (Guid?)null });
+        Assert.AreEqual(HttpStatusCode.Forbidden, global.StatusCode);
+        using var delete = await editor.DeleteAsync($"/api/v1/responsibilities/{r.Id}");
+        Assert.AreEqual(HttpStatusCode.Forbidden, delete.StatusCode);
+        using var deleted = await manager.DeleteAsync($"/api/v1/responsibilities/{r.Id}");
+        Assert.AreEqual(HttpStatusCode.NoContent, deleted.StatusCode, "Manage includes Edit and deletes");
+    }
+
     [TestMethod]
     public async Task NamesAreUniqueIgnoringCaseAndTheDeputyIsSomeoneElse()
     {

@@ -44,8 +44,9 @@ export const levelOrder: Record<Area, readonly Level[]> = {
   NetworkMap: ['View', 'Details', 'Edit', 'Manage'],
   // docs/lounge-plan.md §3.1: writing in the lounge; reading it needs no right.
   Lounge: ['Use'],
-  // docs/responsibilities-plan.md §12.1: information only; Manage changes them and sets the global people.
-  Responsibilities: ['View', 'Manage'],
+  // docs/responsibilities-plan.md §12.1: information only. Edit creates and changes them (also over MCP, docs/mcp-extensions-plan.md
+  // §8.1); Manage deletes them and sets the global people.
+  Responsibilities: ['View', 'Edit', 'Manage'],
   // docs/boards-plan.md §13.1: Manage changes boards and shows their URLs; adding an element also needs its area's right.
   // docs/board-messages-plan.md §12.1: Message sends messages to boards and withdraws them.
   Boards: ['View', 'Message', 'Manage'],

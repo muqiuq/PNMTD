@@ -158,6 +158,15 @@ public static class ResponsibilityReadTools
                 })
                 : null,
             r.UpdatedAt, Url = ctx.Link($"admin/responsibilities/{r.Id}"),
+            // Over MCP, what changing it needs (docs/mcp-extensions-plan.md §8.2); Cookie only reads, so its answer stays as it was.
+            Editing = ctx.Caller == ToolCaller.Mcp ? new
+            {
+                r.Revision,
+                DescriptionMarkdown = ctx.UntrustedOrNull("responsibility description", r.Description, 20_000),
+                ResponsibleId = r.Responsible?.Id, DeputyId = r.Deputy?.Id,
+                Links = r.Links.Where(l => l.Kind != KbLinkKind.Page || readable.Contains(l.Id)).Select(l => new { l.LinkId, Kind = l.Kind.ToString(), l.Id }),
+                RedmineCombinations = r.RedmineConfigured ? r.Redmine.Select(c => new { c.Id, c.ProjectId, c.TrackerId, UserId = c.User?.Id }) : null,
+            } : null,
         };
     }
 

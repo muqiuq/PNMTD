@@ -84,9 +84,9 @@ public enum BoardMessageSize { Large, Full }
 [JsonConverter(typeof(JsonStringEnumConverter<BoardMessageKind>))]
 public enum BoardMessageKind { Alert, Warning, Maintenance, Information, Success }
 
-/// <summary>Who sent a board message: a person from Admin → Debug, or Cookie.</summary>
+/// <summary>Who sent a board message: a person from Admin → Debug, Cookie, or a person over MCP (docs/mcp-extensions-plan.md §9.2).</summary>
 [JsonConverter(typeof(JsonStringEnumConverter<BoardMessageSource>))]
-public enum BoardMessageSource { Person, Cookie }
+public enum BoardMessageSource { Person, Cookie, Mcp }
 
 [JsonConverter(typeof(JsonStringEnumConverter<BoardBarPosition>))]
 public enum BoardBarPosition { Top, Bottom }

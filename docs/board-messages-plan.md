@@ -663,6 +663,7 @@ These are all in Cookie's JSON settings, with defaults for what isn't there yet.
 
 - **A sound** per kind, for kiosk browsers started with autoplay allowed.
 - **From outside PNMT:** an MCP tool, a 3rd party connector's caller, or a token of its own for a webhook (Zabbix actions, CI).
+  - *The MCP tool is built (docs/mcp-extensions-plan.md §9.2, 2026-11-24): `board_message_send` and `board_message_withdraw`, sent as the token's person with the source `Mcp`, with this plan's limits.*
 - **Scheduled and recurring messages; "until withdrawn".**
 - **An element *Recent messages*** listing a board's last messages after they close.
 - **A long poll,** if 5 s turns out too slow.

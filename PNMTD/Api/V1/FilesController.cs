@@ -32,7 +32,7 @@ public sealed class FilesController(FileStore store, FileAdmin admin, UploadGuar
     /// <c>too_many_uploads</c>. No Consumes constraint: it would decide at routing, before authorization.
     /// </summary>
     [HttpPost]
-    [RequireAnyRight(Area.KnowledgeBase, Level.Edit, Area.Locations, Level.Edit, Area.Responsibilities, Level.Manage)]
+    [RequireAnyRight(Area.KnowledgeBase, Level.Edit, Area.Locations, Level.Edit, Area.Responsibilities, Level.Edit)]
     [FileUploadLimit]
     [ProducesResponseType<FileItem>(StatusCodes.Status201Created)]
     [Audit(AuditEvents.FileUploaded)]

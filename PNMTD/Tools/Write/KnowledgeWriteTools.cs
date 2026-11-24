@@ -55,6 +55,15 @@ public static class KnowledgeWriteTools
         new("kb_page_archive", "Archive or restore a page", "Archives a page (it stays, out of the lists) or restores it.",
             Schema(Int("number", "The page's number", true), Bool("archived", "true to archive, false to restore", true)),
             Area.KnowledgeBase, Level.Edit, ToolKind.Write, KbArchiveAsync) { AuditEvents = [AuditEvents.KbPageArchived, AuditEvents.KbPageRestored], Idempotent = true },
+        // docs/mcp-extensions-plan.md §6: reactions, as every reader's; the endpoints audit none, so neither do these.
+        new("kb_page_used", "Record a page's use",
+            "Records that you used a page to solve a problem, with what it solved: pages used often rank higher, and their authors see it. Not again " +
+            "within a while of your last use of the same page (used_recently).",
+            Schema(Int("number", "The page's number", true), Text("note", "What it solved, at most 200 characters")),
+            Area.KnowledgeBase, Level.View, ToolKind.Write, KbUsedAsync) { NotAudited = "a use: a reaction, not an operation" },
+        new("kb_page_like", "Like a page", "Likes a page, or takes the like back.",
+            Schema(Int("number", "The page's number", true), Bool("liked", "true to like, false to take it back", true)),
+            Area.KnowledgeBase, Level.View, ToolKind.Write, KbLikeAsync) { NotAudited = "a like: a reaction, not an operation", Idempotent = true },
         new("ticket_link", "Link a Redmine ticket",
             "Links a Redmine ticket to a page, a location, a host or a sensor, with a note; or changes a link's note, or removes the link (linkId).",
             Schema(Int("ticket", "The ticket's number"), Int("pageNumber", "A knowledge base page"), Id("locationId", "A location", required: false),
@@ -66,6 +75,38 @@ public static class KnowledgeWriteTools
             Schema(Id("caseId", "The case"), Text("text", "The comment", true)),
             Area.Cookie, Level.Use, ToolKind.Write, CaseCommentAsync) { AuditEvents = [AuditEvents.CookieCaseCommented] },
     ];
+
+    private static async Task<(Guid Id, int Number, string Title)> ReadablePageAsync(JsonElement args, PnmtdDbContext db, CancellationToken ct)
+    {
+        var number = IntOf(args, "number");
+        var page = await MachineAccess.Pages(db).Where(p => p.Number == number).Select(p => new { p.Id, p.Number, p.Title }).SingleOrDefaultAsync(ct)
+            ?? throw ToolException.NotFound("page");
+        return (page.Id, page.Number, page.Title);
+    }
+
+    private static object Reactions(ToolContext ctx, int number, KbReactions r) => new
+    {
+        Number = number, r.Likes, r.LikedByMe, r.Uses, r.People, r.LastUsedAt, r.CanUseAgainAt, Url = ctx.Link($"kb/{number}"),
+    };
+
+    private static async Task<object> KbUsedAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
+    {
+        var (id, number, title) = await ReadablePageAsync(args, db, ct);
+        var reactions = await ctx.Services.GetRequiredService<KbReactionService>().UseAsync(id, new KbUseRequest { Note = OptionalText(args, "note", 200) }, ct);
+        ctx.Target("KbPage", id, $"KB-{number}");
+        ctx.Summary = $"used KB-{number} {title}";
+        return Reactions(ctx, number, reactions);
+    }
+
+    private static async Task<object> KbLikeAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
+    {
+        var (id, number, title) = await ReadablePageAsync(args, db, ct);
+        var liked = OptionalBool(args, "liked") ?? throw ToolException.Invalid("liked is true or false.");
+        var reactions = await ctx.Services.GetRequiredService<KbReactionService>().LikeAsync(id, liked, ct);
+        ctx.Target("KbPage", id, $"KB-{number}");
+        ctx.Summary = $"{(liked ? "liked" : "took back the like of")} KB-{number} {title}";
+        return Reactions(ctx, number, reactions);
+    }
 
     private static object LocationResult(ToolContext ctx, LocationDetail l)
     {

@@ -599,6 +599,7 @@ Migrations: `AddOsUpdates` (O1), `AddOsAdvisories` (O3), `AddOsAdvisoryItems` (O
 
 - **`openapi.json`, `schema.d.ts` and `resources.ts`** are regenerated and extended as usual.
 - **Cookie and MCP:** no new tool. Cookie sees 466 and 467 as it sees every event. **Nothing outside the web UI's buttons can start a run.**
+  - *Since docs/mcp-extensions-plan.md §5 (2026-11-24): MCP reads them with `os_updates_get`. Starting a run still needs the web UI's buttons.*
 
 ---
 

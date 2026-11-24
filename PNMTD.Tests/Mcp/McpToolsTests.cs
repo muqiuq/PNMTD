@@ -76,8 +76,11 @@ public sealed class McpToolsTests
         var all = ToolCatalog.All;
         Assert.AreEqual(all.Count, all.Select(t => t.Name).Distinct().Count(), "unique names");
         Assert.IsTrue(all.All(t => System.Text.RegularExpressions.Regex.IsMatch(t.Name, "^[a-z][a-z0-9_]*$")), "snake case");
-        Assert.IsTrue(all.Where(t => t.Writes).All(t => t.AuditEvents.Count > 0 && t.AuditEvents.All(AuditCatalog.Contains)),
-            "every change declares its events: " + string.Join(", ", all.Where(t => t.Writes && (t.AuditEvents.Count == 0 || !t.AuditEvents.All(AuditCatalog.Contains))).Select(t => t.Name)));
+        // A change declares its events, or (as a like) the endpoint's reason for none (docs/mcp-extensions-plan.md §6).
+        bool Declared(ToolSpec t) => t.AuditEvents.Count > 0 ? t.NotAudited is null && t.AuditEvents.All(AuditCatalog.Contains) : t.NotAudited is { Length: > 0 };
+        Assert.IsTrue(all.Where(t => t.Writes).All(Declared),
+            "every change declares its events: " + string.Join(", ", all.Where(t => t.Writes && !Declared(t)).Select(t => t.Name)));
+        Assert.IsTrue(all.Where(t => t.NotAudited is not null).All(t => t.Kind == ToolKind.Write), "only a write can be a reaction");
         Assert.IsTrue(all.Where(t => t.Kind == ToolKind.Delete).All(t => t.Destructive || t.Kind == ToolKind.Delete));
         Assert.IsFalse(all.Any(t => t.Level == PNMTD.Auth.Rights.Level.Manage || t.Requires.Any(r => r.Level == PNMTD.Auth.Rights.Level.Manage)), "no Manage level");
         Assert.IsTrue(all.Where(t => t.Area is { } a && !t.CookieOnly).All(t => McpRights.Ceiling.ContainsKey(t.Area!.Value)), "every area is within MCP's ceiling");
@@ -164,8 +167,8 @@ public sealed class McpToolsTests
             var patched = await OkAsync(client, "sensor_update", new { id, ignore = true });
             Assert.AreEqual((true, 300, "beat"), (patched.GetProperty("ignore").GetBoolean(), patched.GetProperty("intervalSeconds").GetInt32(), patched.GetProperty("name").GetString()));
 
-            var refused = await CallAsync(client, "sensor_create", new { hostId = host.GetProperty("id").GetGuid(), type = "MIKROTIK", name = "router" });
-            Assert.AreEqual("invalid_argument", refused.GetProperty("error").GetString());
+            var refused = await CallAsync(client, "sensor_create", new { hostId = host.GetProperty("id").GetGuid(), type = "LINUX", name = "server" });
+            Assert.AreEqual("invalid_argument", refused.GetProperty("error").GetString(), "a server joins with a token, in PNMT");
         }
     }
 

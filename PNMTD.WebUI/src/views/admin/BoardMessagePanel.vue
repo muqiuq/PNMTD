@@ -125,7 +125,11 @@ async function withdraw(m: BoardMessageItem) {
   })
 }
 const sender = (m: BoardMessageItem) =>
-  m.source === 'Cookie' ? `${m.sentByName}${m.approvedByName ? `, approved by ${m.approvedByName}` : ''}` : m.sentByName
+  m.source === 'Cookie'
+    ? `${m.sentByName}${m.approvedByName ? `, approved by ${m.approvedByName}` : ''}`
+    : m.source === 'Mcp'
+      ? `${m.sentByName} via MCP`
+      : m.sentByName
 </script>
 
 <template>

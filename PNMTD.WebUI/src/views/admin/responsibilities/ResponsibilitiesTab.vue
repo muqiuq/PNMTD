@@ -25,7 +25,7 @@ import NewResponsibilityDialog from './NewResponsibilityDialog.vue'
  * The list (docs/responsibilities-plan.md §9.2): the global people on top, then every responsibility by name, with a search
  * over names, descriptions and people, and *Needs attention* for those with nobody set or a person inactive.
  */
-defineProps<{ manage: boolean }>()
+defineProps<{ edit: boolean; manage: boolean }>()
 const router = useRouter()
 
 const search = ref('')
@@ -73,7 +73,7 @@ const open = (r: ResponsibilityItem) => router.push({ name: 'responsibility', pa
         <span>Needs attention</span>
       </label>
       <Button
-        v-if="manage"
+        v-if="edit"
         class="new"
         label="New responsibility"
         icon="pi pi-plus"

@@ -25081,7 +25081,7 @@ export interface components {
          */
         BoardMessageSize: "Large" | "Full";
         /** @enum {unknown} */
-        BoardMessageSource: "Person" | "Cookie";
+        BoardMessageSource: "Person" | "Cookie" | "Mcp";
         BoardMessageView: {
             /** Format: uuid */
             id: string;
@@ -32098,6 +32098,7 @@ export interface components {
             detail: null | string;
             oldValue: null | string;
             newValue: null | string;
+            via: null | string;
         };
         ResponsibilityHistoryItem: {
             /** Format: uuid */
@@ -32107,6 +32108,7 @@ export interface components {
             byName: string;
             kind: components["schemas"]["ResponsibilityHistoryKind"];
             detail: null | string;
+            via: null | string;
         };
         /** @enum {unknown} */
         ResponsibilityHistoryKind: "Created" | "Renamed" | "SummaryChanged" | "PeopleChanged" | "DescriptionChanged" | "LinkAdded" | "LinkRemoved" | "RedmineAdded" | "RedmineChanged" | "RedmineRemoved";

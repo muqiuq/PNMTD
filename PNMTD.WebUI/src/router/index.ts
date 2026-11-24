@@ -458,7 +458,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'responsibility-edit',
     component: () => import('@/views/admin/responsibilities/ResponsibilityEditView.vue'),
     props: true,
-    meta: { title: 'Edit responsibility', right: ['Responsibilities', 'Manage'] },
+    meta: { title: 'Edit responsibility', right: ['Responsibilities', 'Edit'] },
   },
   {
     path: '/admin/location-fields',

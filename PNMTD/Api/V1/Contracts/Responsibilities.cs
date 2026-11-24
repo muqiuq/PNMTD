@@ -112,11 +112,13 @@ public sealed record ResponsibilityPeople(IReadOnlyList<ResponsibilityPersonOpti
 public sealed record ResponsibilityPersonOption(Guid Id, string Name, string Username, bool RedmineLinked);
 
 /// <summary>A history row (§10.5); a description's texts come with <c>GET …/history/{rowId}</c>.</summary>
-public sealed record ResponsibilityHistoryItem(Guid Id, DateTime At, string ByName, Models.Db.ResponsibilityHistoryKind Kind, string? Detail);
+/// <remarks><see cref="Via"/>: "mcp" for a change made over MCP (docs/mcp-extensions-plan.md §8.2).</remarks>
+public sealed record ResponsibilityHistoryItem(Guid Id, DateTime At, string ByName, Models.Db.ResponsibilityHistoryKind Kind, string? Detail,
+    string? Via);
 
 /// <summary>A history row with the description before and after it.</summary>
 public sealed record ResponsibilityHistoryDetail(Guid Id, DateTime At, string ByName, Models.Db.ResponsibilityHistoryKind Kind, string? Detail,
-    string? OldValue, string? NewValue);
+    string? OldValue, string? NewValue, string? Via);
 
 /// <summary>
 /// A Redmine project and a tracker (null: every tracker), listed on a responsibility with the user who handles it (§6). Names are

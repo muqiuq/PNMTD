@@ -4,7 +4,10 @@ using PNMTD.Api.V1.Contracts;
 using PNMTD.Audit;
 using PNMTD.Auth.Rights;
 using PNMTD.Data;
+using PNMTD.Lib.Certificates;
+using PNMTD.Lib.Mikrotik;
 using PNMTD.Lib.Models.Enum;
+using PNMTD.Lib.Udp;
 using PNMTD.Locations;
 using PNMTD.Models.Db;
 using PNMTD.Models.Enums;
@@ -29,7 +32,53 @@ public static class MonitoringWriteTools
         SensorType.SSL_CERTIFICATE,
         // docs/advanced-sensor-plan.md §11: with the starter rule; its rules are made in PNMT.
         SensorType.ADVANCED,
+        // docs/mcp-extensions-plan.md §3.1: the router waits for its join script, which router_join_script gives for direct SSH.
+        SensorType.MIKROTIK,
     ];
+
+    /// <summary>A new router's interval and grace period when left out, as the sensor form starts them.</summary>
+    public const int RouterInterval = 300, RouterGrace = 600;
+
+    private static readonly JsonElement NoArgs = JsonDocument.Parse("{}").RootElement.Clone();
+
+    private static Field MikrotikField() => Nested("mikrotik", "A MIKROTIK router's settings. Management access, secrets in exports, diagnostics and " +
+            "encrypted backups are an admin's, in PNMT.",
+        Choice("mode", "WireGuardSsh (when left out): PNMT's tunnel and SSH through it; WireGuardOnly: the tunnel alone; DirectSsh: SSH to an address " +
+            "PNMTD can reach, no tunnel", Enum.GetNames<MikrotikMode>()),
+        Text("address", "Direct SSH: the router's host name or address, as PNMTD reaches it"),
+        Int("sshPort", "22 when left out"),
+        Text("sourceAddress", "Direct SSH: PNMTD's address (or network) as the router sees it; the pnmt user may log in only from it. Left out: from anywhere"),
+        Int("backupIntervalHours", "A configuration export every 1 to 8760 hours, 0 for none; left out: the installation's default"));
+
+    private static Field CertificateField() => Nested("certificate", "An SSL_CERTIFICATE sensor's trust and rules; on a change, what is left out stays. " +
+            "Needs Certificates: Edit.",
+        Choice("trust", "Public (when left out on create): public CAs; Private: the private CAs in authorityIds. Pinned is set on the sensor's page in " +
+            "PNMT: it trusts the certificate a person accepted", ["Public", "Private"]),
+        Ids("authorityIds", "Private: the private CAs, from certificate_authorities", required: false),
+        Bool("checkName", "The certificate must name the address"), Bool("checkExpiry", "Fail before and at expiry"),
+        Bool("incompleteChainFails", "A chain the server sends incomplete fails"),
+        Text("serverName", "The name sent in the handshake (SNI) when it isn't the address's; an empty text clears it"),
+        Text("connectTo", "Connect to this host or address instead, keeping the name; an empty text clears it"),
+        Int("warnDays", "Fail this many days before expiry, 1 to 365"),
+        Bool("alertOnCertificateChange", "Fail on a new certificate until accepted"), Bool("alertOnKeyChange", "Fail on a new key until accepted"),
+        Bool("alertOnIssuerChange", "Fail on a new issuer until accepted"),
+        Choice("issuerMatch", "How a new issuer is compared", Enum.GetNames<CertificateIssuerMatch>()));
+
+    private static Field ZabbixField() => Nested("zabbix", "A ZABBIX sensor's rules; what is left out stays. Its Zabbix host stays: attach another with " +
+            "zabbix_attach. Needs Zabbix: View.",
+        Choice("minSeverity", "Problems from this severity up fail it", Enum.GetNames<ZabbixSeverity>()),
+        Bool("countAcknowledged", "Acknowledged problems count"), Bool("countSuppressed", "Suppressed problems count"),
+        Bool("unavailableFails", "An unavailable interface fails it"));
+
+    private static Field UdpField() => Nested("udp", "A UDP_NODE's protocol settings (docs/udp-protocol.md); on a change, what is left out stays. Never " +
+            "its key or token: they are on its page in PNMT.",
+        Int("deviceId", "1 to 4294967295; a random free one on create when left out"),
+        Choice("keyFamily", "HmacSha256 when left out. At creation only: a new family means a new key", Enum.GetNames<KeyFamily>()),
+        Choices("allowedSuites", "The suites it accepts: None, Token32, or the family's; left out on create: the family's 32-bit MAC", Enum.GetNames<SecuritySuite>()),
+        Choice("sessionMode", "None when left out on create", Enum.GetNames<UdpSessionMode>()),
+        Choice("ackMode", "OnRequest when left out on create", Enum.GetNames<UdpAckMode>()),
+        Bool("replayProtection", "true when left out on create"),
+        Text("responseSuite", "The suite it answers in: a suite's name, or uplink for the one each uplink came with"));
 
     public static readonly IReadOnlyList<ToolSpec> All =
     [
@@ -50,21 +99,31 @@ public static class MonitoringWriteTools
             Schema(Ids("hostIds", "The hosts' ids, 1 to 100"), Choice("importance", "The importance", Enum.GetNames<Importance>(), true)),
             Area.Monitoring, Level.Edit, ToolKind.Write, HostsImportanceAsync) { AuditEvents = [AuditEvents.HostsImportanceChanged], Idempotent = true },
         new("sensor_create", "Create a sensor",
-            $"A new sensor on a host, of one of these types: {string.Join(", ", CreatableTypes)}. Its URL, tokens and keys are on its page in PNMT, never here. " +
-            "MikroTik routers, servers with an agent and Zabbix sensors are added in PNMT (or zabbix_attach).",
+            $"A new sensor on a host, of one of these types: {string.Join(", ", CreatableTypes)}. sensor_types says what each does and what its " +
+            "parameters mean. A type's own settings go in its object (mikrotik, certificate, udp). Its URL, tokens and keys are on its page in PNMT, " +
+            "never here. A MIKROTIK router then needs its join script: router_join_script gives it for direct SSH; the WireGuard modes' is on the " +
+            "sensor's page in PNMT. Servers with an agent are added in PNMT, Zabbix sensors with zabbix_attach.",
             Schema(Id("hostId", "The host"), Choice("type", "The sensor type", CreatableTypes.Select(t => t.ToString()), true), Text("name", "1 to 200 characters", true),
-                Int("intervalSeconds", "The check or report interval; needed for heartbeats, ping and UDP nodes"), Int("gracePeriodSeconds", "How late a heartbeat may be"),
-                Text("parameters", "The type's parameters, as in PNMT's form (a ping target, a value check)"), Text("notes", "Notes"),
-                Choice("importance", "Left out: the host's", Enum.GetNames<Importance>()), Bool("enabled", "true when left out")),
+                Int("intervalSeconds", $"The check or report interval; needed for heartbeats, ping and UDP nodes; a router's {RouterInterval} when left out"),
+                Int("gracePeriodSeconds", $"How late a heartbeat may be; a router's {RouterGrace} when left out"),
+                Text("parameters", "The type's parameters, as sensor_types describes them (a ping target, a regular expression, host:port)"), Text("notes", "Notes"),
+                Choice("importance", "Left out: the host's", Enum.GetNames<Importance>()), Bool("enabled", "true when left out"),
+                MikrotikField(), CertificateField(), UdpField()),
             Area.Monitoring, Level.Edit, ToolKind.Write, SensorCreateAsync) { AuditEvents = [AuditEvents.SensorCreated] },
         new("sensor_update", "Change a sensor",
-            "Changes the given fields of a sensor (name, enabled, ignored, interval, grace period, parameters, notes, importance); the others, its type, " +
-            "tokens and keys stay as they are. Disabling or ignoring a sensor is how to silence it.",
+            "Changes the given fields of a sensor (name, enabled, ignored, interval, grace period, parameters, notes, importance, and a type's own " +
+            "settings in certificate, zabbix or udp); the others, its type, tokens and keys stay as they are. A router's settings stay as they are. " +
+            "Disabling or ignoring a sensor is how to silence it.",
             Schema(Id("id", "The sensor's id"), Text("name", "1 to 200 characters"), Bool("enabled", "Monitored or not"), Bool("ignore", "Ignored: its failures don't count"),
                 Int("intervalSeconds", "The check or report interval"), Int("gracePeriodSeconds", "How late a heartbeat may be"), Text("parameters", "The type's parameters"),
                 Text("notes", "Notes; an empty text clears them"), Choice("importance", "Its importance", Enum.GetNames<Importance>()),
-                Bool("hostImportance", "true to take the host's importance instead of its own")),
+                Bool("hostImportance", "true to take the host's importance instead of its own"),
+                CertificateField(), ZabbixField(), UdpField()),
             Area.Monitoring, Level.Edit, ToolKind.Write, SensorUpdateAsync) { AuditEvents = [AuditEvents.SensorUpdated], Idempotent = true },
+        new("sensors_set_importance", "Set sensors' importance", "Sets the importance of up to 100 sensors, or gives them their host's again.",
+            Schema(Ids("sensorIds", "The sensors' ids, 1 to 100"), Choice("importance", "The importance", Enum.GetNames<Importance>()),
+                Bool("hostImportance", "true to give them their host's importance instead")),
+            Area.Monitoring, Level.Edit, ToolKind.Write, SensorsImportanceAsync) { AuditEvents = [AuditEvents.SensorsImportanceChanged], Idempotent = true },
         new("sensor_notification_rule", "Link a sensor to a rule",
             "Links a sensor to an existing notification rule, or unlinks it. Rules themselves and their recipients are changed in PNMT only.",
             Schema(Id("sensorId", "The sensor"), Id("ruleId", "The notification rule"), Choice("action", "link or unlink", ["link", "unlink"], true)),
@@ -166,11 +225,158 @@ public static class MonitoringWriteTools
             x.Id, x.Name, x.Type, x.ParentId, Host = x.Parent.Name, x.Enabled, x.Ignore, x.Interval, x.GracePeriod, x.Parameters, x.Notes, x.Importance,
         }).SingleAsync(ct);
         ctx.Target("Sensor", s.Id, $"{s.Host} / {s.Name}");
+        var router = s.Type == SensorType.MIKROTIK
+            ? await db.MikrotikRouters.AsNoTracking().Where(r => r.SensorId == id).Select(r => new { r.Mode, r.SetupState, r.Address, r.SshPort, r.BackupIntervalHours })
+                .SingleOrDefaultAsync(ct)
+            : null;
         return new
         {
             s.Id, s.Name, Type = s.Type.ToString(), HostId = s.ParentId, s.Host, s.Enabled, s.Ignore, IntervalSeconds = s.Interval, GracePeriodSeconds = s.GracePeriod,
             Parameters = ToolSafety.WithoutCredentials(s.Parameters), s.Notes, OwnImportance = s.Importance,
+            Router = router,
+            Next = router is null ? null
+                : router.SetupState != MikrotikSetupState.AwaitingRouter ? null
+                : router.Mode == MikrotikMode.DirectSsh
+                    ? "Fetch the join script with router_join_script and paste it into the router's terminal (or import it as a .rsc file)."
+                    : "The join script is on the sensor's page in PNMT: it holds the router's WireGuard private key, so it never comes over MCP.",
             Note = "Its URL, tokens and keys are on its page in PNMT.", Url = ctx.Link($"sensors/{s.Id}"),
+        };
+    }
+
+    /// <summary>The objects a type's own settings come in (docs/mcp-extensions-plan.md §3): only the sensor's type's.</summary>
+    private static readonly (string Name, SensorType Type)[] TypeObjects =
+    [
+        ("mikrotik", SensorType.MIKROTIK), ("certificate", SensorType.SSL_CERTIFICATE), ("zabbix", SensorType.ZABBIX), ("udp", SensorType.UDP_NODE),
+    ];
+
+    private static void OnlyTheTypes(JsonElement args, SensorType type)
+    {
+        foreach (var (name, of) in TypeObjects)
+        {
+            if (Has(args, name) && of != type)
+            {
+                throw ToolException.Invalid($"{name} is for a {of} sensor, not a {type} one.");
+            }
+        }
+    }
+
+    private static void CertificatesEdit(ToolContext ctx)
+    {
+        if (!ctx.Rights.Has(Area.Certificates, Level.Edit))
+        {
+            // Cookie calls without a request, so SensorService can't ask its caller (docs/ssl-certificate-plan.md §6.1).
+            throw new ToolException("missing_right", "An SSL certificate sensor's settings need Certificates: Edit besides Monitoring: Edit.");
+        }
+    }
+
+    /// <summary>A new router's settings (§3.1): never the admin's; the backup schedule left out is the installation's.</summary>
+    private static async Task<MikrotikRouterRequest> MikrotikAsync(JsonElement? o, PnmtdDbContext db, CancellationToken ct)
+    {
+        var m = o ?? NoArgs;
+        int? hours;
+        if (Has(m, "backupIntervalHours"))
+        {
+            hours = IntOf(m, "backupIntervalHours") is var h && h == 0 ? null : h;
+        }
+        else
+        {
+            var defaults = await db.MikrotikSettings.AsNoTracking().SingleOrDefaultAsync(s => s.Id == MikrotikSettingsEntity.SingletonId, ct);
+            hours = defaults is null ? 24 : defaults.DefaultBackupIntervalHours;
+        }
+        return new MikrotikRouterRequest
+        {
+            Mode = OptionalEnum<MikrotikMode>(m, "mode") ?? MikrotikMode.WireGuardSsh,
+            Address = OptionalText(m, "address", 253),
+            SshPort = IntOf(m, "sshPort", 22),
+            SourceAddress = OptionalText(m, "sourceAddress", 64),
+            BackupIntervalHours = hours,
+        };
+    }
+
+    /// <summary>An SSL sensor's settings (§3.3), merged with its current ones; never switched to Pinned.</summary>
+    private static async Task<CertificateSensorRequest?> CertificateAsync(JsonElement? o, Guid? sensorId, PnmtdDbContext db, CancellationToken ct)
+    {
+        if (o is not { } c)
+        {
+            return null;
+        }
+        var existing = sensorId is { } id ? await db.CertificateSensors.AsNoTracking().SingleOrDefaultAsync(x => x.SensorId == id, ct) : null;
+        var trust = OptionalEnum<CertificateTrust>(c, "trust");
+        if (trust == CertificateTrust.Pinned && existing?.Trust != CertificateTrust.Pinned)
+        {
+            throw ToolException.Invalid("Pinned trusts the certificate a person accepted: it is set on the sensor's page in PNMT.");
+        }
+        string? Kept(string name, string? old) => OptionalText(c, name, 253) is { } t ? (t.Length == 0 ? null : t) : old;
+        return new CertificateSensorRequest
+        {
+            Trust = trust ?? existing?.Trust ?? CertificateTrust.Public,
+            AuthorityIds = OptionalIds(c, "authorityIds", 50)?.ToList(),
+            CheckName = OptionalBool(c, "checkName"),
+            CheckExpiry = OptionalBool(c, "checkExpiry"),
+            IncompleteChainFails = OptionalBool(c, "incompleteChainFails"),
+            ServerName = Kept("serverName", existing?.ServerName),
+            ConnectTo = Kept("connectTo", existing?.ConnectTo),
+            WarnDays = Has(c, "warnDays") ? IntOf(c, "warnDays") : null,
+            AlertOnCertificateChange = OptionalBool(c, "alertOnCertificateChange"),
+            AlertOnKeyChange = OptionalBool(c, "alertOnKeyChange"),
+            AlertOnIssuerChange = OptionalBool(c, "alertOnIssuerChange"),
+            IssuerMatch = OptionalEnum<CertificateIssuerMatch>(c, "issuerMatch"),
+        };
+    }
+
+    /// <summary>A Zabbix sensor's rules (§3.4), merged with its current ones; its Zabbix host stays.</summary>
+    private static async Task<ZabbixSensorRequest?> ZabbixAsync(JsonElement? o, ToolContext ctx, Guid sensorId, PnmtdDbContext db, CancellationToken ct)
+    {
+        if (o is not { } z)
+        {
+            return null;
+        }
+        if (!ctx.Rights.Has(Area.Zabbix, Level.View))
+        {
+            throw new ToolException("missing_right", "A Zabbix sensor's rules need Zabbix: View besides Monitoring: Edit.");
+        }
+        var row = await db.ZabbixSensors.AsNoTracking().SingleOrDefaultAsync(x => x.SensorId == sensorId, ct)
+            ?? throw ToolException.NotFound("Zabbix sensor");
+        return new ZabbixSensorRequest
+        {
+            ZabbixHostId = row.ZabbixHostId,
+            MinSeverity = OptionalEnum<ZabbixSeverity>(z, "minSeverity") ?? row.MinSeverity,
+            CountAcknowledged = OptionalBool(z, "countAcknowledged") ?? row.CountAcknowledged,
+            CountSuppressed = OptionalBool(z, "countSuppressed") ?? row.CountSuppressed,
+            UnavailableFails = OptionalBool(z, "unavailableFails") ?? row.UnavailableFails,
+        };
+    }
+
+    /// <summary>A UDP node's settings (§3.5), merged with its current ones; never a key, and never a new key family on a change.</summary>
+    private static async Task<UdpNodeRequest?> UdpAsync(JsonElement? o, Guid? sensorId, PnmtdDbContext db, CancellationToken ct)
+    {
+        if (o is not { } u)
+        {
+            return null;
+        }
+        var node = sensorId is { } id ? await db.UdpNodes.AsNoTracking().SingleOrDefaultAsync(n => n.SensorId == id, ct) : null;
+        var family = OptionalEnum<KeyFamily>(u, "keyFamily");
+        if (node is not null && family is { } f && f != node.KeyFamily)
+        {
+            throw ToolException.Invalid("A new key family means a new key, which cuts the device off until it has it: change it on the sensor's page in PNMT.");
+        }
+        var response = node?.ResponseSuite;
+        if (OptionalText(u, "responseSuite", 32) is { } r)
+        {
+            response = r.Equals("uplink", StringComparison.OrdinalIgnoreCase) ? null
+                : Enum.TryParse<SecuritySuite>(r, ignoreCase: true, out var suite) && Enum.IsDefined(suite) ? suite
+                : throw ToolException.Invalid($"responseSuite is uplink or one of {string.Join(", ", Enum.GetNames<SecuritySuite>())}.");
+        }
+        return new UdpNodeRequest
+        {
+            DeviceId = OptionalLong(u, "deviceId") ?? node?.DeviceId,
+            KeyFamily = family ?? node?.KeyFamily ?? KeyFamily.HmacSha256,
+            AllowedSuites = OptionalEnums<SecuritySuite>(u, "allowedSuites")?.ToList()
+                ?? (node is null ? null : [.. SecuritySuites.FromMask(node.AllowedSuites)]),
+            SessionMode = OptionalEnum<UdpSessionMode>(u, "sessionMode") ?? node?.SessionMode ?? UdpSessionMode.None,
+            AckMode = OptionalEnum<UdpAckMode>(u, "ackMode") ?? node?.AckMode ?? UdpAckMode.OnRequest,
+            ReplayProtection = OptionalBool(u, "replayProtection") ?? node?.ReplayProtection ?? true,
+            ResponseSuite = response,
         };
     }
 
@@ -181,25 +387,47 @@ public static class MonitoringWriteTools
         {
             throw ToolException.Invalid($"A {type} sensor is added in PNMT, not over MCP.");
         }
-        if (type == SensorType.SSL_CERTIFICATE && !ctx.Rights.Has(Area.Certificates, Level.Edit))
+        OnlyTheTypes(args, type);
+        if (Has(args, "zabbix"))
         {
-            // Cookie calls without a request, so SensorService can't ask its caller (docs/ssl-certificate-plan.md §6.1).
-            throw new ToolException("missing_right", "An SSL certificate sensor needs Certificates: Edit besides Monitoring: Edit.");
+            throw ToolException.Invalid("A Zabbix sensor is made with zabbix_attach.");
         }
+        if (type == SensorType.SSL_CERTIFICATE)
+        {
+            CertificatesEdit(ctx);
+        }
+        var router = type == SensorType.MIKROTIK;
         var created = await ctx.Services.GetRequiredService<SensorService>().CreateAsync(new SensorRequest
         {
             HostId = IdOf(args, "hostId"),
             Type = type,
             Name = TextOf(args, "name", 1, 200),
-            Interval = IntOf(args, "intervalSeconds", 0),
-            GracePeriod = IntOf(args, "gracePeriodSeconds", 0),
+            Interval = IntOf(args, "intervalSeconds", router ? RouterInterval : 0),
+            GracePeriod = IntOf(args, "gracePeriodSeconds", router ? RouterGrace : 0),
             Parameters = OptionalText(args, "parameters", 4000),
             Notes = OptionalText(args, "notes", 4000),
             Importance = OptionalEnum<Importance>(args, "importance"),
             Enabled = OptionalBool(args, "enabled") ?? true,
+            Mikrotik = router ? await MikrotikAsync(ObjectOf(args, "mikrotik"), db, ct) : null,
+            Certificate = await CertificateAsync(ObjectOf(args, "certificate"), null, db, ct),
+            Udp = await UdpAsync(ObjectOf(args, "udp"), null, db, ct),
         }, ct);
         ctx.Summary = $"created {type} sensor {created.Name}";
         return await SensorResultAsync(ctx, db, created.Id, ct);
+    }
+
+    private static async Task<object> SensorsImportanceAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
+    {
+        var ids = IdsOf(args, "sensorIds", 100);
+        var host = OptionalBool(args, "hostImportance") == true;
+        var importance = OptionalEnum<Importance>(args, "importance");
+        if (host == (importance is not null))
+        {
+            throw ToolException.Invalid("Give importance, or hostImportance: true.");
+        }
+        var changed = await ctx.Services.GetRequiredService<SensorService>().SetImportanceAsync(new ImportanceRequest { Ids = ids, Importance = importance }, ct);
+        ctx.Summary = $"{changed} of {ids.Count} sensors set to {importance?.ToString() ?? "their host's importance"}";
+        return new { Changed = changed, Importance = importance?.ToString() ?? "the host's" };
     }
 
     private static async Task<object> SensorUpdateAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
@@ -207,7 +435,16 @@ public static class MonitoringWriteTools
         var id = IdOf(args);
         var s = await db.Sensors.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw ToolException.NotFound("sensor");
         var notes = OptionalText(args, "notes", 4000);
-        // The sub-settings (a UDP node's, a router's, a Zabbix sensor's) are left out, which keeps them as they are.
+        OnlyTheTypes(args, s.Type);
+        if (Has(args, "mikrotik"))
+        {
+            throw ToolException.Invalid("A router's settings are changed on its page in PNMT.");
+        }
+        if (Has(args, "certificate"))
+        {
+            CertificatesEdit(ctx);
+        }
+        // A type's settings left out (a UDP node's, a router's, a Zabbix or certificate sensor's) stay as they are.
         await ctx.Services.GetRequiredService<SensorService>().UpdateAsync(id, new SensorRequest
         {
             HostId = s.ParentId,
@@ -221,6 +458,9 @@ public static class MonitoringWriteTools
             TextId = s.TextId,
             Notes = notes is null ? s.Notes : notes.Length == 0 ? null : notes,
             Importance = OptionalBool(args, "hostImportance") == true ? null : OptionalEnum<Importance>(args, "importance") ?? s.Importance,
+            Certificate = await CertificateAsync(ObjectOf(args, "certificate"), id, db, ct),
+            Zabbix = await ZabbixAsync(ObjectOf(args, "zabbix"), ctx, id, db, ct),
+            Udp = await UdpAsync(ObjectOf(args, "udp"), id, db, ct),
         }, withSecrets: false, ct);
         ctx.Summary = $"changed sensor {s.Name}";
         return await SensorResultAsync(ctx, db, id, ct);

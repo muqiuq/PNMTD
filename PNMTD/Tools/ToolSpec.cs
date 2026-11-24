@@ -48,6 +48,12 @@ public sealed record ToolSpec(
     /// <summary>The events it may write, as <c>[Audit]</c> names them on the endpoint: required for writes, actions and deletes.</summary>
     public IReadOnlyList<string> AuditEvents { get; init; } = [];
 
+    /// <summary>
+    /// A write whose endpoint is <c>[NotAudited]</c>, with the endpoint's reason, as a like is "a reaction, not an operation"
+    /// (docs/mcp-extensions-plan.md §6): it writes no audit entry; the MCP log has the call.
+    /// </summary>
+    public string? NotAudited { get; init; }
+
     /// <summary>It affects a device or removes something: MCP's <c>destructiveHint</c>, so clients ask the person first.</summary>
     public bool Destructive { get; init; }
 
@@ -117,6 +123,80 @@ public static class ToolArgs
     {
         Extra = new JsonObject { ["items"] = new JsonObject { ["type"] = "string", ["format"] = "uuid" } },
     };
+
+    /// <summary>A list of texts.</summary>
+    public static Field Texts(string name, string description, bool required = false) => new(name, "array", description, required)
+    {
+        Extra = new JsonObject { ["items"] = new JsonObject { ["type"] = "string" } },
+    };
+
+    /// <summary>A list of texts, or null when left out; each trimmed, empty ones dropped.</summary>
+    public static IReadOnlyList<string>? OptionalTexts(JsonElement args, string name, int maxItems, int maxChars)
+    {
+        if (!Has(args, name))
+        {
+            return null;
+        }
+        if (args.GetProperty(name) is not { ValueKind: JsonValueKind.Array } list || list.EnumerateArray().Any(i => i.ValueKind != JsonValueKind.String))
+        {
+            throw ToolException.Invalid($"{name} must be a list of texts.");
+        }
+        var texts = list.EnumerateArray().Select(i => i.GetString()!.Trim()).Where(t => t.Length > 0).Distinct().ToList();
+        return texts.Count > maxItems ? throw ToolException.Invalid($"{name} has at most {maxItems} items.")
+            : texts.Any(t => t.Length > maxChars) ? throw ToolException.Invalid($"{name}'s items have at most {maxChars} characters.")
+            : texts;
+    }
+
+    /// <summary>A list of texts, each one of <paramref name="values"/>.</summary>
+    public static Field Choices(string name, string description, IEnumerable<string> values, bool required = false) => new(name, "array", description, required)
+    {
+        Extra = new JsonObject { ["items"] = new JsonObject { ["type"] = "string", ["enum"] = new JsonArray([.. values.Select(v => (JsonNode)v)]) } },
+    };
+
+    /// <summary>A nested object with fields of its own, as a sensor type's settings (docs/mcp-extensions-plan.md §3).</summary>
+    public static Field Nested(string name, string description, params Field[] fields) => new(name, "object", description)
+    {
+        Extra = Schema(fields),
+    };
+
+    /// <summary>A nested object's arguments, or null when left out.</summary>
+    public static JsonElement? ObjectOf(JsonElement args, string name) =>
+        !Has(args, name) ? null
+            : args.GetProperty(name) is { ValueKind: JsonValueKind.Object } o ? o
+            : throw ToolException.Invalid($"{name} must be an object.");
+
+    /// <summary>A list of ids, or null when left out; an empty list is allowed.</summary>
+    public static IReadOnlyList<Guid>? OptionalIds(JsonElement args, string name, int max)
+    {
+        if (!Has(args, name))
+        {
+            return null;
+        }
+        if (args.GetProperty(name).ValueKind != JsonValueKind.Array)
+        {
+            throw ToolException.Invalid($"{name} must be a list of ids.");
+        }
+        var ids = args.GetProperty(name).EnumerateArray()
+            .Select(i => i.ValueKind == JsonValueKind.String && Guid.TryParse(i.GetString(), out var id) ? id : throw ToolException.Invalid($"{name} must be a list of ids."))
+            .Distinct().ToList();
+        return ids.Count <= max ? ids : throw ToolException.Invalid($"{name} has at most {max} ids.");
+    }
+
+    /// <summary>A list of enum names, or null when left out.</summary>
+    public static IReadOnlyList<T>? OptionalEnums<T>(JsonElement args, string name) where T : struct, Enum
+    {
+        if (!Has(args, name))
+        {
+            return null;
+        }
+        if (args.GetProperty(name).ValueKind != JsonValueKind.Array)
+        {
+            throw ToolException.Invalid($"{name} must be a list.");
+        }
+        return [.. args.GetProperty(name).EnumerateArray().Select(i =>
+            i.ValueKind == JsonValueKind.String && Enum.TryParse<T>(i.GetString(), ignoreCase: true, out var value) && Enum.IsDefined(value) ? value
+                : throw ToolException.Invalid($"{name} holds names of {string.Join(", ", Enum.GetNames<T>())}.")).Distinct()];
+    }
 
     /// <summary>The paging pair every list takes (§6.3).</summary>
     public static readonly Field[] PageArgs =

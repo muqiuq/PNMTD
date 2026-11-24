@@ -37,6 +37,8 @@ const router = useRouter()
 const session = useSession()
 const queryClient = useQueryClient()
 const { run, done, ask, notify } = useActions()
+// Edit changes it; deleting it is Manage's (docs/mcp-extensions-plan.md §8.1).
+const edit = computed(() => session.can('Responsibilities', 'Edit'))
 const manage = computed(() => session.can('Responsibilities', 'Manage'))
 
 const responsibility = useQuery({
@@ -194,7 +196,7 @@ async function remove() {
           <div class="panel-header with-action">
             <span id="description-title">Description</span>
             <Button
-              v-if="manage && r.description.trim()"
+              v-if="edit && r.description.trim()"
               as="router-link"
               :to="{ name: 'responsibility-edit', params: { id } }"
               label="Edit"
@@ -208,7 +210,7 @@ async function remove() {
             <MarkdownView v-if="r.description.trim()" :source="r.description" :files="r.files" />
             <p v-else class="muted none">
               No description yet.
-              <RouterLink v-if="manage" :to="{ name: 'responsibility-edit', params: { id } }">Write one</RouterLink>
+              <RouterLink v-if="edit" :to="{ name: 'responsibility-edit', params: { id } }">Write one</RouterLink>
             </p>
           </div>
         </section>
@@ -216,7 +218,7 @@ async function remove() {
         <div class="side">
           <section class="panel" aria-labelledby="details-title">
             <div id="details-title" class="panel-header">Details</div>
-            <form v-if="manage" class="panel-body form" novalidate @submit.prevent="save">
+            <form v-if="edit" class="panel-body form" novalidate @submit.prevent="save">
               <div class="field">
                 <label for="r-name">Name</label>
                 <InputText id="r-name" v-model="form.name" :invalid="!!errors.name" />
@@ -284,7 +286,7 @@ async function remove() {
                     >
                   </span>
                   <Button
-                    v-if="manage"
+                    v-if="edit"
                     icon="pi pi-times"
                     text
                     rounded
@@ -296,7 +298,7 @@ async function remove() {
                 </li>
               </ul>
               <LinkPicker
-                v-if="manage"
+                v-if="edit"
                 class="picker"
                 :kinds="['Page', 'Location', 'Host']"
                 :exclude="r.links"
@@ -310,7 +312,7 @@ async function remove() {
             <div class="panel-header with-action">
               <span id="redmine-title">Redmine</span>
               <Button
-                v-if="manage"
+                v-if="edit"
                 label="Add…"
                 icon="pi pi-plus"
                 size="small"
@@ -325,7 +327,7 @@ async function remove() {
                 <li v-for="c in r.redmine" :key="c.id">
                   <i class="pi pi-ticket muted" aria-hidden="true" />
                   <span class="link-text">
-                    <a v-if="manage" href="#" @click.prevent="openCombination(c)">{{ combinationLabel(c) }}</a>
+                    <a v-if="edit" href="#" @click.prevent="openCombination(c)">{{ combinationLabel(c) }}</a>
                     <span v-else>{{ combinationLabel(c) }}</span>
                     <span class="muted detail">
                       <span v-if="!c.user" class="warn">Nobody (user removed)</span>
@@ -337,7 +339,7 @@ async function remove() {
                     >
                   </span>
                   <Button
-                    v-if="manage"
+                    v-if="edit"
                     icon="pi pi-times"
                     text
                     rounded
@@ -353,7 +355,7 @@ async function remove() {
         </div>
       </div>
 
-      <ResponsibilityHistory v-else :id="id" :manage="manage" />
+      <ResponsibilityHistory v-else :id="id" :edit="edit" />
       <CombinationDialog
         v-model:visible="editingCombination"
         :combination="combination"

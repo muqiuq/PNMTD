@@ -37744,7 +37744,8 @@
       "BoardMessageSource": {
         "enum": [
           "Person",
-          "Cookie"
+          "Cookie",
+          "Mcp"
         ]
       },
       "BoardMessageView": {
@@ -65428,7 +65429,8 @@
           "kind",
           "detail",
           "oldValue",
-          "newValue"
+          "newValue",
+          "via"
         ],
         "type": "object",
         "properties": {
@@ -65463,6 +65465,12 @@
               "null",
               "string"
             ]
+          },
+          "via": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -65472,7 +65480,8 @@
           "at",
           "byName",
           "kind",
-          "detail"
+          "detail",
+          "via"
         ],
         "type": "object",
         "properties": {
@@ -65491,6 +65500,12 @@
             "$ref": "#/components/schemas/ResponsibilityHistoryKind"
           },
           "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "via": {
             "type": [
               "null",
               "string"

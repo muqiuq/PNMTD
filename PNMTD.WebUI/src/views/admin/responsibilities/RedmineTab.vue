@@ -16,7 +16,7 @@ import CombinationDialog from './CombinationDialog.vue'
  * Every Redmine combination (docs/responsibilities-plan.md §9.5): which project and tracker each responsibility lists, and who
  * handles it there. Information only: no ticket is matched or changed.
  */
-defineProps<{ manage: boolean }>()
+defineProps<{ edit: boolean }>()
 const { run, ask } = useActions()
 
 const combinations = useQuery({
@@ -113,7 +113,7 @@ async function remove(c: RedmineCombination) {
       aria-label="User"
     />
     <Button
-      v-if="manage"
+      v-if="edit"
       class="new"
       label="Add a combination"
       icon="pi pi-plus"
@@ -135,8 +135,8 @@ async function remove(c: RedmineCombination) {
     size="small"
     class="panel"
     data-key="id"
-    :row-hover="manage"
-    @row-click="(e) => manage && open(e.data)"
+    :row-hover="edit"
+    @row-click="(e) => edit && open(e.data)"
   >
     <Column header="Project">
       <template #body="{ data, index }">
@@ -172,7 +172,7 @@ async function remove(c: RedmineCombination) {
         >
       </template>
     </Column>
-    <Column v-if="manage" style="width: 3rem">
+    <Column v-if="edit" style="width: 3rem">
       <template #body="{ data }">
         <span @click.stop>
           <MoreMenu
