@@ -14,6 +14,10 @@ import { fillDays, fillDaysErrors, formatPlanDate, typedDayForms, type FillDay }
  * *Fill again* with its options (docs/adjustments1.md): the future only, from a day to a day within the next 365; some people
  * or everyone; replacing only cells of some types; and, if asked for, what people set themselves. Empty cells are always
  * filled from each person's default week. The days can be picked or typed (docs/fill-again-typed-days-plan.md).
+ *
+ * The dialog opens with the cursor in From, and a calendar opens from its button (or ↓), not on focus: an open calendar
+ * moves the focus into itself after a re-render, and the dialog's focus trap moves it back to the close button, so text
+ * typed just then was lost, and the field read as it was.
  */
 const props = defineProps<{
   visible: boolean
@@ -140,6 +144,8 @@ function submit() {
               :max-date="last"
               date-format="d.m.yy"
               show-icon
+              :show-on-focus="false"
+              :pt="{ pcInputText: { root: { autofocus: true } } }"
               fluid
               :invalid="!!errors.from"
               @input="typed(from, $event)"
@@ -157,6 +163,7 @@ function submit() {
               :max-date="last"
               date-format="d.m.yy"
               show-icon
+              :show-on-focus="false"
               fluid
               :invalid="!!errors.to"
               @input="typed(to, $event)"

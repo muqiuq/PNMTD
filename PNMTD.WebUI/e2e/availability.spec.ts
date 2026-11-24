@@ -139,6 +139,15 @@ test('Fill again: the days typed, read and checked before anything is sent', asy
   await expect(from).toHaveValue(field(plan.today))
   await expect(to).toHaveValue(field(last))
   await expect(dialog).toContainText(new RegExp(`until ${dotted(last)}\\.`))
+  // The cursor in From once the dialog is open, and no calendar on focus: either moved the focus while text was typed,
+  // and the field kept its old day (CI, 2026-11-24). The calendar opens from its button.
+  await expect(from).toBeFocused()
+  await expect(page.locator('.p-datepicker-panel')).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'Choose Date' }).first().click()
+  await expect(page.locator('.p-datepicker-panel')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.p-datepicker-panel')).toHaveCount(0)
+  await expect(dialog).toBeVisible()
 
   // A day that doesn't exist: said under the field, which is empty.
   await from.fill('31.4.')
