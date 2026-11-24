@@ -110,12 +110,14 @@ web_holder() {
 in_web() { web_holder && "$ENGINE" exec -w /tmp/web "$WEB_HOLDER" "$@"; }
 
 # npm audit signatures, up to three times when the registry fails to answer: on 2026-11-24 it returned
-# "OK" instead of JSON for one package's attestations (FETCH_ERROR), and the next run passed. A missing
-# or invalid signature is npm's verdict, not a registry error: it fails at once.
+# "OK" instead of JSON for one package's attestations (FETCH_ERROR) on GitHub's runners. Each try has an
+# empty npm cache of its own (7 s): the registry lets an attestation be cached for a year, so npm kept
+# the broken answer, and a retry from the shared cache read it again instead of asking. A missing or
+# invalid signature is npm's verdict, not a registry error: it fails at once.
 audit_signatures() {
   local try out
   for try in 1 2 3; do
-    out="$(in_web npm audit signatures 2>&1)" && { printf '%s\n' "$out"; return 0; }
+    out="$(in_web npm audit signatures --cache "/tmp/npm-audit-$try" 2>&1)" && { printf '%s\n' "$out"; return 0; }
     printf '%s\n' "$out"
     grep -qE 'code (FETCH_ERROR|E429|E5[0-9][0-9]|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN)' <<<"$out" || return 1
     if [[ $try -lt 3 ]]; then
