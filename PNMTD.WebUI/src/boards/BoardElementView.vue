@@ -4,12 +4,14 @@ import CertificatesElement from './elements/CertificatesElement.vue'
 import ClockElement from './elements/ClockElement.vue'
 import FailingSensors from './elements/FailingSensors.vue'
 import HostBars from './elements/HostBars.vue'
+import ImageElement from './elements/ImageElement.vue'
 import LoungeElement from './elements/LoungeElement.vue'
 import NoteElement from './elements/NoteElement.vue'
 import NumberElement from './elements/NumberElement.vue'
 import OnDuty from './elements/OnDuty.vue'
 import RecentChanges from './elements/RecentChanges.vue'
 import RedmineOverview from './elements/RedmineOverview.vue'
+import SensorMessage from './elements/SensorMessage.vue'
 import SensorSummary from './elements/SensorSummary.vue'
 import StatusTiles from './elements/StatusTiles.vue'
 import TicketList from './elements/TicketList.vue'
@@ -52,9 +54,17 @@ const components: Record<BoardElementType, Component> = {
   Note: NoteElement,
   OnDuty,
   Certificates: CertificatesElement,
+  SensorMessage,
+  Image: ImageElement,
 }
 
-const title = computed(() => props.element.title ?? typeNames[props.element.type])
+/** A title of its own, else the type's; a sensor's message is titled by its sensor (docs/board-messages-plan.md §9.3). */
+const title = computed(() => {
+  if (props.element.title) return props.element.title
+  const sensor = props.data?.sensorMessage
+  if (props.element.type === 'SensorMessage' && sensor?.host) return `${sensor.host} / ${sensor.name}`
+  return typeNames[props.element.type]
+})
 const state = computed(() => props.data?.state ?? 'Ok')
 /** A snapshot older than five minutes says so: "as of 13:58". One that can't be read says that in its message. */
 const asOf = computed(() => {

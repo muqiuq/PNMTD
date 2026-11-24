@@ -147,9 +147,9 @@ public sealed class CookieRulesTests
 
         // Each limit is capped by its own ceiling: a field Within forgot would keep its 1000.
         var fields = typeof(OutputLimits).GetProperties().Where(p => p.PropertyType == typeof(int)).ToList();
-        var high = new OutputLimits(1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000);
-        var distinct = new OutputLimits(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
-        Assert.AreEqual(14, fields.Count, "a new limit needs its ceiling in CookieCeilingOptions and in Within");
+        var high = new OutputLimits(1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000);
+        var distinct = new OutputLimits(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+        Assert.AreEqual(16, fields.Count, "a new limit needs its ceiling in CookieCeilingOptions and in Within");
         var capped = high.Within(distinct);
         foreach (var p in fields)
         {

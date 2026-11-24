@@ -6,7 +6,10 @@ using PNMTD.Models.Db;
 
 namespace PNMTD.Files;
 
-/// <summary>What uses a file: a page, a location, or a responsibility's description (docs/responsibilities-plan.md §10.4).</summary>
+/// <summary>
+/// What uses a file: a page, a location, a responsibility's description (docs/responsibilities-plan.md §10.4), or a board's image
+/// element (docs/board-messages-plan.md §9.4).
+/// </summary>
 public readonly record struct FileOwner(FileUserKind Kind, Guid Id)
 {
     public static FileOwner Page(Guid id) => new(FileUserKind.Page, id);
@@ -14,6 +17,8 @@ public readonly record struct FileOwner(FileUserKind Kind, Guid Id)
     public static FileOwner Location(Guid id) => new(FileUserKind.Location, id);
 
     public static FileOwner Responsibility(Guid id) => new(FileUserKind.Responsibility, id);
+
+    public static FileOwner Board(Guid id) => new(FileUserKind.Board, id);
 }
 
 /// <summary>
@@ -43,17 +48,19 @@ public static class FileUses
         {
             FileUserKind.Page => await db.FileUses.Where(u => u.PageId == ownerId && ids.Contains(u.FileId)).Select(u => u.FileId).ToListAsync(ct),
             FileUserKind.Location => await db.FileUses.Where(u => u.LocationId == ownerId && ids.Contains(u.FileId)).Select(u => u.FileId).ToListAsync(ct),
+            FileUserKind.Board => await db.FileUses.Where(u => u.BoardId == ownerId && ids.Contains(u.FileId)).Select(u => u.FileId).ToListAsync(ct),
             _ => await db.FileUses.Where(u => u.ResponsibilityId == ownerId && ids.Contains(u.FileId)).Select(u => u.FileId).ToListAsync(ct),
         };
-        var (pageId, locationId, responsibilityId) = owner.Kind switch
+        var (pageId, locationId, responsibilityId, boardId) = owner.Kind switch
         {
-            FileUserKind.Page => ((Guid?)ownerId, (Guid?)null, (Guid?)null),
-            FileUserKind.Location => (null, ownerId, null),
-            _ => (null, null, ownerId),
+            FileUserKind.Page => ((Guid?)ownerId, (Guid?)null, (Guid?)null, (Guid?)null),
+            FileUserKind.Location => (null, ownerId, null, null),
+            FileUserKind.Board => (null, null, null, ownerId),
+            _ => (null, null, ownerId, null),
         };
         // Uses added earlier in the same unit of work, not saved yet.
-        used.AddRange(db.FileUses.Local.Where(u => u.PageId == pageId && u.LocationId == locationId && u.ResponsibilityId == responsibilityId)
-            .Select(u => u.FileId));
+        used.AddRange(db.FileUses.Local.Where(u => u.PageId == pageId && u.LocationId == locationId && u.ResponsibilityId == responsibilityId
+            && u.BoardId == boardId).Select(u => u.FileId));
         var now = Clock.UtcNow;
         var added = new List<Guid>();
         foreach (var file in ids.Select(id => files.FirstOrDefault(f => f.Id == id)).OfType<FileEntity>())
@@ -75,12 +82,24 @@ public static class FileUses
                 db.FileUses.Add(new FileUseEntity
                 {
                     Id = Guid.NewGuid(), FileId = file.Id, PageId = pageId, LocationId = locationId, ResponsibilityId = responsibilityId,
-                    FirstUsedAt = now,
+                    BoardId = boardId, FirstUsedAt = now,
                 });
                 used.Add(file.Id);
                 added.Add(file.Id);
             }
         }
         return added;
+    }
+
+    /// <summary>
+    /// A board's uses made to match the images its layout names (docs/board-messages-plan.md §9.4): the missing ones added (reviving a
+    /// file marked deleted), the others removed, so that a file no board or page uses any more goes the usual way. Doesn't save.
+    /// </summary>
+    public static async Task SyncBoardAsync(PnmtdDbContext db, Guid boardId, IEnumerable<Guid> fileIds, CancellationToken ct)
+    {
+        var ids = fileIds.Distinct().ToList();
+        var stale = await db.FileUses.Where(u => u.BoardId == boardId && !ids.Contains(u.FileId)).ToListAsync(ct);
+        db.FileUses.RemoveRange(stale);
+        await RecordAsync(db, ids, FileOwner.Board(boardId), ct);
     }
 }

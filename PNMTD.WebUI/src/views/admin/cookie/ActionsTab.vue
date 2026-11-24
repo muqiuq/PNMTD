@@ -2,10 +2,13 @@
 import { useQuery } from '@tanstack/vue-query'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
+import MultiSelect from 'primevue/multiselect'
 import SelectButton from 'primevue/selectbutton'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { computed } from 'vue'
+import { boardKeys, boardsApi } from '@/api/boards'
 import { api, keys, type S } from '@/api/resources'
+import { useSession } from '@/stores/session'
 import ErrorState from '@/components/ErrorState.vue'
 import { dutyLabel, type DutyKind } from '@/views/cookie/cookieFormat'
 import { actionDefaults, normalizeLevels, type ActionKey } from './cookieAdmin'
@@ -21,7 +24,13 @@ import { useCookieDefaults, useSection } from './useSection'
  * messages and the duties' alike. The ticket actions say when Redmine can't take them now, whatever their level
  * (docs/cookie-fallback-plan.md §6.2).
  */
-const s = useSection('actions', { normalize: (v) => ({ ...v, levels: normalizeLevels(v.levels) }) })
+const s = useSection('actions', {
+  normalize: (v) => ({
+    ...v,
+    levels: normalizeLevels(v.levels),
+    boardMessages: { boardIds: v.boardMessages?.boardIds ?? [], seconds: v.boardMessages?.seconds ?? 60 },
+  }),
+})
 const defaults = useCookieDefaults()
 const overview = useQuery({ queryKey: [...keys.cookie, 'admin', 'overview'], queryFn: api.cookie.overview })
 const integrations = computed(() => overview.data.value?.acting?.integrations ?? null)
@@ -34,8 +43,28 @@ const unavailable = (key: ActionKey): string | null => {
     return i.ticketProject ? null : "no project for Cookie's tickets (the Redmine tab)"
   }
   if (key === 'privateNote' || key === 'publicAnswer') return i.redmine.state !== 'writable' ? i.redmine.reason : null
+  if (key === 'boardMessage') {
+    // docs/board-messages-plan.md §8.1: both gates.
+    if (!(s.draft.value?.boardMessages?.boardIds ?? []).length) return 'no board chosen below'
+    if (overview.data.value?.acting && !overview.data.value.acting.boardsRight)
+      return "Cookie's group needs Boards: Message (the Rights tab)"
+  }
   return null
 }
+
+// --- board messages (docs/board-messages-plan.md §8.1) ---------------------------------------------------------------------
+const session = useSession()
+const boardList = useQuery({
+  queryKey: boardKeys.list(),
+  queryFn: boardsApi.list,
+  enabled: computed(() => session.can('Boards', 'View')),
+})
+const boardOptions = computed(() =>
+  (boardList.data.value ?? []).map((b) => ({
+    id: b.id,
+    label: `${b.name}${!b.enabled ? ' (off)' : !b.showsMessages ? ' (messages off)' : ''}${b.anywhere ? ' · from anywhere' : ''}`,
+  })),
+)
 
 const actions: { key: ActionKey; label: string; text: string }[] = [
   {
@@ -69,6 +98,11 @@ const actions: { key: ActionKey; label: string; text: string }[] = [
     key: 'accessNotice',
     label: 'Access notice',
     text: "Tells the contacts set under Access about an unusual login, as its verdict's row says. Auto is the safe choice: Propose holds a break-in in the inbox until someone looks. Below the minimum confidence a verdict goes one lower. Code's notice for strong signals goes out whatever the level.",
+  },
+  {
+    key: 'boardMessage',
+    label: 'Board message',
+    text: "A message box on the boards chosen below, for what a room should know now: an outage, maintenance as it starts, the all-clear. Never names, customers or addresses. Cookie's group needs Boards: Message; Seraph reviews it, outside working hours too, and a proposal waits at most 30 minutes.",
   },
   {
     key: 'awayNotice',
@@ -140,8 +174,10 @@ const limits: { key: Limit; label: string }[] = [
   { key: 'bigBrotherPerCaseDay', label: 'Big brother calls per case, a day' },
   { key: 'awayNoticesPerDay', label: 'Away notices, a day' },
   { key: 'awayNoticesPerPersonDay', label: 'Away notices per person, a day' },
+  { key: 'boardMessagesPerDay', label: 'Board messages, a day' },
+  { key: 'boardMessagesPerBoardHour', label: 'Board messages on one board, an hour' },
 ]
-const placed = (f: string) => f.startsWith('limits.') || f.startsWith('levels.')
+const placed = (f: string) => f.startsWith('limits.') || f.startsWith('levels.') || f.startsWith('boardMessages.')
 /**
  * A limit saved above its ceiling (docs/cookie-redmine-tab-plan.md §13): the ceilings are in the server's .env, and one lowered
  * there, or a rollback, can leave a saved value above it. The ceiling is what counts; the tab saves once the value is lowered.
@@ -225,6 +261,38 @@ const aboveCeiling = (key: Limit): number | null => {
                 </tr>
               </tbody>
             </table>
+          </div>
+          <div class="board-messages" data-test="cookie-board-messages">
+            <div class="label">Boards Cookie may send messages to</div>
+            <MultiSelect
+              v-model="s.draft.value.boardMessages!.boardIds"
+              :options="boardOptions"
+              option-label="label"
+              option-value="id"
+              display="chip"
+              placeholder="None: Cookie sends no board messages"
+              :disabled="!session.can('Boards', 'View')"
+              aria-label="Boards Cookie may send messages to"
+            />
+            <div class="pair-line">
+              <label for="actions-board-seconds">Shown for (seconds)</label>
+              <InputNumber
+                v-model="s.draft.value.boardMessages!.seconds"
+                input-id="actions-board-seconds"
+                :min="10"
+                :max="600"
+                show-buttons
+                size="small"
+                :invalid="!!s.error('boardMessages.seconds')"
+              />
+            </div>
+            <div class="muted small">
+              Only boards that are on and show messages get one. 10 s to 10 min, 60 s by default. A board open from
+              anywhere is read by anyone with its URL.
+            </div>
+            <small v-if="s.error('boardMessages.boardIds') || s.error('boardMessages.seconds')" class="field-error">{{
+              s.error('boardMessages.boardIds') ?? s.error('boardMessages.seconds')
+            }}</small>
           </div>
           <div class="duty veto">
             <InputNumber
@@ -368,6 +436,19 @@ const aboveCeiling = (key: Limit): number | null => {
   display: flex;
   align-items: flex-start;
   gap: var(--pnmt-space-3);
+}
+
+.board-messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-2);
+  margin: var(--pnmt-space-3) 0;
+}
+
+.pair-line {
+  display: flex;
+  align-items: center;
+  gap: var(--pnmt-space-2);
 }
 
 /* The switch keeps its size beside a long text. */

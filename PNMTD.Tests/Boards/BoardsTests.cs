@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using PNMTD.Api.V1.Contracts;
+using PNMTD.Auth.Rights;
 using PNMTD.Boards;
 using PNMTD.Lib.Helper;
 using PNMTD.Lib.Models.Enum;
@@ -354,6 +355,57 @@ public sealed class BoardsTests
         }
     }
 
+    /// <summary>
+    /// docs/board-messages-plan.md §9.3: a sensor's last message, as plain text cut at 2000 characters; no message, no data, a deleted
+    /// sensor, none chosen; one sensor only, and Monitoring: View to add it.
+    /// </summary>
+    [TestMethod]
+    public async Task ASensorMessageShowsItsSensorsLastMessage()
+    {
+        var host = await (await admin.PostJsonAsync("/api/v1/hosts", new { name = V1.Unique("bd-queue") })).ReadAsync<HostDetail>();
+        var queue = await V1.CreateSensorAsync(admin, host.Id, SensorType.SIMPLE, name: "queue");
+        var quiet = await V1.CreateSensorAsync(admin, host.Id, SensorType.SIMPLE, name: "quiet");
+        var chatty = await V1.CreateSensorAsync(admin, host.Id, SensorType.SIMPLE, name: "chatty");
+        var now = Clock.UtcNow;
+        V1.AddEvents(app, queue.Id, (now.AddMinutes(-12), 500, "Queue: 12 mails waiting,\noldest 3 min"));
+        V1.AddEvents(app, chatty.Id, (now.AddMinutes(-1), 200, new string('x', 2500)));
+        app.ClearDashboardCache();
+        try
+        {
+            BoardElement For(Guid? sensor) => Element(BoardElementType.SensorMessage, new BoardElementSettings(
+                Targets: sensor is { } id ? [new BoardTarget(BoardTargetKind.Host, host.Id), new BoardTarget(BoardTargetKind.Sensor, id),
+                    new BoardTarget(BoardTargetKind.Sensor, quiet.Id)] : null, TextSize: BoardTextSize.Fit));
+            var shown = For(queue.Id);
+            var none = For(quiet.Id);
+            var cut = For(chatty.Id);
+            var gone = For(Guid.NewGuid());
+            var unset = For(null);
+            Assert.AreEqual(1, shown.Settings.Targets!.Count, "one sensor, never a host");
+            Assert.AreEqual((BoardTextSize.Fit, 6, BoardStateColour.Bar, true), (shown.Settings.TextSize, shown.Settings.Rows, shown.Settings.StateColour,
+                shown.Settings.Age));
+            Assert.AreEqual((Area.Monitoring, Level.View), BoardLayouts.Of(BoardElementType.SensorMessage).Right);
+
+            var board = await CreateAsync(admin, columns: 1, from: "empty");
+            var saved = await (await SaveAsync(admin, board, With(board.Layout, shown, none, cut, gone, unset))).ReadAsync<BoardDetail>();
+            var view = await (await ViewAsync(await TokenAsync(saved))).ReadAsync<BoardView>();
+            BoardElementData Of(BoardElement e) => view.Elements.Single(x => x.Id == e.Id);
+
+            var message = Of(shown).SensorMessage!;
+            Assert.AreEqual((host.Name, "queue", BoardTileState.Failing, "Queue: 12 mails waiting,\noldest 3 min"),
+                (message.Host, message.Name, message.State, message.Message));
+            Assert.IsNotNull(message.At);
+            Assert.AreEqual((BoardTileState.NoData, null), (Of(none).SensorMessage!.State, Of(none).SensorMessage!.Message));
+            Assert.AreEqual(BoardData.MaxSensorMessage, Of(cut).SensorMessage!.Message!.Length);
+            StringAssert.EndsWith(Of(cut).SensorMessage!.Message, "…");
+            Assert.AreEqual((BoardTileState.Missing, null), (Of(gone).SensorMessage!.State, Of(gone).SensorMessage!.Host));
+            Assert.AreEqual(BoardDataState.NotConfigured, Of(unset).State);
+        }
+        finally
+        {
+            await admin.DeleteAsync($"/api/v1/hosts/{host.Id}");
+        }
+    }
+
     /// <summary>§9.3: the server validates a save against the same themes as the board app draws.</summary>
     [TestMethod]
     public void TheServerKnowsTheBoardAppsThemes()
@@ -399,5 +451,52 @@ public sealed class BoardsTests
         };
         BoardLayouts.Validate(invalid, v);
         Assert.IsTrue(v.HasErrors);
+    }
+
+    /// <summary>
+    /// docs/board-messages-plan.md §9.1, §9.2, §14: a layout from 1.23 reads 24-hour (decision 6), its old date format and the browser's
+    /// names; a new board names days in English; a clock keeps its own formats, and a header can't ask for the browser's hours.
+    /// </summary>
+    [TestMethod]
+    public void TimesAndDatesHaveTheirDefaultsAndOverrides()
+    {
+        const string old = """
+            {"schemaVersion":1,"refreshSeconds":30,"look":{"theme":"dark","fit":true,"textScale":100,"motion":true,"people":"Names"},
+             "header":{"showTitle":true,"title":null,"clock":true,"date":true,"seconds":false},
+             "bar":{"show":true,"position":"Top","size":"Medium","greenText":null,"flash":true,"rules":[]},
+             "columns":[{"width":1,"elements":[{"id":"abcd1234","type":"Clock","title":null,"showTitle":true,"height":null,
+               "settings":{"seconds":true,"date":true,"zones":[]}}]}]}
+            """;
+        var layout = BoardLayouts.Read(old);
+        Assert.AreEqual("dark", layout.Look.Theme);
+        Assert.AreEqual((BoardTimeFormat.Hours24, BoardDateFormat.WeekdayDayMonth, false, BoardDateLanguage.Browser),
+            (layout.Look.TimeFormat, layout.Look.DateFormat, layout.Look.WeekNumber, layout.Look.DateLanguage));
+        Assert.IsNull(layout.Header.TimeFormat);
+        var clock = BoardLayouts.Elements(layout).Single().Settings;
+        Assert.AreEqual((null, null, null), (clock.TimeFormat, clock.DateFormat, clock.WeekNumber));
+        Assert.AreEqual(BoardDateLanguage.English, BoardLayouts.New(1, true, false).Look.DateLanguage);
+
+        var v = new global::PNMTD.Api.ApiValidator();
+        var own = layout with
+        {
+            Look = layout.Look with { TimeFormat = BoardTimeFormat.Hours12, DateFormat = BoardDateFormat.Dotted, WeekNumber = true },
+            Header = layout.Header with { TimeFormat = BoardTimeFormat.Hours24 },
+            Columns = [new BoardColumn(1, [BoardLayouts.Elements(layout).Single() with
+            {
+                Settings = clock with { TimeFormat = BoardTimeFormat.Hours12, DateFormat = BoardDateFormat.Iso, WeekNumber = false },
+            }])],
+        };
+        var clean = BoardLayouts.Read(BoardLayouts.Write(BoardLayouts.Validate(own, v)));
+        Assert.IsFalse(v.HasErrors);
+        Assert.AreEqual((BoardTimeFormat.Hours12, BoardDateFormat.Dotted, true), (clean.Look.TimeFormat, clean.Look.DateFormat, clean.Look.WeekNumber));
+        Assert.AreEqual(BoardTimeFormat.Hours24, clean.Header.TimeFormat);
+        var kept = BoardLayouts.Elements(clean).Single().Settings;
+        Assert.AreEqual((BoardTimeFormat.Hours12, BoardDateFormat.Iso, false), (kept.TimeFormat, kept.DateFormat, kept.WeekNumber));
+
+        BoardLayouts.Validate(own with { Header = own.Header with { TimeFormat = BoardTimeFormat.Browser } }, v);
+        Assert.IsTrue(v.HasErrors);
+        // A note doesn't read a clock's formats: dropped on save.
+        var note = BoardLayouts.Normalize(BoardElementType.Note, new BoardElementSettings(TimeFormat: BoardTimeFormat.Hours12, WeekNumber: true));
+        Assert.AreEqual((null, null), (note.TimeFormat, note.WeekNumber));
     }
 }

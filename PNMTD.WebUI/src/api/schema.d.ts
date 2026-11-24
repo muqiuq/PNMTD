@@ -36,6 +36,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pnmt-board/api/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BoardMessages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pnmt-board/api/images/{fileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BoardImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cookie/access/cases/{id}": {
         parameters: {
             query?: never;
@@ -4479,6 +4511,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/boards/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    open?: boolean;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardMessageItem"][];
+                        "text/json": components["schemas"]["BoardMessageItem"][];
+                        "text/plain": components["schemas"]["BoardMessageItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BoardMessageRequest"];
+                    "text/json": components["schemas"]["BoardMessageRequest"];
+                    "application/*+json": components["schemas"]["BoardMessageRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardMessageItem"];
+                        "text/json": components["schemas"]["BoardMessageItem"];
+                        "text/plain": components["schemas"]["BoardMessageItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/boards/messages/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/boards": {
         parameters: {
             query?: never;
@@ -4930,6 +5064,108 @@ export interface paths {
                         "application/json": components["schemas"]["BoardAddress"];
                         "text/json": components["schemas"]["BoardAddress"];
                         "text/plain": components["schemas"]["BoardAddress"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/boards/{id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardImageItem"][];
+                        "text/json": components["schemas"]["BoardImageItem"][];
+                        "text/plain": components["schemas"]["BoardImageItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: {
+                    name?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoardImageItem"];
+                        "text/json": components["schemas"]["BoardImageItem"];
+                        "text/plain": components["schemas"]["BoardImageItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/boards/{id}/images/{fileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    fileId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/octet-stream": components["schemas"]["FileContentResult"];
                     };
                 };
             };
@@ -23168,6 +23404,7 @@ export interface components {
             mailEvent?: components["schemas"]["ActionRule"];
             accessNotice?: components["schemas"]["ActionRule"];
             awayNotice?: components["schemas"]["ActionRule"];
+            boardMessage?: components["schemas"]["ActionRule"];
         };
         ActionRule: {
             level: components["schemas"]["ActionLevel"];
@@ -23181,6 +23418,7 @@ export interface components {
             duties?: components["schemas"]["DutySwitches"];
             limits?: components["schemas"]["OutputLimits"];
             levels?: components["schemas"]["ActionLevels"];
+            boardMessages?: components["schemas"]["BoardMessageSettings"];
             cookieWritesDuties?: boolean;
             bigBrother?: boolean;
             /** Format: double */
@@ -24446,6 +24684,10 @@ export interface components {
             redmineProjects: components["schemas"]["BoardProjectOption"][];
             zabbixGroups: string[];
             timeZone: string;
+            /** Format: int64 */
+            maxImageBytes: number;
+            /** Format: int32 */
+            messageMaxSeconds: number;
         };
         BoardCatalogMetric: {
             metric: components["schemas"]["BoardMetric"];
@@ -24498,6 +24740,16 @@ export interface components {
         };
         /** @enum {unknown} */
         BoardDataState: "Ok" | "Unavailable" | "NotConfigured" | "Withheld";
+        /**
+         * @default WeekdayDayMonth
+         * @enum {unknown}
+         */
+        BoardDateFormat: "WeekdayDayMonth" | "Short" | "DayMonthYear" | "WeekdayDayMonthYear" | "Dotted" | "WeekdayDotted" | "Iso" | "Us";
+        /**
+         * @default Browser
+         * @enum {unknown}
+         */
+        BoardDateLanguage: "English" | "German" | "French" | "Italian" | "Browser";
         BoardDetail: {
             /** Format: uuid */
             id: string;
@@ -24517,6 +24769,17 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             updatedByName: null | string;
+        };
+        BoardDutyNext: {
+            /** Format: date */
+            day: string;
+            people: string[];
+        };
+        BoardDutyPerson: {
+            name: null | string;
+            deputy: boolean;
+            as: string;
+            where: null | string;
         };
         BoardElement: {
             id: string;
@@ -24555,6 +24818,8 @@ export interface components {
             note?: null | string;
             onDuty?: null | components["schemas"]["BoardOnDuty"];
             certificates?: null | components["schemas"]["BoardCertificate"][];
+            sensorMessage?: null | components["schemas"]["BoardSensorMessage"];
+            image?: null | components["schemas"]["BoardImage"];
         };
         BoardElementSettings: {
             /** Format: int32 */
@@ -24607,15 +24872,47 @@ export interface components {
             large: boolean;
             /** Format: int32 */
             days?: null | number;
+            timeFormat?: null | components["schemas"]["BoardTimeFormat"];
+            dateFormat?: null | components["schemas"]["BoardDateFormat"];
+            weekNumber?: null | boolean;
+            /** Format: int32 */
+            deputies?: null | number;
+            dutyLabel?: null | string;
+            deputyLabel?: null | string;
+            nobodyText?: null | string;
+            closedText?: null | string;
+            /** @default true */
+            role: boolean;
+            /** @default false */
+            where: boolean;
+            /** @default false */
+            dayComment: boolean;
+            /** @default false */
+            tomorrow: boolean;
+            textSize?: null | components["schemas"]["BoardTextSize"];
+            /** @default false */
+            oneLine: boolean;
+            /** @default false */
+            monospace: boolean;
+            stateColour?: null | components["schemas"]["BoardStateColour"];
+            /** @default true */
+            age: boolean;
+            /** Format: uuid */
+            fileId?: null | string;
+            imageFit?: null | components["schemas"]["BoardImageFit"];
+            background?: null | components["schemas"]["BoardImageBackground"];
+            caption?: null | string;
+            alt?: null | string;
         };
         /** @enum {unknown} */
-        BoardElementType: "RedmineOverview" | "RedmineNewest" | "RedmineReceived" | "RedmineSolved" | "ZabbixCount" | "ZabbixHistory" | "Lounge" | "SensorSummary" | "FailingSensors" | "StatusTiles" | "HostBars" | "RecentChanges" | "Uplink" | "Clock" | "Note" | "OnDuty" | "Certificates";
+        BoardElementType: "RedmineOverview" | "RedmineNewest" | "RedmineReceived" | "RedmineSolved" | "ZabbixCount" | "ZabbixHistory" | "Lounge" | "SensorSummary" | "FailingSensors" | "StatusTiles" | "HostBars" | "RecentChanges" | "Uplink" | "Clock" | "Note" | "OnDuty" | "Certificates" | "SensorMessage" | "Image";
         BoardHeader: {
             showTitle: boolean;
             title: null | string;
             clock: boolean;
             date: boolean;
             seconds: boolean;
+            timeFormat?: null | components["schemas"]["BoardTimeFormat"];
         };
         BoardHostRow: {
             /** Format: uuid */
@@ -24627,6 +24924,35 @@ export interface components {
             /** Format: double */
             uptime30Days: null | number;
             days: components["schemas"]["UptimeSeries"];
+        };
+        BoardImage: {
+            /** Format: uuid */
+            fileId: string;
+            contentType: string;
+            /** Format: int32 */
+            width: null | number;
+            /** Format: int32 */
+            height: null | number;
+            /** Format: int64 */
+            size: number;
+        };
+        /** @enum {unknown} */
+        BoardImageBackground: "None" | "Black" | "White";
+        /** @enum {unknown} */
+        BoardImageFit: "Contain" | "Cover" | "Original";
+        BoardImageItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            contentType: string;
+            /** Format: int64 */
+            size: number;
+            /** Format: int32 */
+            width: null | number;
+            /** Format: int32 */
+            height: null | number;
+            /** Format: date-time */
+            createdAt: string;
         };
         BoardItem: {
             /** Format: uuid */
@@ -24646,6 +24972,8 @@ export interface components {
             lastSeenAt: null | string;
             /** Format: int32 */
             screensNow: number;
+            showsMessages: boolean;
+            messageSize: components["schemas"]["BoardMessageSize"];
         };
         BoardLayout: {
             /** Format: int32 */
@@ -24669,6 +24997,14 @@ export interface components {
             textScale: number;
             motion: boolean;
             people: components["schemas"]["BoardPeople"];
+            timeFormat?: components["schemas"]["BoardTimeFormat"];
+            dateFormat?: components["schemas"]["BoardDateFormat"];
+            /** @default false */
+            weekNumber: boolean;
+            dateLanguage?: components["schemas"]["BoardDateLanguage"];
+            /** @default true */
+            messages: boolean;
+            messageSize?: components["schemas"]["BoardMessageSize"];
         };
         BoardLounge: {
             lines: components["schemas"]["BoardLoungeLine"][];
@@ -24690,6 +25026,76 @@ export interface components {
             onId: null | number;
             important: boolean;
         };
+        BoardMessageBoard: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        BoardMessageItem: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["BoardMessageKind"];
+            title: string;
+            text: null | string;
+            /** Format: int32 */
+            seconds: number;
+            /** Format: date-time */
+            sentAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** Format: int32 */
+            remainingSeconds: number;
+            open: boolean;
+            source: components["schemas"]["BoardMessageSource"];
+            sentByName: string;
+            approvedByName: null | string;
+            boards: components["schemas"]["BoardMessageBoard"][];
+            /** Format: date-time */
+            withdrawnAt: null | string;
+            withdrawnByName: null | string;
+            /** Format: uuid */
+            cookieCaseId: null | string;
+        };
+        /** @enum {unknown} */
+        BoardMessageKind: "Alert" | "Warning" | "Maintenance" | "Information" | "Success";
+        BoardMessageRequest: {
+            boardIds?: null | string[];
+            allBoards?: boolean;
+            kind?: components["schemas"]["BoardMessageKind"];
+            title: string;
+            text?: null | string;
+            /** Format: int32 */
+            seconds?: number;
+        };
+        BoardMessages: {
+            messages: components["schemas"]["BoardMessageView"][];
+        };
+        BoardMessageSettings: {
+            boardIds?: string[];
+            /** Format: int32 */
+            seconds?: number;
+        };
+        /**
+         * @default Large
+         * @enum {unknown}
+         */
+        BoardMessageSize: "Large" | "Full";
+        /** @enum {unknown} */
+        BoardMessageSource: "Person" | "Cookie";
+        BoardMessageView: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["BoardMessageKind"];
+            title: string;
+            text: null | string;
+            from: null | string;
+            /** Format: date-time */
+            sentAt: string;
+            /** Format: int32 */
+            seconds: number;
+            /** Format: int32 */
+            remainingSeconds: number;
+        };
         /** @enum {unknown} */
         BoardMetric: "SensorsFailing" | "HostsFailing" | "UplinkDown" | "LateTasks" | "DnsMismatches" | "ZabbixProblems" | "RedmineOpen" | "RedmineUrgent" | "RedmineUnassigned" | "RedmineOverdue" | "RedmineLinkedToProblem" | "RedmineReceivedToday" | "CertificatesExpiring";
         BoardNetworkItem: {
@@ -24708,9 +25114,11 @@ export interface components {
             yesterday: null | number;
         };
         BoardOnDuty: {
-            people: string[];
+            people: components["schemas"]["BoardDutyPerson"][];
             as: string;
             closed: boolean;
+            comment?: null | string;
+            next?: null | components["schemas"]["BoardDutyNext"];
         };
         /** @enum {unknown} */
         BoardPeople: "Names" | "Initials" | "Hidden";
@@ -24807,6 +25215,16 @@ export interface components {
             /** Format: int32 */
             disabled: number;
         };
+        BoardSensorMessage: {
+            /** Format: uuid */
+            sensorId: string;
+            host: null | string;
+            name: null | string;
+            state: components["schemas"]["BoardTileState"];
+            message: null | string;
+            /** Format: date-time */
+            at: null | string;
+        };
         BoardSensorRow: {
             /** Format: uuid */
             id: string;
@@ -24822,6 +25240,8 @@ export interface components {
             /** Format: int32 */
             count: number;
         };
+        /** @enum {unknown} */
+        BoardStateColour: "None" | "Bar" | "Background";
         BoardTarget: {
             kind: components["schemas"]["BoardTargetKind"];
             /** Format: uuid */
@@ -24835,6 +25255,8 @@ export interface components {
             id: string;
             name: string;
         };
+        /** @enum {unknown} */
+        BoardTextSize: "Small" | "Medium" | "Large" | "Huge" | "Fit";
         BoardTicket: {
             /** Format: int32 */
             id: number;
@@ -24862,6 +25284,11 @@ export interface components {
         };
         /** @enum {unknown} */
         BoardTileState: "Ok" | "Failing" | "NoData" | "Off" | "Missing";
+        /**
+         * @default Hours24
+         * @enum {unknown}
+         */
+        BoardTimeFormat: "Hours24" | "Hours12" | "Browser";
         BoardUplink: {
             configured: boolean;
             up: boolean;
@@ -25756,6 +26183,8 @@ export interface components {
             /** Format: int32 */
             lessons: number;
             integrations: components["schemas"]["CookieIntegrationsItem"];
+            /** @default false */
+            boardsRight: boolean;
         };
         CookieAdminOverview: {
             status: components["schemas"]["CookieStatusItem"];
@@ -26902,7 +27331,7 @@ export interface components {
             number: null | number;
         };
         /** @enum {unknown} */
-        FileUserKind: "Page" | "Location" | "Responsibility";
+        FileUserKind: "Page" | "Location" | "Responsibility" | "Board";
         FirewallInfo: {
             profiles: components["schemas"]["FirewallProfileState"][];
             inboundRules: components["schemas"]["FirewallRuleInfo"][];
@@ -27573,7 +28002,7 @@ export interface components {
             lessons?: components["schemas"]["Lesson"][];
         };
         /** @enum {unknown} */
-        Level: "None" | "View" | "Edit" | "Manage" | "Run" | "Read" | "Decide" | "Link" | "Details" | "Use" | "Instruct";
+        Level: "None" | "View" | "Edit" | "Manage" | "Run" | "Read" | "Decide" | "Link" | "Details" | "Use" | "Instruct" | "Message";
         LinkedSensor: {
             /** Format: uuid */
             sensorId: string;
@@ -30449,6 +30878,16 @@ export interface components {
              * @default 10
              */
             awayNoticesPerPersonDay: number;
+            /**
+             * Format: int32
+             * @default 10
+             */
+            boardMessagesPerDay: number;
+            /**
+             * Format: int32
+             * @default 2
+             */
+            boardMessagesPerBoardHour: number;
         };
         /** @enum {unknown} */
         OverallState: "AllFine" | "Info" | "Warning" | "Alert";
@@ -34016,6 +34455,89 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["BoardElementData"];
                 };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    BoardMessages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoardMessages"];
+                };
+            };
+            /** @description Not Modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    BoardImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Forbidden */
             403: {

@@ -477,7 +477,16 @@ export const routes: RouteRecordRaw[] = [
     path: '/admin/debug',
     name: 'debug',
     component: () => import('@/views/admin/DebugView.vue'),
-    meta: { title: 'Debug', right: ['System', 'Manage'] },
+    // docs/board-messages-plan.md §7.2: also for Boards: Message, who sends board messages from here.
+    meta: {
+      title: 'Debug',
+      right: {
+        anyOf: [
+          ['System', 'Manage'],
+          ['Boards', 'Message'],
+        ],
+      },
+    },
   },
   // System health (§5.6) and its Outbound tab (docs/redmine-queue-outbound-plan.md §7.1): /admin/system stays the overview.
   {

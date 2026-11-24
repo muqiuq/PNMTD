@@ -52,6 +52,12 @@ public sealed class Seraph(CookieModel model, CookieBrain brain, CookieSettings 
     /// <summary>
     /// What a lounge e-mail is judged on (docs/lounge-plan.md §8.2), fixed in code after the review prompt: it is light, not work.
     /// </summary>
+    /// <summary>A board message asked for in the lounge (docs/board-messages-plan.md §8.6): reviewed as a board message, not as a light e-mail.</summary>
+    public const string LoungeBoardParagraph =
+        "A person asked for this board message in the lounge. It is shown large on a wall's board that a room of people reads, perhaps in a corridor " +
+        "or open to anyone with its URL. Approve it only if it is something that room should know now (an outage, maintenance, an all-clear), true, " +
+        "and free of people's names, customers, addresses and secrets. Reject anything else, a joke included.";
+
     public const string LoungeParagraph =
         "This is a light e-mail from the lounge, not work. Approve it if it is kind, true, free of secrets and of anyone's personal data but the " +
         "recipient's own, not embarrassing for the recipient or the organisation, and something they would be glad, or at least fine, to get. " +

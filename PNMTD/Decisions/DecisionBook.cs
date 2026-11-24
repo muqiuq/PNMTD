@@ -20,7 +20,8 @@ public sealed record DecisionDraft(
     bool AdminOnly = false,
     bool Disputed = false,
     int Priority = 0,
-    Guid? AiWorkId = null);
+    Guid? AiWorkId = null,
+    TimeSpan? ExpiresIn = null);
 
 /// <summary>
 /// Raises decisions (docs/ai-operations-plan.md §5.1): one open decision per dedupe key, so that more of the same raise
@@ -65,7 +66,8 @@ public sealed class DecisionBook(IDbContextFactory<PnmtdDbContext> dbs, IConfigu
             Id = Guid.NewGuid(), Kind = draft.Kind, State = DecisionState.Open, AdminOnly = draft.AdminOnly,
             Title = Cut(draft.Title, 300), Summary = Cut(draft.Summary, 2000), Payload = JsonSerializer.Serialize(draft.Payload, Json),
             SourceType = draft.SourceType, SourceId = draft.SourceId, DedupeKey = draft.DedupeKey, Subjects = draft.Subject is { } s ? [s] : [],
-            Disputed = draft.Disputed, Priority = draft.Priority, CreatedAt = now, LastSeenAt = now, ExpiresAt = now.AddDays(ExpireDays),
+            Disputed = draft.Disputed, Priority = draft.Priority, CreatedAt = now, LastSeenAt = now,
+            ExpiresAt = draft.ExpiresIn is { } expires ? now + expires : now.AddDays(ExpireDays),
             AiWorkId = draft.AiWorkId,
         };
         await using var db = await dbs.CreateDbContextAsync(ct);

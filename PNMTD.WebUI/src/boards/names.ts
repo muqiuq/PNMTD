@@ -19,6 +19,8 @@ export const typeNames: Record<BoardElementType, string> = {
   Note: 'Note',
   OnDuty: 'On duty today',
   Certificates: 'Expiring certificates',
+  SensorMessage: 'Sensor message',
+  Image: 'Image',
 }
 
 export const metricNames: Record<BoardMetric, string> = {

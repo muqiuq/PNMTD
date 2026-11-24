@@ -17,7 +17,7 @@ public enum Area
 /// The levels, by name. Each area has its own ordered list of them (<see cref="RightsCatalog"/>); a level includes the
 /// ones before it in its area's list.
 /// </summary>
-public enum Level { None, View, Edit, Manage, Run, Read, Decide, Link, Details, Use, Instruct }
+public enum Level { None, View, Edit, Manage, Run, Read, Decide, Link, Details, Use, Instruct, Message }
 
 /// <summary>An area, its levels in order, and what each allows (the text of §5.2, for the group page and Your access).</summary>
 public sealed record AreaInfo(Area Area, string Label, IReadOnlyList<(Level Level, string Allows)> Levels)
@@ -103,6 +103,8 @@ public static class RightsCatalog
         // docs/boards-plan.md §13.1: a board shows what its elements show to whoever holds its URL; adding an element also needs its area's right.
         new(Area.Boards, "Boards", [
             (Level.View, "The boards, their layout, status bar, look and preview. Not their URLs."),
+            // docs/board-messages-plan.md §12.1.
+            (Level.Message, "View, plus sending messages to boards (Admin → Debug) and withdrawing open ones."),
             (Level.Manage, "View, plus creating, changing and deleting boards, with their elements, status bar, look and networks; showing and renewing their URLs. Adding an element also needs its area's right.")]),
     ];
 

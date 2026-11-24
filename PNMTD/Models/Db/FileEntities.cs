@@ -72,9 +72,10 @@ public class FileEntity
 }
 
 /// <summary>
-/// A file referenced by a page's, a location's or a responsibility's Markdown (exactly one of them), recorded on each save
-/// (§5.5, docs/responsibilities-plan.md §10.4). A use lasts as long as its owner, since their revisions and history keep the
-/// reference.
+/// A file referenced by a page's, a location's or a responsibility's Markdown, or shown by a board's image element (exactly one of
+/// them), recorded on each save (§5.5, docs/responsibilities-plan.md §10.4, docs/board-messages-plan.md §9.4). A page's, location's or
+/// responsibility's use lasts as long as its owner, since their revisions and history keep the reference; a board's matches its
+/// layout on each save.
 /// </summary>
 [Table("file_uses")]
 [NotAudited("which page or field uses a file: derived from their saves")]
@@ -90,6 +91,9 @@ public class FileUseEntity
     public Guid? LocationId { get; set; }
 
     public Guid? ResponsibilityId { get; set; }
+
+    /// <summary>A board that shows the file in an image element (docs/board-messages-plan.md §9.4). Migration BoardImages.</summary>
+    public Guid? BoardId { get; set; }
 
     public DateTime FirstUsedAt { get; set; }
 }

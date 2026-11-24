@@ -66,6 +66,7 @@ export const actionKeys = [
   'mailEvent',
   'accessNotice',
   'awayNotice',
+  'boardMessage',
 ] as const
 
 export type ActionKey = (typeof actionKeys)[number]
@@ -86,6 +87,8 @@ export const actionDefaults: Record<ActionKey, S['ActionRule']> = {
   accessNotice: { level: 'Auto', minConfidence: 0.6 },
   // docs/cookie-redmine-tab-plan.md §6.4: Auto, since a person in the loop holds an important comment until they look.
   awayNotice: { level: 'Auto', minConfidence: 0.7 },
+  // docs/board-messages-plan.md §8.1: it reaches people, so Propose.
+  boardMessage: { level: 'Propose', minConfidence: 0.7 },
 }
 
 /** Every action with a rule, the defaults for any the settings lack. */

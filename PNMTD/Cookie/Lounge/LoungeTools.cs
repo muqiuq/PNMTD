@@ -33,6 +33,11 @@ public sealed class LoungeTurn
 
     public bool OfferCase { get; set; }
 
+    /// <summary>Whether <c>send_board_message</c> is offered (docs/board-messages-plan.md §8.6), and for whom.</summary>
+    public bool MayBoard { get; set; }
+
+    public string? Asker { get; set; }
+
     public bool OfferRemember { get; set; }
 
     public HashSet<string> Areas { get; } = [];
@@ -55,6 +60,7 @@ public sealed class LoungeTools(IDbContextFactory<PnmtdDbContext> dbs, CookieSet
     public const string Remember = "remember";
     public const string OpenCase = "open_case";
     public const string SendEmail = "send_email";
+    public const string SendBoardMessage = "send_board_message";
 
     /// <summary>The decision log's kind for a lounge e-mail (§8.2).</summary>
     public static readonly string EmailKind = ProposedAction.Name(CookieActionKind.LoungeEmail);
@@ -71,7 +77,7 @@ public sealed class LoungeTools(IDbContextFactory<PnmtdDbContext> dbs, CookieSet
     public static IReadOnlyList<ToolSpec> ReadTools(UserRights rights, IServiceProvider services) =>
         [.. CookieTools.For(rights, services).Where(t => !Denied.Contains(t.Name))];
 
-    public static bool Own(string name) => name is Remember or OpenCase or SendEmail;
+    public static bool Own(string name) => name is Remember or OpenCase or SendEmail or SendBoardMessage;
 
     public static JsonArray Definitions(LoungeTurn turn)
     {
@@ -102,6 +108,14 @@ public sealed class LoungeTools(IDbContextFactory<PnmtdDbContext> dbs, CookieSet
                 Schema(Id("userId", "The person's user id from PeopleYouMayEmail"), Text("subject", "At most 120 characters", required: true),
                     Text("text", "At most 1000 characters, as it is to be sent", required: true)));
         }
+        if (turn.MayBoard)
+        {
+            Add(SendBoardMessage, "Put a large message box on a wall's board, only when the person you answer asks for it: what a room should know now, such as " +
+                "an outage, maintenance or the all-clear. Never names, customers or addresses. Code and a reviewer check it; a person may approve it first.",
+                Schema(Id("boardId", "The board's id from BoardsYouMayMessage"),
+                    Choice("kind", "alert, warning, maintenance, information or success", ["alert", "warning", "maintenance", "information", "success"], required: true),
+                    Text("title", "At most 100 characters", required: true), Text("text", "At most 1000 characters, optional", required: false)));
+        }
         return tools;
     }
 
@@ -123,6 +137,7 @@ public sealed class LoungeTools(IDbContextFactory<PnmtdDbContext> dbs, CookieSet
                 Remember when turn.OfferRemember => await RememberAsync(args, turn, ct),
                 OpenCase when turn.OfferCase => await OpenCaseAsync(args, turn, ct),
                 SendEmail when turn.MayEmail.Count > 0 => await EmailAsync(args, turn, ct),
+                SendBoardMessage when turn.MayBoard => await BoardMessageAsync(args, turn, ct),
                 _ => Error($"{name} isn't offered now."),
             };
         }
@@ -288,6 +303,33 @@ public sealed class LoungeTools(IDbContextFactory<PnmtdDbContext> dbs, CookieSet
             "proposed" => "A person decides first, in the decisions inbox.",
             "held-back" => "Held back by a limit.",
             _ => $"Not sent ({decision.Outcome}): {decision.Detail}",
+        };
+        return JsonSerializer.Serialize(new { outcome = said }, ToolResults.Json);
+    }
+
+    /// <summary><c>send_board_message</c> (docs/board-messages-plan.md §8.6): through the executor, with the board message's level and checks.</summary>
+    private async Task<string> BoardMessageAsync(JsonElement args, LoungeTurn turn, CancellationToken ct)
+    {
+        var boardId = IdOf(args, "boardId");
+        var kind = TextOf(args, "kind", 1, 20);
+        var title = TextOf(args, "title", 1, 400);
+        var text = OptionalText(args, "text", 4000);
+        if (title.Length > 100 || text is { Length: > 1000 })
+        {
+            return Error("The title has at most 100 characters, the text at most 1000.");
+        }
+        var decision = await services.GetRequiredService<CookieExecutor>().HandleLoungeBoardMessageAsync(
+            new LoungeBoardMessageRequest(turn.Voice, turn.Asker ?? "someone", boardId, kind, turn.Privacy.Unmask(title), text is null ? null : turn.Privacy.Unmask(text),
+                [.. turn.Areas], turn.Privacy), ct);
+        turn.DecisionId = decision.Id;
+        turn.MayBoard = false;
+        turn.Steps.Add(("board-message", $"{decision.Title}: {decision.Outcome}", $"{title}\n\n{text}\n\n{decision.Detail}"));
+        var said = decision.Outcome switch
+        {
+            "done" => decision.Detail ?? "Shown.",
+            "proposed" => "A person decides first, in the decisions inbox.",
+            "held-back" => $"Held back by a limit: {decision.Detail}",
+            _ => $"Not shown ({decision.Outcome}): {decision.Detail}",
         };
         return JsonSerializer.Serialize(new { outcome = said }, ToolResults.Json);
     }

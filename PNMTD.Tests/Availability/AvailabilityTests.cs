@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
 using PNMTD.Availability;
+using PNMTD.Boards;
+using PNMTD.Lib.Helper;
 using PNMTD.Cookie;
 using PNMTD.Models.Db;
 using PNMTD.Tests.Api.V1;
@@ -163,6 +165,115 @@ public sealed class AvailabilityTests
         var weekend = day.AddDays(5);
         Assert.IsTrue(Read(weekend).Closed(weekend), "Saturday: closed by the default hours");
         Assert.AreEqual(0, Read(weekend).ResponsibleOn(weekend).UserIds.Count);
+    }
+
+    private static async Task DayAsync(DateOnly day, Guid? responsible, Guid? fallback, string? comment = null)
+    {
+        using var rows = await admin.PutAsJsonAsync("/api/v1/availability/days",
+            new AvailabilityDaysRequest([new AvailabilityDayChange(day, responsible, fallback, comment)]));
+        Assert.AreEqual(HttpStatusCode.NoContent, rows.StatusCode, await rows.Content.ReadAsStringAsync());
+    }
+
+    /// <summary>docs/board-messages-plan.md §9.5: the chain in order, those who work, each person once; its head is ResponsibleOn's.</summary>
+    [TestMethod]
+    public async Task The_chain_gives_the_deputies_in_order_and_each_person_once()
+    {
+        var day = Monday.AddDays(56);
+        await DayAsync(day, TestUsers.Viewer, TestUsers.User);
+        Assert.AreEqual(HttpStatusCode.NoContent, await CellsAsync(admin,
+            new AvailabilityCellChange(TestUsers.Viewer, day, Type("ANWE")), new AvailabilityCellChange(TestUsers.User, day, Type("HOME"))));
+        await SaveSettingsAsync(defaults.Settings with { GlobalFallbackUserId = TestUsers.User });
+        try
+        {
+            var chain = Read(day).ChainOn(day);
+            CollectionAssert.AreEqual(new[] { "responsible", "fallback" }, chain.Select(c => c.As).ToArray(), "the global fallback is the fallback: once");
+            CollectionAssert.AreEqual(new[] { TestUsers.Viewer, TestUsers.User }, chain.SelectMany(c => c.UserIds).ToArray());
+
+            await SaveSettingsAsync(defaults.Settings with { GlobalFallbackUserId = TestUsers.Admin });
+            Assert.AreEqual(HttpStatusCode.NoContent, await CellsAsync(admin, new AvailabilityCellChange(TestUsers.Viewer, day, Type("VACA"))));
+            var plan = Read(day);
+            chain = plan.ChainOn(day);
+            CollectionAssert.AreEqual(new[] { "fallback", "global fallback" }, chain.Select(c => c.As).ToArray(), "the responsible is away");
+            Assert.AreEqual(plan.ResponsibleOn(day).As, chain[0].As);
+            CollectionAssert.AreEqual(plan.ResponsibleOn(day).UserIds.ToArray(), chain[0].UserIds.ToArray());
+
+            var saturday = day.AddDays(5);
+            Assert.AreEqual(0, Read(saturday).ChainOn(saturday).Count, "a closed day");
+        }
+        finally
+        {
+            await SaveSettingsAsync(defaults.Settings);
+        }
+    }
+
+    /// <summary>
+    /// docs/board-messages-plan.md §9.5: <i>On duty today</i> on a board: the head of the chain, the deputies the element shows, where each
+    /// works, the day's comment and the next open day; 0 deputies for a layout from 1.23; labels only when the board hides names.
+    /// </summary>
+    [TestMethod]
+    public async Task On_duty_today_on_a_board_shows_the_deputies_and_the_options()
+    {
+        var day = Monday.AddDays(63);
+        await DayAsync(day, TestUsers.Viewer, TestUsers.User, "Server room closed from 16:00");
+        Assert.AreEqual(HttpStatusCode.NoContent, await CellsAsync(admin,
+            new AvailabilityCellChange(TestUsers.Viewer, day, Type("ANWE")), new AvailabilityCellChange(TestUsers.User, day, Type("HOME"))));
+        await SaveSettingsAsync(defaults.Settings with { GlobalFallbackUserId = TestUsers.Admin });
+        string[] names;
+        await using (var db = app.NewDb())
+        {
+            var users = await db.Users.Where(u => u.Id == TestUsers.Viewer || u.Id == TestUsers.User || u.Id == TestUsers.Admin)
+                .ToDictionaryAsync(u => u.Id, u => u.DisplayName);
+            names = [users[TestUsers.Viewer], users[TestUsers.User], users[TestUsers.Admin]];
+        }
+        Clock.Provider = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(Clock.ToUtc(day.ToDateTime(new TimeOnly(10, 0))));
+        try
+        {
+            async Task<BoardOnDuty> OnDutyAsync(BoardElementSettings settings, BoardPeople people = BoardPeople.Names)
+            {
+                using var scope = app.Services.CreateScope();
+                var element = BoardLayouts.NewElement(BoardElementType.OnDuty) with { Settings = BoardLayouts.Normalize(BoardElementType.OnDuty, settings) };
+                var layout = BoardLayouts.New(1, false, false) is var l ? l with { Look = l.Look with { People = people }, Columns = [new BoardColumn(1, [element])] } : null!;
+                var view = await scope.ServiceProvider.GetRequiredService<BoardData>().BuildAsync("t", layout, null, null, CancellationToken.None);
+                return view.Elements.Single().OnDuty!;
+            }
+
+            var full = await OnDutyAsync(new BoardElementSettings(Deputies: 2, Where: true, DayComment: true, Tomorrow: true));
+            Assert.AreEqual("responsible", full.As);
+            Assert.IsFalse(full.Closed);
+            CollectionAssert.AreEqual(new[]
+            {
+                new BoardDutyPerson(names[0], false, "responsible", "on site"),
+                new BoardDutyPerson(names[1], true, "fallback", "home office"),
+                new BoardDutyPerson(names[2], true, "global fallback", "on site"),
+            }, full.People.ToArray());
+            Assert.AreEqual("Server room closed from 16:00", full.Comment);
+            Assert.AreEqual(day.AddDays(1), full.Next!.Day);
+            CollectionAssert.AreEqual(new[] { names[2] }, full.Next.People.ToArray(), "Tuesday has no row: the global fallback");
+
+            var old = await OnDutyAsync(new BoardElementSettings());
+            Assert.AreEqual(1, old.People.Count, "1.23's element: no deputies");
+            Assert.AreEqual((null, null), (old.Comment, old.Next), "and no comment or next day unless asked");
+            Assert.IsNull(old.People[0].Where);
+
+            var hidden = await OnDutyAsync(new BoardElementSettings(Deputies: 1, Tomorrow: true), BoardPeople.Hidden);
+            CollectionAssert.AreEqual(new string?[] { null, null }, hidden.People.Select(p => p.Name).ToArray(), "labels only");
+            Assert.IsNull(hidden.Next, "nobody to name for the next day");
+
+            Assert.AreEqual(HttpStatusCode.NoContent, await CellsAsync(admin, new AvailabilityCellChange(TestUsers.Viewer, day, Type("VACA"))));
+            var away = await OnDutyAsync(new BoardElementSettings(Deputies: 5));
+            CollectionAssert.AreEqual(new[] { names[1], names[2] }, away.People.Select(p => p.Name).ToArray(), "the fallback on duty, one deputy left");
+            Assert.AreEqual("fallback", away.As);
+
+            Clock.Provider = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(Clock.ToUtc(day.AddDays(5).ToDateTime(new TimeOnly(10, 0))));
+            var saturday = await OnDutyAsync(new BoardElementSettings(Deputies: 1));
+            Assert.IsTrue(saturday.Closed);
+            Assert.AreEqual(0, saturday.People.Count);
+        }
+        finally
+        {
+            Clock.Provider = TimeProvider.System;
+            await SaveSettingsAsync(defaults.Settings);
+        }
     }
 
     [TestMethod]

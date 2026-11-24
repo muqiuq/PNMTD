@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import BoardCanvas from '@/boards/BoardCanvas.vue'
+import type { ShownMessage } from '@/boards/messages'
 import type { BoardLayout, BoardView } from '@/boards/types'
 
 /**
@@ -14,8 +15,22 @@ const props = defineProps<{
   name: string
   size: string
   selected: string | null
+  /** The board's id, for its images (docs/board-messages-plan.md §9.4). */
+  boardId?: string | null
+  /** Look → Messages' sample, drawn still (docs/board-messages-plan.md §5.5). */
+  sample?: ShownMessage | null
 }>()
 const emit = defineEmits<{ select: [id: string] }>()
+
+/** The board's images by the admin's session; only one the board uses. */
+async function images(fileId: string): Promise<Blob> {
+  if (!props.boardId) throw new Error('No board yet.')
+  const response = await fetch(`/api/v1/boards/${props.boardId}/images/${encodeURIComponent(fileId)}`, {
+    credentials: 'same-origin',
+  })
+  if (!response.ok) throw new Error(`PNMT answered ${response.status}.`)
+  return await response.blob()
+}
 
 const frame = ref<HTMLElement | null>(null)
 const available = ref({ width: 800, height: 450 })
@@ -60,6 +75,9 @@ const style = computed(() => ({
         :name="name"
         selectable
         :selected="selected"
+        :images="images"
+        :messages="sample ? [sample] : []"
+        still-messages
         @select="(id) => emit('select', id)"
       />
     </div>

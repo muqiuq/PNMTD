@@ -4,7 +4,9 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PNMTD.Ai;
+using PNMTD.Api.V1.Contracts;
 using PNMTD.Audit;
+using PNMTD.Boards;
 using PNMTD.Auth.Rights;
 using PNMTD.Data;
 using PNMTD.Decisions;
@@ -27,6 +29,13 @@ public sealed record ActionRequest(
     Func<string, CancellationToken, Task<ProposedAction?>>? Retry = null,
     CookieOrder? Order = null);
 
+/// <summary>
+/// A board message asked for in the lounge (docs/board-messages-plan.md §8.6): which voice wrote it, for whom, the board, the kind, the
+/// title and text, and what it read.
+/// </summary>
+public sealed record LoungeBoardMessageRequest(string Voice, string Asker, Guid BoardId, string Kind, string Title, string? Text, IReadOnlyList<string> Areas,
+    Pseudonyms Privacy);
+
 /// <summary>A lounge e-mail to take through the executor (docs/lounge-plan.md §8.2): who wrote it, to whom, what, and what it read.</summary>
 public sealed record LoungeEmailRequest(string Voice, Guid UserId, string Subject, string Text, IReadOnlyList<string> Areas, Pseudonyms Privacy);
 
@@ -47,6 +56,13 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
 
     private static readonly JsonSerializerOptions Json = AiJson.Options;
 
+    /// <summary>A board message waits in the inbox this long at most (docs/board-messages-plan.md §8.5): it is about now.</summary>
+    public static readonly TimeSpan BoardMessageWait = TimeSpan.FromMinutes(30);
+
+    /// <summary>A board message's kind as Cookie wrote it: alert, warning, maintenance, information or success.</summary>
+    public static BoardMessageKind? BoardKindOf(string? kind) =>
+        Enum.TryParse<BoardMessageKind>(kind?.Trim(), true, out var k) && Enum.IsDefined(k) ? k : null;
+
     /// <summary>What Seraph reviews (§5): everything that leaves PNMT or reaches people, and a mail rule's event.</summary>
     public static bool Reviewed(CookieActionKind kind) => kind is not (CookieActionKind.ObjectNote or CookieActionKind.HandToPerson);
 
@@ -65,7 +81,9 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         {
             At = Clock.UtcNow, CaseId = r.Case?.Id, RoundId = r.RoundId, Kind = ProposedAction.Name(a.Action),
             Title = CaseBook.Cut($"{Label(a.Action)}: {r.Privacy.Unmask(a.Subject)}", 300)!, Proposal = JsonSerializer.Serialize(proposal, Json),
-            Confidence = Math.Clamp(a.Confidence, 0, 1), Areas = [.. r.Areas.Distinct().Order()], Outcome = "noted",
+            // A board message is admins' in the inbox (docs/board-messages-plan.md §8.5): Boards isn't an inbox area.
+            Confidence = Math.Clamp(a.Confidence, 0, 1), Areas = [.. r.Areas.Concat(a.Action == CookieActionKind.BoardMessage ? ["Boards"] : []).Distinct().Order()],
+            Outcome = "noted",
         };
         db.CookieDecisions.Add(log);
         var actions = await settings.GetAsync<ActionSettings>(ct);
@@ -210,7 +228,8 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
             log.InboxDecisionId = await inbox.RaiseAsync(new DecisionDraft(InboxKind, CaseBook.Cut($"Cookie proposes: {log.Title}", 300)!,
                 Summary(proposal, r.Privacy, log.VerdictReason, WithOrder(toPerson)), new CookieActionPayload(log.Id), $"{InboxKind}:{log.Id}", r.Case?.Id,
                 "cookie-case", order is null ? r.Case?.Id : null, AdminOnly: order is not null || log.Areas.Any(x => !InboxAreas.Contains(x)),
-                Priority: a.Urgency == Urgency.Urgent ? 2 : a.Urgency == Urgency.Important ? 1 : 0), ct);
+                Priority: a.Urgency == Urgency.Urgent ? 2 : a.Urgency == Urgency.Important ? 1 : 0,
+                ExpiresIn: a.Action == CookieActionKind.BoardMessage ? BoardMessageWait : null), ct);
             Done("proposed", toPerson ?? "Propose: a person decides in the decisions inbox.");
             await db.SaveChangesAsync(ct);
             return log;
@@ -318,6 +337,94 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         return log;
     }
 
+    /// <summary>
+    /// A board message from the lounge (docs/board-messages-plan.md §8.6): the board message's level and every check of a case's (both
+    /// gates, mute and suppress, one waiting per board), then a review by the other voice's model, never its own; then the inbox
+    /// (<i>Propose</i>, at most 30 minutes) or the board (<i>Auto</i>). Each step is in Cookie's decision log.
+    /// </summary>
+    public async Task<CookieDecisionEntity> HandleLoungeBoardMessageAsync(LoungeBoardMessageRequest r, CancellationToken ct)
+    {
+        var voiceName = r.Voice == Lounge.LoungeVoices.Seraph ? "Seraph" : (await settings.GetAsync<IdentitySettings>(ct)).Name;
+        var action = new ProposedAction(CookieActionKind.BoardMessage, null, 0, r.BoardId.ToString(), CaseBook.Cut(r.Title.Trim(), 120)!,
+            CaseBook.Cut(r.Text?.Trim() ?? "", 1500)!, CaseBook.Cut($"Asked for in the lounge by {r.Asker}; written by {voiceName}.", 300)!, [], 1, Urgency.Info, r.Kind);
+        var proposal = new CookieProposal(action, LoungeVoice: r.Voice);
+        await using var db = await dbs.CreateDbContextAsync(ct);
+        var log = new CookieDecisionEntity
+        {
+            At = Clock.UtcNow, Kind = ProposedAction.Name(CookieActionKind.BoardMessage),
+            Title = CaseBook.Cut($"{Label(CookieActionKind.BoardMessage)} by {voiceName} in the lounge: {r.Privacy.Unmask(action.Subject)}", 300)!,
+            Proposal = JsonSerializer.Serialize(proposal, Json), Confidence = 1, Areas = [.. r.Areas.Append("Boards").Distinct().Order()], Outcome = "noted",
+        };
+        db.CookieDecisions.Add(log);
+        async Task<CookieDecisionEntity> Done(string outcome, string detail)
+        {
+            log.Outcome = outcome;
+            log.Detail = CaseBook.Cut(detail, 1000);
+            await db.SaveChangesAsync(ct);
+            return log;
+        }
+        var rule = (await settings.GetAsync<ActionSettings>(ct)).Levels.BoardMessage;
+        if (rule.Level == ActionLevel.Off)
+        {
+            return await Done("off", "Board messages are off on Admin → Cookie → Actions.");
+        }
+        var rights = await services.GetRequiredService<CookieRound>().RightsAsync(ct) ?? UserRights.None;
+        var (refusal, target) = await CheckAsync(db, proposal, null, rights, ct);
+        log.Target = target;
+        if (refusal is not null)
+        {
+            return await Done("refused", refusal);
+        }
+        var active = await instructions.ActiveAsync(ct);
+        if (Instructions.Blocks(active, CookieActionKind.BoardMessage, null, []) is { } blocked)
+        {
+            return await Done("muted", $"{blocked.Kind} {blocked.Scope} {blocked.Label ?? blocked.Value}, by {blocked.CreatedByName}");
+        }
+        if (await db.CookieDecisions.AnyAsync(d => d.Kind == log.Kind && d.Target == target && (d.Outcome == "proposed" || d.Outcome == "running"), ct))
+        {
+            return await Done("duplicate", "A board message to the same board waits for a person already.");
+        }
+        string? toPerson = null;
+        // Never its own reviewer (D7): Seraph's model reviews Cookie's, and Cookie's model reviews Seraph's.
+        var reviewer = r.Voice == Lounge.LoungeVoices.Seraph ? await seraph.CookieChoiceAsync(ct) : await seraph.ChoiceAsync(ct);
+        var evidence = await EvidenceAsync(db, proposal, null, [], r.Privacy, ct) +
+            $"{r.Privacy.Mask(r.Asker)} asked for it in the lounge, a conversation everyone at the organisation reads.";
+        var tokens = services.GetRequiredService<IOptionsMonitor<CookieOptions>>().CurrentValue.Tokens.LoungeReview;
+        var (verdict, model, error) = reviewer is null ? (null, null, "Seraph has no model (Cookie__SeraphModel).")
+            : await seraph.ReviewAsync(Masked(proposal, r.Privacy), evidence, r.Privacy.Mask(Instructions.PromptText(active)), ct, Seraph.LoungeBoardParagraph,
+                reviewer, "lounge.review", tokens);
+        log.Model = model;
+        if (verdict is null)
+        {
+            toPerson = $"It couldn't be reviewed: {error}";
+        }
+        else
+        {
+            log.Verdict = verdict.Verdict.ToString().ToLowerInvariant();
+            log.VerdictReason = verdict.Reason;
+            log.VerdictConfidence = verdict.Confidence;
+            if (verdict.Verdict == SeraphVerdictKind.Reject)
+            {
+                return await Done("rejected", $"The review: {verdict.Reason}");
+            }
+            if (verdict.Verdict is SeraphVerdictKind.Revise or SeraphVerdictKind.Ask)
+            {
+                toPerson = $"The review: {verdict.Reason}";
+            }
+        }
+        if (toPerson is not null || rule.Level == ActionLevel.Propose)
+        {
+            await db.SaveChangesAsync(ct);
+            log.InboxDecisionId = await inbox.RaiseAsync(new DecisionDraft(InboxKind, CaseBook.Cut($"Cookie proposes: {log.Title}", 300)!,
+                Summary(proposal, r.Privacy, log.VerdictReason, toPerson), new CookieActionPayload(log.Id), $"{InboxKind}:{log.Id}", AdminOnly: true, Priority: 0,
+                ExpiresIn: BoardMessageWait), ct);
+            return await Done("proposed", toPerson ?? "Propose: a person decides in the decisions inbox.");
+        }
+        await RunAsync(db, log, proposal, null, "lounge", ct);
+        await db.SaveChangesAsync(ct);
+        return log;
+    }
+
     /// <summary>A person approved a proposal in the inbox: it runs now, through the limits.</summary>
     public async Task<CookieDecisionEntity> RunApprovedAsync(long id, string by, CancellationToken ct)
     {
@@ -335,6 +442,14 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         {
             log.Outcome = "approved";
             log.Detail = $"Noted by {by}.";
+            await db.SaveChangesAsync(ct);
+            return log;
+        }
+        if (proposal.Action.Action == CookieActionKind.BoardMessage && Clock.UtcNow - Clock.AsUtc(log.At) > BoardMessageWait)
+        {
+            log.Outcome = "expired";
+            log.Detail = CaseBook.Cut($"Approved by {by} too late: a board message is about now, and this one is " +
+                $"{(int)(Clock.UtcNow - Clock.AsUtc(log.At)).TotalMinutes} minutes old.", 1000);
             await db.SaveChangesAsync(ct);
             return log;
         }
@@ -359,7 +474,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
             return log;
         }
         await RunAsync(db, log, proposal, c, ordered ? "order" : proposal.Action.Action == CookieActionKind.LoungeEmail ? "lounge" : "cookie", ct, log.OrderedBy,
-            approved: true);
+            approved: true, approvedBy: by);
         log.Detail = CaseBook.Cut($"Approved by {by}. {log.Detail}", 1000);
         await db.SaveChangesAsync(ct);
         return log;
@@ -387,6 +502,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         CookieActionKind.AccessNotice => "Access notice",
         CookieActionKind.LoungeEmail => "Lounge e-mail",
         CookieActionKind.AwayNotice => "Away notice",
+        CookieActionKind.BoardMessage => "Board message",
         _ => "For a person",
     };
 
@@ -553,6 +669,45 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
             }
             case CookieActionKind.MailEvent:
                 return (p.Mail is null ? "A mail rule's event needs its mail." : null, p.Mail is null ? null : $"mail:{p.Mail.MailId}");
+            case CookieActionKind.BoardMessage:
+            {
+                // docs/board-messages-plan.md §8.1, §8.3: both gates, the boards chosen for Cookie and Boards: Message for its group; then the
+                // board as it is now. A success has a target of its own: it may follow the case's alert on the same board.
+                if (!Guid.TryParse(a.ObjectId, out var boardId))
+                {
+                    return ("A board message names its board by id, from BoardsYouMayMessage.", null);
+                }
+                if (!(await settings.GetAsync<ActionSettings>(ct)).BoardMessages.BoardIds.Contains(boardId))
+                {
+                    return ("Not one of the boards Cookie may send messages to (Admin → Cookie → Actions).", null);
+                }
+                if (!rights.Has(Area.Boards, Level.Message))
+                {
+                    return ("Cookie's group needs Boards: Message for a board message.", null);
+                }
+                if (BoardKindOf(a.BoardKind) is not { } kind)
+                {
+                    return ("A board message's kind is alert, warning, maintenance, information or success.", null);
+                }
+                if (string.IsNullOrWhiteSpace(a.Subject))
+                {
+                    return ("A board message needs its title as the subject.", null);
+                }
+                var board = await db.Boards.AsNoTracking().Where(b => b.Id == boardId).Select(b => new { b.Name, b.Enabled, b.Layout }).SingleOrDefaultAsync(ct);
+                if (board is null)
+                {
+                    return ("No board with that id.", null);
+                }
+                if (!board.Enabled)
+                {
+                    return ($"{board.Name} is switched off.", null);
+                }
+                if (!BoardLayouts.Read(board.Layout).Look.Messages)
+                {
+                    return ($"{board.Name} doesn't show messages (its Look → Messages is off).", null);
+                }
+                return (null, kind == BoardMessageKind.Success ? $"board:{boardId}:success" : $"board:{boardId}");
+            }
             case CookieActionKind.AccessNotice:
             {
                 // The recipients are the Access tab's contacts, never the model's (docs/cookie-access-plan.md §6.4).
@@ -630,6 +785,23 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                     $"{Away.AwayRules.Until(x.AwayUntil)}: <untrusted source=\"redmine-comment\">{privacy.Mask(InputSanitizer.Clean(x.Text, 2000).Text)}</untrusted>");
             }
         }
+        if (p.Action.Action == CookieActionKind.BoardMessage && Guid.TryParse(p.Action.ObjectId, out var boardId)
+            && await db.Boards.AsNoTracking().Where(b => b.Id == boardId).Select(b => new { b.Name, b.Networks, b.Layout }).SingleOrDefaultAsync(ct) is { } board)
+        {
+            // Who reads it (docs/board-messages-plan.md §8.4): a board may hang in a corridor, or be open to anyone with its URL.
+            var networks = Connectors.ConnectorNetworks.Read(board.Networks);
+            var reach = networks.Count == 0 || Connectors.ConnectorNetworks.AnyAddress(networks)
+                ? "open from anywhere: anyone with its URL reads it"
+                : $"opened from the networks {string.Join(", ", networks.Select(n => n.Cidr))} and by signed-in users";
+            var people = BoardLayouts.Read(board.Layout).Look.People switch
+            {
+                BoardPeople.Hidden => "names nobody",
+                BoardPeople.Initials => "names people by their initials",
+                _ => "names people in full",
+            };
+            text.AppendLine(CultureInfo.InvariantCulture,
+                $"The board {privacy.Mask(board.Name)} ({boardId}) is a screen a room of people reads, {reach}; it {people}. A board message is for what that room should know now: it must name no person, customer, address or secret.");
+        }
         if (p.Mail is { } mail && await db.MailLogs.AsNoTracking().SingleOrDefaultAsync(m => m.Id == mail.MailId, ct) is { } log)
         {
             text.AppendLine(CultureInfo.InvariantCulture,
@@ -660,7 +832,7 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
     /// worker's button lane (docs/redmine-queue-outbound-plan.md §3.3); the limits don't change.
     /// </summary>
     private async Task RunAsync(PnmtdDbContext db, CookieDecisionEntity log, CookieProposal p, CookieCaseEntity? c, string source, CancellationToken ct,
-        string? orderedBy = null, bool approved = false)
+        string? orderedBy = null, bool approved = false, string? approvedBy = null)
     {
         var byPerson = approved || orderedBy is not null;
         var a = p.Action;
@@ -730,6 +902,9 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
                     break;
                 case CookieActionKind.MailEvent:
                     await MailEventAsync(db, log, p.Mail!, ct);
+                    break;
+                case CookieActionKind.BoardMessage:
+                    await BoardMessageAsync(db, log, p, c, subject, body, identity.Name, approvedBy, ct);
                     break;
                 case CookieActionKind.AwayNotice:
                 {
@@ -807,6 +982,63 @@ public sealed class CookieExecutor(IDbContextFactory<PnmtdDbContext> dbs, Cookie
         await CookieObjectNotes.AddAsync(db, id, body, log.CaseId, log.Id, log.Areas, ct);
         log.Outcome = "done";
         log.Detail = $"Noted on {name}.";
+    }
+
+    /// <summary>
+    /// A message box on a board (docs/board-messages-plan.md §8): within the day's and the board's hour's limits; for Cookie's seconds (at
+    /// most 10 min and Boards:MessageMaxMinutes). A success first ends Cookie's open message from the case on that board.
+    /// </summary>
+    private async Task BoardMessageAsync(PnmtdDbContext db, CookieDecisionEntity log, CookieProposal p, CookieCaseEntity? c, string title, string text,
+        string cookieName, string? approvedBy, CancellationToken ct)
+    {
+        var a = p.Action;
+        var boardId = Guid.Parse(a.ObjectId!);
+        var kind = BoardKindOf(a.BoardKind)!.Value;
+        var limits = await settings.LimitsAsync(ct);
+        var today = Clock.ToUtc(Clock.LocalNow.Date);
+        if (await db.CookieDecisions.CountAsync(d => d.Kind == "board-message" && d.Outcome == "done" && d.At >= today, ct) >= limits.BoardMessagesPerDay)
+        {
+            log.Outcome = "held-back";
+            log.Detail = $"Board messages: {limits.BoardMessagesPerDay} a day.";
+            return;
+        }
+        var hour = Clock.UtcNow.AddHours(-1);
+        var target = $"board:{boardId}";
+        if (await db.CookieDecisions.CountAsync(d => d.Kind == "board-message" && d.Outcome == "done" && d.At >= hour && d.Target != null
+                && d.Target.StartsWith(target), ct) >= limits.BoardMessagesPerBoardHour)
+        {
+            log.Outcome = "held-back";
+            log.Detail = $"Board messages: {limits.BoardMessagesPerBoardHour} an hour on one board.";
+            return;
+        }
+        await using var scope = services.CreateAsyncScope();
+        var messages = scope.ServiceProvider.GetRequiredService<BoardMessageService>();
+        var seconds = Math.Min(Math.Clamp((await settings.GetAsync<ActionSettings>(ct)).BoardMessages.Seconds, BoardMessageSettings.MinSeconds,
+            BoardMessageSettings.MaxSeconds), messages.MaxSeconds);
+        if (log.Id == 0)
+        {
+            // The message names its decision: the log row needs its id first.
+            await db.SaveChangesAsync(ct);
+        }
+        var who = AuditWho.Cookie($"decision:{log.Id}");
+        if (kind == BoardMessageKind.Success && c is not null)
+        {
+            var now = Clock.UtcNow;
+            var caseId = c.Id;
+            var ending = await db.BoardMessages.AsNoTracking().Where(m => m.CookieCaseId == caseId && m.Source == BoardMessageSource.Cookie
+                && m.WithdrawnAt == null && m.EndsAt > now && m.BoardIds.Contains(boardId)).Select(m => m.Id).ToListAsync(ct);
+            foreach (var id in ending)
+            {
+                await messages.WithdrawAsync(id, null, cookieName, who, ct);
+            }
+        }
+        var sent = await messages.SendAsync(new BoardMessageRequest
+        {
+            BoardIds = [boardId], Kind = kind, Title = CaseBook.Cut(title.Replace('\n', ' ').Replace('\r', ' ').Trim(), BoardMessageService.MaxTitle)!,
+            Text = CaseBook.Cut(text, BoardMessageService.MaxText), Seconds = seconds,
+        }, new BoardMessageSender(BoardMessageSource.Cookie, null, cookieName, who, null, approvedBy, log.Id, c?.Id), ct);
+        log.Outcome = "done";
+        log.Detail = $"Shown on {string.Join(", ", sent.Boards.Select(b => b.Name))} for {BoardMessageService.Duration(seconds)}.";
     }
 
     /// <summary>An <i>AI every time</i> rule's event (§12): the rule's OK or fail code on its sensor, and the mail processed.</summary>

@@ -82,6 +82,8 @@ function useTarget(u: Schemas['FileUseRef']) {
     return { name: 'kb-page', params: { number: u.number } }
   // A responsibility's description (docs/responsibilities-plan.md §10.4).
   if (u.kind === 'Responsibility') return { name: 'responsibility', params: { id: u.id } }
+  // A board's image element (docs/board-messages-plan.md §9.4).
+  if (u.kind === 'Board') return { name: 'board', params: { id: u.id } }
   return { name: 'location', params: { id: u.id } }
 }
 </script>

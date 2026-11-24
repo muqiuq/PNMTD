@@ -59,6 +59,8 @@ public static partial class BoardLayouts
             (Area.Monitoring, Level.View), null),
         new(BoardElementType.StatusTiles, "Monitoring", "Status tiles", "A large tile for each chosen host or sensor", "pi pi-th-large",
             (Area.Monitoring, Level.View), null),
+        new(BoardElementType.SensorMessage, "Monitoring", "Sensor message", "One sensor's last message, from small to as large as fits",
+            "pi pi-comment", (Area.Monitoring, Level.View), null),
         new(BoardElementType.HostBars, "Monitoring", "Host bars", "Hosts with their 30-day uptime and 90-day bar", "pi pi-server",
             (Area.Monitoring, Level.View), null),
         new(BoardElementType.RecentChanges, "Monitoring", "Recent changes", "State changes of the last 24 hours, newest first", "pi pi-list",
@@ -66,6 +68,7 @@ public static partial class BoardLayouts
         new(BoardElementType.Uplink, "Monitoring", "Uplink", "Whether PNMT's uplink is up, and since when", "pi pi-cloud", (Area.Monitoring, Level.View), null),
         new(BoardElementType.Clock, "General", "Clock", "The time, large, with the date and other time zones", "pi pi-clock", null, null),
         new(BoardElementType.Note, "General", "Note", "A text written on the board: numbers to call, a message for the room", "pi pi-pencil", null, null),
+        new(BoardElementType.Image, "General", "Image", "An uploaded picture or animated GIF", "pi pi-image", null, null),
         new(BoardElementType.OnDuty, "General", "On duty today", "The availability plan's people of the day", "pi pi-user", (Area.Availability, Level.View), null),
         new(BoardElementType.Certificates, "General", "Expiring certificates", "SSL certificates that expire soon, the soonest first", "pi pi-verified",
             (Area.Certificates, Level.View), null),
@@ -97,7 +100,8 @@ public static partial class BoardLayouts
 
     // --- defaults ----------------------------------------------------------------------------------------------------------------
 
-    public static readonly BoardLook DefaultLook = new(BoardThemes.Default, true, 100, true, BoardPeople.Names);
+    /// <summary>A new board's look: names in English, where a layout from 1.23 keeps the browser's (docs/board-messages-plan.md §9.2).</summary>
+    public static readonly BoardLook DefaultLook = new(BoardThemes.Default, true, 100, true, BoardPeople.Names, DateLanguage: BoardDateLanguage.English);
 
     public static readonly BoardHeader DefaultHeader = new(true, null, true, false, true);
 
@@ -111,7 +115,11 @@ public static partial class BoardLayouts
         .. zabbix ? new[] { new BoardRule(BoardMetric.ZabbixProblems, BoardColour.Yellow, 1, "Zabbix problems Average or worse", new BoardRuleFilter(Severity: ZabbixSeverity.Average)) } : [],
     ];
 
-    public static BoardElement NewElement(BoardElementType type) => new(NewId(), type, null, true, null, Normalize(type, new BoardElementSettings()));
+    /// <summary>A new element at its type's defaults; a new <i>On duty today</i> shows one deputy, where one from 1.23 shows none.</summary>
+    public static BoardElement NewElement(BoardElementType type) => new(NewId(), type, null, true, null,
+        Normalize(type, type == BoardElementType.OnDuty ? new BoardElementSettings(Deputies: 1) : new BoardElementSettings()));
+
+    public const int MaxDeputies = 5;
 
     /// <summary>
     /// A new board's layout (§10.2): empty columns, or the starting layout (the sensor summary, failing sensors and a clock), with the
@@ -191,7 +199,13 @@ public static partial class BoardLayouts
         v.Check(BoardThemes.Ids.Contains(look.Theme), "layout.look.theme", "Not one of the themes.");
         v.Check(look.TextScale is >= 75 and <= 250, "layout.look.textScale", "75 to 250 %.");
         v.Check(Enum.IsDefined(look.People), "layout.look.people", "Names, initials or hidden.");
+        v.Check(Enum.IsDefined(look.TimeFormat), "layout.look.timeFormat", "24-hour, 12-hour or the browser's.");
+        v.Check(Enum.IsDefined(look.DateFormat), "layout.look.dateFormat", "Not one of the date formats.");
+        v.Check(Enum.IsDefined(look.DateLanguage), "layout.look.dateLanguage", "English, German, French, Italian or the browser's.");
+        v.Check(Enum.IsDefined(look.MessageSize), "layout.look.messageSize", "Large or full.");
         var header = layout.Header with { Title = Trimmed(layout.Header.Title) };
+        v.Check(header.TimeFormat is null or BoardTimeFormat.Hours24 or BoardTimeFormat.Hours12, "layout.header.timeFormat",
+            "As the board, 24-hour or 12-hour.");
         v.Check(header.Title is null || header.Title.Length <= 100, "layout.header.title", "At most 100 characters.");
 
         var bar = layout.Bar;
@@ -313,6 +327,13 @@ public static partial class BoardLayouts
                 var targets = (s.Targets ?? []).Where(t => t is not null && Enum.IsDefined(t.Kind) && t.Id != Guid.Empty).Distinct().ToList();
                 v.Check(targets.Count <= MaxTargets, $"{path}.targets", $"At most {MaxTargets} hosts and sensors.");
                 return new BoardElementSettings(Targets: targets.Take(MaxTargets).ToList(), PerRow: Range(s.PerRow, 1, 8, 3, $"{path}.perRow", v));
+            case BoardElementType.SensorMessage:
+                v.Check(s.TextSize is null || Enum.IsDefined(s.TextSize.Value), $"{path}.textSize", "Small, medium, large, huge or fit.");
+                v.Check(s.StateColour is null || Enum.IsDefined(s.StateColour.Value), $"{path}.stateColour", "None, a bar or the background.");
+                return new BoardElementSettings(Rows: Rows(1, 20, 6),
+                    Targets: (s.Targets ?? []).Where(t => t is not null && t.Kind == BoardTargetKind.Sensor && t.Id != Guid.Empty).Take(1).ToList(),
+                    TextSize: s.TextSize is { } size && Enum.IsDefined(size) ? size : BoardTextSize.Medium, Monospace: s.Monospace, Center: s.Center,
+                    StateColour: s.StateColour is { } colour && Enum.IsDefined(colour) ? colour : BoardStateColour.Bar, Age: s.Age);
             case BoardElementType.HostBars:
                 return new BoardElementSettings(Rows: Rows(1, 200, 20), LocationId: s.LocationId, OnlyProblems: s.OnlyProblems, Tiles: s.Tiles);
             case BoardElementType.RecentChanges:
@@ -326,11 +347,40 @@ public static partial class BoardLayouts
                     v.Check(IsZone(zone.Zone), $"{path}.zones[{i}].zone", "A time zone such as Europe/London or America/New_York.");
                     v.Check(zone.Label.Length is >= 1 and <= 30, $"{path}.zones[{i}].label", "1 to 30 characters.");
                 }
-                return new BoardElementSettings(Seconds: s.Seconds, Date: s.Date, Zones: zones.Take(3).ToList());
+                v.Check(s.TimeFormat is null or BoardTimeFormat.Hours24 or BoardTimeFormat.Hours12, $"{path}.timeFormat", "As the board, 24-hour or 12-hour.");
+                v.Check(s.DateFormat is null || Enum.IsDefined(s.DateFormat.Value), $"{path}.dateFormat", "As the board, or one of the date formats.");
+                return new BoardElementSettings(Seconds: s.Seconds, Date: s.Date, Zones: zones.Take(3).ToList(),
+                    TimeFormat: s.TimeFormat is BoardTimeFormat.Hours24 or BoardTimeFormat.Hours12 ? s.TimeFormat : null,
+                    DateFormat: s.DateFormat is { } f && Enum.IsDefined(f) ? f : null, WeekNumber: s.WeekNumber);
             case BoardElementType.Note:
                 var text = (s.Text ?? "").Replace("\0", "").Trim();
                 v.Check(text.Length <= MaxNote, $"{path}.text", $"At most {MaxNote} characters.");
                 return new BoardElementSettings(Text: text, Center: s.Center, Large: s.Large);
+            case BoardElementType.OnDuty:
+                string? Text(string? value, int max, string name)
+                {
+                    var t = Trimmed(value);
+                    v.Check(t is null || t.Length <= max, $"{path}.{name}", $"At most {max} characters.");
+                    return t is null || t.Length <= max ? t : t[..max];
+                }
+                v.Check(s.TextSize is null or BoardTextSize.Medium or BoardTextSize.Large or BoardTextSize.Huge, $"{path}.textSize",
+                    "Medium, large or huge.");
+                return new BoardElementSettings(Deputies: Range(s.Deputies, 0, MaxDeputies, 0, $"{path}.deputies", v),
+                    DutyLabel: Text(s.DutyLabel, 40, "dutyLabel"), DeputyLabel: Text(s.DeputyLabel, 40, "deputyLabel"),
+                    NobodyText: Text(s.NobodyText, 100, "nobodyText"), ClosedText: Text(s.ClosedText, 100, "closedText"), Role: s.Role, Where: s.Where,
+                    DayComment: s.DayComment, Tomorrow: s.Tomorrow,
+                    TextSize: s.TextSize is BoardTextSize.Medium or BoardTextSize.Huge ? s.TextSize : BoardTextSize.Large, OneLine: s.OneLine);
+            case BoardElementType.Image:
+                var caption = Trimmed(s.Caption);
+                var alt = Trimmed(s.Alt);
+                v.Check(caption is null || caption.Length <= 200, $"{path}.caption", "At most 200 characters.");
+                v.Check(alt is null || alt.Length <= 200, $"{path}.alt", "At most 200 characters.");
+                v.Check(s.ImageFit is null || Enum.IsDefined(s.ImageFit.Value), $"{path}.imageFit", "Contain, cover or its own size.");
+                v.Check(s.Background is null || Enum.IsDefined(s.Background.Value), $"{path}.background", "None, black or white.");
+                return new BoardElementSettings(FileId: s.FileId is { } file && file != Guid.Empty ? file : null,
+                    ImageFit: s.ImageFit is { } fit && Enum.IsDefined(fit) ? fit : BoardImageFit.Contain,
+                    Background: s.Background is { } background && Enum.IsDefined(background) ? background : BoardImageBackground.None,
+                    Caption: caption is { Length: > 200 } ? caption[..200] : caption, Alt: alt is { Length: > 200 } ? alt[..200] : alt);
             case BoardElementType.Certificates:
                 return new BoardElementSettings(Rows: Rows(1, 50, 10), Days: Range(s.Days, 1, 90, 30, $"{path}.days", v));
             default:
@@ -355,6 +405,10 @@ public static partial class BoardLayouts
     }
 
     public static IEnumerable<BoardElement> Elements(BoardLayout layout) => layout.Columns.SelectMany(c => c.Elements);
+
+    /// <summary>The files a layout's image elements show (docs/board-messages-plan.md §9.4).</summary>
+    public static IReadOnlyList<Guid> ImageIds(BoardLayout layout) =>
+        Elements(layout).Where(e => e.Type == BoardElementType.Image && e.Settings.FileId is not null).Select(e => e.Settings.FileId!.Value).Distinct().ToList();
 
     // --- rights (§7.2) ------------------------------------------------------------------------------------------------------------
 

@@ -59,6 +59,10 @@ public sealed class EndpointAuditTests
         // Boards (docs/boards-plan.md §5.2, §12.2): the shell holds no data; the data needs a board's token, then its networks or a session.
         "GET /pnmt-board/api/view",
         "GET /pnmt-board/api/lounge",
+        // A board's image (docs/board-messages-plan.md §9.4): the token, then only a file the board's layout names.
+        "GET /pnmt-board/api/images/{fileId:guid}",
+        // A board's open messages (docs/board-messages-plan.md §6): the token, then its networks or a session.
+        "GET /pnmt-board/api/messages",
         "* /pnmt-board/api/{**rest}",
         "GET /pnmt-board/{**path:nonfile}",
         "HEAD /pnmt-board/{**path:nonfile}",
@@ -624,6 +628,14 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/boards/catalog/targets"] = ("Boards:View&Boards:Manage&Monitoring:View", Roles.Admin),
         ["GET /api/v1/boards/catalog/names"] = ("Boards:View&Monitoring:View", Roles.Admin),
         ["GET /api/v1/boards/address"] = ("Boards:View", Roles.Admin),
+        // A board's images (docs/board-messages-plan.md §9.4): uploading is a change; the editor's list and preview read.
+        ["POST /api/v1/boards/{id:guid}/images"] = ("Boards:Manage", Roles.Admin),
+        ["GET /api/v1/boards/{id:guid}/images"] = ("Boards:View", Roles.Admin),
+        ["GET /api/v1/boards/{id:guid}/images/{fileId:guid}"] = ("Boards:View", Roles.Admin),
+        // Board messages (docs/board-messages-plan.md §12.1): Message sends and withdraws; Manage includes it.
+        ["GET /api/v1/boards/messages"] = ("Boards:View", Roles.Admin),
+        ["POST /api/v1/boards/messages"] = ("Boards:Message", Roles.Admin),
+        ["POST /api/v1/boards/messages/{id:guid}/withdraw"] = ("Boards:Message", Roles.Admin),
         // The knowledge base (docs/locations-knowledge-plan.md §8.1, §9): every role reads and counts a view; Users write, mark
         // sensitive and run AI tags; Admins delete archived pages, redact, and rename and delete tags.
         ["GET /api/v1/kb/pages"] = ("KnowledgeBase:View", Roles.Viewer),

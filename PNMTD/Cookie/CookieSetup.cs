@@ -162,11 +162,16 @@ public sealed class CookieCeilingOptions
 
     public int AwayNoticesPerPersonDay { get; set; } = Defaults.AwayNoticesPerPersonDay;
 
+    public int BoardMessagesPerDay { get; set; } = Defaults.BoardMessagesPerDay;
+
+    public int BoardMessagesPerBoardHour { get; set; } = Defaults.BoardMessagesPerBoardHour;
+
     /// <summary>The ceilings as a set of limits, each 0 or more.</summary>
     public OutputLimits ToLimits() => new(
         Floor(PushoverPerPersonDay), Floor(PushoverPerPersonHour), Floor(EmailPerPersonDay), Floor(MessagesPerDay), Floor(TicketsPerDay),
         Floor(NotesPerTicketDay), Floor(RedmineNotesPerDay), Floor(PublicAnswersPerDay), Floor(ObjectNotesPerDay), Floor(BigBrotherPerDay),
-        Floor(BigBrotherPerCaseDay), Floor(MaxNotesPerObject), Floor(AwayNoticesPerDay), Floor(AwayNoticesPerPersonDay));
+        Floor(BigBrotherPerCaseDay), Floor(MaxNotesPerObject), Floor(AwayNoticesPerDay), Floor(AwayNoticesPerPersonDay), Floor(BoardMessagesPerDay),
+        Floor(BoardMessagesPerBoardHour));
 
     /// <summary>The keys set below 0, for the warning at startup.</summary>
     public IReadOnlyList<string> Negative() =>

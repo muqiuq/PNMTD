@@ -35,7 +35,9 @@ public sealed record VoiceCall(
     bool OfferCase,
     string? Yesterday = null,
     LoungeLength Length = LoungeLength.Short,
-    int ImportantLeft = 0);
+    int ImportantLeft = 0,
+    IReadOnlyList<object>? MayBoard = null,
+    string? Asker = null);
 
 /// <summary>How long a message may be (docs/lounge-plan.md §4.3): chosen by code for each, short most of the time.</summary>
 public enum LoungeLength { Short, Medium, Long }
@@ -184,6 +186,11 @@ public sealed partial class LoungeVoice(IDbContextFactory<PnmtdDbContext> dbs, I
         {
             turnText += " ";
         }
+        // docs/board-messages-plan.md §8.6: only when the person this voice answers may send board messages, and asks for one.
+        if (c.MayBoard is { Count: > 0 } boards)
+        {
+            turnText += $"\n\nBoardsYouMayMessage (only if {c.Asker ?? "the person"} asks you to put something on a board):\n{CookieBrain.Json(boards)}\n\n";
+        }
         // The length last, where it weighs most (§4.3), and how to say more when it really matters.
         turnText += LengthLine(c.Length, c.ImportantLeft);
         messages.Add(Message("user", c.People.Hide(turnText)));
@@ -191,7 +198,7 @@ public sealed partial class LoungeVoice(IDbContextFactory<PnmtdDbContext> dbs, I
         var turn = new LoungeTurn
         {
             Voice = c.Voice, SceneId = c.Scene.Id, Rights = c.Rights, Privacy = p, People = c.People.ByToken, MayEmail = c.MayEmail, OfferCase = c.OfferCase,
-            OfferRemember = true,
+            OfferRemember = true, MayBoard = c.MayBoard is { Count: > 0 } && c.Asker is not null, Asker = c.Asker,
         };
         turn.Areas.UnionWith(c.Ground.Areas);
         var readTools = c.Settings.ToolCallsPerMessage > 0 ? CookieTools.Definitions(LoungeTools.ReadTools(c.Rights, services)) : new JsonArray();

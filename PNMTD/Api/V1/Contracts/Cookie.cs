@@ -159,10 +159,10 @@ public sealed record CookieAdminOverview(
 
 /// <summary>
 /// What Cookie did today (§21.1): proposals waiting in the inbox, done, rejected by Seraph, declined by people, held back;
-/// whether Seraph has a model; the big brother's budget.
+/// whether Seraph has a model; the big brother's budget; whether Cookie's group holds Boards: Message (docs/board-messages-plan.md §8.1).
 /// </summary>
 public sealed record CookieActingItem(int Waiting, int DoneToday, int RejectedToday, int DeclinedToday, int HeldBackToday, bool SeraphConfigured,
-    CookieBudgetItem BigBrother, int ActiveInstructions, int Lessons, CookieIntegrationsItem Integrations);
+    CookieBudgetItem BigBrother, int ActiveInstructions, int Lessons, CookieIntegrationsItem Integrations, bool BoardsRight = false);
 
 /// <summary>
 /// What Cookie counts as available (docs/cookie-fallback-plan.md §3, §6.1): Redmine as <c>none</c>, <c>readOnly</c> or <c>writable</c>, Zabbix as

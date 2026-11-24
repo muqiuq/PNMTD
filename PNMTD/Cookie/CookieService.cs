@@ -399,7 +399,8 @@ public sealed class CookieService(PnmtdDbContext db, CookieSettings settings, IO
             await day.CountAsync(d => d.Outcome == "held-back", ct), await services.GetRequiredService<Seraph>().ChoiceAsync(ct) is not null,
             new CookieBudgetItem(options.CurrentValue.BigBrother.BudgetUsd, await model.BigBrotherSpentAsync(ct)),
             (await services.GetRequiredService<Instructions>().ActiveAsync(ct)).Count, (await settings.GetAsync<LessonSettings>(ct)).Lessons.Count(l => l.Active),
-            Integrations(await services.GetRequiredService<CookieIntegrations>().ReadAsync(ct)));
+            Integrations(await services.GetRequiredService<CookieIntegrations>().ReadAsync(ct)),
+            (await services.GetRequiredService<CookieRound>().RightsAsync(ct))?.Has(Auth.Rights.Area.Boards, Auth.Rights.Level.Message) == true);
     }
 
     /// <summary>What is available, for the admin tabs (docs/cookie-fallback-plan.md §6).</summary>

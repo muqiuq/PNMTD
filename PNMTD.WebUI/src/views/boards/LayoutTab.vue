@@ -15,7 +15,7 @@ import ElementSettings from './ElementSettings.vue'
  * Layout (docs/boards-plan.md §10.3): the board's name, its columns with their widths, and each column's elements in order: dragged
  * within and between columns, or moved with ↑ ↓ from the keyboard. An element's ⚙ (or a click on it in the preview) opens its settings.
  */
-const props = defineProps<{ catalog: BoardCatalog | null; manage: boolean }>()
+const props = defineProps<{ catalog: BoardCatalog | null; manage: boolean; boardId?: string | null }>()
 const layout = defineModel<BoardLayout>('layout', { required: true })
 const name = defineModel<string>('name', { required: true })
 const description = defineModel<string | null>('description', { required: true })
@@ -63,6 +63,9 @@ function drop(event: DragEvent, column: number, index: number) {
     :catalog="catalog"
     :columns="layout.columns.length"
     :column="current.column"
+    :date-language="layout.look.dateLanguage ?? 'Browser'"
+    :people="layout.look.people"
+    :board-id="boardId"
     :locked="manage ? lockOf(current.element) : 'Boards: View only.'"
     @change="(e) => (layout = replace(layout, e))"
     @move="(c) => (layout = move(layout, current!.element.id, c, Number.MAX_SAFE_INTEGER))"

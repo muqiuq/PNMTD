@@ -5,6 +5,7 @@ using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth.Rights;
 using PNMTD.Connectors;
 using PNMTD.Data;
+using PNMTD.Files;
 using PNMTD.Lib.Helper;
 using PNMTD.Locations;
 using PNMTD.Models.Db;
@@ -38,7 +39,7 @@ public sealed class BoardService(PnmtdDbContext db, BoardTokenProtector protecto
             var networks = ConnectorNetworks.Read(b.Networks);
             return new BoardItem(b.Id, b.Name, b.Description, b.Enabled, layout.Columns.Count, BoardLayouts.Elements(layout).Count(), layout.Look.Theme,
                 networks.Count, networks.Count == 0 || ConnectorNetworks.AnyAddress(networks), Utc(b.LastSeenAt),
-                runtime.ScreensNow(b.Id, layout.RefreshSeconds));
+                runtime.ScreensNow(b.Id, layout.RefreshSeconds), layout.Look.Messages, layout.Look.MessageSize);
         }).ToList();
     }
 
@@ -89,6 +90,7 @@ public sealed class BoardService(PnmtdDbContext db, BoardTokenProtector protecto
         v.ThrowIfInvalid();
         RequireRights(null, layout);
         var board = Add(name, description, true, "[]", layout);
+        await FileUses.RecordAsync(db, BoardLayouts.ImageIds(layout), FileOwner.Board(board.Id), ct);
         AuditLog.Target(Target(board));
         AuditLog.Summary($"{name} created: {BoardLayouts.Describe(layout)}; opens from anywhere until networks are set");
         await db.SaveChangesAsync(ct);
@@ -130,9 +132,11 @@ public sealed class BoardService(PnmtdDbContext db, BoardTokenProtector protecto
         var description = Description(request.Description, v);
         var networks = Networks(request.Networks, v);
         var layout = BoardLayouts.Validate(request.Layout, v);
+        await CheckImagesAsync(id, layout, v, ct);
         v.ThrowIfInvalid();
         var before = BoardLayouts.Read(b.Layout);
         RequireRights(before, layout);
+        await FileUses.SyncBoardAsync(db, id, BoardLayouts.ImageIds(layout), ct);
 
         var parts = new List<string>();
         if (b.Name != name)
@@ -188,6 +192,7 @@ public sealed class BoardService(PnmtdDbContext db, BoardTokenProtector protecto
             candidate = $"{name} (copy {n})";
         }
         var board = Add(candidate, source.Description, source.Enabled, "[]", layout);
+        await FileUses.RecordAsync(db, BoardLayouts.ImageIds(layout), FileOwner.Board(board.Id), ct);
         AuditLog.Target(Target(board));
         AuditLog.Summary($"{candidate} created as a copy of {source.Name}: {BoardLayouts.Describe(layout)}; a URL of its own, no networks");
         await db.SaveChangesAsync(ct);
@@ -204,6 +209,73 @@ public sealed class BoardService(PnmtdDbContext db, BoardTokenProtector protecto
         await db.SaveChangesAsync(ct);
         runtime.Forget(id);
     }
+
+    // --- images (docs/board-messages-plan.md §9.4) ---------------------------------------------------------------------------------
+
+    /// <summary>
+    /// A layout's images must be the board's own: uploaded for it, or on it already. An id from elsewhere (a page's image) would show
+    /// a file the editor may not otherwise see.
+    /// </summary>
+    private async Task CheckImagesAsync(Guid id, BoardLayout layout, ApiValidator v, CancellationToken ct)
+    {
+        var wanted = BoardLayouts.ImageIds(layout);
+        if (wanted.Count == 0)
+        {
+            return;
+        }
+        var own = await db.FileUses.AsNoTracking().Where(u => u.BoardId == id && wanted.Contains(u.FileId)).Select(u => u.FileId).ToListAsync(ct);
+        foreach (var (column, c) in layout.Columns.Select((col, i) => (col, i)))
+        {
+            foreach (var (element, e) in column.Elements.Select((el, i) => (el, i)))
+            {
+                if (element.Type == BoardElementType.Image && element.Settings.FileId is { } file && !own.Contains(file))
+                {
+                    v.Add($"layout.columns[{c}].elements[{e}].settings.fileId", "Not one of this board's images: upload it for this board.");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// An image for a board (§9.4): checked by its bytes and stored as a knowledge base image is, up to <c>Boards:MaxImageBytes</c>; its
+    /// use is recorded at once, so that the editor's preview shows it before the board is saved.
+    /// </summary>
+    public async Task<BoardImageItem> UploadImageAsync(Guid id, Stream body, string? name, FileActor actor, FileStore store, CancellationToken ct)
+    {
+        if (!await db.Boards.AnyAsync(b => b.Id == id, ct))
+        {
+            throw ApiException.NotFound("Board");
+        }
+        var item = await store.StoreAsync(body, FileKind.Image, name, null, actor, ct, options.CurrentValue.MaxImageBytes);
+        await FileUses.RecordAsync(db, [item.Id], FileOwner.Board(id), ct);
+        await db.SaveChangesAsync(ct);
+        AuditLog.Target(AuditTarget.Of(AuditTargets.File, item.Id, item.Name));
+        AuditLog.Summary($"{item.Name} ({item.ContentType}, {item.Size} bytes) for the board {await db.Boards.Where(b => b.Id == id).Select(b => b.Name).SingleAsync(ct)}");
+        var created = await db.Files.AsNoTracking().Where(f => f.Id == item.Id).Select(f => f.CreatedAt).SingleAsync(ct);
+        return new BoardImageItem(item.Id, item.Name, item.ContentType, item.Size, item.Width, item.Height, Clock.AsUtc(created));
+    }
+
+    /// <summary>The images a board uses, newest first: the editor's picker.</summary>
+    public async Task<IReadOnlyList<BoardImageItem>> ImagesAsync(Guid id, CancellationToken ct)
+    {
+        if (!await db.Boards.AnyAsync(b => b.Id == id, ct))
+        {
+            throw ApiException.NotFound("Board");
+        }
+        var files = await (from u in db.FileUses.AsNoTracking()
+                           join f in db.Files.AsNoTracking() on u.FileId equals f.Id
+                           where u.BoardId == id && f.Kind == FileKind.Image && f.DeletedAt == null
+                           orderby f.CreatedAt descending
+                           select f).ToListAsync(ct);
+        return files.Select(f => new BoardImageItem(f.Id, f.Name, f.ContentType, f.Size, f.Width, f.Height, Clock.AsUtc(f.CreatedAt))).ToList();
+    }
+
+    /// <summary>One of a board's images, for the editor's preview: null unless the board uses it.</summary>
+    public async Task<FileEntity?> ImageAsync(Guid id, Guid fileId, CancellationToken ct) =>
+        await (from u in db.FileUses.AsNoTracking()
+               join f in db.Files.AsNoTracking() on u.FileId equals f.Id
+               where u.BoardId == id && u.FileId == fileId && f.Kind == FileKind.Image
+               select f).FirstOrDefaultAsync(ct);
 
     /// <summary>The URL, shown (§5.1): audited. 409 when the key ring that protected it is gone: then only a new URL helps.</summary>
     public async Task<BoardUrl> UrlAsync(Guid id, CancellationToken ct)
@@ -288,7 +360,8 @@ public sealed class BoardService(PnmtdDbContext db, BoardTokenProtector protecto
             ? (await db.ZabbixHosts.AsNoTracking().Where(h => h.GoneAt == null).Select(h => h.Groups).ToListAsync(ct))
                 .SelectMany(g => g).Distinct(StringComparer.Ordinal).Order(StringComparer.OrdinalIgnoreCase).ToList()
             : [];
-        return new BoardCatalog(types, metrics, BoardThemes.Ids, locations, projects, groups, Clock.TimeZone.Id);
+        return new BoardCatalog(types, metrics, BoardThemes.Ids, locations, projects, groups, Clock.TimeZone.Id, options.CurrentValue.MaxImageBytes,
+            Math.Clamp(options.CurrentValue.MessageMaxMinutes, 1, 1440) * 60);
     }
 
     /// <summary>Hosts and sensors for status tiles, by name (§12.1): at most 20, names only.</summary>

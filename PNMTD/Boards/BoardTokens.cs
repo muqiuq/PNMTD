@@ -58,7 +58,7 @@ public sealed class BoardTokenProtector(IDataProtectionProvider protection)
 
 /// <summary>
 /// The requests per address on <c>/pnmt-board/api</c> (§5.2): unknown tokens block an address for a while, as
-/// <c>ConnectorGuard</c> does for keys, and every address has a budget per minute. Pruned above 10 000 addresses.
+/// <c>ConnectorGuard</c> does for keys, and every address has a budget per board and minute. Pruned above 10 000 entries.
 /// </summary>
 public sealed class BoardGuard
 {
@@ -101,12 +101,12 @@ public sealed class BoardGuard
         return blocked;
     }
 
-    /// <summary>Counts a request; false when the address used up its minute's budget.</summary>
-    public bool Allow(string address, int perMinute)
+    /// <summary>Counts a request; false when the key (an address and a board) used up its minute's budget.</summary>
+    public bool Allow(string key, int perMinute)
     {
         var now = Clock.UtcNow;
         var minute = new DateTime(now.Ticks - now.Ticks % TimeSpan.TicksPerMinute, DateTimeKind.Utc);
-        var entry = requests.AddOrUpdate(address, _ => (minute, 1), (_, e) => e.Minute == minute ? (minute, e.Count + 1) : (minute, 1));
+        var entry = requests.AddOrUpdate(key, _ => (minute, 1), (_, e) => e.Minute == minute ? (minute, e.Count + 1) : (minute, 1));
         Prune(now);
         return entry.Count <= Math.Max(1, perMinute);
     }

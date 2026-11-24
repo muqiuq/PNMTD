@@ -63,7 +63,10 @@ public sealed class FileAdmin(IDbContextFactory<PnmtdDbContext> dbs, FileStore s
         var responsibilities = await (from u in db.FileUses where ids.Contains(u.FileId) && u.ResponsibilityId != null
                                       join r in db.Responsibilities on u.ResponsibilityId equals r.Id
                                       select new { u.FileId, Use = new FileUseRef(FileUserKind.Responsibility, r.Id, r.Name, null) }).ToListAsync(ct);
-        var uses = pages.Concat(locations).Concat(responsibilities).ToLookup(x => x.FileId, x => x.Use);
+        var boards = await (from u in db.FileUses where ids.Contains(u.FileId) && u.BoardId != null
+                            join b in db.Boards on u.BoardId equals b.Id
+                            select new { u.FileId, Use = new FileUseRef(FileUserKind.Board, b.Id, b.Name, null) }).ToListAsync(ct);
+        var uses = pages.Concat(locations).Concat(responsibilities).Concat(boards).ToLookup(x => x.FileId, x => x.Use);
         var days = options.CurrentValue.DeletedFileDays;
         var items = page.Items.Select(f => new FileAdminItem(FileNames.Item(f), Clock.AsUtc(f.CreatedAt), f.CreatedByName, f.DeletedAt,
             f.DeletedAt?.AddDays(days), uses[f.Id].OrderBy(u => u.Kind).ThenBy(u => u.Name, StringComparer.OrdinalIgnoreCase).ToList())).ToList();

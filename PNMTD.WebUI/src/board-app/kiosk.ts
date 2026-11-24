@@ -62,9 +62,12 @@ export function useKiosk() {
 const symbols = { Green: '🟢', Yellow: '🟡', Red: '🔴', Grey: '⚪' } as const
 const fills = { Green: '#198754', Yellow: '#ffc107', Red: '#dc3545', Grey: '#6c757d' } as const
 
-/** The tab's title and icon in the bar's colour (§6.4): a board is often one tab of many. */
-export function showColour(colour: keyof typeof symbols, name: string) {
-  document.title = `${symbols[colour]} ${name}`
+/**
+ * The tab's title and icon in the bar's colour (§6.4): a board is often one tab of many. An open alert or warning goes first, with "⚠"
+ * (docs/board-messages-plan.md §5.4); the icon keeps the bar's colour.
+ */
+export function showColour(colour: keyof typeof symbols, name: string, warning: string | null = null) {
+  document.title = warning ? `⚠ ${warning} · ${name}` : `${symbols[colour]} ${name}`
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="${fills[colour]}"/></svg>`
   let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
   if (!link) {

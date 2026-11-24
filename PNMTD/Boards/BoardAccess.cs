@@ -49,11 +49,6 @@ public sealed class BoardAccess(IDbContextFactory<PnmtdDbContext> dbs, BoardGuar
             return new Result(null, Problem(StatusCodes.Status429TooManyRequests, "blocked",
                 $"Too many unknown boards from this address: try again in {seconds} s."));
         }
-        if (!guard.Allow(address, options.CurrentValue.RequestsPerMinute))
-        {
-            http.Response.Headers.RetryAfter = "60";
-            return new Result(null, Problem(StatusCodes.Status429TooManyRequests, "rate_limited", "Too many requests from this address: try again in a minute."));
-        }
         var header = http.Request.Headers.Authorization.ToString();
         var token = header.StartsWith(Scheme + " ", StringComparison.OrdinalIgnoreCase) ? header[(Scheme.Length + 1)..].Trim() : null;
         var board = BoardTokens.LooksLikeOne(token) ? await FindAsync(BoardTokens.Hash(token!), ct) : null;
@@ -63,6 +58,13 @@ public sealed class BoardAccess(IDbContextFactory<PnmtdDbContext> dbs, BoardGuar
             guard.Failed(address);
             return new Result(null, Problem(StatusCodes.Status404NotFound, "board_not_found",
                 "There is no board at this address. Its URL may have been renewed, or the board deleted."));
+        }
+        // Per address and board (docs/board-messages-plan.md §6.4): screens behind one NAT or proxy address share a board's budget,
+        // not every board's. Unknown tokens are stopped by the block above, after ten.
+        if (!guard.Allow($"{address} {board.Id}", options.CurrentValue.RequestsPerMinute))
+        {
+            http.Response.Headers.RetryAfter = "60";
+            return new Result(null, Problem(StatusCodes.Status429TooManyRequests, "rate_limited", "Too many requests for this board from this address: try again in a minute."));
         }
         if (!board.Enabled)
         {

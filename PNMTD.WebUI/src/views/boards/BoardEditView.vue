@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ShownMessage } from '@/boards/messages'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import Select from 'primevue/select'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
@@ -67,6 +68,8 @@ watch(
 const dirty = computed(() => !!draft.value && JSON.stringify(draft.value) !== original.value)
 const selected = ref<string | null>(null)
 const tryTheme = ref<string | null>(null)
+/** Look → Messages' sample, shown in the preview only (docs/board-messages-plan.md §5.5). */
+const sample = ref<ShownMessage | null>(null)
 /** What the preview draws: the draft, with a theme being tried in the picker. */
 const shown = computed<BoardLayout | null>(() =>
   draft.value
@@ -210,6 +213,7 @@ const tabs = computed(() =>
             v-model:selected="selected"
             :catalog="catalog.data.value ?? null"
             :manage="manage"
+            :board-id="id"
           />
           <BarTab
             v-else-if="tab === 'bar'"
@@ -222,8 +226,10 @@ const tabs = computed(() =>
             v-else-if="tab === 'look'"
             v-model:look="draft.layout.look"
             v-model:refresh="draft.layout.refreshSeconds"
+            :zone="catalog.data.value?.timeZone"
             :manage="manage"
             @try-theme="(t) => (tryTheme = t)"
+            @preview-message="(m) => (sample = m)"
           />
           <AccessTab
             v-else
@@ -235,6 +241,8 @@ const tabs = computed(() =>
         </div>
       </aside>
       <BoardPreview
+        :board-id="id"
+        :sample="sample"
         :layout="shown"
         :view="preview"
         :name="draft.name"

@@ -70,8 +70,12 @@ public sealed partial class FileStore(IDbContextFactory<PnmtdDbContext> dbs, IOp
 
     public long LimitFor(FileKind kind) => kind == FileKind.Image ? options.CurrentValue.MaxImageBytes : options.CurrentValue.MaxAttachmentBytes;
 
-    /// <summary>Stores an upload's body and returns the file: a new one, or the one with the same bytes.</summary>
-    public async Task<FileItem> StoreAsync(Stream body, FileKind kind, string? name, string? contentType, FileActor actor, CancellationToken ct)
+    /// <summary>
+    /// Stores an upload's body and returns the file: a new one, or the one with the same bytes. <paramref name="limit"/> replaces the
+    /// kind's for a board's image (docs/board-messages-plan.md §9.4).
+    /// </summary>
+    public async Task<FileItem> StoreAsync(Stream body, FileKind kind, string? name, string? contentType, FileActor actor, CancellationToken ct,
+        long? limit = null)
     {
         var fileName = CleanName(name);
         // Every kind: an image's name is replaced by its detected type's extension below, but a name such as invoice.cmd
@@ -86,8 +90,7 @@ public sealed partial class FileStore(IDbContextFactory<PnmtdDbContext> dbs, IOp
         var stored = upload;
         try
         {
-            var limit = LimitFor(kind);
-            var (size, sha) = await WriteLimitedAsync(body, upload, limit, ct);
+            var (size, sha) = await WriteLimitedAsync(body, upload, limit ?? LimitFor(kind), ct);
             ImageInfo? image = null;
             if (kind == FileKind.Image)
             {

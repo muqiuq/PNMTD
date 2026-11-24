@@ -1,7 +1,14 @@
+using System.Globalization;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Options;
 using PNMTD.Api.V1.Contracts;
+using PNMTD.Auth;
 using PNMTD.Auth.Rights;
 using PNMTD.Boards;
+using PNMTD.Files;
+using PNMTD.Knowledge;
 
 namespace PNMTD.Api.V1;
 
@@ -95,4 +102,65 @@ public sealed class BoardsController(BoardService boards, BoardData data) : V1Co
     /// <summary>The address PNMT sees for this browser, for the networks.</summary>
     [HttpGet("address")]
     public BoardAddress Address() => boards.Address();
+
+    // --- images (docs/board-messages-plan.md §9.4) -----------------------------------------------------------------------------
+
+    /// <summary>
+    /// An image for the board's image elements, the file as the body (<c>?name=…</c>): PNG, JPEG, GIF or WebP by its bytes, animations
+    /// kept, metadata removed, at most <c>Boards:MaxImageBytes</c>. Its use is recorded at once. 413 <c>too_large</c>, 415
+    /// <c>not_an_image</c>, 429 <c>too_many_uploads</c>, 503 <c>file_storage_unavailable</c>.
+    /// </summary>
+    [HttpPost("{id:guid}/images")]
+    [RequireRight(Area.Boards, Level.Manage)]
+    [BoardImageUploadLimit]
+    [ProducesResponseType<BoardImageItem>(StatusCodes.Status201Created)]
+    [Audit(AuditEvents.FileUploaded)]
+    public async Task<ActionResult<BoardImageItem>> UploadImage(Guid id, [FromQuery] string? name, [FromServices] FileStore store,
+        [FromServices] UploadGuard uploads, [FromServices] IOptionsMonitor<KnowledgeBaseOptions> files, CancellationToken ct)
+    {
+        var perHour = files.CurrentValue.UploadsPerHour;
+        if (User.UserId() is { } user && !uploads.TryEnter(user, perHour, out var retryAfter))
+        {
+            Response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+            throw new ApiException(StatusCodes.Status429TooManyRequests, FileErrors.TooManyUploads,
+                $"At most {perHour} uploads per hour (KnowledgeBase:UploadsPerHour).");
+        }
+        var actor = new FileActor(User.UserId(), User.Identity?.Name,
+            User.FindFirst(SessionClaims.DisplayName)?.Value is { Length: > 0 } display ? display : null, AuditContext.From(HttpContext));
+        var item = await boards.UploadImageAsync(id, Request.Body, name, actor, store, ct);
+        return Created($"/api/v1/boards/{id}/images/{item.Id}", item);
+    }
+
+    /// <summary>The images the board uses, newest first.</summary>
+    [HttpGet("{id:guid}/images")]
+    public async Task<IReadOnlyList<BoardImageItem>> Images(Guid id, CancellationToken ct) => await boards.ImagesAsync(id, ct);
+
+    /// <summary>One of the board's images, for the editor's preview: 404 for a file the board doesn't use.</summary>
+    [HttpGet("{id:guid}/images/{fileId:guid}")]
+    [ProducesResponseType<FileContentResult>(StatusCodes.Status200OK, "application/octet-stream")]
+    public async Task<IResult> Image(Guid id, Guid fileId, [FromServices] FileStore store, CancellationToken ct) =>
+        BoardImages.Serve(HttpContext, await boards.ImageAsync(id, fileId, ct), store) ?? throw ApiException.NotFound("Image");
+}
+
+/// <summary>
+/// Raises the request body limit for a board's image upload to <c>Boards:MaxImageBytes</c> plus 4 KB (docs/board-messages-plan.md §9.4);
+/// the store checks the limit again while the body streams in.
+/// </summary>
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class BoardImageUploadLimitAttribute : Attribute, IResourceFilter, IOrderedFilter
+{
+    public int Order => -2000;
+
+    public void OnResourceExecuting(ResourceExecutingContext context)
+    {
+        var max = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<BoardOptions>>().CurrentValue.MaxImageBytes;
+        if (context.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit)
+        {
+            limit.MaxRequestBodySize = max + 4 * 1024;
+        }
+    }
+
+    public void OnResourceExecuted(ResourceExecutedContext context)
+    {
+    }
 }

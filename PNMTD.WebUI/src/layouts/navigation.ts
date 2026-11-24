@@ -231,7 +231,19 @@ export const navigation: NavGroup[] = [
         name: 'key-values',
         right: ['System', 'Manage'],
       },
-      { label: 'Debug', icon: 'pi pi-wrench', to: '/admin/debug', name: 'debug', right: ['System', 'Manage'] },
+      {
+        label: 'Debug',
+        icon: 'pi pi-wrench',
+        to: '/admin/debug',
+        name: 'debug',
+        // docs/board-messages-plan.md §7.2: board messages are sent from here.
+        right: {
+          anyOf: [
+            ['System', 'Manage'],
+            ['Boards', 'Message'],
+          ],
+        },
+      },
     ],
   },
 ]

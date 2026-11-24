@@ -9,13 +9,19 @@ import { computed, ref } from 'vue'
 import { api, type S } from '@/api/resources'
 import PageHeader from '@/components/PageHeader.vue'
 import { useActions } from '@/composables/useActions'
+import { useSession } from '@/stores/session'
+import BoardMessagePanel from './BoardMessagePanel.vue'
 
 /**
  * Admin → Debug (docs/ai-operations-plan.md §8): tools to check what PNMT sends through. Each card sends through
  * the same provider as the notifications and shows what the provider's server answered. At most 10 sends a
- * minute; every send is in the audit log, with a rule's name or "a typed key", never the key.
+ * minute; every send is in the audit log, with a rule's name or "a typed key", never the key. It opens for
+ * System: Manage or Boards: Message (docs/board-messages-plan.md §7.2), and shows each panel by its own right.
  */
-const status = useQuery({ queryKey: ['debug', 'status'], queryFn: api.debug.status })
+const session = useSession()
+const system = computed(() => session.can('System', 'Manage'))
+const boardsRight = computed(() => session.can('Boards', 'View'))
+const status = useQuery({ queryKey: ['debug', 'status'], queryFn: api.debug.status, enabled: system })
 const s = computed(() => status.data.value)
 
 const target = ref<string>('typed')
@@ -87,10 +93,10 @@ async function testAi() {
   <div class="page">
     <PageHeader title="Debug" />
     <p class="muted intro">
-      Tools that check what PNMT sends, through the same providers as the notifications. Each shows what the provider's
-      server answered. At most 10 sends a minute, and each is in the audit log.
+      Tools that send through PNMT's channels, to check them or to tell a room something. The tests show what the
+      provider's server answered. At most 10 sends a minute, and each is in the audit log.
     </p>
-    <div class="two-columns">
+    <div v-if="system" class="two-columns">
       <section class="panel" aria-labelledby="pushover-title">
         <div id="pushover-title" class="panel-header">Send a test Pushover</div>
         <form class="panel-body form" novalidate @submit.prevent="sendPushover">
@@ -214,7 +220,8 @@ async function testAi() {
         </form>
       </section>
     </div>
-    <section class="panel ai-panel" aria-labelledby="ai-title">
+    <BoardMessagePanel v-if="boardsRight" />
+    <section v-if="system" class="panel ai-panel" aria-labelledby="ai-title">
       <div id="ai-title" class="panel-header">Test the AI</div>
       <div class="panel-body form">
         <p class="muted small">

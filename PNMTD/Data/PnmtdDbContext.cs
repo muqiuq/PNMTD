@@ -208,6 +208,8 @@ namespace PNMTD.Data
         // Boards (docs/boards-plan.md §11): monitoring dashboards for a wall, at /pnmt-board/<token>.
         public DbSet<BoardEntity> Boards { get; set; }
 
+        public DbSet<BoardMessageEntity> BoardMessages { get; set; }
+
         // Cookie (docs/cookie-plan.md §19.2): its settings' versions, its state, the case book, the duties and the outbox.
         public DbSet<AvailabilityTypeEntity> AvailabilityTypes { get; set; }
         public DbSet<AvailabilityEntryEntity> AvailabilityEntries { get; set; }
@@ -800,6 +802,14 @@ namespace PNMTD.Data
                 e.HasIndex(b => b.NormalizedName).IsUnique();
                 e.HasIndex(b => b.TokenHash).IsUnique();
             });
+            // docs/board-messages-plan.md §10: open ones by their end; kinds and sources by name.
+            modelBuilder.Entity<BoardMessageEntity>(e =>
+            {
+                e.Property(m => m.Kind).HasConversion<string>().HasMaxLength(20);
+                e.Property(m => m.Source).HasConversion<string>().HasMaxLength(20);
+                e.HasIndex(m => m.EndsAt);
+                e.HasIndex(m => m.SentAt);
+            });
             modelBuilder.Entity<ZabbixProblemHistoryEntity>(e =>
             {
                 e.HasIndex(h => h.StartedAt);
@@ -1079,17 +1089,21 @@ namespace PNMTD.Data
             });
             modelBuilder.Entity<FileUseEntity>(e =>
             {
-                e.ToTable(t => t.HasCheckConstraint("CK_file_uses_one_owner", "num_nonnulls(\"PageId\", \"LocationId\", \"ResponsibilityId\") = 1"));
+                e.ToTable(t => t.HasCheckConstraint("CK_file_uses_one_owner",
+                    "num_nonnulls(\"PageId\", \"LocationId\", \"ResponsibilityId\", \"BoardId\") = 1"));
                 e.HasOne<FileEntity>().WithMany().HasForeignKey(u => u.FileId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne<KbPageEntity>().WithMany().HasForeignKey(u => u.PageId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne<LocationEntity>().WithMany().HasForeignKey(u => u.LocationId).OnDelete(DeleteBehavior.Cascade);
                 // A responsibility's description (docs/responsibilities-plan.md §10.4).
                 e.HasOne<ResponsibilityEntity>().WithMany().HasForeignKey(u => u.ResponsibilityId).OnDelete(DeleteBehavior.Cascade);
+                // A board's image element (docs/board-messages-plan.md §9.4): deleting the board drops its uses.
+                e.HasOne<BoardEntity>().WithMany().HasForeignKey(u => u.BoardId).OnDelete(DeleteBehavior.Cascade);
                 // Once per file and owner. The owner leads: a page's attachments (§6.1) and the cascades; where a file is
                 // used, and whether at all, by FileId.
                 e.HasIndex(u => new { u.PageId, u.FileId }).IsUnique().HasFilter("\"PageId\" IS NOT NULL");
                 e.HasIndex(u => new { u.LocationId, u.FileId }).IsUnique().HasFilter("\"LocationId\" IS NOT NULL");
                 e.HasIndex(u => new { u.ResponsibilityId, u.FileId }).IsUnique().HasFilter("\"ResponsibilityId\" IS NOT NULL");
+                e.HasIndex(u => new { u.BoardId, u.FileId }).IsUnique().HasFilter("\"BoardId\" IS NOT NULL");
                 e.HasIndex(u => u.FileId);
             });
         }

@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, provide, ref, watch } from 'vue'
 import BoardClock from './BoardClock.vue'
 import BoardElementView from './BoardElementView.vue'
+import { imageLoaderKey, motionKey, type ImageLoader } from './inject'
 import { fontSize } from './layout'
+import MessageBox from './MessageBox.vue'
+import type { ShownMessage } from './messages'
 import StatusBar from './StatusBar.vue'
-import { boardNow, boardTime } from './time'
+import { boardNow, boardTime, lookTime } from './time'
 import type { BoardBarView, BoardElementData, BoardLayout, BoardView } from './types'
 import './board.css'
 import './themes/themes.css'
@@ -27,13 +30,41 @@ const props = withDefaults(
     staleSince?: string | null
     selectable?: boolean
     selected?: string | null
+    /** How its image elements fetch their files (docs/board-messages-plan.md §9.4). */
+    images?: ImageLoader | null
+    /** Its open messages, drawn over the columns (docs/board-messages-plan.md §5). */
+    messages?: ShownMessage[]
+    /** The editor's sample: drawn as it is, without timers. */
+    stillMessages?: boolean
   }>(),
-  { staleSince: null, selectable: false, selected: null, width: 1920 },
+  {
+    staleSince: null,
+    selectable: false,
+    selected: null,
+    width: 1920,
+    images: null,
+    messages: () => [],
+    stillMessages: false,
+  },
 )
 const emit = defineEmits<{ select: [id: string] }>()
 
-const time = computed(() => boardTime(props.view?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone))
+const time = computed(() =>
+  boardTime(props.view?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone, lookTime(props.layout.look)),
+)
 const fit = computed(() => props.layout.look.fit && props.width >= 700)
+
+/** Motion: the board's setting, unless the screen asks for less (prefers-reduced-motion). */
+const reduced = ref(false)
+const query =
+  typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null
+const onQuery = () => (reduced.value = !!query?.matches)
+onQuery()
+query?.addEventListener?.('change', onQuery)
+onBeforeUnmount(() => query?.removeEventListener?.('change', onQuery))
+const motion = computed(() => props.layout.look.motion && !reduced.value)
+provide(motionKey, motion)
+provide(imageLoaderKey, props.images)
 const size = computed(() => `${fontSize(fit.value, props.height, props.layout.look.textScale)}px`)
 const columns = computed(() => props.layout.columns.map((c) => `${c.width}fr`).join(' '))
 const data = computed(() => new Map<string, BoardElementData>((props.view?.elements ?? []).map((e) => [e.id, e])))
@@ -83,23 +114,39 @@ watch(
     />
     <div v-else-if="showHeader" class="board-header">
       <span v-if="layout.header.showTitle" class="board-title">{{ title }}</span>
-      <BoardClock v-if="layout.header.clock" :time="time" :seconds="layout.header.seconds" :date="layout.header.date" />
+      <BoardClock
+        v-if="layout.header.clock"
+        :time="time"
+        :seconds="layout.header.seconds"
+        :date="layout.header.date"
+        :time-format="layout.header.timeFormat"
+      />
     </div>
-    <div class="board-columns" :style="{ gridTemplateColumns: columns }">
-      <div v-for="(column, i) in layout.columns" :key="i" class="board-column">
-        <BoardElementView
-          v-for="element in column.elements"
-          :key="element.id"
-          :element="element"
-          :data="data.get(element.id) ?? null"
-          :fit="fit"
-          :time="time"
-          :now="boardNow"
-          :selectable="selectable"
-          :selected="selected === element.id"
-          @click="selectable && emit('select', element.id)"
-        />
+    <div class="board-main">
+      <div class="board-columns" :style="{ gridTemplateColumns: columns }">
+        <div v-for="(column, i) in layout.columns" :key="i" class="board-column">
+          <BoardElementView
+            v-for="element in column.elements"
+            :key="element.id"
+            :element="element"
+            :data="data.get(element.id) ?? null"
+            :fit="fit"
+            :time="time"
+            :now="boardNow"
+            :selectable="selectable"
+            :selected="selected === element.id"
+            @click="selectable && emit('select', element.id)"
+          />
+        </div>
       </div>
+      <MessageBox
+        v-if="messages.length"
+        :messages="messages"
+        :size="layout.look.messageSize ?? 'Large'"
+        :time="time"
+        :narrow="width < 700"
+        :still="stillMessages"
+      />
     </div>
     <StatusBar
       v-if="layout.bar.show && layout.bar.position === 'Bottom'"

@@ -210,7 +210,12 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 [.. open.SelectMany(c => c.Areas).Distinct()]);
 
             // 3. Work, case by case, with the read tools; each ends in a note, and the proposals it needs (§21.1).
-            var acting = await brain.ActingAsync(reading, ct);
+            var acting = await brain.ActingAsync(reading, ct, rights);
+            // The boards Cookie may send to (docs/board-messages-plan.md §8.2), only when it may: otherwise it doesn't hear of boards.
+            var actionSettings = await settings.GetAsync<ActionSettings>(ct);
+            var boardsText = CookieBrain.BoardsOpen(actionSettings, rights) && actionSettings.Levels.BoardMessage.Level != ActionLevel.Off
+                && await CookieBrain.BoardsYouMayMessageAsync(db, actionSettings, p, ct) is { Count: > 0 } boards
+                ? $"\n\nBoardsYouMayMessage:\n{CookieBrain.Json(boards)}" : "";
             var executor = services.GetRequiredService<CookieExecutor>();
             var bigBrother = services.GetRequiredService<BigBrother>();
             var missed = (await db.CookieDuties.AsNoTracking().Where(d => openIds.Contains(d.CaseId) && d.DueAt <= now
@@ -254,7 +259,7 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 var raisedWhy = comments.GetValueOrDefault(c.Id)?.Where(e => e.Kind == LoungeRaisedEntry).ToList();
                 var caseText = $"The case:\n{CookieBrain.Json(Summary(c, due.GetValueOrDefault(c.Id), p, full: true, withheld, raisedWhy is { Count: > 0 } ? raisedWhy : null,
                     yourNotes: await CookieObjectNotes.ForCaseAsync(db, c, p, ct)))}\n\n" +
-                    $"PeopleYouMayAddress:\n{CookieBrain.Json(people)}" +
+                    $"PeopleYouMayAddress:\n{CookieBrain.Json(people)}" + boardsText +
                     (offered ? "\n\nThis case matters and nobody has taken care of it for a working day: if something is broken that needs a technical " +
                         "fix nobody has found, set NeedsFixing, and say in your note what needs fixing." : "");
                 var work = new JsonArray(
@@ -542,7 +547,7 @@ public sealed class CookieRound(IDbContextFactory<PnmtdDbContext> dbs, IServiceP
                 var canInstruct = !message.ReadOnly && askerRights.Has(Auth.Rights.Area.Cookie, Auth.Rights.Level.Instruct);
                 // What Cookie does from its cases, and that nothing asked here becomes a proposal (docs/cookie-fallback-plan.md §5.1); or, for an
                 // empowered message, what its powers allow (docs/cookie-powers-plan.md §5).
-                var acting = empowered ? CookieBrain.Powers(reading, p.Mask(asker.DisplayName)) : await brain.ChatActingAsync(reading, ct);
+                var acting = empowered ? CookieBrain.Powers(reading, p.Mask(asker.DisplayName)) : await brain.ChatActingAsync(reading, ct, rights);
                 var work = new JsonArray(Message("system", $"{system}\n\n{instructions}\n\n{acting} " + (canInstruct
                         ? "This person may give instructions: if they give one (mute something, suppress a kind of message, a note on how you should " +
                           "work for a while), look up the ids you need with your tools, and say briefly that you filled it in below for them to confirm."

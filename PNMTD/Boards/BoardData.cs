@@ -10,6 +10,7 @@ using PNMTD.Data;
 using PNMTD.Lib.Helper;
 using PNMTD.Lib.Models.Enum;
 using PNMTD.Locations;
+using PNMTD.Models.Db;
 using PNMTD.Redmine;
 using PNMTD.Services.Domain;
 using PNMTD.Zabbix;
@@ -68,6 +69,7 @@ public sealed class BoardData(PnmtdDbContext db, MonitoringReader reader, Dashbo
         BoardElementType.FailingSensors => FailingSensors(e, read, ct),
         BoardElementType.StatusTiles => StatusTiles(e, read, ct),
         BoardElementType.HostBars => HostBars(e, read, ct),
+        BoardElementType.SensorMessage => SensorMessage(e, read, ct),
         BoardElementType.RecentChanges => RecentChanges(e, read, ct),
         BoardElementType.Uplink => Uplink(e, read),
         BoardElementType.RedmineOverview => RedmineOverview(e, read, ct),
@@ -78,6 +80,7 @@ public sealed class BoardData(PnmtdDbContext db, MonitoringReader reader, Dashbo
         BoardElementType.Lounge => Lounge(e, read, ct),
         BoardElementType.OnDuty => OnDuty(e, read, ct),
         BoardElementType.Certificates => Certificates(e, ct),
+        BoardElementType.Image => Image(e, ct),
         BoardElementType.Note => Task.FromResult(new BoardElementData(e.Id, e.Type, BoardDataState.Ok, Note: e.Settings.Text ?? "")),
         _ => Task.FromResult(new BoardElementData(e.Id, e.Type, BoardDataState.Ok)),
     };
@@ -252,6 +255,39 @@ public sealed class BoardData(PnmtdDbContext db, MonitoringReader reader, Dashbo
             }
         }
         return Ok(e) with { Tiles = tiles, AsOf = m.Dashboard.GeneratedAt };
+    }
+
+    public const int MaxSensorMessage = 2000;
+
+    /// <summary>
+    /// One sensor's last message (docs/board-messages-plan.md §9.3), as plain text cut at 2000 characters. An advanced sensor whose data
+    /// names people has its messages without the values already (docs/advanced-sensor-plan.md §3).
+    /// </summary>
+    private async Task<BoardElementData> SensorMessage(BoardElement e, Reads read, CancellationToken ct)
+    {
+        if (e.Settings.Targets is not [{ } target, ..])
+        {
+            return new BoardElementData(e.Id, e.Type, BoardDataState.NotConfigured, "No sensor chosen: pick one in the element's settings.");
+        }
+        var m = await read.MonitoringAsync(ct);
+        if (!m.Snapshot.Sensors.TryGetValue(target.Id, out var sensor) || sensor.IsContainer)
+        {
+            return Ok(e) with { SensorMessage = new BoardSensorMessage(target.Id, null, null, BoardTileState.Missing, null, null), AsOf = m.Dashboard.GeneratedAt };
+        }
+        var state = !sensor.IsActive ? BoardTileState.Off : sensor.State switch
+        {
+            SensorState.Ok => BoardTileState.Ok,
+            SensorState.Failing => BoardTileState.Failing,
+            SensorState.NoData => BoardTileState.NoData,
+            _ => BoardTileState.Off,
+        };
+        var message = string.IsNullOrEmpty(sensor.LastMessage) ? null
+            : sensor.LastMessage.Length <= MaxSensorMessage ? sensor.LastMessage : sensor.LastMessage[..(MaxSensorMessage - 1)] + "…";
+        return Ok(e) with
+        {
+            SensorMessage = new BoardSensorMessage(sensor.Info.Id, sensor.Info.HostName, sensor.Info.Name, state, message, Utc(sensor.LastEventAt)),
+            AsOf = m.Dashboard.GeneratedAt,
+        };
     }
 
     private async Task<BoardElementData> HostBars(BoardElement e, Reads read, CancellationToken ct)
@@ -484,14 +520,62 @@ public sealed class BoardData(PnmtdDbContext db, MonitoringReader reader, Dashbo
 
     // --- general (§7.1) ----------------------------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// Who is on duty today (docs/board-messages-plan.md §9.5): the chain's first step, then up to the element's number of deputies from
+    /// the next steps; where each works today, the day's comment, and the next open day's first step, each where the element shows it.
+    /// </summary>
     private async Task<BoardElementData> OnDuty(BoardElement e, Reads read, CancellationToken ct)
     {
+        var s = e.Settings;
         var plan = services.GetRequiredService<AvailabilityPlan>();
         var today = DateOnly.FromDateTime(Clock.LocalNow);
-        var who = (await plan.DayAsync(today, ct)).ResponsibleOn(today);
-        var names = await db.Users.AsNoTracking().Where(u => who.UserIds.Contains(u.Id)).OrderBy(u => u.DisplayName).Select(u => u.DisplayName).ToListAsync(ct);
-        var people = names.Select(read.Person).Where(n => n is not null).Select(n => n!).ToList();
-        return Ok(e) with { OnDuty = new BoardOnDuty(people, who.As, who.UserIds.Count == 0) };
+        var snapshot = await plan.ReadAsync(today, today.AddDays(s.Tomorrow ? 7 : 0), ct);
+        var chain = snapshot.ChainOn(today);
+        var duty = chain.Count > 0 ? chain[0] : Responsibility.Nobody;
+        var deputies = chain.Skip(1).SelectMany(step => step.UserIds.Select(id => (Id: id, step.As))).Take(s.Deputies ?? 0).ToList();
+        (DateOnly Day, Responsibility Who)? next = null;
+        for (var day = today.AddDays(1); s.Tomorrow && read.People != BoardPeople.Hidden && day <= today.AddDays(7); day = day.AddDays(1))
+        {
+            if (!snapshot.Closed(day))
+            {
+                next = (day, snapshot.ChainOn(day) is { Count: > 0 } c ? c[0] : Responsibility.Nobody);
+                break;
+            }
+        }
+        var ids = duty.UserIds.Concat(deputies.Select(d => d.Id)).Concat(next?.Who.UserIds ?? []).Distinct().ToList();
+        var names = await db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName, ct);
+        string Name(Guid id) => names.GetValueOrDefault(id) ?? "?";
+        string? Where(Guid id)
+        {
+            if (!s.Where)
+            {
+                return null;
+            }
+            var type = snapshot.Cell(id, today) is { } cell ? snapshot.Type(cell.TypeId) : snapshot.DefaultType;
+            return type is null ? null : type.Has(AvailabilityFlag.WorkTravel) ? "travelling" : type.Has(AvailabilityFlag.HomeOffice) ? "home office"
+                : type.Has(AvailabilityFlag.OnSite) ? "on site" : null;
+        }
+        var people = duty.UserIds.OrderBy(Name, StringComparer.CurrentCultureIgnoreCase)
+            .Select(id => new BoardDutyPerson(read.Person(Name(id)), false, duty.As, Where(id)))
+            .Concat(deputies.Select(d => new BoardDutyPerson(read.Person(Name(d.Id)), true, d.As, Where(d.Id))))
+            .ToList();
+        var comment = s.DayComment && snapshot.Row(today)?.Comment is { } text && !string.IsNullOrWhiteSpace(text) ? text.Trim() : null;
+        var upcoming = next is { } n
+            ? new BoardDutyNext(n.Day, n.Who.UserIds.Select(Name).Order(StringComparer.CurrentCultureIgnoreCase).Select(x => read.Person(x)!).ToList())
+            : null;
+        return Ok(e) with { OnDuty = new BoardOnDuty(people, duty.As, snapshot.Closed(today), comment, upcoming) };
+    }
+
+    /// <summary>An image element's file (docs/board-messages-plan.md §9.4): what it is, not its bytes.</summary>
+    private async Task<BoardElementData> Image(BoardElement e, CancellationToken ct)
+    {
+        if (e.Settings.FileId is not { } id)
+        {
+            return new BoardElementData(e.Id, e.Type, BoardDataState.NotConfigured, "No image chosen: upload one in the element's settings.");
+        }
+        var file = await db.Files.AsNoTracking().Where(f => f.Id == id && f.Kind == FileKind.Image)
+            .Select(f => new BoardImage(f.Id, f.ContentType, f.Width, f.Height, f.Size)).SingleOrDefaultAsync(ct);
+        return file is null ? new BoardElementData(e.Id, e.Type, BoardDataState.Unavailable, "This image was removed.") : Ok(e) with { Image = file };
     }
 
     private async Task<BoardElementData> Certificates(BoardElement e, CancellationToken ct)

@@ -59,8 +59,9 @@ public static class WebUi
 
 public static class HostingSetup
 {
+    // blob: for images only: a board's image, fetched with its token and shown from memory (docs/board-messages-plan.md §9.4).
     private const string UiCsp =
-        "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; " +
+        "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; " +
         "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 
     private const string ApiCsp = "default-src 'none'; frame-ancestors 'none'";

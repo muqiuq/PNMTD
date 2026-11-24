@@ -85,6 +85,93 @@
         }
       }
     },
+    "/pnmt-board/api/messages": {
+      "get": {
+        "tags": [
+          "Boards"
+        ],
+        "operationId": "BoardMessages",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardMessages"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pnmt-board/api/images/{fileId}": {
+      "get": {
+        "tags": [
+          "Boards"
+        ],
+        "operationId": "BoardImage",
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cookie/access/cases/{id}": {
       "get": {
         "tags": [
@@ -5798,6 +5885,133 @@
         }
       }
     },
+    "/api/v1/boards/messages": {
+      "get": {
+        "tags": [
+          "BoardMessages"
+        ],
+        "parameters": [
+          {
+            "name": "open",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BoardMessageItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BoardMessageItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BoardMessageItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "BoardMessages"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BoardMessageRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BoardMessageRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BoardMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardMessageItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardMessageItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardMessageItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/boards/messages/{id}/withdraw": {
+      "post": {
+        "tags": [
+          "BoardMessages"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/boards": {
       "get": {
         "tags": [
@@ -6320,6 +6534,139 @@
               "text/plain": {
                 "schema": {
                   "$ref": "#/components/schemas/BoardAddress"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/boards/{id}/images": {
+      "post": {
+        "tags": [
+          "Boards"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardImageItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardImageItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardImageItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Boards"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BoardImageItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BoardImageItem"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BoardImageItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/boards/{id}/images/{fileId}": {
+      "get": {
+        "tags": [
+          "Boards"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileContentResult"
                 }
               }
             }
@@ -30325,6 +30672,9 @@
           },
           "awayNotice": {
             "$ref": "#/components/schemas/ActionRule"
+          },
+          "boardMessage": {
+            "$ref": "#/components/schemas/ActionRule"
           }
         }
       },
@@ -30355,6 +30705,9 @@
           },
           "levels": {
             "$ref": "#/components/schemas/ActionLevels"
+          },
+          "boardMessages": {
+            "$ref": "#/components/schemas/BoardMessageSettings"
           },
           "cookieWritesDuties": {
             "type": "boolean"
@@ -35755,7 +36108,9 @@
           "locations",
           "redmineProjects",
           "zabbixGroups",
-          "timeZone"
+          "timeZone",
+          "maxImageBytes",
+          "messageMaxSeconds"
         ],
         "type": "object",
         "properties": {
@@ -35797,6 +36152,14 @@
           },
           "timeZone": {
             "type": "string"
+          },
+          "maxImageBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "messageMaxSeconds": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -36000,6 +36363,29 @@
           "Withheld"
         ]
       },
+      "BoardDateFormat": {
+        "enum": [
+          "WeekdayDayMonth",
+          "Short",
+          "DayMonthYear",
+          "WeekdayDayMonthYear",
+          "Dotted",
+          "WeekdayDotted",
+          "Iso",
+          "Us"
+        ],
+        "default": "WeekdayDayMonth"
+      },
+      "BoardDateLanguage": {
+        "enum": [
+          "English",
+          "German",
+          "French",
+          "Italian",
+          "Browser"
+        ],
+        "default": "Browser"
+      },
       "BoardDetail": {
         "required": [
           "id",
@@ -36075,6 +36461,54 @@
             "format": "date-time"
           },
           "updatedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "BoardDutyNext": {
+        "required": [
+          "day",
+          "people"
+        ],
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "BoardDutyPerson": {
+        "required": [
+          "name",
+          "deputy",
+          "as",
+          "where"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "deputy": {
+            "type": "boolean"
+          },
+          "as": {
+            "type": "string"
+          },
+          "where": {
             "type": [
               "null",
               "string"
@@ -36303,6 +36737,26 @@
             "items": {
               "$ref": "#/components/schemas/BoardCertificate"
             }
+          },
+          "sensorMessage": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BoardSensorMessage"
+              }
+            ]
+          },
+          "image": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BoardImage"
+              }
+            ]
           }
         }
       },
@@ -36490,6 +36944,150 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "timeFormat": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BoardTimeFormat"
+              }
+            ]
+          },
+          "dateFormat": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BoardDateFormat"
+              }
+            ]
+          },
+          "weekNumber": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "deputies": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "dutyLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "deputyLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nobodyText": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "closedText": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "type": "boolean",
+            "default": true
+          },
+          "where": {
+            "type": "boolean",
+            "default": false
+          },
+          "dayComment": {
+            "type": "boolean",
+            "default": false
+          },
+          "tomorrow": {
+            "type": "boolean",
+            "default": false
+          },
+          "textSize": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BoardTextSize"
+              }
+            ]
+          },
+          "oneLine": {
+            "type": "boolean",
+            "default": false
+          },
+          "monospace": {
+            "type": "boolean",
+            "default": false
+          },
+          "stateColour": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BoardStateColour"
+              }
+            ]
+          },
+          "age": {
+            "type": "boolean",
+            "default": true
+          },
+          "fileId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "imageFit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BoardImageFit"
+              }
+            ]
+          },
+          "background": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BoardImageBackground"
+              }
+            ]
+          },
+          "caption": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "alt": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -36511,7 +37109,9 @@
           "Clock",
           "Note",
           "OnDuty",
-          "Certificates"
+          "Certificates",
+          "SensorMessage",
+          "Image"
         ]
       },
       "BoardHeader": {
@@ -36541,6 +37141,16 @@
           },
           "seconds": {
             "type": "boolean"
+          },
+          "timeFormat": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BoardTimeFormat"
+              }
+            ]
           }
         }
       },
@@ -36581,6 +37191,103 @@
           }
         }
       },
+      "BoardImage": {
+        "required": [
+          "fileId",
+          "contentType",
+          "width",
+          "height",
+          "size"
+        ],
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "width": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "height": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "BoardImageBackground": {
+        "enum": [
+          "None",
+          "Black",
+          "White"
+        ]
+      },
+      "BoardImageFit": {
+        "enum": [
+          "Contain",
+          "Cover",
+          "Original"
+        ]
+      },
+      "BoardImageItem": {
+        "required": [
+          "id",
+          "name",
+          "contentType",
+          "size",
+          "width",
+          "height",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "width": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "height": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "BoardItem": {
         "required": [
           "id",
@@ -36593,7 +37300,9 @@
           "networks",
           "anywhere",
           "lastSeenAt",
-          "screensNow"
+          "screensNow",
+          "showsMessages",
+          "messageSize"
         ],
         "type": "object",
         "properties": {
@@ -36641,6 +37350,12 @@
           "screensNow": {
             "type": "integer",
             "format": "int32"
+          },
+          "showsMessages": {
+            "type": "boolean"
+          },
+          "messageSize": {
+            "$ref": "#/components/schemas/BoardMessageSize"
           }
         }
       },
@@ -36721,6 +37436,26 @@
           },
           "people": {
             "$ref": "#/components/schemas/BoardPeople"
+          },
+          "timeFormat": {
+            "$ref": "#/components/schemas/BoardTimeFormat"
+          },
+          "dateFormat": {
+            "$ref": "#/components/schemas/BoardDateFormat"
+          },
+          "weekNumber": {
+            "type": "boolean",
+            "default": false
+          },
+          "dateLanguage": {
+            "$ref": "#/components/schemas/BoardDateLanguage"
+          },
+          "messages": {
+            "type": "boolean",
+            "default": true
+          },
+          "messageSize": {
+            "$ref": "#/components/schemas/BoardMessageSize"
           }
         }
       },
@@ -36808,6 +37543,256 @@
           },
           "important": {
             "type": "boolean"
+          }
+        }
+      },
+      "BoardMessageBoard": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "BoardMessageItem": {
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "text",
+          "seconds",
+          "sentAt",
+          "endsAt",
+          "remainingSeconds",
+          "open",
+          "source",
+          "sentByName",
+          "approvedByName",
+          "boards",
+          "withdrawnAt",
+          "withdrawnByName",
+          "cookieCaseId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/BoardMessageKind"
+          },
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "seconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "remainingSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "open": {
+            "type": "boolean"
+          },
+          "source": {
+            "$ref": "#/components/schemas/BoardMessageSource"
+          },
+          "sentByName": {
+            "type": "string"
+          },
+          "approvedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "boards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BoardMessageBoard"
+            }
+          },
+          "withdrawnAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "withdrawnByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cookieCaseId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "BoardMessageKind": {
+        "enum": [
+          "Alert",
+          "Warning",
+          "Maintenance",
+          "Information",
+          "Success"
+        ]
+      },
+      "BoardMessageRequest": {
+        "required": [
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "boardIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "allBoards": {
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/BoardMessageKind"
+          },
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "seconds": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "BoardMessages": {
+        "required": [
+          "messages"
+        ],
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BoardMessageView"
+            }
+          }
+        }
+      },
+      "BoardMessageSettings": {
+        "type": "object",
+        "properties": {
+          "boardIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "seconds": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "BoardMessageSize": {
+        "enum": [
+          "Large",
+          "Full"
+        ],
+        "default": "Large"
+      },
+      "BoardMessageSource": {
+        "enum": [
+          "Person",
+          "Cookie"
+        ]
+      },
+      "BoardMessageView": {
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "text",
+          "from",
+          "sentAt",
+          "seconds",
+          "remainingSeconds"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/BoardMessageKind"
+          },
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "seconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "remainingSeconds": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -36902,7 +37887,7 @@
           "people": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/BoardDutyPerson"
             }
           },
           "as": {
@@ -36910,6 +37895,22 @@
           },
           "closed": {
             "type": "boolean"
+          },
+          "comment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "next": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BoardDutyNext"
+              }
+            ]
           }
         }
       },
@@ -37293,6 +38294,51 @@
           }
         }
       },
+      "BoardSensorMessage": {
+        "required": [
+          "sensorId",
+          "host",
+          "name",
+          "state",
+          "message",
+          "at"
+        ],
+        "type": "object",
+        "properties": {
+          "sensorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "host": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/BoardTileState"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "BoardSensorRow": {
         "required": [
           "id",
@@ -37348,6 +38394,13 @@
           }
         }
       },
+      "BoardStateColour": {
+        "enum": [
+          "None",
+          "Bar",
+          "Background"
+        ]
+      },
       "BoardTarget": {
         "required": [
           "kind",
@@ -37389,6 +38442,15 @@
             "type": "string"
           }
         }
+      },
+      "BoardTextSize": {
+        "enum": [
+          "Small",
+          "Medium",
+          "Large",
+          "Huge",
+          "Fit"
+        ]
       },
       "BoardTicket": {
         "required": [
@@ -37502,6 +38564,14 @@
           "Off",
           "Missing"
         ]
+      },
+      "BoardTimeFormat": {
+        "enum": [
+          "Hours24",
+          "Hours12",
+          "Browser"
+        ],
+        "default": "Hours24"
       },
       "BoardUplink": {
         "required": [
@@ -41307,6 +42377,10 @@
           },
           "integrations": {
             "$ref": "#/components/schemas/CookieIntegrationsItem"
+          },
+          "boardsRight": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -45868,7 +46942,8 @@
         "enum": [
           "Page",
           "Location",
-          "Responsibility"
+          "Responsibility",
+          "Board"
         ]
       },
       "FirewallInfo": {
@@ -48392,7 +49467,8 @@
           "Link",
           "Details",
           "Use",
-          "Instruct"
+          "Instruct",
+          "Message"
         ]
       },
       "LinkedSensor": {
@@ -59932,6 +61008,16 @@
             "type": "integer",
             "format": "int32",
             "default": 10
+          },
+          "boardMessagesPerDay": {
+            "type": "integer",
+            "format": "int32",
+            "default": 10
+          },
+          "boardMessagesPerBoardHour": {
+            "type": "integer",
+            "format": "int32",
+            "default": 2
           }
         }
       },
@@ -74030,6 +75116,9 @@
     },
     {
       "name": "Availability"
+    },
+    {
+      "name": "BoardMessages"
     },
     {
       "name": "SensorCertificate"

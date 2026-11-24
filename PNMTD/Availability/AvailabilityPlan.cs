@@ -142,6 +142,47 @@ public sealed class PlanSnapshot
         return Responsibility.Nobody;
     }
 
+    /// <summary>
+    /// The chain on a day (docs/board-messages-plan.md §9.5): the responsible, the fallback, the global fallback user, then the global
+    /// fallback group's members, each step with those who work that day, and each person once. Its first step is
+    /// <see cref="ResponsibleOn"/>'s; the next ones are the deputies. Empty on a closed day.
+    /// </summary>
+    public IReadOnlyList<Responsibility> ChainOn(DateOnly day)
+    {
+        if (Closed(day))
+        {
+            return [];
+        }
+        var seen = new HashSet<Guid>();
+        var steps = new List<Responsibility>();
+        void Add(IEnumerable<Guid> people, string As)
+        {
+            var working = people.Where(p => Works(p, day) && seen.Add(p)).ToList();
+            if (working.Count > 0)
+            {
+                steps.Add(new Responsibility(working, As));
+            }
+        }
+        var row = Row(day);
+        if (row?.ResponsibleId is { } r)
+        {
+            Add([r], "responsible");
+        }
+        if (row?.FallbackId is { } f)
+        {
+            Add([f], "fallback");
+        }
+        if (Settings.GlobalFallbackUserId is { } u)
+        {
+            Add([u], "global fallback");
+        }
+        if (Settings.GlobalFallbackGroupId is { } g)
+        {
+            Add(members.GetValueOrDefault(g) ?? [], "global fallback");
+        }
+        return steps;
+    }
+
     /// <summary>Who is responsible at <paramref name="utc"/>: nobody outside working hours (§8.3).</summary>
     public Responsibility ResponsibleAt(DateTime utc) =>
         Calendar.IsWorking(utc) ? ResponsibleOn(DateOnly.FromDateTime(Clock.ToLocal(utc))) : Responsibility.Nobody;

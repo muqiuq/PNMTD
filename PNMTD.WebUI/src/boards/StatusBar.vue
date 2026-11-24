@@ -38,6 +38,12 @@ const age = computed(() =>
     <span class="board-bar-text">{{ view.text }}</span>
     <span v-if="sinceText" class="board-bar-since" :title="age">{{ sinceText }}</span>
     <span v-if="header.showTitle" class="board-title">{{ title }}</span>
-    <BoardClock v-if="header.clock" :time="time" :seconds="header.seconds" :date="header.date" />
+    <BoardClock
+      v-if="header.clock"
+      :time="time"
+      :seconds="header.seconds"
+      :date="header.date"
+      :time-format="header.timeFormat"
+    />
   </div>
 </template>

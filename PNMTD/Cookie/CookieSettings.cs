@@ -232,10 +232,15 @@ public sealed record OutputLimits(
     int BigBrotherPerCaseDay = 2,
     int MaxNotesPerObject = 20,
     int AwayNoticesPerDay = 20,
-    int AwayNoticesPerPersonDay = 10)
+    int AwayNoticesPerPersonDay = 10,
+    int BoardMessagesPerDay = 10,
+    int BoardMessagesPerBoardHour = 2)
 {
-    /// <summary>The ceilings without a <c>Cookie__Ceilings__*</c> line: those that were in code before 1.20.</summary>
-    public static readonly OutputLimits DefaultCeilings = new(10, 5, 50, 200, 20, 10, 200, 50, 200, 30, 5, 100, 100, 50);
+    /// <summary>
+    /// The ceilings without a <c>Cookie__Ceilings__*</c> line: those that were in code before 1.20, and the board messages' of 1.24
+    /// (docs/board-messages-plan.md §8.3).
+    /// </summary>
+    public static readonly OutputLimits DefaultCeilings = new(10, 5, 50, 200, 20, 10, 200, 50, 200, 30, 5, 100, 100, 50, 50, 10);
 
     /// <summary>
     /// Each limit as it counts: at most its ceiling. A saved value above a ceiling lowered in .env, or one a rollback brought back,
@@ -248,7 +253,8 @@ public sealed record OutputLimits(
         Math.Min(PublicAnswersPerDay, ceilings.PublicAnswersPerDay), Math.Min(ObjectNotesPerDay, ceilings.ObjectNotesPerDay),
         Math.Min(BigBrotherPerDay, ceilings.BigBrotherPerDay), Math.Min(BigBrotherPerCaseDay, ceilings.BigBrotherPerCaseDay),
         Math.Min(MaxNotesPerObject, ceilings.MaxNotesPerObject), Math.Min(AwayNoticesPerDay, ceilings.AwayNoticesPerDay),
-        Math.Min(AwayNoticesPerPersonDay, ceilings.AwayNoticesPerPersonDay));
+        Math.Min(AwayNoticesPerPersonDay, ceilings.AwayNoticesPerPersonDay), Math.Min(BoardMessagesPerDay, ceilings.BoardMessagesPerDay),
+        Math.Min(BoardMessagesPerBoardHour, ceilings.BoardMessagesPerBoardHour));
 
     /// <summary>The limits whose value is above its ceiling, with that ceiling (for the check on save).</summary>
     public IEnumerable<(string Name, int Ceiling)> Above(OutputLimits ceilings) => GetType().GetProperties().Where(p => p.PropertyType == typeof(int))
@@ -293,6 +299,12 @@ public sealed record ActionLevels
     /// </summary>
     public ActionRule AwayNotice { get; init; } = new(ActionLevel.Auto, 0.7);
 
+    /// <summary>
+    /// A message box on boards (docs/board-messages-plan.md §8.1): <i>Propose</i>, as everything that reaches people; it also needs boards
+    /// chosen for Cookie and <i>Boards: Message</i> for Cookie's group.
+    /// </summary>
+    public ActionRule BoardMessage { get; init; } = new(ActionLevel.Propose);
+
     public ActionRule Of(CookieActionKind kind) => kind switch
     {
         CookieActionKind.Pushover => Pushover,
@@ -304,6 +316,7 @@ public sealed record ActionLevels
         CookieActionKind.MailEvent => MailEvent,
         CookieActionKind.AccessNotice => AccessNotice,
         CookieActionKind.AwayNotice => AwayNotice,
+        CookieActionKind.BoardMessage => BoardMessage,
         _ => new ActionRule(ActionLevel.Propose, 0),
     };
 }
@@ -318,6 +331,9 @@ public sealed record ActionSettings : ICookieSection
     public OutputLimits Limits { get; init; } = new();
 
     public ActionLevels Levels { get; init; } = new();
+
+    /// <summary>The boards Cookie may send messages to, and for how long they show (docs/board-messages-plan.md §8.1).</summary>
+    public BoardMessageSettings BoardMessages { get; init; } = new();
 
     /// <summary>Cookie writes the reminders' and escalations' texts while it runs (§21.1); the templates otherwise.</summary>
     public bool CookieWritesDuties { get; init; }
@@ -339,6 +355,9 @@ public sealed record ActionSettings : ICookieSection
             v.Check(rule.MinConfidence is >= 0 and <= 1, $"levels.{JsonNamingPolicy.CamelCase.ConvertName(kind.ToString())}", "A confidence of 0 to 1.");
         }
         v.Check(SeraphVetoConfidence is >= 0.5 and <= 1, "seraphVetoConfidence", "A confidence of 0.5 to 1.");
+        v.Check(BoardMessages.BoardIds is { Count: <= 50 }, "boardMessages.boardIds", "At most 50 boards.");
+        v.Check(BoardMessages.Seconds is >= BoardMessageSettings.MinSeconds and <= BoardMessageSettings.MaxSeconds, "boardMessages.seconds",
+            $"{BoardMessageSettings.MinSeconds} to {BoardMessageSettings.MaxSeconds} seconds.");
         // The ceilings are in .env (docs/cookie-redmine-tab-plan.md §13): CookieService checks them on save, and every reader caps by them.
         var values = Limits.GetType().GetProperties().Where(p => p.PropertyType == typeof(int));
         foreach (var p in values)
@@ -346,6 +365,20 @@ public sealed record ActionSettings : ICookieSection
             v.Check((int)p.GetValue(Limits)! >= 0, $"limits.{JsonNamingPolicy.CamelCase.ConvertName(p.Name)}", "0 or more.");
         }
     }
+}
+
+/// <summary>
+/// Cookie's board messages (docs/board-messages-plan.md §8.1): the boards it may send to (none by default, so it sends none until an
+/// admin picks one), and how long its messages show: 60 s, at most 10 min (and never above Boards:MessageMaxMinutes).
+/// </summary>
+public sealed record BoardMessageSettings
+{
+    public const int MinSeconds = 10;
+    public const int MaxSeconds = 600;
+
+    public IReadOnlyList<Guid> BoardIds { get; init; } = [];
+
+    public int Seconds { get; init; } = 60;
 }
 
 /// <summary>Models (§9.3): what overrides the .env defaults, and the limits per round.</summary>
@@ -433,7 +466,7 @@ public sealed record LessonSettings : ICookieSection
                 var d = new InstructionDraft("suppress", scope, l.SuppressValue, l.SuppressValue, l.Text, Lib.Helper.Clock.UtcNow.AddDays(1));
                 var check = new ApiValidator();
                 Instructions.Validate(d, check);
-                v.Check(!check.HasErrors, $"lessons.{l.Id}", "What it suppresses: pushover, email, ticket or redmine-note; a sensor type; problem or ticket.");
+                v.Check(!check.HasErrors, $"lessons.{l.Id}", "What it suppresses: pushover, email, ticket, redmine-note or board-message; a sensor type; problem or ticket.");
             }
         }
     }

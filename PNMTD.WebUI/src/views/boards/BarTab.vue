@@ -12,6 +12,7 @@ import type { BoardCatalog } from '@/api/boards'
 import { metricNames } from '@/boards/names'
 import type { BoardBar, BoardHeader, BoardMetric, BoardRule } from '@/boards/types'
 import { severityOptions } from '@/shared/zabbix'
+import { clockTimeFormats } from './timeOptions'
 
 /**
  * The status bar (docs/boards-plan.md §8): shown or not, where and how large, its green text, the header line's title and clock, and the
@@ -100,6 +101,15 @@ const setFilter = (i: number, r: BoardRule, patch: Partial<NonNullable<BoardRule
       <div v-if="header.clock" class="indent">
         <label class="check"><Checkbox v-model="header.seconds" binary /> Seconds</label>
         <label class="check"><Checkbox v-model="header.date" binary /> The date</label>
+        <Select
+          :model-value="header.timeFormat ?? ''"
+          :options="clockTimeFormats"
+          option-label="label"
+          option-value="value"
+          aria-label="The clock's time"
+          data-test="header-time-format"
+          @update:model-value="(v) => (header = { ...header, timeFormat: v || null })"
+        />
       </div>
     </div>
 

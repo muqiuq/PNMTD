@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import BoardCanvas from '@/boards/BoardCanvas.vue'
+import { open, urgent } from '@/boards/messages'
 import { boardNow } from '@/boards/time'
 import type { BoardElementData, BoardView } from '@/boards/types'
-import { tokenFromPath } from './client'
+import { boardApi, tokenFromPath } from './client'
 import { showColour, useKiosk } from './kiosk'
 import { useBoardPolling } from './polling'
 
@@ -34,6 +35,7 @@ function onVersion(version: string) {
 }
 
 const polling = token ? useBoardPolling(token, onVersion) : null
+const images = token ? (fileId: string) => boardApi.image(token, fileId) : null
 const view = computed<BoardView | null>(() => {
   const v = polling?.view.value ?? null
   const lounge = polling?.lounge.value
@@ -44,10 +46,14 @@ const error = computed(() => polling?.error.value ?? null)
 const staleSince = computed(() => polling?.staleSince(boardNow.value) ?? null)
 const refused = computed(() => (error.value?.refused || (error.value && !view.value) ? error.value : null))
 
+const boardMessages = computed(() => polling?.messages.value ?? [])
+/** An open alert or warning goes before the tab's name (docs/board-messages-plan.md §5.4): a board is often one tab of many. */
+const warning = computed(() => open(boardMessages.value, boardNow.value).find((m) => urgent(m.kind)) ?? null)
+
 watch(
-  () => [view.value?.bar.colour, view.value?.name, staleSince.value] as const,
-  ([colour, name, stale]) => {
-    if (colour && name) showColour(stale ? 'Grey' : colour, name)
+  () => [view.value?.bar.colour, view.value?.name, staleSince.value, warning.value?.title] as const,
+  ([colour, name, stale, title]) => {
+    if (colour && name) showColour(stale ? 'Grey' : colour, name, title ?? null)
   },
 )
 
@@ -87,6 +93,8 @@ const messages: Record<string, string> = {
     :width="width"
     :name="view.name"
     :stale-since="staleSince"
+    :images="images"
+    :messages="boardMessages"
   />
   <main v-else class="board-message"><p>Loading the board…</p></main>
 </template>

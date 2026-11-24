@@ -647,3 +647,115 @@
   border-color: #fff;
   box-shadow: inset 0 0.45rem #fff;
 }
+
+/* ===== Message boxes as each era's dialog (docs/board-messages-plan.md §5.4) ===================================================== */
+[data-board-theme='win95'] .board-msg {
+  border: none;
+  padding: 3px;
+  box-shadow:
+    var(--board-shadow),
+    0 1em 4em rgb(0 0 0 / 45%);
+}
+
+[data-board-theme='win95'] .board-msg-band,
+[data-board-theme='winxp'] .board-msg-band {
+  justify-content: flex-start;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 700;
+  font-size: 2.4em;
+  padding: 0.25em 0.5em;
+}
+
+[data-board-theme='win95'] .board-msg-band {
+  background: #000080;
+  color: #fff;
+}
+
+[data-board-theme='win95'] .board-msg-close {
+  opacity: 1;
+  background: #c0c0c0;
+  color: #000;
+  box-shadow: var(--board-shadow);
+  padding: 0 0.35em;
+}
+
+[data-board-theme='winxp'] .board-msg {
+  border: 0.25em solid #0831d9;
+  border-radius: 0.8em 0.8em 0.2em 0.2em;
+}
+
+[data-board-theme='winxp'] .board-msg-band {
+  background-image: var(--board-xp-title);
+  color: #fff;
+  text-shadow: 1px 1px 0 #0a246a;
+}
+
+[data-board-theme='winxp'] .board-msg-close {
+  opacity: 1;
+  background: #e24b2a;
+  color: #fff;
+  border: 1px solid #fff;
+  border-radius: 0.2em;
+}
+
+[data-board-theme='terminal'] .board-msg {
+  border: 0.5em double var(--board-text);
+  border-radius: 0;
+  box-shadow: none;
+  font-family: var(--board-mono);
+}
+
+[data-board-theme='terminal'] .board-msg-band {
+  background: transparent;
+  color: var(--board-text);
+  border-bottom: 0.25em double var(--board-text);
+}
+
+[data-board-theme='terminal'] .board-msg-band::before {
+  content: '[ ';
+}
+
+[data-board-theme='terminal'] .board-msg-band::after {
+  content: ' ]';
+}
+
+[data-board-theme='terminal'] .board-msg-icon {
+  color: var(--board-text);
+}
+
+[data-board-theme='amiga'] .board-msg {
+  background: #000;
+  color: #ff2a1a;
+  border: 0.6em solid #ff2a1a;
+  border-radius: 0;
+  font-family: var(--board-mono);
+}
+
+[data-board-theme='amiga'] .board-msg:not([data-kind='Alert']) {
+  color: #fff;
+  border-color: #fff;
+}
+
+[data-board-theme='amiga'] .board-msg-band {
+  background: transparent;
+  color: inherit;
+}
+
+[data-board-theme='amiga'] .board-msg-foot {
+  color: inherit;
+  opacity: 0.8;
+}
+
+@keyframes board-msg-guru {
+  50% {
+    border-color: transparent;
+  }
+}
+
+/* The Amiga's alerts blinked their red border. */
+.board[data-motion='true'][data-board-theme='amiga'] .board-msg[data-kind='Alert'] {
+  animation:
+    board-msg-in 200ms ease-out,
+    board-msg-guru 1s steps(1) 200ms infinite;
+}

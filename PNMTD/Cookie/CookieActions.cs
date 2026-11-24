@@ -8,23 +8,24 @@ namespace PNMTD.Cookie;
 /// watch's contacts about an unusual login (docs/cookie-access-plan.md §6.4); its recipients come from the settings, never the model.
 /// <see cref="LoungeEmail"/>: a light e-mail from the lounge (docs/lounge-plan.md §8.2), with a level and limits of its own.
 /// </summary>
-public enum CookieActionKind { Pushover, Email, Ticket, PrivateNote, PublicAnswer, ObjectNote, MailEvent, HandToPerson, AccessNotice, LoungeEmail, AwayNotice }
+public enum CookieActionKind { Pushover, Email, Ticket, PrivateNote, PublicAnswer, ObjectNote, MailEvent, HandToPerson, AccessNotice, LoungeEmail, AwayNotice, BoardMessage }
 
 /// <summary>
 /// A proposal at the end of a case's work (§21.1): the action, its targets as ids from the brief or the tools (never an
 /// address or a name), the text, why, on what evidence, how sure. Code checks every part of it.
 /// </summary>
 public sealed record ProposedAction(
-    [property: Description("pushover, email, ticket, private-note, public-answer, object-note or hand-to-person")] CookieActionKind Action,
+    [property: Description("pushover, email, ticket, private-note, public-answer, object-note, board-message or hand-to-person")] CookieActionKind Action,
     [property: Description("For pushover and email: the person's user id from your data; empty otherwise")] string? UserId,
     [property: Description("For private-note and public-answer: the ticket's number; 0 otherwise")] int IssueId,
-    [property: Description("For object-note: the host's or sensor's id; empty otherwise")] string? ObjectId,
+    [property: Description("For object-note: the host's or sensor's id; for board-message: the board's id from BoardsYouMayMessage; empty otherwise")] string? ObjectId,
     [property: Description("A subject, or the ticket's title; at most 120 characters")] string Subject,
     [property: Description("The text as it is to be sent or written; at most 1500 characters")] string Text,
     [property: Description("Why, at most 300 characters")] string Reason,
     [property: Description("The ids of the evidence it rests on: cases, sensors, tickets, pages")] IReadOnlyList<string> Evidence,
     [property: Description("How sure you are, 0 to 1; 0.9 means wrong 1 time in 10")] double Confidence,
-    [property: Description("info, important or urgent")] Urgency Urgency)
+    [property: Description("info, important or urgent")] Urgency Urgency,
+    [property: Description("For board-message: alert, warning, maintenance, information or success; empty otherwise")] string? BoardKind = null)
 {
     public static string Name(CookieActionKind kind) => JsonNamingPolicy.KebabCaseLower.ConvertName(kind.ToString());
 }

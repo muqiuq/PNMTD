@@ -37,15 +37,19 @@ function attributes(element: Element): Record<string, unknown> {
   return out
 }
 
-function nodes(children: ElementContent[]): VNodeChild[] {
+function nodes(children: ElementContent[], links: boolean): VNodeChild[] {
   return children.map((child) => {
     if (child.type === 'text') return child.value
-    if (child.type === 'element') return h(child.tagName, attributes(child), nodes(child.children))
+    if (child.type === 'element') {
+      // A message box shows a link as its text: nobody follows a link on a wall (docs/board-messages-plan.md §4.2).
+      if (child.tagName === 'a' && !links) return h('span', { class: 'board-link-text' }, nodes(child.children, links))
+      return h(child.tagName, attributes(child), nodes(child.children, links))
+    }
     return null
   })
 }
 
-/** The note as Vue nodes: no HTML string ever reaches the page. */
-export function noteNodes(markdown: string): VNodeChild[] {
-  return nodes(noteTree(markdown).children as ElementContent[])
+/** The note as Vue nodes: no HTML string ever reaches the page. Without <c>links</c>, links are plain text. */
+export function noteNodes(markdown: string, links = true): VNodeChild[] {
+  return nodes(noteTree(markdown).children as ElementContent[], links)
 }

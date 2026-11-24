@@ -41,6 +41,28 @@ export function blankSettings(): BoardElementSettings {
     center: false,
     large: false,
     days: null,
+    timeFormat: null,
+    dateFormat: null,
+    weekNumber: null,
+    deputies: null,
+    dutyLabel: null,
+    deputyLabel: null,
+    nobodyText: null,
+    closedText: null,
+    role: true,
+    where: false,
+    dayComment: false,
+    tomorrow: false,
+    textSize: null,
+    oneLine: false,
+    monospace: false,
+    stateColour: null,
+    age: true,
+    fileId: null,
+    imageFit: null,
+    background: null,
+    caption: null,
+    alt: null,
   }
 }
 
@@ -51,8 +73,11 @@ export function newId(): string {
   return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
+/** A new element; a new "On duty today" shows one deputy (docs/board-messages-plan.md §9.5), one from 1.23 none. */
 export function newElement(type: BoardElementType): BoardElement {
-  return { id: newId(), type, title: null, showTitle: true, height: null, settings: blankSettings() }
+  const settings = blankSettings()
+  if (type === 'OnDuty') settings.deputies = 1
+  return { id: newId(), type, title: null, showTitle: true, height: null, settings }
 }
 
 export function elements(layout: BoardLayout): BoardElement[] {

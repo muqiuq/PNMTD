@@ -346,6 +346,9 @@ public static class AuditEvents
     public const string BoardUrlShown = "BoardUrlShown";
     public const string BoardUrlRenewed = "BoardUrlRenewed";
     public const string BoardRefused = "BoardRefused";
+    // Board messages (docs/board-messages-plan.md §12.2): by a person or by Cookie.
+    public const string BoardMessageSent = "BoardMessageSent";
+    public const string BoardMessageWithdrawn = "BoardMessageWithdrawn";
 }
 
 /// <summary>What an entry is about: its category on the page and in the filter (docs/audit-redmine-zabbix-plan.md §3.2).</summary>
@@ -406,6 +409,7 @@ public static class AuditTargets
     public const string OsAdvisorySource = "OsAdvisorySource";
     public const string Responsibility = "Responsibility";
     public const string Board = "Board";
+    public const string BoardMessage = "BoardMessage";
 }
 
 /// <summary>An event type of the catalog: its category, a label for people, the tone of its tag, what it is about.</summary>
@@ -561,6 +565,7 @@ public static class AuditCatalog
         Add(AuditCategory.Responsibilities, null, AuditEvents.GlobalResponsibleChanged);
         Add(AuditCategory.Boards, AuditTargets.Board, AuditEvents.BoardCreated, AuditEvents.BoardChanged, AuditEvents.BoardDeleted,
             AuditEvents.BoardUrlShown, AuditEvents.BoardUrlRenewed, AuditEvents.BoardRefused);
+        Add(AuditCategory.Boards, AuditTargets.BoardMessage, AuditEvents.BoardMessageSent, AuditEvents.BoardMessageWithdrawn);
     }
 
     public static IReadOnlyList<AuditEventInfo> All => Entries;
@@ -596,6 +601,8 @@ public static class AuditCatalog
         : type is AuditEvents.ConnectorRefused ? AuditTone.Danger
         // docs/boards-plan.md §13.2: a board's URL shown or replaced, a screen refused by its networks.
         : type is AuditEvents.BoardUrlShown or AuditEvents.BoardUrlRenewed or AuditEvents.BoardRefused ? AuditTone.Warn
+        // docs/board-messages-plan.md §12.2: a message over a wall's board is notable.
+        : type is AuditEvents.BoardMessageSent ? AuditTone.Warn
         // docs/linux-os-updates-plan.md §6.5: a high-risk finding accepted for a while.
         : type is AuditEvents.OsUpdateFindingAcknowledged ? AuditTone.Warn
         : System.Text.RegularExpressions.Regex.IsMatch(type, "Deleted|Reset|Revoked|Disabled|Cancelled|Retired|Removed|Redacted|Detached") ? AuditTone.Warn

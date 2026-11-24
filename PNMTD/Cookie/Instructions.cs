@@ -14,7 +14,7 @@ public sealed record InstructionDraft(string Kind, string Scope, string? Value, 
 /// <summary>
 /// Mute, suppress and free-text instructions (docs/cookie-plan.md §10.3, §21.1), enforced in code. <i>Mute</i> a host, sensor,
 /// location or case: no messages, tickets, notes on tickets or big brother calls for it; its cases still open and show.
-/// <i>Suppress</i> a channel (pushover, email, ticket, redmine-note), a sensor type, or a kind of case. A <i>note</i> goes into
+/// <i>Suppress</i> a channel (pushover, email, ticket, redmine-note, board-message), a sensor type, or a kind of case. A <i>note</i> goes into
 /// the prompts. Each ends, at most 30 days away; a draft from the chat counts only once a person confirms it.
 /// </summary>
 public sealed class Instructions(IDbContextFactory<PnmtdDbContext> dbs)
@@ -24,7 +24,7 @@ public sealed class Instructions(IDbContextFactory<PnmtdDbContext> dbs)
     public static readonly IReadOnlyList<string> Kinds = ["mute", "suppress", "note"];
     public static readonly IReadOnlyList<string> MuteScopes = ["host", "sensor", "location", "case"];
     public static readonly IReadOnlyList<string> SuppressScopes = ["channel", "sensor-type", "case-kind"];
-    public static readonly IReadOnlyList<string> Channels = ["pushover", "email", "ticket", "redmine-note", "access", "away"];
+    public static readonly IReadOnlyList<string> Channels = ["pushover", "email", "ticket", "redmine-note", "access", "away", "board-message"];
 
     public async Task<List<CookieInstructionEntity>> ActiveAsync(CancellationToken ct)
     {
@@ -43,6 +43,8 @@ public sealed class Instructions(IDbContextFactory<PnmtdDbContext> dbs)
         CookieActionKind.PrivateNote or CookieActionKind.PublicAnswer => "redmine-note",
         // The away watch's notice (docs/cookie-redmine-tab-plan.md §6.4): mute of the case, or a suppress of the channel "away".
         CookieActionKind.AwayNotice => "away",
+        // A message box on a wall's board (docs/board-messages-plan.md §8.3).
+        CookieActionKind.BoardMessage => "board-message",
         _ => null,
     };
 
@@ -138,7 +140,7 @@ public sealed class Instructions(IDbContextFactory<PnmtdDbContext> dbs)
         {
             v.Check(SuppressScopes.Contains(d.Scope), "scope", "channel, sensor-type or case-kind.");
             v.Check(!string.IsNullOrWhiteSpace(d.Value) && d.Value.Trim().Length <= 100, "value", "What is suppressed.");
-            v.Check(d.Scope != "channel" || Channels.Contains(d.Value?.Trim().ToLowerInvariant() ?? ""), "value", "pushover, email, ticket, redmine-note, access or away.");
+            v.Check(d.Scope != "channel" || Channels.Contains(d.Value?.Trim().ToLowerInvariant() ?? ""), "value", "pushover, email, ticket, redmine-note, access, away or board-message.");
             v.Check(d.Scope != "case-kind" || d.Value?.Trim().ToLowerInvariant() is "problem" or "ticket", "value", "problem or ticket.");
         }
         else

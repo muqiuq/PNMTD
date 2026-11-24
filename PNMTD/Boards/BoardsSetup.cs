@@ -16,8 +16,23 @@ public sealed class BoardOptions
     /// <summary>The address screens open boards at, when it isn't PublicBaseUrl (§5.1): https://board.example.com.</summary>
     public string? BaseUrl { get; set; }
 
-    /// <summary>Requests per address and minute on /pnmt-board/api (§5.2).</summary>
-    public int RequestsPerMinute { get; set; } = 120;
+    /// <summary>
+    /// Requests per address and board a minute on /pnmt-board/api (§5.2; per board too since docs/board-messages-plan.md §6.4): about 13
+    /// screens of one board behind one address, with the messages' and the lounge's polls.
+    /// </summary>
+    public int RequestsPerMinute { get; set; } = 600;
+
+    /// <summary>The longest a board message shows (docs/board-messages-plan.md §4.2): 60 minutes, at most a day.</summary>
+    public int MessageMaxMinutes { get; set; } = 60;
+
+    /// <summary>How long ended board messages are kept, for the Debug page's list (§10).</summary>
+    public int MessageHistoryDays { get; set; } = 30;
+
+    /// <summary>
+    /// The largest image an image element takes (docs/board-messages-plan.md §9.4): 10 MB, above a page's 2 MB, as an animated GIF often
+    /// is. The knowledge base's pixel limits and uploads per hour apply.
+    /// </summary>
+    public long MaxImageBytes { get; set; } = 10 * 1024 * 1024;
 }
 
 public static class BoardsSetup
@@ -32,6 +47,7 @@ public static class BoardsSetup
         services.AddScoped<BoardService>();
         services.AddScoped<BoardAccess>();
         services.AddScoped<BoardData>();
+        services.AddScoped<BoardMessageService>();
         return services;
     }
 }
@@ -55,6 +71,30 @@ public sealed class BoardRuntime
     private readonly ConcurrentDictionary<Guid, (BoardColour Colour, DateTime Since)> colours = new();
     private readonly ConcurrentDictionary<(Guid Board, string Address), DateTime> refusals = new();
     private readonly ConcurrentDictionary<Guid, SemaphoreSlim> building = new();
+    private readonly ConcurrentDictionary<Guid, long> stamps = new();
+    private long cleanedAt;
+
+    /// <summary>This process's: a board's ETag carries it, so that after a restart no screen gets a 304 for what it had before.</summary>
+    public string StartId { get; } = Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(4));
+
+    /// <summary>
+    /// The board's messages' stamp (docs/board-messages-plan.md §6.2): it goes up when a message to it is sent or withdrawn, and when the
+    /// board is saved. A message whose time is up doesn't change it: the board's own countdown removes it.
+    /// </summary>
+    public long Stamp(Guid board) => stamps.GetOrAdd(board, 0);
+
+    public void Bump(Guid board) => stamps.AddOrUpdate(board, 1, (_, s) => s + 1);
+
+    /// <summary>The messages' ETag: <c>"start-stamp"</c>.</summary>
+    public string MessagesTag(Guid board) => $"\"{StartId}-{Stamp(board)}\"";
+
+    /// <summary>True when the messages' cleanup is due: at most once every 6 hours, when a message is sent.</summary>
+    public bool CleanupDue()
+    {
+        var now = Clock.UtcNow.Ticks;
+        var last = Interlocked.Read(ref cleanedAt);
+        return now - last >= TimeSpan.FromHours(6).Ticks && Interlocked.CompareExchange(ref cleanedAt, now, last) == last;
+    }
 
     public Row? Token(string hash) => tokens.TryGetValue(hash, out var e) && Clock.UtcNow - e.At < TokenFor ? e.Row : null;
 
@@ -71,6 +111,8 @@ public sealed class BoardRuntime
             }
         }
         views.TryRemove(board, out _);
+        // Its Messages setting may have changed.
+        Bump(board);
     }
 
     /// <summary>The board's last view if it is of this revision and younger than <paramref name="maxAge"/>; else one built now, once.</summary>
@@ -162,5 +204,7 @@ public sealed class BoardRuntime
         written.Clear();
         colours.Clear();
         refusals.Clear();
+        stamps.Clear();
+        Interlocked.Exchange(ref cleanedAt, 0);
     }
 }

@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PNMTD.Ai;
+using PNMTD.Auth;
 using PNMTD.Auth.Rights;
 using PNMTD.Data;
 using PNMTD.Lib.Helper;
@@ -471,9 +472,23 @@ public sealed class LoungeLoop(IDbContextFactory<PnmtdDbContext> dbs, LoungeSign
             var length = LoungeVoice.LengthFor(scene.Kind, replyTo is not null, new Random(HashCode.Combine(scene.Id, index, replyTo?.Id)));
             var importantLeft = Math.Max(0, lounge.ImportantPerDay
                 - await db.LoungeMessages.CountAsync(m => m.From == who && m.Important && m.CaseId == null && m.At >= today, ct));
+            // docs/board-messages-plan.md §8.6: send_board_message only for a person who holds Boards: Message and whom this voice answers.
+            IReadOnlyList<object>? mayBoard = null;
+            string? asker = null;
+            if (replyTo is { From: "person", UserId: { } askerId } && await SessionCache.LoadAsync(db, askerId) is { IsActive: true } entry
+                && entry.Rights.Has(Area.Boards, Level.Message))
+            {
+                var actions = await settings.GetAsync<ActionSettings>(ct);
+                if (actions.Levels.BoardMessage.Level != ActionLevel.Off && CookieBrain.BoardsOpen(actions, await round.RightsAsync(ct))
+                    && await CookieBrain.BoardsYouMayMessageAsync(db, actions, p, ct) is { Count: > 0 } boards)
+                {
+                    mayBoard = boards;
+                    asker = people.As(askerId, p);
+                }
+            }
             var result = await voice.SpeakAsync(new VoiceCall(who, scene, g, scene.Seed is null ? null : people.Hide(p.Mask(scene.Seed)), directions,
                 last || replyTo is not null || comments.Count > 0, replyTo, comments, rights, p, people, lounge, positions, awake,
-                await MayEmailAsync(db, lounge, people, p, ct), offerCase, yesterday, length, importantLeft), ct);
+                await MayEmailAsync(db, lounge, people, p, ct), offerCase, yesterday, length, importantLeft, mayBoard, asker), ct);
 
             scene.Messages += result.Message is null ? 0 : 1;
             scene.ToolCalls += result.ToolCalls;

@@ -1,6 +1,9 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using PNMTD.Auth.Rights;
+using PNMTD.Data;
 using PNMTD.Lib.Helper;
 using PNMTD.Models.Db;
 
@@ -65,16 +68,53 @@ public sealed class CookieBrain(CookieSettings settings, Instructions instructio
     private static readonly CookieActionKind[] Proposable =
     [
         CookieActionKind.Pushover, CookieActionKind.Email, CookieActionKind.Ticket, CookieActionKind.PrivateNote, CookieActionKind.PublicAnswer,
-        CookieActionKind.ObjectNote,
+        CookieActionKind.ObjectNote, CookieActionKind.BoardMessage,
     ];
+
+    /// <summary>
+    /// What a board message is for (docs/board-messages-plan.md §8.2), fixed in code: the room, not a person; once per incident and board;
+    /// nothing a corridor shouldn't read.
+    /// </summary>
+    public const string BoardMessageRules =
+        "A board-message is a large message box on a wall's board (BoardsYouMayMessage), for what a room of people should know now: an outage or " +
+        "an incident that affects many, planned maintenance as it starts, and the all-clear afterwards (success). Never for one sensor's routine " +
+        "failure; at most one per incident and board. Name no person, no customer, no address and no secret: a board may hang in a corridor. " +
+        "Put the board's id in ObjectId, the title (at most 100 characters) in Subject, a short text (at most 1000) in Text, and BoardKind: " +
+        "alert for urgent, warning for important, information for info, maintenance for planned work, success when it is resolved.";
+
+    /// <summary>Both gates of a board message (docs/board-messages-plan.md §8.1): boards chosen for Cookie, and Boards: Message for its group.</summary>
+    public static bool BoardsOpen(ActionSettings actions, UserRights? rights) =>
+        actions.BoardMessages.BoardIds.Count > 0 && rights?.Has(Area.Boards, Level.Message) == true;
+
+    /// <summary>The boards Cookie may send to now, for the brief: chosen for it, on, and showing messages; their reach, never their URLs.</summary>
+    public static async Task<IReadOnlyList<object>> BoardsYouMayMessageAsync(PnmtdDbContext db, ActionSettings actions, Pseudonyms p, CancellationToken ct)
+    {
+        var ids = actions.BoardMessages.BoardIds.ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+        var rows = await db.Boards.AsNoTracking().Where(b => ids.Contains(b.Id) && b.Enabled).Select(b => new { b.Id, b.Name, b.Description, b.Layout, b.Networks })
+            .ToListAsync(ct);
+        return [.. rows.Where(b => Boards.BoardLayouts.Read(b.Layout).Look.Messages).Select(b =>
+        {
+            var networks = Connectors.ConnectorNetworks.Read(b.Networks);
+            return (object)new
+            {
+                id = b.Id, name = p.Mask(b.Name), description = b.Description is null ? null : p.Mask(b.Description),
+                reach = networks.Count == 0 || Connectors.ConnectorNetworks.AnyAddress(networks) ? "anyone with its URL" : "its networks and signed-in users",
+            };
+        })];
+    }
 
     /// <summary>
     /// What Cookie may propose now (§6, §21.1), fixed in code from the levels on Admin → Cookie → Actions and from what is
     /// available (docs/cookie-fallback-plan.md §4.1); with every action off, it only watches, as in package nine.
     /// </summary>
-    public async Task<string> ActingAsync(IntegrationsReading reading, CancellationToken ct)
+    public async Task<string> ActingAsync(IntegrationsReading reading, CancellationToken ct, UserRights? rights = null)
     {
-        var on = (await OnAsync(reading, ct)).Select(ProposedAction.Name).ToList();
+        var kinds = await OnAsync(reading, ct, rights);
+        var on = kinds.Select(ProposedAction.Name).ToList();
         var fallback = reading.CanTicket ? "" : " " + NoTicketSystem(reading);
         if (on.Count == 0)
         {
@@ -84,16 +124,17 @@ public sealed class CookieBrain(CookieSettings settings, Instructions instructio
             "code (rights, limits, duplicates, mute and suppress) and Seraph, the reviewer; some wait for a person. Propose only what the case " +
             "needs now; most rounds need none, and a note is enough when someone is already on it. Name people only by the user ids in " +
             "PeopleYouMayAddress, tickets by their number, hosts and sensors by their ids. Write each text as it is to be sent, in the " +
-            "requester's language for a public answer, and never with secrets." + fallback;
+            "requester's language for a public answer, and never with secrets." + fallback +
+            (kinds.Contains(CookieActionKind.BoardMessage) ? " " + BoardMessageRules : "");
     }
 
     /// <summary>
     /// What the chat says about Cookie's abilities (docs/cookie-fallback-plan.md §5.1): the same actions and conditions the
     /// cases get, and that nothing asked in the chat becomes a proposal.
     /// </summary>
-    public async Task<string> ChatActingAsync(IntegrationsReading reading, CancellationToken ct)
+    public async Task<string> ChatActingAsync(IntegrationsReading reading, CancellationToken ct, UserRights? rights = null)
     {
-        var on = (await OnAsync(reading, ct)).Select(k => $"{ProposedAction.Name(k)} ({Condition(k)})").ToList();
+        var on = (await OnAsync(reading, ct, rights)).Select(k => $"{ProposedAction.Name(k)} ({Condition(k)})").ToList();
         var text = on.Count == 0
             ? "You only watch: you propose nothing, from the chat or from a case. For anything the person wants done, say what would happen and " +
               "who could do it."
@@ -125,10 +166,12 @@ public sealed class CookieBrain(CookieSettings settings, Instructions instructio
             (reading.CanTicket ? "" : $" Tickets aren't possible now: {reading.NoTicketReason}");
     }
 
-    private async Task<List<CookieActionKind>> OnAsync(IntegrationsReading reading, CancellationToken ct)
+    private async Task<List<CookieActionKind>> OnAsync(IntegrationsReading reading, CancellationToken ct, UserRights? rights = null)
     {
-        var levels = (await settings.GetAsync<ActionSettings>(ct)).Levels;
-        return [.. Proposable.Where(k => levels.Of(k).Level != ActionLevel.Off && Possible(k, reading))];
+        var actions = await settings.GetAsync<ActionSettings>(ct);
+        var boards = BoardsOpen(actions, rights);
+        return [.. Proposable.Where(k => actions.Levels.Of(k).Level != ActionLevel.Off
+            && (k == CookieActionKind.BoardMessage ? boards : Possible(k, reading)))];
     }
 
     /// <summary>Whether what is available allows the action at all (docs/cookie-fallback-plan.md §4.1).</summary>
@@ -136,6 +179,8 @@ public sealed class CookieBrain(CookieSettings settings, Instructions instructio
     {
         CookieActionKind.Ticket => reading.CanTicket,
         CookieActionKind.PrivateNote or CookieActionKind.PublicAnswer => reading.RedmineWritable,
+        // Its gates are the boards chosen and Cookie's right (BoardsOpen); an order from the chat never sends one.
+        CookieActionKind.BoardMessage => false,
         _ => true,
     };
 
@@ -146,6 +191,7 @@ public sealed class CookieBrain(CookieSettings settings, Instructions instructio
         CookieActionKind.Ticket => "for a problem nobody takes care of",
         CookieActionKind.PrivateNote => "on the case's ticket, to staff",
         CookieActionKind.PublicAnswer => "on a support ticket, to its requester",
+        CookieActionKind.BoardMessage => "a message box on a wall's board, for what a room should know now: an outage, maintenance, the all-clear",
         _ => "on a host or sensor, shown on its page to the people who look after it; read your notes there first (host_get, sensor_get) and don't repeat one",
     };
 

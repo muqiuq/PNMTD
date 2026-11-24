@@ -7,7 +7,15 @@ function layout(...columns: string[][]): BoardLayout {
   return {
     schemaVersion: 1,
     refreshSeconds: 30,
-    look: { theme: 'default', fit: true, textScale: 100, motion: true, people: 'Names' },
+    look: {
+      theme: 'default',
+      fit: true,
+      textScale: 100,
+      motion: true,
+      people: 'Names',
+      weekNumber: false,
+      messages: true,
+    },
     header: { showTitle: true, title: null, clock: true, date: false, seconds: true },
     bar: { show: true, position: 'Top', size: 'Medium', greenText: null, flash: true, rules: [] },
     columns: columns.map((ids) => ({ width: 1, elements: ids.map((id) => ({ ...newElement('Clock'), id })) })),

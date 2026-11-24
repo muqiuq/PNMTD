@@ -1831,6 +1831,84 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("boards");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.BoardMessageEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ApprovedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApprovedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.PrimitiveCollection<Guid[]>("BoardIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
+                    b.Property<Guid?>("CookieCaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long?>("CookieDecisionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("EndsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("Seconds")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SentById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SentByName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Text")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("WithdrawnAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("WithdrawnById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("WithdrawnByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EndsAt");
+
+                    b.HasIndex("SentAt");
+
+                    b.ToTable("board_messages");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.CertificateAuthorityEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4102,6 +4180,9 @@ namespace PNMTD.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("BoardId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("FileId")
                         .HasColumnType("uuid");
 
@@ -4121,6 +4202,10 @@ namespace PNMTD.Data.Migrations
 
                     b.HasIndex("FileId");
 
+                    b.HasIndex("BoardId", "FileId")
+                        .IsUnique()
+                        .HasFilter("\"BoardId\" IS NOT NULL");
+
                     b.HasIndex("LocationId", "FileId")
                         .IsUnique()
                         .HasFilter("\"LocationId\" IS NOT NULL");
@@ -4135,7 +4220,7 @@ namespace PNMTD.Data.Migrations
 
                     b.ToTable("file_uses", t =>
                         {
-                            t.HasCheckConstraint("CK_file_uses_one_owner", "num_nonnulls(\"PageId\", \"LocationId\", \"ResponsibilityId\") = 1");
+                            t.HasCheckConstraint("CK_file_uses_one_owner", "num_nonnulls(\"PageId\", \"LocationId\", \"ResponsibilityId\", \"BoardId\") = 1");
                         });
                 });
 
@@ -9909,6 +9994,11 @@ namespace PNMTD.Data.Migrations
 
             modelBuilder.Entity("PNMTD.Models.Db.FileUseEntity", b =>
                 {
+                    b.HasOne("PNMTD.Models.Db.BoardEntity", null)
+                        .WithMany()
+                        .HasForeignKey("BoardId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("PNMTD.Models.Db.FileEntity", null)
                         .WithMany()
                         .HasForeignKey("FileId")
