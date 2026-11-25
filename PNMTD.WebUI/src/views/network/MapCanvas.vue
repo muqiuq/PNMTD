@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import type { S } from '@/api/resources'
 import { bendOf, boundsOf, edgePath } from '@/components/graph/geometry'
+import { useMoving } from '@/components/graph/useMoving'
 import { usePanZoom } from '@/composables/usePanZoom'
 import { edgeDash, edgeTone, edgeWidth, nodeGlyph } from './networkFormat'
 import { bodyRadius, encloseGroup, layout, nodeRadius, type GroupCircle, type Point } from './networkLayout'
@@ -114,87 +115,19 @@ watch(
   { immediate: true },
 )
 
-// --- moving ------------------------------------------------------------------------------------------------------------
+// --- moving (components/graph/useMoving.ts) ---------------------------------------------------------------------------
 
-function place(points: Map<string, Point>) {
-  const next = new Map(moved.value)
-  for (const [id, p] of points) next.set(id, p)
-  moved.value = next
-}
-
-/** A drag: the nodes it moves, where they were, and the moves they had before (Escape puts those back). */
-let dragging: { ids: string[]; from: Map<string, Point>; before: Map<string, Point | undefined>; start: Point } | null =
-  null
-let dragMoved = false
-function begin(e: PointerEvent, ids: string[]) {
-  e.stopPropagation()
-  try {
-    ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
-  } catch {
-    // A pointer the browser doesn't track (a synthetic event): the drag works without capture.
-  }
-  dragging = {
-    ids,
-    from: new Map(ids.map((id) => [id, at(id)])),
-    before: new Map(ids.map((id) => [id, moved.value.get(id)])),
-    start: pan.toWorld(e),
-  }
-  dragMoved = false
-  window.addEventListener('keydown', onEscape)
-}
-function move(e: PointerEvent) {
-  if (!dragging) return
-  const now = pan.toWorld(e)
-  const dx = now.x - dragging.start.x
-  const dy = now.y - dragging.start.y
-  if (Math.abs(dx) + Math.abs(dy) > 2) dragMoved = true
-  if (!dragMoved) return
-  place(
-    new Map(dragging.ids.map((id) => [id, { x: dragging!.from.get(id)!.x + dx, y: dragging!.from.get(id)!.y + dy }])),
-  )
-}
-function end() {
-  dragging = null
-  window.removeEventListener('keydown', onEscape)
-}
-function onEscape(e: KeyboardEvent) {
-  if (e.key !== 'Escape' || !dragging) return
-  e.preventDefault()
-  const next = new Map(moved.value)
-  for (const [id, p] of dragging.before) {
-    if (p) next.set(id, p)
-    else next.delete(id)
-  }
-  moved.value = next
-  end()
-}
-onBeforeUnmount(end)
+const { begin, move, end, release, nudge } = useMoving(moved, { at, toWorld: (e) => pan.toWorld(e) })
 
 function downNode(e: PointerEvent, id: string) {
   begin(e, [id])
 }
 function upNode(id: string) {
-  if (dragging && !dragMoved) selected.value = { kind: 'node', id }
-  end()
+  if (release()) selected.value = { kind: 'node', id }
 }
 /** A location by its name: all its nodes on the map. */
 function members(groupId: string): string[] {
   return nodes.value.filter((n) => n.siteId === groupId).map((n) => n.id)
-}
-
-const arrows: Record<string, Point> = {
-  ArrowLeft: { x: -1, y: 0 },
-  ArrowRight: { x: 1, y: 0 },
-  ArrowUp: { x: 0, y: -1 },
-  ArrowDown: { x: 0, y: 1 },
-}
-/** The arrow keys move a focused node or location: 8 units, 40 with Shift. */
-function nudge(e: KeyboardEvent, ids: string[]) {
-  const d = arrows[e.key]
-  if (!d || !ids.length) return
-  e.preventDefault()
-  const step = e.shiftKey ? 40 : 8
-  place(new Map(ids.map((id) => [id, { x: at(id).x + d.x * step, y: at(id).y + d.y * step }])))
 }
 
 function chooseEdge(e: PointerEvent, id: string) {
