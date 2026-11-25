@@ -489,8 +489,8 @@
         "dependencies": {
           "DnsClient": "[1.8.0, )",
           "Microsoft.Extensions.Hosting.Systemd": "[10.0.15, )",
-          "PNMTD.Lib": "[1.25.0, )",
-          "PNMTD.Sensor.Core": "[1.25.0, )",
+          "PNMTD.Lib": "[1.26.0, )",
+          "PNMTD.Sensor.Core": "[1.26.0, )",
           "YamlDotNet": "[16.3.0, )"
         }
       },
@@ -506,7 +506,7 @@
           "Microsoft.EntityFrameworkCore": "[10.0.15, )",
           "ModelContextProtocol.AspNetCore": "[2.4.0, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
-          "PNMTD.Lib": "[1.25.0, )",
+          "PNMTD.Lib": "[1.26.0, )",
           "SSH.NET": "[2026.0.0, )"
         }
       },
@@ -521,7 +521,7 @@
         "dependencies": {
           "DnsClient": "[1.8.0, )",
           "Microsoft.Extensions.Hosting.Abstractions": "[10.0.15, )",
-          "PNMTD.Lib": "[1.25.0, )"
+          "PNMTD.Lib": "[1.26.0, )"
         }
       },
       "BouncyCastle.Cryptography": {

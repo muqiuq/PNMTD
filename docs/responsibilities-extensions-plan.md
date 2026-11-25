@@ -1,6 +1,6 @@
 # Plan: Responsibilities: a Links tab, a sortable list, a colour each, and an Overview map with notes
 
-**Status:** **Built: P1–P5, on master** (2026-11-25, §15 *As built*). Revision 2's decisions are in §14. It extends [responsibilities-plan.md](responsibilities-plan.md) (built, released in 1.21.0). Its decisions stay: responsibilities are information only (its decision 5), and nothing is inherited (its decision 6). Planned for 1.25.0; it comes with 1.26.0 (§15). Below, *decision N* means this plan's §14, and *first plan, decision N* means responsibilities-plan.md §18.
+**Status:** **Built (§15 *As built*). Released in 1.26.0** (2026-11-25). Revision 2's decisions are in §14. It extends [responsibilities-plan.md](responsibilities-plan.md) (built, released in 1.21.0). Its decisions stay: responsibilities are information only (its decision 5), and nothing is inherited (its decision 6). Planned for 1.25.0; released in 1.26.0 (§15). Below, *decision N* means this plan's §14, and *first plan, decision N* means responsibilities-plan.md §18.
 
 | | |
 |---|---|
