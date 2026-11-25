@@ -1,6 +1,6 @@
 # Plan: Responsibilities: a Links tab, a sortable list, a colour each, and an Overview map with notes
 
-**Status:** Revision 2 (2026-11-24): revision 1's questions are answered, in §14 *Decisions*. Nothing is built. It extends [responsibilities-plan.md](responsibilities-plan.md) (built, released in 1.21.0). Its decisions stay: responsibilities are information only (its decision 5), and nothing is inherited (its decision 6). Planned for 1.25.0. Below, *decision N* means this plan's §14, and *first plan, decision N* means responsibilities-plan.md §18.
+**Status:** **Built: P1–P5, on master** (2026-11-25, §15 *As built*). Revision 2's decisions are in §14. It extends [responsibilities-plan.md](responsibilities-plan.md) (built, released in 1.21.0). Its decisions stay: responsibilities are information only (its decision 5), and nothing is inherited (its decision 6). Planned for 1.25.0; it comes with 1.26.0 (§15). Below, *decision N* means this plan's §14, and *first plan, decision N* means responsibilities-plan.md §18.
 
 | | |
 |---|---|
@@ -534,3 +534,79 @@ Each phase is one commit or more on master, with the suites green.
 - **The Links tab sorts by its columns too,** on the server because it is paged.
 
 No questions are open.
+
+---
+
+## 15. As built
+
+**Built: P1–P5, on master (2026-11-25).** Planned for 1.25.0; 1.25.0 went out meanwhile with the MCP extensions, so this comes with 1.26.0.
+
+### Where the build differs from the plan
+
+1. **Edit, not Manage.** After this plan's revision 2, 1.25.0 added *Responsibilities: Edit* between View and Manage and moved every change but deleting and the global people to it (docs/mcp-extensions-plan.md §8.1). The colour, the changes of many links, the layout and the notes follow it and need *Edit*. Deleting a responsibility and setting the global people stay *Manage*'s. Read *Edit* wherever §5, §6, §7 and §8.1 say *Manage*.
+2. **What nobody links has two endpoints:**
+   - `GET unlinked/hosts` needs *Monitoring: View*;
+   - `GET unlinked/locations` needs *Locations: View*;
+   - both also need *Responsibilities: View*.
+
+   The plan's "or Manage" is dropped. The attributes then state the whole rule, which the endpoint matrix checks; listing every host is what *Monitoring: View* is for. The tab offers only the views the person can list.
+3. **The Links tab's rows are filtered in the database,** by responsibility, person, kind and location. They are then named, searched, sorted and paged in memory, not paged in SQL. The search covers the location paths, which come from the tree, and a responsibility links at most 200 objects.
+4. **The *Where* column:** a location shows its parent's path, a host its location's path. A page carries its number in its name ("KB-42 …").
+5. **Filters and rights:**
+   - the location filter is shown with *Locations: View*, because it lists the tree;
+   - the person filter takes its people from the list, so *View* is enough.
+6. **`useServerTable` got `urlQuery`:** a list's own keys (its filters) go into the URL with its page, sort and search, in one replace, so the two writes can't race.
+7. **The router's tab pattern takes `links` and `overview`.** The browser tests found the new tabs answering *Not found* without it.
+8. **A map object carries its links** (responsibility and link id), so the side panel can unlink it.
+9. **People always come with the map.** Only the objects' layers are asked for: `hosts`, `locations` and `pages`.
+10. **Notes:**
+    - **Size:** a note's height is estimated from its text, not measured, so the layout around it is the same every time. A longer text is cut, and the panel shows all of it.
+    - **Place:** `X` and `Y` are the note's top-left corner.
+    - **Adding and moving:** a *Note* button sits next to *Find*, and moved notes count in the bar ("1 responsibility and 1 note moved").
+11. **The list's rows carry `updatedByName`,** for the *Changed* column's hover.
+12. **The colour check is shared with the users' plan colour too** (`People.ApplyPlanAsync`), not only with the availability types.
+13. **Saving the same colour again** writes an audit entry without a detail, as an unchanged form does.
+14. **The documentation of responsibilities now names the *Edit* level and the MCP tools that 1.25.0 added.** It still said *Manage* and "never change them".
+
+### P1: sorting and colour (84115b0)
+
+- `Colours`, used by responsibilities, the availability types and the users' plan colour.
+- `responsibilities.Color`, `ColorChanged = 10`, `PUT {id}/color`, `color` on the form and in the contracts.
+- `responsibility_update` keeps the colour.
+- `ColorField` and the contrast helpers moved to `components/`; `ColourDot` and `ColourPicker`.
+- The list's column sorting (`listSort.ts`) and the *Changed* column.
+- Migration `ResponsibilityColour`.
+
+### P2: the Links tab (595b133)
+
+- `ResponsibilityQueries.Links.cs`, `ResponsibilityService.Links.cs`.
+- `GET links`, `GET unlinked/hosts` and `GET unlinked/locations`.
+- `POST links`, `POST links/unlink` and `POST links/move`.
+- `LinksTab`, `LinksTable`, `UnlinkedTable`, `BulkLinkDialog` and `linksState.ts`.
+
+### P3 and P4: the Overview and its notes (cf398a9, then 8bfe6b0 for both)
+
+- **cf398a9, alone:** `components/graph/useMoving.ts`, out of `MapCanvas.vue`. `e2e/network-map.spec.ts` passed unchanged.
+- **The server:**
+  - `ResponsibilityMapService`, `ResponsibilityMapController`;
+  - `responsibility_map_positions`, `responsibility_map_notes`;
+  - the audit events `ResponsibilityMapSaved`, `ResponsibilityMapReset` and `ResponsibilityNoteCreated`, `…Changed` and `…Deleted`;
+  - migrations `ResponsibilityMap` and `ResponsibilityMapNotes`;
+  - two notes in the dev seed.
+- **The web UI:**
+  - `overview/`: `OverviewTab`, `OverviewCanvas`, `OverviewPanel`, `NoteDialog`, `overviewLayout.ts` and `overviewState.ts`;
+  - the notes' colours as tokens in `design/base.css`, per theme.
+
+### P5: the finish
+
+`ResponsibilitiesDocs.vue`, the README, `docs/release-notes-1.26.md`, this section.
+
+### The checks
+
+- **Web and .NET:** `./run-tests.sh --only web,dotnet` was green for each phase, in both time zones, with no pending model changes.
+  - The P2 run failed once, on P1's colour test: it read an audit entry without a detail, and only failed when the database returned that entry first. The test was fixed and committed with P2.
+- **Browser:** the tests ran on a stack of their own:
+  - `e2e/responsibilities.spec.ts`: the list's sorting and a colour, the Links tab, the Overview, and notes;
+  - `e2e/network-map.spec.ts`;
+  - `e2e/pages.spec.ts`.
+- **Not run:** the contract, deploy and upgrade groups.
